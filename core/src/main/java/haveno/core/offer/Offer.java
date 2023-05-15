@@ -28,8 +28,9 @@ import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.availability.OfferAvailabilityProtocol;
@@ -46,7 +47,6 @@ import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.utils.Fiat;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
@@ -182,9 +182,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
             double marketPriceAsDouble = marketPrice.getPrice();
             double targetPriceAsDouble = marketPriceAsDouble * factor;
             try {
-                int precision = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                        Altcoin.SMALLEST_UNIT_EXPONENT :
-                        Fiat.SMALLEST_UNIT_EXPONENT;
+                int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                        TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                        CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double scaled = MathUtils.scaleUpByPowerOf10(targetPriceAsDouble, precision);
                 final long roundedToLong = MathUtils.roundDoubleToLong(scaled);
                 return Price.valueOf(currencyCode, roundedToLong);
@@ -526,6 +526,10 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public boolean isXmr() {
         return getCurrencyCode().equals("XMR");
+    }
+
+    public boolean isTraditionalOffer() {
+        return CurrencyUtil.isTraditionalCurrency(currencyCode);
     }
 
     public boolean isFiatOffer() {

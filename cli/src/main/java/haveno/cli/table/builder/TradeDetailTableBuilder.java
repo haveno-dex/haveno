@@ -66,8 +66,8 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
         colIsPaymentReceivedMessageSent.addRow(trade.getIsPaymentReceived());
         colIsPayoutPublished.addRow(trade.getIsPayoutPublished());
         colIsCompleted.addRow(trade.getIsCompleted());
-        if (colAltcoinReceiveAddressColumn != null)
-            colAltcoinReceiveAddressColumn.addRow(toAltcoinReceiveAddress.apply(trade));
+        if (colCryptoReceiveAddressColumn != null)
+            colCryptoReceiveAddressColumn.addRow(toCryptoReceiveAddress.apply(trade));
     }
 
     private List<Column<?>> defineColumnList(TradeInfo trade) {
@@ -90,8 +90,8 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
             add(colIsCompleted.asStringColumn());
         }};
 
-        if (colAltcoinReceiveAddressColumn != null)
-            columns.add(colAltcoinReceiveAddressColumn);
+        if (colCryptoReceiveAddressColumn != null)
+            columns.add(colCryptoReceiveAddressColumn);
 
         return columns;
     }

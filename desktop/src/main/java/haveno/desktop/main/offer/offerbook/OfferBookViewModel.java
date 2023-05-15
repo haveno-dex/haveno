@@ -396,7 +396,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public Optional<Double> getMarketBasedPrice(Offer offer) {
-        OfferDirection displayDirection = offer.isFiatOffer() ? direction :
+        OfferDirection displayDirection = offer.isTraditionalOffer() ? direction :
                 direction.equals(OfferDirection.BUY) ? OfferDirection.SELL : OfferDirection.BUY;
         return priceUtil.getMarketBasedPrice(offer, displayDirection);
     }
@@ -427,7 +427,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     int getNumberOfDecimalsForVolume(OfferBookListItem item) {
-        return item.getOffer().isFiatOffer() ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS : GUIUtil.ALTCOINS_DECIMALS_WITH_ZEROS;
+        return item.getOffer().isFiatOffer() ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
     }
 
     String getPaymentMethod(OfferBookListItem item) {
@@ -622,7 +622,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
         else
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);

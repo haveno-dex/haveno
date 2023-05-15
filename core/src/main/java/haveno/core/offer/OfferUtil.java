@@ -26,6 +26,7 @@ import haveno.core.filter.FilterManager;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.payment.CashByMailAccount;
 import haveno.core.payment.F2FAccount;
@@ -42,7 +43,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -169,7 +169,7 @@ public class OfferUtil {
                                                      CoinFormatter formatter) {
         String userCurrencyCode = preferences.getPreferredTradeCurrency().getCode();
         if (CurrencyUtil.isCryptoCurrency(userCurrencyCode)) {
-            // In case the user has selected a altcoin as preferredTradeCurrency
+            // In case the user has selected a crypto as preferredTradeCurrency
             // we derive the fiat currency from the user country
             String countryCode = preferences.getUserCountry().code;
             userCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();
@@ -184,7 +184,7 @@ public class OfferUtil {
                                                String currencyCode,
                                                OfferDirection direction) {
         Map<String, String> extraDataMap = new HashMap<>();
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String myWitnessHashAsHex = accountAgeWitnessService
                     .getMyWitnessHashAsHex(paymentAccount.getPaymentAccountPayload());
             extraDataMap.put(ACCOUNT_AGE_WITNESS_HASH, myWitnessHashAsHex);
@@ -236,7 +236,7 @@ public class OfferUtil {
     private Optional<Volume> getFeeInUserFiatCurrency(BigInteger makerFee, String userCurrencyCode, CoinFormatter formatter) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(userCurrencyCode);
         if (marketPrice != null && makerFee != null) {
-            long marketPriceAsLong = roundDoubleToLong(scaleUpByPowerOf10(marketPrice.getPrice(), Fiat.SMALLEST_UNIT_EXPONENT));
+            long marketPriceAsLong = roundDoubleToLong(scaleUpByPowerOf10(marketPrice.getPrice(), TraditionalMoney.SMALLEST_UNIT_EXPONENT));
             Price userCurrencyPrice = Price.valueOf(userCurrencyCode, marketPriceAsLong);
             return Optional.of(userCurrencyPrice.getVolumeByAmount(makerFee));
         } else {
@@ -244,11 +244,11 @@ public class OfferUtil {
         }
     }
 
-    public static boolean isFiatOffer(Offer offer) {
+    public static boolean isTraditionalOffer(Offer offer) {
         return offer.getBaseCurrencyCode().equals("XMR");
     }
 
-    public static boolean isAltcoinOffer(Offer offer) {
+    public static boolean isCryptoOffer(Offer offer) {
         return offer.getCounterCurrencyCode().equals("XMR");
     }
 

@@ -20,20 +20,20 @@ package haveno.core.util;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
-import haveno.core.util.validation.AltcoinValidator;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -56,7 +56,7 @@ public class PriceUtil {
     public static MonetaryValidator getPriceValidator(boolean isFiatCurrency) {
         return isFiatCurrency ?
                 new FiatPriceValidator() :
-                new AltcoinValidator();
+                new NonFiatPriceValidator();
     }
 
     public static InputValidator.ValidationResult isTriggerPriceValid(String triggerPriceAsString,
@@ -96,9 +96,9 @@ public class PriceUtil {
     public static Price marketPriceToPrice(MarketPrice marketPrice) {
         String currencyCode = marketPrice.getCurrencyCode();
         double priceAsDouble = marketPrice.getPrice();
-        int precision = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                Altcoin.SMALLEST_UNIT_EXPONENT :
-                Fiat.SMALLEST_UNIT_EXPONENT;
+        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                CryptoMoney.SMALLEST_UNIT_EXPONENT;
         double scaled = MathUtils.scaleUpByPowerOf10(priceAsDouble, precision);
         long roundedToLong = MathUtils.roundDoubleToLong(scaled);
         return Price.valueOf(currencyCode, roundedToLong);
@@ -137,14 +137,14 @@ public class PriceUtil {
         // If the offer did not use % price we calculate % from current market price
         String currencyCode = offer.getCurrencyCode();
         Price price = offer.getPrice();
-        int precision = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                Altcoin.SMALLEST_UNIT_EXPONENT :
-                Fiat.SMALLEST_UNIT_EXPONENT;
+        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                CryptoMoney.SMALLEST_UNIT_EXPONENT;
         long priceAsLong = checkNotNull(price).getValue();
         double scaled = MathUtils.scaleDownByPowerOf10(priceAsLong, precision);
         double value;
         if (direction == OfferDirection.SELL) {
-            if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
                 if (marketPrice == 0) {
                     return Optional.empty();
                 }
@@ -156,7 +156,7 @@ public class PriceUtil {
                 value = scaled / marketPrice - 1;
             }
         } else {
-            if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
                 if (marketPrice == 1) {
                     return Optional.empty();
                 }
@@ -202,7 +202,7 @@ public class PriceUtil {
     }
 
     public static int getMarketPricePrecision(String currencyCode) {
-        return CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                Altcoin.SMALLEST_UNIT_EXPONENT : Fiat.SMALLEST_UNIT_EXPONENT;
+        return CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
     }
 }

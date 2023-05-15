@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.account.content.fiataccounts;
+package haveno.desktop.main.account.content.traditionalaccounts;
 
 import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
@@ -145,7 +145,7 @@ import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
-public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccountsViewModel> {
+public class TraditionalAccountsView extends PaymentAccountsView<GridPane, TraditionalAccountsViewModel> {
 
     private final BICValidator bicValidator;
     private final CapitualValidator capitualValidator;
@@ -177,7 +177,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
     private int gridRow = 0;
 
     @Inject
-    public FiatAccountsView(FiatAccountsViewModel model,
+    public TraditionalAccountsView(TraditionalAccountsViewModel model,
                             BICValidator bicValidator,
                             CapitualValidator capitualValidator,
                             LengthValidator inputValidator,
@@ -397,7 +397,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
     protected void buildForm() {
         addTitledGroupBg(root, gridRow, 2, Res.get("shared.manageAccounts"));
 
-        Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.fiat.yourFiatAccounts"), Layout.FIRST_ROW_DISTANCE);
+        Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.traditional.yourTraditionalAccounts"), Layout.FIRST_ROW_DISTANCE);
         paymentAccountsListView = tuple.second;
         int prefNumRows = Math.min(4, Math.max(2, model.dataModel.getNumPaymentAccounts()));
         paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 28);
@@ -421,7 +421,7 @@ public class FiatAccountsView extends PaymentAccountsView<GridPane, FiatAccounts
         paymentMethodComboBox.setVisibleRowCount(11);
         paymentMethodComboBox.setPrefWidth(250);
         List<PaymentMethod> list = PaymentMethod.paymentMethods.stream()
-                .filter(PaymentMethod::isFiat)
+                .filter(PaymentMethod::isTraditional)
                 .sorted()
                 .collect(Collectors.toList());
         paymentMethodComboBox.setItems(FXCollections.observableArrayList(list));

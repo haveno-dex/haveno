@@ -76,7 +76,7 @@ public class CashByMailForm extends PaymentMethodForm {
         gridRowFrom = gridRow + 1;
 
         addTradeCurrencyComboBox();
-        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedFiatCurrencies()));
+        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedTraditionalCurrencies()));
 
         InputTextField contactField = addInputTextField(gridPane, ++gridRow,
                 Res.get("payment.cashByMail.contact"));

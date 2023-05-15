@@ -24,8 +24,9 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -46,7 +47,7 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.util.validation.AltcoinValidator;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
@@ -76,7 +77,6 @@ import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -96,7 +96,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     protected final CoinFormatter btcFormatter;
     private final FiatVolumeValidator fiatVolumeValidator;
     private final FiatPriceValidator fiatPriceValidator;
-    private final AltcoinValidator altcoinValidator;
+    private final NonFiatPriceValidator nonFiatPriceValidator;
     protected final OfferUtil offerUtil;
 
     private String amountDescription;
@@ -110,7 +110,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final StringProperty buyerSecurityDepositInBTC = new SimpleStringProperty();
     final StringProperty buyerSecurityDepositLabel = new SimpleStringProperty();
 
-    // Price in the viewModel is always dependent on fiat/altcoin: Fiat Fiat/BTC, for altcoins we use inverted price.
+    // Price in the viewModel is always dependent on fiat/crypto: Fiat Fiat/BTC, for cryptos we use inverted price.
     // The domain (dataModel) uses always the same price model (otherCurrencyBTC)
     // If we would change the price representation in the domain we would not be backward compatible
     public final StringProperty price = new SimpleStringProperty();
@@ -123,7 +123,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     // Positive % value means always a better price form the maker's perspective:
     // Buyer (with fiat): lower price as market
-    // Buyer (with altcoin): higher (display) price as market (display price is inverted)
+    // Buyer (with crypto): higher (display) price as market (display price is inverted)
     public final StringProperty marketPriceMargin = new SimpleStringProperty();
     public final StringProperty volume = new SimpleStringProperty();
     final StringProperty volumeDescriptionLabel = new SimpleStringProperty();
@@ -184,7 +184,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     public MutableOfferViewModel(M dataModel,
                                  FiatVolumeValidator fiatVolumeValidator,
                                  FiatPriceValidator fiatPriceValidator,
-                                 AltcoinValidator altcoinValidator,
+                                 NonFiatPriceValidator nonFiatPriceValidator,
                                  XmrValidator btcValidator,
                                  SecurityDepositValidator securityDepositValidator,
                                  PriceFeedService priceFeedService,
@@ -197,7 +197,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         this.fiatVolumeValidator = fiatVolumeValidator;
         this.fiatPriceValidator = fiatPriceValidator;
-        this.altcoinValidator = altcoinValidator;
+        this.nonFiatPriceValidator = nonFiatPriceValidator;
         this.xmrValidator = btcValidator;
         this.securityDepositValidator = securityDepositValidator;
         this.priceFeedService = priceFeedService;
@@ -251,15 +251,15 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private void addBindings() {
         if (dataModel.getDirection() == OfferDirection.BUY) {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isFiatCurrency(dataModel.getTradeCurrencyCode().get()) ?
+                    () -> Res.get(CurrencyUtil.isTraditionalCurrency(dataModel.getTradeCurrencyCode().get()) ?
                             "createOffer.amountPriceBox.buy.volumeDescription" :
-                            "createOffer.amountPriceBox.buy.volumeDescriptionAltcoin", dataModel.getTradeCurrencyCode().get()),
+                            "createOffer.amountPriceBox.buy.volumeDescriptionCrypto", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         } else {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isFiatCurrency(dataModel.getTradeCurrencyCode().get()) ?
+                    () -> Res.get(CurrencyUtil.isTraditionalCurrency(dataModel.getTradeCurrencyCode().get()) ?
                             "createOffer.amountPriceBox.sell.volumeDescription" :
-                            "createOffer.amountPriceBox.sell.volumeDescriptionAltcoin", dataModel.getTradeCurrencyCode().get()),
+                            "createOffer.amountPriceBox.sell.volumeDescriptionCrypto", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         }
         volumePromptLabel.bind(createStringBinding(
@@ -357,16 +357,15 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 double marketPriceAsDouble = marketPrice.getPrice();
-                                final boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-                                final OfferDirection compareDirection = isCryptoCurrency ?
+                                final OfferDirection compareDirection = CurrencyUtil.isCryptoCurrency(currencyCode) ?
                                         OfferDirection.SELL :
                                         OfferDirection.BUY;
                                 double factor = dataModel.getDirection() == compareDirection ?
                                         1 - percentage :
                                         1 + percentage;
                                 double targetPrice = marketPriceAsDouble * factor;
-                                int precision = isCryptoCurrency ?
-                                        Altcoin.SMALLEST_UNIT_EXPONENT : Fiat.SMALLEST_UNIT_EXPONENT;
+                                int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                                        TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
                                 // protect from triggering unwanted updates
                                 ignorePriceStringListener = true;
                                 price.set(FormattingUtils.formatRoundedDoubleWithPrecision(targetPrice, precision));
@@ -575,14 +574,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
 
-        boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode());
+        boolean isFiatCurrency = CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode());
 
         if (isFiatCurrency) {
             amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
                     isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
         } else {
-            amountDescription = Res.get(isBuy ? "createOffer.amountPriceBox.sell.amountDescriptionAltcoin" :
-                    "createOffer.amountPriceBox.buy.amountDescriptionAltcoin");
+            amountDescription = Res.get(isBuy ? "createOffer.amountPriceBox.sell.amountDescriptionCrypto" :
+                    "createOffer.amountPriceBox.buy.amountDescriptionCrypto");
         }
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);
@@ -1183,15 +1182,15 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private MonetaryValidator getPriceValidator() {
-        return CurrencyUtil.isCryptoCurrency(getTradeCurrency().getCode()) ? altcoinValidator : fiatPriceValidator;
+        return CurrencyUtil.isFiatCurrency(getTradeCurrency().getCode()) ? fiatPriceValidator : nonFiatPriceValidator;
     }
 
     private MonetaryValidator getVolumeValidator() {
         final String code = getTradeCurrency().getCode();
-        if (CurrencyUtil.isCryptoCurrency(code)) {
-            return altcoinValidator;
-        } else {
+        if (CurrencyUtil.isFiatCurrency(code)) {
             return fiatVolumeValidator;
+        } else {
+            return nonFiatPriceValidator;
         }
     }
 
@@ -1253,9 +1252,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             double volumeAsDouble = ParsingUtils.parseNumberStringToDouble(volume.get());
             double manualPriceAsDouble = dataModel.calculateMarketPriceManual(marketPriceAsDouble, volumeAsDouble, amountAsDouble);
 
-            final boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-            int precision = isCryptoCurrency ?
-                    Altcoin.SMALLEST_UNIT_EXPONENT : Fiat.SMALLEST_UNIT_EXPONENT;
+            int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                    TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
             price.set(FormattingUtils.formatRoundedDoubleWithPrecision(manualPriceAsDouble, precision));
             setPriceToModel();
             dataModel.calculateTotalToPay();

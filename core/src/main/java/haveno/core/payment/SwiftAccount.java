@@ -28,13 +28,13 @@ import lombok.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import static haveno.core.locale.CurrencyUtil.getAllSortedFiatCurrencies;
+import static haveno.core.locale.CurrencyUtil.getAllSortedTraditionalCurrencies;
 import static java.util.Comparator.comparing;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SwiftAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode)));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(getAllSortedTraditionalCurrencies(comparing(TradeCurrency::getCode)));
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,

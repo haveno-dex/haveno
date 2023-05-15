@@ -117,7 +117,7 @@ public class DisplayUtils {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
         else
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency", currencyCode) : Res.get("shared.sellCurrency", currencyCode);
@@ -131,7 +131,7 @@ public class DisplayUtils {
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String code = Res.getBaseCurrencyCode();
             return isMyOffer ?
                     Res.get("formatter.youAreAsMaker", Res.get("shared.buyer"), code, Res.get("shared.seller"), code) :
@@ -144,7 +144,7 @@ public class DisplayUtils {
     }
 
     public static String getDirectionForSeller(boolean isMyOffer, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String code = Res.getBaseCurrencyCode();
             return isMyOffer ?
                     Res.get("formatter.youAreAsMaker", Res.get("shared.seller"), code, Res.get("shared.buyer"), code) :
@@ -158,7 +158,7 @@ public class DisplayUtils {
 
     public static String getDirectionForTakeOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             return direction == OfferDirection.BUY ?
                     Res.get("formatter.youAre", Res.get("shared.selling"), baseCurrencyCode, Res.get("shared.buying"), currencyCode) :
                     Res.get("formatter.youAre", Res.get("shared.buying"), baseCurrencyCode, Res.get("shared.selling"), currencyCode);
@@ -172,14 +172,14 @@ public class DisplayUtils {
 
     public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             return direction == OfferDirection.BUY ?
-                    Res.get("formatter.youAreCreatingAnOffer.fiat", Res.get("shared.buy"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.fiat", Res.get("shared.sell"), baseCurrencyCode);
+                    Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.buy"), baseCurrencyCode) :
+                    Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.sell"), baseCurrencyCode);
         } else {
             return direction == OfferDirection.SELL ?
-                    Res.get("formatter.youAreCreatingAnOffer.altcoin", Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.altcoin", Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
+                    Res.get("formatter.youAreCreatingAnOffer.crypto", Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
+                    Res.get("formatter.youAreCreatingAnOffer.crypto", Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
         }
     }
 

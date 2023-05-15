@@ -20,8 +20,9 @@ package haveno.desktop.main.market.spread;
 import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.provider.price.MarketPrice;
@@ -41,7 +42,6 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import lombok.Getter;
 import lombok.Setter;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Named;
 import java.math.BigDecimal;
@@ -133,7 +133,7 @@ class SpreadViewModel extends ActivatableViewModel {
 
         for (String key : offersByCurrencyMap.keySet()) {
             List<Offer> offers = offersByCurrencyMap.get(key);
-            boolean isFiatCurrency = (offers.size() > 0 && offers.get(0).getPaymentMethod().isFiat());
+            boolean iTraditionalCurrency = (offers.size() > 0 && offers.get(0).getPaymentMethod().isTraditional());
 
             List<Offer> uniqueOffers = offers.stream().filter(distinctByKey(Offer::getId)).collect(Collectors.toList());
 
@@ -144,7 +144,7 @@ class SpreadViewModel extends ActivatableViewModel {
                         long a = o1.getPrice() != null ? o1.getPrice().getValue() : 0;
                         long b = o2.getPrice() != null ? o2.getPrice().getValue() : 0;
                         if (a != b) {
-                            if (isFiatCurrency) {
+                            if (iTraditionalCurrency) {
                                 return a < b ? 1 : -1;
                             } else {
                                 return a < b ? -1 : 1;
@@ -161,7 +161,7 @@ class SpreadViewModel extends ActivatableViewModel {
                         long a = o1.getPrice() != null ? o1.getPrice().getValue() : 0;
                         long b = o2.getPrice() != null ? o2.getPrice().getValue() : 0;
                         if (a != b) {
-                            if (isFiatCurrency) {
+                            if (iTraditionalCurrency) {
                                 return a > b ? 1 : -1;
                             } else {
                                 return a > b ? -1 : 1;
@@ -184,7 +184,7 @@ class SpreadViewModel extends ActivatableViewModel {
                 // We never found out which offer it was. So add here a try/catch to get better info if it
                 // happens again
                 try {
-                    if (isFiatCurrency)
+                    if (iTraditionalCurrency)
                         spread = bestSellOfferPrice.subtract(bestBuyOfferPrice);
                     else
                         spread = bestBuyOfferPrice.subtract(bestSellOfferPrice);
@@ -194,9 +194,9 @@ class SpreadViewModel extends ActivatableViewModel {
 
                     if (spread != null && marketPrice != null && marketPrice.isPriceAvailable()) {
                         double marketPriceAsDouble = marketPrice.getPrice();
-                        final double precision = isFiatCurrency ?
-                                Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT) :
-                                Math.pow(10, Altcoin.SMALLEST_UNIT_EXPONENT);
+                        final double precision = iTraditionalCurrency ?
+                                Math.pow(10, TraditionalMoney.SMALLEST_UNIT_EXPONENT) :
+                                Math.pow(10, CryptoMoney.SMALLEST_UNIT_EXPONENT);
 
                         BigDecimal marketPriceAsBigDecimal = BigDecimal.valueOf(marketPriceAsDouble)
                                 .multiply(BigDecimal.valueOf(precision));

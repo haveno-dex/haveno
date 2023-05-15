@@ -1198,7 +1198,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 String nrOfDisputes = disputeManager.getNrOfDisputes(true, contract);
                 long accountAge = accountAgeWitnessService.getAccountAge(item.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
-                String postFix = CurrencyUtil.isFiatCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
+                String postFix = CurrencyUtil.isTraditionalCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
                 return buyerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
             } else
                 return Res.get("shared.na");
@@ -1215,7 +1215,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 String nrOfDisputes = disputeManager.getNrOfDisputes(false, contract);
                 long accountAge = accountAgeWitnessService.getAccountAge(item.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
-                String postFix = CurrencyUtil.isFiatCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
+                String postFix = CurrencyUtil.isTraditionalCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
                 return sellerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
             } else
                 return Res.get("shared.na");

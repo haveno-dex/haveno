@@ -81,7 +81,7 @@ public class TacWindow extends Overlay<TacWindow> {
                 "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'monero', 'XMR', or 'Haveno'.\n" +
                 "    - If the bank of the fiat sender charges fees, the sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
                 "    - You must cooperate with the mediator during the mediation process, and respond to each mediator message within 48 hours.\n" +
-                "    - If either (or both) traders do not accept the mediator's suggested payout, traders can open a refund request from an arbitrator after 10 days in case of altcoin trades\n" +
+                "    - If either (or both) traders do not accept the mediator's suggested payout, traders can open a refund request from an arbitrator after 10 days in case of crypto trades\n" +
                 "      and 20 days for fiat trades.\n" +
                 "    - You should only open a refund request from an arbitrator if you think the mediator's suggested payout is unfair, or if your trading peer is unresponsive.\n" +
                 "    - Opening a refund request from an arbitrator triggers the delayed payout transaction, sending all funds from the deposit transaction to the Haveno receiver\n" +

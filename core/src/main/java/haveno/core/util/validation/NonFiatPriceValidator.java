@@ -19,7 +19,7 @@ package haveno.core.util.validation;
 
 import javax.inject.Inject;
 
-public class AltcoinValidator extends MonetaryValidator {
+public class NonFiatPriceValidator extends MonetaryValidator {
     @Override
     public double getMinValue() {
         return 0.00000001;
@@ -27,11 +27,11 @@ public class AltcoinValidator extends MonetaryValidator {
 
     @Override
     public double getMaxValue() {
-        // hard to say what the max value should be with altcoins
+        // hard to say what the max value should be with cryptos
         return 100_000_000;
     }
 
     @Inject
-    public AltcoinValidator() {
+    public NonFiatPriceValidator() {
     }
 }

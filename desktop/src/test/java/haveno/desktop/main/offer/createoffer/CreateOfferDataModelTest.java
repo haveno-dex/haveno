@@ -1,7 +1,7 @@
 package haveno.desktop.main.offer.createoffer;
 
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.CreateOfferService;
@@ -81,14 +81,14 @@ public class CreateOfferDataModelTest {
         final RevolutAccount revolutAccount = new RevolutAccount();
         revolutAccount.setId("123");
         revolutAccount.setAccountName("revolutAccount");
-        revolutAccount.setSingleTradeCurrency(new FiatCurrency("EUR"));
-        revolutAccount.addCurrency(new FiatCurrency("USD"));
+        revolutAccount.setSingleTradeCurrency(new TraditionalCurrency("EUR"));
+        revolutAccount.addCurrency(new TraditionalCurrency("USD"));
         paymentAccounts.add(revolutAccount);
 
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
 
-        model.initWithData(OfferDirection.BUY, new FiatCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 
@@ -102,14 +102,14 @@ public class CreateOfferDataModelTest {
         final RevolutAccount revolutAccount = new RevolutAccount();
         revolutAccount.setId("123");
         revolutAccount.setAccountName("revolutAccount");
-        revolutAccount.setSingleTradeCurrency(new FiatCurrency("EUR"));
+        revolutAccount.setSingleTradeCurrency(new TraditionalCurrency("EUR"));
         paymentAccounts.add(revolutAccount);
 
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
-        when(user.findFirstPaymentAccountWithCurrency(new FiatCurrency("USD"))).thenReturn(zelleAccount);
+        when(user.findFirstPaymentAccountWithCurrency(new TraditionalCurrency("USD"))).thenReturn(zelleAccount);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
 
-        model.initWithData(OfferDirection.BUY, new FiatCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 }

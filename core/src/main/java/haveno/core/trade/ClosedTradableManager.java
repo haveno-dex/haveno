@@ -22,9 +22,6 @@ import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
-import haveno.common.util.Tuple2;
-import haveno.core.monetary.Price;
-import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
 import haveno.core.provider.price.PriceFeedService;
@@ -33,8 +30,6 @@ import haveno.core.user.Preferences;
 import haveno.network.p2p.NodeAddress;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
 
 import java.math.BigInteger;
 import java.time.Instant;
@@ -49,7 +44,6 @@ import java.util.stream.Stream;
 import static haveno.core.offer.OpenOffer.State.CANCELED;
 import static haveno.core.trade.ClosedTradableUtil.castToTradeModel;
 import static haveno.core.trade.ClosedTradableUtil.isOpenOffer;
-import static haveno.core.util.AveragePriceUtil.getAveragePriceTuple;
 
 /**
  * Manages closed trades or offers.
@@ -228,13 +222,6 @@ public class ClosedTradableManager implements PersistedDataHost {
 
     public boolean isMaker(Tradable tradable) {
         return tradable instanceof MakerTrade || tradable.getOffer().isMyOffer(keyRing);
-    }
-
-    public Volume getBsqVolumeInUsdWithAveragePrice(Coin amount) {
-        Tuple2<Price, Price> tuple = getAveragePriceTuple(preferences, tradeStatisticsManager, 30);
-        Price usdPrice = tuple.first;
-        long value = Math.round(amount.value * usdPrice.getValue() / 100d);
-        return new Volume(Fiat.valueOf("USD", value));
     }
 
     private void requestPersistence() {

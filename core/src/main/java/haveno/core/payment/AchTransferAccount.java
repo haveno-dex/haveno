@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AchTransferAccountPayload;
 import haveno.core.payment.payload.BankAccountPayload;
@@ -32,7 +32,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class AchTransferAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
     public AchTransferAccount() {
         super(PaymentMethod.ACH_TRANSFER);

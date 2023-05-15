@@ -84,9 +84,9 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
         return FXCollections.observableArrayList(list.stream()
                 .filter(paymentMethod -> {
                     if (showAllTradeCurrenciesProperty.get()) {
-                        return paymentMethod.isFiat();
+                        return paymentMethod.isTraditional();
                     }
-                    return paymentMethod.isFiat() &&
+                    return paymentMethod.isTraditional() &&
                             PaymentAccountUtil.supportsCurrency(paymentMethod, selectedTradeCurrency);
                 })
                 .collect(Collectors.toList()));
@@ -97,11 +97,11 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
                         ObservableList<TradeCurrency> allCurrencies) {
         // Used for ignoring filter (show all)
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        tradeCurrencies.addAll(preferences.getFiatCurrenciesAsObservable());
+        tradeCurrencies.addAll(preferences.getTraditionalCurrenciesAsObservable());
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
 
         allCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        allCurrencies.addAll(CurrencyUtil.getAllSortedFiatCurrencies());
+        allCurrencies.addAll(CurrencyUtil.getAllSortedTraditionalCurrencies());
         allCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
     }
 
@@ -111,7 +111,7 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
             boolean directionResult = offer.getDirection() != direction;
-            boolean currencyResult = (showAllTradeCurrenciesProperty.get() && offer.isFiatOffer()) ||
+            boolean currencyResult = (showAllTradeCurrenciesProperty.get() && offer.isTraditionalOffer()) ||
                     offer.getCurrencyCode().equals(selectedTradeCurrency.getCode());
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
@@ -124,7 +124,7 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
     TradeCurrency getDefaultTradeCurrency() {
         TradeCurrency defaultTradeCurrency = GlobalSettings.getDefaultTradeCurrency();
 
-        if (CurrencyUtil.isFiatCurrency(defaultTradeCurrency.getCode()) && hasPaymentAccountForCurrency(defaultTradeCurrency)) {
+        if (CurrencyUtil.isTraditionalCurrency(defaultTradeCurrency.getCode()) && hasPaymentAccountForCurrency(defaultTradeCurrency)) {
             return defaultTradeCurrency;
         }
 
@@ -137,7 +137,7 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
                             !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList());
             return sortedList.get(0);
         } else {
-            return CurrencyUtil.getMainFiatCurrencies().stream().sorted((o1, o2) ->
+            return CurrencyUtil.getMainTraditionalCurrencies().stream().sorted((o1, o2) ->
                     Boolean.compare(!hasPaymentAccountForCurrency(o1),
                             !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList()).get(0);
         }
@@ -148,6 +148,6 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
         // validate if previous stored currencies are Fiat ones
         String currencyCode = direction == OfferDirection.BUY ? preferences.getBuyScreenCurrencyCode() : preferences.getSellScreenCurrencyCode();
 
-        return CurrencyUtil.isFiatCurrency(currencyCode) ? currencyCode : null;
+        return CurrencyUtil.isTraditionalCurrency(currencyCode) ? currencyCode : null;
     }
 }

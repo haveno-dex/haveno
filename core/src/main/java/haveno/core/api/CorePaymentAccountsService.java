@@ -153,7 +153,7 @@ class CorePaymentAccountsService {
 
     List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return PaymentMethod.getPaymentMethods().stream()
-                .filter(PaymentMethod::isAltcoin)
+                .filter(PaymentMethod::isCrypto)
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
     }

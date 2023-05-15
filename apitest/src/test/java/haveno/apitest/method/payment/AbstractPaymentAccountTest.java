@@ -6,7 +6,7 @@ import com.google.gson.stream.JsonWriter;
 import haveno.apitest.method.MethodTest;
 import haveno.cli.GrpcClient;
 import haveno.core.api.model.PaymentAccountForm;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
@@ -168,11 +168,11 @@ public class AbstractPaymentAccountTest extends MethodTest {
         assertEquals(expectedCurrencyCode, paymentAccount.getSingleTradeCurrency().getCode());
     }
 
-    protected final void verifyAccountTradeCurrencies(Collection<FiatCurrency> expectedFiatCurrencies,
+    protected final void verifyAccountTradeCurrencies(Collection<TraditionalCurrency> expectedTraditionalCurrencies,
                                                       PaymentAccount paymentAccount) {
         assertNotNull(paymentAccount.getTradeCurrencies());
         List<TradeCurrency> expectedTradeCurrencies = new ArrayList<>() {{
-            addAll(expectedFiatCurrencies);
+            addAll(expectedTraditionalCurrencies);
         }};
         assertArrayEquals(expectedTradeCurrencies.toArray(), paymentAccount.getTradeCurrencies().toArray());
     }
@@ -206,8 +206,8 @@ public class AbstractPaymentAccountTest extends MethodTest {
         return jsonString;
     }
 
-    protected final String getCommaDelimitedFiatCurrencyCodes(Collection<FiatCurrency> fiatCurrencies) {
-        return fiatCurrencies.stream()
+    protected final String getCommaDelimitedTraditionalCurrencyCodes(Collection<TraditionalCurrency> traditionalCurrencies) {
+        return traditionalCurrencies.stream()
                 .sorted(Comparator.comparing(TradeCurrency::getCode))
                 .map(c -> c.getCurrency().getCurrencyCode())
                 .collect(Collectors.joining(","));

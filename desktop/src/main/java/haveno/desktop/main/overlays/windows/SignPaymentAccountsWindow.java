@@ -168,7 +168,7 @@ public class SignPaymentAccountsWindow extends Overlay<SignPaymentAccountsWindow
 
     private List<PaymentMethod> getPaymentMethods() {
         return PaymentMethod.paymentMethods.stream()
-                .filter(PaymentMethod::isFiat)
+                .filter(PaymentMethod::isTraditional)
                 .filter(PaymentMethod::hasChargebackRisk)
                 .collect(Collectors.toList());
     }

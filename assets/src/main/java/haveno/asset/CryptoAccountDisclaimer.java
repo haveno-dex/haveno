@@ -14,10 +14,10 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface AltCoinAccountDisclaimer {
+public @interface CryptoAccountDisclaimer {
 
     /**
-     * Translation key of the message to show, i.e. "account.altcoin.popup.xmr.msg"
+     * Translation key of the message to show, i.e. "account.crypto.popup.xmr.msg"
      * @return translation key
      */
     String value();

@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  */
 abstract class AbstractTableBuilder {
 
-    protected final Predicate<OfferInfo> isFiatOffer = (o) -> o.getBaseCurrencyCode().equals("BTC");
+    protected final Predicate<OfferInfo> isTraditionalOffer = (o) -> o.getBaseCurrencyCode().equals("XMR");
 
     protected final TableType tableType;
     protected final List<?> protos;

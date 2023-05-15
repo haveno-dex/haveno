@@ -295,7 +295,7 @@ public class PaymentAccountUtil {
 
     @Nullable
     public static String getCountryCode(PaymentAccount paymentAccount) {
-        // That is optional and set to null if not supported (AltCoins,...)
+        // That is optional and set to null if not supported (Cryptos,...)
         if (paymentAccount instanceof CountryBasedPaymentAccount) {
             Country country = (((CountryBasedPaymentAccount) paymentAccount)).getCountry();
             return country != null ? country.code : null;

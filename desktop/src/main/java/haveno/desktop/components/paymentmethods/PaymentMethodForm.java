@@ -23,7 +23,7 @@ import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.Offer;
@@ -99,7 +99,7 @@ public abstract class PaymentMethodForm {
     protected void addTradeCurrencyComboBox() {
         currencyComboBox = FormBuilder.addComboBox(gridPane, ++gridRow, Res.get("shared.currency"));
         currencyComboBox.setPromptText(Res.get("list.currency.select"));
-        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getMainFiatCurrencies()));
+        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getMainTraditionalCurrencies()));
         currencyComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(TradeCurrency tradeCurrency) {
@@ -265,7 +265,7 @@ public abstract class PaymentMethodForm {
         }
     }
 
-    void applyTradeCurrency(TradeCurrency tradeCurrency, FiatCurrency defaultCurrency) {
+    void applyTradeCurrency(TradeCurrency tradeCurrency, TraditionalCurrency defaultCurrency) {
         if (!defaultCurrency.equals(tradeCurrency)) {
             new Popup().warning(Res.get("payment.foreign.currency"))
                     .actionButtonText(Res.get("shared.yes"))

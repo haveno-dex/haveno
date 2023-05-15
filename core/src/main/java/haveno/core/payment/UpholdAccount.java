@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -42,29 +42,29 @@ public final class UpholdAccount extends PaymentAccount {
 
     // https://support.uphold.com/hc/en-us/articles/202473803-Supported-currencies
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("AED"),
-            new FiatCurrency("ARS"),
-            new FiatCurrency("AUD"),
-            new FiatCurrency("BRL"),
-            new FiatCurrency("CAD"),
-            new FiatCurrency("CHF"),
-            new FiatCurrency("CNY"),
-            new FiatCurrency("DKK"),
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("HKD"),
-            new FiatCurrency("ILS"),
-            new FiatCurrency("INR"),
-            new FiatCurrency("JPY"),
-            new FiatCurrency("KES"),
-            new FiatCurrency("MXN"),
-            new FiatCurrency("NOK"),
-            new FiatCurrency("NZD"),
-            new FiatCurrency("PHP"),
-            new FiatCurrency("PLN"),
-            new FiatCurrency("SEK"),
-            new FiatCurrency("SGD"),
-            new FiatCurrency("USD")
+            new TraditionalCurrency("AED"),
+            new TraditionalCurrency("ARS"),
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("BRL"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("CHF"),
+            new TraditionalCurrency("CNY"),
+            new TraditionalCurrency("DKK"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("HKD"),
+            new TraditionalCurrency("ILS"),
+            new TraditionalCurrency("INR"),
+            new TraditionalCurrency("JPY"),
+            new TraditionalCurrency("KES"),
+            new TraditionalCurrency("MXN"),
+            new TraditionalCurrency("NOK"),
+            new TraditionalCurrency("NZD"),
+            new TraditionalCurrency("PHP"),
+            new TraditionalCurrency("PLN"),
+            new TraditionalCurrency("SEK"),
+            new TraditionalCurrency("SGD"),
+            new TraditionalCurrency("USD")
     );
 
     public UpholdAccount() {

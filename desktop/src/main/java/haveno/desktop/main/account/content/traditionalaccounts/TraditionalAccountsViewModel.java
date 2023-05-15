@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.account.content.fiataccounts;
+package haveno.desktop.main.account.content.traditionalaccounts;
 
 import com.google.inject.Inject;
 import haveno.core.payment.PaymentAccount;
@@ -23,10 +23,10 @@ import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
 import javafx.collections.ObservableList;
 
-class FiatAccountsViewModel extends ActivatableWithDataModel<FiatAccountsDataModel> implements ViewModel {
+class TraditionalAccountsViewModel extends ActivatableWithDataModel<TraditionalAccountsDataModel> implements ViewModel {
 
     @Inject
-    public FiatAccountsViewModel(FiatAccountsDataModel dataModel) {
+    public TraditionalAccountsViewModel(TraditionalAccountsDataModel dataModel) {
         super(dataModel);
     }
 

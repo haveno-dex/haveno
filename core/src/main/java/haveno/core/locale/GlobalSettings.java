@@ -50,8 +50,8 @@ public class GlobalSettings {
         GlobalSettings.useAnimations = useAnimations;
     }
 
-    public static void setDefaultTradeCurrency(TradeCurrency fiatCurrency) {
-        GlobalSettings.defaultTradeCurrency = fiatCurrency;
+    public static void setDefaultTradeCurrency(TradeCurrency tradeCurrency) {
+        GlobalSettings.defaultTradeCurrency = tradeCurrency;
     }
 
 

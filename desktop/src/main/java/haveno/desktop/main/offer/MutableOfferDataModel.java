@@ -255,12 +255,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     @NotNull
     private Optional<PaymentAccount> getAnyPaymentAccount() {
-        if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
-            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.getPaymentMethod().isAltcoin()).findAny();
+        if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
+            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.getPaymentMethod().isCrypto()).findAny();
         } else {
-            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.getPaymentMethod().isAltcoin() &&
+            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.getPaymentMethod().isCrypto() &&
                     paymentAccount1.getTradeCurrency().isPresent() &&
-                    !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_ALTCOIN.getCode())).findAny();
+                    !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_CRYPTO.getCode())).findAny();
         }
     }
 
@@ -384,7 +384,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 if (CurrencyUtil.isCryptoCurrency(code)) {
                     CurrencyUtil.getCryptoCurrency(code).ifPresent(preferences::addCryptoCurrency);
                 } else {
-                    CurrencyUtil.getFiatCurrency(code).ifPresent(preferences::addFiatCurrency);
+                    CurrencyUtil.getTraditionalCurrency(code).ifPresent(preferences::addTraditionalCurrency);
                 }
             }
         }
@@ -617,7 +617,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     boolean isFiatCurrency() {
-        return CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get());
+        return CurrencyUtil.isTraditionalCurrency(tradeCurrencyCode.get());
     }
 
     ReadOnlyBooleanProperty getUseMarketBasedPrice() {

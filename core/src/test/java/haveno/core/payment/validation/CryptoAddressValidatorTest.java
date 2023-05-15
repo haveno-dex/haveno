@@ -27,11 +27,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class AltCoinAddressValidatorTest {
+public class CryptoAddressValidatorTest {
 
     @Test
     public void test() {
-        AltCoinAddressValidator validator = new AltCoinAddressValidator(new AssetRegistry());
+        CryptoAddressValidator validator = new CryptoAddressValidator(new AssetRegistry());
 
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
         String currencyCode = baseCurrencyNetwork.getCurrencyCode();

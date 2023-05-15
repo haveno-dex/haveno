@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -40,37 +40,37 @@ public final class RevolutAccount extends PaymentAccount {
 
     // https://www.revolut.com/help/getting-started/exchanging-currencies/what-fiat-currencies-are-supported-for-holding-and-exchange
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("AED"),
-            new FiatCurrency("AUD"),
-            new FiatCurrency("BGN"),
-            new FiatCurrency("CAD"),
-            new FiatCurrency("CHF"),
-            new FiatCurrency("CZK"),
-            new FiatCurrency("DKK"),
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("HKD"),
-            new FiatCurrency("HRK"),
-            new FiatCurrency("HUF"),
-            new FiatCurrency("ILS"),
-            new FiatCurrency("ISK"),
-            new FiatCurrency("JPY"),
-            new FiatCurrency("MAD"),
-            new FiatCurrency("MXN"),
-            new FiatCurrency("NOK"),
-            new FiatCurrency("NZD"),
-            new FiatCurrency("PLN"),
-            new FiatCurrency("QAR"),
-            new FiatCurrency("RON"),
-            new FiatCurrency("RSD"),
-            new FiatCurrency("RUB"),
-            new FiatCurrency("SAR"),
-            new FiatCurrency("SEK"),
-            new FiatCurrency("SGD"),
-            new FiatCurrency("THB"),
-            new FiatCurrency("TRY"),
-            new FiatCurrency("USD"),
-            new FiatCurrency("ZAR")
+            new TraditionalCurrency("AED"),
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("BGN"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("CHF"),
+            new TraditionalCurrency("CZK"),
+            new TraditionalCurrency("DKK"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("HKD"),
+            new TraditionalCurrency("HRK"),
+            new TraditionalCurrency("HUF"),
+            new TraditionalCurrency("ILS"),
+            new TraditionalCurrency("ISK"),
+            new TraditionalCurrency("JPY"),
+            new TraditionalCurrency("MAD"),
+            new TraditionalCurrency("MXN"),
+            new TraditionalCurrency("NOK"),
+            new TraditionalCurrency("NZD"),
+            new TraditionalCurrency("PLN"),
+            new TraditionalCurrency("QAR"),
+            new TraditionalCurrency("RON"),
+            new TraditionalCurrency("RSD"),
+            new TraditionalCurrency("RUB"),
+            new TraditionalCurrency("SAR"),
+            new TraditionalCurrency("SEK"),
+            new TraditionalCurrency("SGD"),
+            new TraditionalCurrency("THB"),
+            new TraditionalCurrency("TRY"),
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("ZAR")
     );
 
     public RevolutAccount() {

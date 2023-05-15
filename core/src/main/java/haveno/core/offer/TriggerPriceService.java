@@ -19,8 +19,9 @@ package haveno.core.offer;
 
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.provider.mempool.MempoolService;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
@@ -28,7 +29,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import javafx.collections.ListChangeListener;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -110,10 +110,10 @@ public class TriggerPriceService {
         }
 
         String currencyCode = openOffer.getOffer().getCurrencyCode();
-        boolean cryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-        int smallestUnitExponent = cryptoCurrency ?
-                Altcoin.SMALLEST_UNIT_EXPONENT :
-                Fiat.SMALLEST_UNIT_EXPONENT;
+        boolean traditionalCurrency = CurrencyUtil.isTraditionalCurrency(currencyCode);
+        int smallestUnitExponent = traditionalCurrency ?
+                TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                CryptoMoney.SMALLEST_UNIT_EXPONENT;
         long marketPriceAsLong = roundDoubleToLong(
                 scaleUpByPowerOf10(marketPrice.getPrice(), smallestUnitExponent));
         long triggerPrice = openOffer.getTriggerPrice();
@@ -123,6 +123,7 @@ public class TriggerPriceService {
 
         OfferDirection direction = openOffer.getOffer().getDirection();
         boolean isSellOffer = direction == OfferDirection.SELL;
+        boolean cryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
         boolean condition = isSellOffer && !cryptoCurrency || !isSellOffer && cryptoCurrency;
         return condition ?
                 marketPriceAsLong < triggerPrice :
@@ -132,9 +133,9 @@ public class TriggerPriceService {
     private void checkPriceThreshold(MarketPrice marketPrice, OpenOffer openOffer) {
         if (wasTriggered(marketPrice, openOffer)) {
             String currencyCode = openOffer.getOffer().getCurrencyCode();
-            int smallestUnitExponent = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                    Altcoin.SMALLEST_UNIT_EXPONENT :
-                    Fiat.SMALLEST_UNIT_EXPONENT;
+            int smallestUnitExponent = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                    TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                    CryptoMoney.SMALLEST_UNIT_EXPONENT;
             long triggerPrice = openOffer.getTriggerPrice();
 
             log.info("Market price exceeded the trigger price of the open offer.\n" +

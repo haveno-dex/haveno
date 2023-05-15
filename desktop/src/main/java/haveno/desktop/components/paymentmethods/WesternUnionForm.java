@@ -22,7 +22,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.BankUtil;
 import haveno.core.locale.Country;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.CountryBasedPaymentAccount;
@@ -100,7 +100,7 @@ public class WesternUnionForm extends PaymentMethodForm {
     }
 
     private void onTradeCurrencySelected(TradeCurrency tradeCurrency) {
-        FiatCurrency defaultCurrency = CurrencyUtil.getCurrencyByCountryCode(selectedCountry.code);
+        TraditionalCurrency defaultCurrency = CurrencyUtil.getCurrencyByCountryCode(selectedCountry.code);
         applyTradeCurrency(tradeCurrency, defaultCurrency);
     }
 

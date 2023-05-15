@@ -23,7 +23,7 @@ import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.core.locale.Country;
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.CoreProtoResolver;
@@ -48,7 +48,7 @@ import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDeposit
 public final class PreferencesPayload implements PersistableEnvelope {
     private String userLanguage;
     private Country userCountry;
-    private List<FiatCurrency> fiatCurrencies = new ArrayList<>();
+    private List<TraditionalCurrency> traditionalCurrencies = new ArrayList<>();
     private List<CryptoCurrency> cryptoCurrencies = new ArrayList<>();
     private BlockChainExplorer blockChainExplorerMainNet;
     private BlockChainExplorer blockChainExplorerTestNet;
@@ -148,8 +148,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
         protobuf.PreferencesPayload.Builder builder = protobuf.PreferencesPayload.newBuilder()
                 .setUserLanguage(userLanguage)
                 .setUserCountry((protobuf.Country) userCountry.toProtoMessage())
-                .addAllFiatCurrencies(fiatCurrencies.stream()
-                        .map(fiatCurrency -> ((protobuf.TradeCurrency) fiatCurrency.toProtoMessage()))
+                .addAllTraditionalCurrencies(traditionalCurrencies.stream()
+                        .map(traditionalCurrency -> ((protobuf.TradeCurrency) traditionalCurrency.toProtoMessage()))
                         .collect(Collectors.toList()))
                 .addAllCryptoCurrencies(cryptoCurrencies.stream()
                         .map(cryptoCurrency -> ((protobuf.TradeCurrency) cryptoCurrency.toProtoMessage()))
@@ -227,9 +227,9 @@ public final class PreferencesPayload implements PersistableEnvelope {
         return new PreferencesPayload(
                 proto.getUserLanguage(),
                 Country.fromProto(userCountry),
-                proto.getFiatCurrenciesList().isEmpty() ? new ArrayList<>() :
-                        new ArrayList<>(proto.getFiatCurrenciesList().stream()
-                                .map(FiatCurrency::fromProto)
+                proto.getTraditionalCurrenciesList().isEmpty() ? new ArrayList<>() :
+                        new ArrayList<>(proto.getTraditionalCurrenciesList().stream()
+                                .map(TraditionalCurrency::fromProto)
                                 .collect(Collectors.toList())),
                 proto.getCryptoCurrenciesList().isEmpty() ? new ArrayList<>() :
                         new ArrayList<>(proto.getCryptoCurrenciesList().stream()

@@ -19,7 +19,7 @@
  * Haveno's family of abstractions representing different ("crypto")
  * {@link haveno.asset.Asset} types such as {@link haveno.asset.Coin},
  * {@link haveno.asset.Token} and {@link haveno.asset.Erc20Token}, as well as concrete
- * implementations of each, such as {@link haveno.asset.coins.Bitcoin} itself, altcoins like
+ * implementations of each, such as {@link haveno.asset.coins.Bitcoin} itself, cryptos like
  * {@link haveno.asset.coins.Litecoin} and {@link haveno.asset.coins.Ether} and tokens like
  * {@link haveno.asset.tokens.DaiStablecoin}.
  * <p>

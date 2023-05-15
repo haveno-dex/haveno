@@ -45,10 +45,10 @@ public class MakerBotProtocol extends BotProtocol {
         var trade = makeTrade.apply(randomOffer);
 
         var makerIsBuyer = trade.getOffer().getDirection().equalsIgnoreCase(BUY);
-        Function<TradeInfo, TradeInfo> completeFiatTransaction = makerIsBuyer
+        Function<TradeInfo, TradeInfo> completeTraditionalTransaction = makerIsBuyer
                 ? sendPaymentSentMessage.andThen(waitForPaymentReceivedConfirmation)
                 : waitForPaymentSentMessage.andThen(sendPaymentReceivedMessage);
-        completeFiatTransaction.apply(trade);
+        completeTraditionalTransaction.apply(trade);
 
         currentProtocolStep = DONE;
     }

@@ -29,7 +29,7 @@ import haveno.core.payment.InstantCryptoCurrencyAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.AssetAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.payment.validation.AltCoinAddressValidator;
+import haveno.core.payment.validation.CryptoAddressValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.AutocompleteComboBox;
@@ -54,7 +54,7 @@ import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
 public class AssetsForm extends PaymentMethodForm {
     public static final String INSTANT_TRADE_NEWS = "instantTradeNews0.9.5";
     private final AssetAccount assetAccount;
-    private final AltCoinAddressValidator altCoinAddressValidator;
+    private final CryptoAddressValidator altCoinAddressValidator;
     private final FilterManager filterManager;
 
     private InputTextField addressInputTextField;
@@ -72,7 +72,7 @@ public class AssetsForm extends PaymentMethodForm {
 
     public AssetsForm(PaymentAccount paymentAccount,
                       AccountAgeWitnessService accountAgeWitnessService,
-                      AltCoinAddressValidator altCoinAddressValidator,
+                      CryptoAddressValidator altCoinAddressValidator,
                       InputValidator inputValidator,
                       GridPane gridPane,
                       int gridRow,
@@ -94,12 +94,12 @@ public class AssetsForm extends PaymentMethodForm {
         currencyComboBox.setPrefWidth(250);
 
         tradeInstantCheckBox = addLabelCheckBox(gridPane, ++gridRow,
-                Res.get("payment.altcoin.tradeInstantCheckbox"), 10);
+                Res.get("payment.crypto.tradeInstantCheckbox"), 10);
         tradeInstantCheckBox.setSelected(tradeInstant);
         tradeInstantCheckBox.setOnAction(e -> {
             tradeInstant = tradeInstantCheckBox.isSelected();
             if (tradeInstant)
-                new Popup().information(Res.get("payment.altcoin.tradeInstant.popup")).show();
+                new Popup().information(Res.get("payment.crypto.tradeInstant.popup")).show();
             paymentLimitationsTextField.setText(getLimitationsText());
         });
 
@@ -109,7 +109,7 @@ public class AssetsForm extends PaymentMethodForm {
         gridPane.getChildren().add(tradeInstantCheckBox);
 
         addressInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.altcoin.address"));
+                Res.get("payment.crypto.address"));
         addressInputTextField.setValidator(altCoinAddressValidator);
 
         addressInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
@@ -148,7 +148,7 @@ public class AssetsForm extends PaymentMethodForm {
     @Override
     public void updateFromInputs() {
         if (addressInputTextField != null && assetAccount.getSingleTradeCurrency() != null)
-            addressInputTextField.setPromptText(Res.get("payment.altcoin.address.dyn",
+            addressInputTextField.setPromptText(Res.get("payment.crypto.address.dyn",
                     assetAccount.getSingleTradeCurrency().getName()));
         super.updateFromInputs();
     }
@@ -167,12 +167,12 @@ public class AssetsForm extends PaymentMethodForm {
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(assetAccount.getPaymentMethod().getId()));
         Tuple3<Label, TextField, VBox> tuple2 = addCompactTopLabelTextField(gridPane, ++gridRow,
-                Res.get("payment.altcoin.address"), assetAccount.getAddress());
+                Res.get("payment.crypto.address"), assetAccount.getAddress());
         TextField field = tuple2.second;
         field.setMouseTransparent(false);
         final TradeCurrency singleTradeCurrency = assetAccount.getSingleTradeCurrency();
         final String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "";
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.altcoin"),
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.crypto"),
                 nameAndCode);
         addLimitations(true);
     }
@@ -190,10 +190,10 @@ public class AssetsForm extends PaymentMethodForm {
 
     @Override
     protected void addTradeCurrencyComboBox() {
-        currencyComboBox = FormBuilder.<TradeCurrency>addLabelAutocompleteComboBox(gridPane, ++gridRow, Res.get("payment.altcoin"),
+        currencyComboBox = FormBuilder.<TradeCurrency>addLabelAutocompleteComboBox(gridPane, ++gridRow, Res.get("payment.crypto"),
                 Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
-        currencyComboBox.setPromptText(Res.get("payment.select.altcoin"));
-        currencyComboBox.setButtonCell(getComboBoxButtonCell(Res.get("payment.select.altcoin"), currencyComboBox));
+        currencyComboBox.setPromptText(Res.get("payment.select.crypto"));
+        currencyComboBox.setButtonCell(getComboBoxButtonCell(Res.get("payment.select.crypto"), currencyComboBox));
 
         currencyComboBox.getEditor().focusedProperty().addListener(observable ->
                 currencyComboBox.setPromptText(""));
@@ -224,7 +224,7 @@ public class AssetsForm extends PaymentMethodForm {
             updateFromInputs();
 
             if (tradeCurrency != null && tradeCurrency.getCode().equals("BSQ")) {
-                new Popup().information(Res.get("payment.select.altcoin.bsq.warning")).show();
+                new Popup().information(Res.get("payment.select.crypto.bsq.warning")).show();
             }
         });
     }

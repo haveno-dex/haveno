@@ -42,7 +42,7 @@ import static haveno.desktop.util.Colors.AVATAR_RED;
 @Slf4j
 public class PeerInfoIconTrading extends PeerInfoIcon {
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private boolean isFiatCurrency;
+    private boolean isTraditionalCurrency;
 
     public PeerInfoIconTrading(NodeAddress nodeAddress,
                                String role,
@@ -99,7 +99,7 @@ public class PeerInfoIconTrading extends PeerInfoIcon {
             offer = trade.getOffer();
         }
         checkNotNull(offer, "Offer must not be null");
-        isFiatCurrency = offer.isFiatOffer();
+        isTraditionalCurrency = offer.isTraditionalOffer();
         initialize(role, offer, trade, privateNotificationManager, useDevPrivilegeKeys);
     }
 
@@ -120,19 +120,19 @@ public class PeerInfoIconTrading extends PeerInfoIcon {
 
         createAvatar(getRingColor(offer, trade, accountAge, signAge));
         addMouseListener(numTrades, privateNotificationManager, trade, offer, preferences, useDevPrivilegeKeys,
-                isFiatCurrency, accountAge, signAge, peersAccount.third, peersAccount.fourth, peersAccount.fifth);
+                isTraditionalCurrency, accountAge, signAge, peersAccount.third, peersAccount.fourth, peersAccount.fifth);
     }
 
     @Override
     protected String getAccountAgeTooltip(Long accountAge) {
-        return isFiatCurrency ? super.getAccountAgeTooltip(accountAge) : "";
+        return isTraditionalCurrency ? super.getAccountAgeTooltip(accountAge) : "";
     }
 
     protected Color getRingColor(Offer offer, Trade Trade, Long accountAge, Long signAge) {
         // outer circle
-        // for altcoins we always display green
+        // for cryptos we always display green
         Color ringColor = AVATAR_GREEN;
-        if (isFiatCurrency) {
+        if (isTraditionalCurrency) {
             switch (accountAgeWitnessService.getPeersAccountAgeCategory(hasChargebackRisk(Trade, offer) ? signAge : accountAge)) {
                 case TWO_MONTHS_OR_MORE:
                     ringColor = AVATAR_GREEN;

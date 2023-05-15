@@ -5,7 +5,8 @@ import com.natpryce.makeiteasy.Property;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
-import org.bitcoinj.utils.Fiat;
+import haveno.core.monetary.TraditionalMoney;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ public class FormattingUtilsTest {
     private static final Property<Price, String> currencyCode = new Property<>();
     private static final Property<Price, String> priceString = new Property<>();
     private static final Maker<Price> usdPrice = a(lookup ->
-            new Price(Fiat.parseFiat(lookup.valueOf(currencyCode, "USD"), lookup.valueOf(priceString, "100"))));
+            new Price(TraditionalMoney.parseTraditionalMoney(lookup.valueOf(currencyCode, "USD"), lookup.valueOf(priceString, "100"))));
 
     @BeforeEach
     public void setUp() {

@@ -40,7 +40,7 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
 import haveno.core.util.PriceUtil;
-import haveno.core.util.validation.AltcoinValidator;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.common.view.ActivatableView;
@@ -313,9 +313,9 @@ public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
         TradeCurrency selectedItem = currencyComboBox.getSelectionModel().getSelectedItem();
         if (selectedItem != null) {
             selectedPriceAlertTradeCurrency = selectedItem.getCode();
-            boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(selectedPriceAlertTradeCurrency);
-            priceAlertHighInputTextField.setValidator(isCryptoCurrency ? new AltcoinValidator() : new FiatPriceValidator());
-            priceAlertLowInputTextField.setValidator(isCryptoCurrency ? new AltcoinValidator() : new FiatPriceValidator());
+            boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(selectedPriceAlertTradeCurrency);
+            priceAlertHighInputTextField.setValidator(isFiatCurrency ? new FiatPriceValidator() : new NonFiatPriceValidator());
+            priceAlertLowInputTextField.setValidator(isFiatCurrency ? new FiatPriceValidator() : new NonFiatPriceValidator());
         } else {
             selectedPriceAlertTradeCurrency = null;
         }

@@ -25,10 +25,10 @@ import org.slf4j.LoggerFactory;
 public abstract class MonetaryWrapper {
     private static final Logger log = LoggerFactory.getLogger(MonetaryWrapper.class);
 
-    /// Instance of Fiat or Altcoin
+    /// Instance of TraditionalMoney or CryptoMoney
     protected final Monetary monetary;
-    protected final MonetaryFormat fiatFormat = MonetaryFormat.FIAT.repeatOptionalDecimals(0, 0);
-    protected final MonetaryFormat altCoinFormat = MonetaryFormat.FIAT.repeatOptionalDecimals(0, 0);
+    protected final MonetaryFormat traditionalFormat = MonetaryFormat.FIAT.repeatOptionalDecimals(0, 0);
+    protected final MonetaryFormat cryptoFormat = MonetaryFormat.FIAT.repeatOptionalDecimals(0, 0);
 
     public MonetaryWrapper(Monetary monetary) {
         this.monetary = monetary;

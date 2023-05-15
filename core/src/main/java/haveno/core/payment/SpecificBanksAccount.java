@@ -32,7 +32,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class SpecificBanksAccount extends CountryBasedPaymentAccount implements BankNameRestrictedBankAccount, SameCountryRestrictedBankAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllTraditionalCurrencies();
 
     public SpecificBanksAccount() {
         super(PaymentMethod.SPECIFIC_BANKS);

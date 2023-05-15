@@ -21,8 +21,6 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.ParsingUtils;
 import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.ExchangeRate;
-import org.bitcoinj.utils.Fiat;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +34,7 @@ import java.math.BigInteger;
  * <br/>
  * We wrap an object implementing the {@link Monetary} interface from bitcoinj. We respect the
  * number of decimal digits of precision specified in the {@code smallestUnitExponent()}, defined in
- * those classes, like {@link Fiat} or {@link Altcoin}.
+ * those classes, like {@link TraditionalMoney} or {@link CryptoMoney}.
  */
 public class Price extends MonetaryWrapper implements Comparable<Price> {
     private static final Logger log = LoggerFactory.getLogger(Price.class);
@@ -59,10 +57,10 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
      */
     public static Price parse(String currencyCode, String input) {
         String cleaned = ParsingUtils.convertCharsForNumber(input);
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
-            return new Price(Fiat.parseFiat(currencyCode, cleaned));
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
+            return new Price(TraditionalMoney.parseTraditionalMoney(currencyCode, cleaned));
         else
-            return new Price(Altcoin.parseAltcoin(currencyCode, cleaned));
+            return new Price(CryptoMoney.parseCrypto(currencyCode, cleaned));
     }
 
     /**
@@ -73,34 +71,34 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
      * @return The parsed Price.
      */
     public static Price valueOf(String currencyCode, long value) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            return new Price(Fiat.valueOf(currencyCode, value));
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return new Price(TraditionalMoney.valueOf(currencyCode, value));
         } else {
-            return new Price(Altcoin.valueOf(currencyCode, value));
+            return new Price(CryptoMoney.valueOf(currencyCode, value));
         }
     }
 
     public Volume getVolumeByAmount(BigInteger amount) {
-        if (monetary instanceof Fiat)
-            return new Volume(new ExchangeRate((Fiat) monetary).coinToFiat(HavenoUtils.atomicUnitsToCoin(amount)));
-        else if (monetary instanceof Altcoin)
-            return new Volume(new AltcoinExchangeRate((Altcoin) monetary).coinToAltcoin(HavenoUtils.atomicUnitsToCoin(amount)));
+        if (monetary instanceof TraditionalMoney)
+            return new Volume(new TraditionalExchangeRate((TraditionalMoney) monetary).coinToTraditionalMoney(HavenoUtils.atomicUnitsToCoin(amount)));
+        else if (monetary instanceof CryptoMoney)
+            return new Volume(new CryptoExchangeRate((CryptoMoney) monetary).coinToCrypto(HavenoUtils.atomicUnitsToCoin(amount)));
         else
-            throw new IllegalStateException("Monetary must be either of type Fiat or Altcoin");
+            throw new IllegalStateException("Monetary must be either of type TraditionalMoney or CryptoMoney");
     }
 
     public BigInteger getAmountByVolume(Volume volume) {
         Monetary monetary = volume.getMonetary();
-        if (monetary instanceof Fiat && this.monetary instanceof Fiat)
-            return HavenoUtils.coinToAtomicUnits(new ExchangeRate((Fiat) this.monetary).fiatToCoin((Fiat) monetary));
-        else if (monetary instanceof Altcoin && this.monetary instanceof Altcoin)
-            return HavenoUtils.coinToAtomicUnits(new AltcoinExchangeRate((Altcoin) this.monetary).altcoinToCoin((Altcoin) monetary));
+        if (monetary instanceof TraditionalMoney && this.monetary instanceof TraditionalMoney)
+            return HavenoUtils.coinToAtomicUnits(new TraditionalExchangeRate((TraditionalMoney) this.monetary).traditionalMoneyToCoin((TraditionalMoney) monetary));
+        else if (monetary instanceof CryptoMoney && this.monetary instanceof CryptoMoney)
+            return HavenoUtils.coinToAtomicUnits(new CryptoExchangeRate((CryptoMoney) this.monetary).cryptoToCoin((CryptoMoney) monetary));
         else
             return BigInteger.valueOf(0);
     }
 
     public String getCurrencyCode() {
-        return monetary instanceof Altcoin ? ((Altcoin) monetary).getCurrencyCode() : ((Fiat) monetary).getCurrencyCode();
+        return monetary instanceof CryptoMoney ? ((CryptoMoney) monetary).getCurrencyCode() : ((TraditionalMoney) monetary).getCurrencyCode();
     }
 
     @Override
@@ -109,7 +107,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
     }
 
     /**
-     * Get the amount of whole coins or fiat units as double.
+     * Get the amount of whole coins or units as double.
      */
     public double getDoubleValue() {
         return BigDecimal.valueOf(monetary.getValue()).movePointLeft(monetary.smallestUnitExponent()).doubleValue();
@@ -125,25 +123,25 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
     }
 
     public boolean isPositive() {
-        return monetary instanceof Altcoin ? ((Altcoin) monetary).isPositive() : ((Fiat) monetary).isPositive();
+        return monetary instanceof CryptoMoney ? ((CryptoMoney) monetary).isPositive() : ((TraditionalMoney) monetary).isPositive();
     }
 
     public Price subtract(Price other) {
-        if (monetary instanceof Altcoin) {
-            return new Price(((Altcoin) monetary).subtract((Altcoin) other.monetary));
+        if (monetary instanceof CryptoMoney) {
+            return new Price(((CryptoMoney) monetary).subtract((CryptoMoney) other.monetary));
         } else {
-            return new Price(((Fiat) monetary).subtract((Fiat) other.monetary));
+            return new Price(((TraditionalMoney) monetary).subtract((TraditionalMoney) other.monetary));
         }
     }
 
     public String toFriendlyString() {
-        return monetary instanceof Altcoin ?
-                ((Altcoin) monetary).toFriendlyString() + "/XMR" :
-                ((Fiat) monetary).toFriendlyString().replace(((Fiat) monetary).currencyCode, "") + "XMR/" + ((Fiat) monetary).currencyCode;
+        return monetary instanceof CryptoMoney ?
+                ((CryptoMoney) monetary).toFriendlyString() + "/XMR" :
+                ((TraditionalMoney) monetary).toFriendlyString().replace(((TraditionalMoney) monetary).currencyCode, "") + "XMR/" + ((TraditionalMoney) monetary).currencyCode;
     }
 
     public String toPlainString() {
-        return monetary instanceof Altcoin ? ((Altcoin) monetary).toPlainString() : ((Fiat) monetary).toPlainString();
+        return monetary instanceof CryptoMoney ? ((CryptoMoney) monetary).toPlainString() : ((TraditionalMoney) monetary).toPlainString();
     }
 
     @Override

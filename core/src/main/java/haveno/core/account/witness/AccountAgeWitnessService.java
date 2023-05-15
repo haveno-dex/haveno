@@ -210,16 +210,16 @@ public class AccountAgeWitnessService {
     }
 
     private void onBootStrapped() {
-        republishAllFiatAccounts();
+        republishAllTraditionalAccounts();
         signAndPublishSameNameAccounts();
     }
 
 
-    // At startup we re-publish the witness data of all fiat accounts to ensure we got our data well distributed.
-    private void republishAllFiatAccounts() {
+    // At startup we re-publish the witness data of all traditional accounts to ensure we got our data well distributed.
+    private void republishAllTraditionalAccounts() {
         if (user.getPaymentAccounts() != null)
             user.getPaymentAccounts().stream()
-                    .filter(account -> account.getPaymentMethod().isFiat())
+                    .filter(account -> account.getPaymentMethod().isTraditional())
                     .forEach(account -> {
                         AccountAgeWitness myWitness = getMyWitness(account.getPaymentAccountPayload());
                         // We only publish if the date of our witness is inside the date tolerance.

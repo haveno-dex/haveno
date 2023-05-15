@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.account.content.altcoinaccounts;
+package haveno.desktop.main.account.content.cryptoaccounts;
 
 import com.google.inject.Inject;
 import haveno.core.payment.PaymentAccount;
@@ -23,10 +23,10 @@ import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
 import javafx.collections.ObservableList;
 
-class AltCoinAccountsViewModel extends ActivatableWithDataModel<AltCoinAccountsDataModel> implements ViewModel {
+class CryptoAccountsViewModel extends ActivatableWithDataModel<CryptoAccountsDataModel> implements ViewModel {
 
     @Inject
-    public AltCoinAccountsViewModel(AltCoinAccountsDataModel dataModel) {
+    public CryptoAccountsViewModel(CryptoAccountsDataModel dataModel) {
         super(dataModel);
     }
 

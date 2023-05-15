@@ -28,7 +28,9 @@ import haveno.common.handlers.FaultHandler;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.provider.PriceHttpClient;
 import haveno.core.provider.ProvidersRepository;
 import haveno.core.trade.HavenoUtils;
@@ -272,7 +274,7 @@ public class PriceFeedService {
     private void setHavenoMarketPrice(String currencyCode, Price price) {
         if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
             cache.put(currencyCode, new MarketPrice(currencyCode,
-                    MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? 8 : 4),
+                    MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
                     0,
                     false));
             updateCounter.set(updateCounter.get() + 1);
@@ -340,7 +342,7 @@ public class PriceFeedService {
     /**
      * Returns prices for all available currencies.
      * For crypto currencies the value is XMR price for 1 unit of given crypto currency (e.g. 1 DOGE = X XMR).
-     * For fiat currencies the value is price in the given fiat currency per 1 XMR (e.g. 1 XMR = X USD).
+     * For traditional currencies the value is price in the given traditional currency per 1 XMR (e.g. 1 XMR = X USD).
      *
      * TODO: instrument requestPrices() result and fault handlers instead of using CountDownLatch and timeout
      */

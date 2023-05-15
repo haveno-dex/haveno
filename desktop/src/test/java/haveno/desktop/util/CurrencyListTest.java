@@ -19,7 +19,7 @@ package haveno.desktop.util;
 
 import com.google.common.collect.Lists;
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +37,8 @@ import static org.mockito.Mockito.when;
 public class CurrencyListTest {
     private static final Locale locale = new Locale("en", "US");
 
-    private static final TradeCurrency USD = new FiatCurrency(Currency.getInstance("USD"), locale);
-    private static final TradeCurrency RUR = new FiatCurrency(Currency.getInstance("RUR"), locale);
+    private static final TradeCurrency USD = new TraditionalCurrency(Currency.getInstance("USD"), locale);
+    private static final TradeCurrency RUR = new TraditionalCurrency(Currency.getInstance("RUR"), locale);
     private static final TradeCurrency BTC = new CryptoCurrency("BTC", "Bitcoin");
     private static final TradeCurrency ETH = new CryptoCurrency("ETH", "Ether");
 
@@ -56,10 +56,10 @@ public class CurrencyListTest {
         when(predicates.isCryptoCurrency(BTC)).thenReturn(true);
         when(predicates.isCryptoCurrency(ETH)).thenReturn(true);
 
-        when(predicates.isFiatCurrency(USD)).thenReturn(true);
-        when(predicates.isFiatCurrency(RUR)).thenReturn(true);
-        when(predicates.isFiatCurrency(BTC)).thenReturn(false);
-        when(predicates.isFiatCurrency(ETH)).thenReturn(false);
+        when(predicates.isTraditionalCurrency(USD)).thenReturn(true);
+        when(predicates.isTraditionalCurrency(RUR)).thenReturn(true);
+        when(predicates.isTraditionalCurrency(BTC)).thenReturn(false);
+        when(predicates.isTraditionalCurrency(ETH)).thenReturn(false);
 
         this.preferences = mock(Preferences.class);
         this.delegate = new ArrayList<>();

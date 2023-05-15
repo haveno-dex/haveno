@@ -21,8 +21,9 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.notifications.MobileMessage;
 import haveno.core.notifications.MobileMessageType;
 import haveno.core.notifications.MobileNotificationService;
@@ -34,7 +35,6 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -103,7 +103,7 @@ public class MarketAlerts {
 
     // We combine the offer ID and the price (either as % price or as fixed price) to get also updates for edited offers
     // % price get multiplied by 10000 to have 0.12% be converted to 12. For fixed price we have precision of 8 for
-    // altcoins and precision of 4 for fiat.
+    // crypto and traditional.
     private String getAlertId(Offer offer) {
         double price = offer.isUseMarketBasedPrice() ? offer.getMarketPriceMarginPct() * 10000 : offer.getOfferPayload().getPrice();
         String priceString = String.valueOf((long) price);
@@ -117,7 +117,7 @@ public class MarketAlerts {
         if (marketPrice != null && offerPrice != null) {
             boolean isSellOffer = offer.getDirection() == OfferDirection.SELL;
             String shortOfferId = offer.getShortId();
-            boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(currencyCode);
+            boolean isTraditionalCurrency = CurrencyUtil.isTraditionalCurrency(currencyCode);
             String alertId = getAlertId(offer);
             user.getMarketAlertFilters().stream()
                     .filter(marketAlertFilter -> !offer.isMyOffer(keyRing))
@@ -127,16 +127,16 @@ public class MarketAlerts {
                         int triggerValue = marketAlertFilter.getTriggerValue();
                         boolean isTriggerForBuyOffer = marketAlertFilter.isBuyOffer();
                         double marketPriceAsDouble1 = marketPrice.getPrice();
-                        int precision = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                                Altcoin.SMALLEST_UNIT_EXPONENT :
-                                Fiat.SMALLEST_UNIT_EXPONENT;
+                        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                                TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                                CryptoMoney.SMALLEST_UNIT_EXPONENT;
                         double marketPriceAsDouble = MathUtils.scaleUpByPowerOf10(marketPriceAsDouble1, precision);
                         double offerPriceValue = offerPrice.getValue();
                         double ratio = offerPriceValue / marketPriceAsDouble;
                         ratio = 1 - ratio;
-                        if (isFiatCurrency && isSellOffer)
+                        if (isTraditionalCurrency && isSellOffer)
                             ratio *= -1;
-                        else if (!isFiatCurrency && !isSellOffer)
+                        else if (!isTraditionalCurrency && !isSellOffer)
                             ratio *= -1;
 
                         ratio = ratio * 10000;
@@ -149,7 +149,7 @@ public class MarketAlerts {
                         if (isTriggerForBuyOfferAndTriggered || isTriggerForSellOfferAndTriggered) {
                             String direction = isSellOffer ? Res.get("shared.sell") : Res.get("shared.buy");
                             String marketDir;
-                            if (isFiatCurrency) {
+                            if (isTraditionalCurrency) {
                                 if (isSellOffer) {
                                     marketDir = ratio > 0 ?
                                             Res.get("account.notifications.marketAlert.message.msg.above") :

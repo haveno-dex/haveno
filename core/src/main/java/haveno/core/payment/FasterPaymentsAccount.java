@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -39,7 +39,7 @@ public final class FasterPaymentsAccount extends PaymentAccount {
             PaymentAccountFormField.FieldId.SALT
     );
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("GBP"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("GBP"));
 
     public FasterPaymentsAccount() {
         super(PaymentMethod.FASTER_PAYMENTS);

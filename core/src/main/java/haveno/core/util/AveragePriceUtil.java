@@ -19,12 +19,12 @@ package haveno.core.util;
 
 import haveno.common.util.MathUtils;
 import haveno.common.util.Tuple2;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
-import org.bitcoinj.utils.Fiat;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -87,7 +87,7 @@ public class AveragePriceUtil {
             accumulatedAmount += item.getTradeAmount().getValue(); // Amount of BTC traded
         }
         long averagePrice;
-        double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, Altcoin.SMALLEST_UNIT_EXPONENT);
+        double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT);
         averagePrice = accumulatedVolume > 0 ? MathUtils.roundDoubleToLong(accumulatedAmountAsDouble / accumulatedVolume) : 0;
 
         return averagePrice;
@@ -105,13 +105,13 @@ public class AveragePriceUtil {
             usdBTCPrice = usdList.stream()
                     .filter(usd -> usd.getDateAsLong() > item.getDateAsLong())
                     .map(usd -> MathUtils.scaleDownByPowerOf10((double) usd.getTradePrice().getValue(),
-                            Fiat.SMALLEST_UNIT_EXPONENT))
+                                TraditionalMoney.SMALLEST_UNIT_EXPONENT))
                     .findFirst()
                     .orElse(usdBTCPrice);
             var bsqAmount = MathUtils.scaleDownByPowerOf10((double) item.getTradeVolume().getValue(),
-                    Altcoin.SMALLEST_UNIT_EXPONENT);
+                    CryptoMoney.SMALLEST_UNIT_EXPONENT);
             var btcAmount = MathUtils.scaleDownByPowerOf10((double) item.getTradeAmount().getValue(),
-                    Altcoin.SMALLEST_UNIT_EXPONENT);
+                    CryptoMoney.SMALLEST_UNIT_EXPONENT);
             usdBsqList.add(new Tuple2<>(usdBTCPrice * btcAmount, bsqAmount));
         }
         long averagePrice;
@@ -122,7 +122,7 @@ public class AveragePriceUtil {
                 .mapToDouble(item -> item.second)
                 .sum();
         var averageAsDouble = bsqTraded > 0 ? usdTraded / bsqTraded : 0d;
-        var averageScaledUp = MathUtils.scaleUpByPowerOf10(averageAsDouble, Fiat.SMALLEST_UNIT_EXPONENT);
+        var averageScaledUp = MathUtils.scaleUpByPowerOf10(averageAsDouble, TraditionalMoney.SMALLEST_UNIT_EXPONENT);
         averagePrice = bsqTraded > 0 ? MathUtils.roundDoubleToLong(averageScaledUp) : 0;
 
         return averagePrice;

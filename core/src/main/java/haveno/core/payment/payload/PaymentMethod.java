@@ -320,9 +320,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Thailand
             PROMPT_PAY = new PaymentMethod(PROMPT_PAY_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PromptPayAccount.SUPPORTED_CURRENCIES)),
 
-            // Altcoins
+            // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
-            // Altcoins with 1 hour trade period
+            // Cryptos with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
     );
 
@@ -483,10 +483,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().longValueExact();
         long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor);
 
-        // if fiat and stagenet, cap offer amounts to avoid offers which cannot be taken
-        boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
+        // if traditional and stagenet, cap offer amounts to avoid offers which cannot be taken
+        boolean isTraditional = CurrencyUtil.isTraditionalCurrency(currencyCode);
         boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isFiat && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
+        if (isTraditional && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
             riskBasedTradeLimit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact();
         }
         return BigInteger.valueOf(riskBasedTradeLimit);
@@ -507,8 +507,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return Res.get(id);
     }
 
-    public boolean isFiat() {
-        return !isAltcoin();
+    public boolean isTraditional() {
+        return !isCrypto();
     }
 
     public boolean isBlockchain() {
@@ -516,7 +516,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     // Includes any non btc asset, not limited to blockchain payment methods
-    public boolean isAltcoin() {
+    public boolean isCrypto() {
         return isBlockchain() || isBsqSwap();
     }
 

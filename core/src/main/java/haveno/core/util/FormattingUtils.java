@@ -4,14 +4,14 @@ import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.Fiat;
 import org.bitcoinj.utils.MonetaryFormat;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,8 +29,8 @@ public class FormattingUtils {
 
     public final static String RANGE_SEPARATOR = " - ";
 
-    private static final MonetaryFormat fiatPriceFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
-    private static final MonetaryFormat altcoinFormat = new MonetaryFormat().shift(0).minDecimals(8).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat traditionalPriceFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat cryptoFormat = new MonetaryFormat().shift(0).minDecimals(CryptoMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     private static final DecimalFormat decimalFormat = new DecimalFormat("#.#");
 
     public static String formatCoinWithCode(long value, MonetaryFormat coinFormat) {
@@ -82,84 +82,84 @@ public class FormattingUtils {
         return formattedCoin;
     }
 
-    public static String formatFiat(Fiat fiat, MonetaryFormat format, boolean appendCurrencyCode) {
-        if (fiat != null) {
+    public static String formatTraditionalMoney(TraditionalMoney traditionalMoney, MonetaryFormat format, boolean appendCurrencyCode) {
+        if (traditionalMoney != null) {
             try {
-                final String res = format.noCode().format(fiat).toString();
+                final String res = format.noCode().format(traditionalMoney).toString();
                 if (appendCurrencyCode)
-                    return res + " " + fiat.getCurrencyCode();
+                    return res + " " + traditionalMoney.getCurrencyCode();
                 else
                     return res;
             } catch (Throwable t) {
-                log.warn("Exception at formatFiatWithCode: " + t.toString());
-                return Res.get("shared.na") + " " + fiat.getCurrencyCode();
+                log.warn("Exception at formatTraditionalMoneyWithCode: " + t.toString());
+                return Res.get("shared.na") + " " + traditionalMoney.getCurrencyCode();
             }
         } else {
             return Res.get("shared.na");
         }
     }
 
-    private static String formatAltcoin(Altcoin altcoin, boolean appendCurrencyCode) {
-        if (altcoin != null) {
+    private static String formatCrypto(CryptoMoney crypto, boolean appendCurrencyCode) {
+        if (crypto != null) {
             try {
-                String res = altcoinFormat.noCode().format(altcoin).toString();
+                String res = cryptoFormat.noCode().format(crypto).toString();
                 if (appendCurrencyCode)
-                    return res + " " + altcoin.getCurrencyCode();
+                    return res + " " + crypto.getCurrencyCode();
                 else
                     return res;
             } catch (Throwable t) {
-                log.warn("Exception at formatAltcoin: " + t.toString());
-                return Res.get("shared.na") + " " + altcoin.getCurrencyCode();
+                log.warn("Exception at formatCrypto: " + t.toString());
+                return Res.get("shared.na") + " " + crypto.getCurrencyCode();
             }
         } else {
             return Res.get("shared.na");
         }
     }
 
-    public static String formatAltcoinVolume(Altcoin altcoin, boolean appendCurrencyCode) {
-        if (altcoin != null) {
+    public static String formatCryptoVolume(CryptoMoney crypto, boolean appendCurrencyCode) {
+        if (crypto != null) {
             try {
                 // TODO quick hack...
                 String res;
-                if (altcoin.getCurrencyCode().equals("BSQ"))
-                    res = altcoinFormat.noCode().minDecimals(2).repeatOptionalDecimals(0, 0).format(altcoin).toString();
+                if (crypto.getCurrencyCode().equals("BSQ"))
+                    res = cryptoFormat.noCode().minDecimals(2).repeatOptionalDecimals(0, 0).format(crypto).toString();
                 else
-                    res = altcoinFormat.noCode().format(altcoin).toString();
+                    res = cryptoFormat.noCode().format(crypto).toString();
                 if (appendCurrencyCode)
-                    return res + " " + altcoin.getCurrencyCode();
+                    return res + " " + crypto.getCurrencyCode();
                 else
                     return res;
             } catch (Throwable t) {
-                log.warn("Exception at formatAltcoinVolume: " + t.toString());
-                return Res.get("shared.na") + " " + altcoin.getCurrencyCode();
+                log.warn("Exception at formatCryptoVolume: " + t.toString());
+                return Res.get("shared.na") + " " + crypto.getCurrencyCode();
             }
         } else {
             return Res.get("shared.na");
         }
     }
 
-    public static String formatPrice(Price price, MonetaryFormat fiatPriceFormat, boolean appendCurrencyCode) {
+    public static String formatPrice(Price price, MonetaryFormat priceFormat, boolean appendCurrencyCode) {
         if (price != null) {
             Monetary monetary = price.getMonetary();
-            if (monetary instanceof Fiat)
-                return formatFiat((Fiat) monetary, fiatPriceFormat, appendCurrencyCode);
+            if (monetary instanceof TraditionalMoney)
+                return formatTraditionalMoney((TraditionalMoney) monetary, priceFormat, appendCurrencyCode);
             else
-                return formatAltcoin((Altcoin) monetary, appendCurrencyCode);
+                return formatCrypto((CryptoMoney) monetary, appendCurrencyCode);
         } else {
             return Res.get("shared.na");
         }
     }
 
     public static String formatPrice(Price price, boolean appendCurrencyCode) {
-        return formatPrice(price, fiatPriceFormat, appendCurrencyCode);
+        return formatPrice(price, getMonetaryFormat(price.getCurrencyCode()), appendCurrencyCode);
     }
 
     public static String formatPrice(Price price) {
-        return formatPrice(price, fiatPriceFormat, false);
+        return formatPrice(price, getMonetaryFormat(price.getCurrencyCode()), false);
     }
 
     public static String formatMarketPrice(double price, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return formatMarketPrice(price, 2);
         else
             return formatMarketPrice(price, 8);
@@ -289,5 +289,9 @@ public class FormattingUtils {
             formattedNumber = " " + formattedNumber;
         }*/
         return formattedNumber;
+    }
+
+    public static MonetaryFormat getMonetaryFormat(String currencyCode) {
+        return CurrencyUtil.isTraditionalCurrency(currencyCode) ? traditionalPriceFormat : cryptoFormat;
     }
 }

@@ -44,12 +44,12 @@ import javax.inject.Named;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class TopAltcoinOfferBookViewModel extends OfferBookViewModel {
+public class TopCryptoOfferBookViewModel extends OfferBookViewModel {
 
-    public static TradeCurrency TOP_ALTCOIN = GUIUtil.TOP_ALTCOIN;
+    public static TradeCurrency TOP_CRYPTO = GUIUtil.TOP_CRYPTO;
 
     @Inject
-    public TopAltcoinOfferBookViewModel(User user,
+    public TopCryptoOfferBookViewModel(User user,
                                         OpenOfferManager openOfferManager,
                                         OfferBook offerBook,
                                         Preferences preferences,
@@ -69,12 +69,12 @@ public class TopAltcoinOfferBookViewModel extends OfferBookViewModel {
     @Override
     protected void activate() {
         super.activate();
-        TOP_ALTCOIN = GUIUtil.TOP_ALTCOIN;
+        TOP_CRYPTO = GUIUtil.TOP_CRYPTO;
     }
 
     @Override
     void saveSelectedCurrencyCodeInPreferences(OfferDirection direction, String code) {
-        // No need to store anything as it is just one Altcoin offers anyway
+        // No need to store anything as it is just one Crypto offers anyway
     }
 
     @Override
@@ -86,8 +86,8 @@ public class TopAltcoinOfferBookViewModel extends OfferBookViewModel {
     @Override
     void fillCurrencies(ObservableList<TradeCurrency> tradeCurrencies,
                         ObservableList<TradeCurrency> allCurrencies) {
-        tradeCurrencies.add(TOP_ALTCOIN);
-        allCurrencies.add(TOP_ALTCOIN);
+        tradeCurrencies.add(TOP_CRYPTO);
+        allCurrencies.add(TOP_CRYPTO);
     }
 
     @Override
@@ -95,9 +95,9 @@ public class TopAltcoinOfferBookViewModel extends OfferBookViewModel {
                                                                TradeCurrency selectedTradeCurrency) {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
-            // BUY Altcoin is actually SELL Bitcoin
+            // BUY Crypto is actually SELL Bitcoin
             boolean directionResult = offer.getDirection() == direction;
-            boolean currencyResult = offer.getCurrencyCode().equals(TOP_ALTCOIN.getCode());
+            boolean currencyResult = offer.getCurrencyCode().equals(TOP_CRYPTO.getCode());
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
@@ -107,11 +107,11 @@ public class TopAltcoinOfferBookViewModel extends OfferBookViewModel {
 
     @Override
     TradeCurrency getDefaultTradeCurrency() {
-        return TOP_ALTCOIN;
+        return TOP_CRYPTO;
     }
 
     @Override
     String getCurrencyCodeFromPreferences(OfferDirection direction) {
-        return TOP_ALTCOIN.getCode();
+        return TOP_CRYPTO.getCode();
     }
 }

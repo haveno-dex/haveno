@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaxumAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -40,24 +40,24 @@ public final class PaxumAccount extends PaymentAccount {
 
     // https://github.com/bisq-network/growth/issues/235
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("AUD"),
-            new FiatCurrency("CAD"),
-            new FiatCurrency("CHF"),
-            new FiatCurrency("CZK"),
-            new FiatCurrency("DKK"),
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("HUF"),
-            new FiatCurrency("IDR"),
-            new FiatCurrency("INR"),
-            new FiatCurrency("NOK"),
-            new FiatCurrency("NZD"),
-            new FiatCurrency("PLN"),
-            new FiatCurrency("RON"),
-            new FiatCurrency("SEK"),
-            new FiatCurrency("THB"),
-            new FiatCurrency("USD"),
-            new FiatCurrency("ZAR")
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("CHF"),
+            new TraditionalCurrency("CZK"),
+            new TraditionalCurrency("DKK"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("HUF"),
+            new TraditionalCurrency("IDR"),
+            new TraditionalCurrency("INR"),
+            new TraditionalCurrency("NOK"),
+            new TraditionalCurrency("NZD"),
+            new TraditionalCurrency("PLN"),
+            new TraditionalCurrency("RON"),
+            new TraditionalCurrency("SEK"),
+            new TraditionalCurrency("THB"),
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("ZAR")
     );
 
     public PaxumAccount() {

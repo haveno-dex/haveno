@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.NonNull;
@@ -27,7 +27,7 @@ import java.util.List;
 
 abstract public class IfscBasedAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("INR"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("INR"));
 
     protected IfscBasedAccount(PaymentMethod paymentMethod) {
         super(paymentMethod);

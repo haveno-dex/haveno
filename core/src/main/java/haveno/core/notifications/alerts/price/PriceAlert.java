@@ -20,7 +20,8 @@ package haveno.core.notifications.alerts.price;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.notifications.MobileMessage;
 import haveno.core.notifications.MobileMessageType;
 import haveno.core.notifications.MobileNotificationService;
@@ -29,7 +30,6 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -58,7 +58,7 @@ public class PriceAlert {
             String currencyCode = filter.getCurrencyCode();
             MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
             if (marketPrice != null) {
-                int exp = CurrencyUtil.isCryptoCurrency(currencyCode) ? Altcoin.SMALLEST_UNIT_EXPONENT : Fiat.SMALLEST_UNIT_EXPONENT;
+                int exp = CurrencyUtil.isTraditionalCurrency(currencyCode) ? TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double priceAsDouble = marketPrice.getPrice();
                 long priceAsLong = MathUtils.roundDoubleToLong(MathUtils.scaleUpByPowerOf10(priceAsDouble, exp));
                 String currencyName = CurrencyUtil.getNameByCode(currencyCode);

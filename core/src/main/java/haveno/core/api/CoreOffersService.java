@@ -19,8 +19,10 @@ package haveno.core.api;
 
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
-import haveno.core.monetary.Altcoin;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
@@ -35,7 +37,6 @@ import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -53,7 +54,6 @@ import java.util.stream.Collectors;
 import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.locale.CurrencyUtil.isCryptoCurrency;
 import static haveno.core.offer.OfferDirection.BUY;
 import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
 import static java.lang.String.format;
@@ -285,7 +285,7 @@ public class CoreOffersService {
         if ("".equals(direction)) direction = null;
         if ("".equals(currencyCode)) currencyCode = null;
         var offerOfWantedDirection = direction == null || offer.getDirection().name().equalsIgnoreCase(direction);
-        var counterAssetCode = isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode(); // TODO: crypto pairs invert base and counter currencies
+        var counterAssetCode = CurrencyUtil.isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode();
         var offerInWantedCurrency = currencyCode == null || counterAssetCode.equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
     }
@@ -299,7 +299,7 @@ public class CoreOffersService {
     }
 
     private long priceStringToLong(String priceAsString, String currencyCode) {
-        int precision = isCryptoCurrency(currencyCode) ? Altcoin.SMALLEST_UNIT_EXPONENT : Fiat.SMALLEST_UNIT_EXPONENT;
+        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ? TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
         double priceAsDouble = new BigDecimal(priceAsString).doubleValue();
         double scaled = scaleUpByPowerOf10(priceAsDouble, precision);
         return roundDoubleToLong(scaled);
