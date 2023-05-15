@@ -19,13 +19,13 @@ package haveno.core.trade;
 
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.OpenOffer;
 import haveno.core.util.FormattingUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -131,9 +131,9 @@ public class ClosedTradableFormatter {
                             String currencyCode = entry.getKey();
                             Monetary monetary;
                             if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
-                                monetary = Altcoin.valueOf(currencyCode, entry.getValue());
+                                monetary = CryptoMoney.valueOf(currencyCode, entry.getValue());
                             } else {
-                                monetary = Fiat.valueOf(currencyCode, entry.getValue());
+                                monetary = TraditionalMoney.valueOf(currencyCode, entry.getValue());
                             }
                             return formatVolumeWithCode(new Volume(monetary));
                         }

@@ -188,7 +188,7 @@ public class OfferFilterService {
             return insufficientCounterpartyTradeLimitCache.get(offerId);
         }
 
-        boolean result = offer.isFiatOffer() &&
+        boolean result = offer.isTraditionalOffer() &&
                 !accountAgeWitnessService.verifyPeersTradeAmount(offer, offer.getAmount(),
                         errorMessage -> {
                         });
@@ -215,7 +215,7 @@ public class OfferFilterService {
                 accountOptional.isPresent() ? accountOptional.get().getAccountName() : "null",
                 Coin.valueOf(myTradeLimit).toFriendlyString(),
                 Coin.valueOf(offerMinAmount).toFriendlyString());
-        boolean result = offer.isFiatOffer() &&
+        boolean result = offer.isTraditionalOffer() &&
                 accountOptional.isPresent() &&
                 myTradeLimit < offerMinAmount;
         myInsufficientTradeLimitCache.put(offerId, result);

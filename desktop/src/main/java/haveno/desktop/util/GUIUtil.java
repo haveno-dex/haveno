@@ -63,7 +63,7 @@ import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
-import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
 import javafx.collections.FXCollections;
@@ -133,13 +133,13 @@ public class GUIUtil {
 
     public final static int FIAT_DECIMALS_WITH_ZEROS = 0;
     public final static int FIAT_PRICE_DECIMALS_WITH_ZEROS = 3;
-    public final static int ALTCOINS_DECIMALS_WITH_ZEROS = 7;
+    public final static int CRYPTOS_DECIMALS_WITH_ZEROS = 7;
     public final static int AMOUNT_DECIMALS_WITH_ZEROS = 3;
     public final static int AMOUNT_DECIMALS = 4;
 
     private static Preferences preferences;
 
-    public static TradeCurrency TOP_ALTCOIN = CurrencyUtil.getTradeCurrency("ETH").get();
+    public static TradeCurrency TOP_CRYPTO = CurrencyUtil.getTradeCurrency("ETH").get();
 
     public static void setPreferences(Preferences preferences) {
         GUIUtil.preferences = preferences;
@@ -312,7 +312,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isFiatCurrency(code) ? Res.get("shared.fiat") : Res.get("shared.crypto"));
+                            CurrencyUtil.isTraditionalCurrency(code) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
                     currencyType.getStyleClass().add("currency-label-small");
                     Label currency = new AutoTooltipLabel(code);
@@ -438,7 +438,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isFiatCurrency(item.getCode()) ? Res.get("shared.fiat") : Res.get("shared.crypto"));
+                            CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
                     currencyType.getStyleClass().add("currency-label-small");
                     Label currency = new AutoTooltipLabel(item.getCode());
@@ -509,7 +509,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label paymentType = new AutoTooltipLabel(
-                            method.isAltcoin() ? Res.get("shared.crypto") : Res.get("shared.fiat"));
+                            method.isCrypto() ? Res.get("shared.crypto") : Res.get("shared.traditional"));
 
                     paymentType.getStyleClass().add("currency-label-small");
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));
@@ -673,7 +673,7 @@ public class GUIUtil {
                 .actionButtonTextWithGoTo("navigation.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
-                    navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                 })
                 .dontShowAgainId(key)
                 .show();
@@ -749,7 +749,7 @@ public class GUIUtil {
                     .actionButtonTextWithGoTo("navigation.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
-                        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                     }).show();
             return false;
         }
@@ -908,7 +908,7 @@ public class GUIUtil {
         ComboBox<TradeCurrency> currencyComboBox = FormBuilder.addComboBox(gridPane, ++gridRow,
                 Res.get("shared.currency"));
         currencyComboBox.setPromptText(Res.get("list.currency.select"));
-        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedFiatCurrencies()));
+        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedTraditionalCurrencies()));
 
         currencyComboBox.setConverter(new StringConverter<>() {
             @Override
@@ -1039,11 +1039,11 @@ public class GUIUtil {
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
     }
 
-    public static void updateTopAltcoin(Preferences preferences) {
+    public static void updateTopCrypto(Preferences preferences) {
         TradeCurrency tradeCurrency = preferences.getPreferredTradeCurrency();
-        if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+        if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
             return;
         }
-        TOP_ALTCOIN = tradeCurrency;
+        TOP_CRYPTO = tradeCurrency;
     }
 }

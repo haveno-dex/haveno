@@ -29,7 +29,7 @@ import java.util.List;
 
 public final class WesternUnionAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllTraditionalCurrencies();
 
     public WesternUnionAccount() {
         super(PaymentMethod.WESTERN_UNION);

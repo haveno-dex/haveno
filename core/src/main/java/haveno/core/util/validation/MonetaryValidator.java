@@ -54,7 +54,7 @@ public abstract class MonetaryValidator extends NumberValidator {
     protected ValidationResult validateIfNotExceedsMinValue(String input) {
         double d = Double.parseDouble(input);
         if (d < getMinValue())
-            return new ValidationResult(false, Res.get("validation.fiat.tooSmall"));
+            return new ValidationResult(false, Res.get("validation.traditional.tooSmall"));
         else
             return new ValidationResult(true);
     }
@@ -62,7 +62,7 @@ public abstract class MonetaryValidator extends NumberValidator {
     protected ValidationResult validateIfNotExceedsMaxValue(String input) {
         double d = Double.parseDouble(input);
         if (d > getMaxValue())
-            return new ValidationResult(false, Res.get("validation.fiat.tooLarge"));
+            return new ValidationResult(false, Res.get("validation.traditional.tooLarge"));
         else
             return new ValidationResult(true);
     }

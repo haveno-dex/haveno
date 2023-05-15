@@ -29,7 +29,7 @@ import java.util.List;
 
 public final class CashByMailAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllTraditionalCurrencies();
 
     public CashByMailAccount() {
         super(PaymentMethod.CASH_BY_MAIL);

@@ -62,8 +62,8 @@ public class OfferInfo implements Payload {
     private final String paymentAccountId;
     private final String paymentMethodId;
     private final String paymentMethodShortName;
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
+    // For traditional offer the baseCurrencyCode is XMR and the counterCurrencyCode is the traditional currency
+    // For crypto offers it is the opposite. baseCurrencyCode is the crypto and the counterCurrencyCode is XMR.
     private final String baseCurrencyCode;
     private final String counterCurrencyCode;
     private final long date;

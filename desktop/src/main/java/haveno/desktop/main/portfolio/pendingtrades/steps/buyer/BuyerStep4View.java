@@ -92,7 +92,7 @@ public class BuyerStep4View extends TradeStepView {
 
         if (trade.getDisputeState().isNotDisputed()) {
             addCompactTopLabelTextField(gridPane, gridRow, getBtcTradeAmountLabel(), model.getTradeVolume(), Layout.TWICE_FIRST_ROW_DISTANCE);
-            addCompactTopLabelTextField(gridPane, ++gridRow, getFiatTradeAmountLabel(), model.getFiatVolume());
+            addCompactTopLabelTextField(gridPane, ++gridRow, getTraditionalTradeAmountLabel(), model.getFiatVolume());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.refunded"), model.getSecurityDeposit());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.tradeFee"), model.getTradeFee());
         }
@@ -153,7 +153,7 @@ public class BuyerStep4View extends TradeStepView {
         return Res.get("portfolio.pending.step5_buyer.bought");
     }
 
-    protected String getFiatTradeAmountLabel() {
+    protected String getTraditionalTradeAmountLabel() {
         return Res.get("portfolio.pending.step5_buyer.paid");
     }
 }

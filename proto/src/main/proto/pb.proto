@@ -1646,7 +1646,7 @@ enum RefundResultState {
 message PreferencesPayload {
     string user_language = 1;
     Country user_country = 2;
-    repeated TradeCurrency fiat_currencies = 3;
+    repeated TradeCurrency traditional_currencies = 3;
     repeated TradeCurrency crypto_currencies = 4;
     BlockChainExplorer block_chain_explorer_main_net = 5;
     BlockChainExplorer block_chain_explorer_test_net = 6;
@@ -1776,7 +1776,7 @@ message TradeCurrency {
     string name = 2;
     oneof message {
         CryptoCurrency crypto_currency = 3;
-        FiatCurrency fiat_currency = 4;
+        TraditionalCurrency traditional_currency = 4;
     }
 }
 
@@ -1784,7 +1784,7 @@ message CryptoCurrency {
     bool is_asset = 1;
 }
 
-message FiatCurrency {
+message TraditionalCurrency {
     Currency currency = 1;
 }
 

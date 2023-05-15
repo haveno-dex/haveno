@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.account.content.altcoinaccounts;
+package haveno.desktop.main.account.content.cryptoaccounts;
 
 import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
@@ -23,7 +23,7 @@ import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AssetAccount;
@@ -43,7 +43,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class AltCoinAccountsDataModel extends ActivatableDataModel {
+class CryptoAccountsDataModel extends ActivatableDataModel {
 
     private final User user;
     private final Preferences preferences;
@@ -52,13 +52,13 @@ class AltCoinAccountsDataModel extends ActivatableDataModel {
     private final AccountAgeWitnessService accountAgeWitnessService;
     final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
     private final SetChangeListener<PaymentAccount> setChangeListener;
-    private final String accountsFileName = "AltcoinPaymentAccounts";
+    private final String accountsFileName = "CryptoPaymentAccounts";
     private final PersistenceProtoResolver persistenceProtoResolver;
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
     private final KeyRing keyRing;
 
     @Inject
-    public AltCoinAccountsDataModel(User user,
+    public CryptoAccountsDataModel(User user,
                                     Preferences preferences,
                                     OpenOfferManager openOfferManager,
                                     TradeManager tradeManager,
@@ -106,14 +106,14 @@ class AltCoinAccountsDataModel extends ActivatableDataModel {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
         if (singleTradeCurrency != null) {
-            if (singleTradeCurrency instanceof FiatCurrency)
-                preferences.addFiatCurrency((FiatCurrency) singleTradeCurrency);
+            if (singleTradeCurrency instanceof TraditionalCurrency)
+                preferences.addTraditionalCurrency((TraditionalCurrency) singleTradeCurrency);
             else
                 preferences.addCryptoCurrency((CryptoCurrency) singleTradeCurrency);
         } else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
             tradeCurrencies.forEach(tradeCurrency -> {
-                if (tradeCurrency instanceof FiatCurrency)
-                    preferences.addFiatCurrency((FiatCurrency) tradeCurrency);
+                if (tradeCurrency instanceof TraditionalCurrency)
+                    preferences.addTraditionalCurrency((TraditionalCurrency) tradeCurrency);
                 else
                     preferences.addCryptoCurrency((CryptoCurrency) tradeCurrency);
             });

@@ -20,7 +20,6 @@ package haveno.core.monetary;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.util.ParsingUtils;
 import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.Fiat;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +33,10 @@ public class Volume extends MonetaryWrapper implements Comparable<Volume> {
 
     public static Volume parse(String input, String currencyCode) {
         String cleaned = ParsingUtils.convertCharsForNumber(input);
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
-            return new Volume(Fiat.parseFiat(currencyCode, cleaned));
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
+            return new Volume(TraditionalMoney.parseTraditionalMoney(currencyCode, cleaned));
         else
-            return new Volume(Altcoin.parseAltcoin(currencyCode, cleaned));
+            return new Volume(CryptoMoney.parseCrypto(currencyCode, cleaned));
     }
 
     @Override
@@ -50,11 +49,11 @@ public class Volume extends MonetaryWrapper implements Comparable<Volume> {
     }
 
     public String getCurrencyCode() {
-        return monetary instanceof Altcoin ? ((Altcoin) monetary).getCurrencyCode() : ((Fiat) monetary).getCurrencyCode();
+        return monetary instanceof CryptoMoney ? ((CryptoMoney) monetary).getCurrencyCode() : ((TraditionalMoney) monetary).getCurrencyCode();
     }
 
     public String toPlainString() {
-        return monetary instanceof Altcoin ? ((Altcoin) monetary).toPlainString() : ((Fiat) monetary).toPlainString();
+        return monetary instanceof CryptoMoney ? ((CryptoMoney) monetary).toPlainString() : ((TraditionalMoney) monetary).toPlainString();
     }
 
     @Override

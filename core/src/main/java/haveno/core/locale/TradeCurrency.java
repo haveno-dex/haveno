@@ -45,8 +45,8 @@ public abstract class TradeCurrency implements PersistablePayload, Comparable<Tr
 
     public static TradeCurrency fromProto(protobuf.TradeCurrency proto) {
         switch (proto.getMessageCase()) {
-            case FIAT_CURRENCY:
-                return FiatCurrency.fromProto(proto);
+            case TRADITIONAL_CURRENCY:
+                return TraditionalCurrency.fromProto(proto);
             case CRYPTO_CURRENCY:
                 return CryptoCurrency.fromProto(proto);
             default:

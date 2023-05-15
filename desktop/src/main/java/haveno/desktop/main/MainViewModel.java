@@ -273,8 +273,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // We only show the popup if the user has already set up any fiat account. For new users it is not a rule
-        // change and for altcoins its not relevant.
+        // We only show the popup if the user has already set up any traditional account. For new users it is not a rule
+        // change and for crypto its not relevant.
         String key = "newFeatureDuplicateOffer";
         if (DontShowAgainLookup.showAgain(key)) {
             UserThread.runAfter(() -> {

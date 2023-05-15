@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.account.content.fiataccounts;
+package haveno.desktop.main.account.content.traditionalaccounts;
 
 import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
@@ -24,7 +24,7 @@ import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AssetAccount;
@@ -44,7 +44,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class FiatAccountsDataModel extends ActivatableDataModel {
+class TraditionalAccountsDataModel extends ActivatableDataModel {
 
     private final User user;
     private final Preferences preferences;
@@ -59,7 +59,7 @@ class FiatAccountsDataModel extends ActivatableDataModel {
     private final KeyRing keyRing;
 
     @Inject
-    public FiatAccountsDataModel(User user,
+    public TraditionalAccountsDataModel(User user,
                                  Preferences preferences,
                                  OpenOfferManager openOfferManager,
                                  TradeManager tradeManager,
@@ -108,8 +108,8 @@ class FiatAccountsDataModel extends ActivatableDataModel {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
         if (singleTradeCurrency != null) {
-            if (singleTradeCurrency instanceof FiatCurrency)
-                preferences.addFiatCurrency((FiatCurrency) singleTradeCurrency);
+            if (singleTradeCurrency instanceof TraditionalCurrency)
+                preferences.addTraditionalCurrency((TraditionalCurrency) singleTradeCurrency);
             else
                 preferences.addCryptoCurrency((CryptoCurrency) singleTradeCurrency);
         } else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
@@ -119,8 +119,8 @@ class FiatAccountsDataModel extends ActivatableDataModel {
                 paymentAccount.setSelectedTradeCurrency(tradeCurrencies.get(0));
 
             tradeCurrencies.forEach(tradeCurrency -> {
-                if (tradeCurrency instanceof FiatCurrency)
-                    preferences.addFiatCurrency((FiatCurrency) tradeCurrency);
+                if (tradeCurrency instanceof TraditionalCurrency)
+                    preferences.addTraditionalCurrency((TraditionalCurrency) tradeCurrency);
                 else
                     preferences.addCryptoCurrency((CryptoCurrency) tradeCurrency);
             });

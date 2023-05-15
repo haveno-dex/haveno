@@ -63,7 +63,7 @@ public abstract class AssetAccountPayload extends PaymentAccountPayload {
 
     @Override
     public String getPaymentDetails() {
-        return Res.getWithCol("payment.altcoin.receiver.address") + " " + address;
+        return Res.getWithCol("payment.crypto.receiver.address") + " " + address;
     }
 
     @Override

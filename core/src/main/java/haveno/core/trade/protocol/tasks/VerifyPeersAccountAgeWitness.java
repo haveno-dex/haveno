@@ -44,7 +44,7 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
         try {
             runInterceptHook();
 
-            // only verify fiat offer
+            // only verify traditional offer
             Offer offer = checkNotNull(trade.getOffer());
             if (CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode())) {
                 complete();

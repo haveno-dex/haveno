@@ -56,16 +56,16 @@ public class CurrencyUtil {
 
     private static String baseCurrencyCode = "XMR";
 
-    // Calls to isFiatCurrency and isCryptoCurrency are very frequent so we use a cache of the results.
+    // Calls to isTraditionalCurrency and isCryptoCurrency are very frequent so we use a cache of the results.
     // The main improvement was already achieved with using memoize for the source maps, but
     // the caching still reduces performance costs by about 20% for isCryptoCurrency (1752 ms vs 2121 ms) and about 50%
-    // for isFiatCurrency calls (1777 ms vs 3467 ms).
+    // for isTraditionalCurrency calls (1777 ms vs 3467 ms).
     // See: https://github.com/bisq-network/bisq/pull/4955#issuecomment-745302802
-    private static final Map<String, Boolean> isFiatCurrencyMap = new ConcurrentHashMap<>();
+    private static final Map<String, Boolean> isTraditionalCurrencyMap = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> isCryptoCurrencyMap = new ConcurrentHashMap<>();
 
-    private static final Supplier<Map<String, FiatCurrency>> fiatCurrencyMapSupplier = Suppliers.memoize(
-            CurrencyUtil::createFiatCurrencyMap);
+    private static final Supplier<Map<String, TraditionalCurrency>> traditionalCurrencyMapSupplier = Suppliers.memoize(
+            CurrencyUtil::createTraditionalCurrencyMap);
     private static final Supplier<Map<String, CryptoCurrency>> cryptoCurrencyMapSupplier = Suppliers.memoize(
             CurrencyUtil::createCryptoCurrencyMap);
 
@@ -73,48 +73,52 @@ public class CurrencyUtil {
         CurrencyUtil.baseCurrencyCode = baseCurrencyCode;
     }
 
-    public static Collection<FiatCurrency> getAllSortedFiatCurrencies() {
-        return fiatCurrencyMapSupplier.get().values();  // sorted by currency name
+    public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies() {
+        return traditionalCurrencyMapSupplier.get().values();  // sorted by currency name
     }
 
-    public static List<TradeCurrency> getAllFiatCurrencies() {
-        return new ArrayList<>(fiatCurrencyMapSupplier.get().values());
+    public static List<TradeCurrency> getAllTraditionalCurrencies() {
+        return new ArrayList<>(traditionalCurrencyMapSupplier.get().values());
     }
 
-    public static Collection<FiatCurrency> getAllSortedFiatCurrencies(Comparator comparator) {
-        return (List<FiatCurrency>) getAllSortedFiatCurrencies().stream()
+    public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies(Comparator comparator) {
+        return (List<TraditionalCurrency>) getAllSortedTraditionalCurrencies().stream()
                 .sorted(comparator)                     // sorted by comparator param
                 .collect(Collectors.toList());
     }
 
-    private static Map<String, FiatCurrency> createFiatCurrencyMap() {
-        return CountryUtil.getAllCountries().stream()
+    private static Map<String, TraditionalCurrency> createTraditionalCurrencyMap() {
+        List<TraditionalCurrency> currencies = CountryUtil.getAllCountries().stream()
                 .map(country -> getCurrencyByCountryCode(country.code))
-                .sorted(TradeCurrency::compareTo)
+                .collect(Collectors.toList());
+        currencies.add(new TraditionalCurrency(Currency.getInstance("XAG"))); // add silver
+        currencies.add(new TraditionalCurrency(Currency.getInstance("XAU"))); // add gold
+        return currencies.stream().sorted(TradeCurrency::compareTo)
                 .distinct()
                 .collect(Collectors.toMap(TradeCurrency::getCode, Function.identity(), (x, y) -> x, LinkedHashMap::new));
     }
 
-    public static List<FiatCurrency> getMainFiatCurrencies() {
+    public static List<TraditionalCurrency> getMainTraditionalCurrencies() {
         TradeCurrency defaultTradeCurrency = getDefaultTradeCurrency();
-        List<FiatCurrency> list = new ArrayList<>();
-        // Top traded currencies
-        list.add(new FiatCurrency("USD"));
-        list.add(new FiatCurrency("EUR"));
-        list.add(new FiatCurrency("GBP"));
-        list.add(new FiatCurrency("CAD"));
-        list.add(new FiatCurrency("AUD"));
-        list.add(new FiatCurrency("RUB"));
-        list.add(new FiatCurrency("INR"));
-        list.add(new FiatCurrency("NGN"));
+        List<TraditionalCurrency> list = new ArrayList<>();
+        list.add(new TraditionalCurrency("USD"));
+        list.add(new TraditionalCurrency("EUR"));
+        list.add(new TraditionalCurrency("GBP"));
+        list.add(new TraditionalCurrency("CAD"));
+        list.add(new TraditionalCurrency("AUD"));
+        list.add(new TraditionalCurrency("RUB"));
+        list.add(new TraditionalCurrency("INR"));
+        list.add(new TraditionalCurrency("NGN"));
+        list.add(new TraditionalCurrency("XAG"));
+        list.add(new TraditionalCurrency("XAU"));
 
         list.sort(TradeCurrency::compareTo);
 
-        FiatCurrency defaultFiatCurrency =
-                defaultTradeCurrency instanceof FiatCurrency ? (FiatCurrency) defaultTradeCurrency : null;
-        if (defaultFiatCurrency != null && list.contains(defaultFiatCurrency)) {
+        TraditionalCurrency defaultTraditionalCurrency =
+                defaultTradeCurrency instanceof TraditionalCurrency ? (TraditionalCurrency) defaultTradeCurrency : null;
+        if (defaultTraditionalCurrency != null && list.contains(defaultTraditionalCurrency)) {
             list.remove(defaultTradeCurrency);
-            list.add(0, defaultFiatCurrency);
+            list.add(0, defaultTraditionalCurrency);
         }
         return list;
     }
@@ -165,53 +169,59 @@ public class CurrencyUtil {
 
     public static List<TradeCurrency> getMatureMarketCurrencies() {
         ArrayList<TradeCurrency> currencies = new ArrayList<>(Arrays.asList(
-                new FiatCurrency("EUR"),
-                new FiatCurrency("USD"),
-                new FiatCurrency("GBP"),
-                new FiatCurrency("CAD"),
-                new FiatCurrency("AUD"),
-                new FiatCurrency("BRL")
+                new TraditionalCurrency("EUR"),
+                new TraditionalCurrency("USD"),
+                new TraditionalCurrency("GBP"),
+                new TraditionalCurrency("CAD"),
+                new TraditionalCurrency("AUD"),
+                new TraditionalCurrency("BRL")
         ));
         currencies.sort(Comparator.comparing(TradeCurrency::getCode));
         return currencies;
     }
 
     public static boolean isFiatCurrency(String currencyCode) {
-        if (currencyCode != null && isFiatCurrencyMap.containsKey(currencyCode)) {
-            return isFiatCurrencyMap.get(currencyCode);
+        if (!isTraditionalCurrency(currencyCode)) return false;
+        if ("xag".equalsIgnoreCase(currencyCode) || "xau".equalsIgnoreCase(currencyCode)) return false;
+        return true;
+    }
+
+    public static boolean isTraditionalCurrency(String currencyCode) {
+        if (currencyCode != null && isTraditionalCurrencyMap.containsKey(currencyCode)) {
+            return isTraditionalCurrencyMap.get(currencyCode);
         }
 
         try {
-            boolean isFiatCurrency = currencyCode != null
+            boolean isTraditionalCurrency = currencyCode != null
                     && !currencyCode.isEmpty()
                     && !isCryptoCurrency(currencyCode)
                     && Currency.getInstance(currencyCode) != null;
 
             if (currencyCode != null) {
-                isFiatCurrencyMap.put(currencyCode, isFiatCurrency);
+                isTraditionalCurrencyMap.put(currencyCode, isTraditionalCurrency);
             }
 
-            return isFiatCurrency;
+            return isTraditionalCurrency;
         } catch (Throwable t) {
-            isFiatCurrencyMap.put(currencyCode, false);
+            isTraditionalCurrencyMap.put(currencyCode, false);
             return false;
         }
     }
 
-    public static Optional<FiatCurrency> getFiatCurrency(String currencyCode) {
-        return Optional.ofNullable(fiatCurrencyMapSupplier.get().get(currencyCode));
+    public static Optional<TraditionalCurrency> getTraditionalCurrency(String currencyCode) {
+        return Optional.ofNullable(traditionalCurrencyMapSupplier.get().get(currencyCode));
     }
 
     /**
      * We return true if it is BTC or any of our currencies available in the assetRegistry.
-     * For removed assets it would fail as they are not found but we don't want to conclude that they are fiat then.
-     * As the caller might not deal with the case that a currency can be neither a cryptoCurrency nor Fiat if not found
-     * we return true as well in case we have no fiat currency for the code.
+     * For removed assets it would fail as they are not found but we don't want to conclude that they are traditional then.
+     * As the caller might not deal with the case that a currency can be neither a cryptoCurrency nor Traditional if not found
+     * we return true as well in case we have no traditional currency for the code.
      *
-     * As we use a boolean result for isCryptoCurrency and isFiatCurrency we do not treat missing currencies correctly.
+     * As we use a boolean result for isCryptoCurrency and isTraditionalCurrency we do not treat missing currencies correctly.
      * To throw an exception might be an option but that will require quite a lot of code change, so we don't do that
      * for the moment, but could be considered for the future. Another maybe better option is to introduce an enum which
-     * contains 3 entries (CryptoCurrency, Fiat, Undefined).
+     * contains 3 entries (CryptoCurrency, Traditional, Undefined).
      */
     public static boolean isCryptoCurrency(String currencyCode) {
         if (currencyCode != null) currencyCode = currencyCode.toUpperCase();
@@ -230,14 +240,14 @@ public class CurrencyUtil {
         } else if (getCryptoCurrency(currencyCode).isPresent()) {
             // If we find the code in our assetRegistry we return true.
             // It might be that an asset was removed from the assetsRegistry, we deal with such cases below by checking if
-            // it is a fiat currency
+            // it is a traditional currency
             isCryptoCurrency = true;
-        } else if (getFiatCurrency(currencyCode).isEmpty()) {
-            // In case the code is from a removed asset we cross check if there exist a fiat currency with that code,
-            // if we don't find a fiat currency we treat it as a crypto currency.
+        } else if (getTraditionalCurrency(currencyCode).isEmpty()) {
+            // In case the code is from a removed asset we cross check if there exist a traditional currency with that code,
+            // if we don't find a traditional currency we treat it as a crypto currency.
             isCryptoCurrency = true;
         } else {
-            // If we would have found a fiat currency we return false
+            // If we would have found a traditional currency we return false
             isCryptoCurrency = false;
         }
 
@@ -253,9 +263,9 @@ public class CurrencyUtil {
     }
 
     public static Optional<TradeCurrency> getTradeCurrency(String currencyCode) {
-        Optional<FiatCurrency> fiatCurrencyOptional = getFiatCurrency(currencyCode);
-        if (fiatCurrencyOptional.isPresent() && isFiatCurrency(currencyCode))
-            return Optional.of(fiatCurrencyOptional.get());
+        Optional<TraditionalCurrency> traditionalCurrencyOptional = getTraditionalCurrency(currencyCode);
+        if (traditionalCurrencyOptional.isPresent() && isTraditionalCurrency(currencyCode))
+            return Optional.of(traditionalCurrencyOptional.get());
 
         Optional<CryptoCurrency> cryptoCurrencyOptional = getCryptoCurrency(currencyCode);
         if (cryptoCurrencyOptional.isPresent() && isCryptoCurrency(currencyCode))
@@ -290,12 +300,12 @@ public class CurrencyUtil {
         return tradeCurrencies;
     }
 
-    public static FiatCurrency getCurrencyByCountryCode(String countryCode) {
+    public static TraditionalCurrency getCurrencyByCountryCode(String countryCode) {
         if (countryCode.equals("XK"))
-            return new FiatCurrency("EUR");
+            return new TraditionalCurrency("EUR");
 
         Currency currency = Currency.getInstance(new Locale(LanguageUtil.getDefaultLanguage(), countryCode));
-        return new FiatCurrency(currency.getCurrencyCode());
+        return new TraditionalCurrency(currency.getCurrencyCode());
     }
 
 
@@ -412,14 +422,14 @@ public class CurrencyUtil {
     }
 
     public static String getCurrencyPair(String currencyCode) {
-        if (isFiatCurrency(currencyCode))
+        if (isTraditionalCurrency(currencyCode))
             return Res.getBaseCurrencyCode() + "/" + currencyCode;
         else
             return currencyCode + "/" + Res.getBaseCurrencyCode();
     }
 
     public static String getCounterCurrency(String currencyCode) {
-        if (isFiatCurrency(currencyCode))
+        if (isTraditionalCurrency(currencyCode))
             return currencyCode;
         else
             return Res.getBaseCurrencyCode();
@@ -453,6 +463,6 @@ public class CurrencyUtil {
     }
 
     public static List<TradeCurrency> getAllTransferwiseUSDCurrencies() {
-        return List.of(new FiatCurrency("USD"));
+        return List.of(new TraditionalCurrency("USD"));
     }
 }

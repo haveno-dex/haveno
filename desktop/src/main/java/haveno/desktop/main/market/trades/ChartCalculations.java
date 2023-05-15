@@ -20,7 +20,7 @@ package haveno.desktop.main.market.trades;
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.util.DisplayUtils;
@@ -262,7 +262,7 @@ public class ChartCalculations {
         boolean isBullish;
         if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
             isBullish = close < open;
-            double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, Altcoin.SMALLEST_UNIT_EXPONENT);
+            double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT);
             averagePrice = MathUtils.roundDoubleToLong(accumulatedAmountAsDouble / accumulatedVolume);
         } else {
             isBullish = close > open;

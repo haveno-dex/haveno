@@ -37,7 +37,7 @@ public class SellerStep4View extends BuyerStep4View {
     }
 
     @Override
-    protected String getFiatTradeAmountLabel() {
+    protected String getTraditionalTradeAmountLabel() {
         return Res.get("portfolio.pending.step5_seller.received");
     }
 }

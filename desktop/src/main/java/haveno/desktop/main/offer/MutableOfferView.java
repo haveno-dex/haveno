@@ -49,7 +49,7 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
-import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
@@ -295,7 +295,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                     .actionButtonTextWithGoTo("navigation.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
-                        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                     }).show();
         }
 
@@ -303,19 +303,19 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         if (OfferViewUtil.isShownAsBuyOffer(direction, tradeCurrency)) {
             placeOfferButton.setId("buy-button-big");
-            if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
                 placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.buy"));
             } else {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.buy"), tradeCurrency.getCode());
+                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.buy"), tradeCurrency.getCode());
             }
             nextButton.setId("buy-button");
             fundFromSavingsWalletButton.setId("buy-button");
         } else {
             placeOfferButton.setId("sell-button-big");
-            if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
                 placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.sell"));
             } else {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.sell"), tradeCurrency.getCode());
+                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.sell"), tradeCurrency.getCode());
             }
             nextButton.setId("sell-button");
             fundFromSavingsWalletButton.setId("sell-button");
@@ -695,12 +695,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             marketBasedPriceTextField.clear();
             volumeTextField.clear();
             triggerPriceInputTextField.clear();
-            if (!CurrencyUtil.isFiatCurrency(newValue)) {
+            if (!CurrencyUtil.isTraditionalCurrency(newValue)) {
                 if (model.isShownAsBuyOffer()) {
-                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.buy"),
+                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.buy"),
                             model.getTradeCurrency().getCode()));
                 } else {
-                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.sell"),
+                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.sell"),
                             model.getTradeCurrency().getCode()));
                 }
             }
@@ -1251,9 +1251,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         int marketPriceAvailable = model.marketPriceAvailableProperty.get();
         fixedPriceSelected = fixedPriceSelected || (marketPriceAvailable == 0);
 
-        if (marketPriceAvailable == 1) {
-            model.getDataModel().setUseMarketBasedPrice(!fixedPriceSelected);
-        }
+        model.getDataModel().setUseMarketBasedPrice(marketPriceAvailable == 1 && !fixedPriceSelected);
 
         percentagePriceBox.setDisable(fixedPriceSelected);
         fixedPriceBox.setDisable(!fixedPriceSelected);
@@ -1284,7 +1282,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addSecondRow() {
-        // price as fiat
+        // price as traditional currency
         Tuple3<HBox, InputTextField, Label> priceValueCurrencyBoxTuple = getEditableValueBox(
                 Res.get("createOffer.price.prompt"));
         priceValueCurrencyBox = priceValueCurrencyBoxTuple.first;

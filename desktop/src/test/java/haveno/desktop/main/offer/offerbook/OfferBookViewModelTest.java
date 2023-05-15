@@ -21,7 +21,7 @@ import com.natpryce.makeiteasy.Maker;
 import haveno.common.config.Config;
 import haveno.core.locale.Country;
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
@@ -464,7 +464,7 @@ public class OfferBookViewModelTest {
 
     private PaymentAccount getAliPayAccount(String currencyCode) {
         PaymentAccount paymentAccount = new AliPayAccount();
-        paymentAccount.setSelectedTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSelectedTradeCurrency(new TraditionalCurrency(currencyCode));
         return paymentAccount;
     }
 
@@ -479,7 +479,7 @@ public class OfferBookViewModelTest {
                                           String bic,
                                           ArrayList<String> countryCodes) {
         CountryBasedPaymentAccount paymentAccount = new SepaAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((SepaAccountPayload) paymentAccount.getPaymentAccountPayload()).setBic(bic);
         countryCodes.forEach(((SepaAccountPayload) paymentAccount.getPaymentAccountPayload())::addAcceptedCountry);
@@ -488,7 +488,7 @@ public class OfferBookViewModelTest {
 
     private PaymentAccount getNationalBankAccount(String currencyCode, String countryCode, String bankId) {
         CountryBasedPaymentAccount paymentAccount = new NationalBankAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((NationalBankAccountPayload) paymentAccount.getPaymentAccountPayload()).setBankId(bankId);
         return paymentAccount;
@@ -496,7 +496,7 @@ public class OfferBookViewModelTest {
 
     private PaymentAccount getSameBankAccount(String currencyCode, String countryCode, String bankId) {
         SameBankAccount paymentAccount = new SameBankAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((SameBankAccountPayload) paymentAccount.getPaymentAccountPayload()).setBankId(bankId);
         return paymentAccount;
@@ -507,7 +507,7 @@ public class OfferBookViewModelTest {
                                                    String bankId,
                                                    ArrayList<String> bankIds) {
         SpecificBanksAccount paymentAccount = new SpecificBanksAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((SpecificBanksAccountPayload) paymentAccount.getPaymentAccountPayload()).setBankId(bankId);
         bankIds.forEach(((SpecificBanksAccountPayload) paymentAccount.getPaymentAccountPayload())::addAcceptedBank);

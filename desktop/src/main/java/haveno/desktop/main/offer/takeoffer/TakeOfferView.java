@@ -1174,9 +1174,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     @NotNull
     private String getTakeOfferLabel(Offer offer, String direction) {
-        return offer.isFiatOffer() ?
+        return offer.isTraditionalOffer() ?
                 Res.get("takeOffer.takeOfferButton", direction) :
-                Res.get("takeOffer.takeOfferButtonAltcoin",
+                Res.get("takeOffer.takeOfferButtonCrypto",
                         direction,
                         offer.getCurrencyCode());
     }

@@ -119,10 +119,10 @@ public class TradeStatisticsManager {
             jsonFileManager = new JsonFileManager(storageDir);
 
             // We only dump once the currencies as they do not change during runtime
-            ArrayList<CurrencyTuple> fiatCurrencyList = CurrencyUtil.getAllSortedFiatCurrencies().stream()
+            ArrayList<CurrencyTuple> traditionalCurrencyList = CurrencyUtil.getAllSortedTraditionalCurrencies().stream()
                     .map(e -> new CurrencyTuple(e.getCode(), e.getName(), 8))
                     .collect(Collectors.toCollection(ArrayList::new));
-            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(fiatCurrencyList), "fiat_currency_list");
+            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(traditionalCurrencyList), "traditional_currency_list");
 
             ArrayList<CurrencyTuple> cryptoCurrencyList = CurrencyUtil.getAllSortedCryptoCurrencies().stream()
                     .map(e -> new CurrencyTuple(e.getCode(), e.getName(), 8))
@@ -136,11 +136,11 @@ public class TradeStatisticsManager {
                     .map(p -> p.getCurrency())
                     .collect(Collectors.toSet());
 
-            ArrayList<CurrencyTuple> activeFiatCurrencyList = fiatCurrencyList.stream()
+            ArrayList<CurrencyTuple> activeTraditionalCurrencyList = traditionalCurrencyList.stream()
                     .filter(e -> activeCurrencies.contains(e.code))
                     .map(e -> new CurrencyTuple(e.code, e.name, 8))
                     .collect(Collectors.toCollection(ArrayList::new));
-            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(activeFiatCurrencyList), "active_fiat_currency_list");
+            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(activeTraditionalCurrencyList), "active_traditional_currency_list");
 
             ArrayList<CurrencyTuple> activeCryptoCurrencyList = cryptoCurrencyList.stream()
                     .filter(e -> activeCurrencies.contains(e.code))

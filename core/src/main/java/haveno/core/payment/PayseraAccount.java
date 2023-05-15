@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -33,38 +33,38 @@ public final class PayseraAccount extends PaymentAccount {
 
     // https://github.com/bisq-network/growth/issues/233
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("AUD"),
-            new FiatCurrency("BGN"),
-            new FiatCurrency("BYN"),
-            new FiatCurrency("CAD"),
-            new FiatCurrency("CHF"),
-            new FiatCurrency("CNY"),
-            new FiatCurrency("CZK"),
-            new FiatCurrency("DKK"),
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("GEL"),
-            new FiatCurrency("HKD"),
-            new FiatCurrency("HRK"),
-            new FiatCurrency("HUF"),
-            new FiatCurrency("ILS"),
-            new FiatCurrency("INR"),
-            new FiatCurrency("JPY"),
-            new FiatCurrency("KZT"),
-            new FiatCurrency("MXN"),
-            new FiatCurrency("NOK"),
-            new FiatCurrency("NZD"),
-            new FiatCurrency("PHP"),
-            new FiatCurrency("PLN"),
-            new FiatCurrency("RON"),
-            new FiatCurrency("RSD"),
-            new FiatCurrency("RUB"),
-            new FiatCurrency("SEK"),
-            new FiatCurrency("SGD"),
-            new FiatCurrency("THB"),
-            new FiatCurrency("TRY"),
-            new FiatCurrency("USD"),
-            new FiatCurrency("ZAR")
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("BGN"),
+            new TraditionalCurrency("BYN"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("CHF"),
+            new TraditionalCurrency("CNY"),
+            new TraditionalCurrency("CZK"),
+            new TraditionalCurrency("DKK"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("GEL"),
+            new TraditionalCurrency("HKD"),
+            new TraditionalCurrency("HRK"),
+            new TraditionalCurrency("HUF"),
+            new TraditionalCurrency("ILS"),
+            new TraditionalCurrency("INR"),
+            new TraditionalCurrency("JPY"),
+            new TraditionalCurrency("KZT"),
+            new TraditionalCurrency("MXN"),
+            new TraditionalCurrency("NOK"),
+            new TraditionalCurrency("NZD"),
+            new TraditionalCurrency("PHP"),
+            new TraditionalCurrency("PLN"),
+            new TraditionalCurrency("RON"),
+            new TraditionalCurrency("RSD"),
+            new TraditionalCurrency("RUB"),
+            new TraditionalCurrency("SEK"),
+            new TraditionalCurrency("SGD"),
+            new TraditionalCurrency("THB"),
+            new TraditionalCurrency("TRY"),
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("ZAR")
     );
 
     public PayseraAccount() {

@@ -20,9 +20,9 @@ package haveno.desktop.maker;
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
-import org.bitcoinj.utils.Fiat;
+import haveno.core.monetary.TraditionalMoney;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 
@@ -31,12 +31,12 @@ public class PriceMaker {
     public static final Property<Price, String> currencyCode = new Property<>();
     public static final Property<Price, String> priceString = new Property<>();
 
-    public static final Instantiator<Price> FiatPrice = lookup ->
-            new Price(Fiat.parseFiat(lookup.valueOf(currencyCode, "USD"), lookup.valueOf(priceString, "100")));
+    public static final Instantiator<Price> TraditionalMoneyPrice = lookup ->
+            new Price(TraditionalMoney.parseTraditionalMoney(lookup.valueOf(currencyCode, "USD"), lookup.valueOf(priceString, "100")));
 
-    public static final Instantiator<Price> AltcoinPrice = lookup ->
-            new Price(Altcoin.parseAltcoin(lookup.valueOf(currencyCode, "LTC"), lookup.valueOf(priceString, "100")));
+    public static final Instantiator<Price> CryptoPrice = lookup ->
+            new Price(CryptoMoney.parseCrypto(lookup.valueOf(currencyCode, "LTC"), lookup.valueOf(priceString, "100")));
 
-    public static final Maker<Price> usdPrice = a(FiatPrice);
-    public static final Maker<Price> ltcPrice = a(AltcoinPrice);
+    public static final Maker<Price> usdPrice = a(TraditionalMoneyPrice);
+    public static final Maker<Price> ltcPrice = a(CryptoPrice);
 }

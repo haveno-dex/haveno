@@ -28,9 +28,12 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.ExtraDataMapValidator;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
-import haveno.core.monetary.Altcoin;
-import haveno.core.monetary.AltcoinExchangeRate;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.monetary.CryptoMoney;
+import haveno.core.monetary.CryptoExchangeRate;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
+import haveno.core.monetary.TraditionalExchangeRate;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
@@ -45,8 +48,6 @@ import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.ExchangeRate;
-import org.bitcoinj.utils.Fiat;
 
 import javax.annotation.Nullable;
 import java.time.LocalDateTime;
@@ -194,7 +195,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     private transient final Date dateObj;
 
     @JsonExclude
-    private transient Volume volume = null; // Fiat or altcoin volume
+    private transient Volume volume = null; // Traditional or crypto volume
     @JsonExclude
     private transient LocalDateTime localDateTime;
 
@@ -375,11 +376,12 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     public Volume getTradeVolume() {
         if (volume == null) {
-            if (getTradePrice().getMonetary() instanceof Altcoin) {
-                volume = new Volume(new AltcoinExchangeRate((Altcoin) getTradePrice().getMonetary()).coinToAltcoin(getTradeAmount()));
+            if (getTradePrice().getMonetary() instanceof CryptoMoney) {
+                volume = new Volume(new CryptoExchangeRate((CryptoMoney) getTradePrice().getMonetary()).coinToCrypto(getTradeAmount()));
             } else {
-                Volume exactVolume = new Volume(new ExchangeRate((Fiat) getTradePrice().getMonetary()).coinToFiat(getTradeAmount()));
-                volume = VolumeUtil.getRoundedFiatVolume(exactVolume);
+                Volume exactVolume = new Volume(new TraditionalExchangeRate((TraditionalMoney) getTradePrice().getMonetary()).coinToTraditionalMoney(getTradeAmount()));
+                boolean isFiat = CurrencyUtil.isFiatCurrency(exactVolume.getCurrencyCode());
+                if (isFiat) volume = VolumeUtil.getRoundedFiatVolume(exactVolume);
             }
         }
         return volume;

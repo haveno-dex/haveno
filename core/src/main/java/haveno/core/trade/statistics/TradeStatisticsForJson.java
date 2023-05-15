@@ -17,7 +17,6 @@
 
 package haveno.core.trade.statistics;
 
-import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -65,12 +64,10 @@ public final class TradeStatisticsForJson {
                 primaryMarketTradeVolume = getTradeAmount().longValueExact();
             } else {
                 currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
-                // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
-                primaryMarketTradePrice = (long) MathUtils.scaleUpByPowerOf10(tradePrice.getValue(), 4);
+                primaryMarketTradePrice = tradePrice.getValue();
                 primaryMarketTradeAmount = getTradeAmount().longValueExact();
-                // we use precision 4 for fiat but on the markets api we use precision 8 so we scale up by 10000
                 primaryMarketTradeVolume = getTradeVolume() != null ?
-                        (long) MathUtils.scaleUpByPowerOf10(getTradeVolume().getValue(), 4) :
+                        getTradeVolume().getValue() :
                         0;
             }
         } catch (Throwable t) {

@@ -63,7 +63,7 @@ public class CurrencyList {
 
     private List<CurrencyListItem> getPartitionedSortedItems(List<TradeCurrency> currencies) {
         Map<TradeCurrency, Integer> tradesPerCurrency = countTrades(currencies);
-        List<CurrencyListItem> fiatCurrencies = new ArrayList<>();
+        List<CurrencyListItem> traditionalCurrencies = new ArrayList<>();
         List<CurrencyListItem> cryptoCurrencies = new ArrayList<>();
 
         for (Map.Entry<TradeCurrency, Integer> entry : tradesPerCurrency.entrySet()) {
@@ -71,8 +71,8 @@ public class CurrencyList {
             Integer count = entry.getValue();
             CurrencyListItem item = new CurrencyListItem(currency, count);
 
-            if (predicates.isFiatCurrency(currency)) {
-                fiatCurrencies.add(item);
+            if (predicates.isTraditionalCurrency(currency)) {
+                traditionalCurrencies.add(item);
             }
 
             if (predicates.isCryptoCurrency(currency)) {
@@ -81,11 +81,11 @@ public class CurrencyList {
         }
 
         Comparator<CurrencyListItem> comparator = getComparator();
-        fiatCurrencies.sort(comparator);
+        traditionalCurrencies.sort(comparator);
         cryptoCurrencies.sort(comparator);
 
         List<CurrencyListItem> result = new ArrayList<>();
-        result.addAll(fiatCurrencies);
+        result.addAll(traditionalCurrencies);
         result.addAll(cryptoCurrencies);
 
         return result;
@@ -110,7 +110,7 @@ public class CurrencyList {
         currencies.forEach(currency -> result.compute(currency, incrementCurrentOrOne));
 
         Set<TradeCurrency> preferred = new HashSet<>();
-        preferred.addAll(preferences.getFiatCurrencies());
+        preferred.addAll(preferences.getTraditionalCurrencies());
         preferred.addAll(preferences.getCryptoCurrencies());
         preferred.forEach(currency -> result.putIfAbsent(currency, 0));
 

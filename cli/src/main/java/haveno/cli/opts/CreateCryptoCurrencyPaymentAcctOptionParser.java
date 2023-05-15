@@ -35,7 +35,7 @@ public class CreateCryptoCurrencyPaymentAcctOptionParser extends AbstractMethodO
     final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "crypto currency code (xmr)")
             .withRequiredArg();
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "altcoin address")
+    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "crypto address")
             .withRequiredArg();
 
     final OptionSpec<Boolean> tradeInstantOpt = parser.accepts(OPT_TRADE_INSTANT, "create trade instant account")

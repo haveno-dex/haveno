@@ -24,61 +24,61 @@ import java.math.BigInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-// Cloned from ExchangeRate. Use Altcoin instead of Fiat.
+// Cloned from ExchangeRate. Use Crypto instead of Fiat.
 @Slf4j
-public class AltcoinExchangeRate {
+public class CryptoExchangeRate {
     /**
-     * An exchange rate is expressed as a ratio of a {@link Coin} and a {@link Altcoin} amount.
+     * An exchange rate is expressed as a ratio of a {@link Coin} and a {@link CryptoMoney} amount.
      */
 
     public final Coin coin;
-    public final Altcoin altcoin;
+    public final CryptoMoney crypto;
 
     /**
-     * Construct exchange rate. This amount of coin is worth that amount of altcoin.
+     * Construct exchange rate. This amount of coin is worth that amount of crypto.
      */
     @SuppressWarnings("SameParameterValue")
-    public AltcoinExchangeRate(Coin coin, Altcoin altcoin) {
+    public CryptoExchangeRate(Coin coin, CryptoMoney crypto) {
         checkArgument(coin.isPositive());
-        checkArgument(altcoin.isPositive());
-        checkArgument(altcoin.currencyCode != null, "currency code required");
+        checkArgument(crypto.isPositive());
+        checkArgument(crypto.currencyCode != null, "currency code required");
         this.coin = coin;
-        this.altcoin = altcoin;
+        this.crypto = crypto;
     }
 
     /**
-     * Construct exchange rate. One coin is worth this amount of altcoin.
+     * Construct exchange rate. One coin is worth this amount of crypto.
      */
-    public AltcoinExchangeRate(Altcoin altcoin) {
-        this(Coin.COIN, altcoin);
+    public CryptoExchangeRate(CryptoMoney crypto) {
+        this(Coin.COIN, crypto);
     }
 
     /**
-     * Convert a coin amount to an altcoin amount using this exchange rate.
+     * Convert a coin amount to an crypto amount using this exchange rate.
      *
-     * @throws ArithmeticException if the converted altcoin amount is too high or too low.
+     * @throws ArithmeticException if the converted crypto amount is too high or too low.
      */
-    public Altcoin coinToAltcoin(Coin convertCoin) {
+    public CryptoMoney coinToCrypto(Coin convertCoin) {
         BigInteger converted = BigInteger.valueOf(coin.value)
                 .multiply(BigInteger.valueOf(convertCoin.value))
-                .divide(BigInteger.valueOf(altcoin.value));
+                .divide(BigInteger.valueOf(crypto.value));
         if (converted.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0
                 || converted.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) < 0)
             throw new ArithmeticException("Overflow");
-        return Altcoin.valueOf(altcoin.currencyCode, converted.longValue());
+        return CryptoMoney.valueOf(crypto.currencyCode, converted.longValue());
     }
 
     /**
-     * Convert a altcoin amount to a coin amount using this exchange rate.
+     * Convert a crypto amount to a coin amount using this exchange rate.
      *
      * @throws ArithmeticException if the converted coin amount is too high or too low.
      */
-    public Coin altcoinToCoin(Altcoin convertAltcoin) {
-        checkArgument(convertAltcoin.currencyCode.equals(altcoin.currencyCode), "Currency mismatch: %s vs %s",
-                convertAltcoin.currencyCode, altcoin.currencyCode);
+    public Coin cryptoToCoin(CryptoMoney convertCrypto) {
+        checkArgument(convertCrypto.currencyCode.equals(crypto.currencyCode), "Currency mismatch: %s vs %s",
+                convertCrypto.currencyCode, crypto.currencyCode);
         // Use BigInteger because it's much easier to maintain full precision without overflowing.
-        BigInteger converted = BigInteger.valueOf(altcoin.value)
-                .multiply(BigInteger.valueOf(convertAltcoin.value))
+        BigInteger converted = BigInteger.valueOf(crypto.value)
+                .multiply(BigInteger.valueOf(convertCrypto.value))
                 .divide(BigInteger.valueOf(coin.value));
         if (converted.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0
                 || converted.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) < 0)

@@ -142,8 +142,8 @@ public class MarketPricePresentation {
                             fillPriceFeedComboBoxItems();
                         });
                     } else {
-                        CurrencyUtil.getFiatCurrency(code).ifPresent(fiatCurrency -> {
-                            preferences.addFiatCurrency(fiatCurrency);
+                        CurrencyUtil.getTraditionalCurrency(code).ifPresent(traditionalCurrency -> {
+                            preferences.addTraditionalCurrency(traditionalCurrency);
                             fillPriceFeedComboBoxItems();
                         });
                     }
@@ -188,7 +188,7 @@ public class MarketPricePresentation {
             final String code = item.currencyCode;
             if (selectedPriceFeedComboBoxItemProperty.get() != null &&
                     selectedPriceFeedComboBoxItemProperty.get().currencyCode.equals(code)) {
-                isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isFiatCurrency(code) && CurrencyUtil.getFiatCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
+                isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isTraditionalCurrency(code) && CurrencyUtil.getTraditionalCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
                 isCryptoCurrencyPriceFeedSelected.set(CurrencyUtil.isCryptoCurrency(code) && CurrencyUtil.getCryptoCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
                 isExternallyProvidedPrice.set(item.isExternallyProvidedPrice());
                 isPriceAvailable.set(item.isPriceAvailable());

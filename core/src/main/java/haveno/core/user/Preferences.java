@@ -26,7 +26,7 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
@@ -146,7 +146,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Getter
     private final IntegerProperty cssThemeProperty = new SimpleIntegerProperty(prefPayload.getCssTheme());
 
-    private final ObservableList<FiatCurrency> fiatCurrenciesAsObservable = FXCollections.observableArrayList();
+    private final ObservableList<TraditionalCurrency> traditionalCurrenciesAsObservable = FXCollections.observableArrayList();
     private final ObservableList<CryptoCurrency> cryptoCurrenciesAsObservable = FXCollections.observableArrayList();
     private final ObservableList<TradeCurrency> tradeCurrenciesAsObservable = FXCollections.observableArrayList();
     private final ObservableMap<String, Boolean> dontShowAgainMapAsObservable = FXCollections.observableHashMap();
@@ -189,10 +189,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             requestPersistence();
         });
 
-        fiatCurrenciesAsObservable.addListener((javafx.beans.Observable ov) -> {
-            prefPayload.getFiatCurrencies().clear();
-            prefPayload.getFiatCurrencies().addAll(fiatCurrenciesAsObservable);
-            prefPayload.getFiatCurrencies().sort(TradeCurrency::compareTo);
+        traditionalCurrenciesAsObservable.addListener((javafx.beans.Observable ov) -> {
+            prefPayload.getTraditionalCurrencies().clear();
+            prefPayload.getTraditionalCurrencies().addAll(traditionalCurrenciesAsObservable);
+            prefPayload.getTraditionalCurrencies().sort(TradeCurrency::compareTo);
             requestPersistence();
         });
         cryptoCurrenciesAsObservable.addListener((javafx.beans.Observable ov) -> {
@@ -202,7 +202,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             requestPersistence();
         });
 
-        fiatCurrenciesAsObservable.addListener(this::updateTradeCurrencies);
+        traditionalCurrenciesAsObservable.addListener(this::updateTradeCurrencies);
         cryptoCurrenciesAsObservable.addListener(this::updateTradeCurrencies);
     }
 
@@ -225,7 +225,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         GlobalSettings.setUseAnimations(prefPayload.isUseAnimations());
         TradeCurrency preferredTradeCurrency = checkNotNull(prefPayload.getPreferredTradeCurrency(), "preferredTradeCurrency must not be null");
         setPreferredTradeCurrency(preferredTradeCurrency);
-        setFiatCurrencies(prefPayload.getFiatCurrencies());
+        setFiatCurrencies(prefPayload.getTraditionalCurrencies());
         setCryptoCurrencies(prefPayload.getCryptoCurrencies());
         GlobalSettings.setDefaultTradeCurrency(preferredTradeCurrency);
 
@@ -255,7 +255,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         }
 
         prefPayload.setPreferredTradeCurrency(preferredTradeCurrency);
-        setFiatCurrencies(CurrencyUtil.getMainFiatCurrencies());
+        setFiatCurrencies(CurrencyUtil.getMainTraditionalCurrencies());
         setCryptoCurrencies(CurrencyUtil.getMainCryptoCurrencies());
 
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
@@ -298,7 +298,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
                 getBlockChainExplorer().name.length() == 0) {
             setBlockChainExplorer(btcExplorers.get(0));
         }
-        tradeCurrenciesAsObservable.addAll(prefPayload.getFiatCurrencies());
+        tradeCurrenciesAsObservable.addAll(prefPayload.getTraditionalCurrencies());
         tradeCurrenciesAsObservable.addAll(prefPayload.getCryptoCurrencies());
         dontShowAgainMapAsObservable.putAll(getDontShowAgainMap());
 
@@ -370,14 +370,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.cssThemeProperty.set(useDarkMode ? 1 : 0);
     }
 
-    public void addFiatCurrency(FiatCurrency tradeCurrency) {
-        if (!fiatCurrenciesAsObservable.contains(tradeCurrency))
-            fiatCurrenciesAsObservable.add(tradeCurrency);
+    public void addTraditionalCurrency(TraditionalCurrency tradeCurrency) {
+        if (!traditionalCurrenciesAsObservable.contains(tradeCurrency))
+            traditionalCurrenciesAsObservable.add(tradeCurrency);
     }
 
-    public void removeFiatCurrency(FiatCurrency tradeCurrency) {
+    public void removeTraditionalCurrency(TraditionalCurrency tradeCurrency) {
         if (tradeCurrenciesAsObservable.size() > 1) {
-            fiatCurrenciesAsObservable.remove(tradeCurrency);
+            traditionalCurrenciesAsObservable.remove(tradeCurrency);
 
             if (prefPayload.getPreferredTradeCurrency() != null &&
                     prefPayload.getPreferredTradeCurrency().equals(tradeCurrency))
@@ -608,9 +608,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    private void setFiatCurrencies(List<FiatCurrency> currencies) {
-        fiatCurrenciesAsObservable.setAll(currencies.stream()
-                .map(fiatCurrency -> new FiatCurrency(fiatCurrency.getCurrency()))
+    private void setFiatCurrencies(List<TraditionalCurrency> currencies) {
+        traditionalCurrenciesAsObservable.setAll(currencies.stream()
+                .map(fiatCurrency -> new TraditionalCurrency(fiatCurrency.getCurrency()))
                 .distinct().collect(Collectors.toList()));
         requestPersistence();
     }
@@ -745,8 +745,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return useAnimationsProperty;
     }
 
-    public ObservableList<FiatCurrency> getFiatCurrenciesAsObservable() {
-        return fiatCurrenciesAsObservable;
+    public ObservableList<TraditionalCurrency> getTraditionalCurrenciesAsObservable() {
+        return traditionalCurrenciesAsObservable;
     }
 
     public ObservableList<CryptoCurrency> getCryptoCurrenciesAsObservable() {
@@ -909,7 +909,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setPayFeeInXmr(boolean payFeeInXmr);
 
-        void setFiatCurrencies(List<FiatCurrency> currencies);
+        void setFiatCurrencies(List<TraditionalCurrency> currencies);
 
         void setCryptoCurrencies(List<CryptoCurrency> currencies);
 

@@ -32,7 +32,7 @@ import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
-import static haveno.core.locale.CurrencyUtil.isFiatCurrency;
+import static haveno.core.locale.CurrencyUtil.isTraditionalCurrency;
 import static haveno.core.util.FormattingUtils.formatDurationAsWords;
 import static java.lang.String.format;
 
@@ -194,7 +194,7 @@ public class TradeUtil {
      * @return String describing a trader's role
      */
     public String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
-        if (isFiatCurrency(currencyCode)) {
+        if (isTraditionalCurrency(currencyCode)) {
             String baseCurrencyCode = Res.getBaseCurrencyCode();
             if (isBuyerMakerAndSellerTaker)
                 return isMaker

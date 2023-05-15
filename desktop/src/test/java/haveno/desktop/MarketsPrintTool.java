@@ -19,7 +19,7 @@ package haveno.desktop;
 
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -34,22 +34,22 @@ public class MarketsPrintTool {
         StringBuilder sb = new StringBuilder();
         Locale.setDefault(new Locale("en", "US"));
 
-        // <option value="onion_btc">DeepOnion (ONION)</option>
-        // <option value="btc_bhd">Bahraini Dinar (BHD)</option>
+        // <option value="onion_xmr">DeepOnion (ONION)</option>
+        // <option value="xmr_bhd">Bahraini Dinar (BHD)</option>
 
-        final Collection<FiatCurrency> allSortedFiatCurrencies = CurrencyUtil.getAllSortedFiatCurrencies();
-        final Stream<MarketCurrency> fiatStream = allSortedFiatCurrencies.stream()
-                .filter(e -> !e.getCurrency().getCurrencyCode().equals("BTC")) // TODO (woodser): update to XMR
-                .map(e -> new MarketCurrency("btc_" + e.getCode().toLowerCase(), e.getName(), e.getCode()))
+        final Collection<TraditionalCurrency> allSortedTraditionalCurrencies = CurrencyUtil.getAllSortedTraditionalCurrencies();
+        final Stream<MarketCurrency> traditionalStream = allSortedTraditionalCurrencies.stream()
+                .filter(e -> !e.getCurrency().getCurrencyCode().equals("XMR")) // TODO (woodser): update to XMR
+                .map(e -> new MarketCurrency("xmr_" + e.getCode().toLowerCase(), e.getName(), e.getCode()))
                 .distinct();
 
         final Collection<CryptoCurrency> allSortedCryptoCurrencies = CurrencyUtil.getAllSortedCryptoCurrencies();
         final Stream<MarketCurrency> cryptoStream = allSortedCryptoCurrencies.stream()
-                .filter(e -> !e.getCode().equals("BTC"))
-                .map(e -> new MarketCurrency(e.getCode().toLowerCase() + "_btc", e.getName(), e.getCode()))
+                .filter(e -> !e.getCode().equals("XMR"))
+                .map(e -> new MarketCurrency(e.getCode().toLowerCase() + "_xmr", e.getName(), e.getCode()))
                 .distinct();
 
-        Stream.concat(fiatStream, cryptoStream)
+        Stream.concat(traditionalStream, cryptoStream)
                 .sorted(Comparator.comparing(o -> o.currencyName.toLowerCase()))
                 .distinct()
                 .forEach(e -> sb.append("<option value=\"")

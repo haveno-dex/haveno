@@ -54,8 +54,8 @@ import haveno.desktop.components.PeerInfoIconTrading;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
-import haveno.desktop.main.account.content.altcoinaccounts.AltCoinAccountsView;
-import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.cryptoaccounts.CryptoAccountsView;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.funds.FundsView;
 import haveno.desktop.main.funds.withdrawal.WithdrawalView;
 import haveno.desktop.main.offer.OfferView;
@@ -613,10 +613,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         .actionButtonText(Res.get("offerbook.setupNewAccount"))
                         .onAction(() -> {
                             navigation.setReturnPath(navigation.getCurrentPath());
-                            if (CurrencyUtil.isFiatCurrency(model.getSelectedTradeCurrency().getCode())) {
-                                navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                            if (CurrencyUtil.isTraditionalCurrency(model.getSelectedTradeCurrency().getCode())) {
+                                navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                             } else {
-                                navigation.navigateTo(MainView.class, AccountView.class, AltCoinAccountsView.class);
+                                navigation.navigateTo(MainView.class, AccountView.class, CryptoAccountsView.class);
                             }
                         })
                         .width(725)
@@ -749,7 +749,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private void openPopupForMissingAccountSetup(Offer offer) {
         String headline = Res.get("offerbook.warning.noMatchingAccount.headline");
 
-        var accountViewClass = offer.isFiatOffer() ? FiatAccountsView.class : AltCoinAccountsView.class;
+        var accountViewClass = offer.isTraditionalOffer() ? TraditionalAccountsView.class : CryptoAccountsView.class;
 
         new Popup().headLine(headline)
                 .instruction(Res.get("offerbook.warning.noMatchingAccount.msg"))

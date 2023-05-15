@@ -18,7 +18,7 @@
 package haveno.apitest.method.payment;
 
 import haveno.cli.table.builder.TableBuilder;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.AdvancedCashAccount;
 import haveno.core.payment.AliPayAccount;
@@ -78,7 +78,7 @@ import static haveno.apitest.config.ApiTestConfig.EUR;
 import static haveno.apitest.config.ApiTestConfig.USD;
 import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static haveno.cli.table.builder.TableType.PAYMENT_ACCOUNT_TBL;
-import static haveno.core.locale.CurrencyUtil.getAllSortedFiatCurrencies;
+import static haveno.core.locale.CurrencyUtil.getAllSortedTraditionalCurrencies;
 import static haveno.core.locale.CurrencyUtil.getTradeCurrency;
 import static haveno.core.payment.payload.PaymentMethod.ADVANCED_CASH_ID;
 import static haveno.core.payment.payload.PaymentMethod.ALI_PAY_ID;
@@ -844,9 +844,9 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
                 PROPERTY_NAME_BANK_SWIFT_CODE);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_PAYMENT_METHOD_ID, SWIFT_ID);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_ACCOUNT_NAME, "IT Swift Acct w/ DE Intermediary");
-        Collection<FiatCurrency> swiftCurrenciesSortedByCode = getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode));
-        String allFiatCodes = getCommaDelimitedFiatCurrencyCodes(swiftCurrenciesSortedByCode);
-        COMPLETED_FORM_MAP.put(PROPERTY_NAME_TRADE_CURRENCIES, allFiatCodes);
+        Collection<TraditionalCurrency> swiftCurrenciesSortedByCode = getAllSortedTraditionalCurrencies(comparing(TradeCurrency::getCode));
+        String allTraditionalCodes = getCommaDelimitedTraditionalCurrencyCodes(swiftCurrenciesSortedByCode);
+        COMPLETED_FORM_MAP.put(PROPERTY_NAME_TRADE_CURRENCIES, allTraditionalCodes);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_SELECTED_TRADE_CURRENCY, EUR);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_BANK_SWIFT_CODE, "PASCITMMFIR");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_BANK_COUNTRY_CODE, "IT");

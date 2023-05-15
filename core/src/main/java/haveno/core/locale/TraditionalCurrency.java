@@ -29,23 +29,23 @@ import java.util.Locale;
 @EqualsAndHashCode(callSuper = true)
 @ToString
 @Getter
-public final class FiatCurrency extends TradeCurrency {
+public final class TraditionalCurrency extends TradeCurrency {
     // http://boschista.deviantart.com/journal/Cool-ASCII-Symbols-214218618
     private final static String PREFIX = "★ ";
 
     private final Currency currency;
 
-    public FiatCurrency(String currencyCode) {
+    public TraditionalCurrency(String currencyCode) {
         this(Currency.getInstance(currencyCode), getLocale());
     }
 
     @SuppressWarnings("WeakerAccess")
-    public FiatCurrency(Currency currency) {
+    public TraditionalCurrency(Currency currency) {
         this(currency, getLocale());
     }
 
     @SuppressWarnings("WeakerAccess")
-    public FiatCurrency(Currency currency, Locale locale) {
+    public TraditionalCurrency(Currency currency, Locale locale) {
         super(currency.getCurrencyCode(), currency.getDisplayName(locale));
         this.currency = currency;
     }
@@ -58,14 +58,14 @@ public final class FiatCurrency extends TradeCurrency {
     @Override
     public Message toProtoMessage() {
         protobuf.Currency.Builder currencyBuilder = protobuf.Currency.newBuilder().setCurrencyCode(currency.getCurrencyCode());
-        protobuf.FiatCurrency.Builder fiatCurrencyBuilder = protobuf.FiatCurrency.newBuilder().setCurrency(currencyBuilder);
+        protobuf.TraditionalCurrency.Builder traditionalCurrencyBuilder = protobuf.TraditionalCurrency.newBuilder().setCurrency(currencyBuilder);
         return getTradeCurrencyBuilder()
-                .setFiatCurrency(fiatCurrencyBuilder)
+                .setTraditionalCurrency(traditionalCurrencyBuilder)
                 .build();
     }
 
-    public static FiatCurrency fromProto(protobuf.TradeCurrency proto) {
-        return new FiatCurrency(proto.getCode());
+    public static TraditionalCurrency fromProto(protobuf.TradeCurrency proto) {
+        return new TraditionalCurrency(proto.getCode());
     }
 
 

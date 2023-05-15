@@ -48,7 +48,7 @@ public abstract class AbstractCliTest {
                     .map(Object::toString)
                     .collect(Collectors.toList());
 
-    protected final BiFunction<Double, Double, String> randomFixedAltcoinPrice = (min, max) -> {
+    protected final BiFunction<Double, Double, String> randomFixedCryptoPrice = (min, max) -> {
         String random = Double.valueOf(ThreadLocalRandom.current().nextDouble(min, max)).toString();
         BigDecimal bd = new BigDecimal(random).setScale(8, HALF_UP);
         return bd.toPlainString();
@@ -114,7 +114,7 @@ public abstract class AbstractCliTest {
         log.info("NEW Console OUT:\n{}", tbl);
     }
 
-    protected List<OfferInfo> getMyAltcoinOffers(String currencyCode) {
+    protected List<OfferInfo> getMyCryptoOffers(String currencyCode) {
         String[] args = getMyOffersCommand("buy", currencyCode);
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));

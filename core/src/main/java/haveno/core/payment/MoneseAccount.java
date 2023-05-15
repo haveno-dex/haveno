@@ -18,7 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.MoneseAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -33,9 +33,9 @@ public final class MoneseAccount extends PaymentAccount {
 
     // https://github.com/bisq-network/growth/issues/227
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("RON")
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("RON")
     );
 
     public MoneseAccount() {

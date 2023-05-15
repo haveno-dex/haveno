@@ -91,7 +91,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     @Nullable
     protected final Column<Boolean> colIsPaymentReceivedMessageSent;
     @Nullable
-    protected final Column<String> colAltcoinReceiveAddressColumn;
+    protected final Column<String> colCryptoReceiveAddressColumn;
 
     AbstractTradeListBuilder(TableType tableType, List<?> protos) {
         super(tableType, protos);
@@ -127,7 +127,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         this.colIsPaymentSentMessageSent = colSupplier.paymentSentMessageSentColumn.get();
         this.colIsPaymentReceivedMessageSent = colSupplier.paymentReceivedMessageSentColumn.get();
         //noinspection ConstantConditions
-        this.colAltcoinReceiveAddressColumn = colSupplier.altcoinReceiveAddressColumn.get();
+        this.colCryptoReceiveAddressColumn = colSupplier.cryptoReceiveAddressColumn.get();
     }
 
     protected void validate() {
@@ -142,7 +142,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     // Helper Functions
 
     private final Supplier<Boolean> isTradeDetailTblBuilder = () -> tableType.equals(TRADE_DETAIL_TBL);
-    protected final Predicate<TradeInfo> isFiatTrade = (t) -> isFiatOffer.test(t.getOffer());
+    protected final Predicate<TradeInfo> isTraditionalTrade = (t) -> isTraditionalOffer.test(t.getOffer());
     protected final Predicate<TradeInfo> isMyOffer = (t) -> t.getOffer().getIsMyOffer();
     protected final Predicate<TradeInfo> isTaker = (t) -> t.getRole().toLowerCase().contains("taker");
     protected final Predicate<TradeInfo> isSellOffer = (t) -> t.getOffer().getDirection().equals(SELL.name());
@@ -152,23 +152,23 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
 
     // Column Value Functions
 
-    // Altcoin volumes from server are string representations of decimals.
+    // Crypto volumes from server are string representations of decimals.
     // Converting them to longs ("sats") requires shifting the decimal points
-    // to left:  2 for BSQ, 8 for other altcoins.
-    protected final Function<TradeInfo, Long> toAltcoinTradeVolumeAsLong = (t) -> new BigDecimal(t.getTradeVolume()).movePointRight(8).longValue();
+    // to left:  2 for BSQ, 8 for other cryptos.
+    protected final Function<TradeInfo, Long> toCryptoTradeVolumeAsLong = (t) -> new BigDecimal(t.getTradeVolume()).movePointRight(8).longValue();
 
     protected final Function<TradeInfo, String> toTradeVolumeAsString = (t) ->
-            isFiatTrade.test(t)
+            isTraditionalTrade.test(t)
                     ? t.getTradeVolume()
                     : formatSatoshis(t.getAmount());
 
     protected final Function<TradeInfo, Long> toTradeVolumeAsLong = (t) ->
-            isFiatTrade.test(t)
+            isTraditionalTrade.test(t)
                     ? Long.parseLong(t.getTradeVolume())
-                    : toAltcoinTradeVolumeAsLong.apply(t);
+                    : toCryptoTradeVolumeAsLong.apply(t);
 
     protected final Function<TradeInfo, Long> toTradeAmount = (t) ->
-            isFiatTrade.test(t)
+            isTraditionalTrade.test(t)
                     ? t.getAmount()
                     : toTradeVolumeAsLong.apply(t);
 
@@ -177,7 +177,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
                     + t.getOffer().getCounterCurrencyCode();
 
     protected final Function<TradeInfo, String> toPaymentCurrencyCode = (t) ->
-            isFiatTrade.test(t)
+            isTraditionalTrade.test(t)
                     ? t.getOffer().getCounterCurrencyCode()
                     : t.getOffer().getBaseCurrencyCode();
 
@@ -202,7 +202,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     };
 
     protected final Function<TradeInfo, String> toOfferType = (t) -> {
-        if (isFiatTrade.test(t)) {
+        if (isTraditionalTrade.test(t)) {
             return t.getOffer().getDirection() + " " + t.getOffer().getBaseCurrencyCode();
         } else {
             if (t.getOffer().getDirection().equals("BUY")) {
@@ -213,8 +213,8 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         }
     };
 
-    protected final Predicate<TradeInfo> showAltCoinBuyerAddress = (t) -> {
-        if (isFiatTrade.test(t)) {
+    protected final Predicate<TradeInfo> showCryptoBuyerAddress = (t) -> {
+        if (isTraditionalTrade.test(t)) {
             return false;
         } else {
             ContractInfo contract = t.getContract();
@@ -227,8 +227,8 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         }
     };
 
-    protected final Function<TradeInfo, String> toAltcoinReceiveAddress = (t) -> {
-        if (showAltCoinBuyerAddress.test(t)) {
+    protected final Function<TradeInfo, String> toCryptoReceiveAddress = (t) -> {
+        if (showCryptoBuyerAddress.test(t)) {
             ContractInfo contract = t.getContract();
             boolean isBuyerMakerAndSellerTaker = contract.getIsBuyerMakerAndSellerTaker();
             return isBuyerMakerAndSellerTaker  // (is BTC buyer / maker)

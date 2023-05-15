@@ -586,7 +586,7 @@ public class BuyerStep2View extends TradeStepView {
             String id = trade.getShortId();
             String amount = VolumeUtil.formatVolumeWithCode(trade.getVolume());
             if (paymentAccountPayload instanceof AssetAccountPayload) {
-                message += Res.get("portfolio.pending.step2_buyer.altcoin",
+                message += Res.get("portfolio.pending.step2_buyer.crypto",
                         getCurrencyName(trade),
                         amount);
             } else if (paymentAccountPayload instanceof CashDepositAccountPayload) {

@@ -138,27 +138,27 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("tradeDetailsWindow.headline"));
 
         boolean myOffer = tradeManager.isMyOffer(offer);
-        String fiatDirectionInfo;
-        String btcDirectionInfo;
+        String counterCurrencyDirectionInfo;
+        String xmrDirectionInfo;
         String toReceive = " " + Res.get("shared.toReceive");
         String toSpend = " " + Res.get("shared.toSpend");
         String offerType = Res.get("shared.offerType");
         if (tradeManager.isBuyer(offer)) {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
                     DisplayUtils.getDirectionForBuyer(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
-            fiatDirectionInfo = toSpend;
-            btcDirectionInfo = toReceive;
+            counterCurrencyDirectionInfo = toSpend;
+            xmrDirectionInfo = toReceive;
         } else {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
                     DisplayUtils.getDirectionForSeller(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
-            fiatDirectionInfo = toReceive;
-            btcDirectionInfo = toSpend;
+            counterCurrencyDirectionInfo = toReceive;
+            xmrDirectionInfo = toSpend;
         }
 
-        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + btcDirectionInfo,
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + xmrDirectionInfo,
                 HavenoUtils.formatXmr(trade.getAmount(), true));
         addConfirmationLabelTextField(gridPane, ++rowIndex,
-                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + fiatDirectionInfo,
+                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + counterCurrencyDirectionInfo,
                 VolumeUtil.formatVolumeWithCode(trade.getVolume()));
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(trade.getPrice()));
@@ -306,7 +306,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 data += "\n\n" + (trade.getMaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as maker reserve tx hex: " + trade.getMaker().getReserveTxHex();
                 data += "\n\n" + (trade.getTaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as taker reserve tx hex: " + trade.getTaker().getReserveTxHex();
             }
-            if (offer.isFiatOffer()) {
+            if (offer.isTraditionalOffer()) {
                 data += "\n\nBuyers witness hash,pub key ring hash: " + buyerWitnessHash + "," + buyerPubKeyRingHash;
                 data += "\nBuyers account age: " + buyersAccountAge;
                 data += "\nSellers witness hash,pub key ring hash: " + sellerWitnessHash + "," + sellerPubKeyRingHash;

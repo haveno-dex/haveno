@@ -33,7 +33,7 @@ import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.offer.offerbook.BtcOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
-import haveno.desktop.main.offer.offerbook.TopAltcoinOfferBookView;
+import haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
@@ -126,10 +126,10 @@ public class OfferViewUtil {
 
     public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             offerBookViewClazz = BtcOfferBookView.class;
-        } else if (currencyCode.equals(GUIUtil.TOP_ALTCOIN.getCode())) {
-            offerBookViewClazz = TopAltcoinOfferBookView.class;
+        } else if (currencyCode.equals(GUIUtil.TOP_CRYPTO.getCode())) {
+            offerBookViewClazz = TopCryptoOfferBookView.class;
         } else {
             offerBookViewClazz = OtherOfferBookView.class;
         }
@@ -145,7 +145,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(String currencyCode, OfferDirection direction) {
-        return CurrencyUtil.isFiatCurrency(currencyCode) == (direction == OfferDirection.SELL);
+        return CurrencyUtil.isTraditionalCurrency(currencyCode) == (direction == OfferDirection.SELL);
     }
 
     public static boolean isShownAsBuyOffer(Offer offer) {
@@ -163,7 +163,7 @@ public class OfferViewUtil {
     @NotNull
     public static Stream<CryptoCurrency> getMainCryptoCurrencies() {
         return CurrencyUtil.getMainCryptoCurrencies().stream().filter(cryptoCurrency ->
-                !Objects.equals(cryptoCurrency.getCode(), GUIUtil.TOP_ALTCOIN.getCode()));
+                !Objects.equals(cryptoCurrency.getCode(), GUIUtil.TOP_CRYPTO.getCode()));
     }
 
     public static void submitTransactionHex(XmrWalletService xmrWalletService,

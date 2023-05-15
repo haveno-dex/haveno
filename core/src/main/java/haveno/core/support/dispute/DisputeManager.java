@@ -30,8 +30,9 @@ import haveno.core.api.CoreMoneroConnectionsService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.provider.price.MarketPrice;
@@ -63,7 +64,6 @@ import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.utils.Fiat;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
@@ -1092,9 +1092,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
             double marketPriceAsDouble = marketPrice.getPrice();
             try {
-                int precision = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                        Altcoin.SMALLEST_UNIT_EXPONENT :
-                        Fiat.SMALLEST_UNIT_EXPONENT;
+                int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                        TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                        CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double scaled = MathUtils.scaleUpByPowerOf10(marketPriceAsDouble, precision);
                 long roundedToLong = MathUtils.roundDoubleToLong(scaled);
                 return Price.valueOf(currencyCode, roundedToLong);

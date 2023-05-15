@@ -302,9 +302,9 @@ public class SellerStep3View extends TradeStepView {
     protected String getInfoText() {
         String currencyName = getCurrencyName(trade);
         if (model.isBlockChainMethod()) {
-            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.altcoin", currencyName));
+            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.crypto", currencyName));
         } else {
-            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.fiat", currencyName));
+            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.traditional", currencyName));
         }
     }
 
@@ -389,9 +389,9 @@ public class SellerStep3View extends TradeStepView {
         if (paymentAccountPayload instanceof AssetAccountPayload) {
             String address = ((AssetAccountPayload) paymentAccountPayload).getAddress();
             String explorerOrWalletString = isXmrTrade() ?
-                    Res.get("portfolio.pending.step3_seller.altcoin.wallet", currencyName) :
-                    Res.get("portfolio.pending.step3_seller.altcoin.explorer", currencyName);
-            message = Res.get("portfolio.pending.step3_seller.altcoin",
+                    Res.get("portfolio.pending.step3_seller.crypto.wallet", currencyName) :
+                    Res.get("portfolio.pending.step3_seller.crypto.explorer", currencyName);
+            message = Res.get("portfolio.pending.step3_seller.crypto",
                     part1,
                     explorerOrWalletString,
                     address,

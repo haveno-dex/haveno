@@ -28,16 +28,16 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
 
         test.doOfferPriceEdits();
 
-        List<OfferInfo> offers = test.getMyAltcoinOffers("xmr");
+        List<OfferInfo> offers = test.getMyCryptoOffers("xmr");
         test.disableOffers(offers);
 
         test.sleep(6);
 
-        offers = test.getMyAltcoinOffers("xmr");
+        offers = test.getMyCryptoOffers("xmr");
         test.enableOffers(offers);
 
         // A final look after last edit.
-        test.getMyAltcoinOffers("xmr");
+        test.getMyCryptoOffers("xmr");
     }
 
     private void doOfferPriceEdits() {
@@ -48,7 +48,7 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
     }
 
     private void editPriceMargin() {
-        var offers = getMyAltcoinOffers("xmr");
+        var offers = getMyCryptoOffers("xmr");
         out.println("Edit XMR offers' price margin");
         var margins = randomMarginBasedPrices.apply(-301, 300);
         for (int i = 0; i < offers.size(); i++) {
@@ -59,7 +59,7 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
     }
 
     private void editTriggerPrice() {
-        var offers = getMyAltcoinOffers("xmr");
+        var offers = getMyCryptoOffers("xmr");
         out.println("Edit XMR offers' trigger price");
         for (int i = 0; i < offers.size(); i++) {
             var offer = offers.get(i);
@@ -74,7 +74,7 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
     }
 
     private void editPriceMarginAndTriggerPrice() {
-        var offers = getMyAltcoinOffers("xmr");
+        var offers = getMyCryptoOffers("xmr");
         out.println("Edit XMR offers' price margin and trigger price");
         for (int i = 0; i < offers.size(); i++) {
             var offer = offers.get(i);
@@ -89,10 +89,10 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
     }
 
     private void editFixedPrice() {
-        var offers = getMyAltcoinOffers("xmr");
+        var offers = getMyCryptoOffers("xmr");
         out.println("Edit XMR offers' fixed price");
         for (int i = 0; i < offers.size(); i++) {
-            String randomFixedPrice = randomFixedAltcoinPrice.apply(0.004, 0.0075);
+            String randomFixedPrice = randomFixedCryptoPrice.apply(0.004, 0.0075);
             editOfferFixedPrice(offers.get(i), randomFixedPrice, new Random().nextBoolean());
             sleep(5);
         }

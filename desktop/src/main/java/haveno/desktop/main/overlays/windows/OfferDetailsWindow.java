@@ -193,8 +193,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
 
-        String fiatDirectionInfo = "";
-        String btcDirectionInfo = "";
+        String counterCurrencyDirectionInfo = "";
+        String xmrDirectionInfo = "";
         OfferDirection direction = offer.getDirection();
         String currencyCode = offer.getCurrencyCode();
         String offerTypeLabel = Res.get("shared.offerType");
@@ -204,25 +204,25 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionForTakeOffer(direction, currencyCode), firstRowDistance);
-            fiatDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
-            btcDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
+            counterCurrencyDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
+            xmrDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
         } else if (placeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode), firstRowDistance);
-            fiatDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
-            btcDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
+            counterCurrencyDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
+            xmrDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
         } else {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionBothSides(direction), firstRowDistance);
         }
         String btcAmount = Res.get("shared.btcAmount");
         if (takeOfferHandlerOptional.isPresent()) {
-            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
+            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(tradeAmount, true));
-            addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo,
+            addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + counterCurrencyDirectionInfo,
                     VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
         } else {
-            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
+            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(offer.getAmount(), true));
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minBtcAmount"),
                     HavenoUtils.formatXmr(offer.getMinAmount(), true));
@@ -232,7 +232,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     !offer.getVolume().equals(offer.getMinVolume()))
                 minVolume = " " + Res.get("offerDetailsWindow.min", VolumeUtil.formatVolumeWithCode(offer.getMinVolume()));
             addConfirmationLabelLabel(gridPane, ++rowIndex,
-                    VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo, volume + minVolume);
+                    VolumeUtil.formatVolumeLabel(currencyCode) + counterCurrencyDirectionInfo, volume + minVolume);
         }
 
         String priceLabel = Res.get("shared.price");

@@ -34,10 +34,10 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 @FxmlView
-public class TopAltcoinOfferBookView extends OfferBookView<GridPane, TopAltcoinOfferBookViewModel> {
+public class TopCryptoOfferBookView extends OfferBookView<GridPane, TopCryptoOfferBookViewModel> {
 
     @Inject
-    TopAltcoinOfferBookView(TopAltcoinOfferBookViewModel model,
+    TopCryptoOfferBookView(TopCryptoOfferBookViewModel model,
                             Navigation navigation,
                             OfferDetailsWindow offerDetailsWindow,
                             @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
@@ -51,13 +51,13 @@ public class TopAltcoinOfferBookView extends OfferBookView<GridPane, TopAltcoinO
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", TopAltcoinOfferBookViewModel.TOP_ALTCOIN.getCode(), Res.getBaseCurrencyCode()) :
-                Res.get("offerbook.availableOffersToSell", TopAltcoinOfferBookViewModel.TOP_ALTCOIN.getCode(), Res.getBaseCurrencyCode());
+                Res.get("offerbook.availableOffersToBuy", TopCryptoOfferBookViewModel.TOP_CRYPTO.getCode(), Res.getBaseCurrencyCode()) :
+                Res.get("offerbook.availableOffersToSell", TopCryptoOfferBookViewModel.TOP_CRYPTO.getCode(), Res.getBaseCurrencyCode());
     }
 
     @Override
     protected void activate() {
-        model.onSetTradeCurrency(TopAltcoinOfferBookViewModel.TOP_ALTCOIN);
+        model.onSetTradeCurrency(TopCryptoOfferBookViewModel.TOP_CRYPTO);
 
         super.activate();
 
@@ -67,6 +67,6 @@ public class TopAltcoinOfferBookView extends OfferBookView<GridPane, TopAltcoinO
 
     @Override
     String getTradeCurrencyCode() {
-        return TopAltcoinOfferBookViewModel.TOP_ALTCOIN.getCode();
+        return TopCryptoOfferBookViewModel.TOP_CRYPTO.getCode();
     }
 }

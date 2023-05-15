@@ -20,7 +20,7 @@ package haveno.desktop.maker;
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Property;
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
@@ -35,11 +35,11 @@ public class TradeCurrencyMakers {
     public static final Instantiator<haveno.core.locale.CryptoCurrency> CryptoCurrency = lookup ->
             new CryptoCurrency(lookup.valueOf(currencyCode, "XMR"), lookup.valueOf(currencyName, "Monero"));
 
-    public static final Instantiator<haveno.core.locale.FiatCurrency> FiatCurrency = lookup ->
-            new FiatCurrency(lookup.valueOf(currencyCode, "EUR"));
+    public static final Instantiator<haveno.core.locale.TraditionalCurrency> TraditionalCurrency = lookup ->
+            new TraditionalCurrency(lookup.valueOf(currencyCode, "EUR"));
 
     public static final CryptoCurrency monero = make(a(CryptoCurrency));
-    public static final FiatCurrency euro = make(a(FiatCurrency));
-    public static final FiatCurrency usd = make(a(FiatCurrency).but(with(currencyCode, "USD")));
+    public static final TraditionalCurrency euro = make(a(TraditionalCurrency));
+    public static final TraditionalCurrency usd = make(a(TraditionalCurrency).but(with(currencyCode, "USD")));
 }
 

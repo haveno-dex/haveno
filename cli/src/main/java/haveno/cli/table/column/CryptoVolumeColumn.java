@@ -17,38 +17,32 @@
 
 package haveno.cli.table.column;
 
+import java.math.BigDecimal;
+import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-import static haveno.cli.CurrencyFormat.formatFiatVolume;
-import static haveno.cli.CurrencyFormat.formatPrice;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
-import static haveno.cli.table.column.FiatColumn.DISPLAY_MODE.FIAT_PRICE;
 
 /**
- * For displaying fiat volume or price with appropriate precision.
+ * For displaying crypto volume with appropriate precision.
  */
-public class FiatColumn extends LongColumn {
+public class CryptoVolumeColumn extends LongColumn {
 
     public enum DISPLAY_MODE {
-        FIAT_PRICE,
-        FIAT_VOLUME
+        CRYPTO_VOLUME,
+        BSQ_VOLUME,
     }
 
     private final DISPLAY_MODE displayMode;
 
-    // The default FiatColumn JUSTIFICATION is RIGHT.
-    // The default FiatColumn DISPLAY_MODE is PRICE.
-    public FiatColumn(String name) {
-        this(name, RIGHT, FIAT_PRICE);
-    }
-
-    public FiatColumn(String name, DISPLAY_MODE displayMode) {
+    // The default CryptoVolumeColumn JUSTIFICATION is RIGHT.
+    public CryptoVolumeColumn(String name, DISPLAY_MODE displayMode) {
         this(name, RIGHT, displayMode);
     }
 
-    public FiatColumn(String name,
-                      JUSTIFICATION justification,
-                      DISPLAY_MODE displayMode) {
+    public CryptoVolumeColumn(String name,
+                               JUSTIFICATION justification,
+                               DISPLAY_MODE displayMode) {
         super(name, justification);
         this.displayMode = displayMode;
     }
@@ -57,8 +51,7 @@ public class FiatColumn extends LongColumn {
     public void addRow(Long value) {
         rows.add(value);
 
-        String s = displayMode.equals(FIAT_PRICE) ? formatPrice(value) : formatFiatVolume(value);
-
+        String s = toFormattedString.apply(value, displayMode);
         stringColumn.addRow(s);
 
         if (isNewMaxWidth.test(s))
@@ -67,12 +60,12 @@ public class FiatColumn extends LongColumn {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        return getRow(rowIndex).toString();
+        return toFormattedString.apply(getRow(rowIndex), displayMode);
     }
 
     @Override
     public StringColumn asStringColumn() {
-        // We cached the formatted fiat price strings, but we did
+        // We cached the formatted crypto value strings, but we did
         // not know how much padding each string needed until now.
         IntStream.range(0, stringColumn.getRows().size()).forEach(rowIndex -> {
             String unjustified = stringColumn.getRow(rowIndex);
@@ -81,4 +74,15 @@ public class FiatColumn extends LongColumn {
         });
         return this.stringColumn;
     }
+
+    private final BiFunction<Long, DISPLAY_MODE, String> toFormattedString = (value, displayMode) -> {
+        switch (displayMode) {
+            case CRYPTO_VOLUME:
+                return value > 0 ? new BigDecimal(value).movePointLeft(8).toString() : "";
+            case BSQ_VOLUME:
+                return value > 0 ? new BigDecimal(value).movePointLeft(2).toString() : "";
+            default:
+                throw new IllegalStateException("invalid display mode: " + displayMode);
+        }
+    };
 }

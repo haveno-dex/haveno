@@ -27,12 +27,12 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
-import haveno.desktop.main.account.content.altcoinaccounts.AltCoinAccountsView;
 import haveno.desktop.main.account.content.backup.BackupView;
-import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.cryptoaccounts.CryptoAccountsView;
 import haveno.desktop.main.account.content.notifications.MobileNotificationsView;
 import haveno.desktop.main.account.content.password.PasswordView;
 import haveno.desktop.main.account.content.seedwords.SeedWordsView;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.account.content.walletinfo.WalletInfoView;
 import haveno.desktop.main.account.register.arbitrator.ArbitratorRegistrationView;
 import haveno.desktop.main.account.register.mediator.MediatorRegistrationView;
@@ -57,7 +57,7 @@ import java.util.List;
 public class AccountView extends ActivatableView<TabPane, Void> {
 
     @FXML
-    Tab fiatAccountsTab, altcoinAccountsTab, notificationTab,
+    Tab traditionalAccountsTab, cryptoAccountsTab, notificationTab,
             passwordTab, seedWordsTab, walletInfoTab, backupTab;
 
     private Navigation.Listener navigationListener;
@@ -88,8 +88,8 @@ public class AccountView extends ActivatableView<TabPane, Void> {
 
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
 
-        fiatAccountsTab.setText(Res.get("account.menu.paymentAccount").toUpperCase());
-        altcoinAccountsTab.setText(Res.get("account.menu.altCoinsAccountView").toUpperCase());
+        traditionalAccountsTab.setText(Res.get("account.menu.paymentAccount").toUpperCase());
+        cryptoAccountsTab.setText(Res.get("account.menu.altCoinsAccountView").toUpperCase());
         notificationTab.setText(Res.get("account.menu.notifications").toUpperCase());
         passwordTab.setText(Res.get("account.menu.password").toUpperCase());
         seedWordsTab.setText(Res.get("account.menu.seedWords").toUpperCase());
@@ -99,13 +99,13 @@ public class AccountView extends ActivatableView<TabPane, Void> {
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(AccountView.class) == 1) {
                 if (arbitratorRegistrationTab == null && viewPath.get(2).equals(ArbitratorRegistrationView.class)) {
-                    navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                 } else if (mediatorRegistrationTab == null && viewPath.get(2).equals(MediatorRegistrationView.class)) {
-                    navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                 } else if (refundAgentRegistrationTab == null && viewPath.get(2).equals(RefundAgentRegistrationView.class)) {
-                    navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                 } else if (signingTab == null && viewPath.get(2).equals(SigningView.class)) {
-                    navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                 } else {
                     loadView(viewPath.tip());
                 }
@@ -151,10 +151,10 @@ public class AccountView extends ActivatableView<TabPane, Void> {
                 navigation.navigateTo(MainView.class, AccountView.class, RefundAgentRegistrationView.class);
             } else if (signingTab != null && !selectedTab.equals(signingTab)) {
                 navigation.navigateTo(MainView.class, AccountView.class, SigningView.class);
-            } else if (newValue == fiatAccountsTab && selectedTab != fiatAccountsTab) {
-                navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
-            } else if (newValue == altcoinAccountsTab && selectedTab != altcoinAccountsTab) {
-                navigation.navigateTo(MainView.class, AccountView.class, AltCoinAccountsView.class);
+            } else if (newValue == traditionalAccountsTab && selectedTab != traditionalAccountsTab) {
+                navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
+            } else if (newValue == cryptoAccountsTab && selectedTab != cryptoAccountsTab) {
+                navigation.navigateTo(MainView.class, AccountView.class, CryptoAccountsView.class);
             } else if (newValue == notificationTab && selectedTab != notificationTab) {
                 navigation.navigateTo(MainView.class, AccountView.class, MobileNotificationsView.class);
             } else if (newValue == passwordTab && selectedTab != passwordTab) {
@@ -202,22 +202,22 @@ public class AccountView extends ActivatableView<TabPane, Void> {
 
     private void onArbitratorRegistrationTabRemoved() {
         arbitratorRegistrationTab = null;
-        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
     }
 
     private void onMediatorRegistrationTabRemoved() {
         mediatorRegistrationTab = null;
-        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
     }
 
     private void onRefundAgentRegistrationTabRemoved() {
         refundAgentRegistrationTab = null;
-        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
     }
 
     private void onSigningTabRemoved() {
         signingTab = null;
-        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
     }
 
     @Override
@@ -243,10 +243,10 @@ public class AccountView extends ActivatableView<TabPane, Void> {
                 navigation.navigateTo(MainView.class, AccountView.class, RefundAgentRegistrationView.class);
             else if (signingTab != null)
                 navigation.navigateTo(MainView.class, AccountView.class, SigningView.class);
-            else if (root.getSelectionModel().getSelectedItem() == fiatAccountsTab)
-                navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
-            else if (root.getSelectionModel().getSelectedItem() == altcoinAccountsTab)
-                navigation.navigateTo(MainView.class, AccountView.class, AltCoinAccountsView.class);
+            else if (root.getSelectionModel().getSelectedItem() == traditionalAccountsTab)
+                navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
+            else if (root.getSelectionModel().getSelectedItem() == cryptoAccountsTab)
+                navigation.navigateTo(MainView.class, AccountView.class, CryptoAccountsView.class);
             else if (root.getSelectionModel().getSelectedItem() == notificationTab)
                 navigation.navigateTo(MainView.class, AccountView.class, MobileNotificationsView.class);
             else if (root.getSelectionModel().getSelectedItem() == passwordTab)
@@ -258,7 +258,7 @@ public class AccountView extends ActivatableView<TabPane, Void> {
             else if (root.getSelectionModel().getSelectedItem() == backupTab)
                 navigation.navigateTo(MainView.class, AccountView.class, BackupView.class);
             else
-                navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
         }
     }
 
@@ -299,10 +299,10 @@ public class AccountView extends ActivatableView<TabPane, Void> {
             if (signingTab != null) {
                 selectedTab = signingTab;
             }
-        } else if (view instanceof FiatAccountsView) {
-            selectedTab = fiatAccountsTab;
-        } else if (view instanceof AltCoinAccountsView) {
-            selectedTab = altcoinAccountsTab;
+        } else if (view instanceof TraditionalAccountsView) {
+            selectedTab = traditionalAccountsTab;
+        } else if (view instanceof CryptoAccountsView) {
+            selectedTab = cryptoAccountsTab;
         } else if (view instanceof MobileNotificationsView) {
             selectedTab = notificationTab;
         } else if (view instanceof PasswordView) {

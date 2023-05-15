@@ -18,7 +18,7 @@
 package haveno.desktop.components.paymentmethods;
 
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PerfectMoneyAccount;
@@ -50,7 +50,7 @@ public class PerfectMoneyForm extends GeneralAccountNumberForm {
     @Override
     public void addTradeCurrency() {
         addTradeCurrencyComboBox();
-        currencyComboBox.setItems(FXCollections.observableArrayList(new FiatCurrency("USD"), new FiatCurrency("EUR")));
+        currencyComboBox.setItems(FXCollections.observableArrayList(new TraditionalCurrency("USD"), new TraditionalCurrency("EUR")));
     }
 
     @Override

@@ -88,7 +88,7 @@ public class Restrictions {
     }
 
     public static int getLockTime(boolean isAsset) {
-        // 10 days for altcoins, 20 days for other payment methods
+        // 10 days for cryptos, 20 days for other payment methods
         return isAsset ? 144 * 10 : 144 * 20;
     }
 }

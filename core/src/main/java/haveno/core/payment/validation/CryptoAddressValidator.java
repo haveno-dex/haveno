@@ -30,13 +30,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Optional;
 
 @Slf4j
-public final class AltCoinAddressValidator extends InputValidator {
+public final class CryptoAddressValidator extends InputValidator {
 
     private final AssetRegistry assetRegistry;
     private String currencyCode;
 
     @Inject
-    public AltCoinAddressValidator(AssetRegistry assetRegistry) {
+    public CryptoAddressValidator(AssetRegistry assetRegistry) {
         this.assetRegistry = assetRegistry;
     }
 

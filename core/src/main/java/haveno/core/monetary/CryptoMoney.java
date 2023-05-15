@@ -30,12 +30,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Cloned from Fiat class and altered SMALLEST_UNIT_EXPONENT as Fiat is final.
  * <p/>
- * Represents a monetary fiat value. It was decided to not fold this into {@link org.bitcoinj.core.Coin} because of type
+ * Represents a monetary crypto value. It was decided to not fold this into {@link org.bitcoinj.core.Coin} because of type
  * safety. Volume values always come with an attached currency code.
  * <p/>
  * This class is immutable.
  */
-public final class Altcoin implements Monetary, Comparable<Altcoin> {
+public final class CryptoMoney implements Monetary, Comparable<CryptoMoney> {
     /**
      * The absolute value of exponent of the value of a "smallest unit" in scientific notation. We picked 4 rather than
      * 2, because in financial applications it's common to use sub-cent precision.
@@ -50,13 +50,13 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
     public final long value;
     public final String currencyCode;
 
-    private Altcoin(final String currencyCode, final long value) {
+    private CryptoMoney(final String currencyCode, final long value) {
         this.value = value;
         this.currencyCode = currencyCode;
     }
 
-    public static Altcoin valueOf(final String currencyCode, final long value) {
-        return new Altcoin(currencyCode, value);
+    public static CryptoMoney valueOf(final String currencyCode, final long value) {
+        return new CryptoMoney(currencyCode, value);
     }
 
     @Override
@@ -85,40 +85,40 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
      *
      * @throws IllegalArgumentException if you try to specify fractional satoshis, or a value out of range.
      */
-    public static Altcoin parseAltcoin(final String currencyCode, String input) {
+    public static CryptoMoney parseCrypto(final String currencyCode, String input) {
         String cleaned = ParsingUtils.convertCharsForNumber(input);
         try {
             long val = new BigDecimal(cleaned).movePointRight(SMALLEST_UNIT_EXPONENT)
                     .toBigIntegerExact().longValue();
-            return Altcoin.valueOf(currencyCode, val);
+            return CryptoMoney.valueOf(currencyCode, val);
         } catch (ArithmeticException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
-    public Altcoin add(final Altcoin value) {
+    public CryptoMoney add(final CryptoMoney value) {
         checkArgument(value.currencyCode.equals(currencyCode));
-        return new Altcoin(currencyCode, LongMath.checkedAdd(this.value, value.value));
+        return new CryptoMoney(currencyCode, LongMath.checkedAdd(this.value, value.value));
     }
 
-    public Altcoin subtract(final Altcoin value) {
+    public CryptoMoney subtract(final CryptoMoney value) {
         checkArgument(value.currencyCode.equals(currencyCode));
-        return new Altcoin(currencyCode, LongMath.checkedSubtract(this.value, value.value));
+        return new CryptoMoney(currencyCode, LongMath.checkedSubtract(this.value, value.value));
     }
 
-    public Altcoin multiply(final long factor) {
-        return new Altcoin(currencyCode, LongMath.checkedMultiply(this.value, factor));
+    public CryptoMoney multiply(final long factor) {
+        return new CryptoMoney(currencyCode, LongMath.checkedMultiply(this.value, factor));
     }
 
-    public Altcoin divide(final long divisor) {
-        return new Altcoin(currencyCode, this.value / divisor);
+    public CryptoMoney divide(final long divisor) {
+        return new CryptoMoney(currencyCode, this.value / divisor);
     }
 
-    public Altcoin[] divideAndRemainder(final long divisor) {
-        return new Altcoin[]{new Altcoin(currencyCode, this.value / divisor), new Altcoin(currencyCode, this.value % divisor)};
+    public CryptoMoney[] divideAndRemainder(final long divisor) {
+        return new CryptoMoney[]{new CryptoMoney(currencyCode, this.value / divisor), new CryptoMoney(currencyCode, this.value % divisor)};
     }
 
-    public long divide(final Altcoin divisor) {
+    public long divide(final CryptoMoney divisor) {
         checkArgument(divisor.currencyCode.equals(currencyCode));
         return this.value / divisor.value;
     }
@@ -148,7 +148,7 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
      * Returns true if the monetary value represented by this instance is greater than that of the given other Coin,
      * otherwise false.
      */
-    public boolean isGreaterThan(Altcoin other) {
+    public boolean isGreaterThan(CryptoMoney other) {
         return compareTo(other) > 0;
     }
 
@@ -156,7 +156,7 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
      * Returns true if the monetary value represented by this instance is less than that of the given other Coin,
      * otherwise false.
      */
-    public boolean isLessThan(Altcoin other) {
+    public boolean isLessThan(CryptoMoney other) {
         return compareTo(other) < 0;
     }
 
@@ -167,8 +167,8 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
         return this.value < 0 ? -1 : 1;
     }
 
-    public Altcoin negate() {
-        return new Altcoin(currencyCode, -this.value);
+    public CryptoMoney negate() {
+        return new CryptoMoney(currencyCode, -this.value);
     }
 
     public String toFriendlyString() {
@@ -196,7 +196,7 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
             return true;
         if (o == null || o.getClass() != getClass())
             return false;
-        final Altcoin other = (Altcoin) o;
+        final CryptoMoney other = (CryptoMoney) o;
         return this.value == other.value && this.currencyCode.equals(other.currencyCode);
     }
 
@@ -206,7 +206,7 @@ public final class Altcoin implements Monetary, Comparable<Altcoin> {
     }
 
     @Override
-    public int compareTo(@NotNull final Altcoin other) {
+    public int compareTo(@NotNull final CryptoMoney other) {
         if (!this.currencyCode.equals(other.currencyCode))
             return this.currencyCode.compareTo(other.currencyCode);
         if (this.value != other.value)

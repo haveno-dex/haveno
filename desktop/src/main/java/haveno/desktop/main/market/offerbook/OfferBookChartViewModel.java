@@ -259,13 +259,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     public int getMaxNumberOfPriceZeroDecimalsToColorize(Offer offer) {
         return offer.isFiatOffer()
                 ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS
-                : GUIUtil.ALTCOINS_DECIMALS_WITH_ZEROS;
+                : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
     }
 
     public int getZeroDecimalsForPrice(Offer offer) {
         return offer.isFiatOffer()
                 ? GUIUtil.FIAT_PRICE_DECIMALS_WITH_ZEROS
-                : GUIUtil.ALTCOINS_DECIMALS_WITH_ZEROS;
+                : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
     }
 
     public String getPrice(Offer offer) {
@@ -307,8 +307,8 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
-        // Trading btc-fiat is considered as buying/selling BTC, but trading btc-altcoin is
-        // considered as buying/selling Altcoin. Because of this, when viewing a btc-altcoin pair,
+        // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
+        // considered as buying/selling Crypto. Because of this, when viewing a xmr-crypto pair,
         // the buy column is actually the sell column and vice versa. To maintain the expected
         // ordering, we have to reverse the price comparator.
         boolean isCrypto = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
@@ -417,15 +417,15 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void updateScreenCurrencyInPreferences(OfferDirection direction) {
         if (isSellOffer(direction)) {
-            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode())) {
+            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
                 preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
             }
         } else {
-            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode())) {
+            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
                 preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
             }
         }

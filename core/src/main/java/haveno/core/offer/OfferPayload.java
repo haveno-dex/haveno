@@ -56,8 +56,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     protected final String id;
     protected final long date;
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
+    // For traditional offer the baseCurrencyCode is XMR and the counterCurrencyCode is the traditional currency
+    // For crypto offers it is the opposite. baseCurrencyCode is the crypto and the counterCurrencyCode is XMR.
     protected final String baseCurrencyCode;
     protected final String counterCurrencyCode;
     // price if fixed price is used (usePercentageBasedPrice = false), otherwise 0
@@ -89,7 +89,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     protected List<String> reserveTxKeyImages;
 
     // Keys for extra map
-    // Only set for fiat offers
+    // Only set for traditional offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";
     public static final String REFERRAL_ID = "referralId";
     // Only used in payment method F2F
@@ -255,7 +255,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     // In the offer we support base and counter currency
     // Fiat offers have base currency XMR and counterCurrency Fiat
-    // Altcoins have base currency Altcoin and counterCurrency XMR
+    // Cryptos have base currency Crypto and counterCurrency XMR
     // The rest of the app does not support yet that concept of base currency and counter currencies
     // so we map here for convenience
     public String getCurrencyCode() {

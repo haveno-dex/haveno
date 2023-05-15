@@ -15,9 +15,9 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.account.content.altcoinaccounts;
+package haveno.desktop.main.account.content.cryptoaccounts;
 
-import haveno.asset.AltCoinAccountDisclaimer;
+import haveno.asset.CryptoAccountDisclaimer;
 import haveno.asset.Asset;
 import haveno.asset.coins.Monero;
 import haveno.common.util.Tuple2;
@@ -31,7 +31,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
-import haveno.core.payment.validation.AltCoinAddressValidator;
+import haveno.core.payment.validation.CryptoAddressValidator;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
@@ -63,10 +63,10 @@ import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
-public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAccountsViewModel> {
+public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAccountsViewModel> {
 
     private final InputValidator inputValidator;
-    private final AltCoinAddressValidator altCoinAddressValidator;
+    private final CryptoAddressValidator altCoinAddressValidator;
     private final FilterManager filterManager;
     private final CoinFormatter formatter;
     private final Preferences preferences;
@@ -77,9 +77,9 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
     private int gridRow = 0;
 
     @Inject
-    public AltCoinAccountsView(AltCoinAccountsViewModel model,
+    public CryptoAccountsView(CryptoAccountsViewModel model,
                                InputValidator inputValidator,
-                               AltCoinAddressValidator altCoinAddressValidator,
+                               CryptoAddressValidator altCoinAddressValidator,
                                AccountAgeWitnessService accountAgeWitnessService,
                                FilterManager filterManager,
                                @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
@@ -118,17 +118,17 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
         if (selectedTradeCurrency != null) {
             if (selectedTradeCurrency instanceof CryptoCurrency && ((CryptoCurrency) selectedTradeCurrency).isAsset()) {
                 String name = selectedTradeCurrency.getName();
-                new Popup().information(Res.get("account.altcoin.popup.wallet.msg",
+                new Popup().information(Res.get("account.crypto.popup.wallet.msg",
                         selectedTradeCurrency.getCodeAndName(),
                         name,
                         name))
-                        .closeButtonText(Res.get("account.altcoin.popup.wallet.confirm"))
+                        .closeButtonText(Res.get("account.crypto.popup.wallet.confirm"))
                         .show();
             }
 
             final Optional<Asset> asset = CurrencyUtil.findAsset(selectedTradeCurrency.getCode());
             if (asset.isPresent()) {
-                final AltCoinAccountDisclaimer disclaimerAnnotation = asset.get().getClass().getAnnotation(AltCoinAccountDisclaimer.class);
+                final CryptoAccountDisclaimer disclaimerAnnotation = asset.get().getClass().getAnnotation(CryptoAccountDisclaimer.class);
                 if (disclaimerAnnotation != null) {
                     new Popup()
                             .width(asset.get() instanceof Monero ? 1000 : 669)
@@ -174,7 +174,7 @@ public class AltCoinAccountsView extends PaymentAccountsView<GridPane, AltCoinAc
     protected void buildForm() {
         addTitledGroupBg(root, gridRow, 2, Res.get("shared.manageAccounts"));
 
-        Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.altcoin.yourAltcoinAccounts"), Layout.FIRST_ROW_DISTANCE);
+        Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.crypto.yourCryptoAccounts"), Layout.FIRST_ROW_DISTANCE);
         paymentAccountsListView = tuple.second;
         int prefNumRows = Math.min(4, Math.max(2, model.dataModel.getNumPaymentAccounts()));
         paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 28);

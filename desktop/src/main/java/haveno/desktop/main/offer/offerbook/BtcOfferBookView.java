@@ -51,8 +51,8 @@ public class BtcOfferBookView extends OfferBookView<GridPane, BtcOfferBookViewMo
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.fiat")) :
-                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.fiat"));
+                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.traditional")) :
+                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.traditional"));
 
 
     }

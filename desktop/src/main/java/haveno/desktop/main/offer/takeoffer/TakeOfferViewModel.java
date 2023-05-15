@@ -150,10 +150,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         addBindings();
         addListeners();
 
-        String buyVolumeDescriptionKey = offer.isFiatOffer() ? "createOffer.amountPriceBox.buy.volumeDescription" :
-                "createOffer.amountPriceBox.buy.volumeDescriptionAltcoin";
-        String sellVolumeDescriptionKey = offer.isFiatOffer() ? "createOffer.amountPriceBox.sell.volumeDescription" :
-                "createOffer.amountPriceBox.sell.volumeDescriptionAltcoin";
+        String buyVolumeDescriptionKey = offer.isTraditionalOffer() ? "createOffer.amountPriceBox.buy.volumeDescription" :
+                "createOffer.amountPriceBox.buy.volumeDescriptionCrypto";
+        String sellVolumeDescriptionKey = offer.isTraditionalOffer() ? "createOffer.amountPriceBox.sell.volumeDescription" :
+                "createOffer.amountPriceBox.sell.volumeDescriptionCrypto";
 
         if (dataModel.getDirection() == OfferDirection.SELL) {
             volumeDescriptionLabel.set(Res.get(buyVolumeDescriptionKey, dataModel.getCurrencyCode()));
@@ -193,10 +193,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         dataModel.initWithData(offer);
         this.offer = offer;
 
-        String buyAmountDescriptionKey = offer.isFiatOffer() ? "takeOffer.amountPriceBox.buy.amountDescription" :
-                "takeOffer.amountPriceBox.buy.amountDescriptionAltcoin";
-        String sellAmountDescriptionKey = offer.isFiatOffer() ? "takeOffer.amountPriceBox.sell.amountDescription" :
-                "takeOffer.amountPriceBox.sell.amountDescriptionAltcoin";
+        String buyAmountDescriptionKey = offer.isTraditionalOffer() ? "takeOffer.amountPriceBox.buy.amountDescription" :
+                "takeOffer.amountPriceBox.buy.amountDescriptionCrypto";
+        String sellAmountDescriptionKey = offer.isTraditionalOffer() ? "takeOffer.amountPriceBox.sell.amountDescription" :
+                "takeOffer.amountPriceBox.sell.amountDescriptionCrypto";
 
         amountDescription = offer.isBuyOffer()
                 ? Res.get(buyAmountDescriptionKey)
