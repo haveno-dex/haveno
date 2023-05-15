@@ -145,7 +145,7 @@ arbitrator-desktop-local:
 		--apiPassword=apitest \
 		--apiPort=9998
 
-arbitrator-desktop2-local:
+arbitrator2-desktop-local:
 	# Arbitrator needs to be registered before making trades
 	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_LOCAL \
