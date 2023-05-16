@@ -145,6 +145,17 @@ arbitrator-desktop-local:
 		--apiPassword=apitest \
 		--apiPort=9998
 
+arbitrator2-daemon-local:
+	# Arbitrator needs to be registered before making trades
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_LOCAL \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=7777 \
+		--appName=haveno-XMR_LOCAL_arbitrator2 \
+		--apiPassword=apitest \
+		--apiPort=10001
+
 arbitrator2-desktop-local:
 	# Arbitrator needs to be registered before making trades
 	./haveno-desktop$(APP_EXT) \

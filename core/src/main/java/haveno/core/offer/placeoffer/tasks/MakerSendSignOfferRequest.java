@@ -92,12 +92,12 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
     }
 
     private void sendSignOfferRequests(SignOfferRequest request, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager());
-        if (leastUsedArbitrator == null) {
-            errorMessageHandler.handleErrorMessage("Could not get least used arbitrator to send " + request.getClass().getSimpleName() + " for offer " + request.getOfferId());
+        Arbitrator randomArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager());
+        if (randomArbitrator == null) {
+            errorMessageHandler.handleErrorMessage("Could not get random arbitrator to send " + request.getClass().getSimpleName() + " for offer " + request.getOfferId());
             return;
         }
-        sendSignOfferRequests(request, leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), resultHandler, errorMessageHandler);
+        sendSignOfferRequests(request, randomArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), resultHandler, errorMessageHandler);
     }
 
     private void sendSignOfferRequests(SignOfferRequest request, NodeAddress arbitratorNodeAddress, Set<NodeAddress> excludedArbitrators,  ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -135,7 +135,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             public void onFault(String errorMessage) {
                 log.warn("Arbitrator unavailable: {}", errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
-                Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager(), excludedArbitrators);
+                Arbitrator altArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager(), excludedArbitrators);
                 if (altArbitrator == null) {
                     errorMessageHandler.handleErrorMessage("Offer " + request.getOfferId() + " could not be signed by any arbitrator");
                     return;

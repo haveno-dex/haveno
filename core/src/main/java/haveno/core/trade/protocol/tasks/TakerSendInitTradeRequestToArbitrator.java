@@ -45,8 +45,15 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
         try {
             runInterceptHook();
 
-            // send request to signing arbitrator then least used arbitrators until success
-            sendInitTradeRequests(trade.getOffer().getOfferPayload().getArbitratorSigner(), new HashSet<NodeAddress>(), () -> {
+            // get least used arbitrator
+            Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager());
+            if (leastUsedArbitrator == null) {
+                failed("Could not get least used arbitrator to send " + InitTradeRequest.class.getSimpleName() + " for offer " + trade.getId());
+                return;
+            }
+
+            // send request to least used arbitrators until success
+            sendInitTradeRequests(leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), () -> {
                 trade.addInitProgressStep();
                 complete();
             }, (errorMessage) -> {
