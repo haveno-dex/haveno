@@ -233,10 +233,6 @@ public class CurrencyUtil {
         if (currencyCode == null) {
             // Some tests call that method with null values. Should be fixed in the tests but to not break them return false.
             isCryptoCurrency = false;
-        } else if (currencyCode.equals("BTC")) {
-            // BTC is not part of our assetRegistry so treat it extra here. Other old base currencies (LTC, DOGE, DASH)
-            // are not supported anymore so we can ignore that case.
-            isCryptoCurrency = true;
         } else if (getCryptoCurrency(currencyCode).isPresent()) {
             // If we find the code in our assetRegistry we return true.
             // It might be that an asset was removed from the assetsRegistry, we deal with such cases below by checking if
