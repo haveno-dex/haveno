@@ -30,7 +30,7 @@ import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HyperlinkWithIcon;
-import haveno.desktop.main.offer.offerbook.BtcOfferBookView;
+import haveno.desktop.main.offer.offerbook.XmrOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
 import haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView;
@@ -127,7 +127,7 @@ public class OfferViewUtil {
     public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
         if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            offerBookViewClazz = BtcOfferBookView.class;
+            offerBookViewClazz = XmrOfferBookView.class;
         } else if (currencyCode.equals(GUIUtil.TOP_CRYPTO.getCode())) {
             offerBookViewClazz = TopCryptoOfferBookView.class;
         } else {

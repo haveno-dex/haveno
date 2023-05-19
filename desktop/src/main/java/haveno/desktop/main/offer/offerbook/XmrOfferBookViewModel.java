@@ -24,6 +24,7 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferFilterService;
@@ -49,10 +50,10 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class BtcOfferBookViewModel extends OfferBookViewModel {
+public class XmrOfferBookViewModel extends OfferBookViewModel {
 
     @Inject
-    public BtcOfferBookViewModel(User user,
+    public XmrOfferBookViewModel(User user,
                                  OpenOfferManager openOfferManager,
                                  OfferBook offerBook,
                                  Preferences preferences,
@@ -97,11 +98,15 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
                         ObservableList<TradeCurrency> allCurrencies) {
         // Used for ignoring filter (show all)
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        tradeCurrencies.addAll(preferences.getTraditionalCurrenciesAsObservable());
+        tradeCurrencies.addAll(preferences.getTraditionalCurrenciesAsObservable().stream()
+            .filter(withFiatCurrency())
+            .collect(Collectors.toList()));
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
 
         allCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        allCurrencies.addAll(CurrencyUtil.getAllSortedTraditionalCurrencies());
+        allCurrencies.addAll(CurrencyUtil.getAllSortedTraditionalCurrencies().stream()
+            .filter(withFiatCurrency())
+            .collect(Collectors.toList()));
         allCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
     }
 
@@ -111,7 +116,7 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
             boolean directionResult = offer.getDirection() != direction;
-            boolean currencyResult = (showAllTradeCurrenciesProperty.get() && offer.isTraditionalOffer()) ||
+            boolean currencyResult = (showAllTradeCurrenciesProperty.get() && offer.isFiatOffer()) ||
                     offer.getCurrencyCode().equals(selectedTradeCurrency.getCode());
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
@@ -145,9 +150,14 @@ public class BtcOfferBookViewModel extends OfferBookViewModel {
 
     @Override
     String getCurrencyCodeFromPreferences(OfferDirection direction) {
-        // validate if previous stored currencies are Fiat ones
+        // validate if previous stored currencies are Traditional ones
         String currencyCode = direction == OfferDirection.BUY ? preferences.getBuyScreenCurrencyCode() : preferences.getSellScreenCurrencyCode();
 
         return CurrencyUtil.isTraditionalCurrency(currencyCode) ? currencyCode : null;
+    }
+
+    private Predicate<TraditionalCurrency> withFiatCurrency() {
+        return fiatCurrency ->
+                        CurrencyUtil.isFiatCurrency(fiatCurrency.getCode());
     }
 }

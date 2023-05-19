@@ -55,7 +55,7 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
                              TradeCurrency tradeCurrency,
                              OfferView.OfferActionHandler offerActionHandler) {
         // Invert direction for non-Fiat trade currencies -> BUY BSQ is to SELL Bitcoin
-        OfferDirection offerDirection = CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode()) ? direction :
+        OfferDirection offerDirection = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode()) ? direction :
                 direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
         super.initWithData(offerDirection, tradeCurrency, offerActionHandler);
     }
@@ -66,11 +66,10 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
                 paymentAccounts.stream().filter(paymentAccount -> {
                     if (model.getTradeCurrency().equals(GUIUtil.TOP_CRYPTO)) {
                         return Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
-                    } else if (CurrencyUtil.isTraditionalCurrency(model.getTradeCurrency().getCode())) {
-                        return !paymentAccount.getPaymentMethod().isCrypto();
+                    } else if (CurrencyUtil.isFiatCurrency(model.getTradeCurrency().getCode())) {
+                        return paymentAccount.isFiat();
                     } else {
-                        return paymentAccount.getPaymentMethod().isCrypto() &&
-                                !Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
+                        return !paymentAccount.isFiat() && !Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
                     }
                 }).collect(Collectors.toList()));
     }

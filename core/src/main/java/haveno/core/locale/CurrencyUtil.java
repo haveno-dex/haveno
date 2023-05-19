@@ -73,6 +73,18 @@ public class CurrencyUtil {
         CurrencyUtil.baseCurrencyCode = baseCurrencyCode;
     }
 
+    public static Collection<TraditionalCurrency> getAllSortedFiatCurrencies(Comparator comparator) {
+        return getAllSortedTraditionalCurrencies(comparator).stream()
+                .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
+                .collect(Collectors.toList());  // sorted by currency name
+    }
+
+    public static List<TradeCurrency> getAllFiatCurrencies() {
+        return getAllTraditionalCurrencies().stream()
+                .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
+                .collect(Collectors.toList());  // sorted by currency name
+    }
+
     public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies() {
         return traditionalCurrencyMapSupplier.get().values();  // sorted by currency name
     }
@@ -98,8 +110,7 @@ public class CurrencyUtil {
                 .collect(Collectors.toMap(TradeCurrency::getCode, Function.identity(), (x, y) -> x, LinkedHashMap::new));
     }
 
-    public static List<TraditionalCurrency> getMainTraditionalCurrencies() {
-        TradeCurrency defaultTradeCurrency = getDefaultTradeCurrency();
+    public static List<TraditionalCurrency> getMainFiatCurrencies() {
         List<TraditionalCurrency> list = new ArrayList<>();
         list.add(new TraditionalCurrency("USD"));
         list.add(new TraditionalCurrency("EUR"));
@@ -109,18 +120,28 @@ public class CurrencyUtil {
         list.add(new TraditionalCurrency("RUB"));
         list.add(new TraditionalCurrency("INR"));
         list.add(new TraditionalCurrency("NGN"));
+        postProcessTraditionalCurrenciesList(list);
+        return list;
+    }
+
+    public static List<TraditionalCurrency> getMainTraditionalCurrencies() {
+        List<TraditionalCurrency> list = getMainFiatCurrencies();
         list.add(new TraditionalCurrency("XAG"));
         list.add(new TraditionalCurrency("XAU"));
+        postProcessTraditionalCurrenciesList(list);
+        return list;
+    }
 
+    private static void postProcessTraditionalCurrenciesList(List<TraditionalCurrency> list) {
         list.sort(TradeCurrency::compareTo);
 
+        TradeCurrency defaultTradeCurrency = getDefaultTradeCurrency();
         TraditionalCurrency defaultTraditionalCurrency =
                 defaultTradeCurrency instanceof TraditionalCurrency ? (TraditionalCurrency) defaultTradeCurrency : null;
         if (defaultTraditionalCurrency != null && list.contains(defaultTraditionalCurrency)) {
             list.remove(defaultTradeCurrency);
             list.add(0, defaultTraditionalCurrency);
         }
-        return list;
     }
 
     public static Collection<CryptoCurrency> getAllSortedCryptoCurrencies() {
