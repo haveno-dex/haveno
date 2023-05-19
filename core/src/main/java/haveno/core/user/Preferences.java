@@ -225,7 +225,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         GlobalSettings.setUseAnimations(prefPayload.isUseAnimations());
         TradeCurrency preferredTradeCurrency = checkNotNull(prefPayload.getPreferredTradeCurrency(), "preferredTradeCurrency must not be null");
         setPreferredTradeCurrency(preferredTradeCurrency);
-        setFiatCurrencies(prefPayload.getTraditionalCurrencies());
+        setTraditionalCurrencies(prefPayload.getTraditionalCurrencies());
         setCryptoCurrencies(prefPayload.getCryptoCurrencies());
         GlobalSettings.setDefaultTradeCurrency(preferredTradeCurrency);
 
@@ -255,7 +255,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         }
 
         prefPayload.setPreferredTradeCurrency(preferredTradeCurrency);
-        setFiatCurrencies(CurrencyUtil.getMainTraditionalCurrencies());
+        setTraditionalCurrencies(CurrencyUtil.getMainFiatCurrencies());
         setCryptoCurrencies(CurrencyUtil.getMainCryptoCurrencies());
 
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
@@ -608,9 +608,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    private void setFiatCurrencies(List<TraditionalCurrency> currencies) {
+    public void setTraditionalCurrencies(List<TraditionalCurrency> currencies) {
         traditionalCurrenciesAsObservable.setAll(currencies.stream()
-                .map(fiatCurrency -> new TraditionalCurrency(fiatCurrency.getCurrency()))
+                .map(traditionalCurrency -> new TraditionalCurrency(traditionalCurrency.getCurrency()))
                 .distinct().collect(Collectors.toList()));
         requestPersistence();
     }
@@ -909,7 +909,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setPayFeeInXmr(boolean payFeeInXmr);
 
-        void setFiatCurrencies(List<TraditionalCurrency> currencies);
+        void setTraditionalCurrencies(List<TraditionalCurrency> currencies);
 
         void setCryptoCurrencies(List<CryptoCurrency> currencies);
 

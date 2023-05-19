@@ -387,6 +387,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     private final long maxTradeLimit;
 
     // list of asset codes the payment method supports
+    @Getter
     private List<String> supportedAssetCodes;
 
 

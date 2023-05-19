@@ -332,7 +332,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                 FXCollections.emptyObservableMap()));
 
         Tuple3<Label, ListView<TraditionalCurrency>, VBox> traditionalTuple = addTopLabelListView(root, displayCurrenciesGridRowIndex,
-                Res.get("setting.preferences.displayFiat"));
+                Res.get("setting.preferences.displayTraditional"));
 
         int listRowSpan = 6;
         GridPane.setColumnIndex(traditionalTuple.third, 2);
@@ -343,7 +343,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         traditionalCurrenciesListView = traditionalTuple.second;
         traditionalCurrenciesListView.setMinHeight(9 * Layout.LIST_ROW_HEIGHT + 2);
         traditionalCurrenciesListView.setPrefHeight(10 * Layout.LIST_ROW_HEIGHT + 2);
-        Label placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noFiat"));
+        Label placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noTraditional"));
         placeholder.setWrapText(true);
         traditionalCurrenciesListView.setPlaceholder(placeholder);
         traditionalCurrenciesListView.setCellFactory(new Callback<>() {
@@ -445,7 +445,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         traditionalCurrenciesComboBox = addComboBox(root, displayCurrenciesGridRowIndex + listRowSpan);
         GridPane.setColumnIndex(traditionalCurrenciesComboBox, 2);
         GridPane.setValignment(traditionalCurrenciesComboBox, VPos.TOP);
-        traditionalCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addFiat"));
+        traditionalCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addTraditional"));
         traditionalCurrenciesComboBox.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(final TraditionalCurrency item, boolean empty) {
@@ -453,7 +453,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                 this.setVisible(item != null || !empty);
 
                 if (empty || item == null) {
-                    setText(Res.get("setting.preferences.addFiat"));
+                    setText(Res.get("setting.preferences.addTraditional"));
                 } else {
                     setText(item.getNameAndCode());
                 }

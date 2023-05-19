@@ -33,7 +33,7 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.createoffer.CreateOfferView;
-import haveno.desktop.main.offer.offerbook.BtcOfferBookView;
+import haveno.desktop.main.offer.offerbook.XmrOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
 import haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView;
@@ -50,9 +50,9 @@ import java.util.Optional;
 
 public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
-    private OfferBookView<?, ?> btcOfferBookView, topCryptoOfferBookView, otherOfferBookView;
+    private OfferBookView<?, ?> xmrOfferBookView, topCryptoOfferBookView, otherOfferBookView;
 
-    private Tab btcOfferBookTab, topCryptoOfferBookTab, otherOfferBookTab;
+    private Tab xmrOfferBookTab, topCryptoOfferBookTab, otherOfferBookTab;
 
     private final ViewLoader viewLoader;
     private final Navigation navigation;
@@ -95,11 +95,11 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         tabChangeListener = (observableValue, oldValue, newValue) -> {
             UserThread.execute(() -> {
                 if (newValue != null) {
-                    if (newValue.equals(btcOfferBookTab)) {
-                        if (btcOfferBookView != null) {
-                            btcOfferBookView.onTabSelected(true);
+                    if (newValue.equals(xmrOfferBookTab)) {
+                        if (xmrOfferBookView != null) {
+                            xmrOfferBookView.onTabSelected(true);
                         } else {
-                            loadView(BtcOfferBookView.class, null, null);
+                            loadView(XmrOfferBookView.class, null, null);
                         }
                     } else if (newValue.equals(topCryptoOfferBookTab)) {
                         if (topCryptoOfferBookView != null) {
@@ -116,8 +116,8 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                     }
                 }
                 if (oldValue != null) {
-                    if (oldValue.equals(btcOfferBookTab) && btcOfferBookView != null) {
-                        btcOfferBookView.onTabSelected(false);
+                    if (oldValue.equals(xmrOfferBookTab) && xmrOfferBookView != null) {
+                        xmrOfferBookView.onTabSelected(false);
                     } else if (oldValue.equals(topCryptoOfferBookTab) && topCryptoOfferBookView != null) {
                         topCryptoOfferBookView.onTabSelected(false);
                     } else if (oldValue.equals(otherOfferBookTab) && otherOfferBookView != null) {
@@ -154,14 +154,14 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         navigation.addListener(navigationListener);
-        if (btcOfferBookView == null) {
-            navigation.navigateTo(MainView.class, this.getClass(), BtcOfferBookView.class);
+        if (xmrOfferBookView == null) {
+            navigation.navigateTo(MainView.class, this.getClass(), XmrOfferBookView.class);
         }
 
         GUIUtil.updateTopCrypto(preferences);
 
         if (topCryptoOfferBookTab != null) {
-            topCryptoOfferBookTab.setText(GUIUtil.TOP_CRYPTO.getCode());
+            topCryptoOfferBookTab.setText(GUIUtil.TOP_CRYPTO.getName().toUpperCase());
         }
     }
 
@@ -179,15 +179,15 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
         if (OfferBookView.class.isAssignableFrom(viewClass)) {
 
-            if (viewClass == BtcOfferBookView.class && btcOfferBookTab != null && btcOfferBookView != null) {
+            if (viewClass == XmrOfferBookView.class && xmrOfferBookTab != null && xmrOfferBookView != null) {
                 if (childViewClass == null) {
-                    btcOfferBookTab.setContent(btcOfferBookView.getRoot());
+                    xmrOfferBookTab.setContent(xmrOfferBookView.getRoot());
                 } else if (childViewClass == TakeOfferView.class) {
-                    loadTakeViewClass(viewClass, childViewClass, btcOfferBookTab);
+                    loadTakeViewClass(viewClass, childViewClass, xmrOfferBookTab);
                 } else {
-                    loadCreateViewClass(btcOfferBookView, viewClass, childViewClass, btcOfferBookTab, (PaymentMethod) data);
+                    loadCreateViewClass(xmrOfferBookView, viewClass, childViewClass, xmrOfferBookTab, (PaymentMethod) data);
                 }
-                tabPane.getSelectionModel().select(btcOfferBookTab);
+                tabPane.getSelectionModel().select(xmrOfferBookTab);
             } else if (viewClass == TopCryptoOfferBookView.class && topCryptoOfferBookTab != null && topCryptoOfferBookView != null) {
                 if (childViewClass == null) {
                     topCryptoOfferBookTab.setContent(topCryptoOfferBookView.getRoot());
@@ -215,23 +215,23 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 }
                 tabPane.getSelectionModel().select(otherOfferBookTab);
             } else {
-                if (btcOfferBookTab == null) {
-                    btcOfferBookTab = new Tab(Res.getBaseCurrencyName().toUpperCase());
-                    btcOfferBookTab.setClosable(false);
-                    topCryptoOfferBookTab = new Tab(GUIUtil.TOP_CRYPTO.getCode());
+                if (xmrOfferBookTab == null) {
+                    xmrOfferBookTab = new Tab(Res.getBaseCurrencyName().toUpperCase());
+                    xmrOfferBookTab.setClosable(false);
+                    topCryptoOfferBookTab = new Tab(GUIUtil.TOP_CRYPTO.getName().toUpperCase());
                     topCryptoOfferBookTab.setClosable(false);
                     otherOfferBookTab = new Tab(Res.get("shared.other").toUpperCase());
                     otherOfferBookTab.setClosable(false);
 
-                    tabPane.getTabs().addAll(btcOfferBookTab, topCryptoOfferBookTab, otherOfferBookTab);
+                    tabPane.getTabs().addAll(xmrOfferBookTab, topCryptoOfferBookTab, otherOfferBookTab);
                 }
-                if (viewClass == BtcOfferBookView.class) {
-                    btcOfferBookView = (BtcOfferBookView) viewLoader.load(BtcOfferBookView.class);
-                    btcOfferBookView.setOfferActionHandler(offerActionHandler);
-                    btcOfferBookView.setDirection(direction);
-                    btcOfferBookView.onTabSelected(true);
-                    tabPane.getSelectionModel().select(btcOfferBookTab);
-                    btcOfferBookTab.setContent(btcOfferBookView.getRoot());
+                if (viewClass == XmrOfferBookView.class) {
+                    xmrOfferBookView = (XmrOfferBookView) viewLoader.load(XmrOfferBookView.class);
+                    xmrOfferBookView.setOfferActionHandler(offerActionHandler);
+                    xmrOfferBookView.setDirection(direction);
+                    xmrOfferBookView.onTabSelected(true);
+                    tabPane.getSelectionModel().select(xmrOfferBookTab);
+                    xmrOfferBookTab.setContent(xmrOfferBookView.getRoot());
                 } else if (viewClass == TopCryptoOfferBookView.class) {
                     topCryptoOfferBookView = (TopCryptoOfferBookView) viewLoader.load(TopCryptoOfferBookView.class);
                     topCryptoOfferBookView.setOfferActionHandler(offerActionHandler);
@@ -323,8 +323,8 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     @NotNull
     private Class<? extends OfferBookView<?, ?>> getOfferBookViewClassFor(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClass;
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            offerBookViewClass = BtcOfferBookView.class;
+        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            offerBookViewClass = XmrOfferBookView.class;
         } else if (currencyCode.equals(GUIUtil.TOP_CRYPTO.getCode())) {
             offerBookViewClass = TopCryptoOfferBookView.class;
         } else {

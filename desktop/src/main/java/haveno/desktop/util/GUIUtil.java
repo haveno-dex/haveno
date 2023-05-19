@@ -139,7 +139,7 @@ public class GUIUtil {
 
     private static Preferences preferences;
 
-    public static TradeCurrency TOP_CRYPTO = CurrencyUtil.getTradeCurrency("ETH").get();
+    public static TradeCurrency TOP_CRYPTO = CurrencyUtil.getTradeCurrency("BTC").get();
 
     public static void setPreferences(Preferences preferences) {
         GUIUtil.preferences = preferences;
@@ -509,7 +509,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label paymentType = new AutoTooltipLabel(
-                            method.isCrypto() ? Res.get("shared.crypto") : Res.get("shared.traditional"));
+                            method.isTraditional() ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
                     paymentType.getStyleClass().add("currency-label-small");
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));

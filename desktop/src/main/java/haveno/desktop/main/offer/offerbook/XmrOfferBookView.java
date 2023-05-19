@@ -34,10 +34,10 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 @FxmlView
-public class BtcOfferBookView extends OfferBookView<GridPane, BtcOfferBookViewModel> {
+public class XmrOfferBookView extends OfferBookView<GridPane, XmrOfferBookViewModel> {
 
     @Inject
-    BtcOfferBookView(BtcOfferBookViewModel model,
+    XmrOfferBookView(XmrOfferBookViewModel model,
                      Navigation navigation,
                      OfferDetailsWindow offerDetailsWindow,
                      @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
@@ -51,8 +51,8 @@ public class BtcOfferBookView extends OfferBookView<GridPane, BtcOfferBookViewMo
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.traditional")) :
-                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.traditional"));
+                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.fiat")) :
+                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.fiat"));
 
 
     }

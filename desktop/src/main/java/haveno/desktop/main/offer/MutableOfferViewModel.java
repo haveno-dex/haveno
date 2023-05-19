@@ -574,9 +574,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
 
-        boolean isFiatCurrency = CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode());
+        boolean isTraditionalCurrency = CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode());
 
-        if (isFiatCurrency) {
+        if (isTraditionalCurrency) {
             amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
                     isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
         } else {
