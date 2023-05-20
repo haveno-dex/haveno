@@ -255,10 +255,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     @NotNull
     private Optional<PaymentAccount> getAnyPaymentAccount() {
-        if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
-            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.getPaymentMethod().isCrypto()).findAny();
+        if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.isFiat()).findAny();
         } else {
-            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.getPaymentMethod().isCrypto() &&
+            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.isFiat() &&
                     paymentAccount1.getTradeCurrency().isPresent() &&
                     !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_CRYPTO.getCode())).findAny();
         }
