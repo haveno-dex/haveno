@@ -115,11 +115,11 @@ public class VolumeUtil {
         return formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()), false);
     }
 
-    private static String formatVolume(Volume volume, MonetaryFormat fiatVolumeFormat, boolean appendCurrencyCode) {
+    private static String formatVolume(Volume volume, MonetaryFormat volumeFormat, boolean appendCurrencyCode) {
         if (volume != null) {
             Monetary monetary = volume.getMonetary();
             if (monetary instanceof TraditionalMoney)
-                return FormattingUtils.formatTraditionalMoney((TraditionalMoney) monetary, fiatVolumeFormat, appendCurrencyCode);
+                return FormattingUtils.formatTraditionalMoney((TraditionalMoney) monetary, volumeFormat, appendCurrencyCode);
             else
                 return FormattingUtils.formatCryptoVolume((CryptoMoney) monetary, appendCurrencyCode);
         } else {

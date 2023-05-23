@@ -662,7 +662,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
                 if (model.needsSupportLanguageWarning()) {
                     new Popup().warning(Res.get("settings.preferences.supportLanguageWarning",
-                            model.getMediationLanguages(),
                             model.getArbitrationLanguages()))
                             .closeButtonText(Res.get("shared.ok"))
                             .show();

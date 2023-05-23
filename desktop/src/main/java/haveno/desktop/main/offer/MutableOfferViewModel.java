@@ -762,7 +762,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         InputValidator.ValidationResult result = PriceUtil.isTriggerPriceValid(triggerPriceAsString,
                 marketPrice,
                 dataModel.isSellOffer(),
-                dataModel.isFiatCurrency()
+                dataModel.isTraditionalCurrency()
         );
         triggerPriceValidationResult.set(result);
         updateButtonDisableState();
