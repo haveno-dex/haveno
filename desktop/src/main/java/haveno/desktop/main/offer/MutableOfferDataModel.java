@@ -616,7 +616,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return CurrencyUtil.isCryptoCurrency(tradeCurrencyCode.get());
     }
 
-    boolean isFiatCurrency() {
+    boolean isTraditionalCurrency() {
         return CurrencyUtil.isTraditionalCurrency(tradeCurrencyCode.get());
     }
 

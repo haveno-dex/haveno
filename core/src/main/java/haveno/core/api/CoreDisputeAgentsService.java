@@ -191,7 +191,7 @@ class CoreDisputeAgentsService {
                                   String signature) {
         Mediator mediator = new Mediator(nodeAddress,
                 keyRing.getPubKeyRing(),
-                languageCodes,
+                new ArrayList<>(languageCodes),
                 new Date().getTime(),
                 ecKey.getPubKey(),
                 signature,
@@ -212,7 +212,7 @@ class CoreDisputeAgentsService {
                                      String signature) {
         RefundAgent refundAgent = new RefundAgent(nodeAddress,
                 keyRing.getPubKeyRing(),
-                languageCodes,
+                new ArrayList<>(languageCodes),
                 new Date().getTime(),
                 ecKey.getPubKey(),
                 signature,
