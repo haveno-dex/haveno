@@ -103,8 +103,7 @@ public class CurrencyUtil {
         List<TraditionalCurrency> currencies = CountryUtil.getAllCountries().stream()
                 .map(country -> getCurrencyByCountryCode(country.code))
                 .collect(Collectors.toList());
-        currencies.add(new TraditionalCurrency(Currency.getInstance("XAG"))); // add silver
-        currencies.add(new TraditionalCurrency(Currency.getInstance("XAU"))); // add gold
+        for (String isoCode : nonFiatIsoCodes) currencies.add(new TraditionalCurrency(Currency.getInstance(isoCode)));
         return currencies.stream().sorted(TradeCurrency::compareTo)
                 .distinct()
                 .collect(Collectors.toMap(TradeCurrency::getCode, Function.identity(), (x, y) -> x, LinkedHashMap::new));
@@ -126,11 +125,12 @@ public class CurrencyUtil {
 
     public static List<TraditionalCurrency> getMainTraditionalCurrencies() {
         List<TraditionalCurrency> list = getMainFiatCurrencies();
-        list.add(new TraditionalCurrency("XAG"));
-        list.add(new TraditionalCurrency("XAU"));
+        for (String isoCode : nonFiatIsoCodes) list.add(new TraditionalCurrency(isoCode));
         postProcessTraditionalCurrenciesList(list);
         return list;
     }
+
+    private static List<String> nonFiatIsoCodes = Arrays.asList("XAG", "XAU");
 
     private static void postProcessTraditionalCurrenciesList(List<TraditionalCurrency> list) {
         list.sort(TradeCurrency::compareTo);
