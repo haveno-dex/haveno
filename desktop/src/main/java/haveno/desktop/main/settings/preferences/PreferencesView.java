@@ -41,7 +41,6 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
-import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.IntegerValidator;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
@@ -81,7 +80,6 @@ import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.apache.commons.lang3.StringUtils;
-import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -106,7 +104,6 @@ import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 @FxmlView
 public class PreferencesView extends ActivatableViewAndModel<GridPane, PreferencesViewModel> {
     private final User user;
-    private final CoinFormatter formatter;
     private TextField btcExplorerTextField;
     private ComboBox<String> userLanguageComboBox;
     private ComboBox<Country> userCountryComboBox;
@@ -148,6 +145,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private final boolean displayStandbyModeFeature;
     private ChangeListener<Filter> filterChangeListener;
 
+    private boolean hideXmrAutoConf = true; // TODO: remove xmr auto conf or use as a model for other blockchains
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialisation
@@ -159,11 +158,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                            FilterManager filterManager,
                            Config config,
                            User user,
-                           @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                            @Named(Config.STORAGE_DIR) File storageDir) {
         super(model);
         this.user = user;
-        this.formatter = formatter;
         this.preferences = preferences;
         this.filterManager = filterManager;
         this.storageDir = storageDir;
@@ -305,13 +302,13 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private void initializeDisplayCurrencies() {
 
         TitledGroupBg titledGroupBg = addTitledGroupBg(root, displayCurrenciesGridRowIndex, 8,
-                Res.get("setting.preferences.currenciesInList"), Layout.GROUP_DISTANCE);
+                Res.get("setting.preferences.currenciesInList"), hideXmrAutoConf ? 0.0 :Layout.GROUP_DISTANCE);
         GridPane.setColumnIndex(titledGroupBg, 2);
         GridPane.setColumnSpan(titledGroupBg, 2);
 
         preferredTradeCurrencyComboBox = addComboBox(root, displayCurrenciesGridRowIndex++,
                 Res.get("setting.preferences.prefCurrency"),
-                Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+                Layout.FIRST_ROW_DISTANCE);
         GridPane.setColumnIndex(preferredTradeCurrencyComboBox, 2);
 
         preferredTradeCurrencyComboBox.setConverter(new StringConverter<>() {
@@ -526,7 +523,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private void initializeAutoConfirmOptions() {
         GridPane autoConfirmGridPane = new GridPane();
         GridPane.setHgrow(autoConfirmGridPane, Priority.ALWAYS);
-        root.add(autoConfirmGridPane, 2, displayCurrenciesGridRowIndex, 2, 10);
+        if (!hideXmrAutoConf) root.add(autoConfirmGridPane, 2, displayCurrenciesGridRowIndex, 2, 10);
         addTitledGroupBg(autoConfirmGridPane, 0, 4, Res.get("setting.preferences.autoConfirmXMR"), 0);
         int localRowIndex = 0;
         autoConfirmXmrToggle = addSlideToggleButton(autoConfirmGridPane, localRowIndex, Res.get("setting.preferences.autoConfirmEnabled"), Layout.FIRST_ROW_DISTANCE);
@@ -539,7 +536,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         autoConfServiceAddressTf = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("setting.preferences.autoConfirmServiceAddresses"));
         GridPane.setHgrow(autoConfServiceAddressTf, Priority.ALWAYS);
-        displayCurrenciesGridRowIndex += 4;
+        if (!hideXmrAutoConf) displayCurrenciesGridRowIndex += 4;
 
         autoConfServiceAddressListener = (observable, oldValue, newValue) -> {
             if (!newValue.equals(oldValue)) {
@@ -801,7 +798,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         preferences.findAutoConfirmSettings("XMR").ifPresent(autoConfirmSettings -> {
             autoConfirmXmrToggle.setSelected(autoConfirmSettings.isEnabled());
             autoConfRequiredConfirmationsTf.setText(String.valueOf(autoConfirmSettings.getRequiredConfirmations()));
-            autoConfTradeLimitTf.setText(formatter.formatCoin(Coin.valueOf(autoConfirmSettings.getTradeLimit())));
+            autoConfTradeLimitTf.setText(HavenoUtils.formatXmr(autoConfirmSettings.getTradeLimit()));
             autoConfServiceAddressTf.setText(String.join(", ", autoConfirmSettings.getServiceAddresses()));
             autoConfRequiredConfirmationsTf.focusedProperty().addListener(autoConfRequiredConfirmationsFocusOutListener);
             autoConfTradeLimitTf.textProperty().addListener(autoConfTradeLimitListener);
