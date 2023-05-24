@@ -21,21 +21,19 @@ import com.google.protobuf.Message;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
-import org.apache.commons.lang3.ArrayUtils;
-
-import java.nio.charset.StandardCharsets;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @EqualsAndHashCode(callSuper = true)
 @ToString
@@ -133,7 +131,7 @@ public final class SepaAccountPayload extends CountryBasedPaymentAccountPayload 
         this.acceptedCountryCodes.clear();
         for (String countryCode : acceptedCountryCodes) this.acceptedCountryCodes.add(countryCode);
     }
-    
+
     public void addAcceptedCountry(String countryCode) {
         if (!acceptedCountryCodes.contains(countryCode))
             acceptedCountryCodes.add(countryCode);

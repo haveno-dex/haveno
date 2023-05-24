@@ -17,35 +17,26 @@
 
 package haveno.core.payment;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
-
 import haveno.core.offer.Offer;
-import haveno.core.payment.CountryBasedPaymentAccount;
-import haveno.core.payment.MoneyGramAccount;
-import haveno.core.payment.NationalBankAccount;
-import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.ReceiptPredicates;
-import haveno.core.payment.ReceiptValidator;
-import haveno.core.payment.SameBankAccount;
-import haveno.core.payment.SpecificBanksAccount;
-import haveno.core.payment.WesternUnionAccount;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 public class ReceiptValidatorTest {
     private ReceiptValidator validator;
     private PaymentAccount account;
     private Offer offer;
     private ReceiptPredicates predicates;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         this.predicates = mock(ReceiptPredicates.class);
         this.account = mock(CountryBasedPaymentAccount.class);
@@ -53,7 +44,7 @@ public class ReceiptValidatorTest {
         this.validator = new ReceiptValidator(offer, account, predicates);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         verifyNoMoreInteractions(offer);
     }

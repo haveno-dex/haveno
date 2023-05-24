@@ -19,15 +19,14 @@ package haveno.cli.opts;
 
 
 import haveno.proto.grpc.GetTradesRequest;
-
 import joptsimple.OptionSpec;
 
 import java.util.function.Predicate;
 
+import static haveno.cli.opts.OptLabel.OPT_CATEGORY;
 import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;
 import static haveno.proto.grpc.GetTradesRequest.Category.FAILED;
 import static haveno.proto.grpc.GetTradesRequest.Category.OPEN;
-import static haveno.cli.opts.OptLabel.OPT_CATEGORY;
 import static java.util.Arrays.stream;
 
 public class GetTradesOptionParser extends AbstractMethodOptionParser implements MethodOpts {

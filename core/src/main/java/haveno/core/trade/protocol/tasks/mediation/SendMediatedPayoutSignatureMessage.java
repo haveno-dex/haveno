@@ -27,9 +27,9 @@ import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

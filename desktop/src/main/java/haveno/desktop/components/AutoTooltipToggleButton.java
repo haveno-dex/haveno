@@ -17,12 +17,12 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
-
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.skin.ToggleButtonSkin;
+
+import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
 
 public class AutoTooltipToggleButton extends ToggleButton {
 

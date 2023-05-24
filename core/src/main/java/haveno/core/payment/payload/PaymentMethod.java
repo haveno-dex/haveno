@@ -31,10 +31,10 @@ import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BizumAccount;
 import haveno.core.payment.CapitualAccount;
-import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.DomesticWireTransferAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.FasterPaymentsAccount;
@@ -76,6 +76,12 @@ import haveno.core.payment.VerseAccount;
 import haveno.core.payment.WeChatPayAccount;
 import haveno.core.payment.WesternUnionAccount;
 import haveno.core.trade.HavenoUtils;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,12 +89,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
 
 @EqualsAndHashCode(exclude = {"maxTradePeriod", "maxTradeLimit"})
 @ToString
@@ -99,7 +99,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // Static
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // time in ms for 1 day (mainnet), 30m (stagenet) or 1 minute (local)
+    // time in ms for 1 "day" (mainnet), 30m (stagenet) or 1 minute (local)
     private static final long DAY = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? TimeUnit.MINUTES.toMillis(1) :
                                     Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
                                     TimeUnit.DAYS.toMillis(1);
@@ -132,7 +132,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String SWISH_ID = "SWISH";
     public static final String ALI_PAY_ID = "ALI_PAY";
     public static final String WECHAT_PAY_ID = "WECHAT_PAY";
-    public static final String CLEAR_X_CHANGE_ID = "CLEAR_X_CHANGE";
+    public static final String ZELLE_ID = "ZELLE";
 
     @Deprecated
     public static final String CHASE_QUICK_PAY_ID = "CHASE_QUICK_PAY"; // Removed due to QuickPay becoming Zelle
@@ -161,7 +161,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String PIX_ID = "PIX";
     public static final String AMAZON_GIFT_CARD_ID = "AMAZON_GIFT_CARD";
     public static final String BLOCK_CHAINS_INSTANT_ID = "BLOCK_CHAINS_INSTANT";
-    public static final String CASH_BY_MAIL_ID = "CASH_BY_MAIL";
+    public static final String PAY_BY_MAIL_ID = "PAY_BY_MAIL";
     public static final String CAPITUAL_ID = "CAPITUAL";
     public static final String CELPAY_ID = "CELPAY";
     public static final String MONESE_ID = "MONESE";
@@ -197,7 +197,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod SWISH;
     public static PaymentMethod ALI_PAY;
     public static PaymentMethod WECHAT_PAY;
-    public static PaymentMethod CLEAR_X_CHANGE;
+    public static PaymentMethod ZELLE;
     public static PaymentMethod CHASE_QUICK_PAY;
     public static PaymentMethod INTERAC_E_TRANSFER;
     public static PaymentMethod US_POSTAL_MONEY_ORDER;
@@ -223,7 +223,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod PIX;
     public static PaymentMethod AMAZON_GIFT_CARD;
     public static PaymentMethod BLOCK_CHAINS_INSTANT;
-    public static PaymentMethod CASH_BY_MAIL;
+    public static PaymentMethod PAY_BY_MAIL;
     public static PaymentMethod CAPITUAL;
     public static PaymentMethod CELPAY;
     public static PaymentMethod MONESE;
@@ -246,8 +246,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     // The limit and duration assignment must not be changed as that could break old offers (if amount would be higher
     // than new trade limit) and violate the maker expectation when he created the offer (duration).
-    @Getter
-    public final static List<PaymentMethod> paymentMethods = new ArrayList<>(Arrays.asList(
+    public final static List<PaymentMethod> paymentMethods = Arrays.asList(
             // EUR
             HAL_CASH = new PaymentMethod(HAL_CASH_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(HalCashAccount.SUPPORTED_CURRENCIES)),
             SEPA = new PaymentMethod(SEPA_ID, 6 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SepaAccount.SUPPORTED_CURRENCIES)),
@@ -261,7 +260,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             SWISH = new PaymentMethod(SWISH_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(SwishAccount.SUPPORTED_CURRENCIES)),
 
             // US
-            CLEAR_X_CHANGE = new PaymentMethod(CLEAR_X_CHANGE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ClearXchangeAccount.SUPPORTED_CURRENCIES)),
+            ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
 
             POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
@@ -271,7 +270,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Global
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
-            CASH_BY_MAIL = new PaymentMethod(CASH_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashByMailAccount.SUPPORTED_CURRENCIES)),
+            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
             NATIONAL_BANK = new PaymentMethod(NATIONAL_BANK_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NationalBankAccount.SUPPORTED_CURRENCIES)),
@@ -321,21 +320,21 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Thailand
             PROMPT_PAY = new PaymentMethod(PROMPT_PAY_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PromptPayAccount.SUPPORTED_CURRENCIES)),
 
-            // Altcoins
+            // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
-            // Altcoins with 1 hour trade period
+            // Cryptos with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
-    ));
+    );
 
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
-    public static final List<PaymentMethod> getPaymentMethods() {
+    public static List<PaymentMethod> getPaymentMethods() {
         List<String> paymentMethodIds = List.of(
                 BLOCK_CHAINS_ID,
                 REVOLUT_ID,
                 SEPA_ID,
                 SEPA_INSTANT_ID,
                 TRANSFERWISE_ID,
-                CLEAR_X_CHANGE_ID,
+                ZELLE_ID,
                 SWIFT_ID,
                 F2F_ID,
                 STRIKE_ID,
@@ -353,10 +352,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     static {
         paymentMethods.sort((o1, o2) -> {
             String id1 = o1.getId();
-            if (id1.equals(CLEAR_X_CHANGE_ID))
+            if (id1.equals(ZELLE_ID))
                 id1 = "ZELLE";
             String id2 = o2.getId();
-            if (id2.equals(CLEAR_X_CHANGE_ID))
+            if (id2.equals(ZELLE_ID))
                 id2 = "ZELLE";
             return id1.compareTo(id2);
         });
@@ -388,6 +387,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     private final long maxTradeLimit;
 
     // list of asset codes the payment method supports
+    @Getter
     private List<String> supportedAssetCodes;
 
 
@@ -484,10 +484,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().longValueExact();
         long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor);
 
-        // if fiat and stagenet, cap offer amounts to avoid offers which cannot be taken
-        boolean isFiat = CurrencyUtil.isFiatCurrency(currencyCode);
+        // if traditional and stagenet, cap offer amounts to avoid offers which cannot be taken
+        boolean isTraditional = CurrencyUtil.isTraditionalCurrency(currencyCode);
         boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isFiat && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
+        if (isTraditional && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
             riskBasedTradeLimit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact();
         }
         return BigInteger.valueOf(riskBasedTradeLimit);
@@ -508,8 +508,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return Res.get(id);
     }
 
-    public boolean isFiat() {
-        return !isAltcoin();
+    public boolean isTraditional() {
+        return !isCrypto();
     }
 
     public boolean isBlockchain() {
@@ -517,7 +517,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     // Includes any non btc asset, not limited to blockchain payment methods
-    public boolean isAltcoin() {
+    public boolean isCrypto() {
         return isBlockchain() || isBsqSwap();
     }
 
@@ -550,7 +550,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return id.equals(PaymentMethod.SEPA_ID) ||
                 id.equals(PaymentMethod.SEPA_INSTANT_ID) ||
                 id.equals(PaymentMethod.INTERAC_E_TRANSFER_ID) ||
-                id.equals(PaymentMethod.CLEAR_X_CHANGE_ID) ||
+                id.equals(PaymentMethod.ZELLE_ID) ||
                 id.equals(PaymentMethod.REVOLUT_ID) ||
                 id.equals(PaymentMethod.NATIONAL_BANK_ID) ||
                 id.equals(PaymentMethod.SAME_BANK_ID) ||

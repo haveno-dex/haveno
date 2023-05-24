@@ -27,9 +27,10 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashSet;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
@@ -44,8 +45,16 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
         try {
             runInterceptHook();
 
-            // send request to signing arbitrator then least used arbitrators until success
-            sendInitTradeRequests(trade.getOffer().getOfferPayload().getArbitratorSigner(), new HashSet<NodeAddress>(), () -> {
+            // get least used arbitrator
+            Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager());
+            if (leastUsedArbitrator == null) {
+                failed("Could not get least used arbitrator to send " + InitTradeRequest.class.getSimpleName() + " for offer " + trade.getId());
+                return;
+            }
+
+            // send request to least used arbitrators until success
+            sendInitTradeRequests(leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), () -> {
+                trade.addInitProgressStep();
                 complete();
             }, (errorMessage) -> {
                 log.warn("Cannot initialize trade with arbitrators: " + errorMessage);
@@ -81,7 +90,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
     }
 
     private void sendInitTradeRequest(NodeAddress arbitratorNodeAddress, SendDirectMessageListener listener) {
-        
+
         // get registered arbitrator
         Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(arbitratorNodeAddress);
         if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator");

@@ -17,7 +17,6 @@
 
 package haveno.apitest.method;
 
-import haveno.proto.grpc.BalancesInfo;
 import haveno.apitest.ApiTestCase;
 import haveno.apitest.linux.BashCommand;
 import haveno.cli.GrpcClient;
@@ -27,22 +26,19 @@ import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.NationalBankAccount;
 import haveno.core.proto.CoreProtoResolver;
+import haveno.proto.grpc.BalancesInfo;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-
-import java.math.BigDecimal;
-
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;

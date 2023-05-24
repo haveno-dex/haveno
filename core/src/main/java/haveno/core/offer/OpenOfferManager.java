@@ -25,7 +25,6 @@ import haveno.common.app.Capability;
 import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.Sig;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
@@ -72,26 +71,8 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
-import javax.inject.Inject;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.Map.Entry;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import lombok.Getter;
 import monero.common.MoneroConnectionManagerListener;
 import monero.common.MoneroRpcConnection;
@@ -102,8 +83,23 @@ import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -202,22 +198,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
 
         // listen for connection changes to monerod
-        connectionsService.addListener(new MoneroConnectionManagerListener() {
+        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
-                signedOfferKeyImagePoller.setDaemon(connectionsService.getDaemon());
-                signedOfferKeyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
             }
         });
 
-        // remove open offer if reserved funds spent
+        // close open offer if reserved funds spent
         offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
             @Override
             public void onAdded(Offer offer) {
                 Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
                 if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
-                    removeOpenOffer(openOfferOptional.get(), null);
+                    closeOpenOffer(offer);
                 }
             }
             @Override
@@ -262,10 +256,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         });
 
         // first poll in 5s
+        // TODO: remove?
         new Thread(() -> {
             GenUtils.waitFor(5000);
             signedOfferKeyImagePoller.poll();
-        });
+        }).start();
     }
 
     private long getKeyImageRefreshPeriodMs() {
@@ -338,6 +333,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
+        if (signedOfferKeyImagePoller != null) signedOfferKeyImagePoller.clearKeyImages();
 
         stopPeriodicRefreshOffersTimer();
         stopPeriodicRepublishOffersTimer();
@@ -348,21 +344,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         int size = openOffers.size();
         log.info("Remove open offers at shutDown. Number of open offers: {}", size);
         if (offerBookService.isBootstrapped() && size > 0) {
-            UserThread.execute(() -> openOffers.forEach(
-                    openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload())
-            ));
+            UserThread.execute(() -> {
+                openOffers.forEach(openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload()));
 
-            // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
-            // bundled messages sent out.
-            broadcaster.flush();
+                // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
+                // bundled messages sent out.
+                broadcaster.flush();
 
-            if (completeHandler != null) {
-                // For typical number of offers we are tolerant with delay to give enough time to broadcast.
-                // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
-                int delay = Math.min(3000, size * 200 + 500);
-                UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
-            }
+                if (completeHandler != null) {
+                    // For typical number of offers we are tolerant with delay to give enough time to broadcast.
+                    // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
+                    int delay = Math.min(3000, size * 200 + 500);
+                    UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
+                }
+            });
         } else {
+            broadcaster.flush();
             if (completeHandler != null)
                 completeHandler.run();
         }
@@ -641,6 +638,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    // remove open offer which thaws its key images
     private void onRemoved(@NotNull OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
         if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
@@ -656,7 +654,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         requestPersistence();
     }
 
-    // Close openOffer after deposit published
+    // close open offer after key images spent
     public void closeOpenOffer(Offer offer) {
         getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
             removeOpenOffer(openOffer);
@@ -988,6 +986,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             Tuple2<MoneroTx, BigInteger> txResult = xmrWalletService.verifyTradeTx(
+                    offer.getId(),
                     tradeFee,
                     sendAmount,
                     securityDeposit,
@@ -1000,13 +999,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // arbitrator signs offer to certify they have valid reserve tx
             String offerPayloadAsJson = JsonUtil.objectToJson(request.getOfferPayload());
-            String signature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), offerPayloadAsJson);
+            byte[] signature = HavenoUtils.sign(keyRing, offerPayloadAsJson);
             OfferPayload signedOfferPayload = request.getOfferPayload();
             signedOfferPayload.setArbitratorSignature(signature);
 
             // create record of signed offer
             SignedOffer signedOffer = new SignedOffer(
                     System.currentTimeMillis(),
+                    signedOfferPayload.getPubKeyRing().hashCode(), // trader id
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
                     txResult.second.longValueExact(),
@@ -1118,7 +1118,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         try {
             Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
             AvailabilityResult availabilityResult;
-            String makerSignature = null;
+            byte[] makerSignature = null;
             if (openOfferOptional.isPresent()) {
                 OpenOffer openOffer = openOfferOptional.get();
                 if (!apiUserDeniedByOffer(request)) {
@@ -1129,7 +1129,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                                 // maker signs taker's request
                                 String tradeRequestAsJson = JsonUtil.objectToJson(request.getTradeRequest());
-                                makerSignature = Sig.sign(keyRing.getSignatureKeyPair().getPrivate(), tradeRequestAsJson);
+                                makerSignature = HavenoUtils.sign(keyRing, tradeRequestAsJson);
 
                                 try {
                                     // Check also tradePrice to avoid failures after taker fee is paid caused by a too big difference
@@ -1171,9 +1171,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             OfferAvailabilityResponse offerAvailabilityResponse = new OfferAvailabilityResponse(request.offerId,
                     availabilityResult,
                     makerSignature);
-            log.info("Send {} with offerId {} and uid {} to peer {}",
+            log.info("Send {} with offerId {}, uid {}, and result {} to peer {}",
                     offerAvailabilityResponse.getClass().getSimpleName(), offerAvailabilityResponse.getOfferId(),
-                    offerAvailabilityResponse.getUid(), peer);
+                    offerAvailabilityResponse.getUid(),
+                    availabilityResult,
+                    peer);
             p2PService.sendEncryptedDirectMessage(peer,
                     request.getPubKeyRing(),
                     offerAvailabilityResponse,

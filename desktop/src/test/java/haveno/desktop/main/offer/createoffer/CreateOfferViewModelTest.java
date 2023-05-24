@@ -37,28 +37,23 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.core.util.validation.AltcoinValidator;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.main.offer.createoffer.CreateOfferDataModel;
-import haveno.desktop.main.offer.createoffer.CreateOfferViewModel;
 import javafx.beans.property.SimpleIntegerProperty;
-
 import javafx.collections.FXCollections;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.time.Instant;
-
 import java.util.UUID;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static haveno.desktop.maker.PreferenceMakers.empty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -70,14 +65,14 @@ public class CreateOfferViewModelTest {
     private final CoinFormatter coinFormatter = new ImmutableCoinFormatter(
             Config.baseCurrencyNetworkParameters().getMonetaryFormat());
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final CryptoCurrency btc = new CryptoCurrency("XMR", "monero");
         GlobalSettings.setDefaultTradeCurrency(btc);
         Res.setup();
 
         final XmrValidator btcValidator = new XmrValidator();
-        final AltcoinValidator altcoinValidator = new AltcoinValidator();
+        final NonFiatPriceValidator nonFiatPriceValidator = new NonFiatPriceValidator();
         final FiatPriceValidator fiatPriceValidator = new FiatPriceValidator();
 
         XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
@@ -127,7 +122,7 @@ public class CreateOfferViewModelTest {
         model = new CreateOfferViewModel(dataModel,
                 null,
                 fiatPriceValidator,
-                altcoinValidator,
+                nonFiatPriceValidator,
                 btcValidator,
                 securityDepositValidator,
                 priceFeedService,

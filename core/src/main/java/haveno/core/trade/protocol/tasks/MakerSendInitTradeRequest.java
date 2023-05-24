@@ -24,9 +24,9 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.network.p2p.SendDirectMessageListener;
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.util.Validator.checkTradeId;
@@ -70,7 +70,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     trade.getSelf().getReserveTxHash(),
                     trade.getSelf().getReserveTxHex(),
                     trade.getSelf().getReserveTxKey(),
-                    model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(),
+                    model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).get().getAddressString(),
                     null);
 
             // send request to arbitrator

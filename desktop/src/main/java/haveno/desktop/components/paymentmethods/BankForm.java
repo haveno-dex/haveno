@@ -17,8 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -26,7 +24,7 @@ import haveno.core.locale.BankUtil;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.CountryBasedPaymentAccount;
@@ -37,12 +35,18 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.GUIUtil;
+import javafx.collections.FXCollections;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 
-import javafx.collections.FXCollections;
+import static haveno.desktop.util.FormBuilder.addComboBox;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addInputTextFieldInputTextField;
 
 abstract class BankForm extends GeneralBankForm {
 
@@ -359,7 +363,7 @@ abstract class BankForm extends GeneralBankForm {
     }
 
     private void onTradeCurrencySelected(TradeCurrency tradeCurrency) {
-        FiatCurrency defaultCurrency = CurrencyUtil.getCurrencyByCountryCode(selectedCountry.code);
+        TraditionalCurrency defaultCurrency = CurrencyUtil.getCurrencyByCountryCode(selectedCountry.code);
         applyTradeCurrency(tradeCurrency, defaultCurrency);
     }
 

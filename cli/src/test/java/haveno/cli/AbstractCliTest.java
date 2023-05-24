@@ -1,14 +1,13 @@
 package haveno.cli;
 
-import haveno.proto.grpc.OfferInfo;
-import haveno.cli.CliMain;
-import haveno.cli.GrpcClient;
 import haveno.cli.opts.ArgumentList;
+import haveno.proto.grpc.OfferInfo;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import lombok.extern.slf4j.Slf4j;
+import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 
 import java.math.BigDecimal;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -18,8 +17,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static haveno.cli.opts.OptLabel.OPT_HOST;
 import static haveno.cli.opts.OptLabel.OPT_PASSWORD;
 import static haveno.cli.opts.OptLabel.OPT_PORT;
@@ -28,8 +25,6 @@ import static java.math.RoundingMode.HALF_UP;
 import static java.util.Arrays.stream;
 import static org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Operation.DELETE;
 import static org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Operation.INSERT;
-
-import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 
 /**
  * Parent class for CLI smoke tests.  Useful for examining the format of the console
@@ -53,7 +48,7 @@ public abstract class AbstractCliTest {
                     .map(Object::toString)
                     .collect(Collectors.toList());
 
-    protected final BiFunction<Double, Double, String> randomFixedAltcoinPrice = (min, max) -> {
+    protected final BiFunction<Double, Double, String> randomFixedCryptoPrice = (min, max) -> {
         String random = Double.valueOf(ThreadLocalRandom.current().nextDouble(min, max)).toString();
         BigDecimal bd = new BigDecimal(random).setScale(8, HALF_UP);
         return bd.toPlainString();
@@ -119,7 +114,7 @@ public abstract class AbstractCliTest {
         log.info("NEW Console OUT:\n{}", tbl);
     }
 
-    protected List<OfferInfo> getMyAltcoinOffers(String currencyCode) {
+    protected List<OfferInfo> getMyCryptoOffers(String currencyCode) {
         String[] args = getMyOffersCommand("buy", currencyCode);
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));

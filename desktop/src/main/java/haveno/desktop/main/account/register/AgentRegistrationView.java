@@ -18,11 +18,6 @@
 package haveno.desktop.main.account.register;
 
 
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-
 import haveno.common.UserThread;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -38,6 +33,10 @@ import haveno.desktop.main.overlays.windows.UnlockDisputeAgentRegistrationWindow
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -50,16 +49,13 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-import javafx.geometry.VPos;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.ListChangeListener;
-
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public abstract class AgentRegistrationView<R extends DisputeAgent, T extends AgentRegistrationViewModel<R, ?>>
         extends ActivatableViewAndModel<VBox, T> {

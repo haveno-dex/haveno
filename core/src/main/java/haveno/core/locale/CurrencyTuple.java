@@ -17,18 +17,19 @@
 
 package haveno.core.locale;
 
+import haveno.core.monetary.TraditionalMoney;
 import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode
 public class CurrencyTuple {
     public final String code;
     public final String name;
-    public final int precision; // precision 4 is 1/10000 -> 0.0001 is smallest unit
+    public final int precision; // precision 8 is 1/100000000 -> 0.00000001 is smallest unit
 
     public CurrencyTuple(String code, String name) {
-        // We use Fiat class and the precision is 4
+        // We use TraditionalCurrency class and the precision is 8
         // In future we might add custom precision per currency
-        this(code, name, 4);
+        this(code, name, TraditionalMoney.SMALLEST_UNIT_EXPONENT);
     }
 
     public CurrencyTuple(String code, String name, int precision) {

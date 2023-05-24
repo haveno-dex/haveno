@@ -26,17 +26,16 @@ import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.NodeAddress;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
+
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -79,7 +78,7 @@ public final class TradePeer implements PersistablePayload {
     @Nullable
     private String contractAsJson;
     @Nullable
-    private String contractSignature;
+    private byte[] contractSignature;
 
     // added in v 0.6
     @Nullable
@@ -120,7 +119,10 @@ public final class TradePeer implements PersistablePayload {
     private long securityDeposit;
     @Nullable
     private String updatedMultisigHex;
-    
+    @Getter
+    @Setter
+    boolean depositsConfirmedMessageAcked;
+
     public TradePeer() {
     }
 
@@ -146,7 +148,7 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(paymentAccountPayload).ifPresent(e -> builder.setPaymentAccountPayload((protobuf.PaymentAccountPayload) e.toProtoMessage()));
         Optional.ofNullable(payoutAddressString).ifPresent(builder::setPayoutAddressString);
         Optional.ofNullable(contractAsJson).ifPresent(builder::setContractAsJson);
-        Optional.ofNullable(contractSignature).ifPresent(builder::setContractSignature);
+        Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(pubKeyRing).ifPresent(e -> builder.setPubKeyRing(e.toProtoMessage()));
         Optional.ofNullable(accountAgeWitnessNonce).ifPresent(e -> builder.setAccountAgeWitnessNonce(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
@@ -164,6 +166,7 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
         Optional.ofNullable(securityDeposit).ifPresent(e -> builder.setSecurityDeposit(securityDeposit));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        builder.setDepositsConfirmedMessageAcked(depositsConfirmedMessageAcked);
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -185,7 +188,7 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setPaymentAccountPayload(proto.hasPaymentAccountPayload() ? coreProtoResolver.fromProto(proto.getPaymentAccountPayload()) : null);
             tradePeer.setPayoutAddressString(ProtoUtil.stringOrNullFromProto(proto.getPayoutAddressString()));
             tradePeer.setContractAsJson(ProtoUtil.stringOrNullFromProto(proto.getContractAsJson()));
-            tradePeer.setContractSignature(ProtoUtil.stringOrNullFromProto(proto.getContractSignature()));
+            tradePeer.setContractSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getContractSignature()));
             tradePeer.setPubKeyRing(proto.hasPubKeyRing() ? PubKeyRing.fromProto(proto.getPubKeyRing()) : null);
             tradePeer.setAccountAgeWitnessNonce(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessNonce()));
             tradePeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
@@ -205,6 +208,7 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
             tradePeer.setSecurityDeposit(BigInteger.valueOf(proto.getSecurityDeposit()));
             tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
+            tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());
             return tradePeer;
         }
     }

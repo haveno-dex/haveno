@@ -17,19 +17,19 @@
 
 package haveno.core.arbitration;
 
-import static haveno.core.arbitration.ArbitratorTest.getBytes;
-
 import com.google.common.collect.Lists;
 import haveno.common.crypto.PubKeyRing;
 import haveno.core.support.dispute.mediation.mediator.Mediator;
 import haveno.network.p2p.NodeAddress;
+import org.junit.jupiter.api.Disabled;
+
 import java.util.Date;
 
-import org.junit.Ignore;
+import static haveno.core.arbitration.ArbitratorTest.getBytes;
 
 public class MediatorTest {
 
-    @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
+    @Disabled("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
     public void testRoundtrip() {
         Mediator Mediator = getMediatorMock();
 

@@ -31,10 +31,10 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
 import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
 import java.util.function.Consumer;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GetInventoryRequester implements MessageListener, ConnectionListener {
@@ -111,9 +111,5 @@ public class GetInventoryRequester implements MessageListener, ConnectionListene
                 shutDown();
             }
         });
-    }
-
-    @Override
-    public void onError(Throwable throwable) {
     }
 }

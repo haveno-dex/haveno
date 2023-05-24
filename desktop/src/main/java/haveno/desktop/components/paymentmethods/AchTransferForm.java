@@ -17,13 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import javafx.scene.control.ComboBox;
-import javafx.scene.layout.GridPane;
-
-import javafx.collections.FXCollections;
-
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.BankUtil;
 import haveno.core.locale.Country;
@@ -36,6 +29,11 @@ import haveno.core.payment.payload.BankAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
+import javafx.collections.FXCollections;
+import javafx.scene.control.ComboBox;
+import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addComboBox;
 
 public class AchTransferForm extends GeneralUsBankForm {
 

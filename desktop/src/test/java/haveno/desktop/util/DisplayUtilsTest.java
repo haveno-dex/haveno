@@ -9,27 +9,26 @@ import haveno.core.offer.OfferPayload;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.desktop.util.DisplayUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigInteger;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.desktop.maker.OfferMaker.xmrUsdOffer;
 import static haveno.desktop.maker.VolumeMaker.usdVolume;
 import static haveno.desktop.maker.VolumeMaker.volumeString;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DisplayUtilsTest {
     private final CoinFormatter formatter = new ImmutableCoinFormatter(Config.baseCurrencyNetworkParameters().getMonetaryFormat());
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Locale.setDefault(Locale.US);
         GlobalSettings.setLocale(Locale.US);

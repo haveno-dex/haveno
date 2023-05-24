@@ -18,24 +18,17 @@
 package haveno.core.offer.placeoffer.tasks;
 
 //import haveno.core.util.FeeReceiverSelector;
-import haveno.common.UserThread;
+
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
-import haveno.core.xmr.exceptions.TxBroadcastException;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.TradeWalletService;
-import haveno.core.xmr.wallet.TxBroadcaster;
-import haveno.core.xmr.wallet.WalletService;
 import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Transaction;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(CreateMakerFeeTx.class);

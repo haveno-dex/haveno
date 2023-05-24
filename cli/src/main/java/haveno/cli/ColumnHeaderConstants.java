@@ -52,7 +52,7 @@ class ColumnHeaderConstants {
     static final String COL_HEADER_NAME = "Name";
     static final String COL_HEADER_PAYMENT_METHOD = "Payment Method";
     static final String COL_HEADER_PRICE = "Price in %-3s for 1 BTC";
-    static final String COL_HEADER_PRICE_OF_ALTCOIN = "Price in BTC for 1 %-3s";
+    static final String COL_HEADER_PRICE_OF_CRYPTO = "Price in BTC for 1 %-3s";
     static final String COL_HEADER_TRADE_AMOUNT = padStart("Amount(%-3s)", 12, ' ');
     static final String COL_HEADER_TRADE_BUYER_COST = padEnd("Buyer Cost(%-3s)", 15, ' ');
     static final String COL_HEADER_TRADE_DEPOSIT_CONFIRMED = "Deposit Confirmed";

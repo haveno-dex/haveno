@@ -24,14 +24,14 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.TradePeer;
-import java.math.BigInteger;
-
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
 
+import java.math.BigInteger;
+
 /**
  * Arbitrator verifies reserve tx from maker or taker.
- * 
+ *
  * The maker reserve tx is only verified here if this arbitrator is not
  * the original offer signer and thus does not have the original reserve tx.
  */
@@ -50,9 +50,9 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
             boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
             boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
-            
+
             // TODO (woodser): if signer online, should never be called by maker
-            
+
             // process reserve tx with expected values
             BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
             BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
@@ -60,6 +60,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             Tuple2<MoneroTx, BigInteger> txResult;
             try {
                 txResult = trade.getXmrWalletService().verifyTradeTx(
+                    offer.getId(),
                     tradeFee,
                     sendAmount,
                     securityDeposit,
@@ -72,14 +73,14 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             } catch (Exception e) {
                 throw new RuntimeException("Error processing reserve tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
-            
+
             // save reserve tx to model
             TradePeer trader = isFromTaker ? processModel.getTaker() : processModel.getMaker();
             trader.setReserveTxHash(request.getReserveTxHash());
             trader.setReserveTxHex(request.getReserveTxHex());
             trader.setReserveTxKey(request.getReserveTxKey());
             trader.setSecurityDeposit(txResult.second);
-            
+
             // persist trade
             processModel.getTradeManager().requestPersistence();
             complete();

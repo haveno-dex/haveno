@@ -19,9 +19,9 @@ package haveno.common.crypto;
 
 import com.google.protobuf.ByteString;
 import haveno.common.proto.network.NetworkPayload;
-import java.security.PublicKey;
-
 import lombok.Value;
+
+import java.security.PublicKey;
 
 @Value
 public final class SealedAndSigned implements NetworkPayload {

@@ -30,7 +30,12 @@ import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -38,15 +43,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import java.lang.ref.WeakReference;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 /* Message for direct communication between two nodes. Originally built for trader to
  * arbitrator communication as no other direct communication was allowed. Arbitrator is
@@ -88,7 +84,7 @@ public final class ChatMessage extends SupportMessage {
     private final StringProperty sendMessageErrorProperty;
     private final StringProperty ackErrorProperty;
 
-    transient private WeakReference<Listener> listener;
+    transient private Listener listener;
 
     public ChatMessage(SupportType supportType,
                        String tradeId,
@@ -331,8 +327,12 @@ public final class ChatMessage extends SupportMessage {
         return Utilities.getShortId(tradeId);
     }
 
-    public void addWeakMessageStateListener(Listener listener) {
-        this.listener = new WeakReference<>(listener);
+    public void addChangeListener(Listener listener) {
+        this.listener = listener;
+    }
+
+    public void removeChangeListener() {
+        this.listener = null;
     }
 
     public boolean isResultMessage(Dispute dispute) {
@@ -352,10 +352,7 @@ public final class ChatMessage extends SupportMessage {
 
     private void notifyChangeListener() {
         if (listener != null) {
-            Listener listener = this.listener.get();
-            if (listener != null) {
-                listener.onMessageStateChanged();
-            }
+            listener.onMessageStateChanged();
         }
     }
 

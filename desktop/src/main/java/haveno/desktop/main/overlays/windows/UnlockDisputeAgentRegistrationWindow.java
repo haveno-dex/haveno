@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldWithVBox;
-
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -27,6 +24,7 @@ import haveno.core.locale.Res;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -34,7 +32,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
-import javafx.beans.value.ChangeListener;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldWithVBox;
 
 public class UnlockDisputeAgentRegistrationWindow extends Overlay<UnlockDisputeAgentRegistrationWindow> {
     private final boolean useDevPrivilegeKeys;

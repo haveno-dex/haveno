@@ -17,10 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
-import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
-import static haveno.desktop.util.FormBuilder.addSimpleMarkdownLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-
 import haveno.core.locale.Res;
 import haveno.core.trade.Trade;
 import haveno.desktop.components.AutoTooltipButton;
@@ -29,20 +25,21 @@ import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeWizardItem;
 import haveno.desktop.util.Layout;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-
+import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.Subscription;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
+import static haveno.desktop.util.FormBuilder.addSimpleMarkdownLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @Slf4j
 public abstract class TradeSubView extends HBox {

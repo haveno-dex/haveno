@@ -27,14 +27,13 @@ import haveno.common.util.Utilities;
 import haveno.core.provider.MempoolHttpClient;
 import haveno.core.user.Preferences;
 import haveno.network.Socks5ProxyProvider;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -30,25 +30,20 @@ import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
+import lombok.extern.slf4j.Slf4j;
 
-import java.time.Instant;
-
+import javax.annotation.Nullable;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.io.File;
-
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Singleton
 @Slf4j
@@ -124,10 +119,10 @@ public class TradeStatisticsManager {
             jsonFileManager = new JsonFileManager(storageDir);
 
             // We only dump once the currencies as they do not change during runtime
-            ArrayList<CurrencyTuple> fiatCurrencyList = CurrencyUtil.getAllSortedFiatCurrencies().stream()
+            ArrayList<CurrencyTuple> traditionalCurrencyList = CurrencyUtil.getAllSortedTraditionalCurrencies().stream()
                     .map(e -> new CurrencyTuple(e.getCode(), e.getName(), 8))
                     .collect(Collectors.toCollection(ArrayList::new));
-            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(fiatCurrencyList), "fiat_currency_list");
+            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(traditionalCurrencyList), "traditional_currency_list");
 
             ArrayList<CurrencyTuple> cryptoCurrencyList = CurrencyUtil.getAllSortedCryptoCurrencies().stream()
                     .map(e -> new CurrencyTuple(e.getCode(), e.getName(), 8))
@@ -141,11 +136,11 @@ public class TradeStatisticsManager {
                     .map(p -> p.getCurrency())
                     .collect(Collectors.toSet());
 
-            ArrayList<CurrencyTuple> activeFiatCurrencyList = fiatCurrencyList.stream()
+            ArrayList<CurrencyTuple> activeTraditionalCurrencyList = traditionalCurrencyList.stream()
                     .filter(e -> activeCurrencies.contains(e.code))
                     .map(e -> new CurrencyTuple(e.code, e.name, 8))
                     .collect(Collectors.toCollection(ArrayList::new));
-            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(activeFiatCurrencyList), "active_fiat_currency_list");
+            jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(activeTraditionalCurrencyList), "active_traditional_currency_list");
 
             ArrayList<CurrencyTuple> activeCryptoCurrencyList = cryptoCurrencyList.stream()
                     .filter(e -> activeCurrencies.contains(e.code))
@@ -175,7 +170,13 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            TradeStatistics3 tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+            TradeStatistics3 tradeStatistics3 = null;
+            try {
+                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
             boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
             if (hasTradeStatistics3) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",

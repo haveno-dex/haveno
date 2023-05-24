@@ -17,10 +17,10 @@
 
 package haveno.apitest.method.trade;
 
+import haveno.apitest.method.offer.AbstractOfferTest;
+import haveno.cli.table.builder.TableBuilder;
 import io.grpc.StatusRuntimeException;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
@@ -37,9 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static protobuf.Offer.State.OFFER_FEE_RESERVED;
 import static protobuf.OfferDirection.SELL;
-
-import haveno.apitest.method.offer.AbstractOfferTest;
-import haveno.cli.table.builder.TableBuilder;
 
 @Disabled
 @Slf4j

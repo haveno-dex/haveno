@@ -29,17 +29,17 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.Optional;
 import javafx.scene.control.Tooltip;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutgoingTransfer;
 import monero.wallet.model.MoneroTxWallet;
-import monero.wallet.model.MoneroWalletListener;
+
+import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.Optional;
 
 @Slf4j
 class TransactionsListItem {
@@ -59,6 +59,7 @@ class TransactionsListItem {
     @Getter
     private boolean initialTxConfidenceVisibility = true;
     private final Supplier<LazyFields> lazyFieldsSupplier;
+    private XmrWalletService xmrWalletService;
 
     private static class LazyFields {
         TxConfidenceIndicator txConfidenceIndicator;
@@ -81,6 +82,8 @@ class TransactionsListItem {
                          TransactionAwareTradable transactionAwareTradable) {
         this.memo = tx.getNote();
         this.txId = tx.getHash();
+        this.xmrWalletService = xmrWalletService;
+        this.confirmations = tx.getNumConfirmations() == null ? 0 : tx.getNumConfirmations();
 
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
@@ -179,17 +182,6 @@ class TransactionsListItem {
             GUIUtil.updateConfidence(tx, tooltip, txConfidenceIndicator);
             confirmations = tx.getNumConfirmations();
         }});
-
-        // listen for tx updates
-        // TODO: this only listens for new blocks, listen for double spend
-        xmrWalletService.addWalletListener(new MoneroWalletListener() {
-            @Override
-            public void onNewBlock(long height) {
-                MoneroTxWallet tx = xmrWalletService.getWallet().getTx(txId);
-                GUIUtil.updateConfidence(tx, lazy().tooltip, lazy().txConfidenceIndicator);
-                confirmations = tx.getNumConfirmations();
-            }
-        });
     }
 
     public void cleanup() {

@@ -18,37 +18,38 @@
 package haveno.core.account.sign;
 
 
-import org.bitcoinj.core.ECKey;
-
 import com.google.common.base.Charsets;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
-import haveno.core.account.sign.SignedWitness;
-import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import org.bitcoinj.core.ECKey;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigInteger;
 import java.security.KeyPair;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-
 import java.util.Date;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class SignedWitnessServiceTest {
     private SignedWitnessService signedWitnessService;
@@ -84,7 +85,7 @@ public class SignedWitnessServiceTest {
     KeyPair peer2KeyPair;
     KeyPair peer3KeyPair;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         AppendOnlyDataStoreService appendOnlyDataStoreService = mock(AppendOnlyDataStoreService.class);
         ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);

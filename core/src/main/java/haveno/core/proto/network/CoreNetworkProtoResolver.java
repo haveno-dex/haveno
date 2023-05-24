@@ -69,12 +69,11 @@ import haveno.network.p2p.storage.messages.RemoveMailboxDataMessage;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.time.Clock;
-
-import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j

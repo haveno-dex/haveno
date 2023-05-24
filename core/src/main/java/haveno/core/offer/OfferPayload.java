@@ -20,29 +20,31 @@ package haveno.core.offer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.google.protobuf.ByteString;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.util.CollectionUtils;
 import haveno.common.util.Hex;
 import haveno.common.util.JsonExclude;
+import haveno.common.util.Utilities;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import haveno.network.p2p.storage.payload.RequiresOwnerIsOnlinePayload;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.lang.reflect.Type;
-import java.security.PublicKey;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Type;
+import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 // OfferPayload has about 1.4 kb. We should look into options to make it smaller but will be hard to do it in a
 // backward compatible way. Maybe a candidate when segwit activation is done as hardfork?
@@ -54,8 +56,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     protected final String id;
     protected final long date;
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
+    // For traditional offer the baseCurrencyCode is XMR and the counterCurrencyCode is the traditional currency
+    // For crypto offers it is the opposite. baseCurrencyCode is the crypto and the counterCurrencyCode is XMR.
     protected final String baseCurrencyCode;
     protected final String counterCurrencyCode;
     // price if fixed price is used (usePercentageBasedPrice = false), otherwise 0
@@ -74,26 +76,26 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     protected transient byte[] hash;
     @Nullable
     protected final Map<String, String> extraDataMap;
-    
+
     // address and signature of signing arbitrator
     @Setter
     @Nullable
     protected NodeAddress arbitratorSigner;
     @Setter
     @Nullable
-    protected String arbitratorSignature;
+    protected byte[] arbitratorSignature;
     @Setter
     @Nullable
     protected List<String> reserveTxKeyImages;
-    
+
     // Keys for extra map
-    // Only set for fiat offers
+    // Only set for traditional offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";
     public static final String REFERRAL_ID = "referralId";
     // Only used in payment method F2F
     public static final String F2F_CITY = "f2fCity";
     public static final String F2F_EXTRA_INFO = "f2fExtraInfo";
-    public static final String CASH_BY_MAIL_EXTRA_INFO = "cashByMailExtraInfo";
+    public static final String PAY_BY_MAIL_EXTRA_INFO = "payByMailExtraInfo";
 
     // Comma separated list of ordinal of a haveno.common.app.Capability. E.g. ordinal of
     // Capability.SIGNED_ACCOUNT_AGE_WITNESS is 11 and Capability.MEDIATION is 12 so if we want to signal that maker
@@ -191,7 +193,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         @Nullable Map<String, String> extraDataMap,
                         int protocolVersion,
                         @Nullable NodeAddress arbitratorSigner,
-                        @Nullable String arbitratorSignature,
+                        @Nullable byte[] arbitratorSignature,
                         @Nullable List<String> reserveTxKeyImages) {
         this.id = id;
         this.date = date;
@@ -233,7 +235,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     }
 
     public byte[] getHash() {
-        if (this.hash == null && this.offerFeeTxId != null) {
+        if (this.hash == null) {
             // A proto message can be created only after the offerFeeTxId is
             // set to a non-null value;  now is the time to cache the payload hash.
             this.hash = Hash.getSha256Hash(this.toProtoMessage().toByteArray());
@@ -253,7 +255,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     // In the offer we support base and counter currency
     // Fiat offers have base currency XMR and counterCurrency Fiat
-    // Altcoins have base currency Altcoin and counterCurrency XMR
+    // Cryptos have base currency Crypto and counterCurrency XMR
     // The rest of the app does not support yet that concept of base currency and counter currencies
     // so we map here for convenience
     public String getCurrencyCode() {
@@ -302,7 +304,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         Optional.ofNullable(acceptedCountryCodes).ifPresent(builder::addAllAcceptedCountryCodes);
         Optional.ofNullable(hashOfChallenge).ifPresent(builder::setHashOfChallenge);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
-        Optional.ofNullable(arbitratorSignature).ifPresent(builder::setArbitratorSignature);
+        Optional.ofNullable(arbitratorSignature).ifPresent(e -> builder.setArbitratorSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(reserveTxKeyImages).ifPresent(builder::addAllReserveTxKeyImages);
 
         return protobuf.StoragePayload.newBuilder().setOfferPayload(builder).build();
@@ -352,7 +354,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 extraDataMapMap,
                 proto.getProtocolVersion(),
                 proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
-                ProtoUtil.stringOrNullFromProto(proto.getArbitratorSignature()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()),
                 proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
     }
 
@@ -375,8 +377,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     pubKeyRing=" + pubKeyRing +
                 ",\r\n     hash=" + (hash != null ? Hex.encode(hash) : "null") +
                 ",\r\n     extraDataMap=" + extraDataMap +
-                ",\r\n     arbitratorSigner=" + arbitratorSigner +
-                ",\r\n     arbitratorSignature=" + arbitratorSignature +
                 ",\r\n     reserveTxKeyImages=" + reserveTxKeyImages +
                 ",\r\n     marketPriceMargin=" + marketPriceMarginPct +
                 ",\r\n     useMarketBasedPrice=" + useMarketBasedPrice +
@@ -398,7 +398,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     isPrivateOffer=" + isPrivateOffer +
                 ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
                 ",\n     arbitratorSigner=" + arbitratorSigner +
-                ",\n     arbitratorSignature=" + arbitratorSignature +
+                ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
                 "\r\n} ";
     }
 

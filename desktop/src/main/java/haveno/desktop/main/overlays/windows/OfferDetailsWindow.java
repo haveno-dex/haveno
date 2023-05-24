@@ -17,15 +17,8 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import static haveno.desktop.util.FormBuilder.*;
-
 import com.google.common.base.Joiner;
+
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
@@ -40,7 +33,6 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.Trade.State;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
@@ -52,6 +44,8 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -59,16 +53,23 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(OfferDetailsWindow.class);
@@ -84,7 +85,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     private Optional<Runnable> takeOfferHandlerOptional = Optional.empty();
     private BusyAnimation busyAnimation;
     private TradeManager tradeManager;
-    private Subscription tradeStateSubscription;
+    private Subscription numTradesSubscription;
+    private Subscription initProgressSubscription;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Public API
@@ -144,6 +146,16 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     protected void onHidden() {
         if (busyAnimation != null)
             busyAnimation.stop();
+
+        if (numTradesSubscription != null) {
+            numTradesSubscription.unsubscribe();
+            numTradesSubscription = null;
+        }
+
+        if (initProgressSubscription != null) {
+            initProgressSubscription.unsubscribe();
+            initProgressSubscription = null;
+        }
     }
 
     @Override
@@ -162,7 +174,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         List<String> acceptedCountryCodes = offer.getAcceptedCountryCodes();
         boolean showAcceptedCountryCodes = acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty();
         boolean isF2F = offer.getPaymentMethod().equals(PaymentMethod.F2F);
-        boolean showExtraInfo = offer.getPaymentMethod().equals(PaymentMethod.F2F) || offer.getPaymentMethod().equals(PaymentMethod.CASH_BY_MAIL);
+        boolean showExtraInfo = offer.getPaymentMethod().equals(PaymentMethod.F2F) || offer.getPaymentMethod().equals(PaymentMethod.PAY_BY_MAIL);
         if (!takeOfferHandlerOptional.isPresent())
             rows++;
         if (showAcceptedBanks)
@@ -181,8 +193,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
 
-        String fiatDirectionInfo = "";
-        String btcDirectionInfo = "";
+        String counterCurrencyDirectionInfo = "";
+        String xmrDirectionInfo = "";
         OfferDirection direction = offer.getDirection();
         String currencyCode = offer.getCurrencyCode();
         String offerTypeLabel = Res.get("shared.offerType");
@@ -192,25 +204,25 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionForTakeOffer(direction, currencyCode), firstRowDistance);
-            fiatDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
-            btcDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
+            counterCurrencyDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
+            xmrDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
         } else if (placeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode), firstRowDistance);
-            fiatDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
-            btcDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
+            counterCurrencyDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
+            xmrDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
         } else {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionBothSides(direction), firstRowDistance);
         }
         String btcAmount = Res.get("shared.btcAmount");
         if (takeOfferHandlerOptional.isPresent()) {
-            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
+            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(tradeAmount, true));
-            addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo,
+            addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + counterCurrencyDirectionInfo,
                     VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
         } else {
-            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + btcDirectionInfo,
+            addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(offer.getAmount(), true));
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minBtcAmount"),
                     HavenoUtils.formatXmr(offer.getMinAmount(), true));
@@ -220,7 +232,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     !offer.getVolume().equals(offer.getMinVolume()))
                 minVolume = " " + Res.get("offerDetailsWindow.min", VolumeUtil.formatVolumeWithCode(offer.getMinVolume()));
             addConfirmationLabelLabel(gridPane, ++rowIndex,
-                    VolumeUtil.formatVolumeLabel(currencyCode) + fiatDirectionInfo, volume + minVolume);
+                    VolumeUtil.formatVolumeLabel(currencyCode) + counterCurrencyDirectionInfo, volume + minVolume);
         }
 
         String priceLabel = Res.get("shared.price");
@@ -406,27 +418,25 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     spinnerInfoLabel.setText(Res.get("createOffer.fundsBox.placeOfferSpinnerInfo"));
                     placeOfferHandlerOptional.ifPresent(Runnable::run);
                 } else {
-                    State lastState = Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " 1/" + (lastState.ordinal() + 1));
+
+                    // subscribe to trade progress
+                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " 0%");
+                    numTradesSubscription = EasyBind.subscribe(tradeManager.getNumPendingTrades(), newNum -> {
+                        subscribeToProgress(spinnerInfoLabel);
+                    });
+
                     takeOfferHandlerOptional.ifPresent(Runnable::run);
-
-                    // update trade state progress
-                    UserThread.runAfter(() -> {
-                        Trade trade = tradeManager.getTrade(offer.getId());
-                        if (trade == null) return;
-                        tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newState -> {
-                            String progress = (newState.ordinal() + 1) + "/" + (lastState.ordinal() + 1);
-                            spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress);
-
-                            // unsubscribe when done
-                            if (newState == lastState) {
-                                tradeStateSubscription.unsubscribe();
-                                tradeStateSubscription = null;
-                            }
-                        });
-                    }, 1);
                 }
             }
+        });
+    }
+
+    private void subscribeToProgress(Label spinnerInfoLabel) {
+        Trade trade = tradeManager.getTrade(offer.getId());
+        if (trade == null || initProgressSubscription != null) return;
+        initProgressSubscription = EasyBind.subscribe(trade.initProgressProperty(), newProgress -> {
+            String progress = (int) (newProgress.doubleValue() * 100.0) + "%";
+            UserThread.execute(() -> spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress));
         });
     }
 }

@@ -22,13 +22,12 @@ import haveno.common.app.Version;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.network.p2p.NodeAddress;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Getter
@@ -142,10 +141,11 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     @Override
     public String toString() {
         return "PaymentSentMessage{" +
+                ",\n     tradeId=" + tradeId +
+                ",\n     uid='" + uid + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     counterCurrencyTxId=" + counterCurrencyTxId +
                 ",\n     counterCurrencyExtraData=" + counterCurrencyExtraData +
-                ",\n     uid='" + uid + '\'' +
                 ",\n     payoutTxHex=" + payoutTxHex +
                 ",\n     updatedMultisigHex=" + updatedMultisigHex +
                 ",\n     paymentAccountKey=" + paymentAccountKey +

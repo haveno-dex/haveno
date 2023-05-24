@@ -23,9 +23,10 @@ import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.network.p2p.NodeAddress;
-import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

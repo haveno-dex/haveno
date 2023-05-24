@@ -18,7 +18,7 @@ Returns a new, blank payment account form as a json file, e.g.,
         "Do not manually edit the paymentMethodId field.",
         "Edit the salt field only if you are recreating a payment account on a new installation and wish to preserve the account age."
       ],
-      "paymentMethodId": "CLEAR_X_CHANGE",
+      "paymentMethodId": "ZELLE",
       "accountName": "your accountname",
       "emailOrMobileNr": "your emailormobilenr",
       "holderName": "your holdername",
@@ -30,15 +30,15 @@ which creates the new payment account.
 
 EXAMPLES
 --------
-To create a new CLEAR_X_CHANGE (Zelle) payment account,  find the payment-method-id for
+To create a new ZELLE payment account,  find the payment-method-id for
 the getpaymentacctform command:
 $ ./haveno-cli --password=xyz --port=9998 getpaymentmethods
 
-Get a new, blank CLEAR_X_CHANGE (Zelle) payment account form:
-$ ./haveno-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=CLEAR_X_CHANGE_ID
+Get a new, blank ZELLE payment account form:
+$ ./haveno-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=ZELLE_ID
 
-The previous command created a json file named clear_x_change_1610818248040.json.  The timestamp
+The previous command created a json file named zelle_1610818248040.json.  The timestamp
 in the file name is to ensure each generated file is uniquely named (you can rename the file).
 
 Manually edit the json file, and pass the file's path to the createpaymentacct command:
-$ ./haveno-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=clear_x_change_1610818248040.json
+$ ./haveno-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=zelle_1610818248040.json

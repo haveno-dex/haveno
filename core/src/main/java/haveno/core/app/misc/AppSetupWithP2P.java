@@ -31,14 +31,12 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.P2PDataStorage;
-import javax.inject.Inject;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-
-import java.util.ArrayList;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import java.util.ArrayList;
 
 @Slf4j
 public class AppSetupWithP2P extends AppSetup {
@@ -123,10 +121,6 @@ public class AppSetupWithP2P extends AppSetup {
                     log.warn("RULE_VIOLATION onDisconnect closeConnectionReason={}. connection={}",
                             closeConnectionReason, connection);
                 }
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
             }
         });
 

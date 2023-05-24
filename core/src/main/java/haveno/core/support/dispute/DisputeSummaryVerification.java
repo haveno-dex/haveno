@@ -17,18 +17,16 @@
 
 package haveno.core.support.dispute;
 
-import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
-import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.agent.DisputeAgent;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.NodeAddress;
-import java.security.KeyPair;
-import java.security.PublicKey;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.security.KeyPair;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -46,10 +44,10 @@ public class DisputeSummaryVerification {
         KeyPair signatureKeyPair = disputeManager.getSignatureKeyPair();
         String sigAsHex;
         try {
-            byte[] signature = Sig.sign(signatureKeyPair.getPrivate(), hash);
+            byte[] signature = HavenoUtils.sign(signatureKeyPair.getPrivate(), hash);
             sigAsHex = Utilities.encodeToHex(signature);
             disputeResult.setArbitratorSignature(signature);
-        } catch (CryptoException e) {
+        } catch (Exception e) {
             sigAsHex = "Signing failed";
         }
 
@@ -69,19 +67,13 @@ public class DisputeSummaryVerification {
             NodeAddress nodeAddress = new NodeAddress(fullAddress);
             DisputeAgent disputeAgent = arbitratorMediator.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
             checkNotNull(disputeAgent, "Dispute agent is null");
-            PublicKey pubKey = disputeAgent.getPubKeyRing().getSignaturePubKey();
 
             String sigString = parts[1].split(SEPARATOR2)[0];
             byte[] sig = Utilities.decodeFromHex(sigString);
             byte[] hash = Hash.getSha256Hash(textToSign);
             try {
-                boolean result = Sig.verify(pubKey, hash, sig);
-                if (result) {
-                    return;
-                } else {
-                    throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
-                }
-            } catch (CryptoException e) {
+                HavenoUtils.verifySignature(disputeAgent.getPubKeyRing(), hash, sig);
+            } catch (Exception e) {
                 throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
             }
         } catch (Throwable e) {

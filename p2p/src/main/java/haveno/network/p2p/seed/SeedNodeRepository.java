@@ -18,6 +18,7 @@
 package haveno.network.p2p.seed;
 
 import haveno.network.p2p.NodeAddress;
+
 import java.util.Collection;
 
 public interface SeedNodeRepository {

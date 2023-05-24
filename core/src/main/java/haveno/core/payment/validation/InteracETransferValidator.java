@@ -19,9 +19,9 @@ package haveno.core.payment.validation;
 
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
-import javax.inject.Inject;
-
 import org.apache.commons.lang3.StringUtils;
+
+import javax.inject.Inject;
 
 /*
  * Interac e-Transfer requires a mail address or Canadian (mobile) phone number

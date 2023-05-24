@@ -17,21 +17,21 @@
 
 package haveno.network.p2p.network;
 
+import haveno.common.UserThread;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.util.Utilities;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
-import haveno.common.UserThread;
-import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.util.Utilities;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Network statistics per connection. As we are also interested in total network statistics

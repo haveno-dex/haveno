@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.funds.deposit;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple3;
@@ -43,17 +41,13 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
-import org.bitcoinj.core.Coin;
-
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxWallet;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TableCell;
@@ -65,28 +59,28 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
+import javafx.util.Callback;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
+import net.glxn.qrgen.QRCode;
+import net.glxn.qrgen.image.ImageType;
+import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
+import org.jetbrains.annotations.NotNull;
 
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
-
-import javafx.util.Callback;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.NotNull;
+import static haveno.desktop.util.FormBuilder.addAddressTextField;
+import static haveno.desktop.util.FormBuilder.addButtonCheckBoxWithBox;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class DepositView extends ActivatableView<VBox, Void> {
@@ -153,9 +147,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
         setUsageColumnCellFactory();
         setConfidenceColumnCellFactory();
 
+        // prefetch all incoming txs to avoid query per subaddress
+        List<MoneroTxWallet> incomingTxs = xmrWalletService.getIncomingTxs();
+
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
-        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
+        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(incomingTxs)));
         usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxOutputs));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);

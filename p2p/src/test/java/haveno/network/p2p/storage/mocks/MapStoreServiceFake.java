@@ -23,12 +23,11 @@ import haveno.common.proto.persistable.PersistablePayload;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.persistence.MapStoreService;
-import java.io.File;
+import lombok.Getter;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-
-import lombok.Getter;
 
 import static org.mockito.Mockito.mock;
 

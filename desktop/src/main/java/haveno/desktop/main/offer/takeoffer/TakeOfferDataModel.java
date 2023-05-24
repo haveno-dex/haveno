@@ -53,18 +53,13 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import javafx.collections.ObservableList;
-
-import java.math.BigInteger;
-
-import java.util.Set;
-
 import lombok.Getter;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

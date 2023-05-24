@@ -30,17 +30,6 @@ import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.exceptions.RejectedTxException;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.WalletsManager;
-import org.bitcoinj.core.RejectMessage;
-import org.bitcoinj.core.VersionMessage;
-import org.bitcoinj.store.BlockStoreException;
-import org.bitcoinj.store.ChainFileLockedException;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -49,14 +38,22 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
-import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroDaemonInfo;
+
+import org.bitcoinj.core.RejectMessage;
+import org.bitcoinj.core.VersionMessage;
+import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.store.ChainFileLockedException;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 @Slf4j
 @Singleton
@@ -120,7 +117,8 @@ public class WalletAppSetup {
                     if (exception == null) {
                         double percentage = (double) downloadPercentage;
                         btcSyncProgress.set(percentage);
-                        Long bestChainHeight = connectionService.getDaemon() == null ? null : connectionService.getDaemon().getInfo().getHeight();
+                        MoneroDaemonInfo lastInfo = connectionService.getLastInfo();
+                        Long bestChainHeight = lastInfo == null ? null : lastInfo.getHeight();
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
                                 String.valueOf(bestChainHeight) :
                                 "";
@@ -158,7 +156,7 @@ public class WalletAppSetup {
                             rejectedTxException.set((RejectedTxException) exception);
                             getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
                         } else {
-                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.toString()));
+                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                         }
                     }
                     return result;

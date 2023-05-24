@@ -17,6 +17,10 @@
 
 package haveno.desktop.util;
 
+import com.jfoenix.controls.JFXComboBox;
+import com.jfoenix.controls.JFXDatePicker;
+import com.jfoenix.controls.JFXTextArea;
+import com.jfoenix.controls.JFXToggleButton;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
@@ -50,14 +54,9 @@ import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.components.TextFieldWithIcon;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.TxIdTextField;
-
-import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
-
-import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXDatePicker;
-import com.jfoenix.controls.JFXTextArea;
-import com.jfoenix.controls.JFXToggleButton;
-
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -80,15 +79,12 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import org.jetbrains.annotations.NotNull;
+import static haveno.desktop.util.GUIUtil.getComboBoxButtonCell;
 
 public class FormBuilder {
     private static final String MATERIAL_DESIGN_ICONS = "'Material Design Icons'";

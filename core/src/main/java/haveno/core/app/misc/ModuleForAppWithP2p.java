@@ -28,7 +28,7 @@ import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.core.alert.AlertModule;
 import haveno.core.app.TorSetup;
 import haveno.core.filter.FilterModule;
-import haveno.core.network.CoreNetworkFilter;
+import haveno.core.network.CoreBanFilter;
 import haveno.core.network.p2p.seed.DefaultSeedNodeRepository;
 import haveno.core.offer.OfferModule;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
@@ -40,13 +40,20 @@ import haveno.core.xmr.MoneroConnectionModule;
 import haveno.core.xmr.MoneroModule;
 import haveno.network.crypto.EncryptionServiceModule;
 import haveno.network.p2p.P2PModule;
+import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.network.BridgeAddressProvider;
-import haveno.network.p2p.network.NetworkFilter;
 import haveno.network.p2p.seed.SeedNodeRepository;
+
 import java.io.File;
 
 import static com.google.inject.name.Names.named;
-import static haveno.common.config.Config.*;
+import static haveno.common.config.Config.KEY_STORAGE_DIR;
+import static haveno.common.config.Config.PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE;
+import static haveno.common.config.Config.REFERRAL_ID;
+import static haveno.common.config.Config.STORAGE_DIR;
+import static haveno.common.config.Config.USE_DEV_MODE;
+import static haveno.common.config.Config.USE_DEV_MODE_HEADER;
+import static haveno.common.config.Config.USE_DEV_PRIVILEGE_KEYS;
 
 public class ModuleForAppWithP2p extends AppModule {
 
@@ -69,7 +76,7 @@ public class ModuleForAppWithP2p extends AppModule {
         bind(TorSetup.class).in(Singleton.class);
 
         bind(SeedNodeRepository.class).to(DefaultSeedNodeRepository.class).in(Singleton.class);
-        bind(NetworkFilter.class).to(CoreNetworkFilter.class).in(Singleton.class);
+        bind(BanFilter.class).to(CoreBanFilter.class).in(Singleton.class);
 
         bind(File.class).annotatedWith(named(STORAGE_DIR)).toInstance(config.storageDir);
         bind(File.class).annotatedWith(named(KEY_STORAGE_DIR)).toInstance(config.keyStorageDir);

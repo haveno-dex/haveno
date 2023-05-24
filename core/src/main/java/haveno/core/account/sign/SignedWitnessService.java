@@ -17,12 +17,6 @@
 
 package haveno.core.account.sign;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import haveno.common.UserThread;
@@ -40,13 +34,17 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
+
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.SignatureException;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,8 +57,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SignedWitnessService {

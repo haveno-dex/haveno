@@ -1,12 +1,12 @@
 package haveno.cli;
 
-import haveno.proto.grpc.TradeInfo;
-import haveno.cli.GrpcClient;
 import haveno.cli.table.builder.TableBuilder;
+import haveno.proto.grpc.TradeInfo;
+
 import java.util.List;
 
-import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
+import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;
 import static java.lang.System.out;
 
 @SuppressWarnings("unused")

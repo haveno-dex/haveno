@@ -17,25 +17,24 @@
 
 package haveno.core.payment;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import lombok.EqualsAndHashCode;
-import lombok.NonNull;
-
-import static haveno.core.locale.CurrencyUtil.getAllSortedFiatCurrencies;
-import static java.util.Comparator.comparing;
-
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SwiftAccountPayload;
+import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.util.Comparator.comparing;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SwiftAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode)));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(CurrencyUtil.getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode)));
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,

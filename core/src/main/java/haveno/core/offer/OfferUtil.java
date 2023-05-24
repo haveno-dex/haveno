@@ -26,8 +26,9 @@ import haveno.core.filter.FilterManager;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
-import haveno.core.payment.CashByMailAccount;
+import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
@@ -38,27 +39,31 @@ import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.network.p2p.P2PService;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.utils.Fiat;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.offer.OfferPayload.*;
+import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
+import static haveno.core.offer.OfferPayload.CAPABILITIES;
+import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.F2F_CITY;
+import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.REFERRAL_ID;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
 import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
 import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
 
@@ -90,7 +95,7 @@ public class OfferUtil {
         this.p2PService = p2PService;
         this.referralIdService = referralIdService;
     }
-    
+
     public static String getRandomOfferId() {
         return Utilities.getRandomPrefix(5, 8) + "-" +
                 UUID.randomUUID() + "-" +
@@ -164,7 +169,7 @@ public class OfferUtil {
                                                      CoinFormatter formatter) {
         String userCurrencyCode = preferences.getPreferredTradeCurrency().getCode();
         if (CurrencyUtil.isCryptoCurrency(userCurrencyCode)) {
-            // In case the user has selected a altcoin as preferredTradeCurrency
+            // In case the user has selected a crypto as preferredTradeCurrency
             // we derive the fiat currency from the user country
             String countryCode = preferences.getUserCountry().code;
             userCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();
@@ -179,7 +184,7 @@ public class OfferUtil {
                                                String currencyCode,
                                                OfferDirection direction) {
         Map<String, String> extraDataMap = new HashMap<>();
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String myWitnessHashAsHex = accountAgeWitnessService
                     .getMyWitnessHashAsHex(paymentAccount.getPaymentAccountPayload());
             extraDataMap.put(ACCOUNT_AGE_WITNESS_HASH, myWitnessHashAsHex);
@@ -194,8 +199,8 @@ public class OfferUtil {
             extraDataMap.put(F2F_EXTRA_INFO, ((F2FAccount) paymentAccount).getExtraInfo());
         }
 
-        if (paymentAccount instanceof CashByMailAccount) {
-            extraDataMap.put(CASH_BY_MAIL_EXTRA_INFO, ((CashByMailAccount) paymentAccount).getExtraInfo());
+        if (paymentAccount instanceof PayByMailAccount) {
+            extraDataMap.put(PAY_BY_MAIL_EXTRA_INFO, ((PayByMailAccount) paymentAccount).getExtraInfo());
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());
@@ -231,7 +236,7 @@ public class OfferUtil {
     private Optional<Volume> getFeeInUserFiatCurrency(BigInteger makerFee, String userCurrencyCode, CoinFormatter formatter) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(userCurrencyCode);
         if (marketPrice != null && makerFee != null) {
-            long marketPriceAsLong = roundDoubleToLong(scaleUpByPowerOf10(marketPrice.getPrice(), Fiat.SMALLEST_UNIT_EXPONENT));
+            long marketPriceAsLong = roundDoubleToLong(scaleUpByPowerOf10(marketPrice.getPrice(), TraditionalMoney.SMALLEST_UNIT_EXPONENT));
             Price userCurrencyPrice = Price.valueOf(userCurrencyCode, marketPriceAsLong);
             return Optional.of(userCurrencyPrice.getVolumeByAmount(makerFee));
         } else {
@@ -239,11 +244,11 @@ public class OfferUtil {
         }
     }
 
-    public static boolean isFiatOffer(Offer offer) {
+    public static boolean isTraditionalOffer(Offer offer) {
         return offer.getBaseCurrencyCode().equals("XMR");
     }
 
-    public static boolean isAltcoinOffer(Offer offer) {
+    public static boolean isCryptoOffer(Offer offer) {
         return offer.getCounterCurrencyCode().equals("XMR");
     }
 

@@ -48,13 +48,11 @@ import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.script.ScriptPattern;
 import org.bitcoinj.wallet.RiskAnalysis;
 import org.bitcoinj.wallet.Wallet;
-
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
 

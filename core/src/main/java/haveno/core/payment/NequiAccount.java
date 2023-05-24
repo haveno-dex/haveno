@@ -18,20 +18,20 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.NequiAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class NequiAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("COP"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("COP"));
 
     public NequiAccount() {
         super(PaymentMethod.NEQUI);

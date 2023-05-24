@@ -17,16 +17,14 @@
 
 package haveno.cli.request;
 
+import haveno.cli.GrpcStubs;
 import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
 import haveno.proto.grpc.CreatePaymentAccountRequest;
 import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
 import haveno.proto.grpc.GetPaymentAccountFormAsJsonRequest;
-import haveno.proto.grpc.GetPaymentAccountFormRequest;
 import haveno.proto.grpc.GetPaymentAccountsRequest;
 import haveno.proto.grpc.GetPaymentMethodsRequest;
-import haveno.cli.GrpcStubs;
 import protobuf.PaymentAccount;
-import protobuf.PaymentAccountForm;
 import protobuf.PaymentMethod;
 
 import java.util.List;

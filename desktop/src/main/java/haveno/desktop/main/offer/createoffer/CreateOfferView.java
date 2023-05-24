@@ -31,11 +31,12 @@ import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.util.GUIUtil;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
 import javax.inject.Named;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @FxmlView
 public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
@@ -48,7 +49,7 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
                             @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super(model, navigation, preferences, offerDetailsWindow, btcFormatter);
     }
-    
+
     @Override
     public void initWithData(OfferDirection direction,
                              TradeCurrency tradeCurrency,
@@ -63,13 +64,12 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
     protected ObservableList<PaymentAccount> filterPaymentAccounts(ObservableList<PaymentAccount> paymentAccounts) {
         return FXCollections.observableArrayList(
                 paymentAccounts.stream().filter(paymentAccount -> {
-                    if (model.getTradeCurrency().equals(GUIUtil.TOP_ALTCOIN)) {
-                        return Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_ALTCOIN);
+                    if (model.getTradeCurrency().equals(GUIUtil.TOP_CRYPTO)) {
+                        return Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
                     } else if (CurrencyUtil.isFiatCurrency(model.getTradeCurrency().getCode())) {
-                        return !paymentAccount.getPaymentMethod().isAltcoin();
+                        return paymentAccount.isFiat();
                     } else {
-                        return paymentAccount.getPaymentMethod().isAltcoin() &&
-                                !Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_ALTCOIN);
+                        return !paymentAccount.isFiat() && !Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
                     }
                 }).collect(Collectors.toList()));
     }

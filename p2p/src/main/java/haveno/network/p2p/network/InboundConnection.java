@@ -18,16 +18,17 @@
 package haveno.network.p2p.network;
 
 import haveno.common.proto.network.NetworkProtoResolver;
+
 import java.net.Socket;
 
 import org.jetbrains.annotations.Nullable;
 
 public class InboundConnection extends Connection {
     public InboundConnection(Socket socket,
-                             MessageListener messageListener,
-                             ConnectionListener connectionListener,
-                             NetworkProtoResolver networkProtoResolver,
-                             @Nullable NetworkFilter networkFilter) {
-        super(socket, messageListener, connectionListener, null, networkProtoResolver, networkFilter);
+            MessageListener messageListener,
+            ConnectionListener connectionListener,
+            NetworkProtoResolver networkProtoResolver,
+            @Nullable BanFilter banFilter) {
+        super(socket, messageListener, connectionListener, null, networkProtoResolver, banFilter);
     }
 }

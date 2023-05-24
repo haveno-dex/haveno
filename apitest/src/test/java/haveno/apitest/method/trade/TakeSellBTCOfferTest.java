@@ -17,10 +17,9 @@
 
 package haveno.apitest.method.trade;
 
+import haveno.core.payment.PaymentAccount;
 import io.grpc.StatusRuntimeException;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -30,17 +29,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestConfig.USD;
-import static haveno.core.trade.Trade.Phase.COMPLETED;
 import static haveno.core.trade.Trade.Phase.PAYMENT_RECEIVED;
 import static haveno.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG;
-import static haveno.core.trade.Trade.State.TRADE_COMPLETED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static protobuf.Offer.State.OFFER_FEE_RESERVED;
 import static protobuf.OfferDirection.SELL;
-
-import haveno.core.payment.PaymentAccount;
 
 @Disabled
 @Slf4j

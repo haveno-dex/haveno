@@ -25,12 +25,11 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
-import java.util.Map;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
+import java.util.Map;
 
 public class FeeRequest {
     private static final Logger log = LoggerFactory.getLogger(FeeRequest.class);

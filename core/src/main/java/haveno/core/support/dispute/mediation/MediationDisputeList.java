@@ -23,12 +23,12 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeList;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ToString

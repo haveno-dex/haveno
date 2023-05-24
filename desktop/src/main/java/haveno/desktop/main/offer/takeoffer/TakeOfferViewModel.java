@@ -50,13 +50,6 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -64,17 +57,19 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.ObservableList;
-
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.util.Callback;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.math.BigInteger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javafx.beans.binding.Bindings.createStringBinding;
-
-import java.math.BigInteger;
 
 class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> implements ViewModel {
     final TakeOfferDataModel dataModel;
@@ -155,10 +150,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         addBindings();
         addListeners();
 
-        String buyVolumeDescriptionKey = offer.isFiatOffer() ? "createOffer.amountPriceBox.buy.volumeDescription" :
-                "createOffer.amountPriceBox.buy.volumeDescriptionAltcoin";
-        String sellVolumeDescriptionKey = offer.isFiatOffer() ? "createOffer.amountPriceBox.sell.volumeDescription" :
-                "createOffer.amountPriceBox.sell.volumeDescriptionAltcoin";
+        String buyVolumeDescriptionKey = offer.isTraditionalOffer() ? "createOffer.amountPriceBox.buy.volumeDescription" :
+                "createOffer.amountPriceBox.buy.volumeDescriptionCrypto";
+        String sellVolumeDescriptionKey = offer.isTraditionalOffer() ? "createOffer.amountPriceBox.sell.volumeDescription" :
+                "createOffer.amountPriceBox.sell.volumeDescriptionCrypto";
 
         if (dataModel.getDirection() == OfferDirection.SELL) {
             volumeDescriptionLabel.set(Res.get(buyVolumeDescriptionKey, dataModel.getCurrencyCode()));
@@ -198,10 +193,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         dataModel.initWithData(offer);
         this.offer = offer;
 
-        String buyAmountDescriptionKey = offer.isFiatOffer() ? "takeOffer.amountPriceBox.buy.amountDescription" :
-                "takeOffer.amountPriceBox.buy.amountDescriptionAltcoin";
-        String sellAmountDescriptionKey = offer.isFiatOffer() ? "takeOffer.amountPriceBox.sell.amountDescription" :
-                "takeOffer.amountPriceBox.sell.amountDescriptionAltcoin";
+        String buyAmountDescriptionKey = offer.isTraditionalOffer() ? "takeOffer.amountPriceBox.buy.amountDescription" :
+                "takeOffer.amountPriceBox.buy.amountDescriptionCrypto";
+        String sellAmountDescriptionKey = offer.isTraditionalOffer() ? "takeOffer.amountPriceBox.sell.amountDescription" :
+                "takeOffer.amountPriceBox.sell.amountDescriptionCrypto";
 
         amountDescription = offer.isBuyOffer()
                 ? Res.get(buyAmountDescriptionKey)
@@ -513,10 +508,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
             @Override
             public void onConnection(Connection connection) {
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
             }
         };
     }

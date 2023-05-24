@@ -17,9 +17,7 @@
 
 package haveno.core.offer.availability.tasks;
 
-import com.google.common.base.Charsets;
 import haveno.common.app.Version;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.monetary.Price;
@@ -33,9 +31,10 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Date;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 
 // TODO (woodser): rename to TakerSendOfferAvailabilityRequest and group with other taker tasks
 @Slf4j
@@ -56,10 +55,10 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             XmrWalletService walletService = model.getXmrWalletService();
             String paymentAccountId = model.getPaymentAccountId();
             String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
-            String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString(); // reserve new payout address
+            String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
-            byte[] sig = Sig.sign(model.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), offer.getId().getBytes(Charsets.UTF_8));
+            byte[] sig = HavenoUtils.sign(model.getP2PService().getKeyRing(), offer.getId());
 
             // get price
             Price price = offer.getPrice();

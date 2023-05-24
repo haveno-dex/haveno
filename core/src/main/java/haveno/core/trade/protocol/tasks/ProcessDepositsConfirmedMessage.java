@@ -55,13 +55,19 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
 
             // update multisig hex
             sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
-            trade.importMultisigHex();
 
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {
                 log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
                 trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
             }
+            processModel.getTradeManager().requestPersistence(); // in case importing multisig hex fails
+
+            // import multisig hex
+            trade.importMultisigHex();
+
+            // save wallet off thread
+            new Thread(() -> trade.saveWallet()).start();
 
             // persist and complete
             processModel.getTradeManager().requestPersistence();

@@ -23,23 +23,21 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
 import haveno.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
-import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Set;
-
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -49,7 +47,7 @@ public class P2PDataStorageRequestDataTest {
 
     private NodeAddress localNodeAddress;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         this.testState = new TestState();
@@ -97,9 +95,9 @@ public class P2PDataStorageRequestDataTest {
     public void buildPreliminaryGetDataRequest_EmptyP2PDataStore() {
         PreliminaryGetDataRequest getDataRequest = this.testState.mockedStorage.buildPreliminaryGetDataRequest(1);
 
-        Assert.assertEquals(getDataRequest.getNonce(), 1);
-        Assert.assertEquals(getDataRequest.getSupportedCapabilities(), Capabilities.app);
-        Assert.assertTrue(getDataRequest.getExcludedKeys().isEmpty());
+        assertEquals(getDataRequest.getNonce(), 1);
+        assertEquals(getDataRequest.getSupportedCapabilities(), Capabilities.app);
+        assertTrue(getDataRequest.getExcludedKeys().isEmpty());
     }
 
     // TESTCASE: P2PDataStorage with no entries returns an empty PreliminaryGetDataRequest
@@ -108,9 +106,9 @@ public class P2PDataStorageRequestDataTest {
         GetUpdatedDataRequest getDataRequest =
                 this.testState.mockedStorage.buildGetUpdatedDataRequest(this.localNodeAddress, 1);
 
-        Assert.assertEquals(getDataRequest.getNonce(), 1);
-        Assert.assertEquals(getDataRequest.getSenderNodeAddress(), this.localNodeAddress);
-        Assert.assertTrue(getDataRequest.getExcludedKeys().isEmpty());
+        assertEquals(getDataRequest.getNonce(), 1);
+        assertEquals(getDataRequest.getSenderNodeAddress(), this.localNodeAddress);
+        assertTrue(getDataRequest.getExcludedKeys().isEmpty());
     }
 
     // TESTCASE: P2PDataStorage with PersistableNetworkPayloads and ProtectedStorageEntry generates
@@ -130,14 +128,14 @@ public class P2PDataStorageRequestDataTest {
 
         PreliminaryGetDataRequest getDataRequest = this.testState.mockedStorage.buildPreliminaryGetDataRequest(1);
 
-        Assert.assertEquals(getDataRequest.getNonce(), 1);
-        Assert.assertEquals(getDataRequest.getSupportedCapabilities(), Capabilities.app);
-        Assert.assertEquals(4, getDataRequest.getExcludedKeys().size());
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd1.getHash()));
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd2.getHash()));
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
+        assertEquals(getDataRequest.getNonce(), 1);
+        assertEquals(getDataRequest.getSupportedCapabilities(), Capabilities.app);
+        assertEquals(4, getDataRequest.getExcludedKeys().size());
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd1.getHash()));
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd2.getHash()));
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
                 P2PDataStorage.get32ByteHash(toAdd3.getProtectedStoragePayload())));
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
                 P2PDataStorage.get32ByteHash(toAdd4.getProtectedStoragePayload())));
     }
 
@@ -159,14 +157,14 @@ public class P2PDataStorageRequestDataTest {
         GetUpdatedDataRequest getDataRequest =
                 this.testState.mockedStorage.buildGetUpdatedDataRequest(this.localNodeAddress, 1);
 
-        Assert.assertEquals(getDataRequest.getNonce(), 1);
-        Assert.assertEquals(getDataRequest.getSenderNodeAddress(), this.localNodeAddress);
-        Assert.assertEquals(4, getDataRequest.getExcludedKeys().size());
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd1.getHash()));
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd2.getHash()));
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
+        assertEquals(getDataRequest.getNonce(), 1);
+        assertEquals(getDataRequest.getSenderNodeAddress(), this.localNodeAddress);
+        assertEquals(4, getDataRequest.getExcludedKeys().size());
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd1.getHash()));
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(), toAdd2.getHash()));
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
                 P2PDataStorage.get32ByteHash(toAdd3.getProtectedStoragePayload())));
-        Assert.assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
+        assertTrue(byteSetContains(getDataRequest.getExcludedKeys(),
                 P2PDataStorage.get32ByteHash(toAdd4.getProtectedStoragePayload())));
     }
 }

@@ -17,9 +17,11 @@
 
 package haveno.network.p2p.network;
 
+import haveno.network.p2p.NodeAddress;
+
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkProtoResolver;
-import haveno.network.p2p.NodeAddress;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -47,23 +49,21 @@ public class LocalhostNetworkNode extends NetworkNode {
         LocalhostNetworkNode.simulateTorDelayHiddenService = simulateTorDelayHiddenService;
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public LocalhostNetworkNode(int port,
-                                NetworkProtoResolver networkProtoResolver,
-                                @Nullable NetworkFilter networkFilter) {
-        super(port, networkProtoResolver, networkFilter);
+            NetworkProtoResolver networkProtoResolver,
+            @Nullable BanFilter banFilter,
+            int maxConnections) {
+        super(port, networkProtoResolver, banFilter, maxConnections);
     }
 
     @Override
     public void start(@Nullable SetupListener setupListener) {
         if (setupListener != null)
             addSetupListener(setupListener);
-
-        createExecutorService();
 
         // simulate tor connection delay
         UserThread.runAfter(() -> {

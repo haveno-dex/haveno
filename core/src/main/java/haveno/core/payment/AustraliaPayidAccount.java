@@ -18,18 +18,18 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AustraliaPayidAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.NonNull;
+
+import java.util.List;
 
 public final class AustraliaPayidAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("AUD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("AUD"));
 
     public AustraliaPayidAccount() {
         super(PaymentMethod.AUSTRALIA_PAYID);

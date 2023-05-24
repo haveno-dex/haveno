@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
 
 public class GetAddressBalanceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 

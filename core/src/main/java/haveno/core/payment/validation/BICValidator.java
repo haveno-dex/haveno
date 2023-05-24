@@ -19,6 +19,7 @@ package haveno.core.payment.validation;
 
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
+
 import java.util.Locale;
 
 /*

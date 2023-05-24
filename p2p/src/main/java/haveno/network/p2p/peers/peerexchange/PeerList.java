@@ -19,14 +19,14 @@ package haveno.network.p2p.peers.peerexchange;
 
 import com.google.protobuf.Message;
 import haveno.common.proto.persistable.PersistableEnvelope;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @EqualsAndHashCode

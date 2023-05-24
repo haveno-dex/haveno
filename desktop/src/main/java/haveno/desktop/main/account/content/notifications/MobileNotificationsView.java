@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.account.content.notifications;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.common.UserThread;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -42,7 +40,7 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
 import haveno.core.util.PriceUtil;
-import haveno.core.util.validation.AltcoinValidator;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.common.view.ActivatableView;
@@ -53,8 +51,10 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
-import javax.inject.Inject;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.SetChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -64,19 +64,18 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.FXCollections;
-import javafx.collections.SetChangeListener;
-
 import javafx.util.StringConverter;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static haveno.desktop.util.FormBuilder.addButton;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelButton;
 
 @FxmlView
 public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
@@ -314,9 +313,9 @@ public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
         TradeCurrency selectedItem = currencyComboBox.getSelectionModel().getSelectedItem();
         if (selectedItem != null) {
             selectedPriceAlertTradeCurrency = selectedItem.getCode();
-            boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(selectedPriceAlertTradeCurrency);
-            priceAlertHighInputTextField.setValidator(isCryptoCurrency ? new AltcoinValidator() : new FiatPriceValidator());
-            priceAlertLowInputTextField.setValidator(isCryptoCurrency ? new AltcoinValidator() : new FiatPriceValidator());
+            boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(selectedPriceAlertTradeCurrency);
+            priceAlertHighInputTextField.setValidator(isFiatCurrency ? new FiatPriceValidator() : new NonFiatPriceValidator());
+            priceAlertLowInputTextField.setValidator(isFiatCurrency ? new FiatPriceValidator() : new NonFiatPriceValidator());
         } else {
             selectedPriceAlertTradeCurrency = null;
         }

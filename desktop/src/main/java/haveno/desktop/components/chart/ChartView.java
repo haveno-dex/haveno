@@ -22,9 +22,16 @@ import haveno.core.locale.Res;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.components.AutoTooltipSlideToggleButton;
 import haveno.desktop.components.AutoTooltipToggleButton;
-import javafx.stage.PopupWindow;
-import javafx.stage.Stage;
-
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.LineChart;
@@ -43,25 +50,14 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.Bounds;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.geometry.Side;
-
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-
+import javafx.stage.PopupWindow;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.time.temporal.TemporalAdjuster;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -72,11 +68,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
-
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public abstract class ChartView<T extends ChartViewModel<? extends ChartDataModel>> extends ActivatableViewAndModel<VBox, T> {

@@ -19,6 +19,7 @@ package haveno.common.proto.network;
 
 import haveno.common.proto.ProtoResolver;
 import haveno.common.proto.ProtobufferException;
+
 import java.time.Clock;
 
 

@@ -17,17 +17,18 @@
 
 package haveno.cli.table.builder;
 
+import haveno.cli.table.Table;
+import haveno.cli.table.column.Column;
+import haveno.cli.table.column.SatoshiColumn;
+import haveno.proto.grpc.BtcBalanceInfo;
+
+import java.util.List;
+
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AVAILABLE_BALANCE;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_LOCKED_BALANCE;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_RESERVED_BALANCE;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TOTAL_AVAILABLE_BALANCE;
 import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
-
-import haveno.proto.grpc.BtcBalanceInfo;
-import haveno.cli.table.Table;
-import haveno.cli.table.column.Column;
-import haveno.cli.table.column.SatoshiColumn;
-import java.util.List;
 
 /**
  * Builds a {@code haveno.cli.table.Table} from a

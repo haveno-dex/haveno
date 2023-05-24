@@ -17,26 +17,23 @@
 
 package haveno.daemon.grpc;
 
-import haveno.proto.grpc.GetVersionReply;
-import haveno.proto.grpc.GetVersionRequest;
-
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-
-import javax.inject.Inject;
-
 import com.google.common.annotations.VisibleForTesting;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.proto.grpc.GetVersionReply;
+import haveno.proto.grpc.GetVersionRequest;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Optional;
 
-import lombok.extern.slf4j.Slf4j;
-
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
 import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @VisibleForTesting

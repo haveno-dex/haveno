@@ -17,9 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.payment.PaxumAccount;
@@ -34,6 +31,9 @@ import haveno.desktop.util.FormBuilder;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 
 public class PaxumForm extends PaymentMethodForm {
     private final PaxumAccount account;

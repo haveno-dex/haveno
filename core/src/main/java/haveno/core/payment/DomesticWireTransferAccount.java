@@ -18,21 +18,21 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.BankAccountPayload;
 import haveno.core.payment.payload.DomesticWireTransferAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class DomesticWireTransferAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
     public DomesticWireTransferAccount() {
         super(PaymentMethod.DOMESTIC_WIRE_TRANSFER);

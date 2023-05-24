@@ -17,8 +17,9 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.cli.table.Table;
+import haveno.proto.grpc.OfferInfo;
+
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -27,7 +28,7 @@ import java.util.function.Predicate;
  */
 abstract class AbstractTableBuilder {
 
-    protected final Predicate<OfferInfo> isFiatOffer = (o) -> o.getBaseCurrencyCode().equals("BTC");
+    protected final Predicate<OfferInfo> isTraditionalOffer = (o) -> o.getBaseCurrencyCode().equals("XMR");
 
     protected final TableType tableType;
     protected final List<?> protos;

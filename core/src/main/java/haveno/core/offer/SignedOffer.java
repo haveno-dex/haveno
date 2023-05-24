@@ -17,18 +17,24 @@
 
 package haveno.core.offer;
 
+import com.google.protobuf.ByteString;
+import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
-import java.util.List;
+import haveno.core.util.JsonUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @EqualsAndHashCode
 @Slf4j
 public final class SignedOffer implements PersistablePayload {
-    
+
     @Getter
     private final long timeStamp;
+    @Getter
+    private int traderId;
     @Getter
     private final String offerId;
     @Getter
@@ -44,9 +50,10 @@ public final class SignedOffer implements PersistablePayload {
     @Getter
     private final long reserveTxMinerFee;
     @Getter
-    private final String arbitratorSignature;
-    
+    private final byte[] arbitratorSignature;
+
     public SignedOffer(long timeStamp,
+                       int traderId,
                        String offerId,
                        long tradeAmount,
                        long penaltyAmount,
@@ -54,8 +61,9 @@ public final class SignedOffer implements PersistablePayload {
                        String reserveTxHex,
                        List<String> reserveTxKeyImages,
                        long reserveTxMinerFee,
-                       String arbitratorSignature) {
+                       byte[] arbitratorSignature) {
         this.timeStamp = timeStamp;
+        this.traderId = traderId;
         this.offerId = offerId;
         this.tradeAmount = tradeAmount;
         this.penaltyAmount = penaltyAmount;
@@ -74,6 +82,7 @@ public final class SignedOffer implements PersistablePayload {
     public protobuf.SignedOffer toProtoMessage() {
         protobuf.SignedOffer.Builder builder = protobuf.SignedOffer.newBuilder()
                 .setTimeStamp(timeStamp)
+                .setTraderId(traderId)
                 .setOfferId(offerId)
                 .setTradeAmount(tradeAmount)
                 .setPenaltyAmount(penaltyAmount)
@@ -81,12 +90,13 @@ public final class SignedOffer implements PersistablePayload {
                 .setReserveTxHex(reserveTxHex)
                 .addAllReserveTxKeyImages(reserveTxKeyImages)
                 .setReserveTxMinerFee(reserveTxMinerFee)
-                .setArbitratorSignature(arbitratorSignature);
+                .setArbitratorSignature(ByteString.copyFrom(arbitratorSignature));
         return builder.build();
     }
 
     public static SignedOffer fromProto(protobuf.SignedOffer proto) {
         return new SignedOffer(proto.getTimeStamp(),
+                               proto.getTraderId(),
                                proto.getOfferId(),
                                proto.getTradeAmount(),
                                proto.getPenaltyAmount(),
@@ -94,7 +104,7 @@ public final class SignedOffer implements PersistablePayload {
                                proto.getReserveTxHex(),
                                proto.getReserveTxKeyImagesList(),
                                proto.getReserveTxMinerFee(),
-                               proto.getArbitratorSignature());
+                               ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()));
     }
 
 
@@ -102,10 +112,15 @@ public final class SignedOffer implements PersistablePayload {
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public String toJson() {
+        return JsonUtil.objectToJson(this);
+    }
+
     @Override
     public String toString() {
         return "SignedOffer{" +
                 ",\n     timeStamp=" + timeStamp +
+                ",\n     traderId=" + traderId +
                 ",\n     offerId=" + offerId +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     penaltyAmount=" + penaltyAmount +

@@ -18,14 +18,13 @@
 package haveno.desktop.main.offer;
 
 import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
-import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.network.p2p.P2PService;
+
 import javax.inject.Inject;
 
 @FxmlView

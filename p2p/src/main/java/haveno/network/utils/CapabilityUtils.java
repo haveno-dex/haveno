@@ -22,9 +22,9 @@ import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
-import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
 
 @Slf4j
 public class CapabilityUtils {

@@ -38,6 +38,7 @@ import haveno.desktop.main.overlays.windows.ContractWindow;
 import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.support.dispute.agent.DisputeAgentView;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 

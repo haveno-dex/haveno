@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.support.dispute.agent;
 
-import static haveno.desktop.util.FormBuilder.getIconForLabel;
-
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Utilities;
@@ -41,22 +39,20 @@ import haveno.desktop.main.overlays.windows.ContractWindow;
 import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.support.dispute.DisputeView;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.ListChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.collections.ListChangeListener;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
 
 public abstract class DisputeAgentView extends DisputeView implements MultipleHolderNameDetection.Listener {
 

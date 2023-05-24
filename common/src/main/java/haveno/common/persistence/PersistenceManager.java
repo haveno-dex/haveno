@@ -30,18 +30,19 @@ import haveno.common.file.FileUtil;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
+import haveno.common.util.SingleThreadExecutorUtils;
 import haveno.common.util.GcUtil;
-import haveno.common.util.Utilities;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
 import javax.inject.Named;
-
-import java.nio.file.Path;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,11 +51,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.common.util.Preconditions.checkDir;
@@ -90,8 +86,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         allServicesInitialized.set(true);
 
         ALL_PERSISTENCE_MANAGERS.values().forEach(persistenceManager -> {
-            // In case we got a requestPersistence call before we got initialized we trigger the timer for the
-            // persist call
+            // In case we got a requestPersistence call before we got initialized we trigger
+            // the timer for the persist call
             if (persistenceManager.persistenceRequested) {
                 persistenceManager.maybeStartTimerForPersistence();
             }
@@ -154,12 +150,18 @@ public class PersistenceManager<T extends PersistableEnvelope> {
                 // (fixes https://github.com/bisq-network/bisq/issues/4844).
                 if (persistenceManager.readCalled.get() &&
                         (persistenceManager.source.flushAtShutDown || persistenceManager.persistenceRequested)) {
+
                     // We always get our completeHandler called even if exceptions happen. In case a file write fails
                     // we still call our shutdown and count down routine as the completeHandler is triggered in any case.
-
                     // We get our result handler called from the write thread so we map back to user thread.
-                    persistenceManager.persistNow(() ->
+                    try {
+                        persistenceManager.persistNow(() ->
                             UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown)));
+                    } catch (Exception e) {
+                        if (!doShutdown) throw e; // only complete if shutting down
+                        log.warn("Error flushing data to disk on shut down. Calling completeHandler.");
+                        UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown));
+                    }
                 } else {
                     onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown);
                 }
@@ -182,7 +184,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enum
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -196,7 +197,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
 
         // For data stores which are created from private local data. Loss of that data would not have critical consequences.
         PRIVATE_LOW_PRIO(4, TimeUnit.MINUTES.toMillis(1), false);
-
 
         @Getter
         private final int numMaxBackupFiles;
@@ -233,7 +233,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     private ExecutorService writeToDiskExecutor;
     public final AtomicBoolean initCalled = new AtomicBoolean(false);
     public final AtomicBoolean readCalled = new AtomicBoolean(false);
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -301,7 +300,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Reading file
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -309,8 +307,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     /**
      * Read persisted file in a thread.
      *
-     * @param resultHandler     Consumer of persisted data once it was read from disk.
-     * @param orElse            Called if no file exists or reading of file failed.
+     * @param resultHandler Consumer of persisted data once it was read from disk.
+     * @param orElse        Called if no file exists or reading of file failed.
      */
     public void readPersisted(Consumer<T> resultHandler, Runnable orElse) {
         readPersisted(checkNotNull(fileName), resultHandler, orElse);
@@ -320,9 +318,9 @@ public class PersistenceManager<T extends PersistableEnvelope> {
      * Read persisted file in a thread.
      * We map result handler calls to UserThread, so clients don't need to worry about threading
      *
-     * @param fileName          File name of our persisted data.
-     * @param resultHandler     Consumer of persisted data once it was read from disk.
-     * @param orElse            Called if no file exists or reading of file failed.
+     * @param fileName      File name of our persisted data.
+     * @param resultHandler Consumer of persisted data once it was read from disk.
+     * @param orElse        Called if no file exists or reading of file failed.
      */
     public void readPersisted(String fileName, Consumer<T> resultHandler, Runnable orElse) {
         if (flushAtShutdownCalled) {
@@ -408,7 +406,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         return null;
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Write file to disk
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -416,11 +413,6 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     public void requestPersistence() {
         if (flushAtShutdownCalled) {
             log.warn("We have started the shut down routine already. We ignore that requestPersistence call.");
-            return;
-        }
-
-        if (!initCalled.get()) {
-            log.warn("requestPersistence() called before init. Ignoring request");
             return;
         }
 
@@ -566,7 +558,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     private ExecutorService getWriteToDiskExecutor() {
         if (writeToDiskExecutor == null) {
             String name = "Write-" + fileName + "_to-disk";
-            writeToDiskExecutor = Utilities.getSingleThreadExecutor(name);
+            writeToDiskExecutor = SingleThreadExecutorUtils.getSingleThreadExecutor(name);
         }
         return writeToDiskExecutor;
     }

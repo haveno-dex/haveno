@@ -17,13 +17,16 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.core.locale.Res;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.overlays.Overlay;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Region;
+
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 public class TxDetails extends Overlay<TxDetails> {
 

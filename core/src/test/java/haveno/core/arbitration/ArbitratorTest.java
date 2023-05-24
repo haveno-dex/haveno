@@ -22,15 +22,14 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.network.p2p.NodeAddress;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.Disabled;
 
 import java.util.Date;
-
-import org.junit.Ignore;
 
 @SuppressWarnings({"SameParameterValue", "UnusedAssignment"})
 public class ArbitratorTest {
 
-    @Ignore("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
+    @Disabled("TODO InvalidKeySpecException at haveno.common.crypto.Sig.getPublicKeyFromBytes(Sig.java:135)")
     public void testRoundtrip() {
         Arbitrator arbitrator = getArbitratorMock();
 
@@ -40,7 +39,6 @@ public class ArbitratorTest {
 
     public static Arbitrator getArbitratorMock() {
         return new Arbitrator(new NodeAddress("host", 1000),
-                "xmraddress",
                 new PubKeyRing(getBytes(100), getBytes(100)),
                 Lists.newArrayList(),
                 new Date().getTime(),

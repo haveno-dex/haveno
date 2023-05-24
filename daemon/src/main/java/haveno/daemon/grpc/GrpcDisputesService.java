@@ -1,12 +1,12 @@
 package haveno.daemon.grpc;
 
-import haveno.proto.grpc.DisputesGrpc.DisputesImplBase;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.api.CoreApi;
 import haveno.core.support.dispute.Attachment;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.proto.grpc.DisputesGrpc.DisputesImplBase;
 import haveno.proto.grpc.GetDisputeReply;
 import haveno.proto.grpc.GetDisputeRequest;
 import haveno.proto.grpc.GetDisputesReply;
@@ -17,25 +17,22 @@ import haveno.proto.grpc.ResolveDisputeReply;
 import haveno.proto.grpc.ResolveDisputeRequest;
 import haveno.proto.grpc.SendDisputeChatMessageReply;
 import haveno.proto.grpc.SendDisputeChatMessageRequest;
-
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.DisputesGrpc.getGetDisputeMethod;
 import static haveno.proto.grpc.DisputesGrpc.getGetDisputesMethod;
 import static haveno.proto.grpc.DisputesGrpc.getOpenDisputeMethod;
 import static haveno.proto.grpc.DisputesGrpc.getResolveDisputeMethod;
 import static haveno.proto.grpc.DisputesGrpc.getSendDisputeChatMessageMethod;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
@@ -142,7 +139,7 @@ public class GrpcDisputesService extends DisputesImplBase {
                         new HashMap<>() {{
                             put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                             put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
                         }}

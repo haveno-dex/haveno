@@ -18,22 +18,18 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
-import org.bitcoinj.core.Coin;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import org.bitcoinj.core.Coin;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DisplayUtils {
@@ -121,7 +117,7 @@ public class DisplayUtils {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
         else
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency", currencyCode) : Res.get("shared.sellCurrency", currencyCode);
@@ -135,7 +131,7 @@ public class DisplayUtils {
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String code = Res.getBaseCurrencyCode();
             return isMyOffer ?
                     Res.get("formatter.youAreAsMaker", Res.get("shared.buyer"), code, Res.get("shared.seller"), code) :
@@ -148,7 +144,7 @@ public class DisplayUtils {
     }
 
     public static String getDirectionForSeller(boolean isMyOffer, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String code = Res.getBaseCurrencyCode();
             return isMyOffer ?
                     Res.get("formatter.youAreAsMaker", Res.get("shared.seller"), code, Res.get("shared.buyer"), code) :
@@ -162,7 +158,7 @@ public class DisplayUtils {
 
     public static String getDirectionForTakeOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             return direction == OfferDirection.BUY ?
                     Res.get("formatter.youAre", Res.get("shared.selling"), baseCurrencyCode, Res.get("shared.buying"), currencyCode) :
                     Res.get("formatter.youAre", Res.get("shared.buying"), baseCurrencyCode, Res.get("shared.selling"), currencyCode);
@@ -176,14 +172,14 @@ public class DisplayUtils {
 
     public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             return direction == OfferDirection.BUY ?
-                    Res.get("formatter.youAreCreatingAnOffer.fiat", Res.get("shared.buy"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.fiat", Res.get("shared.sell"), baseCurrencyCode);
+                    Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.buy"), baseCurrencyCode) :
+                    Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.sell"), baseCurrencyCode);
         } else {
             return direction == OfferDirection.SELL ?
-                    Res.get("formatter.youAreCreatingAnOffer.altcoin", Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.altcoin", Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
+                    Res.get("formatter.youAreCreatingAnOffer.crypto", Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
+                    Res.get("formatter.youAreCreatingAnOffer.crypto", Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
         }
     }
 

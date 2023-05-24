@@ -22,20 +22,17 @@ import haveno.common.config.Config;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.Utilities;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.script.Script;
-
-import java.util.Optional;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

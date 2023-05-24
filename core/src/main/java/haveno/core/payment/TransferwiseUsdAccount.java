@@ -18,21 +18,20 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.TransferwiseUsdAccountPayload;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
     public TransferwiseUsdAccount() {
         super(PaymentMethod.TRANSFERWISE_USD);

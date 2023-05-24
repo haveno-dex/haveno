@@ -26,15 +26,16 @@ import haveno.apitest.linux.LinuxProcess;
 import haveno.cli.GrpcClient;
 import haveno.common.config.HavenoHelpFormatter;
 import haveno.common.util.Utilities;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -43,14 +44,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
 import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static haveno.apitest.config.ApiTestConfig.MEDIATOR;
 import static haveno.apitest.config.ApiTestConfig.REFUND_AGENT;
-import static haveno.apitest.config.HavenoAppConfig.*;
+import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
+import static haveno.apitest.config.HavenoAppConfig.alicedesktop;
+import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
+import static haveno.apitest.config.HavenoAppConfig.arbdesktop;
+import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
+import static haveno.apitest.config.HavenoAppConfig.bobdesktop;
+import static haveno.apitest.config.HavenoAppConfig.seednode;
 import static haveno.common.app.DevEnv.DEV_PRIVILEGE_PRIV_KEY;
 import static java.lang.String.format;
 import static java.lang.System.exit;

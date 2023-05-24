@@ -18,6 +18,7 @@
 package haveno.network.p2p.storage;
 
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+
 import java.util.Collection;
 
 public interface HashMapChangedListener {

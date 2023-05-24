@@ -17,23 +17,21 @@
 
 package haveno.core.offer;
 
-import org.bitcoinj.utils.MonetaryFormat;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
-import java.math.BigInteger;
-import java.util.Date;
-
+import org.bitcoinj.utils.MonetaryFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Date;
 
 public class OfferForJson {
     private static final Logger log = LoggerFactory.getLogger(OfferForJson.class);
@@ -66,9 +64,9 @@ public class OfferForJson {
     public long primaryMarketMinVolume;
 
     @JsonIgnore
-    transient private final MonetaryFormat fiatFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    transient private final MonetaryFormat traditionalFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
     @JsonIgnore
-    transient private final MonetaryFormat altcoinFormat = new MonetaryFormat().shift(0).minDecimals(8).repeatOptionalDecimals(0, 0);
+    transient private final MonetaryFormat cryptoFormat = new MonetaryFormat().shift(0).minDecimals(CryptoMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     @JsonIgnore
     transient private final MonetaryFormat coinFormat = MonetaryFormat.BTC;
 
@@ -101,43 +99,34 @@ public class OfferForJson {
     private void setDisplayStrings() {
         try {
             final Price price = getPrice();
+
             if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
                 primaryMarketDirection = direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
                 currencyPair = currencyCode + "/" + Res.getBaseCurrencyCode();
-
-                // int precision = 8;
-                //decimalFormat.setMaximumFractionDigits(precision);
-
-                // amount and volume is inverted for json
-                priceDisplayString = altcoinFormat.noCode().format(price.getMonetary()).toString();
-                primaryMarketMinAmountDisplayString = altcoinFormat.noCode().format(getMinVolume().getMonetary()).toString();
-                primaryMarketAmountDisplayString = altcoinFormat.noCode().format(getVolume().getMonetary()).toString();
-                primaryMarketMinVolumeDisplayString = HavenoUtils.formatXmr(getMinAmount()).toString();
-                primaryMarketVolumeDisplayString = HavenoUtils.formatXmr(getAmount()).toString();
-
-                primaryMarketPrice = price.getValue();
-                primaryMarketMinAmount = getMinVolume().getValue();
-                primaryMarketAmount = getVolume().getValue();
-                primaryMarketMinVolume = getMinAmount().longValueExact();
-                primaryMarketVolume = getAmount().longValueExact();
             } else {
                 primaryMarketDirection = direction;
                 currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
+            }
 
-                priceDisplayString = fiatFormat.noCode().format(price.getMonetary()).toString();
+            if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+                priceDisplayString = traditionalFormat.noCode().format(price.getMonetary()).toString();
                 primaryMarketMinAmountDisplayString = HavenoUtils.formatXmr(getMinAmount()).toString();
                 primaryMarketAmountDisplayString = HavenoUtils.formatXmr(getAmount()).toString();
-                primaryMarketMinVolumeDisplayString = fiatFormat.noCode().format(getMinVolume().getMonetary()).toString();
-                primaryMarketVolumeDisplayString = fiatFormat.noCode().format(getVolume().getMonetary()).toString();
-
-                // we use precision 4 for fiat based price but on the markets api we use precision 8 so we scale up by 10000
-                primaryMarketPrice = (long) MathUtils.scaleUpByPowerOf10(price.getValue(), 4);
-                primaryMarketMinVolume = (long) MathUtils.scaleUpByPowerOf10(getMinVolume().getValue(), 4);
-                primaryMarketVolume = (long) MathUtils.scaleUpByPowerOf10(getVolume().getValue(), 4);
-
-                primaryMarketMinAmount = getMinAmount().longValueExact();
-                primaryMarketAmount = getAmount().longValueExact();
+                primaryMarketMinVolumeDisplayString = traditionalFormat.noCode().format(getMinVolume().getMonetary()).toString();
+                primaryMarketVolumeDisplayString = traditionalFormat.noCode().format(getVolume().getMonetary()).toString();
+            } else {
+                // amount and volume is inverted for json
+                priceDisplayString = cryptoFormat.noCode().format(price.getMonetary()).toString();
+                primaryMarketMinAmountDisplayString = cryptoFormat.noCode().format(getMinVolume().getMonetary()).toString();
+                primaryMarketAmountDisplayString = cryptoFormat.noCode().format(getVolume().getMonetary()).toString();
+                primaryMarketMinVolumeDisplayString = HavenoUtils.formatXmr(getMinAmount()).toString();
+                primaryMarketVolumeDisplayString = HavenoUtils.formatXmr(getAmount()).toString();
             }
+            primaryMarketPrice = price.getValue();
+            primaryMarketMinAmount = getMinVolume().getValue();
+            primaryMarketAmount = getVolume().getValue();
+            primaryMarketMinVolume = getMinAmount().longValueExact();
+            primaryMarketVolume = getAmount().longValueExact();
 
         } catch (Throwable t) {
             log.error("Error at setDisplayStrings: " + t.getMessage());

@@ -52,7 +52,7 @@ printbreak
 
 registerdisputeagents
 
-# Demonstrate how to create an XMR altcoin payment account.
+# Demonstrate how to create an XMR payment account.
 
 printdate "Create Alice's XMR Trading Payment Account."
 # Note: Having problems passing a double quoted --account-name param to function.

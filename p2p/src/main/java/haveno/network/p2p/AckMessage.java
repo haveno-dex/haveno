@@ -23,15 +23,14 @@ import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 // TODO ExpirablePayload has no effect here as it is either a direct msg or packed into MailboxStoragePayload
 // We could extend the TTL by setting the TTL in MailboxStoragePayload from the type of msg which gets into the

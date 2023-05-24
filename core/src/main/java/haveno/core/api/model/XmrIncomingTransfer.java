@@ -1,13 +1,14 @@
 package haveno.core.api.model;
 
 import haveno.common.Payload;
-import java.math.BigInteger;
 import lombok.Getter;
 import monero.wallet.model.MoneroIncomingTransfer;
 
+import java.math.BigInteger;
+
 @Getter
 public class XmrIncomingTransfer implements Payload {
-    
+
     private final BigInteger amount;
     private final Integer accountIndex;
     private final Integer subaddressIndex;
@@ -63,7 +64,7 @@ public class XmrIncomingTransfer implements Payload {
         private Integer subaddressIndex;
         private String address;
         private Long numSuggestedConfirmations;
-        
+
         public XmrIncomingTransferBuilder withAmount(BigInteger amount) {
             this.amount = amount;
             return this;

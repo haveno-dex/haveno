@@ -20,7 +20,6 @@ package haveno.core.proto;
 import haveno.core.offer.AvailabilityResult;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.trade.Trade;

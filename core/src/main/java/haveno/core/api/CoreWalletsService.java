@@ -17,22 +17,9 @@
 
 package haveno.core.api;
 
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.crypto.KeyCrypterScrypt;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.FutureCallback;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.core.api.model.AddressBalanceInfo;
@@ -44,34 +31,35 @@ import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.Balances;
-import haveno.core.xmr.exceptions.AddressEntryException;
-import haveno.core.xmr.exceptions.InsufficientFundsException;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionConfidence;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bouncycastle.crypto.params.KeyParameter;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static haveno.core.util.ParsingUtils.parseToCoin;
 import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-
-
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
 
 @Singleton
 @Slf4j
@@ -234,61 +222,6 @@ class CoreWalletsService {
                         getNumConfirmationsForMostRecentTransaction(address),
                         btcWalletService.isAddressUnused(getAddressEntry(address).getAddress())))
                 .collect(Collectors.toList());
-    }
-
-    void sendBtc(String address,
-                 String amount,
-                 String txFeeRate,
-                 String memo,
-                 FutureCallback<Transaction> callback) {
-        verifyWalletsAreAvailable();
-        verifyEncryptedWalletIsUnlocked();
-
-        try {
-            Set<String> fromAddresses = btcWalletService.getAddressEntriesForAvailableBalanceStream()
-                    .map(AddressEntry::getAddressString)
-                    .collect(Collectors.toSet());
-            Coin receiverAmount = getValidTransferAmount(amount, btcFormatter);
-            Coin txFeePerVbyte = getTxFeeRateFromParamOrPreferenceOrFeeService(txFeeRate);
-
-            // TODO Support feeExcluded (or included), default is fee included.
-            //  See WithdrawalView # onWithdraw (and refactor).
-            Transaction feeEstimationTransaction =
-                    btcWalletService.getFeeEstimationTransactionForMultipleAddresses(fromAddresses,
-                            receiverAmount,
-                            txFeePerVbyte);
-            if (feeEstimationTransaction == null)
-                throw new IllegalStateException("could not estimate the transaction fee");
-
-            Coin dust = btcWalletService.getDust(feeEstimationTransaction);
-            Coin fee = feeEstimationTransaction.getFee().add(dust);
-            if (dust.isPositive()) {
-                fee = feeEstimationTransaction.getFee().add(dust);
-                log.info("Dust txo ({} sats) was detected, the dust amount has been added to the fee (was {}, now {})",
-                        dust.value,
-                        feeEstimationTransaction.getFee(),
-                        fee.value);
-            }
-            log.info("Sending {} BTC to {} with tx fee of {} sats (fee rate {} sats/byte).",
-                    amount,
-                    address,
-                    fee.value,
-                    txFeePerVbyte.value);
-            btcWalletService.sendFundsForMultipleAddresses(fromAddresses,
-                    address,
-                    receiverAmount,
-                    fee,
-                    null,
-                    tempAesKey,
-                    memo.isEmpty() ? null : memo,
-                    callback);
-        } catch (AddressEntryException ex) {
-            log.error("", ex);
-            throw new IllegalStateException("cannot send btc from any addresses in wallet", ex);
-        } catch (InsufficientFundsException | InsufficientMoneyException ex) {
-            log.error("", ex);
-            throw new IllegalStateException("cannot send btc due to insufficient funds", ex);
-        }
     }
 
     Transaction getTransaction(String txId) {

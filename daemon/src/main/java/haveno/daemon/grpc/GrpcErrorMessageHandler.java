@@ -17,16 +17,13 @@
 
 package haveno.daemon.grpc;
 
+import haveno.common.handlers.ErrorMessageHandler;
 import haveno.proto.grpc.AvailabilityResultWithDescription;
 import haveno.proto.grpc.TakeOfferReply;
-import haveno.common.handlers.ErrorMessageHandler;
-import protobuf.AvailabilityResult;
-
 import io.grpc.stub.StreamObserver;
-
-import org.slf4j.Logger;
-
 import lombok.Getter;
+import org.slf4j.Logger;
+import protobuf.AvailabilityResult;
 
 import static haveno.proto.grpc.TradesGrpc.getTakeOfferMethod;
 import static java.lang.String.format;

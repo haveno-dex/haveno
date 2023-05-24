@@ -22,8 +22,8 @@ import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import javax.inject.Inject;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

@@ -19,7 +19,6 @@ package haveno.core.trade.protocol;
 
 
 import haveno.common.handlers.ErrorMessageHandler;
-import haveno.core.offer.Offer;
 import haveno.core.trade.BuyerAsTakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.handlers.TradeResultHandler;
@@ -30,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol {
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////

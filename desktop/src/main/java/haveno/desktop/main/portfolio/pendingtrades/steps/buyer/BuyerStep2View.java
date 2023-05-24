@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
-
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -32,12 +27,12 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.AssetAccountPayload;
-import haveno.core.payment.payload.CashByMailAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
 import haveno.core.payment.payload.HalCashAccountPayload;
 import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SwiftAccountPayload;
@@ -56,11 +51,11 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AssetsForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
-import haveno.desktop.components.paymentmethods.CashByMailForm;
+import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
-import haveno.desktop.components.paymentmethods.ClearXchangeForm;
+import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
@@ -101,24 +96,24 @@ import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.overlays.windows.SetXmrTxKeyWindow;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
-import haveno.desktop.util.Transitions;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 public class BuyerStep2View extends TradeStepView {
 
@@ -151,14 +146,14 @@ public class BuyerStep2View extends TradeStepView {
 
                 if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
                     showPopup();
-                } else if (state.ordinal() <= Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG.ordinal()) {
-                    if (!trade.hasFailed()) {
-                        switch (state) {
+                } else if (state.ordinal() <= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
+                    switch (state) {
                         case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.preparingConfirmation"));
                             break;
                         case BUYER_SENT_PAYMENT_SENT_MSG:
+                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
                             model.setMessageStateProperty(MessageState.SENT);
@@ -167,15 +162,15 @@ public class BuyerStep2View extends TradeStepView {
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                             }, 10);
                             break;
-                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageArrived"));
-                            model.setMessageStateProperty(MessageState.ARRIVED);
-                            break;
                         case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
                             model.setMessageStateProperty(MessageState.STORED_IN_MAILBOX);
+                            break;
+                        case SELLER_RECEIVED_PAYMENT_SENT_MSG:
+                            busyAnimation.stop();
+                            statusLabel.setText(Res.get("shared.messageArrived"));
+                            model.setMessageStateProperty(MessageState.ARRIVED);
                             break;
                         case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                             // We get a popup and the trade closed, so we dont need to show anything here
@@ -189,10 +184,6 @@ public class BuyerStep2View extends TradeStepView {
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                             break;
                         }
-                    } else {
-                        log.warn("Trade contains error message {}", trade.getErrorMessage());
-                        statusLabel.setText("");
-                    }
                 }
             });
         }
@@ -230,7 +221,7 @@ public class BuyerStep2View extends TradeStepView {
         addTradeInfoBlock();
 
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
-        String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "";
+        String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "<missing payment account payload>";
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 4,
                 Res.get("portfolio.pending.step2_buyer.startPaymentUsing", Res.get(paymentMethodId)),
                 Layout.COMPACT_GROUP_DISTANCE);
@@ -283,8 +274,8 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.WECHAT_PAY_ID:
                 gridRow = WeChatPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
-            case PaymentMethod.CLEAR_X_CHANGE_ID:
-                gridRow = ClearXchangeForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+            case PaymentMethod.ZELLE_ID:
+                gridRow = ZelleForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.CHASE_QUICK_PAY_ID:
                 gridRow = ChaseQuickPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
@@ -301,8 +292,8 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.CASH_DEPOSIT_ID:
                 gridRow = CashDepositForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
-            case PaymentMethod.CASH_BY_MAIL_ID:
-                gridRow = CashByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+            case PaymentMethod.PAY_BY_MAIL_ID:
+                gridRow = PayByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.MONEY_GRAM_ID:
                 gridRow = MoneyGramForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
@@ -429,9 +420,15 @@ public class BuyerStep2View extends TradeStepView {
         HBox hBox = tuple3.fourth;
         GridPane.setColumnSpan(hBox, 2);
         confirmButton = tuple3.first;
+        confirmButton.setDisable(!confirmPaymentSentPermitted());
         confirmButton.setOnAction(e -> onPaymentSent());
         busyAnimation = tuple3.second;
         statusLabel = tuple3.third;
+    }
+
+    private boolean confirmPaymentSentPermitted() {
+        if (!trade.confirmPermitted()) return false;
+        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -461,8 +458,7 @@ public class BuyerStep2View extends TradeStepView {
     @Override
     protected void updateDisputeState(Trade.DisputeState disputeState) {
         super.updateDisputeState(disputeState);
-
-        confirmButton.setDisable(!trade.confirmPermitted());
+        confirmButton.setDisable(!confirmPaymentSentPermitted());
     }
 
 
@@ -544,42 +540,9 @@ public class BuyerStep2View extends TradeStepView {
             } else {
                 showConfirmPaymentSentPopup();
             }
-        } else if (sellersPaymentAccountPayload instanceof AssetAccountPayload && isXmrTrade()) {
-            SetXmrTxKeyWindow setXmrTxKeyWindow = new SetXmrTxKeyWindow();
-            setXmrTxKeyWindow
-                    .actionButtonText(Res.get("portfolio.pending.step2_buyer.confirmStart.headline"))
-                    .onAction(() -> {
-                        String txKey = setXmrTxKeyWindow.getTxKey();
-                        String txHash = setXmrTxKeyWindow.getTxHash();
-                        if (txKey == null || txHash == null || txKey.isEmpty() || txHash.isEmpty()) {
-                            UserThread.runAfter(this::showProofWarningPopup, Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
-                            return;
-                        }
-
-                        trade.setCounterCurrencyExtraData(txKey);
-                        trade.setCounterCurrencyTxId(txHash);
-
-                        model.dataModel.getTradeManager().requestPersistence();
-                        showConfirmPaymentSentPopup();
-                    })
-                    .closeButtonText(Res.get("shared.cancel"))
-                    .onClose(setXmrTxKeyWindow::hide)
-                    .show();
         } else {
             showConfirmPaymentSentPopup();
         }
-    }
-
-    private void showProofWarningPopup() {
-        Popup popup = new Popup();
-        popup.headLine(Res.get("portfolio.pending.step2_buyer.confirmStart.proof.warningTitle"))
-                .confirmation(Res.get("portfolio.pending.step2_buyer.confirmStart.proof.noneProvided"))
-                .width(700)
-                .actionButtonText(Res.get("portfolio.pending.step2_buyer.confirmStart.warningButton"))
-                .onAction(this::showConfirmPaymentSentPopup)
-                .closeButtonText(Res.get("shared.cancel"))
-                .onClose(popup::hide)
-                .show();
     }
 
     private void showConfirmPaymentSentPopup() {
@@ -603,11 +566,14 @@ public class BuyerStep2View extends TradeStepView {
     private void confirmPaymentSent() {
         busyAnimation.play();
         statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        confirmButton.setDisable(true);
 
         model.dataModel.onPaymentSent(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            confirmButton.setDisable(!confirmPaymentSentPermitted());
+            UserThread.execute(() -> statusLabel.setText("Error confirming payment sent."));
         });
     }
 
@@ -620,7 +586,7 @@ public class BuyerStep2View extends TradeStepView {
             String id = trade.getShortId();
             String amount = VolumeUtil.formatVolumeWithCode(trade.getVolume());
             if (paymentAccountPayload instanceof AssetAccountPayload) {
-                message += Res.get("portfolio.pending.step2_buyer.altcoin",
+                message += Res.get("portfolio.pending.step2_buyer.crypto",
                         getCurrencyName(trade),
                         amount);
             } else if (paymentAccountPayload instanceof CashDepositAccountPayload) {
@@ -651,7 +617,7 @@ public class BuyerStep2View extends TradeStepView {
                         Res.get("portfolio.pending.step2_buyer.fasterPaymentsHolderNameInfo") + "\n\n" +
                         refTextWarn + "\n\n" +
                         fees;
-            } else if (paymentAccountPayload instanceof CashByMailAccountPayload ||
+            } else if (paymentAccountPayload instanceof PayByMailAccountPayload ||
                     paymentAccountPayload instanceof HalCashAccountPayload) {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount);
             } else if (paymentAccountPayload instanceof SwiftAccountPayload) {

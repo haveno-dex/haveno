@@ -1,18 +1,17 @@
 package haveno.core.api;
 
-import haveno.proto.grpc.NotificationMessage;
-import haveno.proto.grpc.NotificationMessage.NotificationType;
 import haveno.core.api.model.TradeInfo;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
-import javax.inject.Singleton;
+import haveno.proto.grpc.NotificationMessage;
+import haveno.proto.grpc.NotificationMessage.NotificationType;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.inject.Singleton;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j
@@ -71,7 +70,7 @@ public class CoreNotificationService {
                 .setType(NotificationType.ERROR)
                 .setTimestamp(System.currentTimeMillis())
                 .setTitle(title)
-                .setMessage(errorMessage)
+                .setMessage(errorMessage == null ? "null" : errorMessage)
                 .build());
     }
 }

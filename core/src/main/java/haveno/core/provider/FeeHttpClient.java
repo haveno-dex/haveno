@@ -17,11 +17,12 @@
 
 package haveno.core.provider;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.http.HttpClientImpl;
+
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Singleton
 public class FeeHttpClient extends HttpClientImpl {

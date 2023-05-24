@@ -21,12 +21,11 @@ import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
-
-import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_HELP;
 import static java.lang.String.format;

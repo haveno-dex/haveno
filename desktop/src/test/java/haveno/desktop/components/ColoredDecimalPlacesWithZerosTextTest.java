@@ -19,16 +19,13 @@ package haveno.desktop.components;
 
 import javafx.scene.control.Label;
 import javafx.scene.text.Text;
+import org.junit.jupiter.api.Disabled;
 
-import org.junit.Ignore;
-
-import static org.junit.Assert.assertEquals;
-
-import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ColoredDecimalPlacesWithZerosTextTest {
 
-    @Ignore
+    @Disabled
     public void testOnlyZeroDecimals() {
         ColoredDecimalPlacesWithZerosText text = new ColoredDecimalPlacesWithZerosText("1.0000", 3);
         Label beforeZeros = (Label) text.getChildren().get(0);
@@ -37,7 +34,7 @@ public class ColoredDecimalPlacesWithZerosTextTest {
         assertEquals("000", zeroDecimals.getText());
     }
 
-    @Ignore
+    @Disabled
     public void testOneZeroDecimal() {
         ColoredDecimalPlacesWithZerosText text = new ColoredDecimalPlacesWithZerosText("1.2570", 3);
         Text beforeZeros = (Text) text.getChildren().get(0);
@@ -46,7 +43,7 @@ public class ColoredDecimalPlacesWithZerosTextTest {
         assertEquals("0", zeroDecimals.getText());
     }
 
-    @Ignore
+    @Disabled
     public void testMultipleZeroDecimal() {
         ColoredDecimalPlacesWithZerosText text = new ColoredDecimalPlacesWithZerosText("1.2000", 3);
         Text beforeZeros = (Text) text.getChildren().get(0);
@@ -55,7 +52,7 @@ public class ColoredDecimalPlacesWithZerosTextTest {
         assertEquals("000", zeroDecimals.getText());
     }
 
-    @Ignore
+    @Disabled
     public void testZeroDecimalsWithRange() {
         ColoredDecimalPlacesWithZerosText text = new ColoredDecimalPlacesWithZerosText("0.1000 - 0.1250", 3);
         assertEquals(5, text.getChildren().size());
@@ -71,7 +68,7 @@ public class ColoredDecimalPlacesWithZerosTextTest {
         assertEquals("0", zeroDecimals2.getText());
     }
 
-    @Ignore
+    @Disabled
     public void testNoColorizing() {
         ColoredDecimalPlacesWithZerosText text = new ColoredDecimalPlacesWithZerosText("1.2570", 0);
         Text beforeZeros = (Text) text.getChildren().get(0);

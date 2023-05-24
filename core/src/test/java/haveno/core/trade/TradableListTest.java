@@ -17,17 +17,15 @@
 
 package haveno.core.trade;
 
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static protobuf.PersistableEnvelope.MessageCase.TRADABLE_LIST;
-
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
-import haveno.core.trade.TradableList;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static protobuf.PersistableEnvelope.MessageCase.TRADABLE_LIST;
 
 public class TradableListTest {
 

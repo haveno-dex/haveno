@@ -18,9 +18,9 @@
 package haveno.cli.opts;
 
 
-import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
-
 import joptsimple.OptionSpec;
+
+import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
 
 /**
  * Superclass for option parsers requiring an offer-id.  Avoids a small amount of

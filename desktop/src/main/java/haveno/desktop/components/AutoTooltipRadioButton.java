@@ -17,11 +17,10 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
-
 import com.jfoenix.controls.JFXRadioButton;
-
 import javafx.scene.control.Skin;
+
+import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
 
 public class AutoTooltipRadioButton extends JFXRadioButton {
 

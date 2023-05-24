@@ -27,23 +27,19 @@ import haveno.network.p2p.P2PServiceListener;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
-import java.util.function.Consumer;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.function.Consumer;
 
 @Singleton
 @Slf4j
@@ -85,7 +81,7 @@ public class P2PNetworkSetup {
         this.preferences = preferences;
     }
 
-    BooleanProperty init(Runnable initWalletServiceHandler, @Nullable Consumer<Boolean> displayTorNetworkSettingsHandler) {
+    BooleanProperty init(Runnable onReadyHandler, @Nullable Consumer<Boolean> displayTorNetworkSettingsHandler) {
         StringProperty bootstrapState = new SimpleStringProperty();
         StringProperty bootstrapWarning = new SimpleStringProperty();
         BooleanProperty hiddenServicePublished = new SimpleBooleanProperty();
@@ -132,10 +128,6 @@ public class P2PNetworkSetup {
                             closeConnectionReason, connection);
                 }
             }
-
-            @Override
-            public void onError(Throwable throwable) {
-            }
         });
 
         final BooleanProperty p2pNetworkInitialized = new SimpleBooleanProperty();
@@ -146,12 +138,12 @@ public class P2PNetworkSetup {
                 bootstrapState.set(Res.get("mainView.bootstrapState.torNodeCreated"));
                 p2PNetworkIconId.set("image-connection-tor");
 
-                if (preferences.getUseTorForBitcoinJ())
-                    initWalletServiceHandler.run();
-
                 // We want to get early connected to the price relay so we call it already now
                 priceFeedService.setCurrencyCodeOnInit();
                 priceFeedService.requestPrices();
+
+                // invoke handler when network ready
+                onReadyHandler.run();
             }
 
             @Override

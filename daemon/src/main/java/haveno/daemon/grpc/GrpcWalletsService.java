@@ -17,66 +17,61 @@
 
 package haveno.daemon.grpc;
 
+import haveno.common.UserThread;
+import haveno.core.api.CoreApi;
+import haveno.core.api.model.AddressBalanceInfo;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.proto.grpc.CreateXmrTxReply;
+import haveno.proto.grpc.CreateXmrTxRequest;
 import haveno.proto.grpc.GetAddressBalanceReply;
 import haveno.proto.grpc.GetAddressBalanceRequest;
 import haveno.proto.grpc.GetBalancesReply;
 import haveno.proto.grpc.GetBalancesRequest;
 import haveno.proto.grpc.GetFundingAddressesReply;
 import haveno.proto.grpc.GetFundingAddressesRequest;
+import haveno.proto.grpc.GetXmrNewSubaddressReply;
 import haveno.proto.grpc.GetXmrNewSubaddressRequest;
 import haveno.proto.grpc.GetXmrPrimaryAddressReply;
 import haveno.proto.grpc.GetXmrPrimaryAddressRequest;
-import haveno.proto.grpc.GetXmrNewSubaddressReply;
-import haveno.proto.grpc.GetXmrTxsRequest;
-import haveno.proto.grpc.GetXmrTxsReply;
-import haveno.proto.grpc.CreateXmrTxRequest;
-import haveno.proto.grpc.CreateXmrTxReply;
-import haveno.proto.grpc.RelayXmrTxRequest;
-import haveno.proto.grpc.RelayXmrTxReply;
 import haveno.proto.grpc.GetXmrSeedReply;
 import haveno.proto.grpc.GetXmrSeedRequest;
+import haveno.proto.grpc.GetXmrTxsReply;
+import haveno.proto.grpc.GetXmrTxsRequest;
 import haveno.proto.grpc.LockWalletReply;
 import haveno.proto.grpc.LockWalletRequest;
+import haveno.proto.grpc.RelayXmrTxReply;
+import haveno.proto.grpc.RelayXmrTxRequest;
 import haveno.proto.grpc.RemoveWalletPasswordReply;
 import haveno.proto.grpc.RemoveWalletPasswordRequest;
-import haveno.proto.grpc.SendBtcRequest;
 import haveno.proto.grpc.SetWalletPasswordReply;
 import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletReply;
 import haveno.proto.grpc.UnlockWalletRequest;
-
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-
-import org.bitcoinj.core.Transaction;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
 
 import javax.inject.Inject;
-
-import com.google.common.util.concurrent.FutureCallback;
-import haveno.common.UserThread;
-import haveno.core.api.CoreApi;
-import haveno.core.api.model.AddressBalanceInfo;
-import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import java.math.BigInteger;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import static haveno.proto.grpc.WalletsGrpc.*;
 import static haveno.core.api.model.XmrTx.toXmrTx;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static java.util.concurrent.TimeUnit.MINUTES;
+import static haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
+import static haveno.proto.grpc.WalletsGrpc.getGetAddressBalanceMethod;
+import static haveno.proto.grpc.WalletsGrpc.getGetBalancesMethod;
+import static haveno.proto.grpc.WalletsGrpc.getGetFundingAddressesMethod;
+import static haveno.proto.grpc.WalletsGrpc.getLockWalletMethod;
+import static haveno.proto.grpc.WalletsGrpc.getRemoveWalletPasswordMethod;
+import static haveno.proto.grpc.WalletsGrpc.getSetWalletPasswordMethod;
+import static haveno.proto.grpc.WalletsGrpc.getUnlockWalletMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 class GrpcWalletsService extends WalletsImplBase {
@@ -119,7 +114,7 @@ class GrpcWalletsService extends WalletsImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
-    
+
     @Override
     public void getXmrPrimaryAddress(GetXmrPrimaryAddressRequest req,
                                      StreamObserver<GetXmrPrimaryAddressReply> responseObserver) {

@@ -17,21 +17,18 @@
 
 package haveno.network;
 
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.net.discovery.SeedPeers;
 import org.bitcoinj.params.MainNetParams;
 
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-
 import java.net.InetSocketAddress;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class implements various types of discovery over Socks5,

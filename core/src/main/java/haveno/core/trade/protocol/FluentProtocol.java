@@ -21,16 +21,14 @@ import haveno.common.taskrunner.Task;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.network.p2p.NodeAddress;
-import java.text.MessageFormat;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Consumer;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.text.MessageFormat;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.core.util.Validator.isTradeIdValid;
@@ -99,7 +97,7 @@ public class FluentProtocol {
             }
             return this;
         }
-        
+
         if (setup.getTimeoutSec() > 0) {
             tradeProtocol.startTimeout(setup.getTimeoutSec());
         }
@@ -326,7 +324,7 @@ public class FluentProtocol {
                 log.info(info);
                 return Result.VALID.info(info);
             } else {
-                String info = MessageFormat.format("We received a {0} but we are are not in the expected state. " +
+                String info = MessageFormat.format("We received a {0} but we are not in the expected state. " +
                                 "Expected states={1}, Trade state= {2}, tradeId={3}",
                         trigger,
                         expectedStates,

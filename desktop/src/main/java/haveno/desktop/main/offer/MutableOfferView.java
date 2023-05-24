@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.offer;
 
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
-
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
@@ -52,7 +49,7 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
-import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
@@ -61,6 +58,16 @@ import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -77,42 +84,37 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
-
+import javafx.util.StringConverter;
+import lombok.Setter;
+import net.glxn.qrgen.QRCode;
+import net.glxn.qrgen.image.ImageType;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import javafx.util.StringConverter;
-
-import java.net.URI;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import lombok.Setter;
-
-import org.jetbrains.annotations.NotNull;
-
 import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addAddressTextField;
+import static haveno.desktop.util.FormBuilder.addBalanceTextField;
+import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelComboBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.getEditableValueBox;
+import static haveno.desktop.util.FormBuilder.getEditableValueBoxWithInfo;
+import static haveno.desktop.util.FormBuilder.getIconButton;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
+import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
+import static haveno.desktop.util.FormBuilder.getTradeInputBox;
 import static javafx.beans.binding.Bindings.createStringBinding;
 
 public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> extends ActivatableViewAndModel<AnchorPane, M> implements ClosableView, SelectableView {
@@ -162,7 +164,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     protected int gridRow = 0;
     private final List<Node> editOfferElements = new ArrayList<>();
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
-    private boolean clearXchangeWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
+    private boolean zelleWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
     private InfoInputTextField marketBasedPriceInfoInputTextField, volumeInfoInputTextField,
             buyerSecurityDepositInfoInputTextField, triggerPriceInfoInputTextField;
     private Text xIcon, fakeXIcon;
@@ -293,7 +295,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                     .actionButtonTextWithGoTo("navigation.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
-                        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                     }).show();
         }
 
@@ -301,19 +303,19 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         if (OfferViewUtil.isShownAsBuyOffer(direction, tradeCurrency)) {
             placeOfferButton.setId("buy-button-big");
-            if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
                 placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.buy"));
             } else {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.buy"), tradeCurrency.getCode());
+                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.buy"), tradeCurrency.getCode());
             }
             nextButton.setId("buy-button");
             fundFromSavingsWalletButton.setId("buy-button");
         } else {
             placeOfferButton.setId("sell-button-big");
-            if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
                 placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.sell"));
             } else {
-                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.sell"), tradeCurrency.getCode());
+                placeOfferButtonLabel = Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.sell"), tradeCurrency.getCode());
             }
             nextButton.setId("sell-button");
             fundFromSavingsWalletButton.setId("sell-button");
@@ -448,11 +450,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         fakeXLabel.getStyleClass().add("small");
     }
 
-    private void maybeShowClearXchangeWarning(PaymentAccount paymentAccount) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CLEAR_X_CHANGE_ID) &&
-                !clearXchangeWarningDisplayed) {
-            clearXchangeWarningDisplayed = true;
-            UserThread.runAfter(GUIUtil::showClearXchangeWarning, 500, TimeUnit.MILLISECONDS);
+    private void maybeShowZelleWarning(PaymentAccount paymentAccount) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.ZELLE_ID) &&
+                !zelleWarningDisplayed) {
+            zelleWarningDisplayed = true;
+            UserThread.runAfter(GUIUtil::showZelleWarning, 500, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -477,7 +479,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         PaymentAccount paymentAccount = paymentAccountsComboBox.getSelectionModel().getSelectedItem();
         if (paymentAccount != null) {
-            maybeShowClearXchangeWarning(paymentAccount);
+            maybeShowZelleWarning(paymentAccount);
             maybeShowFasterPaymentsWarning(paymentAccount);
             maybeShowAccountWarning(paymentAccount, model.getDataModel().isBuyOffer());
 
@@ -693,12 +695,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             marketBasedPriceTextField.clear();
             volumeTextField.clear();
             triggerPriceInputTextField.clear();
-            if (!CurrencyUtil.isFiatCurrency(newValue)) {
+            if (!CurrencyUtil.isTraditionalCurrency(newValue)) {
                 if (model.isShownAsBuyOffer()) {
-                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.buy"),
+                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.buy"),
                             model.getTradeCurrency().getCode()));
                 } else {
-                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonAltcoin", Res.get("shared.sell"),
+                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.sell"),
                             model.getTradeCurrency().getCode()));
                 }
             }
@@ -1249,9 +1251,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         int marketPriceAvailable = model.marketPriceAvailableProperty.get();
         fixedPriceSelected = fixedPriceSelected || (marketPriceAvailable == 0);
 
-        if (marketPriceAvailable == 1) {
-            model.getDataModel().setUseMarketBasedPrice(!fixedPriceSelected);
-        }
+        model.getDataModel().setUseMarketBasedPrice(marketPriceAvailable == 1 && !fixedPriceSelected);
 
         percentagePriceBox.setDisable(fixedPriceSelected);
         fixedPriceBox.setDisable(!fixedPriceSelected);
@@ -1282,7 +1282,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addSecondRow() {
-        // price as fiat
+        // price as traditional currency
         Tuple3<HBox, InputTextField, Label> priceValueCurrencyBoxTuple = getEditableValueBox(
                 Res.get("createOffer.price.prompt"));
         priceValueCurrencyBox = priceValueCurrencyBoxTuple.first;

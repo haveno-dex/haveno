@@ -26,9 +26,8 @@ import javafx.scene.effect.Effect;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 
-import java.math.BigInteger;
-
 import javax.annotation.Nullable;
+import java.math.BigInteger;
 
 public class BalanceTextField extends AnchorPane {
 

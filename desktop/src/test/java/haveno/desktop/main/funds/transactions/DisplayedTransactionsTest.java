@@ -19,29 +19,20 @@ package haveno.desktop.main.funds.transactions;
 
 import com.google.common.collect.Lists;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.main.funds.transactions.DisplayedTransactions;
-import haveno.desktop.main.funds.transactions.TradableRepository;
-import haveno.desktop.main.funds.transactions.TransactionAwareTradable;
-import haveno.desktop.main.funds.transactions.TransactionAwareTradableFactory;
-import haveno.desktop.main.funds.transactions.TransactionListItemFactory;
 import javafx.collections.FXCollections;
+import monero.wallet.model.MoneroTxWallet;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-
-
-import monero.wallet.model.MoneroTxWallet;
 
 public class DisplayedTransactionsTest {
     @Test

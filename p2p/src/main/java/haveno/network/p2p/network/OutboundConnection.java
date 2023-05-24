@@ -19,9 +19,9 @@ package haveno.network.p2p.network;
 
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.NodeAddress;
-import java.net.Socket;
-
 import org.jetbrains.annotations.Nullable;
+
+import java.net.Socket;
 
 public class OutboundConnection extends Connection {
     public OutboundConnection(Socket socket,
@@ -29,7 +29,7 @@ public class OutboundConnection extends Connection {
                               ConnectionListener connectionListener,
                               NodeAddress peersNodeAddress,
                               NetworkProtoResolver networkProtoResolver,
-                              @Nullable NetworkFilter networkFilter) {
-        super(socket, messageListener, connectionListener, peersNodeAddress, networkProtoResolver, networkFilter);
+                              @Nullable BanFilter banFilter) {
+        super(socket, messageListener, connectionListener, peersNodeAddress, networkProtoResolver, banFilter);
     }
 }

@@ -18,14 +18,14 @@
   -->
 
 <?import haveno.desktop.components.AutoTooltipButton?>
+<?import haveno.desktop.components.list.FilterBox?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.geometry.Insets?>
-<?import haveno.desktop.components.list.FilterBox?>
 <VBox fx:id="root" fx:controller="haveno.desktop.main.portfolio.closedtrades.ClosedTradesView"
       spacing="10" alignment="CENTER_RIGHT" xmlns:fx="http://javafx.com/fxml">
     <padding>

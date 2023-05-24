@@ -24,7 +24,6 @@ import haveno.apitest.method.trade.TakeBuyXMROfferTest;
 import haveno.apitest.method.trade.TakeSellBTCOfferTest;
 import haveno.apitest.method.trade.TakeSellXMROfferTest;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;

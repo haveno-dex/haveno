@@ -17,11 +17,6 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import lombok.EqualsAndHashCode;
-import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.Charsets;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
@@ -34,6 +29,10 @@ import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
+import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)

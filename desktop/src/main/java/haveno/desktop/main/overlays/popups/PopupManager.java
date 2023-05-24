@@ -18,12 +18,12 @@
 package haveno.desktop.main.overlays.popups;
 
 import haveno.common.UserThread;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PopupManager {
     private static final Logger log = LoggerFactory.getLogger(PopupManager.class);

@@ -1,11 +1,11 @@
 package haveno.cli.table;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.cli.AbstractCliTest;
 import haveno.cli.table.builder.TableBuilder;
-import java.util.List;
-
+import haveno.proto.grpc.OfferInfo;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 import static haveno.cli.table.builder.TableType.OFFER_TBL;
 import static protobuf.OfferDirection.BUY;

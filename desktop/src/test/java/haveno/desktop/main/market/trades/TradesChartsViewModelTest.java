@@ -17,8 +17,9 @@
 
 package haveno.desktop.main.market.trades;
 
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.offer.OfferPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
@@ -26,35 +27,27 @@ import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
-import haveno.desktop.main.market.trades.ChartCalculations;
-import haveno.desktop.main.market.trades.TradesChartsViewModel;
 import haveno.desktop.main.market.trades.charts.CandleData;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.Fiat;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
-
 import javafx.util.Pair;
-
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import org.bitcoinj.core.Coin;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class TradesChartsViewModelTest {
@@ -101,7 +94,7 @@ public class TradesChartsViewModelTest {
             null,
             null);
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         tradeStatisticsManager = mock(TradeStatisticsManager.class);
         model = new TradesChartsViewModel(tradeStatisticsManager, mock(Preferences.class), mock(PriceFeedService.class),
@@ -117,16 +110,16 @@ public class TradesChartsViewModelTest {
     @Test
     public void testGetCandleData() {
         String currencyCode = "EUR";
-        model.selectedTradeCurrencyProperty.setValue(new FiatCurrency(currencyCode));
+        model.selectedTradeCurrencyProperty.setValue(new TraditionalCurrency(currencyCode));
 
-        long low = Fiat.parseFiat("EUR", "500").value;
-        long open = Fiat.parseFiat("EUR", "520").value;
-        long close = Fiat.parseFiat("EUR", "580").value;
-        long high = Fiat.parseFiat("EUR", "600").value;
-        long average = Fiat.parseFiat("EUR", "550").value;
-        long median = Fiat.parseFiat("EUR", "550").value;
+        long low = TraditionalMoney.parseTraditionalMoney("EUR", "500").value;
+        long open = TraditionalMoney.parseTraditionalMoney("EUR", "520").value;
+        long close = TraditionalMoney.parseTraditionalMoney("EUR", "580").value;
+        long high = TraditionalMoney.parseTraditionalMoney("EUR", "600").value;
+        long average = TraditionalMoney.parseTraditionalMoney("EUR", "550").value;
+        long median = TraditionalMoney.parseTraditionalMoney("EUR", "550").value;
         long amount = Coin.parseCoin("4").value;
-        long volume = Fiat.parseFiat("EUR", "2200").value;
+        long volume = TraditionalMoney.parseTraditionalMoney("EUR", "2200").value;
         boolean isBullish = true;
 
         Set<TradeStatistics3> set = new HashSet<>();
@@ -184,7 +177,7 @@ public class TradesChartsViewModelTest {
     }
 
     // TODO JMOCKIT
-    @Ignore
+    @Disabled
     @Test
     public void testItemLists() throws ParseException {
         // Helper class to add historic trades
@@ -207,7 +200,7 @@ public class TradesChartsViewModelTest {
         }
 
         // Trade EUR
-        model.selectedTradeCurrencyProperty.setValue(new FiatCurrency("EUR"));
+        model.selectedTradeCurrencyProperty.setValue(new TraditionalCurrency("EUR"));
 
         ArrayList<Trade> trades = new ArrayList<>();
 

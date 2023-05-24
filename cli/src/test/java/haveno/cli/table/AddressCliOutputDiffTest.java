@@ -1,8 +1,9 @@
 package haveno.cli.table;
 
-import haveno.proto.grpc.AddressBalanceInfo;
 import haveno.cli.AbstractCliTest;
 import haveno.cli.table.builder.TableBuilder;
+import haveno.proto.grpc.AddressBalanceInfo;
+
 import java.util.List;
 
 import static haveno.cli.table.builder.TableType.ADDRESS_BALANCE_TBL;

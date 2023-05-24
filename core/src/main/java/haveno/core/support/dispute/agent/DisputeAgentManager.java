@@ -31,17 +31,16 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableMap;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableMap;
-
+import javax.annotation.Nullable;
+import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.SignatureException;
-
-import java.math.BigInteger;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -50,10 +49,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static org.bitcoinj.core.Utils.HEX;
 

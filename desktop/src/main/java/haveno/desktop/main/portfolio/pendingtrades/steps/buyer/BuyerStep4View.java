@@ -17,13 +17,9 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-
-import com.jfoenix.controls.JFXBadge;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.desktop.components.AutoTooltipButton;
@@ -37,16 +33,15 @@ import haveno.desktop.main.portfolio.closedtrades.ClosedTradesView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-
 import java.util.concurrent.TimeUnit;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 
 public class BuyerStep4View extends TradeStepView {
 
@@ -89,19 +84,15 @@ public class BuyerStep4View extends TradeStepView {
         } else {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle"));
         }
-        JFXBadge autoConfBadge = new JFXBadge(new Label(""), Pos.BASELINE_RIGHT);
-        autoConfBadge.setText(Res.get("portfolio.pending.autoConf"));
-        autoConfBadge.getStyleClass().add("auto-conf");
 
-        HBox hBox2 = new HBox(1, completedTradeLabel, autoConfBadge);
+        HBox hBox2 = new HBox(1, completedTradeLabel);
         GridPane.setMargin(hBox2, new Insets(18, -10, -12, -10));
         gridPane.getChildren().add(hBox2);
         GridPane.setRowSpan(hBox2, 5);
-        autoConfBadge.setVisible(AssetTxProofResult.COMPLETED == trade.getAssetTxProofResult());
 
         if (trade.getDisputeState().isNotDisputed()) {
             addCompactTopLabelTextField(gridPane, gridRow, getBtcTradeAmountLabel(), model.getTradeVolume(), Layout.TWICE_FIRST_ROW_DISTANCE);
-            addCompactTopLabelTextField(gridPane, ++gridRow, getFiatTradeAmountLabel(), model.getFiatVolume());
+            addCompactTopLabelTextField(gridPane, ++gridRow, getTraditionalTradeAmountLabel(), model.getFiatVolume());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.refunded"), model.getSecurityDeposit());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.tradeFee"), model.getTradeFee());
         }
@@ -162,7 +153,7 @@ public class BuyerStep4View extends TradeStepView {
         return Res.get("portfolio.pending.step5_buyer.bought");
     }
 
-    protected String getFiatTradeAmountLabel() {
+    protected String getTraditionalTradeAmountLabel() {
         return Res.get("portfolio.pending.step5_buyer.paid");
     }
 }

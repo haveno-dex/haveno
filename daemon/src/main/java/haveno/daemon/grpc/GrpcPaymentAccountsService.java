@@ -17,6 +17,16 @@
 
 package haveno.daemon.grpc;
 
+import haveno.core.api.CoreApi;
+import haveno.core.api.model.PaymentAccountForm;
+import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.proto.CoreProtoResolver;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountReply;
 import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
 import haveno.proto.grpc.CreatePaymentAccountReply;
@@ -31,29 +41,22 @@ import haveno.proto.grpc.GetPaymentMethodsReply;
 import haveno.proto.grpc.GetPaymentMethodsRequest;
 import haveno.proto.grpc.ValidateFormFieldReply;
 import haveno.proto.grpc.ValidateFormFieldRequest;
-import haveno.core.api.CoreApi;
-import haveno.core.api.model.PaymentAccountForm;
-import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.PaymentAccountFactory;
-import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.payment.payload.PaymentMethod;
-import haveno.core.proto.CoreProtoResolver;
-import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
-import static haveno.proto.grpc.PaymentAccountsGrpc.*;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.PaymentAccountsGrpc.PaymentAccountsImplBase;
+import static haveno.proto.grpc.PaymentAccountsGrpc.getCreateCryptoCurrencyPaymentAccountMethod;
+import static haveno.proto.grpc.PaymentAccountsGrpc.getCreatePaymentAccountMethod;
+import static haveno.proto.grpc.PaymentAccountsGrpc.getGetPaymentAccountFormMethod;
+import static haveno.proto.grpc.PaymentAccountsGrpc.getGetPaymentAccountsMethod;
+import static haveno.proto.grpc.PaymentAccountsGrpc.getGetPaymentMethodsMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
@@ -172,7 +175,7 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
-    
+
     @Override
     public void validateFormField(ValidateFormFieldRequest req,
                                                 StreamObserver<ValidateFormFieldReply> responseObserver) {

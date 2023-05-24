@@ -34,10 +34,10 @@
 
 package haveno.apitest.method.trade;
 
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.NationalBankAccountPayload;
 import io.grpc.StatusRuntimeException;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
@@ -46,16 +46,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.core.trade.Trade.Phase.PAYMENT_RECEIVED;
 import static haveno.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static protobuf.Offer.State.OFFER_FEE_RESERVED;
 import static protobuf.OfferDirection.BUY;
 import static protobuf.OpenOffer.State.AVAILABLE;
-
-import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.NationalBankAccountPayload;
 
 /**
  * Test case verifies trade can be made with national bank payment method,

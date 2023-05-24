@@ -17,7 +17,7 @@
 
 package haveno.desktop.main.overlays.windows.downloadupdate;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VerifyTaskTest {
 

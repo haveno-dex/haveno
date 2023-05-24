@@ -1,25 +1,23 @@
 package haveno.daemon.grpc;
 
-import haveno.proto.grpc.GetTradeStatisticsReply;
-import haveno.proto.grpc.GetTradeStatisticsRequest;
 import haveno.core.api.CoreApi;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.proto.grpc.GetTradeStatisticsReply;
+import haveno.proto.grpc.GetTradeStatisticsRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
-
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.GetTradeStatisticsGrpc.GetTradeStatisticsImplBase;
 import static haveno.proto.grpc.GetTradeStatisticsGrpc.getGetTradeStatisticsMethod;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j

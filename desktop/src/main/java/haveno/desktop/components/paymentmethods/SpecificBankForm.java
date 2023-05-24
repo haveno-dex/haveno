@@ -17,10 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldButton;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldButton;
-
 import com.google.common.base.Joiner;
 import haveno.common.util.Tuple3;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -31,13 +27,16 @@ import haveno.core.payment.payload.SpecificBanksAccountPayload;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
+import javafx.beans.binding.Bindings;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 
-import javafx.beans.binding.Bindings;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldButton;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldButton;
 
 public class SpecificBankForm extends BankForm {
     private final SpecificBanksAccountPayload specificBanksAccountPayload;

@@ -10,15 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Bounty explanation
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         if: github.event.label.name == '💰bounty'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: >
             There is a bounty on this issue, the amount is in the title. The reward will be awarded to the first person or group of people who resolves this issue.
-            
-            
+
+
             If you are starting to work on this bounty, please write a comment, so that we can assign the issue to you. We expect contributors to provide a PR in a reasonable time frame or, in case of an extensive work, updates on their progresses. We will unassign the issue if we feel the assignee is not responsive or has abandoned the task.
 
 

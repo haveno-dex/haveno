@@ -29,19 +29,17 @@ import haveno.desktop.common.model.ActivatableViewModel;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 
 public abstract class AgentRegistrationViewModel<R extends DisputeAgent, T extends DisputeAgentManager<R>> extends ActivatableViewModel {
     private final T disputeAgentManager;

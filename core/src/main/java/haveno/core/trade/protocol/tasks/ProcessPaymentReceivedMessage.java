@@ -28,11 +28,10 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class ProcessPaymentReceivedMessage extends TradeTask {
@@ -114,7 +113,8 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // wait to sign and publish payout tx if defer flag set (seller recently saw payout tx arrive at buyer)
             boolean isSigned = message.getSignedPayoutTxHex() != null;
-            if (trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout()) {
+            boolean deferSignAndPublish = trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout();
+            if (deferSignAndPublish) {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
                 if (!trade.isPayoutUnlocked()) trade.syncWallet();
@@ -127,6 +127,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
                 } else {
                     try {
+                        if (trade.getProcessModel().getPaymentSentMessage() == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
                         if (StringUtils.equals(trade.getPayoutTxHex(), trade.getProcessModel().getPaymentSentMessage().getPayoutTxHex())) { // unsigned
                             log.info("{} {} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
@@ -135,6 +136,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                             trade.verifyPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (Exception e) {
+                        trade.syncWallet();
                         if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
                         else throw e;
                     }

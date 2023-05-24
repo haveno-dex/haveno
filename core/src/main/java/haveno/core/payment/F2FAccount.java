@@ -16,6 +16,7 @@
  */
 
 package haveno.core.payment;
+
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -23,14 +24,15 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class F2FAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllTraditionalCurrencies();
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,

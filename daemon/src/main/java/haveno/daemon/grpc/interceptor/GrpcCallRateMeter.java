@@ -1,13 +1,12 @@
 package haveno.daemon.grpc.interceptor;
 
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;

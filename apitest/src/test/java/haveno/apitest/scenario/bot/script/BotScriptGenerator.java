@@ -23,14 +23,12 @@ import joptsimple.BuiltinHelpFormatter;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 
 import static java.lang.System.err;
 import static java.lang.System.exit;
@@ -141,7 +139,7 @@ public class BotScriptGenerator {
             log.error("If the bot-payment-method option is not present, the bot will create"
                     + " a country based F2F account using the country-code.");
             log.error("If both are present, the bot-payment-method will take precedence.  "
-                    + "Currently, only the CLEAR_X_CHANGE_ID bot-payment-method is supported.");
+                    + "Currently, only the ZELLE_ID bot-payment-method is supported.");
             printHelp(parser, err);
             exit(1);
         }
@@ -191,7 +189,7 @@ public class BotScriptGenerator {
         builder.append(" and create an offer to be taken by Alice's CLI:").append("\n");
         builder.append("\tUsage: BotScriptGenerator").append("\n");
         builder.append("\t\t").append("--use-testharness=true").append("\n");
-        builder.append("\t\t").append("--bot-payment-method=CLEAR_X_CHANGE").append("\n");
+        builder.append("\t\t").append("--bot-payment-method=ZELLE").append("\n");
         builder.append("\t\t").append("--actions=make").append("\n");
         builder.append("\n");
         return builder.toString();

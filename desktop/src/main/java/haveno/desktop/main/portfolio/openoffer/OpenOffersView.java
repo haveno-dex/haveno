@@ -17,12 +17,7 @@
 
 package haveno.desktop.main.portfolio.openoffer;
 
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
-
 import com.googlecode.jcsv.writer.CSVEntryConverter;
-
-import javax.inject.Inject;
-
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
@@ -46,10 +41,14 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
 import haveno.desktop.util.GUIUtil;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-
-import javafx.stage.Stage;
-
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -67,22 +66,14 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-
+import javafx.stage.Stage;
 import javafx.util.Callback;
+import org.jetbrains.annotations.NotNull;
 
+import javax.inject.Inject;
 import java.util.Comparator;
 
-import org.jetbrains.annotations.NotNull;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 @FxmlView
 public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersViewModel> {

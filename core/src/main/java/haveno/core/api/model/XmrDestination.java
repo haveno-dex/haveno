@@ -1,9 +1,10 @@
 package haveno.core.api.model;
 
 import haveno.common.Payload;
-import java.math.BigInteger;
 import lombok.Getter;
 import monero.wallet.model.MoneroDestination;
+
+import java.math.BigInteger;
 
 @Getter
 public class XmrDestination implements Payload {

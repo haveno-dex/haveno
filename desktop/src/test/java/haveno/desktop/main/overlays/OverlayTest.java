@@ -17,9 +17,9 @@
 
 package haveno.desktop.main.overlays;
 
-import haveno.desktop.main.overlays.Overlay;
-import haveno.desktop.main.overlays.TabbedOverlay;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class OverlayTest {
 
@@ -30,9 +30,9 @@ public class OverlayTest {
         new D<>();
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void typeUnsafeCreation() {
-        new B();
+        assertThrows(RuntimeException.class, () -> new B());
     }
 
     private static class A extends Overlay<A> {

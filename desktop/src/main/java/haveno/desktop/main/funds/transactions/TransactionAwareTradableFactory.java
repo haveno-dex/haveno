@@ -24,6 +24,7 @@ import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import haveno.core.xmr.wallet.XmrWalletService;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

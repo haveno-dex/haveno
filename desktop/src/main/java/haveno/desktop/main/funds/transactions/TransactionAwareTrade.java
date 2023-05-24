@@ -26,12 +26,11 @@ import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.ObservableList;
-
-import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
+
+import java.util.Optional;
 
 
 @Slf4j

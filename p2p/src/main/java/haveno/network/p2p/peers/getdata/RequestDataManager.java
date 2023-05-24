@@ -32,8 +32,10 @@ import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import haveno.network.p2p.storage.P2PDataStorage;
-import javax.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,10 +45,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -221,10 +219,6 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
             seedNodeAddresses.remove(nodeAddress);
             handlerMap.remove(nodeAddress);
         }
-    }
-
-    @Override
-    public void onError(Throwable throwable) {
     }
 
 

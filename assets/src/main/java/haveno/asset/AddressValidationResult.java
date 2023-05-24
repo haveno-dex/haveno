@@ -60,7 +60,7 @@ public class AddressValidationResult {
     }
 
     public static AddressValidationResult invalidAddress(String cause) {
-        return invalidAddress(cause, "validation.altcoin.invalidAddress");
+        return invalidAddress(cause, "validation.crypto.invalidAddress");
     }
 
     public static AddressValidationResult invalidAddress(String cause, String i18nKey) {
@@ -68,6 +68,6 @@ public class AddressValidationResult {
     }
 
     public static AddressValidationResult invalidStructure() {
-        return invalidAddress("", "validation.altcoin.wrongStructure");
+        return invalidAddress("", "validation.crypto.wrongStructure");
     }
 }

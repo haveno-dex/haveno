@@ -34,7 +34,7 @@ public class MakerSetLockTime extends TradeTask {
         try {
             runInterceptHook();
 
-            // 10 days for altcoins, 20 days for other payment methods
+            // 10 days for cryptos, 20 days for other payment methods
             // For regtest dev environment we use 5 blocks
             int delay = Config.baseCurrencyNetwork().isTestnet() ?
                     5 :

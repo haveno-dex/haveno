@@ -20,7 +20,6 @@ package haveno.desktop.main.shared;
 import haveno.common.UserThread;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import lombok.Getter;
 import lombok.Setter;
 

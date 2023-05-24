@@ -34,31 +34,31 @@ import haveno.common.setup.UncaughtExceptionHandler;
 import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
+import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.setup.CorePersistedDataHost;
 import haveno.core.setup.CoreSetup;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.TradeManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
-import haveno.core.trade.txproof.xmr.XmrTxProofService;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
-import java.io.Console;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
+import javax.annotation.Nullable;
+import java.io.Console;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
@@ -76,7 +76,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected Injector injector;
     protected AppModule module;
     protected Config config;
-    private boolean isShutdownInProgress;
+    @Getter
+    protected boolean isShutdownInProgress;
     private boolean isReadOnly;
     private Thread keepRunningThread;
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
@@ -305,12 +306,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     // This might need to be overwritten in case the application is not using all modules
     @Override
     public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
-        log.info("Start graceful shutDown");
+        log.info("Starting graceful shut down of {}", getClass().getSimpleName());
+
+        // ignore if shut down in progress
         if (isShutdownInProgress) {
             log.info("Ignoring call to gracefulShutDown, already in progress");
             return;
         }
-
         isShutdownInProgress = true;
 
         ResultHandler resultHandler;
@@ -330,33 +332,40 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         }
 
         try {
+
+            // notify trade protocols and wallets to prepare for shut down before shutting down
+            Set<Runnable> tasks = new HashSet<Runnable>();
+            tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
+            tasks.add(() -> injector.getInstance(CoreMoneroConnectionsService.class).onShutDownStarted());
+            HavenoUtils.executeTasks(tasks); // notify in parallel
+
             injector.getInstance(PriceFeedService.class).shutDown();
             injector.getInstance(ArbitratorManager.class).shutDown();
             injector.getInstance(TradeStatisticsManager.class).shutDown();
-            injector.getInstance(XmrTxProofService.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
-            log.info("TradeManager and XmrWalletService shutdown started");
-            HavenoUtils.executeTasks(Arrays.asList( // shut down trade and main wallets at same time
-                    () -> injector.getInstance(TradeManager.class).shutDown(),
-                    () -> injector.getInstance(XmrWalletService.class).shutDown(!isReadOnly)));
-            log.info("OpenOfferManager shutdown started");
+
+            // shut down open offer manager
+            log.info("Shutting down OpenOfferManager, OfferBookService, and P2PService");
             injector.getInstance(OpenOfferManager.class).shutDown(() -> {
-                log.info("OpenOfferManager shutdown completed");
 
-                injector.getInstance(BtcWalletService.class).shutDown();
+                // shut down offer book service
+                injector.getInstance(OfferBookService.class).shutDown();
 
-                // We need to shutdown BitcoinJ before the P2PService as it uses Tor.
-                WalletsSetup walletsSetup = injector.getInstance(WalletsSetup.class);
-                walletsSetup.shutDownComplete.addListener((ov, o, n) -> {
-                    log.info("WalletsSetup shutdown completed");
+                // shut down p2p service
+                injector.getInstance(P2PService.class).shutDown(() -> {
+                    log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
-                    injector.getInstance(P2PService.class).shutDown(() -> {
-                        log.info("P2PService shutdown completed");
+                    // shut down monero wallets and connections
+                    injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
+                        log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
                         completeShutdown(resultHandler, EXIT_SUCCESS, systemExit);
                     });
+                    injector.getInstance(BtcWalletService.class).shutDown();
+                    injector.getInstance(XmrWalletService.class).shutDown();
+                    injector.getInstance(CoreMoneroConnectionsService.class).shutDown();
+                    injector.getInstance(WalletsSetup.class).shutDown();
                 });
-                walletsSetup.shutDown();
             });
         } catch (Throwable t) {
             log.error("App shutdown failed with exception {}", t.toString());

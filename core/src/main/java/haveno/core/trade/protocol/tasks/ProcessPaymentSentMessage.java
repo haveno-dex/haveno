@@ -17,14 +17,14 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessPaymentSentMessage extends TradeTask {
@@ -44,27 +44,31 @@ public class ProcessPaymentSentMessage extends TradeTask {
             // verify signature of payment sent message
             HavenoUtils.verifyPaymentSentMessage(trade, message);
 
-            // set state
+            // update latest peer address
+            trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
+
+            // update state from message
             processModel.setPaymentSentMessage(message);
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
-
-            // import multisig hex
-            trade.importMultisigHex();
-
-            // if seller, decrypt buyer's payment account payload
-            if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
-
-            // update latest peer address
-            trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
-
-            // set state
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) trade.setCounterCurrencyTxId(counterCurrencyTxId);
             String counterCurrencyExtraData = message.getCounterCurrencyExtraData();
             if (counterCurrencyExtraData != null && counterCurrencyExtraData.length() < 100) trade.setCounterCurrencyExtraData(counterCurrencyExtraData);
-            trade.advanceState(trade.isSeller() ? Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG : Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+
+            // if seller, decrypt buyer's payment account payload
+            if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
+            trade.requestPersistence();
+            
+            // import multisig hex
+            trade.importMultisigHex();
+
+            // save wallet off thread
+            new Thread(() -> trade.saveWallet()).start();
+
+            // update state
+            trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             trade.requestPersistence();
             complete();
         } catch (Throwable t) {

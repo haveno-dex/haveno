@@ -4,7 +4,7 @@ import com.jfoenix.adapters.ReflectionHelper;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.skins.PromptLinesWrapper;
 import com.jfoenix.skins.ValidationPane;
-
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.skin.TextAreaSkin;
@@ -15,11 +15,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 
-import javafx.geometry.Insets;
-
-import java.util.Arrays;
-
 import java.lang.reflect.Field;
+import java.util.Arrays;
 
 /**
  * Code copied and adapted from com.jfoenix.skins.JFXTextAreaSkin

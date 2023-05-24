@@ -26,7 +26,6 @@ import haveno.proto.grpc.PriceGrpc;
 import haveno.proto.grpc.ShutdownServerGrpc;
 import haveno.proto.grpc.TradesGrpc;
 import haveno.proto.grpc.WalletsGrpc;
-
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 

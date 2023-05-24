@@ -17,24 +17,20 @@
 
 package haveno.core.app;
 
+import haveno.common.config.HavenoHelpFormatter;
 import joptsimple.OptionParser;
-
-import java.net.URISyntaxException;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-
-import org.junit.Test;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-
-import haveno.common.config.HavenoHelpFormatter;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class HavenoHelpFormatterTest {
 

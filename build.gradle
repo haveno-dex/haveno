@@ -1,4 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.internal.logging.ConsoleRenderer
 
 buildscript {
     repositories {
@@ -6,10 +7,10 @@ buildscript {
     }
     dependencies {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.17'
-        classpath 'com.google.gradle:osdetector-gradle-plugin:1.6.0'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
+        classpath 'com.github.johnrengelman:shadow:8.1.1'
         classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.6.3'
-        classpath 'com.gradle:gradle-enterprise-gradle-plugin:3.7' // added for windows build verfication-metadata.xml error
+        classpath 'com.gradle:gradle-enterprise-gradle-plugin:3.12.4' // added for windows build verification-metadata.xml error
     }
 }
 
@@ -27,6 +28,7 @@ configure(subprojects) {
     apply plugin: 'com.google.osdetector'
     // Apply the jacoco plugin to add support for test coverage
     apply plugin: 'jacoco'
+    apply plugin: 'checkstyle'
 
     sourceCompatibility = JavaVersion.VERSION_11
 
@@ -46,9 +48,9 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '30.1.1-jre'
         guiceVersion = '4.2.2'
-        moneroJavaVersion = '0.7.11'
+        moneroJavaVersion = '0.7.15'
         httpclient5Version = '5.0'
-        hamcrestVersion = '1.3'
+        hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
         httpcoreVersion = '4.4.13'
         ioVersion = '2.6'
@@ -61,14 +63,13 @@ configure(subprojects) {
         joptVersion = '5.0.4'
         jsonsimpleVersion = '1.1.1'
         jsonrpc4jVersion = '1.6.0.bisq.1'
-        junitVersion = '4.12'
-        jupiterVersion = '5.7.0'
+        jupiterVersion = '5.9.2'
         kotlinVersion = '1.3.41'
         langVersion = '3.11'
         logbackVersion = '1.1.11'
         loggingVersion = '1.2'
         lombokVersion = '1.18.24'
-        mockitoVersion = '4.0.0'
+        mockitoVersion = '5.2.0'
         netlayerVersion = '6797461310f077bbea4f43a3a509c077b0ed8c34' // Netlayer version 0.7.3 with Tor browser version 11.0.14 and tor binary version: 0.4.7.7
         protobufVersion = '3.19.1'
         protocVersion = protobufVersion
@@ -87,24 +88,30 @@ configure(subprojects) {
         maven { url 'https://mvnrepository.com' }
     }
 
-    dependencies {
-        testImplementation "junit:junit:$junitVersion"
-    }
-
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
 
+    checkstyle {
+        toolVersion = '10.8.1'
+        // https://raw.githubusercontent.com/checkstyle/checkstyle/checkstyle-10.8.1/src/main/resources/google_checks.xml
+        configFile = rootProject.file("${rootDir}/config/checkstyle/checkstyle.xml")
+    }
+
+    tasks.withType(Checkstyle) {
+        minHeapSize.set('200m')
+        maxHeapSize.set('1g')
+    }
+
     jacocoTestReport {
         reports {
-            xml.enabled true
-            html.enabled false
+            xml.required.set(true)
+            html.required.set(false)
         }
     }
     // Codacy report generated with every build at assets/build/reports/jacoco/test/jacocoTestReport.xml
     test.finalizedBy jacocoTestReport
 }
-
 
 configure([project(':cli'),
            project(':daemon'),
@@ -238,6 +245,9 @@ configure(project(':assets')) {
         implementation "com.google.guava:guava:$guavaVersion"
         implementation "org.apache.commons:commons-lang3:$langVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
 
@@ -273,7 +283,9 @@ configure(project(':common')) {
         implementation "org.bouncycastle:bcpg-jdk15on:$bcVersion"
         implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        testImplementation "org.hamcrest:hamcrest-all:$hamcrestVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
         runtimeOnly("io.grpc:grpc-netty-shaded:$grpcVersion") {
             exclude(module: 'guava')
             exclude(module: 'animal-sniffer-annotations')
@@ -320,6 +332,9 @@ configure(project(':p2p')) {
         }
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
         testImplementation "ch.qos.logback:logback-classic:$logbackVersion"
         testImplementation "ch.qos.logback:logback-core:$logbackVersion"
         testImplementation "org.apache.commons:commons-lang3:$langVersion"
@@ -386,7 +401,9 @@ configure(project(':core')) {
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "com.natpryce:make-it-easy:$easyVersion"
-        testImplementation "org.hamcrest:hamcrest-all:$hamcrestVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
         testImplementation "org.mockito:mockito-core:$mockitoVersion"
 
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
@@ -408,12 +425,12 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux'         : 'https://github.com/haveno-dex/monero/releases/download/testing8/monero-bins-haveno-linux.tar.gz',
-                'linux-sha256'  : 'a222bdae08e5464d1b751e6301144a904578bef37c75444c46aef762299c0b92',
-                'mac'           : 'https://github.com/haveno-dex/monero/releases/download/testing8/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'    : 'fbebd9eb40550cd992bf9e1f946741d5adc564c428b9d4c78981363235c4be89',
-                'windows'       : 'https://github.com/haveno-dex/monero/releases/download/testing8/monero-bins-haveno-windows.zip',
-                'windows-sha256': 'c9e6150ba9cb8b35b7c63ac8786610e3c37725a973e35c09e6fbbfe20430302a'
+                'linux'         : 'https://github.com/haveno-dex/monero/releases/download/testing12/monero-bins-haveno-linux.tar.gz',
+                'linux-sha256'  : 'c782448567b12f2c8a213f3aa170ae98ea218b43b38db21c7126ffc162897b8e',
+                'mac'           : 'https://github.com/haveno-dex/monero/releases/download/testing12/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'    : '0bd4e53ddc0cca1de6f2df401d6b0d6b4fca6808f3f0b56e5b186541dc09681a',
+                'windows'       : 'https://github.com/haveno-dex/monero/releases/download/testing12/monero-bins-haveno-windows.zip',
+                'windows-sha256': 'c060cdc177122933d32220c276a510e98c8a5b061b113170ce397049c11a7eb2'
             ]
 
             String osKey
@@ -544,7 +561,7 @@ configure(project(':cli')) {
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
         testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 
     test {
@@ -612,6 +629,9 @@ configure(project(':desktop')) {
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "com.natpryce:make-it-easy:$easyVersion"
         testImplementation "org.mockito:mockito-core:$mockitoVersion"
+        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
 
         implementation("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
             exclude(module: 'jackson-core')
@@ -667,7 +687,7 @@ configure(project(':monitor')) {
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
 
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
@@ -713,6 +733,8 @@ configure(project(':seednode')) {
             exclude(module: 'guava')
         }
         testImplementation "org.mockito:mockito-core:$mockitoVersion"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
 
@@ -847,7 +869,7 @@ configure(project(':apitest')) {
                 // Show report link if all tests passed in case you want to see more detail, stdout, skipped, etc.
                 if (result.resultType == TestResult.ResultType.SUCCESS) {
                     DirectoryReport htmlReport = getReports().getHtml()
-                    String reportUrl = new org.gradle.internal.logging.ConsoleRenderer()
+                    String reportUrl = new ConsoleRenderer()
                         .asClickableFileUrl(htmlReport.getEntryPoint())
                     println("REPORT  " + reportUrl)
                 }
@@ -896,7 +918,7 @@ configure(project(':apitest')) {
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
         testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
 

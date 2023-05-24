@@ -17,11 +17,11 @@
 
 package haveno.cli.table.builder;
 
+import haveno.cli.table.Table;
+
 import java.util.List;
 
 import static java.util.Collections.singletonList;
-
-import haveno.cli.table.Table;
 
 /**
  * Table builder factory.  It is not conventionally named TableBuilderFactory because

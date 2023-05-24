@@ -30,35 +30,29 @@ import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HyperlinkWithIcon;
-import haveno.desktop.main.offer.offerbook.BtcOfferBookView;
+import haveno.desktop.main.offer.offerbook.XmrOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
-import haveno.desktop.main.offer.offerbook.TopAltcoinOfferBookView;
+import haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
+import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroSubmitTxResult;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-
-
-import monero.daemon.model.MoneroSubmitTxResult;
 
 // Shared utils for Views
 @Slf4j
@@ -132,10 +126,10 @@ public class OfferViewUtil {
 
     public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            offerBookViewClazz = BtcOfferBookView.class;
-        } else if (currencyCode.equals(GUIUtil.TOP_ALTCOIN.getCode())) {
-            offerBookViewClazz = TopAltcoinOfferBookView.class;
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            offerBookViewClazz = XmrOfferBookView.class;
+        } else if (currencyCode.equals(GUIUtil.TOP_CRYPTO.getCode())) {
+            offerBookViewClazz = TopCryptoOfferBookView.class;
         } else {
             offerBookViewClazz = OtherOfferBookView.class;
         }
@@ -151,7 +145,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(String currencyCode, OfferDirection direction) {
-        return CurrencyUtil.isFiatCurrency(currencyCode) == (direction == OfferDirection.SELL);
+        return CurrencyUtil.isTraditionalCurrency(currencyCode) == (direction == OfferDirection.SELL);
     }
 
     public static boolean isShownAsBuyOffer(Offer offer) {
@@ -169,7 +163,7 @@ public class OfferViewUtil {
     @NotNull
     public static Stream<CryptoCurrency> getMainCryptoCurrencies() {
         return CurrencyUtil.getMainCryptoCurrencies().stream().filter(cryptoCurrency ->
-                !Objects.equals(cryptoCurrency.getCode(), GUIUtil.TOP_ALTCOIN.getCode()));
+                !Objects.equals(cryptoCurrency.getCode(), GUIUtil.TOP_CRYPTO.getCode()));
     }
 
     public static void submitTransactionHex(XmrWalletService xmrWalletService,

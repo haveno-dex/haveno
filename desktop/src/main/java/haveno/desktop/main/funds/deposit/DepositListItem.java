@@ -19,6 +19,8 @@ package haveno.desktop.main.funds.deposit;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+
+import common.types.Filter;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
@@ -27,8 +29,6 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
-import java.math.BigInteger;
-import java.util.List;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.Tooltip;
@@ -37,6 +37,9 @@ import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTransferQuery;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
+
+import java.math.BigInteger;
+import java.util.List;
 
 @Slf4j
 class DepositListItem {
@@ -84,7 +87,7 @@ class DepositListItem {
             tooltip = new Tooltip(Res.get("shared.notUsedYet"));
             txConfidenceIndicator.setProgress(0);
             txConfidenceIndicator.setTooltip(tooltip);
-            MoneroTx tx = getTxWithFewestConfirmations();
+            MoneroTx tx = getTxWithFewestConfirmations(cachedTxs);
             if (tx == null) {
                 txConfidenceIndicator.setVisible(false);
             } else {
@@ -131,19 +134,19 @@ class DepositListItem {
         return numTxOutputs;
     }
 
-    public long getNumConfirmationsSinceFirstUsed() {
-        MoneroTx tx = getTxWithFewestConfirmations();
+    public long getNumConfirmationsSinceFirstUsed(List<MoneroTxWallet> incomingTxs) {
+        MoneroTx tx = getTxWithFewestConfirmations(incomingTxs);
         return tx == null ? 0 : tx.getNumConfirmations();
     }
-    
-    private MoneroTxWallet getTxWithFewestConfirmations() {
-        
+
+    private MoneroTxWallet getTxWithFewestConfirmations(List<MoneroTxWallet> incomingTxs) {
+
         // get txs with incoming transfers to subaddress
-        List<MoneroTxWallet> txs = xmrWalletService.getWallet()
-                .getTxs(new MoneroTxQuery()
-                        .setTransferQuery(new MoneroTransferQuery()
-                                .setIsIncoming(true)
-                                .setSubaddressIndex(addressEntry.getSubaddressIndex())));
+        MoneroTxQuery query = new MoneroTxQuery()
+                .setTransferQuery(new MoneroTransferQuery()
+                        .setIsIncoming(true)
+                        .setSubaddressIndex(addressEntry.getSubaddressIndex()));
+        List<MoneroTxWallet> txs  = incomingTxs == null ? xmrWalletService.getWallet().getTxs(query) : Filter.apply(query, incomingTxs);
         
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;

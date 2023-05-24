@@ -18,10 +18,9 @@
 package haveno.desktop.components.chart;
 
 import haveno.desktop.common.model.ActivatableDataModel;
+
 import java.time.Instant;
 import java.time.temporal.TemporalAdjuster;
-
-import java.util.Comparator;
 import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.function.Predicate;

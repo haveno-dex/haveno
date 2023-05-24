@@ -7,7 +7,7 @@ To receive a bounty, you agree to these conditions:
 - Your changes must follow the [styling guidelines](CONTRIBUTING.md).
 - Bounties will be set and awarded in XMR at discretion of the Haveno core team.
 - The issues eligible for a bounty are labelled '💰bounty' and have the amount of the bounty specified in the title in this form: `[$200]` if in dollars or `[1 XMR]` if in Monero.
-- An issue is considered resolved when the patch(es) proposed by the contributor is/are merged in the appropriate repository according to terms of the issue.
+- An issue is considered resolved when the patch(es) proposed by the contributor is/are merged in the appropriate repository according to terms of the issue. Pull requests to monero-project must be merged into the release branch to be considered final.
 - The first person who resolves an issue in its entirety will receive the entire amount of the bounty.
 - If the issue is resolved collaboratively by more than one person, the reward will be distributed among the contributors at discretion of the Haveno core team.
 - Let the Maintainers know if you intend to work on a bounty, so that the issue can be assigned to you. Being assigned to an issue doesn't make that issue resolvable only by the assignee. It's meant to avoid duplication of efforts and not to discourage collective works.

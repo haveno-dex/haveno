@@ -17,14 +17,7 @@
 
 package haveno.desktop.main.funds.locked;
 
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import com.googlecode.jcsv.writer.CSVEntryConverter;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -47,10 +40,13 @@ import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.util.GUIUtil;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-
-import javafx.stage.Stage;
-
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -60,18 +56,13 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
-
+import javafx.stage.Stage;
 import javafx.util.Callback;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Objects;

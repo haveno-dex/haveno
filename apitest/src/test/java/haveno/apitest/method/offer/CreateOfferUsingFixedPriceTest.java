@@ -17,8 +17,8 @@
 
 package haveno.apitest.method.offer;
 
+import haveno.core.payment.PaymentAccount;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -34,8 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static protobuf.OfferDirection.BUY;
 import static protobuf.OfferDirection.SELL;
-
-import haveno.core.payment.PaymentAccount;
 
 @Disabled
 @Slf4j

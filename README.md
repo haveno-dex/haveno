@@ -10,7 +10,7 @@
 
 ## What is Haveno?
 
-Haveno (pronounced ha‧ve‧no) is a platform for people who want to exchange [Monero](https://getmonero.org) for fiat currencies like EUR, GBP and USD or other cryptocurrencies, like BTC, ETH, BCH, WOW.
+Haveno (pronounced ha‧ve‧no) is a platform for people who want to exchange [Monero](https://getmonero.org) for fiat currencies like EUR, GBP, and USD or other cryptocurrencies like BTC, ETH, BCH, and WOW.
 
 Main features:
 

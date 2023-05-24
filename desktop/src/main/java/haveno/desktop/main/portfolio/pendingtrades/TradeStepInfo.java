@@ -22,18 +22,15 @@ import haveno.core.trade.Trade;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.SimpleMarkdownLabel;
 import haveno.desktop.components.TitledGroupBg;
-import javafx.scene.layout.GridPane;
-
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-
-import java.util.function.Supplier;
-
+import javafx.scene.layout.GridPane;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 @Slf4j
 public class TradeStepInfo {

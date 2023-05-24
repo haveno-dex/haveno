@@ -34,7 +34,13 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 
 import static haveno.common.util.Utilities.cleanString;
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 public class TransferwiseUsdForm extends PaymentMethodForm {
     private final TransferwiseUsdAccount account;

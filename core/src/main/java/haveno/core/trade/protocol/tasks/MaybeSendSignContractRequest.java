@@ -17,16 +17,10 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
-import com.google.common.base.Charsets;
 import haveno.common.app.Version;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.Trade.State;
@@ -37,10 +31,15 @@ import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
 @Slf4j
 public class MaybeSendSignContractRequest extends TradeTask {
-    
+
     private boolean ack1 = false; // TODO (woodser) these represent onArrived(), not the ack
     private boolean ack2 = false;
 
@@ -53,7 +52,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
     protected void run() {
         try {
           runInterceptHook();
-          
+
           // skip if arbitrator
           if (trade instanceof ArbitratorTrade) {
               complete();
@@ -65,7 +64,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
               complete();
               return;
           }
- 
+
           // skip if deposit tx already created
           if (processModel.getDepositTxXmr() != null) {
               complete();
@@ -73,6 +72,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           }
 
           // create deposit tx and freeze inputs
+          trade.addInitProgressStep();
           MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade);
 
           // collect reserved key images
@@ -84,13 +84,13 @@ public class MaybeSendSignContractRequest extends TradeTask {
           trade.getSelf().setDepositTx(depositTx);
           trade.getSelf().setDepositTxHash(depositTx.getHash());
           trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
-          trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString()); // TODO (woodser): allow custom payout address?
+          trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
           trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
 
           // maker signs deposit hash nonce to avoid challenge protocol
           byte[] sig = null;
           if (trade instanceof MakerTrade) {
-            sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), depositTx.getHash().getBytes(Charsets.UTF_8));
+            sig = HavenoUtils.sign(processModel.getP2PService().getKeyRing(), depositTx.getHash());
           }
 
           // create request for peer and arbitrator to sign contract
@@ -120,7 +120,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                   failed();
               }
           });
-          
+
           // send request to arbitrator
           processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing(), request, new SendDirectMessageListener() {
               @Override
@@ -140,9 +140,10 @@ public class MaybeSendSignContractRequest extends TradeTask {
           failed(t);
         }
     }
-    
+
     private void completeAux() {
         trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
+        trade.addInitProgressStep();
         processModel.getTradeManager().requestPersistence();
         complete();
     }

@@ -17,14 +17,13 @@
 
 package haveno.core.trade.messages;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.DirectMessage;
-import haveno.network.p2p.NodeAddress;
-import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Value

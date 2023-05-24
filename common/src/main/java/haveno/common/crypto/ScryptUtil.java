@@ -22,9 +22,7 @@ import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bitcoinj.wallet.Protos;
-
 import org.bouncycastle.crypto.params.KeyParameter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +47,7 @@ public class ScryptUtil {
                 .build();
         return new KeyCrypterScrypt(scryptParameters);
     }
-    
+
     public static KeyParameter deriveKeyWithScrypt(KeyCrypterScrypt keyCrypterScrypt, String password) {
         try {
             log.debug("Doing key derivation");

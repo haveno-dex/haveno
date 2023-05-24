@@ -26,6 +26,7 @@ import haveno.core.user.Preferences;
 import haveno.desktop.main.overlays.editor.PeerInfoWithTagEditor;
 import haveno.desktop.util.DisplayUtils;
 import haveno.network.p2p.NodeAddress;
+import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -34,18 +35,13 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-
-import javafx.geometry.Point2D;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
-import java.util.Map;
-
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 @Slf4j
 public class PeerInfoIcon extends Group {

@@ -22,7 +22,6 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;

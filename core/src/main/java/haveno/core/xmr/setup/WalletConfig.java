@@ -17,6 +17,16 @@
 
 package haveno.core.xmr.setup;
 
+import com.google.common.io.Closeables;
+import com.google.common.util.concurrent.AbstractIdleService;
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import haveno.common.config.Config;
+import haveno.common.file.FileUtil;
+import haveno.core.xmr.nodes.LocalBitcoinNode;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import lombok.Getter;
+import lombok.Setter;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
@@ -31,34 +41,16 @@ import org.bitcoinj.store.SPVBlockStore;
 import org.bitcoinj.wallet.DeterministicKeyChain;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.Wallet;
-
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.common.config.Config;
-import haveno.common.file.FileUtil;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
-import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.AbstractIdleService;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import java.net.InetAddress;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;

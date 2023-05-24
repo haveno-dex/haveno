@@ -1,7 +1,6 @@
 package haveno.common.config;
 
-import org.bitcoinj.core.NetworkParameters;
-
+import ch.qos.logback.classic.Level;
 import joptsimple.AbstractOptionSpec;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.HelpFormatter;
@@ -13,19 +12,16 @@ import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
 import joptsimple.util.PathProperties;
 import joptsimple.util.RegexMatcher;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
+import org.bitcoinj.core.NetworkParameters;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-
-import ch.qos.logback.classic.Level;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;

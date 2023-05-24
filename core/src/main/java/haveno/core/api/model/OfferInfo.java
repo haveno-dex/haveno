@@ -23,11 +23,12 @@ import haveno.core.api.model.builder.OfferInfoBuilder;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
-import java.util.Optional;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.core.util.PriceUtil.reformatMarketPrice;
@@ -61,8 +62,8 @@ public class OfferInfo implements Payload {
     private final String paymentAccountId;
     private final String paymentMethodId;
     private final String paymentMethodShortName;
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
+    // For traditional offer the baseCurrencyCode is XMR and the counterCurrencyCode is the traditional currency
+    // For crypto offers it is the opposite. baseCurrencyCode is the crypto and the counterCurrencyCode is XMR.
     private final String baseCurrencyCode;
     private final String counterCurrencyCode;
     private final long date;

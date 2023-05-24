@@ -25,7 +25,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
 import lombok.Getter;
 
 import java.math.BigInteger;
@@ -66,15 +65,11 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     }
 
     protected void updateBalance() {
-        BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        updateBalances();
         if (useSavingsWallet) {
-            BigInteger walletBalance = xmrWalletService.getBalance();
-            totalBalance = walletBalance.add(tradeWalletBalance);
             if (totalToPay.get() != null) {
                 balance.set(totalToPay.get().min(totalBalance));
             }
-        } else {
-            balance.set(tradeWalletBalance);
         }
         missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
         isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
@@ -84,20 +79,28 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     }
 
     protected void updateAvailableBalance() {
-        BigInteger tradeWalletBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        updateBalances();
         if (useSavingsWallet) {
-            BigInteger walletAvailableBalance = xmrWalletService.getAvailableBalance();
-            totalAvailableBalance = walletAvailableBalance.add(tradeWalletBalance);
             if (totalToPay.get() != null) {
                 availableBalance.set(totalToPay.get().min(totalAvailableBalance));
             }
-        } else {
-            availableBalance.set(tradeWalletBalance);
         }
         missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), availableBalance.get()));
         isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
         if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
             showWalletFundedNotification.set(true);
+        }
+    }
+
+    private void updateBalances() {
+        BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        BigInteger tradeWalletAvailableBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        if (useSavingsWallet) {
+            totalBalance = xmrWalletService.getBalance();;
+            totalAvailableBalance = xmrWalletService.getAvailableBalance();
+        } else {
+            balance.set(tradeWalletBalance);
+            availableBalance.set(tradeWalletAvailableBalance);
         }
     }
 }

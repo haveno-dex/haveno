@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
+import com.jfoenix.controls.JFXProgressBar;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.ClockWatcher;
@@ -44,8 +45,10 @@ import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
 import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
-import com.jfoenix.controls.JFXProgressBar;
-
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
@@ -56,22 +59,16 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.value.ChangeListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
@@ -115,6 +112,8 @@ public abstract class TradeStepView extends AnchorPane {
         preferences = model.dataModel.preferences;
         trade = model.dataModel.getTrade();
         checkNotNull(trade, "Trade must not be null at TradeStepView");
+
+        startCachingTxs();
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -171,16 +170,25 @@ public abstract class TradeStepView extends AnchorPane {
 //        };
     }
 
+    private void startCachingTxs() {
+        List<String> txIds = new ArrayList<String>();
+        if (!model.dataModel.makerTxId.isEmpty().get()) txIds.add(model.dataModel.makerTxId.get());
+        if (!model.dataModel.takerTxId.isEmpty().get()) txIds.add(model.dataModel.takerTxId.get());
+        new Thread(() -> trade.getXmrWalletService().getTxsWithCache(txIds)).start();
+    }
+
     public void activate() {
         if (selfTxIdTextField != null) {
             if (selfTxIdSubscription != null)
                 selfTxIdSubscription.unsubscribe();
 
             selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.makerTxId : model.dataModel.takerTxId, id -> {
-                if (!id.isEmpty())
+                if (!id.isEmpty()) {
+                    startCachingTxs();
                     selfTxIdTextField.setup(id);
-                else
+                } else {
                     selfTxIdTextField.cleanup();
+                }
             });
         }
         if (peerTxIdTextField != null) {
@@ -188,10 +196,12 @@ public abstract class TradeStepView extends AnchorPane {
                 peerTxIdSubscription.unsubscribe();
 
             peerTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
-                if (!id.isEmpty())
+                if (!id.isEmpty()) {
+                    startCachingTxs();
                     peerTxIdTextField.setup(id);
-                else
+                } else {
                     peerTxIdTextField.cleanup();
+                }
             });
         }
         trade.errorMessageProperty().addListener(errorMessageListener);

@@ -17,18 +17,17 @@
 
 package haveno.apitest.method.offer;
 
-import haveno.proto.grpc.OfferInfo;
 import haveno.core.payment.PaymentAccount;
-import java.util.List;
-import java.util.function.Consumer;
-
+import haveno.proto.grpc.OfferInfo;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static protobuf.OfferDirection.BUY;

@@ -18,15 +18,15 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.CashAppAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.List;
 
 // Removed due too high chargeback risk
 // Cannot be deleted as it would break old trade history entries
@@ -34,7 +34,7 @@ import lombok.NonNull;
 @EqualsAndHashCode(callSuper = true)
 public final class CashAppAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
     public CashAppAccount() {
         super(PaymentMethod.CASH_APP);

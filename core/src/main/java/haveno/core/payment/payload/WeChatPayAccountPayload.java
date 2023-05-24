@@ -19,15 +19,14 @@ package haveno.core.payment.payload;
 
 import com.google.protobuf.Message;
 import haveno.core.locale.Res;
-import java.nio.charset.StandardCharsets;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Getter

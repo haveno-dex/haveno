@@ -28,8 +28,9 @@ import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.monetary.Altcoin;
+import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.availability.OfferAvailabilityProtocol;
@@ -38,27 +39,22 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
-import org.bitcoinj.utils.Fiat;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
-import java.math.BigInteger;
-import java.security.PublicKey;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.security.PublicKey;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -143,12 +139,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     // Availability
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void checkOfferAvailability(OfferAvailabilityModel model, ResultHandler resultHandler,
+    public synchronized void checkOfferAvailability(OfferAvailabilityModel model, ResultHandler resultHandler,
                                        ErrorMessageHandler errorMessageHandler) {
         availabilityProtocol = new OfferAvailabilityProtocol(model,
                 () -> {
                     cancelAvailabilityRequest();
-                    resultHandler.handleResult();
+                    new Thread(() -> resultHandler.handleResult()).start();
                 },
                 (errorMessage) -> {
                     if (availabilityProtocol != null)
@@ -186,9 +182,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
             double marketPriceAsDouble = marketPrice.getPrice();
             double targetPriceAsDouble = marketPriceAsDouble * factor;
             try {
-                int precision = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                        Altcoin.SMALLEST_UNIT_EXPONENT :
-                        Fiat.SMALLEST_UNIT_EXPONENT;
+                int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                        TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                        CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double scaled = MathUtils.scaleUpByPowerOf10(targetPriceAsDouble, precision);
                 final long roundedToLong = MathUtils.roundDoubleToLong(scaled);
                 return Price.valueOf(currencyCode, roundedToLong);
@@ -376,8 +372,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
     public String getExtraInfo() {
         if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.F2F_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.F2F_EXTRA_INFO);
-        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASH_BY_MAIL_EXTRA_INFO))
-            return getExtraDataMap().get(OfferPayload.CASH_BY_MAIL_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.PAY_BY_MAIL_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.PAY_BY_MAIL_EXTRA_INFO);
         else
             return "";
     }
@@ -530,6 +526,10 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public boolean isXmr() {
         return getCurrencyCode().equals("XMR");
+    }
+
+    public boolean isTraditionalOffer() {
+        return CurrencyUtil.isTraditionalCurrency(currencyCode);
     }
 
     public boolean isFiatOffer() {

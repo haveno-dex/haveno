@@ -19,23 +19,20 @@ package haveno.core.trade;
 
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
-import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.xmr.wallet.BtcWalletService;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import java.util.Date;
-import java.util.Objects;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Date;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
-import static haveno.core.locale.CurrencyUtil.isFiatCurrency;
+import static haveno.core.locale.CurrencyUtil.isTraditionalCurrency;
 import static haveno.core.util.FormattingUtils.formatDurationAsWords;
 import static java.lang.String.format;
 
@@ -197,7 +194,7 @@ public class TradeUtil {
      * @return String describing a trader's role
      */
     public String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
-        if (isFiatCurrency(currencyCode)) {
+        if (isTraditionalCurrency(currencyCode)) {
             String baseCurrencyCode = Res.getBaseCurrencyCode();
             if (isBuyerMakerAndSellerTaker)
                 return isMaker

@@ -90,6 +90,7 @@ message GetDataResponse {
     repeated StorageEntryWrapper data_set = 3;
     repeated int32 supported_capabilities = 4;
     repeated PersistableNetworkPayload persistable_network_payload_items = 5;
+    bool was_truncated = 6;
 }
 
 message GetUpdatedDataRequest {
@@ -165,7 +166,7 @@ message OfferAvailabilityResponse {
     AvailabilityResult availability_result = 2;
     repeated int32 supported_capabilities = 3;
     string uid = 4;
-    string maker_signature = 5;
+    bytes maker_signature = 5;
 }
 
 message RefreshOfferMessage {
@@ -233,7 +234,7 @@ message InitTradeRequest {
     string reserve_tx_hex = 17;
     string reserve_tx_key = 18;
     string payout_address = 19;
-    string maker_signature = 20;
+    bytes maker_signature = 20;
 }
 
 message InitMultisigRequest {
@@ -261,7 +262,7 @@ message SignContractResponse {
     string uid = 2;
     int64 current_date = 3;
     string contract_as_json = 4;
-    string contract_signature = 5;
+    bytes contract_signature = 5;
     bytes encrypted_payment_account_payload = 6;
 }
 
@@ -269,7 +270,7 @@ message DepositRequest {
     string trade_id = 1;
     string uid = 2;
     int64 current_date = 3;
-    string contract_signature = 4;
+    bytes contract_signature = 4;
     string deposit_tx_hex = 5;
     string deposit_tx_key = 6;
     bytes payment_account_key = 7;
@@ -520,10 +521,9 @@ message Arbitrator {
     string registration_signature = 4;
     bytes registration_pub_key = 5;
     PubKeyRing pub_key_ring = 6;
-    string xmr_address = 7;
-    string email_address = 8;
-    string info = 9;
-    map<string, string> extra_data = 10;
+    string email_address = 7;
+    string info = 8;
+    map<string, string> extra_data = 9;
 }
 
 message Mediator {
@@ -636,7 +636,7 @@ message OfferPayload {
     int32 protocol_version = 34;
 
     NodeAddress arbitrator_signer = 1001;
-    string arbitrator_signature = 1002;
+    bytes arbitrator_signature = 1002;
     repeated string reserve_tx_key_images = 1003;
 }
 
@@ -696,8 +696,8 @@ message Dispute {
     string deposit_tx_id = 14;
     string payout_tx_id = 15;
     string contract_as_json = 16;
-    string maker_contract_signature = 17;
-    string taker_contract_signature = 18;
+    bytes maker_contract_signature = 17;
+    bytes taker_contract_signature = 18;
     PaymentAccountPayload maker_payment_account_payload = 19;
     PaymentAccountPayload taker_payment_account_payload = 20;
     PubKeyRing agent_pub_key_ring = 21;
@@ -823,7 +823,7 @@ message PaymentAccountPayload {
     oneof message {
         AliPayAccountPayload ali_pay_account_payload = 5;
         ChaseQuickPayAccountPayload chase_quick_pay_account_payload = 6;
-        ClearXchangeAccountPayload clear_xchange_account_payload = 7;
+        ZelleAccountPayload zelle_account_payload = 7;
         CountryBasedPaymentAccountPayload country_based_payment_account_payload = 8;
         CryptoCurrencyAccountPayload crypto_currency_account_payload = 9;
         FasterPaymentsAccountPayload faster_payments_account_payload = 10;
@@ -848,7 +848,7 @@ message PaymentAccountPayload {
         TransferwiseAccountPayload Transferwise_account_payload = 29;
         AustraliaPayidPayload australia_payid_payload = 30;
         AmazonGiftCardAccountPayload amazon_gift_card_account_payload = 31;
-        CashByMailAccountPayload cash_by_mail_account_payload = 32;
+        PayByMailAccountPayload pay_by_mail_account_payload = 32;
         CapitualAccountPayload capitual_account_payload = 33;
         PayseraAccountPayload Paysera_account_payload = 34;
         PaxumAccountPayload Paxum_account_payload = 35;
@@ -872,7 +872,7 @@ message ChaseQuickPayAccountPayload {
     string holder_name = 2;
 }
 
-message ClearXchangeAccountPayload {
+message ZelleAccountPayload {
     string holder_name = 1;
     string email_or_mobile_nr = 2;
 }
@@ -1106,7 +1106,7 @@ message PaytmAccountPayload {
     string email_or_mobile_nr = 1;
 }
 
-message CashByMailAccountPayload {
+message PayByMailAccountPayload {
     string postal_address = 1;
     string contact = 2;
     string extra_info = 3;
@@ -1348,14 +1348,15 @@ message SignedOfferList {
 
 message SignedOffer {
     int64 time_stamp = 1;
-    string offer_id = 2;
-    uint64 trade_amount = 3;
-    uint64 penalty_amount = 4;
-    string reserve_tx_hash = 5;
-    string reserve_tx_hex = 6;
-    repeated string reserve_tx_key_images = 7;
-    uint64 reserve_tx_miner_fee = 8;
-    string arbitrator_signature = 9;
+    int32 trader_id = 2;
+    string offer_id = 3;
+    uint64 trade_amount = 4;
+    uint64 penalty_amount = 5;
+    string reserve_tx_hash = 6;
+    string reserve_tx_hex = 7;
+    repeated string reserve_tx_key_images = 8;
+    uint64 reserve_tx_miner_fee = 9;
+    bytes arbitrator_signature = 10;
 }
 
 message OpenOffer {
@@ -1476,27 +1477,27 @@ message Trade {
     string payout_tx_key = 5;
     int64 amount = 6;
     int64 taker_fee = 8;
-    int64 take_offer_date = 9;
-    int64 price = 10;
-    State state = 11;
-    PayoutState payout_state = 12;
-    DisputeState dispute_state = 13;
-    TradePeriodState period_state = 14;
-    Contract contract = 15;
-    string contract_as_json = 16;
-    bytes contract_hash = 17;
-    NodeAddress arbitrator_node_address = 18;
-    NodeAddress mediator_node_address = 19;
-    string error_message = 20;
-    string counter_currency_tx_id = 21;
-    repeated ChatMessage chat_message = 22;
-    MediationResultState mediation_result_state = 23;
-    int64 lock_time = 24;
-    int64 start_time = 25;
-    NodeAddress refund_agent_node_address = 26;
-    RefundResultState refund_result_state = 27;
-    string counter_currency_extra_data = 28;
-    string asset_tx_proof_result = 29; // name of AssetTxProofResult enum
+    int64 total_tx_fee = 9;
+    int64 take_offer_date = 10;
+    int64 price = 11;
+    State state = 12;
+    PayoutState payout_state = 13;
+    DisputeState dispute_state = 14;
+    TradePeriodState period_state = 15;
+    Contract contract = 16;
+    string contract_as_json = 17;
+    bytes contract_hash = 18;
+    NodeAddress arbitrator_node_address = 19;
+    NodeAddress mediator_node_address = 20;
+    string error_message = 21;
+    string counter_currency_tx_id = 22;
+    repeated ChatMessage chat_message = 23;
+    MediationResultState mediation_result_state = 24;
+    int64 lock_time = 25;
+    int64 start_time = 26;
+    NodeAddress refund_agent_node_address = 27;
+    RefundResultState refund_result_state = 28;
+    string counter_currency_extra_data = 29;
     string uid = 30;
 }
 
@@ -1529,8 +1530,7 @@ message ProcessModel {
     bool use_savings_wallet = 6;
     int64 funds_needed_for_trade = 7;
     string payment_sent_message_state = 8;
-    bool deposits_confirmed_messages_delivered = 9;
-    string maker_signature = 10;
+    bytes maker_signature = 10;
     TradePeer maker = 11;
     TradePeer taker = 12;
     TradePeer arbitrator = 13;
@@ -1556,7 +1556,7 @@ message TradePeer {
     PaymentAccountPayload payment_account_payload = 9;
     string payout_address_string = 10;
     string contract_as_json = 11;
-    string contract_signature = 12;
+    bytes contract_signature = 12;
     bytes account_age_witness_nonce = 18;
     bytes account_age_witness_signature = 19;
     AccountAgeWitness account_age_witness = 20;
@@ -1575,6 +1575,7 @@ message TradePeer {
     string deposit_tx_key = 1010;
     int64 security_deposit = 1011;
     string updated_multisig_hex = 1012;
+    bool deposits_confirmed_message_acked = 1013;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1645,7 +1646,7 @@ enum RefundResultState {
 message PreferencesPayload {
     string user_language = 1;
     Country user_country = 2;
-    repeated TradeCurrency fiat_currencies = 3;
+    repeated TradeCurrency traditional_currencies = 3;
     repeated TradeCurrency crypto_currencies = 4;
     BlockChainExplorer block_chain_explorer_main_net = 5;
     BlockChainExplorer block_chain_explorer_test_net = 6;
@@ -1775,7 +1776,7 @@ message TradeCurrency {
     string name = 2;
     oneof message {
         CryptoCurrency crypto_currency = 3;
-        FiatCurrency fiat_currency = 4;
+        TraditionalCurrency traditional_currency = 4;
     }
 }
 
@@ -1783,7 +1784,7 @@ message CryptoCurrency {
     bool is_asset = 1;
 }
 
-message FiatCurrency {
+message TraditionalCurrency {
     Currency currency = 1;
 }
 
@@ -1829,7 +1830,7 @@ message PaymentAccountForm {
         SEPA = 2;
         SEPA_INSTANT = 3;
         TRANSFERWISE = 4;
-        CLEAR_X_CHANGE = 5;
+        ZELLE = 5;
         SWIFT = 6;
         F2F = 7;
         STRIKE = 8;

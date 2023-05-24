@@ -17,15 +17,14 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.TradeInfo;
 import haveno.cli.table.Table;
 import haveno.cli.table.column.Column;
+import haveno.proto.grpc.TradeInfo;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
-import static java.lang.String.format;
 
 /**
  * Builds a {@code haveno.cli.table.Table} from a {@code haveno.proto.grpc.TradeInfo} object.
@@ -67,8 +66,8 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
         colIsPaymentReceivedMessageSent.addRow(trade.getIsPaymentReceived());
         colIsPayoutPublished.addRow(trade.getIsPayoutPublished());
         colIsCompleted.addRow(trade.getIsCompleted());
-        if (colAltcoinReceiveAddressColumn != null)
-            colAltcoinReceiveAddressColumn.addRow(toAltcoinReceiveAddress.apply(trade));
+        if (colCryptoReceiveAddressColumn != null)
+            colCryptoReceiveAddressColumn.addRow(toCryptoReceiveAddress.apply(trade));
     }
 
     private List<Column<?>> defineColumnList(TradeInfo trade) {
@@ -91,8 +90,8 @@ class TradeDetailTableBuilder extends AbstractTradeListBuilder {
             add(colIsCompleted.asStringColumn());
         }};
 
-        if (colAltcoinReceiveAddressColumn != null)
-            columns.add(colAltcoinReceiveAddressColumn);
+        if (colCryptoReceiveAddressColumn != null)
+            columns.add(colCryptoReceiveAddressColumn);
 
         return columns;
     }

@@ -18,25 +18,24 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.CapitualAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class CapitualAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("BRL"),
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("USD")
+            new TraditionalCurrency("BRL"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("USD")
     );
 
     public CapitualAccount() {

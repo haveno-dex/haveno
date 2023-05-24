@@ -17,21 +17,6 @@
 
 package haveno.network.p2p.storage;
 
-import com.google.protobuf.ByteString;
-import haveno.common.Timer;
-import haveno.common.UserThread;
-import haveno.common.app.Capabilities;
-import haveno.common.crypto.CryptoException;
-import haveno.common.crypto.Hash;
-import haveno.common.crypto.Sig;
-import haveno.common.persistence.PersistenceManager;
-import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.proto.network.NetworkPayload;
-import haveno.common.proto.persistable.PersistablePayload;
-import haveno.common.proto.persistable.PersistedDataHost;
-import haveno.common.util.Hex;
-import haveno.common.util.Tuple2;
-import haveno.common.util.Utilities;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -69,6 +54,25 @@ import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
+
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.Capabilities;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Hash;
+import haveno.common.crypto.Sig;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.GetDataResponsePriority;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkPayload;
+import haveno.common.proto.persistable.PersistablePayload;
+import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.util.Hex;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
+
+import com.google.protobuf.ByteString;
+
 import com.google.inject.name.Named;
 
 import javax.inject.Inject;
@@ -102,11 +106,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -126,7 +134,8 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     private boolean initialRequestApplied = false;
 
     private final Broadcaster broadcaster;
-    private final AppendOnlyDataStoreService appendOnlyDataStoreService;
+    @VisibleForTesting
+    final AppendOnlyDataStoreService appendOnlyDataStoreService;
     private final ProtectedDataStoreService protectedDataStoreService;
     private final ResourceDataStoreService resourceDataStoreService;
 
@@ -151,6 +160,8 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     // Don't convert to local variable as it might get GC'ed.
     private MonadicBinding<Boolean> readFromResourcesCompleteBinding;
 
+    @Setter
+    private Predicate<ProtectedStoragePayload> filterPredicate; // Set from FilterManager
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -158,14 +169,14 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
 
     @Inject
     public P2PDataStorage(NetworkNode networkNode,
-                          Broadcaster broadcaster,
-                          AppendOnlyDataStoreService appendOnlyDataStoreService,
-                          ProtectedDataStoreService protectedDataStoreService,
-                          ResourceDataStoreService resourceDataStoreService,
-                          PersistenceManager<SequenceNumberMap> persistenceManager,
-                          RemovedPayloadsService removedPayloadsService,
-                          Clock clock,
-                          @Named("MAX_SEQUENCE_NUMBER_MAP_SIZE_BEFORE_PURGE") int maxSequenceNumberBeforePurge) {
+            Broadcaster broadcaster,
+            AppendOnlyDataStoreService appendOnlyDataStoreService,
+            ProtectedDataStoreService protectedDataStoreService,
+            ResourceDataStoreService resourceDataStoreService,
+            PersistenceManager<SequenceNumberMap> persistenceManager,
+            RemovedPayloadsService removedPayloadsService,
+            Clock clock,
+            @Named("MAX_SEQUENCE_NUMBER_MAP_SIZE_BEFORE_PURGE") int maxSequenceNumberBeforePurge) {
         this.broadcaster = broadcaster;
         this.appendOnlyDataStoreService = appendOnlyDataStoreService;
         this.protectedDataStoreService = protectedDataStoreService;
@@ -181,7 +192,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         this.persistenceManager.initialize(sequenceNumberMap, PersistenceManager.Source.PRIVATE_LOW_PRIO);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PersistedDataHost
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -189,9 +199,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(persisted -> {
-                    sequenceNumberMap.setMap(getPurgedSequenceNumberMap(persisted.getMap()));
-                    completeHandler.run();
-                },
+            sequenceNumberMap.setMap(getPurgedSequenceNumberMap(persisted.getMap()));
+            completeHandler.run();
+        },
                 completeHandler);
     }
 
@@ -244,9 +254,8 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
         ByteArray hashOfPayload = get32ByteHashAsByteArray(protectedStoragePayload);
         map.put(hashOfPayload, protectedStorageEntry);
-        log.trace("## addProtectedMailboxStorageEntryToMap hashOfPayload={}, map={}", hashOfPayload, printMap());
+        //log.trace("## addProtectedMailboxStorageEntryToMap hashOfPayload={}, map={}", hashOfPayload, printMap());
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // RequestData API
@@ -274,18 +283,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         // PersistedStoragePayload items don't get removed, so we don't have an issue with the case that
         // an object gets removed in between PreliminaryGetDataRequest and the GetUpdatedDataRequest and we would
         // miss that event if we do not load the full set or use some delta handling.
-
         Map<ByteArray, PersistableNetworkPayload> mapForDataRequest = getMapForDataRequest();
         Set<byte[]> excludedKeys = getKeysAsByteSet(mapForDataRequest);
-        log.trace("## getKnownPayloadHashes map of PersistableNetworkPayloads={}, excludedKeys={}",
-                printPersistableNetworkPayloadMap(mapForDataRequest),
-                excludedKeys.stream().map(Utilities::encodeToHex).toArray());
-
         Set<byte[]> excludedKeysFromProtectedStorageEntryMap = getKeysAsByteSet(map);
-        log.trace("## getKnownPayloadHashes map of ProtectedStorageEntrys={}, excludedKeys={}",
-                printMap(),
-                excludedKeysFromProtectedStorageEntryMap.stream().map(Utilities::encodeToHex).toArray());
-
         excludedKeys.addAll(excludedKeysFromProtectedStorageEntryMap);
         return excludedKeys;
     }
@@ -308,30 +308,40 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         // mapForDataResponse contains the filtered by version data from HistoricalDataStoreService as well as all other
         // maps of the remaining appendOnlyDataStoreServices.
         Map<ByteArray, PersistableNetworkPayload> mapForDataResponse = getMapForDataResponse(getDataRequest.getVersion());
-        Set<PersistableNetworkPayload> filteredPersistableNetworkPayloads =
-                filterKnownHashes(
-                        mapForDataResponse,
-                        Function.identity(),
-                        excludedKeysAsByteArray,
-                        peerCapabilities,
-                        maxEntriesPerType,
-                        wasPersistableNetworkPayloadsTruncated);
+
+        // Give a bit of tolerance for message overhead
+        double maxSize = Connection.getMaxPermittedMessageSize() * 0.6;
+
+        // 25% of space is allocated for PersistableNetworkPayloads
+        long limit = Math.round(maxSize * 0.25);
+        Set<PersistableNetworkPayload> filteredPersistableNetworkPayloads = filterKnownHashes(
+                mapForDataResponse,
+                Function.identity(),
+                excludedKeysAsByteArray,
+                peerCapabilities,
+                maxEntriesPerType,
+                limit,
+                wasPersistableNetworkPayloadsTruncated,
+                true);
         log.info("{} PersistableNetworkPayload entries remained after filtered by excluded keys. " +
-                        "Original map had {} entries.",
+                "Original map had {} entries.",
                 filteredPersistableNetworkPayloads.size(), mapForDataResponse.size());
         log.trace("## buildGetDataResponse filteredPersistableNetworkPayloadHashes={}",
                 filteredPersistableNetworkPayloads.stream()
                         .map(e -> Utilities.encodeToHex(e.getHash()))
                         .toArray());
 
-        Set<ProtectedStorageEntry> filteredProtectedStorageEntries =
-                filterKnownHashes(
-                        map,
-                        ProtectedStorageEntry::getProtectedStoragePayload,
-                        excludedKeysAsByteArray,
-                        peerCapabilities,
-                        maxEntriesPerType,
-                        wasProtectedStorageEntriesTruncated);
+        // We give 75% space to ProtectedStorageEntries as they contain MailBoxMessages and those can be larger.
+        limit = Math.round(maxSize * 0.75);
+        Set<ProtectedStorageEntry> filteredProtectedStorageEntries = filterKnownHashes(
+                map,
+                ProtectedStorageEntry::getProtectedStoragePayload,
+                excludedKeysAsByteArray,
+                peerCapabilities,
+                maxEntriesPerType,
+                limit,
+                wasProtectedStorageEntriesTruncated,
+                false);
         log.info("{} ProtectedStorageEntry entries remained after filtered by excluded keys. " +
                         "Original map had {} entries.",
                 filteredProtectedStorageEntries.size(), map.size());
@@ -340,13 +350,14 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                         .map(e -> get32ByteHashAsByteArray((e.getProtectedStoragePayload())))
                         .toArray());
 
+        boolean wasTruncated = wasPersistableNetworkPayloadsTruncated.get() || wasProtectedStorageEntriesTruncated.get();
         return new GetDataResponse(
                 filteredProtectedStorageEntries,
                 filteredPersistableNetworkPayloads,
                 getDataRequest.getNonce(),
-                getDataRequest instanceof GetUpdatedDataRequest);
+                getDataRequest instanceof GetUpdatedDataRequest,
+                wasTruncated);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Utils for collecting the exclude hashes
@@ -366,7 +377,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                         serviceMap = service.getMap();
                     }
                     map.putAll(serviceMap);
-                    log.info("We added {} entries from {} to the excluded key set of our request",
+                    log.debug("We added {} entries from {} to the excluded key set of our request",
                             serviceMap.size(), service.getClass().getSimpleName());
                 });
         return map;
@@ -396,56 +407,134 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      */
     static private <T extends NetworkPayload> Set<T> filterKnownHashes(
             Map<ByteArray, T> toFilter,
-            Function<T, ? extends NetworkPayload> objToPayload,
+            Function<T, ? extends NetworkPayload> asPayload,
             Set<ByteArray> knownHashes,
             Capabilities peerCapabilities,
             int maxEntries,
-            AtomicBoolean outTruncated) {
+            long limit,
+            AtomicBoolean outTruncated,
+            boolean isPersistableNetworkPayload) {
+        log.info("Filter {} data based on {} knownHashes",
+                isPersistableNetworkPayload ? "PersistableNetworkPayload" : "ProtectedStorageEntry",
+                knownHashes.size());
 
-        log.info("Num knownHashes {}", knownHashes.size());
+        AtomicLong totalSize = new AtomicLong();
+        AtomicBoolean exceededSizeLimit = new AtomicBoolean();
 
         Set<Map.Entry<ByteArray, T>> entries = toFilter.entrySet();
-        List<T> dateSortedTruncatablePayloads = entries.stream()
-                .filter(entry -> entry.getValue() instanceof DateSortedTruncatablePayload)
+        Map<String, AtomicInteger> numItemsByClassName = new HashMap<>();
+        entries.forEach(entry -> {
+            String name = asPayload.apply(entry.getValue()).getClass().getSimpleName();
+            numItemsByClassName.putIfAbsent(name, new AtomicInteger());
+            numItemsByClassName.get(name).incrementAndGet();
+        });
+        log.info("numItemsByClassName: {}", numItemsByClassName);
+
+        // Map.Entry.value can be ProtectedStorageEntry or PersistableNetworkPayload. We call it item in the steam iterations.
+        List<T> filteredItems = entries.stream()
                 .filter(entry -> !knownHashes.contains(entry.getKey()))
                 .map(Map.Entry::getValue)
-                .filter(payload -> shouldTransmitPayloadToPeer(peerCapabilities, objToPayload.apply(payload)))
-                .sorted(Comparator.comparing(payload -> ((DateSortedTruncatablePayload) payload).getDate()))
+                .filter(item -> shouldTransmitPayloadToPeer(peerCapabilities, asPayload.apply(item)))
                 .collect(Collectors.toList());
-        log.info("Num filtered dateSortedTruncatablePayloads {}", dateSortedTruncatablePayloads.size());
-        if (!dateSortedTruncatablePayloads.isEmpty()) {
-            int maxItems = ((DateSortedTruncatablePayload) dateSortedTruncatablePayloads.get(0)).maxItems();
-            if (dateSortedTruncatablePayloads.size() > maxItems) {
-                int fromIndex = dateSortedTruncatablePayloads.size() - maxItems;
-                int toIndex = dateSortedTruncatablePayloads.size();
-                dateSortedTruncatablePayloads = dateSortedTruncatablePayloads.subList(fromIndex, toIndex);
-                log.info("Num truncated dateSortedTruncatablePayloads {}", dateSortedTruncatablePayloads.size());
+        List<T> resultItems = new ArrayList<>();
+
+        // Truncation follows this rules
+        // 1. Add all payloads with GetDataResponsePriority.MID
+        // 2. Add all payloads with GetDataResponsePriority.LOW && !DateSortedTruncatablePayload until exceededSizeLimit is reached
+        // 3. if(!exceededSizeLimit) Add all payloads with GetDataResponsePriority.LOW && DateSortedTruncatablePayload until
+        //    exceededSizeLimit is reached and truncate by maxItems (sorted by date). We add the sublist to our resultItems in
+        //    reverse order so in case we cut off at next step we cut off oldest items.
+        // 4. We truncate list if resultList size > maxEntries
+        // 5. Add all payloads with GetDataResponsePriority.HIGH
+
+        // 1. Add all payloads with GetDataResponsePriority.MID
+        List<T> midPrioItems = filteredItems.stream()
+                .filter(item -> item.getGetDataResponsePriority() == GetDataResponsePriority.MID)
+                .collect(Collectors.toList());
+        resultItems.addAll(midPrioItems);
+        log.info("Number of items with GetDataResponsePriority.MID: {}", midPrioItems.size());
+
+        // 2. Add all payloads with GetDataResponsePriority.LOW && !DateSortedTruncatablePayload until exceededSizeLimit is reached
+        List<T> lowPrioItems = filteredItems.stream()
+                .filter(item -> item.getGetDataResponsePriority() == GetDataResponsePriority.LOW)
+                .filter(item -> !(asPayload.apply(item) instanceof DateSortedTruncatablePayload))
+                .filter(item -> {
+                    if (exceededSizeLimit.get()) {
+                        return false;
+                    }
+                    if (totalSize.addAndGet(item.toProtoMessage().getSerializedSize()) > limit) {
+                        exceededSizeLimit.set(true);
+                        return false;
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+        resultItems.addAll(lowPrioItems);
+        log.info("Number of items with GetDataResponsePriority.LOW and !DateSortedTruncatablePayload: {}. Exceeded size limit: {}", lowPrioItems.size(), exceededSizeLimit.get());
+
+        // 3. if(!exceededSizeLimit) Add all payloads with GetDataResponsePriority.LOW && DateSortedTruncatablePayload until
+        //    exceededSizeLimit is reached and truncate by maxItems (sorted by date). We add the sublist to our resultItems in
+        //    reverse order so in case we cut off at next step we cut off oldest items.
+        if (!exceededSizeLimit.get()) {
+            List<T> dateSortedItems = filteredItems.stream()
+                    .filter(item -> item.getGetDataResponsePriority() == GetDataResponsePriority.LOW)
+                    .filter(item -> asPayload.apply(item) instanceof DateSortedTruncatablePayload)
+                    .filter(item -> {
+                        if (exceededSizeLimit.get()) {
+                            return false;
+                        }
+                        if (totalSize.addAndGet(item.toProtoMessage().getSerializedSize()) > limit) {
+                            exceededSizeLimit.set(true);
+                            return false;
+                        }
+                        return true;
+                    })
+                    .sorted(Comparator.comparing(item -> ((DateSortedTruncatablePayload) asPayload.apply(item)).getDate()))
+                    .collect(Collectors.toList());
+            if (!dateSortedItems.isEmpty()) {
+                int maxItems = ((DateSortedTruncatablePayload) asPayload.apply(dateSortedItems.get(0))).maxItems();
+                int size = dateSortedItems.size();
+                if (size > maxItems) {
+                    int fromIndex = size - maxItems;
+                    dateSortedItems = dateSortedItems.subList(fromIndex, size);
+                    outTruncated.set(true);
+                    log.info("Num truncated dateSortedItems {}", size);
+                    log.info("Removed oldest {} dateSortedItems as we exceeded {}", fromIndex, maxItems);
+                }
             }
-        }
+            log.info("Number of items with GetDataResponsePriority.LOW and DateSortedTruncatablePayload: {}. Was truncated: {}", dateSortedItems.size(), outTruncated.get());
 
-        List<T> filteredResults = entries.stream()
-                .filter(entry -> !(entry.getValue() instanceof DateSortedTruncatablePayload))
-                .filter(entry -> !knownHashes.contains(entry.getKey()))
-                .map(Map.Entry::getValue)
-                .filter(payload -> shouldTransmitPayloadToPeer(peerCapabilities, objToPayload.apply(payload)))
-                .collect(Collectors.toList());
-        log.info("Num filtered non-dateSortedTruncatablePayloads {}", filteredResults.size());
-
-        // The non-dateSortedTruncatablePayloads have higher prio, so we added dateSortedTruncatablePayloads
-        // after those so in case we need to truncate we first truncate the dateSortedTruncatablePayloads.
-        filteredResults.addAll(dateSortedTruncatablePayloads);
-
-        if (filteredResults.size() > maxEntries) {
-            filteredResults = filteredResults.subList(0, maxEntries);
-            outTruncated.set(true);
-            log.info("Num truncated filteredResults {}", filteredResults.size());
+            // We reverse sorting so in case we get truncated we cut off the older items
+            Comparator<T> comparator = Comparator.comparing(item -> ((DateSortedTruncatablePayload) asPayload.apply(item)).getDate());
+            dateSortedItems.sort(comparator.reversed());
+            resultItems.addAll(dateSortedItems);
         } else {
-            log.info("Num filteredResults {}", filteredResults.size());
+            log.info("No dateSortedItems added as we exceeded already the exceededSizeLimit of {}", limit);
         }
 
-        return new HashSet<>(filteredResults);
+        // 4. We truncate list if resultList size > maxEntries
+        int size = resultItems.size();
+        if (size > maxEntries) {
+            resultItems = resultItems.subList(0, maxEntries);
+            outTruncated.set(true);
+            log.info("Removed last {} items as we exceeded {}", size - maxEntries, maxEntries);
+        }
+
+        outTruncated.set(outTruncated.get() || exceededSizeLimit.get());
+
+        // 5. Add all payloads with GetDataResponsePriority.HIGH
+        List<T> highPrioItems = filteredItems.stream()
+                .filter(item -> item.getGetDataResponsePriority() == GetDataResponsePriority.HIGH)
+                .collect(Collectors.toList());
+        resultItems.addAll(highPrioItems);
+        log.info("Number of items with GetDataResponsePriority.HIGH: {}", highPrioItems.size());
+        log.info("Number of result items we send to requester: {}", resultItems.size());
+        return new HashSet<>(resultItems);
     }
 
+    public Collection<PersistableNetworkPayload> getPersistableNetworkPayloadCollection() {
+        return getMapForDataRequest().values();
+    }
 
     private Set<byte[]> getKeysAsByteSet(Map<ByteArray, ? extends PersistablePayload> map) {
         return map.keySet().stream()
@@ -482,30 +571,36 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      * or domain listeners.
      */
     public void processGetDataResponse(GetDataResponse getDataResponse, NodeAddress sender) {
-        final Set<ProtectedStorageEntry> dataSet = getDataResponse.getDataSet();
+        Set<ProtectedStorageEntry> protectedStorageEntries = getDataResponse.getDataSet();
         Set<PersistableNetworkPayload> persistableNetworkPayloadSet = getDataResponse.getPersistableNetworkPayloadSet();
+        long ts = System.currentTimeMillis();
+        protectedStorageEntries.forEach(protectedStorageEntry -> {
+            // We rebroadcast high priority data after a delay for better resilience
+            if (protectedStorageEntry.getProtectedStoragePayload().getGetDataResponsePriority() == GetDataResponsePriority.HIGH) {
+                UserThread.runAfter(() -> {
+                    log.info("Rebroadcast {}", protectedStorageEntry.getProtectedStoragePayload().getClass().getSimpleName());
+                    broadcaster.broadcast(new AddDataMessage(protectedStorageEntry), sender, null);
+                }, 60);
+            }
 
-        long ts2 = System.currentTimeMillis();
-        dataSet.forEach(e -> {
             // We don't broadcast here (last param) as we are only connected to the seed node and would be pointless
-            addProtectedStorageEntry(e, sender, null, false);
+            addProtectedStorageEntry(protectedStorageEntry, sender, null, false);
 
         });
-        log.info("Processing {} protectedStorageEntries took {} ms.", dataSet.size(), this.clock.millis() - ts2);
+        log.info("Processing {} protectedStorageEntries took {} ms.", protectedStorageEntries.size(), this.clock.millis() - ts);
 
-        ts2 = this.clock.millis();
+        ts = this.clock.millis();
         persistableNetworkPayloadSet.forEach(e -> {
             if (e instanceof ProcessOncePersistableNetworkPayload) {
                 // We use an optimized method as many checks are not required in that case to avoid
                 // performance issues.
                 // Processing 82645 items took now 61 ms compared to earlier version where it took ages (> 2min).
                 // Usually we only get about a few hundred or max. a few 1000 items. 82645 is all
-                // trade stats stats and all account age witness data.
+                // trade stats and all account age witness data.
 
                 // We only apply it once from first response
-                if (!initialRequestApplied) {
+                if (!initialRequestApplied || getDataResponse.isWasTruncated()) {
                     addPersistableNetworkPayloadFromInitialRequest(e);
-
                 }
             } else {
                 // We don't broadcast here as we are only connected to the seed node and would be pointless
@@ -513,7 +608,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             }
         });
         log.info("Processing {} persistableNetworkPayloads took {} ms.",
-                persistableNetworkPayloadSet.size(), this.clock.millis() - ts2);
+                persistableNetworkPayloadSet.size(), this.clock.millis() - ts);
 
         // We only process PersistableNetworkPayloads implementing ProcessOncePersistableNetworkPayload once. It can cause performance
         // issues and since the data is rarely out of sync it is not worth it to apply them from multiple peers during
@@ -537,10 +632,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         // object when we get it sent from new peers, we don’t remove the sequence number from the map.
         // That way an ADD message for an already expired data will fail because the sequence number
         // is equal and not larger as expected.
-        ArrayList<Map.Entry<ByteArray, ProtectedStorageEntry>> toRemoveList =
-                map.entrySet().stream()
-                        .filter(entry -> entry.getValue().isExpired(this.clock))
-                        .collect(Collectors.toCollection(ArrayList::new));
+        ArrayList<Map.Entry<ByteArray, ProtectedStorageEntry>> toRemoveList = map.entrySet().stream()
+                .filter(entry -> entry.getValue().isExpired(this.clock))
+                .collect(Collectors.toCollection(ArrayList::new));
 
         // Batch processing can cause performance issues, so do all of the removes first, then update the listeners
         // to let them know about the removes.
@@ -561,14 +655,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     public void onBootstrapped() {
         removeExpiredEntriesTimer = UserThread.runPeriodically(this::removeExpiredEntries, CHECK_TTL_INTERVAL_SEC);
     }
-
-    // Domain access should use the concrete appendOnlyDataStoreService if available. The Historical data store require
-    // care which data should be accessed (live data or all data).
-    @VisibleForTesting
-    Map<ByteArray, PersistableNetworkPayload> getAppendOnlyDataStoreMap() {
-        return appendOnlyDataStoreService.getMap();
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // MessageListener implementation
@@ -593,7 +679,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             });
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ConnectionListener implementation
@@ -632,12 +717,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                 });
     }
 
-    @Override
-    public void onError(Throwable throwable) {
-
-    }
-
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Client API
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -673,7 +752,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         }
 
         ByteArray hashAsByteArray = new ByteArray(payload.getHash());
-        boolean payloadHashAlreadyInStore = appendOnlyDataStoreService.getMap().containsKey(hashAsByteArray);
+        boolean payloadHashAlreadyInStore = appendOnlyDataStoreService.getMap(payload).containsKey(hashAsByteArray);
 
         // Store already knows about this payload. Ignore it unless the caller specifically requests a republish.
         if (payloadHashAlreadyInStore && !reBroadcast) {
@@ -690,13 +769,16 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         }
 
         // Add the payload and publish the state update to the appendOnlyDataStoreListeners
+        boolean wasAdded = false;
         if (!payloadHashAlreadyInStore) {
-            appendOnlyDataStoreService.put(hashAsByteArray, payload);
-            appendOnlyDataStoreListeners.forEach(e -> e.onAdded(payload));
+            wasAdded = appendOnlyDataStoreService.put(hashAsByteArray, payload);
+            if (wasAdded) {
+                appendOnlyDataStoreListeners.forEach(e -> e.onAdded(payload));
+            }
         }
 
         // Broadcast the payload if requested by caller
-        if (allowBroadcast)
+        if (allowBroadcast && wasAdded)
             broadcaster.broadcast(new AddPersistableNetworkPayloadMessage(payload), sender);
 
         return true;
@@ -739,7 +821,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
         ByteArray hashOfPayload = get32ByteHashAsByteArray(protectedStoragePayload);
 
-        log.trace("## call addProtectedStorageEntry hash={}, map={}", hashOfPayload, printMap());
+        //log.trace("## call addProtectedStorageEntry hash={}, map={}", hashOfPayload, printMap());
 
         // We do that check early as it is a very common case for returning, so we return early
         // If we have seen a more recent operation for this payload and we have a payload locally, ignore it
@@ -784,6 +866,13 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             return false;
         }
 
+        // Test against filterPredicate set from FilterManager
+        if (filterPredicate != null &&
+                !filterPredicate.test(protectedStorageEntry.getProtectedStoragePayload())) {
+            log.debug("filterPredicate test failed. hashOfPayload={}", hashOfPayload);
+            return false;
+        }
+
         // This is an updated entry. Record it and signal listeners.
         map.put(hashOfPayload, protectedStorageEntry);
         hashMapChangedListeners.forEach(e -> e.onAdded(Collections.singletonList(protectedStorageEntry)));
@@ -792,7 +881,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         sequenceNumberMap.put(hashOfPayload, new MapValue(protectedStorageEntry.getSequenceNumber(), this.clock.millis()));
         requestPersistence();
 
-        log.trace("## ProtectedStorageEntry added to map. hash={}, map={}", hashOfPayload, printMap());
+        //log.trace("## ProtectedStorageEntry added to map. hash={}, map={}", hashOfPayload, printMap());
 
         // Optionally, broadcast the add/update depending on the calling environment
         if (allowBroadcast) {
@@ -820,7 +909,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         ProtectedStoragePayload protectedStoragePayload = protectedMailboxStorageEntry.getProtectedStoragePayload();
         ByteArray hashOfPayload = get32ByteHashAsByteArray(protectedStoragePayload);
 
-        log.trace("## call republishProtectedStorageEntry hash={}, map={}", hashOfPayload, printMap());
+        //log.trace("## call republishProtectedStorageEntry hash={}, map={}", hashOfPayload, printMap());
 
         if (hasAlreadyRemovedAddOncePayload(protectedStoragePayload, hashOfPayload)) {
             log.trace("## We have already removed that AddOncePayload by a previous removeDataMessage. " +
@@ -847,42 +936,48 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     public boolean refreshTTL(RefreshOfferMessage refreshTTLMessage,
                               @Nullable NodeAddress sender) {
 
-        ByteArray hashOfPayload = new ByteArray(refreshTTLMessage.getHashOfPayload());
-        ProtectedStorageEntry storedData = map.get(hashOfPayload);
+        try {
+            ByteArray hashOfPayload = new ByteArray(refreshTTLMessage.getHashOfPayload());
+            ProtectedStorageEntry storedData = map.get(hashOfPayload);
 
-        if (storedData == null) {
-            log.debug("We don't have data for that refresh message in our map. That is expected if we missed the data publishing.");
+            if (storedData == null) {
+                log.debug("We don't have data for that refresh message in our map. That is expected if we missed the data publishing.");
 
+                return false;
+            }
+
+            ProtectedStorageEntry storedEntry = map.get(hashOfPayload);
+            ProtectedStorageEntry updatedEntry = new ProtectedStorageEntry(
+                    storedEntry.getProtectedStoragePayload(),
+                    storedEntry.getOwnerPubKey(),
+                    refreshTTLMessage.getSequenceNumber(),
+                    refreshTTLMessage.getSignature(),
+                    this.clock);
+
+
+            // If we have seen a more recent operation for this payload, we ignore the current one
+            if (!hasSequenceNrIncreased(updatedEntry.getSequenceNumber(), hashOfPayload))
+                return false;
+
+            // Verify the updated ProtectedStorageEntry is well formed and valid for update
+            if (!updatedEntry.isValidForAddOperation())
+                return false;
+
+            // Update the hash map with the updated entry
+            map.put(hashOfPayload, updatedEntry);
+
+            // Record the latest sequence number and persist it
+            sequenceNumberMap.put(hashOfPayload, new MapValue(updatedEntry.getSequenceNumber(), this.clock.millis()));
+            requestPersistence();
+
+            // Always broadcast refreshes
+            broadcaster.broadcast(refreshTTLMessage, sender);
+
+        } catch (IllegalArgumentException e) {
+            log.error("refreshTTL failed, missing data: {}", e.toString());
+            e.printStackTrace();
             return false;
         }
-
-        ProtectedStorageEntry storedEntry = map.get(hashOfPayload);
-        ProtectedStorageEntry updatedEntry = new ProtectedStorageEntry(
-                storedEntry.getProtectedStoragePayload(),
-                storedEntry.getOwnerPubKey(),
-                refreshTTLMessage.getSequenceNumber(),
-                refreshTTLMessage.getSignature(),
-                this.clock);
-
-
-        // If we have seen a more recent operation for this payload, we ignore the current one
-        if (!hasSequenceNrIncreased(updatedEntry.getSequenceNumber(), hashOfPayload))
-            return false;
-
-        // Verify the updated ProtectedStorageEntry is well formed and valid for update
-        if (!updatedEntry.isValidForAddOperation())
-            return false;
-
-        // Update the hash map with the updated entry
-        map.put(hashOfPayload, updatedEntry);
-
-        // Record the latest sequence number and persist it
-        sequenceNumberMap.put(hashOfPayload, new MapValue(updatedEntry.getSequenceNumber(), this.clock.millis()));
-        requestPersistence();
-
-        // Always broadcast refreshes
-        broadcaster.broadcast(refreshTTLMessage, sender);
-
         return true;
     }
 
@@ -1020,9 +1115,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             ByteArray hashOfPayload = entry.getKey();
             ProtectedStorageEntry protectedStorageEntry = entry.getValue();
 
-            log.trace("## removeFromMapAndDataStore: hashOfPayload={}, map before remove={}", hashOfPayload, printMap());
+            //log.trace("## removeFromMapAndDataStore: hashOfPayload={}, map before remove={}", hashOfPayload, printMap());
             map.remove(hashOfPayload);
-            log.trace("## removeFromMapAndDataStore: map after remove={}", printMap());
+            //log.trace("## removeFromMapAndDataStore: map after remove={}", printMap());
 
             // We inform listeners even the entry was not found in our map
             removedProtectedStorageEntries.add(protectedStorageEntry);
@@ -1046,20 +1141,18 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                         + newSequenceNumber + " / storedSequenceNumber=" + storedSequenceNumber + " / hashOfData=" + hashOfData.toString());*/
                 return true;
             } else if (newSequenceNumber == storedSequenceNumber) {
-                String msg;
                 if (newSequenceNumber == 0) {
-                    msg = "Sequence number is equal to the stored one and both are 0." +
-                            "That is expected for network_messages which never got updated (mailbox msg).";
+                    log.debug("Sequence number is equal to the stored one and both are 0." +
+                            "That is expected for network_messages which never got updated (mailbox msg).");
                 } else {
-                    msg = "Sequence number is equal to the stored one. sequenceNumber = "
-                            + newSequenceNumber + " / storedSequenceNumber=" + storedSequenceNumber;
+                    log.debug("Sequence number is equal to the stored one. sequenceNumber = {} / storedSequenceNumber={}",
+                            newSequenceNumber, storedSequenceNumber);
                 }
-                log.debug(msg);
                 return false;
             } else {
-                log.debug("Sequence number is invalid. sequenceNumber = "
-                        + newSequenceNumber + " / storedSequenceNumber=" + storedSequenceNumber + "\n" +
-                        "That can happen if the data owner gets an old delayed data storage message.");
+                log.debug("Sequence number is invalid. sequenceNumber = {} / storedSequenceNumber={} " +
+                                "That can happen if the data owner gets an old delayed data storage message.",
+                        newSequenceNumber, storedSequenceNumber);
                 return false;
             }
         } else {
@@ -1139,7 +1232,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         return Hash.getSha256Hash(data.toProtoMessage().toByteArray());
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Static class
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1169,7 +1261,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         }
     }
 
-
     /**
      * Used as key object in map for cryptographic hash of stored data as byte[] as primitive data type cannot be
      * used as key
@@ -1179,17 +1270,25 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         // That object is saved to disc. We need to take care of changes to not break deserialization.
         public final byte[] bytes;
 
+        public ByteArray(byte[] bytes) {
+            this.bytes = bytes;
+            verifyBytesNotEmpty();
+        }
+
+        public void verifyBytesNotEmpty() {
+            if (this.bytes == null)
+                throw new IllegalArgumentException("Cannot create P2PDataStorage.ByteArray with null byte[] array argument.");
+
+            if (this.bytes.length == 0)
+                throw new IllegalArgumentException("Cannot create P2PDataStorage.ByteArray with empty byte[] array argument.");
+        }
+
         @Override
         public String toString() {
             return "ByteArray{" +
                     "bytes as Hex=" + Hex.encode(bytes) +
                     '}';
         }
-
-        public ByteArray(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         // Protobuffer
@@ -1203,7 +1302,6 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         public static ByteArray fromProto(protobuf.ByteArray proto) {
             return new ByteArray(proto.getBytes().toByteArray());
         }
-
 
         ///////////////////////////////////////////////////////////////////////////////////////////
         // Util

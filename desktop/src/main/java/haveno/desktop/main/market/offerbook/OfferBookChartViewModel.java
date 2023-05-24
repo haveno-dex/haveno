@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.market.offerbook;
 
+import com.google.common.math.LongMath;
 import com.google.inject.Inject;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
@@ -45,19 +46,15 @@ import haveno.desktop.util.CurrencyList;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-import com.google.common.math.LongMath;
-
-import javafx.scene.chart.XYChart;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.chart.XYChart;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -262,13 +259,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     public int getMaxNumberOfPriceZeroDecimalsToColorize(Offer offer) {
         return offer.isFiatOffer()
                 ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS
-                : GUIUtil.ALTCOINS_DECIMALS_WITH_ZEROS;
+                : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
     }
 
     public int getZeroDecimalsForPrice(Offer offer) {
         return offer.isFiatOffer()
                 ? GUIUtil.FIAT_PRICE_DECIMALS_WITH_ZEROS
-                : GUIUtil.ALTCOINS_DECIMALS_WITH_ZEROS;
+                : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
     }
 
     public String getPrice(Offer offer) {
@@ -310,8 +307,8 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
-        // Trading btc-fiat is considered as buying/selling BTC, but trading btc-altcoin is
-        // considered as buying/selling Altcoin. Because of this, when viewing a btc-altcoin pair,
+        // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
+        // considered as buying/selling Crypto. Because of this, when viewing a xmr-crypto pair,
         // the buy column is actually the sell column and vice versa. To maintain the expected
         // ordering, we have to reverse the price comparator.
         boolean isCrypto = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
@@ -392,24 +389,26 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                                            OfferDirection direction,
                                            List<XYChart.Data<Number, Number>> data,
                                            ObservableList<OfferListItem> offerTableList) {
-        data.clear();
-        double accumulatedAmount = 0;
-        List<OfferListItem> offerTableListTemp = new ArrayList<>();
-        for (Offer offer : sortedList) {
-            Price price = offer.getPrice();
-            if (price != null) {
-                double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
-                accumulatedAmount += amount;
-                offerTableListTemp.add(new OfferListItem(offer, accumulatedAmount));
-
-                double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                if (direction.equals(OfferDirection.BUY))
-                    data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount));
-                else
-                    data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+        synchronized (data) {
+            data.clear();
+            double accumulatedAmount = 0;
+            List<OfferListItem> offerTableListTemp = new ArrayList<>();
+            for (Offer offer : sortedList) {
+                Price price = offer.getPrice();
+                if (price != null) {
+                    double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
+                    accumulatedAmount += amount;
+                    offerTableListTemp.add(new OfferListItem(offer, accumulatedAmount));
+    
+                    double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
+                    if (direction.equals(OfferDirection.BUY))
+                        data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                    else
+                        data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                }
             }
+            offerTableList.setAll(offerTableListTemp);
         }
-        offerTableList.setAll(offerTableListTemp);
     }
 
     private boolean isEditEntry(String id) {
@@ -418,15 +417,15 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void updateScreenCurrencyInPreferences(OfferDirection direction) {
         if (isSellOffer(direction)) {
-            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode())) {
+            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
                 preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
             }
         } else {
-            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode())) {
+            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
                 preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
             }
         }

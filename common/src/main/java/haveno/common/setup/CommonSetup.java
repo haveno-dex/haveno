@@ -17,16 +17,6 @@
 
 package haveno.common.setup;
 
-import org.bitcoinj.store.BlockStoreException;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
-import java.net.URISyntaxException;
-
-import java.nio.file.Paths;
-
-import java.util.concurrent.TimeUnit;
-
 import ch.qos.logback.classic.Level;
 import haveno.common.UserThread;
 import haveno.common.app.AsciiLogo;
@@ -37,10 +27,13 @@ import haveno.common.config.Config;
 import haveno.common.util.Profiler;
 import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
-
-
-
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bitcoinj.store.BlockStoreException;
 import sun.misc.Signal;
+
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class CommonSetup {

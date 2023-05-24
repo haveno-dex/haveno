@@ -65,16 +65,16 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -82,9 +82,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 abstract class OfferBookViewModel extends ActivatableViewModel {
@@ -399,7 +396,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public Optional<Double> getMarketBasedPrice(Offer offer) {
-        OfferDirection displayDirection = offer.isFiatOffer() ? direction :
+        OfferDirection displayDirection = offer.isTraditionalOffer() ? direction :
                 direction.equals(OfferDirection.BUY) ? OfferDirection.SELL : OfferDirection.BUY;
         return priceUtil.getMarketBasedPrice(offer, displayDirection);
     }
@@ -430,7 +427,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     int getNumberOfDecimalsForVolume(OfferBookListItem item) {
-        return item.getOffer().isFiatOffer() ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS : GUIUtil.ALTCOINS_DECIMALS_WITH_ZEROS;
+        return item.getOffer().isFiatOffer() ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
     }
 
     String getPaymentMethod(OfferBookListItem item) {
@@ -625,7 +622,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode))
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
         else
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);

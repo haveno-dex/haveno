@@ -17,11 +17,10 @@
 
 package haveno.core.api.model;
 
-import java.util.Arrays;
-
 import lombok.AllArgsConstructor;
-
 import lombok.ToString;
+
+import java.util.Arrays;
 
 @ToString
 @AllArgsConstructor

@@ -17,9 +17,10 @@
 
 package haveno.apitest;
 
-import java.io.File;
-
+import haveno.apitest.config.ApiTestConfig;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.File;
 
 import static haveno.apitest.Scaffold.EXIT_FAILURE;
 import static haveno.apitest.Scaffold.EXIT_SUCCESS;
@@ -28,8 +29,6 @@ import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRat
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.hasCallRateMeteringConfigPathOpt;
 import static java.lang.System.err;
 import static java.lang.System.exit;
-
-import haveno.apitest.config.ApiTestConfig;
 
 /**
  * ApiTestMain is a placeholder for the gradle build file, which requires a valid

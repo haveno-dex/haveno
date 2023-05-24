@@ -20,17 +20,11 @@ package haveno.core.payment;
 import com.google.common.collect.Lists;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.offer.Offer;
-import haveno.core.payment.CountryBasedPaymentAccount;
-import haveno.core.payment.NationalBankAccount;
-import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.ReceiptPredicates;
-import haveno.core.payment.SepaAccount;
-import haveno.core.payment.SepaInstantAccount;
 import haveno.core.payment.payload.PaymentMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

@@ -45,10 +45,10 @@ import haveno.network.p2p.mailbox.MailboxMessageList;
 import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsMap;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j

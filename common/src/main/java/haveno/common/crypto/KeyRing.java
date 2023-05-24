@@ -17,18 +17,15 @@
 
 package haveno.common.crypto;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import javax.crypto.SecretKey;
-
-import java.security.KeyPair;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.security.KeyPair;
 
 @Getter
 @EqualsAndHashCode

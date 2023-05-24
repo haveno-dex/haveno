@@ -17,16 +17,16 @@
 
 package haveno.desktop.main.market.spread;
 
-import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
-
 import haveno.core.locale.Res;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.common.view.FxmlView;
+import javafx.scene.control.ToggleButton;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import javafx.scene.control.ToggleButton;
+import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
 
 @FxmlView
 public class SpreadViewPaymentMethod extends SpreadView {

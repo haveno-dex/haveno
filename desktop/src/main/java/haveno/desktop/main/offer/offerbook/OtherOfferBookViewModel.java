@@ -24,6 +24,7 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferFilterService;
@@ -41,16 +42,14 @@ import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.jetbrains.annotations.NotNull;
 
+import javax.inject.Named;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.NotNull;
 
 public class OtherOfferBookViewModel extends OfferBookViewModel {
 
@@ -84,7 +83,14 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
     @Override
     protected ObservableList<PaymentMethod> filterPaymentMethods(ObservableList<PaymentMethod> list,
                                                                  TradeCurrency selectedTradeCurrency) {
-        return FXCollections.observableArrayList(list.stream().filter(PaymentMethod::isBlockchain).collect(Collectors.toList()));
+        return FXCollections.observableArrayList(list.stream().filter(paymentMethod -> {
+            if (paymentMethod.isBlockchain()) return true;
+            if (paymentMethod.getSupportedAssetCodes() == null) return true;
+            for (String assetCode : paymentMethod.getSupportedAssetCodes()) {
+                if (!CurrencyUtil.isFiatCurrency(assetCode)) return true;
+            }
+            return false;
+        }).collect(Collectors.toList()));
     }
 
     @Override
@@ -93,13 +99,19 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
 
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
         tradeCurrencies.addAll(preferences.getCryptoCurrenciesAsObservable().stream()
-                .filter(withoutTopAltcoin())
+                .filter(withoutTopCrypto())
+                .collect(Collectors.toList()));
+        tradeCurrencies.addAll(CurrencyUtil.getMainTraditionalCurrencies().stream()
+                .filter(withoutFiatCurrency())
                 .collect(Collectors.toList()));
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
 
         allCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
         allCurrencies.addAll(CurrencyUtil.getAllSortedCryptoCurrencies().stream()
-                .filter(withoutTopAltcoin())
+                .filter(withoutTopCrypto())
+                .collect(Collectors.toList()));
+        allCurrencies.addAll(CurrencyUtil.getMainTraditionalCurrencies().stream()
+                .filter(withoutFiatCurrency())
                 .collect(Collectors.toList()));
         allCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
     }
@@ -109,11 +121,11 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
                                                                TradeCurrency selectedTradeCurrency) {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
-            // BUY Altcoin is actually SELL Bitcoin
+            // BUY Crypto is actually SELL Monero
             boolean directionResult = offer.getDirection() == direction;
-            boolean currencyResult = CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode()) &&
+            boolean currencyResult = !CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) &&
                     ((showAllTradeCurrenciesProperty.get() &&
-                            !offer.getCurrencyCode().equals(GUIUtil.TOP_ALTCOIN.getCode())) ||
+                            !offer.getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) ||
                             offer.getCurrencyCode().equals(selectedTradeCurrency.getCode()));
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
@@ -126,8 +138,8 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
     TradeCurrency getDefaultTradeCurrency() {
         TradeCurrency defaultTradeCurrency = GlobalSettings.getDefaultTradeCurrency();
 
-        if (!CurrencyUtil.isFiatCurrency(defaultTradeCurrency.getCode()) &&
-                !defaultTradeCurrency.equals(GUIUtil.TOP_ALTCOIN) &&
+        if (!CurrencyUtil.isTraditionalCurrency(defaultTradeCurrency.getCode()) &&
+                !defaultTradeCurrency.equals(GUIUtil.TOP_CRYPTO) &&
                 hasPaymentAccountForCurrency(defaultTradeCurrency)) {
             return defaultTradeCurrency;
         }
@@ -154,8 +166,14 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
     }
 
     @NotNull
-    private Predicate<CryptoCurrency> withoutTopAltcoin() {
+    private Predicate<CryptoCurrency> withoutTopCrypto() {
         return cryptoCurrency ->
-                        !cryptoCurrency.equals(GUIUtil.TOP_ALTCOIN);
+                        !cryptoCurrency.equals(GUIUtil.TOP_CRYPTO);
+    }
+
+    @NotNull
+    private Predicate<TraditionalCurrency> withoutFiatCurrency() {
+        return fiatCurrency ->
+                        !CurrencyUtil.isFiatCurrency(fiatCurrency.getCode());
     }
 }

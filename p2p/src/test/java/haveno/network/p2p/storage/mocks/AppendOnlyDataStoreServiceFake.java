@@ -20,7 +20,6 @@ package haveno.network.p2p.storage.mocks;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import java.util.Map;
 
 /**
  * Implementation of an in-memory AppendOnlyDataStoreService that can be used in tests. Removes overhead
@@ -34,11 +33,7 @@ public class AppendOnlyDataStoreServiceFake extends AppendOnlyDataStoreService {
         addService(new MapStoreServiceFake());
     }
 
-    public Map<P2PDataStorage.ByteArray, PersistableNetworkPayload> getMap() {
-        return super.getMap();
-    }
-
-    public void put(P2PDataStorage.ByteArray hashAsByteArray, PersistableNetworkPayload payload) {
-        super.put(hashAsByteArray, payload);
+    public boolean put(P2PDataStorage.ByteArray hashAsByteArray, PersistableNetworkPayload payload) {
+        return super.put(hashAsByteArray, payload);
     }
 }

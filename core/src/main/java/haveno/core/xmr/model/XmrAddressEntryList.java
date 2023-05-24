@@ -17,19 +17,17 @@
 
 package haveno.core.xmr.model;
 
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.google.protobuf.Message;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
-import com.google.inject.Inject;
-
-import com.google.common.collect.ImmutableList;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 
 
@@ -95,7 +93,7 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
         return ImmutableList.copyOf(entrySet);
     }
 
-    public void addAddressEntry(XmrAddressEntry addressEntry) {
+    public boolean addAddressEntry(XmrAddressEntry addressEntry) {
         boolean entryWithSameOfferIdAndContextAlreadyExist = entrySet.stream().anyMatch(e -> {
             if (addressEntry.getOfferId() != null) {
                 return addressEntry.getOfferId().equals(e.getOfferId()) && addressEntry.getContext() == e.getContext();
@@ -103,14 +101,12 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
             return false;
         });
         if (entryWithSameOfferIdAndContextAlreadyExist) {
-            log.error("We have an address entry with the same offer ID and context. We do not add the new one. " +
-                    "addressEntry={}, entrySet={}", addressEntry, entrySet);
-            return;
+            throw new IllegalArgumentException("We have an address entry with the same offer ID and context. We do not add the new one. addressEntry=" + addressEntry);
         }
 
         boolean setChangedByAdd = entrySet.add(addressEntry);
-        if (setChangedByAdd)
-            requestPersistence();
+        if (setChangedByAdd) requestPersistence();
+        return setChangedByAdd;
     }
 
     public void swapToAvailable(XmrAddressEntry addressEntry) {
@@ -125,9 +121,19 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
     public XmrAddressEntry swapAvailableToAddressEntryWithOfferId(XmrAddressEntry addressEntry,
                                                                XmrAddressEntry.Context context,
                                                                String offerId) {
+        // remove old entry
         boolean setChangedByRemove = entrySet.remove(addressEntry);
+
+        // add new entry
         final XmrAddressEntry newAddressEntry = new XmrAddressEntry(addressEntry.getSubaddressIndex(), addressEntry.getAddressString(), context, offerId, null);
-        boolean setChangedByAdd = entrySet.add(newAddressEntry);
+        boolean setChangedByAdd = false;
+        try {
+            setChangedByAdd = addAddressEntry(newAddressEntry);
+        } catch (Exception e) {
+            entrySet.add(addressEntry); // undo change if error
+            throw e;
+        }
+        
         if (setChangedByRemove || setChangedByAdd)
             requestPersistence();
 

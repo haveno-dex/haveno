@@ -19,9 +19,9 @@ package haveno.core.xmr.wallet;
 
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
-import java.math.BigInteger;
-
 import org.bitcoinj.core.Coin;
+
+import java.math.BigInteger;
 
 public class Restrictions {
     public static BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.1);
@@ -88,7 +88,7 @@ public class Restrictions {
     }
 
     public static int getLockTime(boolean isAsset) {
-        // 10 days for altcoins, 20 days for other payment methods
+        // 10 days for cryptos, 20 days for other payment methods
         return isAsset ? 144 * 10 : 144 * 20;
     }
 }

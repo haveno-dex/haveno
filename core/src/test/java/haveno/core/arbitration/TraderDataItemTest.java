@@ -1,18 +1,17 @@
 package haveno.core.arbitration;
 
-import java.math.BigInteger;
-import java.security.PublicKey;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Mockito.mock;
-
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.support.dispute.arbitration.TraderDataItem;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigInteger;
+import java.security.PublicKey;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.mockito.Mockito.mock;
 
 /*
  * This file is part of Haveno.
@@ -39,7 +38,7 @@ public class TraderDataItemTest {
     private byte[] hash1 = "1".getBytes();
     private byte[] hash2 = "2".getBytes();
 
-    @Before
+    @BeforeEach
     public void setup() {
         accountAgeWitness1 = new AccountAgeWitness(hash1, 123);
         accountAgeWitness2 = new AccountAgeWitness(hash2, 124);

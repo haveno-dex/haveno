@@ -20,23 +20,23 @@ package haveno.core.payment;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.StrikeAccountPayload;
-import java.util.List;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class StrikeAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
     public static final List<Country> SUPPORTED_COUNTRIES = CountryUtil.getCountries(List.of("US"));
-    
+
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.COUNTRY,
@@ -82,7 +82,7 @@ public final class StrikeAccount extends CountryBasedPaymentAccount {
     public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
-    
+
     @Override
     @Nullable
     public @NotNull List<Country> getSupportedCountries() {

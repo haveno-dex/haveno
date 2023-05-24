@@ -20,13 +20,13 @@ package haveno.core.network.p2p.seed;
 import haveno.common.config.Config;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.seed.SeedNodeRepository;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,8 +35,6 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 // If a new BaseCurrencyNetwork type gets added we need to add the resource file for it as well!
 @Slf4j

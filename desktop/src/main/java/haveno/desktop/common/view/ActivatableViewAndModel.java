@@ -17,11 +17,10 @@
 
 package haveno.desktop.common.view;
 
+import haveno.desktop.common.model.Activatable;
 import javafx.scene.Node;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import haveno.desktop.common.model.Activatable;
 
 public abstract class ActivatableViewAndModel<R extends Node, M extends Activatable> extends ActivatableView<R, M> {
 

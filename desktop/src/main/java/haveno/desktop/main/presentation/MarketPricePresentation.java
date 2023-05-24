@@ -28,14 +28,6 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
-import haveno.desktop.util.GUIUtil;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -44,17 +36,20 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import lombok.Getter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
 
 @Singleton
 public class MarketPricePresentation {
@@ -147,8 +142,8 @@ public class MarketPricePresentation {
                             fillPriceFeedComboBoxItems();
                         });
                     } else {
-                        CurrencyUtil.getFiatCurrency(code).ifPresent(fiatCurrency -> {
-                            preferences.addFiatCurrency(fiatCurrency);
+                        CurrencyUtil.getTraditionalCurrency(code).ifPresent(traditionalCurrency -> {
+                            preferences.addTraditionalCurrency(traditionalCurrency);
                             fillPriceFeedComboBoxItems();
                         });
                     }
@@ -193,7 +188,7 @@ public class MarketPricePresentation {
             final String code = item.currencyCode;
             if (selectedPriceFeedComboBoxItemProperty.get() != null &&
                     selectedPriceFeedComboBoxItemProperty.get().currencyCode.equals(code)) {
-                isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isFiatCurrency(code) && CurrencyUtil.getFiatCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
+                isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isTraditionalCurrency(code) && CurrencyUtil.getTraditionalCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
                 isCryptoCurrencyPriceFeedSelected.set(CurrencyUtil.isCryptoCurrency(code) && CurrencyUtil.getCryptoCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
                 isExternallyProvidedPrice.set(item.isExternallyProvidedPrice());
                 isPriceAvailable.set(item.isPriceAvailable());

@@ -28,19 +28,14 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-
-import javafx.stage.Modality;
-import javafx.stage.Window;
-
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.scene.Camera;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.transform.Rotate;
-
-import javafx.geometry.Insets;
-
-import javafx.collections.ObservableList;
-
+import javafx.stage.Modality;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 public class Notification extends Overlay<Notification> {

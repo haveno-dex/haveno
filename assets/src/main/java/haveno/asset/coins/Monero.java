@@ -17,11 +17,11 @@
 
 package haveno.asset.coins;
 
-import haveno.asset.AltCoinAccountDisclaimer;
+import haveno.asset.CryptoAccountDisclaimer;
 import haveno.asset.Coin;
 import haveno.asset.CryptoNoteAddressValidator;
 
-@AltCoinAccountDisclaimer("account.altcoin.popup.xmr.msg")
+@CryptoAccountDisclaimer("account.crypto.popup.xmr.msg")
 public class Monero extends Coin {
 
     public Monero() {

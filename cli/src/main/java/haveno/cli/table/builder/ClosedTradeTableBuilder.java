@@ -17,10 +17,11 @@
 
 package haveno.cli.table.builder;
 
-import static haveno.cli.table.builder.TableType.CLOSED_TRADES_TBL;
-
 import haveno.cli.table.Table;
+
 import java.util.List;
+
+import static haveno.cli.table.builder.TableType.CLOSED_TRADES_TBL;
 
 @SuppressWarnings("ConstantConditions")
 class ClosedTradeTableBuilder extends AbstractTradeListBuilder {

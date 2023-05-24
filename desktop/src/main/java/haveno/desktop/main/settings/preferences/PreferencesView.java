@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.settings.preferences;
 
-import static haveno.desktop.util.FormBuilder.*;
-
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -31,7 +29,7 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.LanguageUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -60,13 +58,13 @@ import haveno.desktop.main.overlays.windows.EditCustomExplorerWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import org.apache.commons.lang3.StringUtils;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -80,20 +78,13 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.VPos;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.Coin;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -104,6 +95,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static haveno.desktop.util.FormBuilder.addButton;
+import static haveno.desktop.util.FormBuilder.addComboBox;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
+import static haveno.desktop.util.FormBuilder.addTextFieldWithEditButton;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class PreferencesView extends ActivatableViewAndModel<GridPane, PreferencesViewModel> {
@@ -130,15 +128,15 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private final FilterManager filterManager;
     private final File storageDir;
 
-    private ListView<FiatCurrency> fiatCurrenciesListView;
-    private ComboBox<FiatCurrency> fiatCurrenciesComboBox;
+    private ListView<TraditionalCurrency> traditionalCurrenciesListView;
+    private ComboBox<TraditionalCurrency> traditionalCurrenciesComboBox;
     private ListView<CryptoCurrency> cryptoCurrenciesListView;
     private ComboBox<CryptoCurrency> cryptoCurrenciesComboBox;
     private Button resetDontShowAgainButton, editCustomBtcExplorer;
     private ObservableList<String> languageCodes;
     private ObservableList<Country> countries;
-    private ObservableList<FiatCurrency> fiatCurrencies;
-    private ObservableList<FiatCurrency> allFiatCurrencies;
+    private ObservableList<TraditionalCurrency> traditionalCurrencies;
+    private ObservableList<TraditionalCurrency> allTraditionalCurrencies;
     private ObservableList<CryptoCurrency> cryptoCurrencies;
     private ObservableList<CryptoCurrency> allCryptoCurrencies;
     private ObservableList<TradeCurrency> tradeCurrencies;
@@ -176,12 +174,12 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     public void initialize() {
         languageCodes = FXCollections.observableArrayList(LanguageUtil.getUserLanguageCodes());
         countries = FXCollections.observableArrayList(CountryUtil.getAllCountries());
-        fiatCurrencies = preferences.getFiatCurrenciesAsObservable();
+        traditionalCurrencies = preferences.getTraditionalCurrenciesAsObservable();
         cryptoCurrencies = preferences.getCryptoCurrenciesAsObservable();
         tradeCurrencies = preferences.getTradeCurrenciesAsObservable();
 
-        allFiatCurrencies = FXCollections.observableArrayList(CurrencyUtil.getAllSortedFiatCurrencies());
-        allFiatCurrencies.removeAll(fiatCurrencies);
+        allTraditionalCurrencies = FXCollections.observableArrayList(CurrencyUtil.getAllSortedTraditionalCurrencies());
+        allTraditionalCurrencies.removeAll(traditionalCurrencies);
 
         initializeGeneralOptions();
         initializeDisplayOptions();
@@ -333,24 +331,24 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         preferredTradeCurrencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory("", "",
                 FXCollections.emptyObservableMap()));
 
-        Tuple3<Label, ListView<FiatCurrency>, VBox> fiatTuple = addTopLabelListView(root, displayCurrenciesGridRowIndex,
-                Res.get("setting.preferences.displayFiat"));
+        Tuple3<Label, ListView<TraditionalCurrency>, VBox> traditionalTuple = addTopLabelListView(root, displayCurrenciesGridRowIndex,
+                Res.get("setting.preferences.displayTraditional"));
 
         int listRowSpan = 6;
-        GridPane.setColumnIndex(fiatTuple.third, 2);
-        GridPane.setRowSpan(fiatTuple.third, listRowSpan);
+        GridPane.setColumnIndex(traditionalTuple.third, 2);
+        GridPane.setRowSpan(traditionalTuple.third, listRowSpan);
 
-        GridPane.setValignment(fiatTuple.third, VPos.TOP);
-        GridPane.setMargin(fiatTuple.third, new Insets(10, 0, 0, 0));
-        fiatCurrenciesListView = fiatTuple.second;
-        fiatCurrenciesListView.setMinHeight(9 * Layout.LIST_ROW_HEIGHT + 2);
-        fiatCurrenciesListView.setPrefHeight(10 * Layout.LIST_ROW_HEIGHT + 2);
-        Label placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noFiat"));
+        GridPane.setValignment(traditionalTuple.third, VPos.TOP);
+        GridPane.setMargin(traditionalTuple.third, new Insets(10, 0, 0, 0));
+        traditionalCurrenciesListView = traditionalTuple.second;
+        traditionalCurrenciesListView.setMinHeight(9 * Layout.LIST_ROW_HEIGHT + 2);
+        traditionalCurrenciesListView.setPrefHeight(10 * Layout.LIST_ROW_HEIGHT + 2);
+        Label placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noTraditional"));
         placeholder.setWrapText(true);
-        fiatCurrenciesListView.setPlaceholder(placeholder);
-        fiatCurrenciesListView.setCellFactory(new Callback<>() {
+        traditionalCurrenciesListView.setPlaceholder(placeholder);
+        traditionalCurrenciesListView.setCellFactory(new Callback<>() {
             @Override
-            public ListCell<FiatCurrency> call(ListView<FiatCurrency> list) {
+            public ListCell<TraditionalCurrency> call(ListView<TraditionalCurrency> list) {
                 return new ListCell<>() {
                     final Label label = new AutoTooltipLabel();
                     final ImageView icon = ImageUtil.getImageViewById(ImageUtil.REMOVE_ICON);
@@ -364,7 +362,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     }
 
                     @Override
-                    public void updateItem(final FiatCurrency item, boolean empty) {
+                    public void updateItem(final TraditionalCurrency item, boolean empty) {
                         super.updateItem(item, empty);
                         if (item != null && !empty) {
                             label.setText(item.getNameAndCode());
@@ -372,10 +370,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                                 if (item.equals(preferences.getPreferredTradeCurrency())) {
                                     new Popup().warning(Res.get("setting.preferences.cannotRemovePrefCurrency")).show();
                                 } else {
-                                    preferences.removeFiatCurrency(item);
-                                    if (!allFiatCurrencies.contains(item)) {
-                                        allFiatCurrencies.add(item);
-                                        allFiatCurrencies.sort(TradeCurrency::compareTo);
+                                    preferences.removeTraditionalCurrency(item);
+                                    if (!allTraditionalCurrencies.contains(item)) {
+                                        allTraditionalCurrencies.add(item);
+                                        allTraditionalCurrencies.sort(TradeCurrency::compareTo);
                                     }
                                 }
                             });
@@ -390,7 +388,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         });
 
         Tuple3<Label, ListView<CryptoCurrency>, VBox> cryptoCurrenciesTuple = addTopLabelListView(root,
-                displayCurrenciesGridRowIndex, Res.get("setting.preferences.displayAltcoins"));
+                displayCurrenciesGridRowIndex, Res.get("setting.preferences.displayCryptos"));
 
         GridPane.setColumnIndex(cryptoCurrenciesTuple.third, 3);
         GridPane.setRowSpan(cryptoCurrenciesTuple.third, listRowSpan);
@@ -400,7 +398,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         cryptoCurrenciesListView = cryptoCurrenciesTuple.second;
         cryptoCurrenciesListView.setMinHeight(9 * Layout.LIST_ROW_HEIGHT + 2);
         cryptoCurrenciesListView.setPrefHeight(10 * Layout.LIST_ROW_HEIGHT + 2);
-        placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noAltcoins"));
+        placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noCryptos"));
         placeholder.setWrapText(true);
         cryptoCurrenciesListView.setPlaceholder(placeholder);
         cryptoCurrenciesListView.setCellFactory(new Callback<>() {
@@ -444,31 +442,31 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         });
 
-        fiatCurrenciesComboBox = addComboBox(root, displayCurrenciesGridRowIndex + listRowSpan);
-        GridPane.setColumnIndex(fiatCurrenciesComboBox, 2);
-        GridPane.setValignment(fiatCurrenciesComboBox, VPos.TOP);
-        fiatCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addFiat"));
-        fiatCurrenciesComboBox.setButtonCell(new ListCell<>() {
+        traditionalCurrenciesComboBox = addComboBox(root, displayCurrenciesGridRowIndex + listRowSpan);
+        GridPane.setColumnIndex(traditionalCurrenciesComboBox, 2);
+        GridPane.setValignment(traditionalCurrenciesComboBox, VPos.TOP);
+        traditionalCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addTraditional"));
+        traditionalCurrenciesComboBox.setButtonCell(new ListCell<>() {
             @Override
-            protected void updateItem(final FiatCurrency item, boolean empty) {
+            protected void updateItem(final TraditionalCurrency item, boolean empty) {
                 super.updateItem(item, empty);
                 this.setVisible(item != null || !empty);
 
                 if (empty || item == null) {
-                    setText(Res.get("setting.preferences.addFiat"));
+                    setText(Res.get("setting.preferences.addTraditional"));
                 } else {
                     setText(item.getNameAndCode());
                 }
             }
         });
-        fiatCurrenciesComboBox.setConverter(new StringConverter<>() {
+        traditionalCurrenciesComboBox.setConverter(new StringConverter<>() {
             @Override
-            public String toString(FiatCurrency tradeCurrency) {
+            public String toString(TraditionalCurrency tradeCurrency) {
                 return tradeCurrency.getNameAndCode();
             }
 
             @Override
-            public FiatCurrency fromString(String s) {
+            public TraditionalCurrency fromString(String s) {
                 return null;
             }
         });
@@ -478,7 +476,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setValignment(cryptoCurrenciesComboBox, VPos.TOP);
         GridPane.setMargin(cryptoCurrenciesComboBox, new Insets(Layout.FLOATING_LABEL_DISTANCE,
                 0, 0, 20));
-        cryptoCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addAltcoin"));
+        cryptoCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addCrypto"));
         cryptoCurrenciesComboBox.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(final CryptoCurrency item, boolean empty) {
@@ -487,7 +485,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
 
                 if (empty || item == null) {
-                    setText(Res.get("setting.preferences.addAltcoin"));
+                    setText(Res.get("setting.preferences.addCrypto"));
                 } else {
                     setText(item.getNameAndCode());
                 }
@@ -713,16 +711,16 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                 preferences.setPreferredTradeCurrency(selectedItem);
         });
 
-        fiatCurrenciesComboBox.setItems(allFiatCurrencies);
-        fiatCurrenciesListView.setItems(fiatCurrencies);
-        fiatCurrenciesComboBox.setOnHiding(e -> {
-            FiatCurrency selectedItem = fiatCurrenciesComboBox.getSelectionModel().getSelectedItem();
+        traditionalCurrenciesComboBox.setItems(allTraditionalCurrencies);
+        traditionalCurrenciesListView.setItems(traditionalCurrencies);
+        traditionalCurrenciesComboBox.setOnHiding(e -> {
+            TraditionalCurrency selectedItem = traditionalCurrenciesComboBox.getSelectionModel().getSelectedItem();
             if (selectedItem != null) {
-                preferences.addFiatCurrency(selectedItem);
-                if (allFiatCurrencies.contains(selectedItem)) {
+                preferences.addTraditionalCurrency(selectedItem);
+                if (allTraditionalCurrencies.contains(selectedItem)) {
                     UserThread.execute(() -> {
-                        fiatCurrenciesComboBox.getSelectionModel().clearSelection();
-                        allFiatCurrencies.remove(selectedItem);
+                        traditionalCurrenciesComboBox.getSelectionModel().clearSelection();
+                        allTraditionalCurrencies.remove(selectedItem);
 
                     });
                 }
@@ -790,6 +788,14 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     .show();
         });
 
+        // We use opposite property (useStandbyMode) in preferences to have the default value (false) set as we want it,
+        // so users who update gets set avoidStandbyMode=true (useStandbyMode=false)
+        if (displayStandbyModeFeature) {
+            avoidStandbyMode.setSelected(!preferences.isUseStandbyMode());
+            avoidStandbyMode.setOnAction(e -> preferences.setUseStandbyMode(!avoidStandbyMode.isSelected()));
+        } else {
+            preferences.setUseStandbyMode(false);
+        }
     }
 
     private void activateAutoConfirmPreferences() {

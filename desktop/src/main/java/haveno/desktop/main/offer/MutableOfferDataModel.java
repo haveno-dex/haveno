@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.offer;
 
-import org.jetbrains.annotations.NotNull;
 import com.google.inject.Inject;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.util.MathUtils;
@@ -52,8 +51,6 @@ import haveno.desktop.Navigation;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -66,13 +63,14 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
+import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 
+import javax.inject.Named;
 import java.math.BigInteger;
-
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
@@ -81,8 +79,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
@@ -260,11 +256,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     @NotNull
     private Optional<PaymentAccount> getAnyPaymentAccount() {
         if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
-            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.getPaymentMethod().isAltcoin()).findAny();
+            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.isFiat()).findAny();
         } else {
-            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.getPaymentMethod().isAltcoin() &&
+            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.isFiat() &&
                     paymentAccount1.getTradeCurrency().isPresent() &&
-                    !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_ALTCOIN.getCode())).findAny();
+                    !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_CRYPTO.getCode())).findAny();
         }
     }
 
@@ -388,7 +384,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 if (CurrencyUtil.isCryptoCurrency(code)) {
                     CurrencyUtil.getCryptoCurrency(code).ifPresent(preferences::addCryptoCurrency);
                 } else {
-                    CurrencyUtil.getFiatCurrency(code).ifPresent(preferences::addFiatCurrency);
+                    CurrencyUtil.getTraditionalCurrency(code).ifPresent(preferences::addTraditionalCurrency);
                 }
             }
         }
@@ -621,7 +617,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     boolean isFiatCurrency() {
-        return CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get());
+        return CurrencyUtil.isTraditionalCurrency(tradeCurrencyCode.get());
     }
 
     ReadOnlyBooleanProperty getUseMarketBasedPrice() {

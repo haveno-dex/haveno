@@ -17,9 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addLabel;
-
 import haveno.core.locale.Res;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.validation.RevolutValidator;
@@ -28,6 +25,9 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.Layout;
 import javafx.scene.Scene;
+
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addLabel;
 
 public class UpdateRevolutAccountWindow extends Overlay<UpdateRevolutAccountWindow> {
     private final RevolutValidator revolutValidator;

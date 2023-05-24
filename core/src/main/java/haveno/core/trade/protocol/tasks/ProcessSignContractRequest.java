@@ -18,22 +18,16 @@
 package haveno.core.trade.protocol.tasks;
 
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Date;
-import java.util.UUID;
-import javax.crypto.SecretKey;
-
 import com.google.common.base.Charsets;
 import haveno.common.app.Version;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.ScryptUtil;
-import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Contract;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.SignContractRequest;
@@ -44,9 +38,15 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 @Slf4j
 public class ProcessSignContractRequest extends TradeTask {
-    
+
     private boolean ack1 = false;
     private boolean ack2 = false;
 
@@ -68,7 +68,7 @@ public class ProcessSignContractRequest extends TradeTask {
           trader.setAccountId(request.getAccountId());
           trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
           trader.setPayoutAddressString(request.getPayoutAddress());
-          
+
           // maker sends witness signature of deposit tx hash
           if (trader == trade.getMaker()) {
             trader.setAccountAgeWitnessNonce(request.getDepositTxHash().getBytes(Charsets.UTF_8));
@@ -85,7 +85,7 @@ public class ProcessSignContractRequest extends TradeTask {
           // create and sign contract
           Contract contract = trade.createContract();
           String contractAsJson = JsonUtil.objectToJson(contract);
-          String signature = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), contractAsJson);
+          byte[] signature = HavenoUtils.sign(processModel.getKeyRing(), contractAsJson);
 
           // save contract and signature
           trade.setContract(contract);
@@ -162,6 +162,7 @@ public class ProcessSignContractRequest extends TradeTask {
     }
 
     private void completeAux() {
+        trade.addInitProgressStep();
         trade.setState(State.CONTRACT_SIGNED);
         processModel.getTradeManager().requestPersistence();
         complete();

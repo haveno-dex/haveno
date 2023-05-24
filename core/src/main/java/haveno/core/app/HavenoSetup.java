@@ -17,44 +17,9 @@
 
 package haveno.core.app;
 
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.SetChangeListener;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import ch.qos.logback.classic.Level;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
-import haveno.common.app.Log;
 import haveno.common.app.Version;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
@@ -79,6 +44,7 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.TradeTxException;
 import haveno.core.user.Preferences;
@@ -91,17 +57,42 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.utils.Utils;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @Slf4j
 @Singleton
@@ -109,7 +100,7 @@ public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
     private static final String RESYNC_SPV_FILE_NAME = "resyncSpv";
 
-    private static final long STARTUP_TIMEOUT_MINUTES = 4;
+    private static final long STARTUP_TIMEOUT_MINUTES = 5;
 
     private final DomainInitialisation domainInitialisation;
     private final P2PNetworkSetup p2PNetworkSetup;
@@ -255,9 +246,7 @@ public class HavenoSetup {
         this.refundManager = refundManager;
         this.arbitrationManager = arbitrationManager;
 
-        xmrWalletService.setHavenoSetup(this);
-
-        MemPoolSpaceTxBroadcaster.init(socks5ProxyProvider, preferences, localBitcoinNode);
+        HavenoUtils.havenoSetup = this;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -410,22 +399,15 @@ public class HavenoSetup {
             if (displayTorNetworkSettingsHandler != null)
                 displayTorNetworkSettingsHandler.accept(true);
 
-            log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
-                    "Tor network connection issues");
-            Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
+            // log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
+            //         "Tor network connection issues");
+            // Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
 
         }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
         log.info("Init P2P network");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
         p2pNetworkReady = p2PNetworkSetup.init(this::initWallet, displayTorNetworkSettingsHandler);
-
-        // We only init wallet service here if not using Tor for bitcoinj.
-        // When using Tor, wallet init must be deferred until Tor is ready.
-        // TODO encapsulate below conditional inside getUseTorForBitcoinJ
-        if (!preferences.getUseTorForBitcoinJ() || localBitcoinNode.shouldBeUsed()) {
-            initWallet();
-        }
 
         // need to store it to not get garbage collected
         p2pNetworkAndWalletInitialized = EasyBind.combine(walletInitialized, p2pNetworkReady,
@@ -458,7 +440,7 @@ public class HavenoSetup {
                         checkForInvalidMakerFeeTxs();
                     }
                 },
-                () -> walletInitialized.set(true));
+                () -> {});
     }
 
     private void initDomainServices() {

@@ -54,8 +54,8 @@ public class PaymentAccountFactory {
                 return new WeChatPayAccount();
             case PaymentMethod.SWISH_ID:
                 return new SwishAccount();
-            case PaymentMethod.CLEAR_X_CHANGE_ID:
-                return new ClearXchangeAccount();
+            case PaymentMethod.ZELLE_ID:
+                return new ZelleAccount();
             case PaymentMethod.CHASE_QUICK_PAY_ID:
                 return new ChaseQuickPayAccount();
             case PaymentMethod.INTERAC_E_TRANSFER_ID:
@@ -74,8 +74,8 @@ public class PaymentAccountFactory {
                 return new HalCashAccount();
             case PaymentMethod.F2F_ID:
                 return new F2FAccount();
-            case PaymentMethod.CASH_BY_MAIL_ID:
-                return new CashByMailAccount();
+            case PaymentMethod.PAY_BY_MAIL_ID:
+                return new PayByMailAccount();
             case PaymentMethod.PROMPT_PAY_ID:
                 return new PromptPayAccount();
             case PaymentMethod.ADVANCED_CASH_ID:

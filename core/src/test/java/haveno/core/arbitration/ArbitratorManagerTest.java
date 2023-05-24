@@ -22,20 +22,18 @@ import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorService;
 import haveno.core.user.User;
 import haveno.network.p2p.NodeAddress;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class ArbitratorManagerTest {
-
-
 
     @Test
     public void testIsArbitratorAvailableForLanguage() {
@@ -54,11 +52,11 @@ public class ArbitratorManagerTest {
             add("es");
         }};
 
-        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null, null,
+        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null,
                 languagesOne, 0L, null, "", null,
                 null, null);
 
-        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null, null,
+        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null,
                 languagesTwo, 0L, null, "", null,
                 null, null);
 
@@ -90,11 +88,11 @@ public class ArbitratorManagerTest {
             add("es");
         }};
 
-        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null, null,
+        Arbitrator one = new Arbitrator(new NodeAddress("arbitrator:1"), null,
                 languagesOne, 0L, null, "", null,
                 null, null);
 
-        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null, null,
+        Arbitrator two = new Arbitrator(new NodeAddress("arbitrator:2"), null,
                 languagesTwo, 0L, null, "", null,
                 null, null);
 

@@ -18,6 +18,7 @@
 package haveno.network.p2p.storage.mocks;
 
 import haveno.common.proto.persistable.PersistablePayload;
+
 import java.security.PublicKey;
 /**
  * Stub implementation of a ProtectedStoragePayloadStub implementing the ExpirablePayload & RequiresOwnerIsOnlinePayload

@@ -6,7 +6,6 @@ import haveno.common.ClockWatcher;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.network.NetworkProtoResolver;
@@ -41,7 +40,6 @@ import haveno.core.support.dispute.mediation.mediator.MediatorService;
 import haveno.core.support.traderchat.TraderChatManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
-import haveno.desktop.Navigation;
 import haveno.desktop.app.HavenoAppModule;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.ViewLoader;
@@ -57,18 +55,18 @@ import haveno.desktop.main.presentation.MarketPricePresentation;
 import haveno.desktop.util.Transitions;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import haveno.network.p2p.seed.SeedNodeRepository;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static junit.framework.TestCase.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class GuiceSetupTest {
 
     private Injector injector;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Res.setup();
         CurrencyUtil.setup();

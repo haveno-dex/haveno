@@ -28,15 +28,14 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.storage.P2PDataStorage;
-import java.util.Date;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Date;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OfferBookListItem {
@@ -69,7 +68,7 @@ public class OfferBookListItem {
                                             SignedWitnessService signedWitnessService) {
         if (witnessAgeData == null) {
             if (CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode())) {
-                witnessAgeData = new WitnessAgeData(WitnessAgeData.TYPE_ALTCOINS);
+                witnessAgeData = new WitnessAgeData(WitnessAgeData.TYPE_CRYPTOS);
             } else if (PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode())) {
                 // Fiat and signed witness required
                 Optional<AccountAgeWitness> optionalWitness = accountAgeWitnessService.findWitness(offer);
@@ -129,7 +128,7 @@ public class OfferBookListItem {
         public static final long TYPE_SIGNED_OR_BANNED = 3L;
         public static final long TYPE_NOT_SIGNED = 2L;
         public static final long TYPE_NOT_SIGNING_REQUIRED = 1L;
-        public static final long TYPE_ALTCOINS = 0L;
+        public static final long TYPE_CRYPTOS = 0L;
 
         public WitnessAgeData(long type) {
             this(type, 0, null);
@@ -176,7 +175,7 @@ public class OfferBookListItem {
         }
 
         public boolean isSigningRequired() {
-            return this.type != TYPE_NOT_SIGNING_REQUIRED && this.type != TYPE_ALTCOINS;
+            return this.type != TYPE_NOT_SIGNING_REQUIRED && this.type != TYPE_CRYPTOS;
         }
 
         @Override

@@ -17,20 +17,19 @@
 
 package haveno.core.util.coin;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.util.MathUtils;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.wallet.Restrictions;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static haveno.core.util.VolumeUtil.getAdjustedFiatVolume;
+import org.bitcoinj.core.Coin;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static haveno.core.util.VolumeUtil.getAdjustedFiatVolume;
 
 public class CoinUtil {
 

@@ -35,16 +35,17 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(MakerSendSignOfferRequest.class);
-    
+
     private boolean failed = false;
 
     @SuppressWarnings({"unused"})
@@ -59,7 +60,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             runInterceptHook();
 
             // create request for arbitrator to sign offer
-            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            String returnAddress = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).get().getAddressString();
             SignOfferRequest request = new SignOfferRequest(
                     model.getOffer().getId(),
                     P2PService.getMyNodeAddress(),
@@ -74,7 +75,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     model.getReserveTx().getKey(),
                     offer.getOfferPayload().getReserveTxKeyImages(),
                     returnAddress);
-            
+
             // send request to least used arbitrators until success
             sendSignOfferRequests(request, () -> {
                 complete();
@@ -91,16 +92,16 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
     }
 
     private void sendSignOfferRequests(SignOfferRequest request, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager());
-        if (leastUsedArbitrator == null) {
-            errorMessageHandler.handleErrorMessage("Could not get least used arbitrator to send " + request.getClass().getSimpleName() + " for offer " + request.getOfferId());
+        Arbitrator randomArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager());
+        if (randomArbitrator == null) {
+            errorMessageHandler.handleErrorMessage("Could not get random arbitrator to send " + request.getClass().getSimpleName() + " for offer " + request.getOfferId());
             return;
         }
-        sendSignOfferRequests(request, leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), resultHandler, errorMessageHandler);
+        sendSignOfferRequests(request, randomArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), resultHandler, errorMessageHandler);
     }
 
     private void sendSignOfferRequests(SignOfferRequest request, NodeAddress arbitratorNodeAddress, Set<NodeAddress> excludedArbitrators,  ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        
+
         // complete on successful ack message, fail on first nack
         DecryptedDirectMessageListener ackListener = new DecryptedDirectMessageListener() {
             @Override
@@ -128,13 +129,13 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             public void onArrived() {
                 log.info("{} arrived at arbitrator: offerId={}", request.getClass().getSimpleName(), model.getOffer().getId());
             }
-            
+
             // if unavailable, try alternative arbitrator
             @Override
             public void onFault(String errorMessage) {
                 log.warn("Arbitrator unavailable: {}", errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
-                Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(model.getTradeStatisticsManager(), model.getArbitratorManager(), excludedArbitrators);
+                Arbitrator altArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager(), excludedArbitrators);
                 if (altArbitrator == null) {
                     errorMessageHandler.handleErrorMessage("Offer " + request.getOfferId() + " could not be signed by any arbitrator");
                     return;

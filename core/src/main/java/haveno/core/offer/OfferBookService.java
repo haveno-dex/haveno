@@ -37,22 +37,19 @@ import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import monero.common.MoneroConnectionManagerListener;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
-
 import java.io.File;
-
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 /**
  * Handles storage and retrieval of offers.
@@ -97,10 +94,10 @@ public class OfferBookService {
         jsonFileManager = new JsonFileManager(storageDir);
 
         // listen for connection changes to monerod
-        connectionsService.addListener(new MoneroConnectionManagerListener() {
+        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
-                if (keyImagePoller == null) return;
+                maybeInitializeKeyImagePoller();
                 keyImagePoller.setDaemon(connectionsService.getDaemon());
                 keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
             }
@@ -110,32 +107,40 @@ public class OfferBookService {
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> offerBookChangedListeners.forEach(listener -> {
-                    if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                        maybeInitializeKeyImagePoller();
-                        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                        keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
-                        Offer offer = new Offer(offerPayload);
-                        offer.setPriceFeedService(priceFeedService);
-                        setReservedFundsSpent(offer);
-                        listener.onAdded(offer);
-                    }
-                }));
+                    protectedStorageEntries.forEach(protectedStorageEntry -> {
+                        synchronized (offerBookChangedListeners) {
+                            offerBookChangedListeners.forEach(listener -> {
+                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                    maybeInitializeKeyImagePoller();
+                                    keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
+                                    Offer offer = new Offer(offerPayload);
+                                    offer.setPriceFeedService(priceFeedService);
+                                    setReservedFundsSpent(offer);
+                                    listener.onAdded(offer);
+                                }
+                            });
+                        }
+                    });
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> offerBookChangedListeners.forEach(listener -> {
-                    if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                        maybeInitializeKeyImagePoller();
-                        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                        keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
-                        Offer offer = new Offer(offerPayload);
-                        offer.setPriceFeedService(priceFeedService);
-                        setReservedFundsSpent(offer);
-                        listener.onRemoved(offer);
-                    }
-                }));
+                    protectedStorageEntries.forEach(protectedStorageEntry -> {
+                        synchronized (offerBookChangedListeners) {
+                            offerBookChangedListeners.forEach(listener -> {
+                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                    maybeInitializeKeyImagePoller();
+                                    keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                                    Offer offer = new Offer(offerPayload);
+                                    offer.setPriceFeedService(priceFeedService);
+                                    setReservedFundsSpent(offer);
+                                    listener.onRemoved(offer);
+                                }
+                            });
+                        }
+                    });
             }
         });
 
@@ -247,7 +252,13 @@ public class OfferBookService {
     }
 
     public void addOfferBookChangedListener(OfferBookChangedListener offerBookChangedListener) {
-        offerBookChangedListeners.add(offerBookChangedListener);
+        synchronized (offerBookChangedListeners) {
+            offerBookChangedListeners.add(offerBookChangedListener);
+        }
+    }
+
+    public void shutDown() {
+        if (keyImagePoller != null) keyImagePoller.clearKeyImages();
     }
 
 
@@ -269,11 +280,12 @@ public class OfferBookService {
             }
         });
 
-        // first poll after 5s
+        // first poll after 20s
+        // TODO: remove?
         new Thread(() -> {
-            GenUtils.waitFor(5000);
+            GenUtils.waitFor(20000);
             keyImagePoller.poll();
-        });
+        }).start();
     }
 
     private long getKeyImageRefreshPeriodMs() {
@@ -283,10 +295,16 @@ public class OfferBookService {
     private void updateAffectedOffers(String keyImage) {
         for (Offer offer : getOffers()) {
             if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                offerBookChangedListeners.forEach(listener -> {
-                    listener.onRemoved(offer);
-                    listener.onAdded(offer);
-                });
+                synchronized (offerBookChangedListeners) {
+                    offerBookChangedListeners.forEach(listener -> {
+
+                        // notify off thread to avoid deadlocking
+                        new Thread(() -> {
+                            listener.onRemoved(offer);
+                            listener.onAdded(offer);
+                        }).start();
+                    });
+                }
             }
         }
     }

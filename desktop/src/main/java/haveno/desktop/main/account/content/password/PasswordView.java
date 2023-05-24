@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.account.content.password;
 
-import javax.inject.Inject;
-
 import com.jfoenix.validation.RequiredFieldValidator;
 import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
@@ -37,12 +35,13 @@ import haveno.desktop.main.account.content.backup.BackupView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.PasswordValidator;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 
-import javafx.beans.value.ChangeListener;
+import javax.inject.Inject;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;

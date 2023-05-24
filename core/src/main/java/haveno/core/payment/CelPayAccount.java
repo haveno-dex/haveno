@@ -18,27 +18,26 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.CelPayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class CelPayAccount extends PaymentAccount {
 
     // https://github.com/bisq-network/growth/issues/231
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("AUD"),
-            new FiatCurrency("CAD"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("HKD"),
-            new FiatCurrency("USD")
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("HKD"),
+            new TraditionalCurrency("USD")
     );
 
     public CelPayAccount() {

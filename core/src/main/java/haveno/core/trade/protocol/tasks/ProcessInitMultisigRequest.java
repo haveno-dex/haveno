@@ -29,17 +29,16 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroMultisigInitResult;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.util.Validator.checkTradeId;
-
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroMultisigInitResult;
 
 @Slf4j
 public class ProcessInitMultisigRequest extends TradeTask {
@@ -77,6 +76,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // prepare multisig if applicable
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
+            trade.addInitProgressStep();
             log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
             multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
@@ -110,8 +110,9 @@ public class ProcessInitMultisigRequest extends TradeTask {
             log.info("Importing exchanged multisig hex for trade {}", trade.getId());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
             processModel.setMultisigAddress(result.getAddress());
-            trade.saveWallet(); // save multisig wallet on completion
+            new Thread(() -> trade.saveWallet()).start(); // save multisig wallet off thread on completion
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
+            trade.updateWalletRefreshPeriod(); // starts syncing
           }
 
           // update multisig participants if new state to communicate
@@ -217,6 +218,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
     }
 
     private void completeAux() {
+        trade.addInitProgressStep();
         complete();
     }
 }

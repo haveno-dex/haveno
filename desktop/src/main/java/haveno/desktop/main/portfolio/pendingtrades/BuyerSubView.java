@@ -23,9 +23,8 @@ import haveno.desktop.main.portfolio.pendingtrades.steps.buyer.BuyerStep1View;
 import haveno.desktop.main.portfolio.pendingtrades.steps.buyer.BuyerStep2View;
 import haveno.desktop.main.portfolio.pendingtrades.steps.buyer.BuyerStep3View;
 import haveno.desktop.main.portfolio.pendingtrades.steps.buyer.BuyerStep4View;
-import org.fxmisc.easybind.EasyBind;
-
 import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
 public class BuyerSubView extends TradeSubView {

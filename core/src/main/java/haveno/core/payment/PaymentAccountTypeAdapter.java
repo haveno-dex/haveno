@@ -24,12 +24,17 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,15 +42,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.common.util.ReflectionUtils.*;
+import static haveno.common.util.ReflectionUtils.getSetterMethodForFieldInClassHierarchy;
+import static haveno.common.util.ReflectionUtils.getVisibilityModifierAsString;
+import static haveno.common.util.ReflectionUtils.handleSetFieldValueError;
+import static haveno.common.util.ReflectionUtils.isSetterOnClass;
+import static haveno.common.util.ReflectionUtils.loadFieldListForClassHierarchy;
 import static haveno.common.util.Utilities.decodeFromHex;
 import static haveno.core.locale.CountryUtil.findCountryByCode;
 import static haveno.core.locale.CurrencyUtil.getCurrencyByCountryCode;
@@ -433,7 +435,7 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
 
             if (account.isCountryBasedPaymentAccount()) {
                 ((CountryBasedPaymentAccount) account).setCountry(country.get());
-                FiatCurrency fiatCurrency = getCurrencyByCountryCode(checkNotNull(countryCode));
+                TraditionalCurrency fiatCurrency = getCurrencyByCountryCode(checkNotNull(countryCode));
                 account.setSingleTradeCurrency(fiatCurrency);
             } else if (account.hasPaymentMethodWithId(MONEY_GRAM_ID)) {
                 ((MoneyGramAccount) account).setCountry(country.get());

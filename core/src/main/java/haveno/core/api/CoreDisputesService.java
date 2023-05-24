@@ -23,20 +23,18 @@ import haveno.core.trade.TradeManager;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import lombok.extern.slf4j.Slf4j;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
-
-import java.math.BigInteger;
 
 
 @Singleton
@@ -236,7 +234,7 @@ public class CoreDisputesService {
                     .add(buyerSecurityDeposit));
         } else if (payout == DisputePayout.CUSTOM) {
             if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) {
-                throw new RuntimeException("The custom winner payout amount is more than the trade wallet's balance");
+                throw new RuntimeException("Winner payout is more than the trade wallet's balance");
             }
             long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
             disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));

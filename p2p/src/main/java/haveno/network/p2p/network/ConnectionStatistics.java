@@ -23,12 +23,12 @@ import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.InitialDataRequest;
 import haveno.network.p2p.InitialDataResponse;
 import haveno.network.p2p.NodeAddress;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ConnectionStatistics implements MessageListener {

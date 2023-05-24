@@ -20,7 +20,14 @@ package haveno.cli.opts;
 
 import joptsimple.OptionSpec;
 
-import static haveno.cli.opts.OptLabel.*;
+import static haveno.cli.opts.OptLabel.OPT_AMOUNT;
+import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
+import static haveno.cli.opts.OptLabel.OPT_DIRECTION;
+import static haveno.cli.opts.OptLabel.OPT_FIXED_PRICE;
+import static haveno.cli.opts.OptLabel.OPT_MIN_AMOUNT;
+import static haveno.cli.opts.OptLabel.OPT_MKT_PRICE_MARGIN;
+import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
+import static haveno.cli.opts.OptLabel.OPT_SECURITY_DEPOSIT;
 import static joptsimple.internal.Strings.EMPTY;
 
 public class CreateOfferOptionParser extends AbstractMethodOptionParser implements MethodOpts {

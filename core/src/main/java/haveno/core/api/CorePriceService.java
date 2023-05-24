@@ -17,9 +17,6 @@
 
 package haveno.core.api;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import com.google.common.math.LongMath;
 import haveno.core.api.model.MarketDepthInfo;
 import haveno.core.api.model.MarketPriceInfo;
@@ -30,14 +27,16 @@ import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 
 @Singleton
@@ -54,7 +53,7 @@ class CorePriceService {
     }
 
     /**
-     * @return Price per 1 XMR in the given currency (fiat or crypto)
+     * @return Price per 1 XMR in the given currency (traditional or crypto)
      */
     public double getMarketPrice(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException, IllegalArgumentException {
         var marketPrice = priceFeedService.requestAllPrices().get(currencyCode);
@@ -65,7 +64,7 @@ class CorePriceService {
     }
 
     /**
-     * @return Price per 1 XMR in all supported currencies (fiat & crypto)
+     * @return Price per 1 XMR in all supported currencies (traditional & crypto)
      */
     public List<MarketPriceInfo> getMarketPrices() throws ExecutionException, InterruptedException, TimeoutException {
         return priceFeedService.requestAllPrices().values().stream()
@@ -85,8 +84,8 @@ class CorePriceService {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
-        // Trading btc-fiat is considered as buying/selling BTC, but trading btc-altcoin is
-        // considered as buying/selling Altcoin. Because of this, when viewing a btc-altcoin pair,
+        // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
+        // considered as buying/selling crypto. Because of this, when viewing a xmr-crypto pair,
         // the buy column is actually the sell column and vice versa. To maintain the expected
         // ordering, we have to reverse the price comparator.
         boolean isCrypto = CurrencyUtil.isCryptoCurrency(currencyCode);
@@ -140,16 +139,16 @@ class CorePriceService {
 
         return new MarketDepthInfo(currencyCode, buyPrices, buyDepth, sellPrices, sellDepth);
     }
-    
+
     /**
-     * PriceProvider returns different values for crypto and fiat,
+     * PriceProvider returns different values for crypto and traditional,
      * e.g. 1 XMR = X USD
      * but 1 DOGE = X XMR
      * Here we convert all to:
      * 1 XMR = X (FIAT or CRYPTO)
      */
     private double mapPriceFeedServicePrice(double price, String currencyCode) {
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             return price;
         }
         return price == 0 ? 0 : 1 / price;

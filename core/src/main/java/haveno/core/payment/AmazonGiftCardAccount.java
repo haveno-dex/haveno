@@ -20,31 +20,30 @@ package haveno.core.payment;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import java.util.List;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public final class AmazonGiftCardAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
-            new FiatCurrency("AUD"),
-            new FiatCurrency("CAD"),
-            new FiatCurrency("EUR"),
-            new FiatCurrency("GBP"),
-            new FiatCurrency("INR"),
-            new FiatCurrency("JPY"),
-            new FiatCurrency("SAR"),
-            new FiatCurrency("SEK"),
-            new FiatCurrency("SGD"),
-            new FiatCurrency("TRY"),
-            new FiatCurrency("USD")
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("INR"),
+            new TraditionalCurrency("JPY"),
+            new TraditionalCurrency("SAR"),
+            new TraditionalCurrency("SEK"),
+            new TraditionalCurrency("SGD"),
+            new TraditionalCurrency("TRY"),
+            new TraditionalCurrency("USD")
     );
 
     @Nullable

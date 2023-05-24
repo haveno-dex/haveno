@@ -32,18 +32,16 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.user.User;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.io.File;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static haveno.common.config.Config.baseCurrencyNetwork;
 import static haveno.core.locale.CurrencyUtil.findAsset;
@@ -155,7 +153,7 @@ class CorePaymentAccountsService {
 
     List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return PaymentMethod.getPaymentMethods().stream()
-                .filter(PaymentMethod::isAltcoin)
+                .filter(PaymentMethod::isCrypto)
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
     }

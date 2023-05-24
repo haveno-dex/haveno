@@ -23,7 +23,6 @@ import haveno.desktop.main.market.trades.charts.CandleData;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Region;
-
 import javafx.util.StringConverter;
 
 public class VolumeBar extends Group {

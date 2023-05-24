@@ -17,6 +17,8 @@
 
 package haveno.core.trade.statistics;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Capability;
@@ -26,9 +28,12 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.ExtraDataMapValidator;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
-import haveno.core.monetary.Altcoin;
-import haveno.core.monetary.AltcoinExchangeRate;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.monetary.CryptoMoney;
+import haveno.core.monetary.CryptoExchangeRate;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
+import haveno.core.monetary.TraditionalExchangeRate;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
@@ -40,26 +45,18 @@ import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.DateSortedTruncatablePayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.utils.ExchangeRate;
-import org.bitcoinj.utils.Fiat;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
-
+import javax.annotation.Nullable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -81,16 +78,16 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
         }
-        
-        NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress());
-        
+
+        NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress(), "Arbitrator address is null", trade.getClass().getSimpleName(), trade.getId());
+
         // The first 4 chars are sufficient to identify an arbitrator.
         // For testing with regtest/localhost we use the full address as its localhost and would result in
         // same values for multiple arbitrators.
         String truncatedArbitratorNodeAddress = isTorNetworkNode ?
                 arbitratorNodeAddress.getFullAddress().substring(0, 4) :
                     arbitratorNodeAddress.getFullAddress();
-        
+
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getPrice().getValue(),
@@ -125,7 +122,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         SWISH,
         ALI_PAY,
         WECHAT_PAY,
-        CLEAR_X_CHANGE,
+        ZELLE,
         CHASE_QUICK_PAY,
         INTERAC_E_TRANSFER,
         US_POSTAL_MONEY_ORDER,
@@ -140,7 +137,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         BLOCK_CHAINS_INSTANT,
         TRANSFERWISE,
         AMAZON_GIFT_CARD,
-        CASH_BY_MAIL,
+        PAY_BY_MAIL,
         CAPITUAL,
         PAYSERA,
         PAXUM,
@@ -198,7 +195,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     private transient final Date dateObj;
 
     @JsonExclude
-    private transient Volume volume = null; // Fiat or altcoin volume
+    private transient Volume volume = null; // Traditional or crypto volume
     @JsonExclude
     private transient LocalDateTime localDateTime;
 
@@ -379,11 +376,12 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     public Volume getTradeVolume() {
         if (volume == null) {
-            if (getTradePrice().getMonetary() instanceof Altcoin) {
-                volume = new Volume(new AltcoinExchangeRate((Altcoin) getTradePrice().getMonetary()).coinToAltcoin(getTradeAmount()));
+            if (getTradePrice().getMonetary() instanceof CryptoMoney) {
+                volume = new Volume(new CryptoExchangeRate((CryptoMoney) getTradePrice().getMonetary()).coinToCrypto(getTradeAmount()));
             } else {
-                Volume exactVolume = new Volume(new ExchangeRate((Fiat) getTradePrice().getMonetary()).coinToFiat(getTradeAmount()));
-                volume = VolumeUtil.getRoundedFiatVolume(exactVolume);
+                Volume exactVolume = new Volume(new TraditionalExchangeRate((TraditionalMoney) getTradePrice().getMonetary()).coinToTraditionalMoney(getTradeAmount()));
+                boolean isFiat = CurrencyUtil.isFiatCurrency(exactVolume.getCurrencyCode());
+                if (isFiat) volume = VolumeUtil.getRoundedFiatVolume(exactVolume);
             }
         }
         return volume;

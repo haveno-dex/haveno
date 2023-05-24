@@ -46,7 +46,7 @@ class TableBuilderConstants {
     static final String COL_HEADER_DATE_TIME = "Date/Time (UTC)";
     static final String COL_HEADER_DETAILED_AMOUNT = "Amount(%-3s)";
     static final String COL_HEADER_DETAILED_PRICE = "Price in %-3s for 1 BTC";
-    static final String COL_HEADER_DETAILED_PRICE_OF_ALTCOIN = "Price in BTC for 1 %-3s";
+    static final String COL_HEADER_DETAILED_PRICE_OF_CRYPTO = "Price in BTC for 1 %-3s";
     static final String COL_HEADER_DIRECTION = "Buy/Sell";
     static final String COL_HEADER_ENABLED = "Enabled";
     static final String COL_HEADER_MARKET = "Market";
@@ -55,7 +55,7 @@ class TableBuilderConstants {
     static final String COL_HEADER_PAYMENT_METHOD = "Payment Method";
     static final String COL_HEADER_PRICE = "Price";
     static final String COL_HEADER_STATUS = "Status";
-    static final String COL_HEADER_TRADE_ALTCOIN_BUYER_ADDRESS = "%-3s Buyer Address";
+    static final String COL_HEADER_TRADE_CRYPTO_BUYER_ADDRESS = "%-3s Buyer Address";
     static final String COL_HEADER_TRADE_BUYER_COST = "Buyer Cost(%-3s)";
     static final String COL_HEADER_TRADE_DEPOSIT_CONFIRMED = "Deposit Confirmed";
     static final String COL_HEADER_TRADE_DEPOSIT_PUBLISHED = "Deposit Published";

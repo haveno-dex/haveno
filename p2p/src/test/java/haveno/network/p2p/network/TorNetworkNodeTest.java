@@ -23,30 +23,24 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.mocks.MockPayload;
-import haveno.network.p2p.network.Connection;
-import haveno.network.p2p.network.NewTor;
-import haveno.network.p2p.network.SetupListener;
-import haveno.network.p2p.network.TorNetworkNode;
-import java.io.File;
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
-
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-
-import org.junit.Ignore;
-import org.junit.Test;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 // TorNode created. Took 6 sec.
 // Hidden service created. Took 40-50 sec.
 // Connection establishment takes about 4 sec.
 //TODO P2P network tests are outdated
 @SuppressWarnings("ConstantConditions")
-@Ignore
+@Disabled
 public class TorNetworkNodeTest {
     private static final Logger log = LoggerFactory.getLogger(TorNetworkNodeTest.class);
     private CountDownLatch latch;
@@ -57,7 +51,7 @@ public class TorNetworkNodeTest {
         latch = new CountDownLatch(1);
         int port = 9001;
         TorNetworkNode node1 = new TorNetworkNode(port, TestUtils.getNetworkProtoResolver(), false,
-                new NewTor(new File("torNode_" + port), null, "", new ArrayList<String>()), null);
+                new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12);
         node1.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -84,7 +78,7 @@ public class TorNetworkNodeTest {
         latch = new CountDownLatch(1);
         int port2 = 9002;
         TorNetworkNode node2 = new TorNetworkNode(port2, TestUtils.getNetworkProtoResolver(), false,
-                new NewTor(new File("torNode_" + port), null, "", new ArrayList<String>()), null);
+                new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12);
         node2.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -142,7 +136,7 @@ public class TorNetworkNodeTest {
         latch = new CountDownLatch(2);
         int port = 9001;
         TorNetworkNode node1 = new TorNetworkNode(port, TestUtils.getNetworkProtoResolver(), false,
-                new NewTor(new File("torNode_" + port), null, "", new ArrayList<String>()), null);
+                new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12);
         node1.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -168,7 +162,7 @@ public class TorNetworkNodeTest {
 
         int port2 = 9002;
         TorNetworkNode node2 = new TorNetworkNode(port2, TestUtils.getNetworkProtoResolver(), false,
-                new NewTor(new File("torNode_" + port), null, "", new ArrayList<String>()), null);
+                new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12);
         node2.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -218,5 +212,9 @@ public class TorNetworkNodeTest {
         node1.shutDown(latch::countDown);
         node2.shutDown(latch::countDown);
         latch.await();
+    }
+
+    public List<String> getBridgeAddresses() {
+        return new ArrayList<>();
     }
 }

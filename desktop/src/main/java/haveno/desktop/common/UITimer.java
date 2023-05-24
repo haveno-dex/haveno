@@ -17,14 +17,14 @@
 
 package haveno.desktop.common;
 
-import javafx.application.Platform;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.reactfx.FxTimer;
-import java.time.Duration;
-
+import javafx.application.Platform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
 
 public class UITimer implements Timer {
     private final Logger log = LoggerFactory.getLogger(UITimer.class);

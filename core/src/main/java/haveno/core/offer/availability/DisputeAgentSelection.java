@@ -24,30 +24,31 @@ import haveno.core.support.dispute.agent.DisputeAgentManager;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.network.p2p.NodeAddress;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class DisputeAgentSelection {
     public static final int LOOK_BACK_RANGE = 100;
-    
+
     public static <T extends DisputeAgent> T getLeastUsedArbitrator(TradeStatisticsManager tradeStatisticsManager,
                                                                   DisputeAgentManager<T> disputeAgentManager) {
         return getLeastUsedDisputeAgent(tradeStatisticsManager,
                 disputeAgentManager,
                 null);
-}
+    }
 
     public static <T extends DisputeAgent> T getLeastUsedArbitrator(TradeStatisticsManager tradeStatisticsManager,
                                                                   DisputeAgentManager<T> disputeAgentManager,
@@ -108,5 +109,41 @@ public class DisputeAgentSelection {
         disputeAgentTuples.sort(Comparator.comparing(e -> e.first));
         disputeAgentTuples.sort(Comparator.comparingInt(e -> e.second.get()));
         return disputeAgentTuples.get(0).first;
+    }
+
+    public static <T extends DisputeAgent> T getRandomArbitrator(DisputeAgentManager<T> disputeAgentManager) {
+        return getRandomArbitrator(disputeAgentManager, null);
+    }
+
+    public static <T extends DisputeAgent> T getRandomArbitrator(DisputeAgentManager<T> disputeAgentManager,
+                    Set<NodeAddress> excludedArbitrator) {
+        return getRandomDisputeAgent(disputeAgentManager, excludedArbitrator);
+    }
+
+    private static <T extends DisputeAgent> T getRandomDisputeAgent(DisputeAgentManager<T> disputeAgentManager,
+                    Set<NodeAddress> excludedDisputeAgents) {
+
+        // get all dispute agents
+        Set<String> disputeAgents = disputeAgentManager.getObservableMap().values().stream()
+                        .map(disputeAgent -> disputeAgent.getNodeAddress().getFullAddress())
+                        .collect(Collectors.toSet());
+
+        // remove excluded dispute agents
+        if (excludedDisputeAgents != null) disputeAgents.removeAll(excludedDisputeAgents.stream().map(NodeAddress::getFullAddress).collect(Collectors.toList()));
+        if (disputeAgents.isEmpty()) return null;
+
+        // get random dispute agent
+        String result = getRandomDisputeAgent(disputeAgents);
+        Optional<T> optionalDisputeAgent = disputeAgentManager.getObservableMap().values().stream()
+                        .filter(e -> e.getNodeAddress().getFullAddress().equals(result))
+                        .findAny();
+        checkArgument(optionalDisputeAgent.isPresent(), "optionalDisputeAgent has to be present");
+        return optionalDisputeAgent.get();
+    }
+
+    private static String getRandomDisputeAgent(Set<String> disputeAgents) {
+        int randomIndex = new Random().nextInt(disputeAgents.size());
+        List<String> elements = new ArrayList<String>(disputeAgents);
+        return elements.get(randomIndex);
     }
 }

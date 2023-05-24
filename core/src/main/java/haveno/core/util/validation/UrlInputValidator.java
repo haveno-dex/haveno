@@ -17,11 +17,11 @@
 
 package haveno.core.util.validation;
 
+import haveno.core.locale.Res;
+
 import java.net.URL;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
-import haveno.core.locale.Res;
 
 public class UrlInputValidator extends InputValidator {
 

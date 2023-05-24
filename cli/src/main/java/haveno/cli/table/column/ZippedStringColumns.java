@@ -17,15 +17,15 @@
 
 package haveno.cli.table.column;
 
-import static haveno.cli.table.column.ZippedStringColumns.DUPLICATION_MODE.EXCLUDE_DUPLICATES;
-import static haveno.cli.table.column.ZippedStringColumns.DUPLICATION_MODE.INCLUDE_DUPLICATES;
-
 import haveno.cli.table.column.Column.JUSTIFICATION;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import javax.annotation.Nullable;
+import static haveno.cli.table.column.ZippedStringColumns.DUPLICATION_MODE.EXCLUDE_DUPLICATES;
+import static haveno.cli.table.column.ZippedStringColumns.DUPLICATION_MODE.INCLUDE_DUPLICATES;
 
 /**
  * For zipping multiple StringColumns into a single StringColumn.

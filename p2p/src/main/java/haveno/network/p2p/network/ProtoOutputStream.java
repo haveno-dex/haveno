@@ -19,13 +19,12 @@ package haveno.network.p2p.network;
 
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.peers.keepalive.messages.KeepAliveMessage;
-import java.io.IOException;
-import java.io.OutputStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.NotThreadSafe;
+import java.io.IOException;
+import java.io.OutputStream;
 
 @NotThreadSafe
 class ProtoOutputStream {

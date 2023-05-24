@@ -23,13 +23,12 @@ import haveno.common.app.Version;
 import haveno.common.persistence.PersistenceManager;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-import java.io.File;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manages historical data stores tagged with the release versions.

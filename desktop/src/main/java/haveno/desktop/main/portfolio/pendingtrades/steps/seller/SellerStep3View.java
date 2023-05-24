@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.seller;
 
-import static haveno.desktop.util.FormBuilder.*;
-import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE;
-import static haveno.desktop.util.Layout.COMPACT_GROUP_DISTANCE;
-import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
-
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -33,7 +28,7 @@ import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.AssetAccountPayload;
 import haveno.core.payment.payload.BankAccountPayload;
-import haveno.core.payment.payload.CashByMailAccountPayload;
+import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.HalCashAccountPayload;
@@ -45,7 +40,6 @@ import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
 import haveno.core.payment.payload.WesternUnionAccountPayload;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.components.BusyAnimation;
@@ -55,8 +49,9 @@ import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -64,19 +59,20 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
-import javafx.beans.value.ChangeListener;
-
+import javax.annotation.Nullable;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
+import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE;
+import static haveno.desktop.util.Layout.COMPACT_GROUP_DISTANCE;
+import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
 
 public class SellerStep3View extends TradeStepView {
 
@@ -115,60 +111,46 @@ public class SellerStep3View extends TradeStepView {
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
                 showPopup();
             } else if (trade.isPaymentReceived()) {
-                if (!trade.hasFailed()) {
-                    switch (state) {
-                        case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
-                            busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.preparingConfirmation"));
-                            break;
-                        case SELLER_SENT_PAYMENT_RECEIVED_MSG:
-                            busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.sendingConfirmation"));
+                switch (state) {
+                    case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+                        busyAnimation.play();
+                        statusLabel.setText(Res.get("shared.preparingConfirmation"));
+                        break;
+                    case SELLER_SENT_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.play();
+                        statusLabel.setText(Res.get("shared.sendingConfirmation"));
 
-                            timeoutTimer = UserThread.runAfter(() -> {
-                                busyAnimation.stop();
-                                statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            }, 10);
-                            break;
-                        case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageArrived"));
-                            break;
-                        case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
-                            busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
-                            break;
-                        case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
-                            // We get a popup and the trade closed, so we dont need to show anything here
-                            busyAnimation.stop();
-                            statusLabel.setText("");
-                            break;
-                        case TRADE_COMPLETED:
-                            if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
-                            busyAnimation.stop();
-                            statusLabel.setText("");
-                            break;
-                        default:
-                            log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
+                        timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            break;
-                    }
-                } else {
-                    log.warn("Trade contains error message {}", trade.getErrorMessage());
-                    statusLabel.setText("");
+                        }, 10);
+                        break;
+                    case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageArrived"));
+                        break;
+                    case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
+                        break;
+                    case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
+                        // We get a popup and the trade closed, so we dont need to show anything here
+                        busyAnimation.stop();
+                        statusLabel.setText("");
+                        break;
+                    case TRADE_COMPLETED:
+                        if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
+                        busyAnimation.stop();
+                        statusLabel.setText("");
+                        break;
+                    default:
+                        log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                        break;
                 }
             }
         });
-
-        if (isXmrTrade()) {
-            proofResultListener = (observable, oldValue, newValue) -> {
-                applyAssetTxProofResult(trade.getAssetTxProofResult());
-            };
-            trade.getAssetTxProofResultUpdateProperty().addListener(proofResultListener);
-
-            applyAssetTxProofResult(trade.getAssetTxProofResult());
-        }
     }
 
     @Override
@@ -184,10 +166,6 @@ public class SellerStep3View extends TradeStepView {
 
         if (timeoutTimer != null) {
             timeoutTimer.stop();
-        }
-
-        if (isXmrTrade()) {
-            trade.getAssetTxProofResultUpdateProperty().removeListener(proofResultListener);
         }
     }
 
@@ -313,7 +291,7 @@ public class SellerStep3View extends TradeStepView {
 
     private boolean confirmPaymentReceivedPermitted() {
         if (!trade.confirmPermitted()) return false;
-        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal(); // TODO: test that can resen with same payout tx hex if delivery failed
+        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -324,9 +302,9 @@ public class SellerStep3View extends TradeStepView {
     protected String getInfoText() {
         String currencyName = getCurrencyName(trade);
         if (model.isBlockChainMethod()) {
-            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.altcoin", currencyName));
+            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.crypto", currencyName));
         } else {
-            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.fiat", currencyName));
+            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.traditional", currencyName));
         }
     }
 
@@ -360,7 +338,6 @@ public class SellerStep3View extends TradeStepView {
     @Override
     protected void updateDisputeState(Trade.DisputeState disputeState) {
         super.updateDisputeState(disputeState);
-
         confirmButton.setDisable(!confirmPaymentReceivedPermitted());
     }
 
@@ -412,9 +389,9 @@ public class SellerStep3View extends TradeStepView {
         if (paymentAccountPayload instanceof AssetAccountPayload) {
             String address = ((AssetAccountPayload) paymentAccountPayload).getAddress();
             String explorerOrWalletString = isXmrTrade() ?
-                    Res.get("portfolio.pending.step3_seller.altcoin.wallet", currencyName) :
-                    Res.get("portfolio.pending.step3_seller.altcoin.explorer", currencyName);
-            message = Res.get("portfolio.pending.step3_seller.altcoin",
+                    Res.get("portfolio.pending.step3_seller.crypto.wallet", currencyName) :
+                    Res.get("portfolio.pending.step3_seller.crypto.explorer", currencyName);
+            message = Res.get("portfolio.pending.step3_seller.crypto",
                     part1,
                     explorerOrWalletString,
                     address,
@@ -423,8 +400,8 @@ public class SellerStep3View extends TradeStepView {
         } else {
             if (paymentAccountPayload instanceof USPostalMoneyOrderAccountPayload) {
                 message = Res.get("portfolio.pending.step3_seller.postal", part1, tradeVolumeWithCode);
-            } else if (paymentAccountPayload instanceof CashByMailAccountPayload) {
-                    message = Res.get("portfolio.pending.step3_seller.cashByMail", part1, tradeVolumeWithCode);
+            } else if (paymentAccountPayload instanceof PayByMailAccountPayload) {
+                    message = Res.get("portfolio.pending.step3_seller.payByMail", part1, tradeVolumeWithCode);
             } else if (!(paymentAccountPayload instanceof WesternUnionAccountPayload) &&
                     !(paymentAccountPayload instanceof HalCashAccountPayload) &&
                     !(paymentAccountPayload instanceof F2FAccountPayload) &&
@@ -492,42 +469,6 @@ public class SellerStep3View extends TradeStepView {
                 return Optional.empty();
         } else {
             return Optional.empty();
-        }
-    }
-
-    private void applyAssetTxProofResult(@Nullable AssetTxProofResult result) {
-        checkNotNull(assetTxProofResultField);
-        checkNotNull(assetTxConfidenceIndicator);
-
-        String txt = GUIUtil.getProofResultAsString(result);
-        assetTxProofResultField.setText(txt);
-
-        if (result == null) {
-            assetTxConfidenceIndicator.setProgress(0);
-            return;
-        }
-
-        switch (result) {
-            case PENDING:
-            case COMPLETED:
-                if (result.getNumRequiredConfirmations() > 0) {
-                    int numRequiredConfirmations = result.getNumRequiredConfirmations();
-                    int numConfirmations = result.getNumConfirmations();
-                    if (numConfirmations == 0) {
-                        assetTxConfidenceIndicator.setProgress(-1);
-                    } else {
-                        double progress = Math.min(1, (double) numConfirmations / (double) numRequiredConfirmations);
-                        assetTxConfidenceIndicator.setProgress(progress);
-                        assetTxConfidenceIndicator.getTooltip().setText(
-                                Res.get("portfolio.pending.autoConf.blocks",
-                                        numConfirmations, numRequiredConfirmations));
-                    }
-                }
-                break;
-            default:
-                // Set invisible by default
-                assetTxConfidenceIndicator.setProgress(0);
-                break;
         }
     }
 

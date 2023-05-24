@@ -18,14 +18,14 @@
 package haveno.apitest.method.payment;
 
 import haveno.cli.table.builder.TableBuilder;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.AdvancedCashAccount;
 import haveno.core.payment.AliPayAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.CapitualAccount;
 import haveno.core.payment.CashDepositAccount;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.FasterPaymentsAccount;
 import haveno.core.payment.HalCashAccount;
@@ -58,17 +58,7 @@ import haveno.core.payment.payload.SameBankAccountPayload;
 import haveno.core.payment.payload.SpecificBanksAccountPayload;
 import haveno.core.payment.payload.SwiftAccountPayload;
 import io.grpc.StatusRuntimeException;
-
-import java.io.File;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -76,14 +66,51 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static haveno.apitest.config.ApiTestConfig.EUR;
 import static haveno.apitest.config.ApiTestConfig.USD;
 import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static haveno.cli.table.builder.TableType.PAYMENT_ACCOUNT_TBL;
-import static haveno.core.locale.CurrencyUtil.getAllSortedFiatCurrencies;
+import static haveno.core.locale.CurrencyUtil.getAllSortedTraditionalCurrencies;
 import static haveno.core.locale.CurrencyUtil.getTradeCurrency;
-import static haveno.core.payment.payload.PaymentMethod.*;
+import static haveno.core.payment.payload.PaymentMethod.ADVANCED_CASH_ID;
+import static haveno.core.payment.payload.PaymentMethod.ALI_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.AUSTRALIA_PAYID_ID;
+import static haveno.core.payment.payload.PaymentMethod.CAPITUAL_ID;
+import static haveno.core.payment.payload.PaymentMethod.CASH_DEPOSIT_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
+import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
+import static haveno.core.payment.payload.PaymentMethod.FASTER_PAYMENTS_ID;
+import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
+import static haveno.core.payment.payload.PaymentMethod.INTERAC_E_TRANSFER_ID;
+import static haveno.core.payment.payload.PaymentMethod.JAPAN_BANK_ID;
+import static haveno.core.payment.payload.PaymentMethod.MONEY_BEAM_ID;
+import static haveno.core.payment.payload.PaymentMethod.MONEY_GRAM_ID;
+import static haveno.core.payment.payload.PaymentMethod.NATIONAL_BANK_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAXUM_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAYSERA_ID;
+import static haveno.core.payment.payload.PaymentMethod.PERFECT_MONEY_ID;
+import static haveno.core.payment.payload.PaymentMethod.POPMONEY_ID;
+import static haveno.core.payment.payload.PaymentMethod.PROMPT_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.REVOLUT_ID;
+import static haveno.core.payment.payload.PaymentMethod.SAME_BANK_ID;
+import static haveno.core.payment.payload.PaymentMethod.SEPA_ID;
+import static haveno.core.payment.payload.PaymentMethod.SEPA_INSTANT_ID;
+import static haveno.core.payment.payload.PaymentMethod.SPECIFIC_BANKS_ID;
+import static haveno.core.payment.payload.PaymentMethod.SWIFT_ID;
+import static haveno.core.payment.payload.PaymentMethod.SWISH_ID;
+import static haveno.core.payment.payload.PaymentMethod.TRANSFERWISE_ID;
+import static haveno.core.payment.payload.PaymentMethod.UPHOLD_ID;
+import static haveno.core.payment.payload.PaymentMethod.US_POSTAL_MONEY_ORDER_ID;
+import static haveno.core.payment.payload.PaymentMethod.WECHAT_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.WESTERN_UNION_ID;
 import static java.util.Comparator.comparing;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -298,19 +325,19 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
     }
 
     @Test
-    public void testCreateClearXChangeAccount(TestInfo testInfo) {
-        File emptyForm = getEmptyForm(testInfo, CLEAR_X_CHANGE_ID);
+    public void testCreateZelleAccount(TestInfo testInfo) {
+        File emptyForm = getEmptyForm(testInfo, ZELLE_ID);
         verifyEmptyForm(emptyForm,
-                CLEAR_X_CHANGE_ID,
+                ZELLE_ID,
                 PROPERTY_NAME_EMAIL_OR_MOBILE_NR,
                 PROPERTY_NAME_HOLDER_NAME);
-        COMPLETED_FORM_MAP.put(PROPERTY_NAME_PAYMENT_METHOD_ID, CLEAR_X_CHANGE_ID);
+        COMPLETED_FORM_MAP.put(PROPERTY_NAME_PAYMENT_METHOD_ID, ZELLE_ID);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_ACCOUNT_NAME, "USD Zelle Acct");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_EMAIL_OR_MOBILE_NR, "jane@doe.com");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_HOLDER_NAME, "Jane Doe");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_SALT, encodeToHex("Restored Zelle Acct Salt"));
         String jsonString = getCompletedFormAsJsonString();
-        ClearXchangeAccount paymentAccount = (ClearXchangeAccount) createPaymentAccount(aliceClient, jsonString);
+        ZelleAccount paymentAccount = (ZelleAccount) createPaymentAccount(aliceClient, jsonString);
         verifyUserPayloadHasPaymentAccountWithId(aliceClient, paymentAccount.getId());
         verifyAccountSingleTradeCurrency(USD, paymentAccount);
         verifyCommonFormEntries(paymentAccount);
@@ -817,9 +844,9 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
                 PROPERTY_NAME_BANK_SWIFT_CODE);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_PAYMENT_METHOD_ID, SWIFT_ID);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_ACCOUNT_NAME, "IT Swift Acct w/ DE Intermediary");
-        Collection<FiatCurrency> swiftCurrenciesSortedByCode = getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode));
-        String allFiatCodes = getCommaDelimitedFiatCurrencyCodes(swiftCurrenciesSortedByCode);
-        COMPLETED_FORM_MAP.put(PROPERTY_NAME_TRADE_CURRENCIES, allFiatCodes);
+        Collection<TraditionalCurrency> swiftCurrenciesSortedByCode = getAllSortedTraditionalCurrencies(comparing(TradeCurrency::getCode));
+        String allTraditionalCodes = getCommaDelimitedTraditionalCurrencyCodes(swiftCurrenciesSortedByCode);
+        COMPLETED_FORM_MAP.put(PROPERTY_NAME_TRADE_CURRENCIES, allTraditionalCodes);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_SELECTED_TRADE_CURRENCY, EUR);
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_BANK_SWIFT_CODE, "PASCITMMFIR");
         COMPLETED_FORM_MAP.put(PROPERTY_NAME_BANK_COUNTRY_CODE, "IT");

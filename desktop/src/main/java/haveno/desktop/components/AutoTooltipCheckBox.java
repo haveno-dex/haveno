@@ -17,12 +17,11 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
-
 import com.jfoenix.controls.JFXCheckBox;
 import com.jfoenix.skins.JFXCheckBoxSkin;
-
 import javafx.scene.control.Skin;
+
+import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
 
 public class AutoTooltipCheckBox extends JFXCheckBox {
 

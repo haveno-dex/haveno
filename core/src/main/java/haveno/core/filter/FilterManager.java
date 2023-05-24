@@ -32,26 +32,24 @@ import haveno.core.xmr.nodes.BtcNodes;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
-import haveno.network.p2p.network.NetworkFilter;
+import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Sha256Hash;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Sha256Hash;
 import org.bouncycastle.util.encoders.Base64;
 
-import java.security.PublicKey;
-
-import java.nio.charset.StandardCharsets;
-
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
-
+import java.nio.charset.StandardCharsets;
+import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -60,12 +58,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-
-import java.lang.reflect.Method;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.bitcoinj.core.Utils.HEX;
@@ -78,7 +70,6 @@ public class FilterManager {
     private static final String BANNED_PRICE_RELAY_NODES = "bannedPriceRelayNodes";
     private static final String BANNED_SEED_NODES = "bannedSeedNodes";
     private static final String BANNED_BTC_NODES = "bannedBtcNodes";
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listener
@@ -114,7 +105,7 @@ public class FilterManager {
                          Preferences preferences,
                          Config config,
                          ProvidersRepository providersRepository,
-                         NetworkFilter networkFilter,
+                         BanFilter banFilter,
                          @Named(Config.IGNORE_DEV_MSG) boolean ignoreDevMsg,
                          @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
         this.p2PService = p2PService;
@@ -131,7 +122,7 @@ public class FilterManager {
                         "029340c3e7d4bb0f9e651b5f590b434fecb6175aeaa57145c7804ff05d210e534f",
                         "034dc7530bf66ffd9580aa98031ea9a18ac2d269f7c56c0e71eca06105b9ed69f9");
 
-        networkFilter.setBannedNodeFunction(this::isNodeAddressBannedFromNetwork);
+        banFilter.setBannedNodePredicate(this::isNodeAddressBannedFromNetwork);
     }
 
 
@@ -294,13 +285,18 @@ public class FilterManager {
     }
 
     public void removeInvalidFilters(Filter filter, String privKeyString) {
-        log.info("Remove invalid filter {}", filter);
-        setFilterSigningKey(privKeyString);
-        String signatureAsBase64 = getSignature(Filter.cloneWithoutSig(filter));
-        Filter filterWithSig = Filter.cloneWithSig(filter, signatureAsBase64);
-        boolean result = p2PService.removeData(filterWithSig);
-        if (!result) {
-            log.warn("Could not remove filter {}", filter);
+        // We can only remove the filter if it's our own filter
+        if (Arrays.equals(filter.getOwnerPubKey().getEncoded(), keyRing.getSignatureKeyPair().getPublic().getEncoded())) {
+            log.info("Remove invalid filter {}", filter);
+            setFilterSigningKey(privKeyString);
+            String signatureAsBase64 = getSignature(Filter.cloneWithoutSig(filter));
+            Filter filterWithSig = Filter.cloneWithSig(filter, signatureAsBase64);
+            boolean result = p2PService.removeData(filterWithSig);
+            if (!result) {
+                log.warn("Could not remove filter {}", filter);
+            }
+        } else {
+            log.info("The invalid filter is not our own, so we cannot remove it from the network");
         }
     }
 
@@ -474,13 +470,13 @@ public class FilterManager {
 
         if (currentFilter != null) {
             if (currentFilter.getCreationDate() > newFilter.getCreationDate()) {
-                log.warn("We received a new filter from the network but the creation date is older than the " +
+                log.info("We received a new filter from the network but the creation date is older than the " +
                         "filter we have already. We ignore the new filter.");
 
                 addToInvalidFilters(newFilter);
                 return;
             } else {
-                log.warn("We received a new filter from the network and the creation date is newer than the " +
+                log.info("We received a new filter from the network and the creation date is newer than the " +
                         "filter we have already. We ignore the old filter.");
                 addToInvalidFilters(currentFilter);
             }
@@ -531,7 +527,7 @@ public class FilterManager {
 
         // We don't check for banned filter as we want to remove a banned filter anyway.
 
-        if (!filterProperty.get().equals(filter)) {
+        if (filterProperty.get() != null && !filterProperty.get().equals(filter)) {
             return;
         }
 

@@ -20,7 +20,6 @@ package haveno.desktop.main.portfolio.failedtrades;
 import com.google.inject.Inject;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;

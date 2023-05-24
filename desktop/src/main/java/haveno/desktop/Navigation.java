@@ -25,19 +25,17 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.market.MarketView;
-import javax.inject.Singleton;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton

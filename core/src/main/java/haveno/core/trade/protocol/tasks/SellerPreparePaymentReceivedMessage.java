@@ -36,7 +36,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             runInterceptHook();
 
             // check connection
-            trade.checkWalletConnection();
+            trade.checkDaemonConnection();
 
             // handle first time preparation
             if (processModel.getPaymentReceivedMessage() == null) {
@@ -46,15 +46,15 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
 
                 // verify, sign, and publish payout tx if given. otherwise create payout tx
                 if (trade.getPayoutTxHex() != null) {
-                    log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
-                    trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
+                    try {
+                        log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
+                        trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
+                    } catch (Exception e) {
+                        log.warn("Error verifying, signing, and publishing payout tx for trade {}: {}. Creating unsigned payout tx", trade.getId(), e.getMessage());
+                        createUnsignedPayoutTx();
+                    }
                 } else {
-
-                    // create unsigned payout tx
-                    log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
-                    MoneroTxWallet payoutTx = trade.createPayoutTx();
-                    trade.setPayoutTx(payoutTx);
-                    trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                    createUnsignedPayoutTx();
                 }
             } else if (processModel.getPaymentReceivedMessage().getSignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
 
@@ -68,5 +68,12 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
         } catch (Throwable t) {
             failed(t);
         }
+    }
+
+    private void createUnsignedPayoutTx() {
+        log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
+        MoneroTxWallet payoutTx = trade.createPayoutTx();
+        trade.setPayoutTx(payoutTx);
+        trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
     }
 }

@@ -17,22 +17,20 @@
 
 package haveno.apitest.scenario.bot;
 
-import protobuf.PaymentAccount;
-
 import com.google.gson.GsonBuilder;
 import haveno.apitest.method.MethodTest;
 import haveno.apitest.scenario.bot.script.BashScriptGenerator;
 import haveno.apitest.scenario.bot.script.BotScript;
 import haveno.core.locale.Country;
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
+import protobuf.PaymentAccount;
 
 import java.io.File;
 import java.io.IOException;
-
-import lombok.extern.slf4j.Slf4j;
+import java.nio.file.Paths;
 
 import static haveno.core.locale.CountryUtil.findCountryByCode;
-import static haveno.core.payment.payload.PaymentMethod.CLEAR_X_CHANGE_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
 import static haveno.core.payment.payload.PaymentMethod.getPaymentMethod;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
@@ -61,7 +59,7 @@ public abstract class AbstractBotTest extends MethodTest {
                 new BotPaymentAccountGenerator(new BotClient(aliceClient));
         String paymentMethodId = botScript.getBotPaymentMethodId();
         if (paymentMethodId != null) {
-            if (paymentMethodId.equals(CLEAR_X_CHANGE_ID)) {
+            if (paymentMethodId.equals(ZELLE_ID)) {
                 // Only Zelle test accts are supported now.
                 return accountGenerator.createZellePaymentAccount(
                         "Alice's Zelle Account",

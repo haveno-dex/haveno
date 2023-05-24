@@ -1,16 +1,14 @@
 package haveno.apitest.scenario.bot.shutdown;
 
+import haveno.common.UserThread;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 import java.io.IOException;
-
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static haveno.common.file.FileUtil.deleteFileIfExists;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import haveno.common.UserThread;
 
 @Slf4j
 public class ManualShutdown {

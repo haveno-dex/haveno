@@ -1,27 +1,13 @@
 package haveno.desktop.main.offer.createoffer;
 
-import javafx.collections.FXCollections;
-
-import java.util.HashSet;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
-import haveno.core.payment.ClearXchangeAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.provider.price.PriceFeedService;
@@ -30,7 +16,18 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.main.offer.createoffer.CreateOfferDataModel;
+import javafx.collections.FXCollections;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashSet;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CreateOfferDataModelTest {
 
@@ -39,7 +36,7 @@ public class CreateOfferDataModelTest {
     private Preferences preferences;
     private OfferUtil offerUtil;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final CryptoCurrency xmr = new CryptoCurrency("XMR", "monero");
         GlobalSettings.setDefaultTradeCurrency(xmr);
@@ -77,42 +74,42 @@ public class CreateOfferDataModelTest {
     @Test
     public void testUseTradeCurrencySetInOfferViewWhenInPaymentAccountAvailable() {
         final HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
-        final ClearXchangeAccount zelleAccount = new ClearXchangeAccount();
+        final ZelleAccount zelleAccount = new ZelleAccount();
         zelleAccount.setId("234");
         zelleAccount.setAccountName("zelleAccount");
         paymentAccounts.add(zelleAccount);
         final RevolutAccount revolutAccount = new RevolutAccount();
         revolutAccount.setId("123");
         revolutAccount.setAccountName("revolutAccount");
-        revolutAccount.setSingleTradeCurrency(new FiatCurrency("EUR"));
-        revolutAccount.addCurrency(new FiatCurrency("USD"));
+        revolutAccount.setSingleTradeCurrency(new TraditionalCurrency("EUR"));
+        revolutAccount.addCurrency(new TraditionalCurrency("USD"));
         paymentAccounts.add(revolutAccount);
 
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
 
-        model.initWithData(OfferDirection.BUY, new FiatCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 
     @Test
     public void testUseTradeAccountThatMatchesTradeCurrencySetInOffer() {
         final HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
-        final ClearXchangeAccount zelleAccount = new ClearXchangeAccount();
+        final ZelleAccount zelleAccount = new ZelleAccount();
         zelleAccount.setId("234");
         zelleAccount.setAccountName("zelleAccount");
         paymentAccounts.add(zelleAccount);
         final RevolutAccount revolutAccount = new RevolutAccount();
         revolutAccount.setId("123");
         revolutAccount.setAccountName("revolutAccount");
-        revolutAccount.setSingleTradeCurrency(new FiatCurrency("EUR"));
+        revolutAccount.setSingleTradeCurrency(new TraditionalCurrency("EUR"));
         paymentAccounts.add(revolutAccount);
 
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
-        when(user.findFirstPaymentAccountWithCurrency(new FiatCurrency("USD"))).thenReturn(zelleAccount);
+        when(user.findFirstPaymentAccountWithCurrency(new TraditionalCurrency("USD"))).thenReturn(zelleAccount);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
 
-        model.initWithData(OfferDirection.BUY, new FiatCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"));
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 }

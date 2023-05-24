@@ -50,12 +50,11 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
-import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.math.BigInteger;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

@@ -17,31 +17,24 @@
 
 package haveno.network.p2p;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.UserThread;
 import haveno.common.app.Log;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
-import haveno.network.p2p.NodeAddress;
-import haveno.network.p2p.P2PService;
-import haveno.network.p2p.P2PServiceListener;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
-
-import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

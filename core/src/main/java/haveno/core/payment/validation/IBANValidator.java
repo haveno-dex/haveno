@@ -19,11 +19,10 @@ package haveno.core.payment.validation;
 
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
-import java.math.BigInteger;
-
-import java.util.Locale;
-
 import lombok.Setter;
+
+import java.math.BigInteger;
+import java.util.Locale;
 
 // TODO Does not yet recognize special letters like ä, ö, ü, å, ... as invalid characters
 public class IBANValidator extends InputValidator {

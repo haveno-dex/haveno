@@ -1,10 +1,9 @@
 package haveno.apitest.method.wallet;
 
-import haveno.proto.grpc.BtcBalanceInfo;
 import haveno.apitest.method.MethodTest;
 import haveno.cli.table.builder.TableBuilder;
+import haveno.proto.grpc.BtcBalanceInfo;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -22,8 +21,6 @@ import static haveno.apitest.method.wallet.WalletTestUtil.verifyBtcBalances;
 import static haveno.cli.table.builder.TableType.ADDRESS_BALANCE_TBL;
 import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
 @Disabled

@@ -26,8 +26,15 @@
  */
 package haveno.desktop.components.controlsfx.skin;
 
-import javafx.stage.Window;
-
+import haveno.desktop.components.controlsfx.control.PopOver;
+import haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation;
+import javafx.beans.InvalidationListener;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -44,31 +51,29 @@ import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
 import javafx.scene.shape.QuadCurveTo;
 import javafx.scene.shape.VLineTo;
-
-import javafx.geometry.Point2D;
-import javafx.geometry.Pos;
-
-import javafx.beans.InvalidationListener;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-
-import javafx.event.EventHandler;
+import javafx.stage.Window;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.*;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.BOTTOM_CENTER;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.BOTTOM_LEFT;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.BOTTOM_RIGHT;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.LEFT_BOTTOM;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.LEFT_CENTER;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.LEFT_TOP;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.RIGHT_BOTTOM;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.RIGHT_CENTER;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.RIGHT_TOP;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.TOP_CENTER;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.TOP_LEFT;
+import static haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation.TOP_RIGHT;
 import static java.lang.Double.MAX_VALUE;
 import static javafx.geometry.Pos.CENTER_LEFT;
 import static javafx.scene.control.ContentDisplay.GRAPHIC_ONLY;
 import static javafx.scene.paint.Color.YELLOW;
-
-import haveno.desktop.components.controlsfx.control.PopOver;
-import haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation;
 
 public class PopOverSkin implements Skin<PopOver> {
 

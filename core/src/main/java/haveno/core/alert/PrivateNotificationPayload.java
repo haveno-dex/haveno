@@ -21,12 +21,11 @@ import com.google.protobuf.ByteString;
 import haveno.common.crypto.Sig;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.util.Utilities;
-import java.security.PublicKey;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import javax.annotation.Nullable;
+import java.security.PublicKey;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.seller;
 
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-
 import haveno.core.locale.Res;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.desktop.components.paymentmethods.F2FForm;
@@ -27,6 +25,7 @@ import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class SellerStep2View extends TradeStepView {
 

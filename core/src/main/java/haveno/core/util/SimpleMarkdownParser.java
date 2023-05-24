@@ -17,11 +17,11 @@
 
 package haveno.core.util;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SimpleMarkdownParser {
     private enum MarkdownParsingState {

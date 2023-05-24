@@ -18,13 +18,10 @@
 package haveno.core.xmr.wallet;
 
 import org.bitcoinj.core.Coin;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import haveno.core.xmr.wallet.Restrictions;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("ConstantConditions")
 public class RestrictionsTest {

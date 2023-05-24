@@ -17,8 +17,9 @@
 
 package haveno.core.support.dispute.agent;
 
-import lombok.extern.slf4j.Slf4j;
 import haveno.core.locale.Res;
+import lombok.extern.slf4j.Slf4j;
+
 import javax.annotation.Nullable;
 
 @Slf4j

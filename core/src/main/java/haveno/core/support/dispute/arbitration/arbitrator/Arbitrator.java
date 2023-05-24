@@ -23,25 +23,22 @@ import haveno.common.proto.ProtoUtil;
 import haveno.common.util.CollectionUtils;
 import haveno.core.support.dispute.agent.DisputeAgent;
 import haveno.network.p2p.NodeAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
 @Getter
 public final class Arbitrator extends DisputeAgent {
-    private final String xmrAddress;
 
     public Arbitrator(NodeAddress nodeAddress,
-                      String xmrAddress,
                       PubKeyRing pubKeyRing,
                       List<String> languageCodes,
                       long registrationDate,
@@ -60,8 +57,6 @@ public final class Arbitrator extends DisputeAgent {
                 emailAddress,
                 info,
                 extraDataMap);
-
-        this.xmrAddress = xmrAddress;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +67,6 @@ public final class Arbitrator extends DisputeAgent {
     public protobuf.StoragePayload toProtoMessage() {
         protobuf.Arbitrator.Builder builder = protobuf.Arbitrator.newBuilder()
                 .setNodeAddress(nodeAddress.toProtoMessage())
-                .setXmrAddress(xmrAddress)
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .addAllLanguageCodes(languageCodes)
                 .setRegistrationDate(registrationDate)
@@ -86,7 +80,6 @@ public final class Arbitrator extends DisputeAgent {
 
     public static Arbitrator fromProto(protobuf.Arbitrator proto) {
         return new Arbitrator(NodeAddress.fromProto(proto.getNodeAddress()),
-                proto.getXmrAddress(),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 new ArrayList<>(proto.getLanguageCodesList()),
                 proto.getRegistrationDate(),
@@ -104,8 +97,6 @@ public final class Arbitrator extends DisputeAgent {
 
     @Override
     public String toString() {
-        return "Arbitrator{" +
-                ",\n     xmrAddress='" + xmrAddress + '\'' +
-                "\n} " + super.toString();
+        return "Arbitrator{} " + super.toString();
     }
 }

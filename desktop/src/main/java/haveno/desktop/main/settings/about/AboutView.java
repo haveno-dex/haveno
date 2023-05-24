@@ -17,23 +17,22 @@
 
 package haveno.desktop.main.settings.about;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
-import static haveno.desktop.util.FormBuilder.addLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-
 import haveno.common.app.Version;
 import haveno.core.locale.Res;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.util.Layout;
-import javax.inject.Inject;
-
+import javafx.geometry.HPos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 
-import javafx.geometry.HPos;
+import javax.inject.Inject;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class AboutView extends ActivatableView<GridPane, Void> {

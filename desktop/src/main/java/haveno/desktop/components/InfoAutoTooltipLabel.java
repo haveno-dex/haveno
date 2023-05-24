@@ -17,16 +17,15 @@
 
 package haveno.desktop.components;
 
-import static haveno.desktop.util.FormBuilder.getIcon;
-
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
 import haveno.desktop.components.controlsfx.control.PopOver;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 
-import javafx.geometry.Insets;
+import static haveno.desktop.util.FormBuilder.getIcon;
 
 public class InfoAutoTooltipLabel extends AutoTooltipLabel {
 

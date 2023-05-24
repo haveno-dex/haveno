@@ -1,12 +1,7 @@
 package haveno.apitest.method.payment;
 
-import protobuf.PaymentMethod;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
+import haveno.apitest.method.MethodTest;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -14,13 +9,15 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import protobuf.PaymentMethod;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-
-import haveno.apitest.method.MethodTest;
 
 @Disabled
 @Slf4j

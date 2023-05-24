@@ -25,15 +25,13 @@ import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.util.DisplayUtils;
+import javafx.scene.control.Label;
+import lombok.Getter;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 
-import javafx.scene.control.Label;
-
 import java.util.Optional;
-
-import lombok.Getter;
 
 class ReservedListItem {
     private final BalanceListener balanceListener;

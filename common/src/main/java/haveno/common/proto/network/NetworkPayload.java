@@ -23,4 +23,7 @@ import haveno.common.Payload;
  * Interface for objects used inside WireEnvelope or other WirePayloads.
  */
 public interface NetworkPayload extends Payload {
+    default GetDataResponsePriority getGetDataResponsePriority() {
+        return GetDataResponsePriority.LOW;
+    }
 }

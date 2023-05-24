@@ -17,12 +17,6 @@
 
 package haveno.desktop.main.market.offerbook;
 
-import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import com.jfoenix.controls.JFXTabPane;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -48,6 +42,15 @@ import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.ListChangeListener;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
@@ -65,31 +68,21 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.geometry.Side;
-
+import javafx.util.Callback;
+import javafx.util.StringConverter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-
-import javafx.collections.ListChangeListener;
-
-import javafx.util.Callback;
-import javafx.util.StringConverter;
-
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.text.DecimalFormat;
-
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 
 @FxmlView
 public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookChartViewModel> {
@@ -380,44 +373,52 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private List<Double> minMaxFilterLeft(List<XYChart.Data<Number, Number>> data) {
-        double maxValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .max()
-                .orElse(Double.MIN_VALUE);
-        // Hide offers less than a div-factor of dataLimitFactor lower than the highest offer.
-        double minValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .filter(o -> o > maxValue / dataLimitFactor)
-                .min()
-                .orElse(Double.MAX_VALUE);
-        return List.of(minValue, maxValue);
+        synchronized (data) {
+            double maxValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .max()
+                    .orElse(Double.MIN_VALUE);
+            // Hide offers less than a div-factor of dataLimitFactor lower than the highest offer.
+            double minValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .filter(o -> o > maxValue / dataLimitFactor)
+                    .min()
+                    .orElse(Double.MAX_VALUE);
+            return List.of(minValue, maxValue);
+        }
     }
 
     private List<Double> minMaxFilterRight(List<XYChart.Data<Number, Number>> data) {
-        double minValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .min()
-                .orElse(Double.MAX_VALUE);
+        synchronized (data) {
+            double minValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .min()
+                    .orElse(Double.MAX_VALUE);
 
-        // Hide offers a dataLimitFactor factor higher than the lowest offer
-        double maxValue = data.stream()
-                .mapToDouble(o -> o.getXValue().doubleValue())
-                .filter(o -> o < minValue * dataLimitFactor)
-                .max()
-                .orElse(Double.MIN_VALUE);
-        return List.of(minValue, maxValue);
+            // Hide offers a dataLimitFactor factor higher than the lowest offer
+            double maxValue = data.stream()
+                    .mapToDouble(o -> o.getXValue().doubleValue())
+                    .filter(o -> o < minValue * dataLimitFactor)
+                    .max()
+                    .orElse(Double.MIN_VALUE);
+            return List.of(minValue, maxValue);
+        }
     }
 
     private List<XYChart.Data<Number, Number>> filterLeft(List<XYChart.Data<Number, Number>> data, double maxValue) {
-        return data.stream()
-                .filter(o -> o.getXValue().doubleValue() > maxValue / dataLimitFactor)
-                .collect(Collectors.toList());
+        synchronized (data) {
+            return data.stream()
+                    .filter(o -> o.getXValue().doubleValue() > maxValue / dataLimitFactor)
+                    .collect(Collectors.toList());
+        }
     }
 
     private List<XYChart.Data<Number, Number>> filterRight(List<XYChart.Data<Number, Number>> data, double minValue) {
-        return data.stream()
-                .filter(o -> o.getXValue().doubleValue() < minValue * dataLimitFactor)
-                .collect(Collectors.toList());
+        synchronized (data) {
+            return data.stream()
+                    .filter(o -> o.getXValue().doubleValue() < minValue * dataLimitFactor)
+                    .collect(Collectors.toList());
+        }
     }
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {

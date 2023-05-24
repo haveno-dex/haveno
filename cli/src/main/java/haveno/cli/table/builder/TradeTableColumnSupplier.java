@@ -17,10 +17,7 @@
 
 package haveno.cli.table.builder;
 
-import haveno.proto.grpc.ContractInfo;
-import haveno.proto.grpc.OfferInfo;
-import haveno.proto.grpc.TradeInfo;
-import haveno.cli.table.column.AltcoinVolumeColumn;
+import haveno.cli.table.column.CryptoVolumeColumn;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.BtcColumn;
 import haveno.cli.table.column.Column;
@@ -28,23 +25,52 @@ import haveno.cli.table.column.Iso8601DateTimeColumn;
 import haveno.cli.table.column.MixedTradeFeeColumn;
 import haveno.cli.table.column.SatoshiColumn;
 import haveno.cli.table.column.StringColumn;
+import haveno.proto.grpc.ContractInfo;
+import haveno.proto.grpc.OfferInfo;
+import haveno.proto.grpc.TradeInfo;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-
-import static haveno.cli.table.builder.TableBuilderConstants.*;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT_IN_BTC;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_CURRENCY;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DATE_TIME;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_AMOUNT;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_PRICE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_PRICE_OF_CRYPTO;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DEVIATION;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_MARKET;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_OFFER_TYPE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_PAYMENT_METHOD;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_PRICE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_STATUS;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_CRYPTO_BUYER_ADDRESS;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_BUYER_COST;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_DEPOSIT_CONFIRMED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_DEPOSIT_PUBLISHED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_ID;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_MAKER_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_PAYMENT_RECEIVED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_PAYMENT_SENT;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_PAYOUT_PUBLISHED;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_ROLE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_SHORT_ID;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_TAKER_FEE;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TRADE_WITHDRAWN;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_TX_FEE;
 import static haveno.cli.table.builder.TableType.CLOSED_TRADES_TBL;
 import static haveno.cli.table.builder.TableType.FAILED_TRADES_TBL;
 import static haveno.cli.table.builder.TableType.OPEN_TRADES_TBL;
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
-import static haveno.cli.table.column.AltcoinVolumeColumn.DISPLAY_MODE.ALTCOIN_VOLUME;
-import static haveno.cli.table.column.AltcoinVolumeColumn.DISPLAY_MODE.BSQ_VOLUME;
+import static haveno.cli.table.column.CryptoVolumeColumn.DISPLAY_MODE.CRYPTO_VOLUME;
+import static haveno.cli.table.column.CryptoVolumeColumn.DISPLAY_MODE.BSQ_VOLUME;
 import static haveno.cli.table.column.Column.JUSTIFICATION.LEFT;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 import static java.lang.String.format;
@@ -71,8 +97,8 @@ class TradeTableColumnSupplier {
     private final Supplier<Boolean> isClosedTradeTblBuilder = () -> getTableType().equals(CLOSED_TRADES_TBL);
     private final Supplier<Boolean> isFailedTradeTblBuilder = () -> getTableType().equals(FAILED_TRADES_TBL);
     private final Supplier<TradeInfo> firstRow = () -> getTrades().get(0);
-    private final Predicate<OfferInfo> isFiatOffer = (o) -> o.getBaseCurrencyCode().equals("BTC");
-    private final Predicate<TradeInfo> isFiatTrade = (t) -> isFiatOffer.test(t.getOffer());
+    private final Predicate<OfferInfo> isTraditionalOffer = (o) -> o.getBaseCurrencyCode().equals("XMR");
+    private final Predicate<TradeInfo> isTraditionalTrade = (t) -> isTraditionalOffer.test(t.getOffer());
     private final Predicate<TradeInfo> isTaker = (t) -> t.getRole().toLowerCase().contains("taker");
 
     final Supplier<StringColumn> tradeIdColumn = () -> isTradeDetailTblBuilder.get()
@@ -88,9 +114,9 @@ class TradeTableColumnSupplier {
             : new StringColumn(COL_HEADER_MARKET);
 
     private final Function<TradeInfo, Column<String>> toDetailedPriceColumn = (t) -> {
-        String colHeader = isFiatTrade.test(t)
+        String colHeader = isTraditionalTrade.test(t)
                 ? format(COL_HEADER_DETAILED_PRICE, t.getOffer().getCounterCurrencyCode())
-                : format(COL_HEADER_DETAILED_PRICE_OF_ALTCOIN, t.getOffer().getBaseCurrencyCode());
+                : format(COL_HEADER_DETAILED_PRICE_OF_CRYPTO, t.getOffer().getBaseCurrencyCode());
         return new StringColumn(colHeader, RIGHT);
     };
 
@@ -109,13 +135,13 @@ class TradeTableColumnSupplier {
     private final Function<TradeInfo, Column<Long>> toDetailedAmountColumn = (t) -> {
         String headerCurrencyCode = t.getOffer().getBaseCurrencyCode();
         String colHeader = format(COL_HEADER_DETAILED_AMOUNT, headerCurrencyCode);
-        AltcoinVolumeColumn.DISPLAY_MODE displayMode = headerCurrencyCode.equals("BSQ") ? BSQ_VOLUME : ALTCOIN_VOLUME;
-        return isFiatTrade.test(t)
+        CryptoVolumeColumn.DISPLAY_MODE displayMode = headerCurrencyCode.equals("BSQ") ? BSQ_VOLUME : CRYPTO_VOLUME;
+        return isTraditionalTrade.test(t)
                 ? new SatoshiColumn(colHeader)
-                : new AltcoinVolumeColumn(colHeader, displayMode);
+                : new CryptoVolumeColumn(colHeader, displayMode);
     };
 
-    // Can be fiat, btc or altcoin amount represented as longs.  Placing the decimal
+    // Can be tradional or crypto amount represented as longs.  Placing the decimal
     // in the displayed string representation is done in the Column implementation.
     final Supplier<Column<Long>> amountColumn = () -> isTradeDetailTblBuilder.get()
             ? toDetailedAmountColumn.apply(firstRow.get())
@@ -196,7 +222,7 @@ class TradeTableColumnSupplier {
     };
 
     final Function<TradeInfo, String> toPaymentCurrencyCode = (t) ->
-            isFiatTrade.test(t)
+            isTraditionalTrade.test(t)
                     ? t.getOffer().getCounterCurrencyCode()
                     : t.getOffer().getBaseCurrencyCode();
 
@@ -231,8 +257,8 @@ class TradeTableColumnSupplier {
         }
     };
 
-    final Predicate<TradeInfo> showAltCoinBuyerAddress = (t) -> {
-        if (isFiatTrade.test(t)) {
+    final Predicate<TradeInfo> showCryptoBuyerAddress = (t) -> {
+        if (isTraditionalTrade.test(t)) {
             return false;
         } else {
             ContractInfo contract = t.getContract();
@@ -246,12 +272,12 @@ class TradeTableColumnSupplier {
     };
 
     @Nullable
-    final Supplier<Column<String>> altcoinReceiveAddressColumn = () -> {
+    final Supplier<Column<String>> cryptoReceiveAddressColumn = () -> {
         if (isTradeDetailTblBuilder.get()) {
             TradeInfo t = firstRow.get();
-            if (showAltCoinBuyerAddress.test(t)) {
+            if (showCryptoBuyerAddress.test(t)) {
                 String headerCurrencyCode = toPaymentCurrencyCode.apply(t);
-                String colHeader = format(COL_HEADER_TRADE_ALTCOIN_BUYER_ADDRESS, headerCurrencyCode);
+                String colHeader = format(COL_HEADER_TRADE_CRYPTO_BUYER_ADDRESS, headerCurrencyCode);
                 return new StringColumn(colHeader);
             } else {
                 return null;

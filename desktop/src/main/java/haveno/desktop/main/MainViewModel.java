@@ -72,9 +72,6 @@ import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -84,9 +81,12 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -97,9 +97,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener {
@@ -223,6 +220,15 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 tradeManager.applyTradePeriodState();
 
                 tradeManager.getObservableList().forEach(trade -> {
+
+                    // check initialization error
+                    if (trade.getInitError() != null) {
+                        new Popup().warning("Error initializing trade" + " " + trade.getShortId() + "\n\n" +
+                                trade.getInitError().getMessage())
+                                .show();
+                    }
+
+                    // check trade period
                     Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                     String key;
                     switch (trade.getPeriodState()) {
@@ -267,8 +273,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // We only show the popup if the user has already set up any fiat account. For new users it is not a rule
-        // change and for altcoins its not relevant.
+        // We only show the popup if the user has already set up any traditional account. For new users it is not a rule
+        // change and for crypto its not relevant.
         String key = "newFeatureDuplicateOffer";
         if (DontShowAgainLookup.showAgain(key)) {
             UserThread.runAfter(() -> {

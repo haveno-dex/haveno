@@ -50,22 +50,17 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Transaction;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import java.util.Optional;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.Transaction;
 
 import javax.annotation.Nullable;
-
-
-
-import monero.wallet.model.MoneroTxWallet;
+import java.util.Optional;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -114,7 +109,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private boolean useSavingsWallet;
     @Setter
     private long fundsNeededForTrade;
-    
+
     // that is used to store temp. the peers address when we get an incoming message before the message is verified.
     // After successful verified we copy that over to the trade.tradePeerAddress
     @Nullable
@@ -137,7 +132,7 @@ public class ProcessModel implements Model, PersistablePayload {
     transient private TradeMessage tradeMessage;
     @Getter
     @Setter
-    private String makerSignature;
+    private byte[] makerSignature;
     @Nullable
     @Getter
     @Setter
@@ -152,10 +147,6 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private String multisigAddress;
-    @Nullable
-    @Getter
-    @Setter
-    private boolean isDepositsConfirmedMessagesDelivered;
     @Nullable
     @Setter
     @Getter
@@ -212,15 +203,15 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setFundsNeededForTrade(fundsNeededForTrade)
                 .setPaymentSentMessageState(paymentSentMessageStateProperty.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
-                .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
-                .setDepositsConfirmedMessagesDelivered(isDepositsConfirmedMessagesDelivered);
+                .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation);
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
         Optional.ofNullable(takeOfferFeeTxId).ifPresent(builder::setTakeOfferFeeTxId);
         Optional.ofNullable(payoutTxSignature).ifPresent(e -> builder.setPayoutTxSignature(ByteString.copyFrom(payoutTxSignature)));
         Optional.ofNullable(tempTradePeerNodeAddress).ifPresent(e -> builder.setTempTradePeerNodeAddress(tempTradePeerNodeAddress.toProtoMessage()));
-        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(makerSignature));
+        Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
         Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
@@ -238,14 +229,13 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setFundsNeededForTrade(proto.getFundsNeededForTrade());
         processModel.setBuyerPayoutAmountFromMediation(proto.getBuyerPayoutAmountFromMediation());
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
-        processModel.setDepositsConfirmedMessagesDelivered(proto.getDepositsConfirmedMessagesDelivered());
 
         // nullable
         processModel.setTakeOfferFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getTakeOfferFeeTxId()));
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));
         processModel.setTempTradePeerNodeAddress(proto.hasTempTradePeerNodeAddress() ? NodeAddress.fromProto(proto.getTempTradePeerNodeAddress()) : null);
         processModel.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
-        processModel.setMakerSignature(proto.getMakerSignature());
+        processModel.setMakerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMakerSignature()));
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
 
         String paymentSentMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageState());
@@ -306,7 +296,7 @@ public class ProcessModel implements Model, PersistablePayload {
             tradeManager.requestPersistence();
         }
     }
-    
+
     void setDepositTxSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
@@ -329,7 +319,7 @@ public class ProcessModel implements Model, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Delegates
     ///////////////////////////////////////////////////////////////////////////////////////////
-    
+
     public XmrWalletService getXmrWalletService() {
         return provider.getXmrWalletService();
     }

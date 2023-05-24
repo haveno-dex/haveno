@@ -24,14 +24,12 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.xmr.model.XmrAddressEntry;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroOutput;
+import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-
-
-import monero.daemon.model.MoneroOutput;
-import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
@@ -50,13 +48,19 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
 
             // verify monero connection
             model.getXmrWalletService().getConnectionsService().verifyConnection();
-            
+
             // create reserve tx
             BigInteger makerFee = offer.getMakerFee();
             BigInteger sendAmount = offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
-            String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            String returnAddress = model.getXmrWalletService().getNewAddressEntry(offer.getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).getAddressString();
             MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress);
+
+            // check for error in case creating reserve tx exceeded timeout
+            // TODO: better way?
+            if (!model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).isPresent()) {
+                throw new RuntimeException("An error has occurred posting offer " + offer.getId() + " causing its subaddress entry to be deleted");
+            }
 
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();

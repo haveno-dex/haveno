@@ -28,12 +28,11 @@ import haveno.core.trade.Trade;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.filtering.FilterableListItem;
 import haveno.desktop.util.filtering.FilteringUtils;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigInteger;
 import java.util.Date;
-
-import lombok.Getter;
 
 public class ClosedTradesListItem implements FilterableListItem {
     @Getter

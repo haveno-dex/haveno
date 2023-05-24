@@ -17,12 +17,11 @@
 
 package haveno.apitest.linux;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class can be used to execute a system command from a Java application.

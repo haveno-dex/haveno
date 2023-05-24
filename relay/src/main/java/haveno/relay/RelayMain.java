@@ -17,18 +17,15 @@
 
 package haveno.relay;
 
-import org.apache.commons.codec.binary.Hex;
-
-import java.io.File;
-
-import java.util.Locale;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ch.qos.logback.classic.Level;
 import haveno.common.app.Log;
 import haveno.common.util.Utilities;
+import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.Locale;
 
 import static spark.Spark.get;
 import static spark.Spark.port;

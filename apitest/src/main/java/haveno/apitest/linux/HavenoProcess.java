@@ -17,23 +17,20 @@
 
 package haveno.apitest.linux;
 
-import java.nio.file.Paths;
+import haveno.apitest.config.ApiTestConfig;
+import haveno.apitest.config.HavenoAppConfig;
+import haveno.daemon.app.HavenoDaemonMain;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 import static haveno.apitest.linux.BashCommand.isAlive;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import haveno.apitest.config.ApiTestConfig;
-import haveno.apitest.config.HavenoAppConfig;
-import haveno.daemon.app.HavenoDaemonMain;
 
 /**
  * Runs a regtest/dao Haveno application instance in the background.

@@ -17,15 +17,9 @@
 
 package haveno.network.p2p.mailbox;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.UserThread;
@@ -38,6 +32,7 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.crypto.EncryptionService;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
@@ -58,10 +53,15 @@ import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.utils.CapabilityUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.security.PublicKey;
-
 import java.time.Clock;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,13 +76,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -125,6 +120,8 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     private final Map<String, MailboxItem> mailboxItemsByUid = new HashMap<>();
 
     private boolean isBootstrapped;
+    private boolean allServicesInitialized;
+    private boolean initAfterBootstrapped;
 
     @Inject
     public MailboxMessageService(NetworkNode networkNode,
@@ -157,50 +154,69 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(persisted -> {
-                    log.trace("## readPersisted persisted {}", persisted.size());
-                    Map<String, Long> numItemsPerDay = new HashMap<>();
-                    // We sort by creation date and limit to max 3000 entries, so oldest items get skipped even if TTL
-                    // is not reached to cap the memory footprint. 3000 items is about 10 MB.
+                    Map<String, Tuple2<AtomicLong, List<Integer>>> numItemsPerDay = new HashMap<>();
+                    AtomicLong totalSize = new AtomicLong();
+                    // We sort by creation date and limit to max 3000 entries, so the oldest items get skipped even if TTL
+                    // is not reached. 3000 items is about 60 MB with max size of 20kb supported for storage.
                     persisted.stream()
                             .sorted(Comparator.comparingLong(o -> ((MailboxItem) o).getProtectedMailboxStorageEntry().getCreationTimeStamp()).reversed())
-                            .limit(3000)
                             .filter(e -> !e.isExpired(clock))
                             .filter(e -> !mailboxItemsByUid.containsKey(e.getUid()))
+                            .limit(3000)
                             .forEach(mailboxItem -> {
                                 ProtectedMailboxStorageEntry protectedMailboxStorageEntry = mailboxItem.getProtectedMailboxStorageEntry();
                                 int serializedSize = protectedMailboxStorageEntry.toProtoMessage().getSerializedSize();
                                 // Usual size is 3-4kb. A few are about 15kb and very few are larger and about 100kb or
                                 // more (probably attachments in disputes)
-                                // We ignore those large data to reduce memory footprint.
-                                if (serializedSize < 20000) {
-                                    String date = new Date(protectedMailboxStorageEntry.getCreationTimeStamp()).toString();
-                                    String day = date.substring(4, 10);
-                                    numItemsPerDay.putIfAbsent(day, 0L);
-                                    numItemsPerDay.put(day, numItemsPerDay.get(day) + 1);
+                                String date = new Date(protectedMailboxStorageEntry.getCreationTimeStamp()).toString();
+                                String day = date.substring(4, 10);
+                                numItemsPerDay.putIfAbsent(day, new Tuple2<>(new AtomicLong(0), new ArrayList<>()));
+                                Tuple2<AtomicLong, List<Integer>> tuple = numItemsPerDay.get(day);
+                                tuple.first.getAndIncrement();
+                                tuple.second.add(serializedSize);
 
-                                    String uid = mailboxItem.getUid();
-                                    mailboxItemsByUid.put(uid, mailboxItem);
+                                // We only keep small items, to reduce the potential impact of missed remove messages.
+                                // E.g. if a seed at a longer restart period missed the remove messages, then when loading from
+                                // persisted data the messages, they would add those again and distribute then later at requests to peers.
+                                // Those outdated messages would then stay in the network until TTL triggers removal.
+                                // By not applying large messages we reduce the impact of such cases at costs of extra loading costs if the message is still alive.
+                                if (serializedSize < 20000) {
+                                    mailboxItemsByUid.put(mailboxItem.getUid(), mailboxItem);
                                     mailboxMessageList.add(mailboxItem);
+                                    totalSize.getAndAdd(serializedSize);
 
                                     // We add it to our map so that it get added to the excluded key set we send for
                                     // the initial data requests. So that helps to lower the load for mailbox messages at
                                     // initial data requests.
-                                    //todo check if listeners are called too early
                                     p2PDataStorage.addProtectedMailboxStorageEntryToMap(protectedMailboxStorageEntry);
-
-                                    log.trace("## readPersisted uid={}\nhash={}\nisMine={}\ndate={}\nsize={}",
-                                            uid,
-                                            P2PDataStorage.get32ByteHashAsByteArray(protectedMailboxStorageEntry.getProtectedStoragePayload()),
-                                            mailboxItem.isMine(),
-                                            date,
-                                            serializedSize);
+                                } else {
+                                    log.info("We ignore this large persisted mailboxItem. If still valid we will reload it from seed nodes at getData requests.\n" +
+                                                    "Size={}; date={}; sender={}", Utilities.readableFileSize(serializedSize), date,
+                                            mailboxItem.getProtectedMailboxStorageEntry().getMailboxStoragePayload().getPrefixedSealedAndSignedMessage().getSenderNodeAddress());
                                 }
                             });
 
-                    List<Map.Entry<String, Long>> perDay = numItemsPerDay.entrySet().stream()
+                    List<String> perDay = numItemsPerDay.entrySet().stream()
                             .sorted(Map.Entry.comparingByKey())
+                            .map(entry -> {
+                                Tuple2<AtomicLong, List<Integer>> tuple = entry.getValue();
+                                List<Integer> sizes = tuple.second;
+                                long sum = sizes.stream().mapToLong(s -> s).sum();
+                                List<String> largeItems = sizes.stream()
+                                        .filter(s -> s > 20000)
+                                        .map(Utilities::readableFileSize)
+                                        .collect(Collectors.toList());
+                                String largeMsgInfo = largeItems.isEmpty() ? "" : "; Large messages: " + largeItems;
+                                return entry.getKey() + ": Num messages: " + tuple.first + "; Total size: " +
+                                        Utilities.readableFileSize(sum) + largeMsgInfo;
+                            })
                             .collect(Collectors.toList());
-                    log.info("We loaded {} persisted mailbox messages.\nPer day distribution:\n{}", mailboxMessageList.size(), Joiner.on("\n").join(perDay));
+
+                    log.info("We loaded {} persisted mailbox messages with {}.\nPer day distribution:\n{}",
+                            mailboxMessageList.size(),
+                            Utilities.readableFileSize(totalSize.get()),
+                            Joiner.on("\n").join(perDay));
+
                     requestPersistence();
                     completeHandler.run();
                 },
@@ -211,6 +227,12 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // We wait until all services are ready to avoid some edge cases as in https://github.com/bisq-network/bisq/issues/6367
+    public void onAllServicesInitialized() {
+        allServicesInitialized = true;
+        init();
+    }
 
     // We don't listen on requestDataManager directly as we require the correct
     // order of execution. The p2pService is handling the correct order of execution and we get called
@@ -223,11 +245,18 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
 
     // second stage starup for MailboxMessageService ... apply existing messages to their modules
     public void initAfterBootstrapped() {
-        // Only now we start listening and processing. The p2PDataStorage is our cache for data we have received
-        // after the hidden service was ready.
-        addHashMapChangedListener();
-        onAdded(p2PDataStorage.getMap().values());
-        maybeRepublishMailBoxMessages();
+        initAfterBootstrapped = true;
+        init();
+    }
+
+    private void init() {
+        if (allServicesInitialized && initAfterBootstrapped) {
+            // Only now we start listening and processing. The p2PDataStorage is our cache for data we have received
+            // after the hidden service was ready.
+            addHashMapChangedListener();
+            onAdded(p2PDataStorage.getMap().values());
+            maybeRepublishMailBoxMessages();
+        }
     }
 
 
@@ -350,11 +379,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 .map(e -> (ProtectedMailboxStorageEntry) e)
                 .filter(e -> networkNode.getNodeAddress() != null)
                 .collect(Collectors.toSet());
-        if (entries.size() > 1) {
-            threadedBatchProcessMailboxEntries(entries);
-        } else if (entries.size() == 1) {
-            processSingleMailboxEntry(entries);
-        }
+        threadedBatchProcessMailboxEntries(entries);
     }
 
     @Override
@@ -380,26 +405,26 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         p2PDataStorage.addHashMapChangedListener(this);
     }
 
-    private void processSingleMailboxEntry(Collection<ProtectedMailboxStorageEntry> protectedMailboxStorageEntries) {
-        checkArgument(protectedMailboxStorageEntries.size() == 1);
-        var mailboxItems = new ArrayList<>(getMailboxItems(protectedMailboxStorageEntries));
-        if (mailboxItems.size() == 1) {
-            handleMailboxItem(mailboxItems.get(0));
-        }
-    }
-
     // We run the batch processing of all mailbox messages we have received at startup in a thread to not block the UI.
     // For about 1000 messages decryption takes about 1 sec.
     private void threadedBatchProcessMailboxEntries(Collection<ProtectedMailboxStorageEntry> protectedMailboxStorageEntries) {
-        ListeningExecutorService executor = Utilities.getSingleThreadListeningExecutor("processMailboxEntry-" + new Random().nextInt(1000));
         long ts = System.currentTimeMillis();
-        ListenableFuture<Set<MailboxItem>> future = executor.submit(() -> {
-            var mailboxItems = getMailboxItems(protectedMailboxStorageEntries);
-            log.info("Batch processing of {} mailbox entries took {} ms",
-                    protectedMailboxStorageEntries.size(),
-                    System.currentTimeMillis() - ts);
-            return mailboxItems;
-        });
+        SettableFuture<Set<MailboxItem>> future = SettableFuture.create();
+
+        new Thread(() -> {
+            try {
+                var mailboxItems = getMailboxItems(protectedMailboxStorageEntries);
+
+                if (!protectedMailboxStorageEntries.isEmpty())
+                    log.info("Batch processing of {} mailbox entries took {} ms",
+                            protectedMailboxStorageEntries.size(),
+                            System.currentTimeMillis() - ts);
+                future.set(mailboxItems);
+
+            } catch (Throwable throwable) {
+                future.setException(throwable);
+            }
+        }, "processMailboxEntry-" + new Random().nextInt(1000)).start();
 
         Futures.addCallback(future, new FutureCallback<>() {
             public void onSuccess(Set<MailboxItem> decryptedMailboxMessageWithEntries) {
@@ -474,7 +499,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 mailboxMessage.getClass().getSimpleName(), uid, sender);
         decryptedMailboxListeners.forEach(e -> e.onMailboxMessageAdded(decryptedMessageWithPubKey, sender));
 
-        if (isBootstrapped) {
+        if (allServicesInitialized && isBootstrapped) {
             // After we notified our listeners we remove the data immediately from the network.
             // In case the client has not been ready it need to take it via getMailBoxMessages.
             // We do not remove the data from our local map at that moment. This has to be called explicitely from the

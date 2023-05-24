@@ -17,10 +17,11 @@
 
 package haveno.cli.table.builder;
 
-import static haveno.cli.table.builder.TableType.FAILED_TRADES_TBL;
-
 import haveno.cli.table.Table;
+
 import java.util.List;
+
+import static haveno.cli.table.builder.TableType.FAILED_TRADES_TBL;
 
 /**
  * Builds a {@code haveno.cli.table.Table} from a list of {@code haveno.proto.grpc.TradeInfo} objects.

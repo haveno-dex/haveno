@@ -17,14 +17,13 @@
 
 package haveno.core.network.p2p.inventory.model;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Value;
-
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 public class RequestInfo {

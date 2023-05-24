@@ -18,8 +18,7 @@
 package haveno.asset.coins;
 
 import haveno.asset.AbstractAssetTest;
-import haveno.asset.coins.Monero;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MoneroTest extends AbstractAssetTest {
 

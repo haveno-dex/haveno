@@ -17,6 +17,11 @@
 
 package haveno.network.p2p;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.app.Capabilities;
@@ -46,21 +51,19 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import haveno.network.utils.CapabilityUtils;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import lombok.Getter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+import org.fxmisc.easybind.monadic.MonadicBinding;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Optional;
@@ -68,14 +71,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import lombok.Getter;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -149,14 +144,12 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
         // We need to have both the initial data delivered and the hidden service published
         networkReadyBinding = EasyBind.combine(hiddenServicePublished, preliminaryDataReceived,
-                (hiddenServicePublished, preliminaryDataReceived)
-                        -> hiddenServicePublished && preliminaryDataReceived);
+                (hiddenServicePublished, preliminaryDataReceived) -> hiddenServicePublished && preliminaryDataReceived);
         networkReadySubscription = networkReadyBinding.subscribe((observable, oldValue, newValue) -> {
             if (newValue)
                 onNetworkReady();
         });
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
@@ -183,6 +176,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     }
 
     public void shutDown(Runnable shutDownCompleteHandler) {
+        log.info("P2PService shutdown started");
         shutDownResultHandlers.add(shutDownCompleteHandler);
 
         // We need to make sure queued up messages are flushed out before we continue shut down other network
@@ -195,6 +189,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     }
 
     private void doShutDown() {
+
         if (p2PDataStorage != null) {
             p2PDataStorage.shutDown();
         }
@@ -220,14 +215,11 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         }
 
         if (networkNode != null) {
-            networkNode.shutDown(() -> {
-                shutDownResultHandlers.forEach(Runnable::run);
-            });
+            networkNode.shutDown(() -> shutDownResultHandlers.forEach(Runnable::run));
         } else {
             shutDownResultHandlers.forEach(Runnable::run);
         }
     }
-
 
     /**
      * Startup sequence:
@@ -293,7 +285,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         UserThread.runAfter(peerExchangeManager::initialRequestPeersFromReportedOrPersistedPeers, 300, TimeUnit.MILLISECONDS);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // RequestDataManager.Listener implementation
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -342,7 +333,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ConnectionListener implementation
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -361,11 +351,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         UserThread.runAfter(() -> numConnectedPeers.set(networkNode.getAllConnections().size()), 3);
     }
 
-    @Override
-    public void onError(Throwable throwable) {
-    }
-
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // MessageListener implementation
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -378,13 +363,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
                 DecryptedMessageWithPubKey decryptedMsg = encryptionService.decryptAndVerify(sealedMsg.getSealedAndSigned());
                 connection.maybeHandleSupportedCapabilitiesMessage(decryptedMsg.getNetworkEnvelope());
                 connection.getPeersNodeAddressOptional().ifPresentOrElse(nodeAddress ->
-                                decryptedDirectMessageListeners.forEach(e -> {
-                                    try {
-                                        e.onDirectMessage(decryptedMsg, nodeAddress);
-                                    } catch (Exception e2) {
-                                        e2.printStackTrace();
-                                    }
-                                }),
+                        decryptedDirectMessageListeners.forEach(e -> e.onDirectMessage(decryptedMsg, nodeAddress)),
                         () -> {
                             log.error("peersNodeAddress is expected to be available at onMessage for " +
                                     "processing PrefixedSealedAndSignedMessage.");
@@ -398,7 +377,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
             }
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // DirectMessages
@@ -461,7 +439,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Data storage
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -512,7 +489,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listeners
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -540,7 +516,6 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     public void removeHashMapChangedListener(HashMapChangedListener hashMapChangedListener) {
         p2PDataStorage.removeHashMapChangedListener(hashMapChangedListener);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters

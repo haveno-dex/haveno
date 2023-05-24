@@ -19,7 +19,6 @@ package haveno.desktop.main.portfolio.pendingtrades;
 
 import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
-import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
@@ -45,24 +44,20 @@ import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javax.inject.Named;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import lombok.Getter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 
+import javax.annotation.Nullable;
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
@@ -152,55 +147,59 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
     @Override
     protected void deactivate() {
-        if (tradeStateSubscription != null) {
-            tradeStateSubscription.unsubscribe();
-            tradeStateSubscription = null;
-        }
-
-        if (payoutStateSubscription != null) {
-            payoutStateSubscription.unsubscribe();
-            payoutStateSubscription = null;
-        }
-
-        if (messageStateSubscription != null) {
-            messageStateSubscription.unsubscribe();
-            messageStateSubscription = null;
+        synchronized (this) {
+            if (tradeStateSubscription != null) {
+                tradeStateSubscription.unsubscribe();
+                tradeStateSubscription = null;
+            }
+    
+            if (payoutStateSubscription != null) {
+                payoutStateSubscription.unsubscribe();
+                payoutStateSubscription = null;
+            }
+    
+            if (messageStateSubscription != null) {
+                messageStateSubscription.unsubscribe();
+                messageStateSubscription = null;
+            }
         }
     }
 
     // Don't set own listener as we need to control the order of the calls
     public void onSelectedItemChanged(PendingTradesListItem selectedItem) {
-        if (tradeStateSubscription != null) {
-            tradeStateSubscription.unsubscribe();
-            sellerState.set(SellerState.UNDEFINED);
-            buyerState.set(BuyerState.UNDEFINED);
-        }
+        synchronized (this) {
+            if (tradeStateSubscription != null) {
+                tradeStateSubscription.unsubscribe();
+                sellerState.set(SellerState.UNDEFINED);
+                buyerState.set(BuyerState.UNDEFINED);
+            }
+    
+            if (payoutStateSubscription != null) {
+                payoutStateSubscription.unsubscribe();
+                sellerState.set(SellerState.UNDEFINED);
+                buyerState.set(BuyerState.UNDEFINED);
+            }
+    
+            if (messageStateSubscription != null) {
+                messageStateSubscription.unsubscribe();
+                messageStateProperty.set(MessageState.UNDEFINED);
+            }
+    
+            if (selectedItem != null) {
+                this.trade = selectedItem.getTrade();
+                tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
+                    onTradeStateChanged(state);
+                });
+                payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
+                    onPayoutStateChanged(state);
+                });
+                messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
+            }
 
-        if (payoutStateSubscription != null) {
-            payoutStateSubscription.unsubscribe();
-            sellerState.set(SellerState.UNDEFINED);
-            buyerState.set(BuyerState.UNDEFINED);
-        }
-
-        if (messageStateSubscription != null) {
-            messageStateSubscription.unsubscribe();
-            messageStateProperty.set(MessageState.UNDEFINED);
-        }
-
-        if (selectedItem != null) {
-            this.trade = selectedItem.getTrade();
-            tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
-                UserThread.execute(() -> onTradeStateChanged(state));
-            });
-            payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
-                UserThread.execute(() -> onPayoutStateChanged(state));
-            });
-            messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
         }
     }
 
     public void setMessageStateProperty(MessageState messageState) {
-        
         // ARRIVED is set internally after ACKNOWLEDGED, otherwise warn if subsequent states received
         if ((messageStateProperty.get() == MessageState.ACKNOWLEDGED && messageState != MessageState.ARRIVED) || messageStateProperty.get() == MessageState.ARRIVED) {
             log.warn("We have already an ACKNOWLEDGED/ARRIVED message received. " +
@@ -381,8 +380,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case SENT_PUBLISH_DEPOSIT_TX_REQUEST:
             case SEND_FAILED_PUBLISH_DEPOSIT_TX_REQUEST:
             case SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST:
-                sellerState.set(UNDEFINED); // TODO: show view while trade initializes?
                 buyerState.set(BuyerState.UNDEFINED);
+                sellerState.set(UNDEFINED); // TODO: show view while trade initializes?
                 break;
 
             case ARBITRATOR_PUBLISHED_DEPOSIT_TXS:
@@ -395,18 +394,20 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             // buyer and seller step 2
             // deposits unlocked
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
-                sellerState.set(SellerState.STEP2);
                 buyerState.set(BuyerState.STEP2);
+                sellerState.set(SellerState.STEP2);
                 break;
 
             // buyer step 3
             case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT: // UI action
             case BUYER_SENT_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG sent
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
                 // We don't switch the UI before we got the feedback of the msg delivery
                 buyerState.set(BuyerState.STEP2);
+                sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
-            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
-            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG in mailbox
+            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG in mailbox
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG acked
                 buyerState.set(BuyerState.STEP3);
                 break;
             case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG failed
@@ -421,7 +422,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // seller step 3
-            case SELLER_RECEIVED_PAYMENT_SENT_MSG: // PAYMENT_SENT_MSG received
             case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
@@ -452,6 +452,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
         switch (payoutState) {
             case PAYOUT_PUBLISHED:
+            case PAYOUT_CONFIRMED:
+            case PAYOUT_UNLOCKED:
                 sellerState.set(SellerState.STEP4);
                 buyerState.set(BuyerState.STEP4);
                 break;

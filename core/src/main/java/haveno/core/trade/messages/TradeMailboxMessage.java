@@ -18,10 +18,10 @@
 package haveno.core.trade.messages;
 
 import haveno.network.p2p.mailbox.MailboxMessage;
-import java.util.concurrent.TimeUnit;
-
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
+import java.util.concurrent.TimeUnit;
 
 @EqualsAndHashCode(callSuper = true)
 @ToString

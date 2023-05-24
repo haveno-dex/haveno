@@ -17,11 +17,6 @@
 
 package haveno.core.payment;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import static haveno.core.payment.payload.PaymentMethod.*;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Country;
 import haveno.core.locale.TradeCurrency;
@@ -29,6 +24,11 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.user.User;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,9 +37,62 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import static haveno.core.payment.payload.PaymentMethod.ACH_TRANSFER_ID;
+import static haveno.core.payment.payload.PaymentMethod.ADVANCED_CASH_ID;
+import static haveno.core.payment.payload.PaymentMethod.ALI_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.AMAZON_GIFT_CARD_ID;
+import static haveno.core.payment.payload.PaymentMethod.AUSTRALIA_PAYID_ID;
+import static haveno.core.payment.payload.PaymentMethod.BIZUM_ID;
+import static haveno.core.payment.payload.PaymentMethod.BLOCK_CHAINS;
+import static haveno.core.payment.payload.PaymentMethod.BLOCK_CHAINS_INSTANT;
+import static haveno.core.payment.payload.PaymentMethod.CAPITUAL_ID;
+import static haveno.core.payment.payload.PaymentMethod.CASH_APP_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAY_BY_MAIL_ID;
+import static haveno.core.payment.payload.PaymentMethod.CASH_DEPOSIT_ID;
+import static haveno.core.payment.payload.PaymentMethod.CELPAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.CHASE_QUICK_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.ZELLE_ID;
+import static haveno.core.payment.payload.PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID;
+import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
+import static haveno.core.payment.payload.PaymentMethod.FASTER_PAYMENTS_ID;
+import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
+import static haveno.core.payment.payload.PaymentMethod.IMPS_ID;
+import static haveno.core.payment.payload.PaymentMethod.INTERAC_E_TRANSFER_ID;
+import static haveno.core.payment.payload.PaymentMethod.JAPAN_BANK_ID;
+import static haveno.core.payment.payload.PaymentMethod.MONESE_ID;
+import static haveno.core.payment.payload.PaymentMethod.MONEY_BEAM_ID;
+import static haveno.core.payment.payload.PaymentMethod.MONEY_GRAM_ID;
+import static haveno.core.payment.payload.PaymentMethod.NATIONAL_BANK_ID;
+import static haveno.core.payment.payload.PaymentMethod.NEFT_ID;
+import static haveno.core.payment.payload.PaymentMethod.NEQUI_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAXUM_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAYSERA_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAYTM_ID;
+import static haveno.core.payment.payload.PaymentMethod.PERFECT_MONEY_ID;
+import static haveno.core.payment.payload.PaymentMethod.PIX_ID;
+import static haveno.core.payment.payload.PaymentMethod.POPMONEY_ID;
+import static haveno.core.payment.payload.PaymentMethod.PROMPT_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.REVOLUT_ID;
+import static haveno.core.payment.payload.PaymentMethod.RTGS_ID;
+import static haveno.core.payment.payload.PaymentMethod.SAME_BANK_ID;
+import static haveno.core.payment.payload.PaymentMethod.SATISPAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.SEPA_ID;
+import static haveno.core.payment.payload.PaymentMethod.SEPA_INSTANT_ID;
+import static haveno.core.payment.payload.PaymentMethod.SPECIFIC_BANKS_ID;
+import static haveno.core.payment.payload.PaymentMethod.STRIKE_ID;
+import static haveno.core.payment.payload.PaymentMethod.SWIFT_ID;
+import static haveno.core.payment.payload.PaymentMethod.SWISH_ID;
+import static haveno.core.payment.payload.PaymentMethod.TIKKIE_ID;
+import static haveno.core.payment.payload.PaymentMethod.TRANSFERWISE_ID;
+import static haveno.core.payment.payload.PaymentMethod.TRANSFERWISE_USD_ID;
+import static haveno.core.payment.payload.PaymentMethod.UPHOLD_ID;
+import static haveno.core.payment.payload.PaymentMethod.UPI_ID;
+import static haveno.core.payment.payload.PaymentMethod.US_POSTAL_MONEY_ORDER_ID;
+import static haveno.core.payment.payload.PaymentMethod.VENMO_ID;
+import static haveno.core.payment.payload.PaymentMethod.VERSE_ID;
+import static haveno.core.payment.payload.PaymentMethod.WECHAT_PAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.WESTERN_UNION_ID;
+import static haveno.core.payment.payload.PaymentMethod.hasChargebackRisk;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -165,8 +218,8 @@ public class PaymentAccountUtil {
                 return JapanBankAccount.SUPPORTED_CURRENCIES;
             case WECHAT_PAY_ID:
                 return WeChatPayAccount.SUPPORTED_CURRENCIES;
-            case CLEAR_X_CHANGE_ID:
-                return ClearXchangeAccount.SUPPORTED_CURRENCIES;
+            case ZELLE_ID:
+                return ZelleAccount.SUPPORTED_CURRENCIES;
             case AUSTRALIA_PAYID_ID:
                 return AustraliaPayidAccount.SUPPORTED_CURRENCIES;
             case PERFECT_MONEY_ID:
@@ -185,8 +238,8 @@ public class PaymentAccountUtil {
                 return SepaAccount.SUPPORTED_CURRENCIES;
             case SEPA_INSTANT_ID:
                 return SepaInstantAccount.SUPPORTED_CURRENCIES;
-            case CASH_BY_MAIL_ID:
-                return CashByMailAccount.SUPPORTED_CURRENCIES;
+            case PAY_BY_MAIL_ID:
+                return PayByMailAccount.SUPPORTED_CURRENCIES;
             case F2F_ID:
                 return F2FAccount.SUPPORTED_CURRENCIES;
             case NATIONAL_BANK_ID:
@@ -242,7 +295,7 @@ public class PaymentAccountUtil {
 
     @Nullable
     public static String getCountryCode(PaymentAccount paymentAccount) {
-        // That is optional and set to null if not supported (AltCoins,...)
+        // That is optional and set to null if not supported (Cryptos,...)
         if (paymentAccount instanceof CountryBasedPaymentAccount) {
             Country country = (((CountryBasedPaymentAccount) paymentAccount)).getCountry();
             return country != null ? country.code : null;

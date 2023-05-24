@@ -21,8 +21,8 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.TestState;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.RequiresOwnerIsOnlinePayload;
-import java.security.PublicKey;
 
+import java.security.PublicKey;
 import java.util.concurrent.TimeUnit;
 
 /**

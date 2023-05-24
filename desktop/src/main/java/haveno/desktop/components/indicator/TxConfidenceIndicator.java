@@ -42,16 +42,16 @@
 
 package haveno.desktop.components.indicator;
 
-import javafx.scene.control.Control;
-import javafx.scene.control.Skin;
-
-import javafx.css.PseudoClass;
-import javafx.css.StyleableProperty;
+import haveno.common.UserThread;
 import haveno.desktop.components.indicator.skin.StaticProgressIndicatorSkin;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.DoublePropertyBase;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.css.PseudoClass;
+import javafx.css.StyleableProperty;
+import javafx.scene.control.Control;
+import javafx.scene.control.Skin;
 
 // TODO Copied form OpenJFX, check license issues and way how we integrated it
 // We changed behaviour which was not exposed via APIs
@@ -221,7 +221,7 @@ public class TxConfidenceIndicator extends Control {
      */
 
     public final void setProgress(double value) {
-        progressProperty().set(value);
+        UserThread.execute(() -> progressProperty().set(value));
     }
 
     public final DoubleProperty progressProperty() {

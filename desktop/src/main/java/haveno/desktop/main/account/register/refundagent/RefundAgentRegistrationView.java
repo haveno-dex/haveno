@@ -23,9 +23,9 @@ import haveno.core.locale.Res;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.account.register.AgentRegistrationView;
-import javax.inject.Named;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 @FxmlView
 public class RefundAgentRegistrationView extends AgentRegistrationView<RefundAgent, RefundAgentRegistrationViewModel> {

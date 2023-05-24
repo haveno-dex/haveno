@@ -17,15 +17,15 @@
 
 package haveno.core.trade;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 import haveno.common.config.Config;
 import haveno.common.crypto.Hash;
+import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
+import haveno.core.app.HavenoSetup;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -35,14 +35,18 @@ import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 
-import java.net.URI;
+import org.bitcoinj.core.Coin;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
+import java.net.URI;
+import java.security.PrivateKey;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -51,10 +55,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 /**
  * Collection of utilities.
@@ -71,9 +71,10 @@ public class HavenoUtils {
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
-    
-    public static ArbitrationManager arbitrationManager; // TODO: better way to share reference?
 
+    // TODO: better way to share refernces?
+    public static ArbitrationManager arbitrationManager;
+    public static HavenoSetup havenoSetup;
 
     // ----------------------- CONVERSION UTILS -------------------------------
 
@@ -188,7 +189,6 @@ public class HavenoUtils {
         try {
             return xmrToAtomicUnits(new BigDecimal(input).doubleValue());
         } catch (Exception e) {
-            log.warn("Exception at parseXmr: " + e.toString());
             return BigInteger.valueOf(0);
         }
     }
@@ -237,50 +237,47 @@ public class HavenoUtils {
         return feePerXmrAsDecimal.multiply(amountMultiplier).toBigInteger();
     }
 
+    // ------------------------ SIGNING AND VERIFYING -------------------------
 
-    // ----------------------------- OTHER UTILS ------------------------------
+    public static byte[] sign(KeyRing keyRing, String message) {
+        return sign(keyRing.getSignatureKeyPair().getPrivate(), message);
+    }
 
-    /**
-     * Get address to collect trade fees.
-     *
-     * @return the address which collects trade fees
-     */
-    public static String getTradeFeeAddress() {
-        switch (Config.baseCurrencyNetwork()) {
-        case XMR_LOCAL:
-            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
-        case XMR_STAGENET:
-            return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
-        case XMR_MAINNET:
-            throw new RuntimeException("Mainnet fee address not implemented");
-        default:
-            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+    public static byte[] sign(PrivateKey privateKey, String message) {
+        return sign(privateKey, message.getBytes(Charsets.UTF_8));
+    }
+
+    public static byte[] sign(PrivateKey privateKey, byte[] bytes) {
+        try {
+            return Sig.sign(privateKey, bytes);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
-    /**
-     * Check if the given URI is on local host.
-     */
-    public static boolean isLocalHost(String uri) {
+    public static void verifySignature(PubKeyRing pubKeyRing, String message, byte[] signature) {
+        verifySignature(pubKeyRing, message.getBytes(Charsets.UTF_8), signature);
+    }
+
+    public static void verifySignature(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
         try {
-            String host = new URI(uri).getHost();
-            return host.equals(LOOPBACK_HOST) || host.equals(LOCALHOST);
+            Sig.verify(pubKeyRing.getSignaturePubKey(), bytes, signature);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    /**
-     * Returns a unique deterministic id for sending a trade mailbox message.
-     *
-     * @param trade the trade
-     * @param tradeMessageClass the trade message class
-     * @param receiver the receiver address
-     * @return a unique deterministic id for sending a trade mailbox message
-     */
-    public static String getDeterministicId(Trade trade, Class<?> tradeMessageClass, NodeAddress receiver) {
-        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradePeer(receiver));
-        return Utilities.bytesAsHexString(Hash.getSha256Ripemd160hash(uniqueId.getBytes(Charsets.UTF_8)));
+    public static boolean isSignatureValid(PubKeyRing pubKeyRing, String message, byte[] signature) {
+        return isSignatureValid(pubKeyRing, message.getBytes(Charsets.UTF_8), signature);
+    }
+
+    public static boolean isSignatureValid(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
+        try {
+            verifySignature(pubKeyRing, bytes, signature);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
@@ -296,18 +293,14 @@ public class HavenoUtils {
         OfferPayload offerPayloadCopy = OfferPayload.fromProto(offer.toProtoMessage().getOfferPayload());
 
         // remove arbitrator signature from signed payload
-        String signature = offerPayloadCopy.getArbitratorSignature();
+        byte[] signature = offerPayloadCopy.getArbitratorSignature();
         offerPayloadCopy.setArbitratorSignature(null);
 
         // get unsigned offer payload as json string
         String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
 
-        // verify arbitrator signature
-        try {
-            return Sig.verify(arbitrator.getPubKeyRing().getSignaturePubKey(), unsignedOfferAsJson, signature);
-        } catch (Exception e) {
-            return false;
-        }
+        // verify signature
+        return isSignatureValid(arbitrator.getPubKeyRing(), unsignedOfferAsJson, signature);
     }
 
     /**
@@ -316,7 +309,7 @@ public class HavenoUtils {
      * @param request is the trade request to check
      * @return true if the maker's signature is valid for the trade request
      */
-    public static boolean isMakerSignatureValid(InitTradeRequest request, String signature, PubKeyRing makerPubKeyRing) {
+    public static boolean isMakerSignatureValid(InitTradeRequest request, byte[] signature, PubKeyRing makerPubKeyRing) {
 
         // re-create trade request with signed fields
         InitTradeRequest signedRequest = new InitTradeRequest(
@@ -347,13 +340,7 @@ public class HavenoUtils {
         String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
 
         // verify maker signature
-        try {
-            return Sig.verify(makerPubKeyRing.getSignaturePubKey(),
-                    tradeRequestAsJson,
-                    signature);
-        } catch (Exception e) {
-            return false;
-        }
+        return isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
     }
 
     /**
@@ -376,11 +363,8 @@ public class HavenoUtils {
         message.setBuyerSignature(signature);
 
         // verify signature
-        String errMessage = "The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
-        try {
-            if (!Sig.verify(trade.getBuyer().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(errMessage);
+        if (!isSignatureValid(trade.getBuyer().getPubKeyRing(), unsignedMessageAsJson, signature)) {
+            throw new IllegalArgumentException("The buyer signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId());
         }
 
         // verify trade id
@@ -407,11 +391,8 @@ public class HavenoUtils {
         message.setSellerSignature(signature);
 
         // verify signature
-        String errMessage = "The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId();
-        try {
-            if (!Sig.verify(trade.getSeller().getPubKeyRing().getSignaturePubKey(), unsignedMessageAsJson.getBytes(Charsets.UTF_8), signature)) throw new IllegalArgumentException(errMessage);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(errMessage);
+        if (!isSignatureValid(trade.getSeller().getPubKeyRing(), unsignedMessageAsJson, signature)) {
+            throw new IllegalArgumentException("The seller signature is invalid for the " + message.getClass().getSimpleName() + " for " + trade.getClass().getSimpleName() + " " + trade.getId());
         }
 
         // verify trade id
@@ -419,6 +400,51 @@ public class HavenoUtils {
 
         // verify buyer signature of payment sent message
         verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
+    }
+
+    // ----------------------------- OTHER UTILS ------------------------------
+
+    /**
+     * Get address to collect trade fees.
+     *
+     * @return the address which collects trade fees
+     */
+    public static String getTradeFeeAddress() {
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
+        case XMR_STAGENET:
+            return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
+        case XMR_MAINNET:
+            throw new RuntimeException("Mainnet fee address not implemented");
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
+    }
+
+    /**
+     * Check if the given URI is on local host.
+     */
+    public static boolean isLocalHost(String uri) {
+        try {
+            String host = new URI(uri).getHost();
+            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Returns a unique deterministic id for sending a trade mailbox message.
+     *
+     * @param trade the trade
+     * @param tradeMessageClass the trade message class
+     * @param receiver the receiver address
+     * @return a unique deterministic id for sending a trade mailbox message
+     */
+    public static String getDeterministicId(Trade trade, Class<?> tradeMessageClass, NodeAddress receiver) {
+        String uniqueId = trade.getId() + "_" + tradeMessageClass.getSimpleName() + "_" + trade.getRole() + "_to_" + trade.getPeerRole(trade.getTradePeer(receiver));
+        return Utilities.bytesAsHexString(Hash.getSha256Ripemd160hash(uniqueId.getBytes(Charsets.UTF_8)));
     }
 
     public static void awaitLatch(CountDownLatch latch) {
@@ -449,16 +475,24 @@ public class HavenoUtils {
     }
 
     public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency) {
+        executeTasks(tasks, maxConcurrency, null);
+    }
+
+    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
         if (tasks.isEmpty()) return;
         ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
         List<Future<?>> futures = new ArrayList<Future<?>>();
         for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();
-        try {
-            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) pool.shutdownNow();
-        } catch (InterruptedException e) {
-            pool.shutdownNow();
-            throw new RuntimeException(e);
+
+        // interrupt after timeout
+        if (timeoutSeconds != null) {
+            try {
+                if (!pool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) pool.shutdownNow();
+            } catch (InterruptedException e) {
+                pool.shutdownNow();
+                throw new RuntimeException(e);
+            }
         }
 
         // throw exception from any tasks
@@ -471,5 +505,11 @@ public class HavenoUtils {
 
     public static String toCamelCase(String underscore) {
         return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
+    }
+
+    public static boolean connectionConfigsEqual(MoneroRpcConnection c1, MoneroRpcConnection c2) {
+        if (c1 == c2) return true;
+        if (c1 == null) return false;
+        return c1.equals(c2); // equality considers uri, username, and password
     }
 }

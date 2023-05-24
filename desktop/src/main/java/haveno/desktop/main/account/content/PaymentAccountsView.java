@@ -14,8 +14,9 @@ import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
-import org.apache.commons.lang3.StringUtils;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
@@ -26,14 +27,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
-
-import javafx.beans.value.ChangeListener;
-
-import javafx.event.EventHandler;
-
-import javafx.collections.ObservableList;
-
 import javafx.util.Callback;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.concurrent.TimeUnit;
 

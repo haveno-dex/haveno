@@ -6,17 +6,19 @@ import com.google.gson.stream.JsonWriter;
 import haveno.apitest.method.MethodTest;
 import haveno.cli.GrpcClient;
 import haveno.core.api.model.PaymentAccountForm;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -26,15 +28,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInfo;
-
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class AbstractPaymentAccountTest extends MethodTest {
@@ -167,11 +168,11 @@ public class AbstractPaymentAccountTest extends MethodTest {
         assertEquals(expectedCurrencyCode, paymentAccount.getSingleTradeCurrency().getCode());
     }
 
-    protected final void verifyAccountTradeCurrencies(Collection<FiatCurrency> expectedFiatCurrencies,
+    protected final void verifyAccountTradeCurrencies(Collection<TraditionalCurrency> expectedTraditionalCurrencies,
                                                       PaymentAccount paymentAccount) {
         assertNotNull(paymentAccount.getTradeCurrencies());
         List<TradeCurrency> expectedTradeCurrencies = new ArrayList<>() {{
-            addAll(expectedFiatCurrencies);
+            addAll(expectedTraditionalCurrencies);
         }};
         assertArrayEquals(expectedTradeCurrencies.toArray(), paymentAccount.getTradeCurrencies().toArray());
     }
@@ -205,8 +206,8 @@ public class AbstractPaymentAccountTest extends MethodTest {
         return jsonString;
     }
 
-    protected final String getCommaDelimitedFiatCurrencyCodes(Collection<FiatCurrency> fiatCurrencies) {
-        return fiatCurrencies.stream()
+    protected final String getCommaDelimitedTraditionalCurrencyCodes(Collection<TraditionalCurrency> traditionalCurrencies) {
+        return traditionalCurrencies.stream()
                 .sorted(Comparator.comparing(TradeCurrency::getCode))
                 .map(c -> c.getCurrency().getCurrencyCode())
                 .collect(Collectors.joining(","));

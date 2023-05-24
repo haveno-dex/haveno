@@ -18,6 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.payment.payload.PaymentMethod;
+
 import javax.inject.Singleton;
 
 @Singleton

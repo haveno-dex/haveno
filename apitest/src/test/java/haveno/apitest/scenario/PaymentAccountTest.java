@@ -1,7 +1,9 @@
 package haveno.apitest.scenario;
 
+import haveno.apitest.method.payment.AbstractPaymentAccountTest;
+import haveno.apitest.method.payment.CreatePaymentAccountTest;
+import haveno.apitest.method.payment.GetPaymentMethodsTest;
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -14,10 +16,6 @@ import static haveno.apitest.Scaffold.BitcoinCoreApp.bitcoind;
 import static haveno.apitest.config.HavenoAppConfig.alicedaemon;
 import static haveno.apitest.config.HavenoAppConfig.seednode;
 import static org.junit.jupiter.api.Assertions.fail;
-
-import haveno.apitest.method.payment.AbstractPaymentAccountTest;
-import haveno.apitest.method.payment.CreatePaymentAccountTest;
-import haveno.apitest.method.payment.GetPaymentMethodsTest;
 
 @Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -50,7 +48,7 @@ public class PaymentAccountTest extends AbstractPaymentAccountTest {
         test.testCreateCapitualAccount(testInfo);
         test.testCreateCashDepositAccount(testInfo);
         test.testCreateBrazilNationalBankAccount(testInfo);
-        test.testCreateClearXChangeAccount(testInfo);
+        test.testCreateZelleAccount(testInfo);
         test.testCreateF2FAccount(testInfo);
         test.testCreateFasterPaymentsAccount(testInfo);
         test.testCreateHalCashAccount(testInfo);

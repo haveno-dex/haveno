@@ -17,31 +17,7 @@
 
 package haveno.core.xmr.wallet;
 
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.AddressFormatException;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.InsufficientMoneyException;
-import org.bitcoinj.core.SegwitAddress;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionConfidence;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.crypto.DeterministicKey;
-import org.bitcoinj.crypto.KeyCrypterScrypt;
-import org.bitcoinj.script.Script;
-import org.bitcoinj.script.ScriptPattern;
-import org.bitcoinj.wallet.SendRequest;
-import org.bitcoinj.wallet.Wallet;
-
-import javax.inject.Inject;
-
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.util.Tuple2;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.exceptions.AddressEntryException;
@@ -51,22 +27,33 @@ import haveno.core.xmr.exceptions.WalletException;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.model.AddressEntryList;
 import haveno.core.xmr.setup.WalletsSetup;
-import haveno.core.xmr.wallet.http.MemPoolSpaceTxBroadcaster;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.AddressFormatException;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.InsufficientMoneyException;
+import org.bitcoinj.core.SegwitAddress;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptPattern;
+import org.bitcoinj.wallet.SendRequest;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -409,162 +396,6 @@ public class BtcWalletService extends WalletService {
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Double spend unconfirmed transaction (unlock in case we got into a tx with a too low mining fee)
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public void doubleSpendTransaction(String txId, Runnable resultHandler, ErrorMessageHandler errorMessageHandler)
-            throws InsufficientFundsException {
-        AddressEntry addressEntry = getFreshAddressEntry();
-        checkNotNull(addressEntry.getAddress(), "addressEntry.getAddress() must not be null");
-        Optional<Transaction> transactionOptional = wallet.getTransactions(true).stream()
-                .filter(t -> t.getTxId().toString().equals(txId))
-                .findAny();
-        if (transactionOptional.isPresent()) {
-            Transaction txToDoubleSpend = transactionOptional.get();
-            Address toAddress = addressEntry.getAddress();
-            final TransactionConfidence.ConfidenceType confidenceType = txToDoubleSpend.getConfidence().getConfidenceType();
-            if (confidenceType == TransactionConfidence.ConfidenceType.PENDING) {
-                log.debug("txToDoubleSpend no. of inputs " + txToDoubleSpend.getInputs().size());
-
-                Transaction newTransaction = new Transaction(params);
-                txToDoubleSpend.getInputs().stream().forEach(input -> {
-                            final TransactionOutput connectedOutput = input.getConnectedOutput();
-                            if (connectedOutput != null &&
-                                    connectedOutput.isMine(wallet) &&
-                                    connectedOutput.getParentTransaction() != null &&
-                                    connectedOutput.getParentTransaction().getConfidence() != null &&
-                                    input.getValue() != null) {
-                                //if (connectedOutput.getParentTransaction().getConfidence().getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING) {
-                                newTransaction.addInput(new TransactionInput(params,
-                                        newTransaction,
-                                        new byte[]{},
-                                        new TransactionOutPoint(params, input.getOutpoint().getIndex(),
-                                                new Transaction(params, connectedOutput.getParentTransaction().bitcoinSerialize())),
-                                        Coin.valueOf(input.getValue().value)));
-                               /* } else {
-                                    log.warn("Confidence of parent tx is not of type BUILDING: ConfidenceType=" +
-                                            connectedOutput.getParentTransaction().getConfidence().getConfidenceType());
-                                }*/
-                            }
-                        }
-                );
-
-                log.info("newTransaction no. of inputs " + newTransaction.getInputs().size());
-                log.info("newTransaction vsize in vkB " + newTransaction.getVsize() / 1024);
-
-                if (!newTransaction.getInputs().isEmpty()) {
-                    Coin amount = Coin.valueOf(newTransaction.getInputs().stream()
-                            .mapToLong(input -> input.getValue() != null ? input.getValue().value : 0)
-                            .sum());
-                    newTransaction.addOutput(amount, toAddress);
-
-                    try {
-                        Coin fee;
-                        int counter = 0;
-                        int txVsize = 0;
-                        Transaction tx;
-                        SendRequest sendRequest;
-                        Coin txFeeForWithdrawalPerVbyte = getTxFeeForWithdrawalPerVbyte();
-                        do {
-                            counter++;
-                            fee = txFeeForWithdrawalPerVbyte.multiply(txVsize);
-                            newTransaction.clearOutputs();
-                            newTransaction.addOutput(amount.subtract(fee), toAddress);
-
-                            sendRequest = SendRequest.forTx(newTransaction);
-                            sendRequest.fee = fee;
-                            sendRequest.feePerKb = Coin.ZERO;
-                            sendRequest.ensureMinRequiredFee = false;
-                            sendRequest.aesKey = aesKey;
-                            sendRequest.coinSelector = new BtcCoinSelector(toAddress, preferences.getIgnoreDustThreshold());
-                            sendRequest.changeAddress = toAddress;
-                            wallet.completeTx(sendRequest);
-                            tx = sendRequest.tx;
-                            txVsize = tx.getVsize();
-                            printTx("FeeEstimationTransaction", tx);
-                            sendRequest.tx.getOutputs().forEach(o -> log.debug("Output value " + o.getValue().toFriendlyString()));
-                        }
-                        while (feeEstimationNotSatisfied(counter, tx));
-
-                        if (counter == 10)
-                            log.error("Could not calculate the fee. Tx=" + tx);
-
-
-                        Wallet.SendResult sendResult = null;
-                        try {
-                            sendRequest = SendRequest.forTx(newTransaction);
-                            sendRequest.fee = fee;
-                            sendRequest.feePerKb = Coin.ZERO;
-                            sendRequest.ensureMinRequiredFee = false;
-                            sendRequest.aesKey = aesKey;
-                            sendRequest.coinSelector = new BtcCoinSelector(toAddress, preferences.getIgnoreDustThreshold());
-                            sendRequest.changeAddress = toAddress;
-                            sendResult = wallet.sendCoins(sendRequest);
-                        } catch (InsufficientMoneyException e) {
-                            // in some cases getFee did not calculate correctly and we still get an InsufficientMoneyException
-                            log.warn("We still have a missing fee " + (e.missing != null ? e.missing.toFriendlyString() : ""));
-
-                            amount = amount.subtract(e.missing);
-                            newTransaction.clearOutputs();
-                            newTransaction.addOutput(amount, toAddress);
-
-                            sendRequest = SendRequest.forTx(newTransaction);
-                            sendRequest.fee = fee;
-                            sendRequest.feePerKb = Coin.ZERO;
-                            sendRequest.ensureMinRequiredFee = false;
-                            sendRequest.aesKey = aesKey;
-                            sendRequest.coinSelector = new BtcCoinSelector(toAddress,
-                                    preferences.getIgnoreDustThreshold(), false);
-                            sendRequest.changeAddress = toAddress;
-
-                            try {
-                                sendResult = wallet.sendCoins(sendRequest);
-                                printTx("FeeEstimationTransaction", newTransaction);
-
-                                // For better redundancy in case the broadcast via BitcoinJ fails we also
-                                // publish the tx via mempool nodes.
-                                MemPoolSpaceTxBroadcaster.broadcastTx(sendResult.tx);
-                            } catch (InsufficientMoneyException e2) {
-                                errorMessageHandler.handleErrorMessage("We did not get the correct fee calculated. " + (e2.missing != null ? e2.missing.toFriendlyString() : ""));
-                            }
-                        }
-                        if (sendResult != null) {
-                            log.info("Broadcasting double spending transaction. " + sendResult.tx);
-                            Futures.addCallback(sendResult.broadcastComplete, new FutureCallback<>() {
-                                @Override
-                                public void onSuccess(Transaction result) {
-                                    log.info("Double spending transaction published. " + result);
-                                    resultHandler.run();
-                                }
-
-                                @Override
-                                public void onFailure(@NotNull Throwable t) {
-                                    log.error("Broadcasting double spending transaction failed. " + t.getMessage());
-                                    errorMessageHandler.handleErrorMessage(t.getMessage());
-                                }
-                            }, MoreExecutors.directExecutor());
-                        }
-
-                    } catch (InsufficientMoneyException e) {
-                        throw new InsufficientFundsException("The fees for that transaction exceed the available funds " +
-                                "or the resulting output value is below the min. dust value:\n" +
-                                "Missing " + (e.missing != null ? e.missing.toFriendlyString() : "null"));
-                    }
-                } else {
-                    String errorMessage = "We could not find inputs we control in the transaction we want to double spend.";
-                    log.warn(errorMessage);
-                    errorMessageHandler.handleErrorMessage(errorMessage);
-                }
-            } else if (confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
-                errorMessageHandler.handleErrorMessage("That transaction is already in the blockchain so we cannot double spend it.");
-            } else if (confidenceType == TransactionConfidence.ConfidenceType.DEAD) {
-                errorMessageHandler.handleErrorMessage("One of the inputs of that transaction has been already double spent.");
-            }
-        }
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
     // Withdrawal Fee calculation
     ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -705,54 +536,6 @@ public class BtcWalletService extends WalletService {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Withdrawal Send
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    public String sendFunds(String fromAddress,
-                            String toAddress,
-                            Coin receiverAmount,
-                            Coin fee,
-                            @Nullable KeyParameter aesKey,
-                            @SuppressWarnings("SameParameterValue") AddressEntry.Context context,
-                            @Nullable String memo,
-                            FutureCallback<Transaction> callback) throws AddressFormatException,
-            AddressEntryException, InsufficientMoneyException {
-        SendRequest sendRequest = getSendRequest(fromAddress, toAddress, receiverAmount, fee, aesKey, context);
-        Wallet.SendResult sendResult = wallet.sendCoins(sendRequest);
-        Futures.addCallback(sendResult.broadcastComplete, callback, MoreExecutors.directExecutor());
-        if (memo != null) {
-            sendResult.tx.setMemo(memo);
-        }
-
-        // For better redundancy in case the broadcast via BitcoinJ fails we also
-        // publish the tx via mempool nodes.
-        MemPoolSpaceTxBroadcaster.broadcastTx(sendResult.tx);
-
-        return sendResult.tx.getTxId().toString();
-    }
-
-    public Transaction sendFundsForMultipleAddresses(Set<String> fromAddresses,
-                                                     String toAddress,
-                                                     Coin receiverAmount,
-                                                     Coin fee,
-                                                     @Nullable String changeAddress,
-                                                     @Nullable KeyParameter aesKey,
-                                                     @Nullable String memo,
-                                                     FutureCallback<Transaction> callback) throws AddressFormatException,
-            AddressEntryException, InsufficientMoneyException {
-
-        SendRequest request = getSendRequestForMultipleAddresses(fromAddresses, toAddress, receiverAmount, fee, changeAddress, aesKey);
-        Wallet.SendResult sendResult = wallet.sendCoins(request);
-        Futures.addCallback(sendResult.broadcastComplete, callback, MoreExecutors.directExecutor());
-        if (memo != null) {
-            sendResult.tx.setMemo(memo);
-        }
-        printTx("sendFunds", sendResult.tx);
-
-        // For better redundancy in case the broadcast via BitcoinJ fails we also
-        // publish the tx via mempool nodes.
-        MemPoolSpaceTxBroadcaster.broadcastTx(sendResult.tx);
-
-        return sendResult.tx;
-    }
 
     private SendRequest getSendRequest(String fromAddress,
                                        String toAddress,

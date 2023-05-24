@@ -38,7 +38,7 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.support.dispute.agent.SignedOfferView;
+import haveno.desktop.main.offer.signedoffer.SignedOfferView;
 import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
 import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
@@ -46,16 +46,13 @@ import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientV
 import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.network.p2p.NodeAddress;
-import javax.inject.Inject;
-
+import javafx.beans.value.ChangeListener;
+import javafx.collections.MapChangeListener;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
-import javafx.beans.value.ChangeListener;
-
-import javafx.collections.MapChangeListener;
-
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 @FxmlView
 public class SupportView extends ActivatableView<TabPane, Void> {
@@ -158,18 +155,23 @@ public class SupportView extends ActivatableView<TabPane, Void> {
     private void updateAgentTabs() {
         PubKeyRing myPubKeyRing = keyRing.getPubKeyRing();
 
-        boolean hasArbitrationCases = !arbitrationManager.getDisputesAsObservableList().isEmpty();
-        if (hasArbitrationCases) {
-            boolean isActiveArbitrator = arbitratorManager.getObservableMap().values().stream()
-                    .anyMatch(e -> e.getPubKeyRing() != null && e.getPubKeyRing().equals(myPubKeyRing));
+        boolean isActiveArbitrator = arbitratorManager.getObservableMap().values().stream()
+                .anyMatch(e -> e.getPubKeyRing() != null && e.getPubKeyRing().equals(myPubKeyRing));
 
-            // In case a arbitrator has become inactive he still might get disputes from pending trades
-            boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
-                    .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
-            if (arbitratorTab == null && (isActiveArbitrator || hasDisputesAsArbitrator)) {
+        // In case a arbitrator has become inactive he still might get disputes from pending trades
+        boolean hasDisputesAsArbitrator = arbitrationManager.getDisputesAsObservableList().stream()
+                .anyMatch(d -> d.getAgentPubKeyRing().equals(myPubKeyRing));
+
+        if (isActiveArbitrator || hasDisputesAsArbitrator) {
+            if (arbitratorTab == null) {
                 arbitratorTab = new Tab();
                 arbitratorTab.setClosable(false);
                 root.getTabs().add(arbitratorTab);
+            }
+            if (signedOfferTab == null) {
+                signedOfferTab = new Tab();
+                signedOfferTab.setClosable(false);
+                root.getTabs().add(signedOfferTab);
             }
         }
 
@@ -184,12 +186,6 @@ public class SupportView extends ActivatableView<TabPane, Void> {
                 mediatorTab.setClosable(false);
                 root.getTabs().add(mediatorTab);
             }
-        }
-
-        if (signedOfferTab == null) {
-            signedOfferTab = new Tab();
-            signedOfferTab.setClosable(false);
-            root.getTabs().add(signedOfferTab);
         }
 
         boolean isActiveRefundAgent = refundAgentManager.getObservableMap().values().stream()

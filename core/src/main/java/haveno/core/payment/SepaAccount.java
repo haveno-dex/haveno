@@ -21,17 +21,17 @@ import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SepaAccountPayload;
 import haveno.core.payment.validation.SepaIBANValidator;
-import java.util.List;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
-
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SepaAccount extends CountryBasedPaymentAccount implements BankAccount {
@@ -46,7 +46,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
             PaymentAccountFormField.FieldId.SALT
     );
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new FiatCurrency("EUR"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
 
     public SepaAccount() {
         super(PaymentMethod.SEPA);
@@ -91,7 +91,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
     public List<String> getAcceptedCountryCodes() {
         return ((SepaAccountPayload) paymentAccountPayload).getAcceptedCountryCodes();
     }
-    
+
     public void setAcceptedCountryCodes(List<String> acceptedCountryCodes) {
         ((SepaAccountPayload) paymentAccountPayload).setAcceptedCountryCodes(acceptedCountryCodes);
     }
@@ -125,7 +125,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
     public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
-    
+
     @Override
     @Nullable
     public List<Country> getSupportedCountries() {

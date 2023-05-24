@@ -1,8 +1,5 @@
 package haveno.desktop;
 
-import static haveno.desktop.util.FormBuilder.addFundsTextfield;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldSlideToggleButton;
-
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXSnackbar;
 import haveno.common.util.Tuple3;
@@ -17,9 +14,9 @@ import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.Layout;
 import javafx.application.Application;
-
-import javafx.stage.Stage;
-
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -30,13 +27,12 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
-
-import javafx.geometry.Pos;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import javafx.stage.Stage;
 
 import java.util.Locale;
+
+import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextFieldSlideToggleButton;
 
 public class ComponentsDemo extends Application {
     private JFXSnackbar bar;

@@ -29,7 +29,6 @@ import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
@@ -38,17 +37,12 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
-import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.stage.Window;
-
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -58,19 +52,22 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.value.ChangeListener;
-
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import javax.inject.Inject;
+import javax.inject.Named;
+
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
-import static haveno.desktop.util.FormBuilder.*;
+import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
+import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(TradeDetailsWindow.class);
@@ -141,27 +138,27 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("tradeDetailsWindow.headline"));
 
         boolean myOffer = tradeManager.isMyOffer(offer);
-        String fiatDirectionInfo;
-        String btcDirectionInfo;
+        String counterCurrencyDirectionInfo;
+        String xmrDirectionInfo;
         String toReceive = " " + Res.get("shared.toReceive");
         String toSpend = " " + Res.get("shared.toSpend");
         String offerType = Res.get("shared.offerType");
         if (tradeManager.isBuyer(offer)) {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
                     DisplayUtils.getDirectionForBuyer(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
-            fiatDirectionInfo = toSpend;
-            btcDirectionInfo = toReceive;
+            counterCurrencyDirectionInfo = toSpend;
+            xmrDirectionInfo = toReceive;
         } else {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
                     DisplayUtils.getDirectionForSeller(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
-            fiatDirectionInfo = toReceive;
-            btcDirectionInfo = toSpend;
+            counterCurrencyDirectionInfo = toReceive;
+            xmrDirectionInfo = toSpend;
         }
 
-        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + btcDirectionInfo,
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + xmrDirectionInfo,
                 HavenoUtils.formatXmr(trade.getAmount(), true));
         addConfirmationLabelTextField(gridPane, ++rowIndex,
-                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + fiatDirectionInfo,
+                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + counterCurrencyDirectionInfo,
                 VolumeUtil.formatVolumeWithCode(trade.getVolume()));
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(trade.getPrice()));
@@ -188,10 +185,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 rows++;
         }
 
-        boolean showXmrProofResult = checkNotNull(trade.getOffer()).getCurrencyCode().equals("XMR") &&
-                trade.getAssetTxProofResult() != null &&
-                trade.getAssetTxProofResult() != AssetTxProofResult.UNDEFINED;
-
         if (trade.getPayoutTxId() != null)
             rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
@@ -201,8 +194,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.hasFailed())
             rows += 2;
         if (trade.getTradePeerNodeAddress() != null)
-            rows++;
-        if (showXmrProofResult)
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
@@ -229,14 +220,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTradePeerNodeAddress() != null)
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
                     trade.getTradePeerNodeAddress().getFullAddress());
-
-        if (showXmrProofResult) {
-            // As the window is already overloaded we replace the tradePeersPubKeyHash field with the auto-conf state
-            // if XMR is the currency
-            addConfirmationLabelTextField(gridPane, ++rowIndex,
-                    Res.get("portfolio.pending.step3_seller.autoConf.status.label"),
-                    GUIUtil.getProofResultAsString(trade.getAssetTxProofResult()));
-        }
 
         if (contract != null) {
             buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());
@@ -323,7 +306,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 data += "\n\n" + (trade.getMaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as maker reserve tx hex: " + trade.getMaker().getReserveTxHex();
                 data += "\n\n" + (trade.getTaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as taker reserve tx hex: " + trade.getTaker().getReserveTxHex();
             }
-            if (offer.isFiatOffer()) {
+            if (offer.isTraditionalOffer()) {
                 data += "\n\nBuyers witness hash,pub key ring hash: " + buyerWitnessHash + "," + buyerPubKeyRingHash;
                 data += "\nBuyers account age: " + buyersAccountAge;
                 data += "\nSellers witness hash,pub key ring hash: " + sellerWitnessHash + "," + sellerPubKeyRingHash;

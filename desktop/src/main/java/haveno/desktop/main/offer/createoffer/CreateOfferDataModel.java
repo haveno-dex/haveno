@@ -33,10 +33,11 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
+
+import javax.inject.Named;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Named;
 
 /**
  * Domain for that UI element.

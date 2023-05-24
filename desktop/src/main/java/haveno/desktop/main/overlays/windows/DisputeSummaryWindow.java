@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import org.bitcoinj.core.Coin;
-
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.UserThread;
@@ -52,6 +50,10 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Layout;
+import javafx.beans.binding.Bindings;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -63,19 +65,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-
-import javafx.beans.binding.Bindings;
-import javafx.beans.value.ChangeListener;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.Optional;
-
-import lombok.extern.slf4j.Slf4j;
-import monero.wallet.model.MoneroTxWallet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
@@ -731,13 +726,13 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 sellerPayoutAmount.equals(sellerSecurityDeposit)) {
             buyerGetsTradeAmountRadioButton.setSelected(true);
         } else if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(Coin.ZERO)) {
+                sellerPayoutAmount.equals(BigInteger.valueOf(0))) {
             buyerGetsAllRadioButton.setSelected(true);
         } else if (sellerPayoutAmount.equals(tradeAmount.add(sellerSecurityDeposit))
                 && buyerPayoutAmount.equals(buyerSecurityDeposit)) {
             sellerGetsTradeAmountRadioButton.setSelected(true);
         } else if (sellerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit))
-                && buyerPayoutAmount.equals(Coin.ZERO)) {
+                && buyerPayoutAmount.equals(BigInteger.valueOf(0))) {
             sellerGetsAllRadioButton.setSelected(true);
         } else {
             customRadioButton.setSelected(true);

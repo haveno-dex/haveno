@@ -17,23 +17,20 @@
 
 package haveno.core.app;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import java.nio.file.Paths;
-
-import static haveno.common.util.Preconditions.checkDir;
-
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.handlers.ErrorMessageHandler;
-import java.io.File;
-import java.io.IOException;
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+
+import static haveno.common.util.Preconditions.checkDir;
 
 @Slf4j
 @Singleton

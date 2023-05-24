@@ -26,28 +26,26 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockitoAnnotations;
+
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import org.mockito.MockitoAnnotations;
 
 public class P2PDataStorageProcessGetDataResponse {
     private TestState testState;
 
     private NodeAddress peerNodeAddress;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         this.testState = new TestState();
@@ -70,6 +68,7 @@ public class P2PDataStorageProcessGetDataResponse {
                 new HashSet<>(protectedStorageEntries),
                 new HashSet<>(persistableNetworkPayloads),
                 1,
+                false,
                 false);
     }
 
@@ -222,7 +221,7 @@ public class P2PDataStorageProcessGetDataResponse {
 
         TestState.SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, true, true, false, true);
     }
 
@@ -236,7 +235,7 @@ public class P2PDataStorageProcessGetDataResponse {
 
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
         TestState.SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, false, false, false, false);
     }
 
@@ -249,14 +248,14 @@ public class P2PDataStorageProcessGetDataResponse {
 
         TestState.SavedTestState beforeState = this.testState.saveTestState(protectedStorageEntry);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, true, true, false, true);
 
         protectedStorageEntry = getProtectedStorageEntryForAdd();
         getDataResponse = buildGetDataResponse(protectedStorageEntry);
         beforeState = this.testState.saveTestState(protectedStorageEntry);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
-        this.testState.verifyProtectedStorageAdd(
+        this.testState.assertProtectedStorageAdd(
                 beforeState, protectedStorageEntry, true, true, false, true);
     }
 }

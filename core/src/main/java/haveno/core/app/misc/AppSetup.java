@@ -19,9 +19,9 @@ package haveno.core.app.misc;
 
 import haveno.common.app.Version;
 import haveno.common.config.Config;
-import javax.inject.Inject;
-
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 
 @Slf4j
 public abstract class AppSetup {

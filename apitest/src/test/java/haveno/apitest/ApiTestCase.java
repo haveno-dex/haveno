@@ -17,18 +17,17 @@
 
 package haveno.apitest;
 
-import java.time.Duration;
-
-import java.io.IOException;
-
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-
+import haveno.apitest.config.ApiTestConfig;
+import haveno.apitest.method.BitcoinCliHelper;
+import haveno.cli.GrpcClient;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.TestInfo;
 
 import javax.annotation.Nullable;
-
-import org.junit.jupiter.api.TestInfo;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
@@ -37,11 +36,6 @@ import static haveno.apitest.config.HavenoAppConfig.arbdaemon;
 import static haveno.apitest.config.HavenoAppConfig.bobdaemon;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.util.Arrays.stream;
-
-import haveno.apitest.Scaffold;
-import haveno.apitest.config.ApiTestConfig;
-import haveno.apitest.method.BitcoinCliHelper;
-import haveno.cli.GrpcClient;
 
 /**
  * Base class for all test types:  'method', 'scenario' and 'e2e'.

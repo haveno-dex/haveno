@@ -25,6 +25,7 @@ import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.account.register.AgentRegistrationViewModel;
 import haveno.network.p2p.P2PService;
+
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -44,7 +45,6 @@ public class ArbitratorRegistrationViewModel extends AgentRegistrationViewModel<
                                          String emailAddress) {
         return new Arbitrator(
                 p2PService.getAddress(),
-                xmrWalletService.getWallet().getPrimaryAddress(), // TODO: how is arbitrator address used?
                 keyRing.getPubKeyRing(),
                 new ArrayList<>(languageCodes),
                 new Date().getTime(),

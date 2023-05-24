@@ -22,7 +22,6 @@ import com.natpryce.makeiteasy.MakeItEasy;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 import haveno.core.offer.OfferDirection;
-import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.maker.OfferMaker;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;

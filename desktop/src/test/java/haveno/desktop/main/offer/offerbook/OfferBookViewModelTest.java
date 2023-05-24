@@ -17,25 +17,11 @@
 
 package haveno.desktop.main.offer.offerbook;
 
-import javafx.beans.property.SimpleIntegerProperty;
-
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import java.time.Instant;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.natpryce.makeiteasy.Maker;
 import haveno.common.config.Config;
 import haveno.core.locale.Country;
 import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.FiatCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
@@ -62,23 +48,35 @@ import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.desktop.main.offer.offerbook.BtcOfferBookViewModel;
-import haveno.desktop.main.offer.offerbook.OfferBook;
-import haveno.desktop.main.offer.offerbook.OfferBookListItem;
-import haveno.desktop.main.offer.offerbook.OfferBookViewModel;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
-import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.*;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.amount;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.marketPriceMargin;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.minAmount;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.price;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.useMarketBasedPrice;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrBuyItem;
+import static haveno.desktop.main.offer.offerbook.OfferBookListItemMaker.xmrItemWithRange;
 import static haveno.desktop.maker.PreferenceMakers.empty;
 import static haveno.desktop.maker.TradeCurrencyMakers.usd;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -89,7 +87,7 @@ public class OfferBookViewModelTest {
     private static final Logger log = LoggerFactory.getLogger(OfferBookViewModelTest.class);
     private User user;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         GlobalSettings.setDefaultTradeCurrency(usd);
         Res.setBaseCurrencyCode(usd.getCode());
@@ -105,7 +103,7 @@ public class OfferBookViewModelTest {
         return new PriceUtil(priceFeedService, tradeStatisticsManager, empty);
     }
 
-    @Ignore("PaymentAccountPayload needs to be set (has been changed with PB changes)")
+    @Disabled("PaymentAccountPayload needs to be set (has been changed with PB changes)")
     public void testIsAnyPaymentAccountValidForOffer() {
         Collection<PaymentAccount> paymentAccounts;
         paymentAccounts = new ArrayList<>(FXCollections.singletonObservableList(getSepaAccount("EUR", "DE", "1212324",
@@ -243,7 +241,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForAmount.intValue());
     }
@@ -257,7 +255,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -275,7 +273,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -294,7 +292,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForVolume.intValue());
     }
@@ -308,7 +306,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -326,7 +324,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -345,7 +343,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForPrice.intValue());
     }
@@ -359,7 +357,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -377,7 +375,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForMarketPriceMargin.intValue());
     }
@@ -412,7 +410,7 @@ public class OfferBookViewModelTest {
         item4.getOffer().setPriceFeedService(priceFeedService);
         offerBookListItems.addAll(item1, item2);
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -433,7 +431,7 @@ public class OfferBookViewModelTest {
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().getEpochSecond(), true));
 
-        final OfferBookViewModel model = new BtcOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
 
         final OfferBookListItem item = make(xmrBuyItem.but(
@@ -466,7 +464,7 @@ public class OfferBookViewModelTest {
 
     private PaymentAccount getAliPayAccount(String currencyCode) {
         PaymentAccount paymentAccount = new AliPayAccount();
-        paymentAccount.setSelectedTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSelectedTradeCurrency(new TraditionalCurrency(currencyCode));
         return paymentAccount;
     }
 
@@ -481,7 +479,7 @@ public class OfferBookViewModelTest {
                                           String bic,
                                           ArrayList<String> countryCodes) {
         CountryBasedPaymentAccount paymentAccount = new SepaAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((SepaAccountPayload) paymentAccount.getPaymentAccountPayload()).setBic(bic);
         countryCodes.forEach(((SepaAccountPayload) paymentAccount.getPaymentAccountPayload())::addAcceptedCountry);
@@ -490,7 +488,7 @@ public class OfferBookViewModelTest {
 
     private PaymentAccount getNationalBankAccount(String currencyCode, String countryCode, String bankId) {
         CountryBasedPaymentAccount paymentAccount = new NationalBankAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((NationalBankAccountPayload) paymentAccount.getPaymentAccountPayload()).setBankId(bankId);
         return paymentAccount;
@@ -498,7 +496,7 @@ public class OfferBookViewModelTest {
 
     private PaymentAccount getSameBankAccount(String currencyCode, String countryCode, String bankId) {
         SameBankAccount paymentAccount = new SameBankAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((SameBankAccountPayload) paymentAccount.getPaymentAccountPayload()).setBankId(bankId);
         return paymentAccount;
@@ -509,7 +507,7 @@ public class OfferBookViewModelTest {
                                                    String bankId,
                                                    ArrayList<String> bankIds) {
         SpecificBanksAccount paymentAccount = new SpecificBanksAccount();
-        paymentAccount.setSingleTradeCurrency(new FiatCurrency(currencyCode));
+        paymentAccount.setSingleTradeCurrency(new TraditionalCurrency(currencyCode));
         paymentAccount.setCountry(new Country(countryCode, null, null));
         ((SpecificBanksAccountPayload) paymentAccount.getPaymentAccountPayload()).setBankId(bankId);
         bankIds.forEach(((SpecificBanksAccountPayload) paymentAccount.getPaymentAccountPayload())::addAcceptedBank);

@@ -23,11 +23,11 @@ import haveno.common.app.Version;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.setup.GracefulShutDownHandler;
 import haveno.core.trade.TradeManager;
-import java.util.concurrent.TimeUnit;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class HavenoHeadlessApp implements HeadlessApp {

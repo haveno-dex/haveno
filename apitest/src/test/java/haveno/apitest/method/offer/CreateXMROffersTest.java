@@ -18,17 +18,15 @@
 package haveno.apitest.method.offer;
 
 import haveno.proto.grpc.OfferInfo;
-
-import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.List;
 
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestConfig.XMR;

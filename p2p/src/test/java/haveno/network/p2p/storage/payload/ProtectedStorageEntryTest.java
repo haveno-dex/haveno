@@ -24,21 +24,18 @@ import haveno.network.p2p.PrefixedSealedAndSignedMessage;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.mocks.ProtectedStoragePayloadStub;
-import haveno.network.p2p.storage.payload.MailboxStoragePayload;
-import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-
 import java.time.Clock;
 import java.time.Duration;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +72,7 @@ public class ProtectedStorageEntryTest {
                 MailboxStoragePayload.TTL);
     }
 
-    @Before
+    @BeforeEach
     public void SetUp() {
         // Deep in the bowels of protobuf we grab the messageID from the version module. This is required to hash the
         // full MailboxStoragePayload so make sure it is initialized.
@@ -88,7 +85,7 @@ public class ProtectedStorageEntryTest {
         KeyPair ownerKeys = TestUtils.generateKeyPair();
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(ownerKeys, ownerKeys, 1);
 
-        Assert.assertTrue(protectedStorageEntry.isValidForAddOperation());
+        assertTrue(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should return false if the Entry owner and payload owner don't match
@@ -98,7 +95,7 @@ public class ProtectedStorageEntryTest {
         KeyPair notOwnerKeys = TestUtils.generateKeyPair();
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(ownerKeys, notOwnerKeys, 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
+        assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should fail if the entry is a MailboxStoragePayload wrapped in a
@@ -113,7 +110,7 @@ public class ProtectedStorageEntryTest {
                 buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic()), senderKeys, 1);
 
         // should be assertFalse
-        Assert.assertTrue(protectedStorageEntry.isValidForAddOperation());
+        assertTrue(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should fail if the entry is a MailboxStoragePayload wrapped in a
@@ -126,7 +123,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(
                 buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic()), receiverKeys, 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
+        assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForAddOperation() should fail if the signature isn't valid
@@ -139,7 +136,7 @@ public class ProtectedStorageEntryTest {
                 new ProtectedStorageEntry(protectedStoragePayload, ownerKeys.getPublic(),
                         1, new byte[] { 0 }, Clock.systemDefaultZone());
 
-        Assert.assertFalse(protectedStorageEntry.isValidForAddOperation());
+        assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
     // TESTCASE: validForRemoveOperation() should return true if the Entry owner and payload owner match
@@ -148,7 +145,7 @@ public class ProtectedStorageEntryTest {
         KeyPair ownerKeys = TestUtils.generateKeyPair();
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(ownerKeys, ownerKeys, 1);
 
-        Assert.assertTrue(protectedStorageEntry.isValidForRemoveOperation());
+        assertTrue(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: validForRemoveOperation() should return false if the Entry owner and payload owner don't match
@@ -158,7 +155,7 @@ public class ProtectedStorageEntryTest {
         KeyPair notOwnerKeys = TestUtils.generateKeyPair();
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(ownerKeys, notOwnerKeys, 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: validForRemoveOperation() should fail if the entry is a MailboxStoragePayload wrapped in a
@@ -173,7 +170,7 @@ public class ProtectedStorageEntryTest {
                 buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic()), senderKeys, 1);
 
         // should be assertFalse
-        Assert.assertTrue(protectedStorageEntry.isValidForRemoveOperation());
+        assertTrue(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     @Test
@@ -184,7 +181,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(
                 buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic()), receiverKeys, 1);
 
-        Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: isValidForRemoveOperation() should fail if the signature is bad
@@ -197,7 +194,7 @@ public class ProtectedStorageEntryTest {
                 new ProtectedStorageEntry(protectedStoragePayload, ownerKeys.getPublic(),
                         1, new byte[] { 0 }, Clock.systemDefaultZone());
 
-        Assert.assertFalse(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     // TESTCASE: isMetadataEquals() should succeed if the sequence number changes
@@ -208,7 +205,7 @@ public class ProtectedStorageEntryTest {
 
         ProtectedStorageEntry seqNrTwo = buildProtectedStorageEntry(ownerKeys, ownerKeys, 2);
 
-        Assert.assertTrue(seqNrOne.matchesRelevantPubKey(seqNrTwo));
+        assertTrue(seqNrOne.matchesRelevantPubKey(seqNrTwo));
     }
 
     // TESTCASE: isMetadataEquals() should fail if the OwnerPubKey changes
@@ -221,7 +218,7 @@ public class ProtectedStorageEntryTest {
 
         ProtectedStorageEntry protectedStorageEntryTwo = buildProtectedStorageEntry(ownerKeys, notOwner, 1);
 
-        Assert.assertFalse(protectedStorageEntryOne.matchesRelevantPubKey(protectedStorageEntryTwo));
+        assertFalse(protectedStorageEntryOne.matchesRelevantPubKey(protectedStorageEntryTwo));
     }
 
     // TESTCASE: Payload implementing ProtectedStoragePayload & PersistableNetworkPayload is invalid
@@ -230,8 +227,8 @@ public class ProtectedStorageEntryTest {
     //
     // We also want to guarantee that ONLY ProtectedStoragePayload objects are valid as payloads in
     // ProtectedStorageEntrys. This test will give a defense in case future development work breaks that expectation.
-    @Test(expected = IllegalArgumentException.class)
-    public void ProtectedStoragePayload_PersistableNetworkPayload_incompatible() throws NoSuchAlgorithmException {
+    @Test
+    public void protectedStoragePayloadPersistableNetworkPayloadIncompatible() throws NoSuchAlgorithmException {
         class IncompatiblePayload extends ProtectedStoragePayloadStub implements PersistableNetworkPayload {
 
             private IncompatiblePayload(PublicKey ownerPubKey) {
@@ -256,8 +253,10 @@ public class ProtectedStorageEntryTest {
 
         KeyPair ownerKeys = TestUtils.generateKeyPair();
         IncompatiblePayload incompatiblePayload = new IncompatiblePayload(ownerKeys.getPublic());
-        new ProtectedStorageEntry(incompatiblePayload,ownerKeys.getPublic(), 1,
-                new byte[] { 0 }, Clock.systemDefaultZone());
+        assertThrows(IllegalArgumentException.class, () ->
+            new ProtectedStorageEntry(incompatiblePayload,ownerKeys.getPublic(), 1,
+                    new byte[] { 0 }, Clock.systemDefaultZone())
+        );
     }
 
     // TESTCASE: PSEs received with future-dated timestamps are updated to be min(currentTime, creationTimeStamp)
@@ -273,6 +272,6 @@ public class ProtectedStorageEntryTest {
                 new ProtectedStorageEntry(protectedStoragePayload, Sig.getPublicKeyBytes(ownerKeys.getPublic()),
                         ownerKeys.getPublic(), 1, new byte[] { 0 }, futureClock.millis(), baseClock);
 
-        Assert.assertTrue(protectedStorageEntry.getCreationTimeStamp() <= baseClock.millis());
+        assertTrue(protectedStorageEntry.getCreationTimeStamp() <= baseClock.millis());
     }
 }

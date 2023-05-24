@@ -17,18 +17,15 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.mock;
-
 import haveno.core.offer.OpenOffer;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
-import haveno.desktop.main.funds.transactions.TransactionAwareTradable;
-import haveno.desktop.main.funds.transactions.TransactionAwareTradableFactory;
 import monero.wallet.model.MoneroTxWallet;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.mock;
 
 public class TransactionAwareTradableFactoryTest {
     @Test

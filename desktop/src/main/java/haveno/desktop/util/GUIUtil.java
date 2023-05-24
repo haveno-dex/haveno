@@ -17,23 +17,14 @@
 
 package haveno.desktop.util;
 
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.uri.BitcoinURI;
-
+import com.google.common.base.Charsets;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.googlecode.jcsv.writer.CSVWriter;
 import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-
-import com.google.common.base.Charsets;
-
-import org.apache.commons.lang3.StringUtils;
-
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -58,7 +49,6 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountList;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.txproof.AssetTxProofResult;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -73,15 +63,12 @@ import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
-import haveno.desktop.main.account.content.fiataccounts.FiatAccountsView;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-
+import javafx.collections.FXCollections;
+import javafx.geometry.HPos;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
@@ -99,25 +86,31 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.geometry.HPos;
-import javafx.geometry.Orientation;
-
-import javafx.collections.FXCollections;
-
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-
-import java.nio.file.Paths;
+import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroTx;
+import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroTxConfig;
+import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.uri.BitcoinURI;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -127,15 +120,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
-import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroTx;
-import monero.wallet.MoneroWallet;
-import monero.wallet.model.MoneroTxConfig;
-
-import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.desktop.util.FormBuilder.addTopLabelComboBoxComboBox;
@@ -149,13 +133,13 @@ public class GUIUtil {
 
     public final static int FIAT_DECIMALS_WITH_ZEROS = 0;
     public final static int FIAT_PRICE_DECIMALS_WITH_ZEROS = 3;
-    public final static int ALTCOINS_DECIMALS_WITH_ZEROS = 7;
+    public final static int CRYPTOS_DECIMALS_WITH_ZEROS = 7;
     public final static int AMOUNT_DECIMALS_WITH_ZEROS = 3;
     public final static int AMOUNT_DECIMALS = 4;
 
     private static Preferences preferences;
-    
-    public static TradeCurrency TOP_ALTCOIN = CurrencyUtil.getTradeCurrency("ETH").get();
+
+    public static TradeCurrency TOP_CRYPTO = CurrencyUtil.getTradeCurrency("BTC").get();
 
     public static void setPreferences(Preferences preferences) {
         GUIUtil.preferences = preferences;
@@ -328,7 +312,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isFiatCurrency(code) ? Res.get("shared.fiat") : Res.get("shared.crypto"));
+                            CurrencyUtil.isTraditionalCurrency(code) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
                     currencyType.getStyleClass().add("currency-label-small");
                     Label currency = new AutoTooltipLabel(code);
@@ -454,7 +438,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isFiatCurrency(item.getCode()) ? Res.get("shared.fiat") : Res.get("shared.crypto"));
+                            CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
                     currencyType.getStyleClass().add("currency-label-small");
                     Label currency = new AutoTooltipLabel(item.getCode());
@@ -525,7 +509,7 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     Label paymentType = new AutoTooltipLabel(
-                            method.isAltcoin() ? Res.get("shared.crypto") : Res.get("shared.fiat"));
+                            method.isTraditional() ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
                     paymentType.getStyleClass().add("currency-label-small");
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));
@@ -671,10 +655,10 @@ public class GUIUtil {
         return t.cast(parent);
     }
 
-    public static void showClearXchangeWarning() {
-        String key = "confirmClearXchangeRequirements";
+    public static void showZelleWarning() {
+        String key = "confirmZelleRequirements";
         final String currencyName = Config.baseCurrencyNetwork().getCurrencyName();
-        new Popup().information(Res.get("payment.clearXchange.info", currencyName, currencyName))
+        new Popup().information(Res.get("payment.zelle.info", currencyName, currencyName))
                 .width(900)
                 .closeButtonText(Res.get("shared.iConfirm"))
                 .dontShowAgainId(key)
@@ -689,7 +673,7 @@ public class GUIUtil {
                 .actionButtonTextWithGoTo("navigation.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
-                    navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                 })
                 .dontShowAgainId(key)
                 .show();
@@ -765,7 +749,7 @@ public class GUIUtil {
                     .actionButtonTextWithGoTo("navigation.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
-                        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                        navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
                     }).show();
             return false;
         }
@@ -924,7 +908,7 @@ public class GUIUtil {
         ComboBox<TradeCurrency> currencyComboBox = FormBuilder.addComboBox(gridPane, ++gridRow,
                 Res.get("shared.currency"));
         currencyComboBox.setPromptText(Res.get("list.currency.select"));
-        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedFiatCurrencies()));
+        currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedTraditionalCurrencies()));
 
         currencyComboBox.setConverter(new StringConverter<>() {
             @Override
@@ -1032,35 +1016,6 @@ public class GUIUtil {
                 MaterialDesignIcon.APPROVAL : MaterialDesignIcon.ALERT_CIRCLE_OUTLINE;
     }
 
-    public static String getProofResultAsString(@Nullable AssetTxProofResult result) {
-        if (result == null) {
-            return "";
-        }
-        String key = "portfolio.pending.autoConf.state." + result.name();
-        switch (result) {
-            case UNDEFINED:
-                return "";
-            case FEATURE_DISABLED:
-                return Res.get(key, result.getDetails());
-            case TRADE_LIMIT_EXCEEDED:
-                return Res.get(key);
-            case INVALID_DATA:
-                return Res.get(key, result.getDetails());
-            case PAYOUT_TX_ALREADY_PUBLISHED:
-            case DISPUTE_OPENED:
-            case REQUESTS_STARTED:
-                return Res.get(key);
-            case PENDING:
-                return Res.get(key, result.getNumSuccessResults(), result.getNumRequiredSuccessResults(), result.getDetails());
-            case COMPLETED:
-            case ERROR:
-            case FAILED:
-                return Res.get(key);
-            default:
-                return result.name();
-        }
-    }
-
     public static ScrollPane createScrollPane() {
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -1084,11 +1039,11 @@ public class GUIUtil {
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
     }
 
-    public static void updateTopAltcoin(Preferences preferences) {
+    public static void updateTopCrypto(Preferences preferences) {
         TradeCurrency tradeCurrency = preferences.getPreferredTradeCurrency();
-        if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
+        if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
             return;
         }
-        TOP_ALTCOIN = tradeCurrency;
+        TOP_CRYPTO = tradeCurrency;
     }
 }

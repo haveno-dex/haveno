@@ -17,11 +17,6 @@
 
 package haveno.desktop.main.overlays.windows;
 
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
-import static haveno.desktop.util.FormBuilder.removeRowsFromGridPane;
-
 import haveno.common.crypto.Hash;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
@@ -33,27 +28,26 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-
+import javafx.collections.FXCollections;
+import javafx.geometry.VPos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-
-import javafx.geometry.VPos;
-
-import javafx.collections.FXCollections;
-
 import javafx.util.Callback;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Utils;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
+import static haveno.desktop.util.FormBuilder.removeRowsFromGridPane;
 
 @Slf4j
 public class SignUnsignedPubKeysWindow extends Overlay<SignUnsignedPubKeysWindow> {

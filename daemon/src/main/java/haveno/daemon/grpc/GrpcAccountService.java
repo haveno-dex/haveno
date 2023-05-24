@@ -16,18 +16,12 @@
  */
 package haveno.daemon.grpc;
 
-import static haveno.proto.grpc.AccountGrpc.getAccountExistsMethod;
-import static haveno.proto.grpc.AccountGrpc.getBackupAccountMethod;
-import static haveno.proto.grpc.AccountGrpc.getChangePasswordMethod;
-import static haveno.proto.grpc.AccountGrpc.getCloseAccountMethod;
-import static haveno.proto.grpc.AccountGrpc.getCreateAccountMethod;
-import static haveno.proto.grpc.AccountGrpc.getDeleteAccountMethod;
-import static haveno.proto.grpc.AccountGrpc.getIsAccountOpenMethod;
-import static haveno.proto.grpc.AccountGrpc.getOpenAccountMethod;
-import static haveno.proto.grpc.AccountGrpc.getRestoreAccountMethod;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
+import haveno.common.crypto.IncorrectPasswordException;
+import haveno.core.api.CoreApi;
+import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
+import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import haveno.proto.grpc.AccountExistsReply;
 import haveno.proto.grpc.AccountExistsRequest;
 import haveno.proto.grpc.AccountGrpc.AccountImplBase;
@@ -49,20 +43,27 @@ import haveno.proto.grpc.OpenAccountReply;
 import haveno.proto.grpc.OpenAccountRequest;
 import haveno.proto.grpc.RestoreAccountReply;
 import haveno.proto.grpc.RestoreAccountRequest;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.ByteString;
-import haveno.common.crypto.IncorrectPasswordException;
-import haveno.core.api.CoreApi;
-import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
-import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Optional;
-import javax.inject.Inject;
-import lombok.extern.slf4j.Slf4j;
+
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.AccountGrpc.getAccountExistsMethod;
+import static haveno.proto.grpc.AccountGrpc.getBackupAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getChangePasswordMethod;
+import static haveno.proto.grpc.AccountGrpc.getCloseAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getCreateAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getDeleteAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getIsAccountOpenMethod;
+import static haveno.proto.grpc.AccountGrpc.getOpenAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getRestoreAccountMethod;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 @VisibleForTesting
 @Slf4j
@@ -104,7 +105,7 @@ public class GrpcAccountService extends AccountImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
-    
+
     @Override
     public void createAccount(CreateAccountRequest req, StreamObserver<CreateAccountReply> responseObserver) {
         try {
@@ -130,7 +131,7 @@ public class GrpcAccountService extends AccountImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
-    
+
     @Override
     public void isAppInitialized(IsAppInitializedRequest req, StreamObserver<IsAppInitializedReply> responseObserver) {
         try {
@@ -141,7 +142,7 @@ public class GrpcAccountService extends AccountImplBase {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
-    
+
     @Override
     public void changePassword(ChangePasswordRequest req, StreamObserver<ChangePasswordReply> responseObserver) {
         try {

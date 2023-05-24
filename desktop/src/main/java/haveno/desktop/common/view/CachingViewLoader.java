@@ -19,7 +19,6 @@ package haveno.desktop.common.view;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
 import java.util.HashMap;
 import java.util.Map;
 

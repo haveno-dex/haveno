@@ -17,11 +17,6 @@
 
 package haveno.desktop.components.paymentmethods;
 
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
-
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
@@ -36,6 +31,11 @@ import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.Layout;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 public class IfscBankForm extends PaymentMethodForm {
     private final IfscBasedAccountPayload ifscBasedAccountPayload;

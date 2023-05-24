@@ -17,6 +17,10 @@
 
 package haveno.cli;
 
+import haveno.cli.request.OffersServiceRequest;
+import haveno.cli.request.PaymentAccountsServiceRequest;
+import haveno.cli.request.TradesServiceRequest;
+import haveno.cli.request.WalletsServiceRequest;
 import haveno.proto.grpc.AddressBalanceInfo;
 import haveno.proto.grpc.BalancesInfo;
 import haveno.proto.grpc.BtcBalanceInfo;
@@ -27,17 +31,11 @@ import haveno.proto.grpc.OfferInfo;
 import haveno.proto.grpc.RegisterDisputeAgentRequest;
 import haveno.proto.grpc.StopRequest;
 import haveno.proto.grpc.TradeInfo;
-import haveno.cli.request.OffersServiceRequest;
-import haveno.cli.request.PaymentAccountsServiceRequest;
-import haveno.cli.request.TradesServiceRequest;
-import haveno.cli.request.WalletsServiceRequest;
+import lombok.extern.slf4j.Slf4j;
 import protobuf.PaymentAccount;
-import protobuf.PaymentAccountForm;
 import protobuf.PaymentMethod;
 
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
 
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
