@@ -1221,6 +1221,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     void updateButtonDisableState() {
+        dataModel.calculateVolume();
+        dataModel.calculateTotalToPay();
+
         boolean inputDataValid = isXmrInputValid(amount.get()).isValid &&
                 isXmrInputValid(minAmount.get()).isValid &&
                 isPriceInputValid(price.get()).isValid &&

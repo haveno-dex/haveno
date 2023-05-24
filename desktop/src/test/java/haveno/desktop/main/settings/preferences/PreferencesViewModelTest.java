@@ -17,10 +17,10 @@
 
 package haveno.desktop.main.settings.preferences;
 
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.Mediator;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
-import haveno.core.support.dispute.refund.refundagent.RefundAgent;
-import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.core.user.Preferences;
 import haveno.desktop.maker.PreferenceMakers;
 import haveno.network.p2p.NodeAddress;
@@ -40,9 +40,9 @@ public class PreferencesViewModelTest {
     @Test
     public void getArbitrationLanguages() {
 
-        RefundAgentManager refundAgentManager = mock(RefundAgentManager.class);
+        ArbitratorManager arbitratorAgentManager = mock(ArbitratorManager.class);
 
-        final ObservableMap<NodeAddress, RefundAgent> refundAgents = FXCollections.observableHashMap();
+        final ObservableMap<NodeAddress, Arbitrator> arbitrators = FXCollections.observableHashMap();
 
         ArrayList<String> languagesOne = new ArrayList<>() {{
             add("en");
@@ -54,20 +54,20 @@ public class PreferencesViewModelTest {
             add("es");
         }};
 
-        RefundAgent one = new RefundAgent(new NodeAddress("refundAgent:1"), null, languagesOne, 0L,
+        Arbitrator one = new Arbitrator(new NodeAddress("refundAgent:1"), null, languagesOne, 0L,
                 null, null, null, null, null);
 
-        RefundAgent two = new RefundAgent(new NodeAddress("refundAgent:2"), null, languagesTwo, 0L,
+        Arbitrator two = new Arbitrator(new NodeAddress("refundAgent:2"), null, languagesTwo, 0L,
                 null, null, null, null, null);
 
-        refundAgents.put(one.getNodeAddress(), one);
-        refundAgents.put(two.getNodeAddress(), two);
+        arbitrators.put(one.getNodeAddress(), one);
+        arbitrators.put(two.getNodeAddress(), two);
 
         Preferences preferences = PreferenceMakers.empty;
 
-        when(refundAgentManager.getObservableMap()).thenReturn(refundAgents);
+        when(arbitratorAgentManager.getObservableMap()).thenReturn(arbitrators);
 
-        PreferencesViewModel model = new PreferencesViewModel(preferences, refundAgentManager, null);
+        PreferencesViewModel model = new PreferencesViewModel(preferences, arbitratorAgentManager, null);
 
         assertEquals("English, Deutsch, español", model.getArbitrationLanguages());
     }
@@ -111,13 +111,13 @@ public class PreferencesViewModelTest {
     public void needsSupportLanguageWarning_forNotSupportedLanguageInArbitration() {
 
         MediatorManager mediationManager = mock(MediatorManager.class);
-        RefundAgentManager refundAgentManager = mock(RefundAgentManager.class);
+        ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);
 
         Preferences preferences = PreferenceMakers.empty;
 
-        when(refundAgentManager.isAgentAvailableForLanguage(preferences.getUserLanguage())).thenReturn(false);
+        when(arbitratorManager.isAgentAvailableForLanguage(preferences.getUserLanguage())).thenReturn(false);
 
-        PreferencesViewModel model = new PreferencesViewModel(preferences, refundAgentManager, mediationManager);
+        PreferencesViewModel model = new PreferencesViewModel(preferences, arbitratorManager, mediationManager);
 
         assertTrue(model.needsSupportLanguageWarning());
     }
@@ -126,14 +126,14 @@ public class PreferencesViewModelTest {
     public void needsSupportLanguageWarning_forNotSupportedLanguageInMediation() {
 
         MediatorManager mediationManager = mock(MediatorManager.class);
-        RefundAgentManager refundAgentManager = mock(RefundAgentManager.class);
+        ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);
 
         Preferences preferences = PreferenceMakers.empty;
 
-        when(refundAgentManager.isAgentAvailableForLanguage(preferences.getUserLanguage())).thenReturn(true);
+        when(arbitratorManager.isAgentAvailableForLanguage(preferences.getUserLanguage())).thenReturn(true);
         when(mediationManager.isAgentAvailableForLanguage(preferences.getUserLanguage())).thenReturn(false);
 
-        PreferencesViewModel model = new PreferencesViewModel(preferences, refundAgentManager, mediationManager);
+        PreferencesViewModel model = new PreferencesViewModel(preferences, arbitratorManager, mediationManager);
 
         assertTrue(model.needsSupportLanguageWarning());
     }
