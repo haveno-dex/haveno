@@ -31,6 +31,7 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.payment.AssetAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.AutoTooltipCheckBox;
@@ -56,7 +57,6 @@ import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.bitcoinj.core.Coin;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -183,15 +183,15 @@ public abstract class PaymentMethodForm {
         final String limitationsText = paymentAccount instanceof AssetAccount ?
                 Res.get("payment.maxPeriodAndLimitCrypto",
                         getTimeText(hours),
-                        formatter.formatCoinWithCode(Coin.valueOf(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY))))
+                        HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
+                            paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY), true))
                 :
                 Res.get("payment.maxPeriodAndLimit",
                         getTimeText(hours),
-                        formatter.formatCoinWithCode(Coin.valueOf(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY))),
-                        formatter.formatCoinWithCode(Coin.valueOf(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferDirection.SELL))),
+                        HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY), true),
+                        HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.SELL), true),
                         DisplayUtils.formatAccountAge(accountAge));
         return limitationsText;
     }
