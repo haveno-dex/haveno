@@ -844,9 +844,14 @@ public class XmrWalletService {
     public synchronized XmrAddressEntry getNewAddressEntry(String offerId, XmrAddressEntry.Context context) {
 
         // try to use available and not yet used entries
-        List<MoneroTxWallet> incomingTxs = getIncomingTxs(); // prefetch all incoming txs to avoid query per subaddress
-        Optional<XmrAddressEntry> emptyAvailableAddressEntry = getAddressEntryListAsImmutableList().stream().filter(e -> XmrAddressEntry.Context.AVAILABLE == e.getContext()).filter(e -> isSubaddressUnused(e.getSubaddressIndex(), incomingTxs)).findAny();
-        if (emptyAvailableAddressEntry.isPresent()) return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(emptyAvailableAddressEntry.get(), context, offerId);
+        try {
+            List<MoneroTxWallet> incomingTxs = getIncomingTxs(); // prefetch all incoming txs to avoid query per subaddress
+            Optional<XmrAddressEntry> emptyAvailableAddressEntry = getAddressEntryListAsImmutableList().stream().filter(e -> XmrAddressEntry.Context.AVAILABLE == e.getContext()).filter(e -> isSubaddressUnused(e.getSubaddressIndex(), incomingTxs)).findAny();
+            if (emptyAvailableAddressEntry.isPresent()) return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(emptyAvailableAddressEntry.get(), context, offerId);
+        } catch (Exception e) {
+            log.warn("Error getting new address entriy based on incoming transactions");
+            e.printStackTrace();
+        }
         
         // create new subaddress and entry
         MoneroSubaddress subaddress = wallet.createSubaddress(0);
