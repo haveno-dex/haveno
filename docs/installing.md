@@ -4,7 +4,10 @@ These are the steps needed to build Haveno and test it on our test network or lo
 
 ## Install dependencies
 
-On Ubuntu: `sudo apt install make wget git openjdk-11-jdk`
+On Ubuntu:
+
+  1. `sudo apt install make wget git openjdk-11-jdk`.
+  2. If `echo $JAVA_HOME` does not print the path to JDK 11, then `export JAVA_HOME=/path/to/jdk` (e.g. `export JAVA_HOME=/usr/lib/jvm/java-11-openjdk`).
 
 On Windows:
 
@@ -48,9 +51,6 @@ On **Mac**: remove everything inside `~/Library/Application\ Support/haveno-*/xm
 On **Windows**: remove everything inside `~\AppData\Roaming\haveno-*/xmr_stagenet/`, except the `wallet` folder.
 
 ## Join the public test network
-
-> **Note**
-> The public test network is currently offline. [Run a local test network](#run-a-local-test-network) instead.
 
 If you want to try Haveno in a live setup, launch a Haveno instance that will connect to other peers on our public test environment, which runs on Monero's stagenet (you won't need to download the blockchain locally). You'll be able to make test trades with other users and have a preview of Haveno's trade protocol in action. Note that development is very much ongoing. Things are slow and might break.
 
