@@ -436,7 +436,7 @@ public abstract class Trade implements Tradable, Model {
     transient Boolean makerDepositLocked; // null when unknown, true while locked, false when unlocked
     transient Boolean takerDepositLocked;
     @Nullable
-    transient private MoneroTxWallet payoutTx;
+    transient private MoneroTx payoutTx;
     @Getter
     @Setter
     private String payoutTxId;
@@ -667,7 +667,16 @@ public abstract class Trade implements Tradable, Model {
 
         // sync wallet if applicable
         if (!isDepositRequested() || isPayoutUnlocked()) return;
-        if (!walletExists()) throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
+        if (!walletExists()) {
+            MoneroTx payoutTx = getPayoutTx();
+            if (payoutTx != null && payoutTx.getNumConfirmations() >= 10) {
+                log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                setPayoutStateUnlocked();
+                return;
+            } else {
+                throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
+            }
+        }
         if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
         updateSyncing();
     }
@@ -1631,8 +1640,10 @@ public abstract class Trade implements Tradable, Model {
     }
 
     @Nullable
-    public MoneroTxWallet getPayoutTx() {
-        if (payoutTx == null) payoutTx = payoutTxId == null ? null : xmrWalletService.getWallet().getTx(payoutTxId);
+    public MoneroTx getPayoutTx() {
+        if (payoutTx == null) {
+            payoutTx = payoutTxId == null ? null : (this instanceof ArbitratorTrade) ? xmrWalletService.getTxWithCache(payoutTxId) : xmrWalletService.getWallet().getTx(payoutTxId);
+        }
         return payoutTx;
     }
 

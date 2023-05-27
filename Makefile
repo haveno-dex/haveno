@@ -188,7 +188,8 @@ user1-desktop-local:
 		--appName=haveno-XMR_LOCAL_user1 \
 		--apiPassword=apitest \
 		--apiPort=9999 \
-		--walletRpcBindPort=38091
+		--walletRpcBindPort=38091 \
+		--logLevel=info
 
 user2-desktop-local:
 	./haveno-desktop$(APP_EXT) \
