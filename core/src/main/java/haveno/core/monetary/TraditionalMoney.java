@@ -204,7 +204,7 @@ public final class TraditionalMoney implements Monetary, Comparable<TraditionalM
         return FRIENDLY_FORMAT.code(0, currencyCode).format(this).toString();
     }
 
-    private static final MonetaryFormat PLAIN_FORMAT = MonetaryFormat.FIAT.minDecimals(0).repeatOptionalDecimals(1, 8).noCode();
+    private static final MonetaryFormat PLAIN_FORMAT = MonetaryFormat.FIAT.minDecimals(0).repeatOptionalDecimals(1, TraditionalMoney.SMALLEST_UNIT_EXPONENT).noCode();
 
     /**
      * <p>
