@@ -29,7 +29,9 @@ public class FormattingUtils {
 
     public final static String RANGE_SEPARATOR = " - ";
 
-    private static final MonetaryFormat traditionalPriceFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat fiatPriceFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat nonFiatPriceFormat = new MonetaryFormat().shift(0).minDecimals(8).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat traditionalFormat = new MonetaryFormat().shift(0).minDecimals(TraditionalMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     private static final MonetaryFormat cryptoFormat = new MonetaryFormat().shift(0).minDecimals(CryptoMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     private static final DecimalFormat decimalFormat = new DecimalFormat("#.#");
 
@@ -151,11 +153,11 @@ public class FormattingUtils {
     }
 
     public static String formatPrice(Price price, boolean appendCurrencyCode) {
-        return formatPrice(price, getMonetaryFormat(price.getCurrencyCode()), appendCurrencyCode);
+        return formatPrice(price, getPriceMonetaryFormat(price.getCurrencyCode()), appendCurrencyCode);
     }
 
     public static String formatPrice(Price price) {
-        return formatPrice(price, getMonetaryFormat(price.getCurrencyCode()), false);
+        return formatPrice(price, getPriceMonetaryFormat(price.getCurrencyCode()), false);
     }
 
     public static String formatMarketPrice(double price, String currencyCode) {
@@ -292,6 +294,10 @@ public class FormattingUtils {
     }
 
     public static MonetaryFormat getMonetaryFormat(String currencyCode) {
-        return CurrencyUtil.isTraditionalCurrency(currencyCode) ? traditionalPriceFormat : cryptoFormat;
+        return CurrencyUtil.isTraditionalCurrency(currencyCode) ? traditionalFormat : cryptoFormat;
+    }
+
+    public static MonetaryFormat getPriceMonetaryFormat(String currencyCode) {
+        return CurrencyUtil.isFiatCurrency(currencyCode) ? fiatPriceFormat : nonFiatPriceFormat;
     }
 }

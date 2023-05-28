@@ -40,13 +40,21 @@ public class VolumeUtil {
     private static final MonetaryFormat FIAT_VOLUME_FORMAT = new MonetaryFormat().shift(0).minDecimals(0).repeatOptionalDecimals(0, 0);
     private static final MonetaryFormat TRADITIONAL_VOLUME_FORMAT = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
 
+    private static double EXPONENT = Math.pow(10, TraditionalMoney.SMALLEST_UNIT_EXPONENT); // 1000000000000 with precision 8
+
     public static Volume getRoundedFiatVolume(Volume volumeByAmount) {
         // We want to get rounded to 1 unit of the fiat currency, e.g. 1 EUR.
         return getAdjustedFiatVolume(volumeByAmount, 1);
     }
 
+    public static Volume getRoundedTraditionalVolume(Volume volumeByAmount) {
+        DecimalFormat decimalFormat = new DecimalFormat("#.####");
+        double roundedVolume = Double.parseDouble(decimalFormat.format(Double.parseDouble(volumeByAmount.toString())));
+        return Volume.parse(String.valueOf(roundedVolume), volumeByAmount.getCurrencyCode());
+    }
+
     public static Volume getAdjustedVolumeForHalCash(Volume volumeByAmount) {
-        // EUR has precision 8 and we want multiple of 10 so we divide by 1000000000 then
+        // EUR has precision TraditionalMoney.SMALLEST_UNIT_EXPONENT and we want multiple of 10 so we divide by EXPONENT then
         // round and multiply with 10
         return getAdjustedFiatVolume(volumeByAmount, 10);
     }
@@ -59,9 +67,9 @@ public class VolumeUtil {
      * @return The adjusted Fiat volume
      */
     public static Volume getAdjustedFiatVolume(Volume volumeByAmount, int factor) {
-        // Fiat currencies use precision 8 and we want multiple of factor so we divide by 100000000 * factor then
-        // round and multiply with factor
-        long roundedVolume = Math.round((double) volumeByAmount.getValue() / (100000000d * factor)) * factor;
+        // Fiat currencies use precision TraditionalMoney.SMALLEST_UNIT_EXPONENT and we want multiple of factor so we divide
+        // by EXPONENT * factor then round and multiply with factor
+        long roundedVolume = Math.round((double) volumeByAmount.getValue() / (EXPONENT * factor)) * factor;
         // Smallest allowed volume is factor (e.g. 10 EUR or 1 EUR,...)
         roundedVolume = Math.max(factor, roundedVolume);
         return Volume.parse(String.valueOf(roundedVolume), volumeByAmount.getCurrencyCode());
