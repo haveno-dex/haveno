@@ -9,17 +9,19 @@ On Ubuntu:
   1. `sudo apt install make wget git openjdk-11-jdk`.
   2. If `echo $JAVA_HOME` does not print the path to JDK 11, then `export JAVA_HOME=/path/to/jdk` (e.g. `export JAVA_HOME=/usr/lib/jvm/java-11-openjdk`).
 
+On Arch:
+  1. Update pacman: `pacman -Syy`
+  2. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
+
+     64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
+
+     32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+
 On Windows:
 
   1. Download [Java JDK 11](https://adoptium.net/temurin/archive/?version=11). During installation, enable the option to set the $JAVA_HOME environment variable.
   2. Install [MSYS2](https://www.msys2.org/).
-  3. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
-  4. Update pacman: `pacman -Syy`
-  5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
-
-      64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
-
-      32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+  3. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document
 
 ## Build Haveno
 
