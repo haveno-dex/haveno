@@ -1359,6 +1359,15 @@ public abstract class Trade implements Tradable, Model {
         throw new RuntimeException("Trade is not maker, taker, or arbitrator");
     }
 
+    private List<TradePeer> getPeers() {
+        List<TradePeer> peers = new ArrayList<TradePeer>();
+        peers.add(getMaker());
+        peers.add(getTaker());
+        peers.add(getArbitrator());
+        if (!peers.remove(getSelf())) throw new IllegalStateException("Failed to remove self from list of peers");
+        return peers;
+    }
+
     public TradePeer getArbitrator() {
         return processModel.getArbitrator();
     }
@@ -1520,6 +1529,16 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isDepositsConfirmed() {
         return isDepositsPublished() && getState().getPhase().ordinal() >= Phase.DEPOSITS_CONFIRMED.ordinal();
+    }
+
+    // TODO: hacky way to check for deposits confirmed acks, redundant with getDepositsConfirmedTasks()
+    public boolean isDepositsConfirmedAcked() {
+        if (this instanceof BuyerTrade) {
+            return getArbitrator().isDepositsConfirmedMessageAcked();
+        } else {
+            for (TradePeer peer : getPeers()) if (!peer.isDepositsConfirmedMessageAcked()) return false;
+            return true;
+        }
     }
 
     public boolean isDepositsUnlocked() {
