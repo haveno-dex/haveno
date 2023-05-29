@@ -229,7 +229,7 @@ monerod-stagenet-custom:
 		--p2p-bind-port 39080 \
 		--rpc-bind-port 39081 \
 		--bootstrap-daemon-address auto \
-		--rpc-access-control-origins http://localhost:8080 \
+		--rpc-access-control-origins http://localhost:8080
 
 seednode-stagenet:
 	./haveno-seednode$(APP_EXT) \
@@ -238,6 +238,7 @@ seednode-stagenet:
 		--useDevPrivilegeKeys=false \
 		--nodePort=2002 \
 		--appName=haveno-XMR_STAGENET_Seed_2002 \
+		--xmrNode=http://127.0.0.1:38081
 
 arbitrator-daemon-stagenet:
 	# Arbitrator needs to be registered before making trades
