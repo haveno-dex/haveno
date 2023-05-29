@@ -413,6 +413,11 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     public void requestPersistence() {
         if (flushAtShutdownCalled) {
             log.warn("We have started the shut down routine already. We ignore that requestPersistence call.");
+            try {
+                throw new RuntimeException("We have started the shut down routine already. We ignore that requestPersistence call.");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             return;
         }
 
