@@ -32,6 +32,8 @@ import haveno.network.p2p.P2PService;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigInteger;
+
 import javax.annotation.Nullable;
 
 public class OfferAvailabilityModel implements Model {
@@ -53,6 +55,8 @@ public class OfferAvailabilityModel implements Model {
     private OfferAvailabilityResponse message;
     @Getter
     private String paymentAccountId;
+    @Getter
+    private BigInteger tradeAmount;
     @Getter
     private OfferUtil offerUtil;
     @Getter
@@ -76,6 +80,7 @@ public class OfferAvailabilityModel implements Model {
                                   TradeStatisticsManager tradeStatisticsManager,
                                   boolean isTakerApiUser,
                                   String paymentAccountId,
+                                  BigInteger tradeAmount,
                                   OfferUtil offerUtil) {
         this.offer = offer;
         this.pubKeyRing = pubKeyRing;
@@ -86,6 +91,7 @@ public class OfferAvailabilityModel implements Model {
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.isTakerApiUser = isTakerApiUser;
         this.paymentAccountId = paymentAccountId;
+        this.tradeAmount = tradeAmount;
         this.offerUtil = offerUtil;
     }
 

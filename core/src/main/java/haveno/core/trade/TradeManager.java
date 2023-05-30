@@ -561,11 +561,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
 
             // get expected taker fee
-            BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
+            BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(request.getTradeAmount()));
 
             // create arbitrator trade
             trade = new ArbitratorTrade(offer,
-                    BigInteger.valueOf(offer.getOfferPayload().getAmount()),
+                    BigInteger.valueOf(request.getTradeAmount()),
                     takerFee,
                     offer.getOfferPayload().getPrice(),
                     xmrWalletService,
@@ -630,12 +630,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           openOfferManager.reserveOpenOffer(openOffer);
 
           // get expected taker fee
-          BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(offer.getOfferPayload().getAmount()));
+          BigInteger takerFee = HavenoUtils.getTakerFee(BigInteger.valueOf(request.getTradeAmount()));
 
           Trade trade;
           if (offer.isBuyOffer())
               trade = new BuyerAsMakerTrade(offer,
-                      BigInteger.valueOf(offer.getOfferPayload().getAmount()),
+                      BigInteger.valueOf(request.getTradeAmount()),
                       takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
@@ -646,7 +646,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                       request.getArbitratorNodeAddress());
           else
               trade = new SellerAsMakerTrade(offer,
-                      BigInteger.valueOf(offer.getOfferPayload().getAmount()),
+                      BigInteger.valueOf(request.getTradeAmount()),
                       takerFee,
                       offer.getOfferPayload().getPrice(),
                       xmrWalletService,
@@ -788,9 +788,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void checkOfferAvailability(Offer offer,
                                        boolean isTakerApiUser,
                                        String paymentAccountId,
+                                       BigInteger tradeAmount,
                                        ResultHandler resultHandler,
                                        ErrorMessageHandler errorMessageHandler) {
-        offer.checkOfferAvailability(getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId), resultHandler, errorMessageHandler);
+        offer.checkOfferAvailability(getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId, tradeAmount), resultHandler, errorMessageHandler);
     }
 
     // First we check if offer is still available then we create the trade with the protocol
@@ -806,7 +807,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         checkArgument(!wasOfferAlreadyUsedInTrade(offer.getId()));
 
-        OfferAvailabilityModel model = getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId);
+        OfferAvailabilityModel model = getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId, amount);
         offer.checkOfferAvailability(model,
                 () -> {
                     if (offer.getState() == Offer.State.AVAILABLE) {
@@ -886,7 +887,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 processModelServiceProvider.getKeyRing().getPubKeyRing());
     }
 
-    private OfferAvailabilityModel getOfferAvailabilityModel(Offer offer, boolean isTakerApiUser, String paymentAccountId) {
+    private OfferAvailabilityModel getOfferAvailabilityModel(Offer offer, boolean isTakerApiUser, String paymentAccountId, BigInteger tradeAmount) {
         return new OfferAvailabilityModel(
                 offer,
                 keyRing.getPubKeyRing(),
@@ -897,6 +898,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 tradeStatisticsManager,
                 isTakerApiUser,
                 paymentAccountId,
+                tradeAmount,
                 offerUtil);
     }
 
