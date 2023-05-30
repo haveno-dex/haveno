@@ -512,10 +512,11 @@ public class CoreApi {
 
     public void takeOffer(String offerId,
                           String paymentAccountId,
+                          long amountAsLong,
                           Consumer<Trade> resultHandler,
                           ErrorMessageHandler errorMessageHandler) {
         Offer offer = coreOffersService.getOffer(offerId);
-        coreTradesService.takeOffer(offer, paymentAccountId, resultHandler, errorMessageHandler);
+        coreTradesService.takeOffer(offer, paymentAccountId, amountAsLong, resultHandler, errorMessageHandler);
     }
 
     public void confirmPaymentSent(String tradeId,

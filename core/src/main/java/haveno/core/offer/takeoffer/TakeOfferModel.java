@@ -92,6 +92,7 @@ public class TakeOfferModel implements Model {
 
     public void initModel(Offer offer,
                           PaymentAccount paymentAccount,
+                          BigInteger tradeAmount,
                           boolean useSavingsWallet) {
         this.clearModel();
         this.offer = offer;
@@ -100,7 +101,7 @@ public class TakeOfferModel implements Model {
         validateModelInputs();
 
         this.useSavingsWallet = useSavingsWallet;
-        this.amount = offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit()));
+        this.amount = tradeAmount.min(BigInteger.valueOf(getMaxTradeLimit()));
         this.securityDeposit = offer.getDirection() == SELL
                 ? offer.getBuyerSecurityDeposit()
                 : offer.getSellerSecurityDeposit();

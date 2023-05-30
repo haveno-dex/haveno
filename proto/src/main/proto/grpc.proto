@@ -746,6 +746,7 @@ service Trades {
 message TakeOfferRequest {
     string offer_id = 1;
     string payment_account_id = 2;
+    uint64 amount = 3 [jstype = JS_STRING];
 }
 
 message TakeOfferReply {
