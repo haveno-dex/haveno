@@ -26,6 +26,7 @@ import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.TraditionalExchangeRate;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.MonetaryFormat;
@@ -42,21 +43,31 @@ public class VolumeUtil {
 
     private static double EXPONENT = Math.pow(10, TraditionalMoney.SMALLEST_UNIT_EXPONENT); // 1000000000000 with precision 8
 
+    public static Volume getAdjustedVolume(Volume volumeByAmount, String paymentMethodId) {
+        if (PaymentMethod.isRoundedForAtmCash(paymentMethodId))
+            return VolumeUtil.getRoundedAtmCashVolume(volumeByAmount);
+        else if (CurrencyUtil.isFiatCurrency(volumeByAmount.getCurrencyCode()))
+            return VolumeUtil.getRoundedFiatVolume(volumeByAmount);
+        else if (CurrencyUtil.isTraditionalCurrency(volumeByAmount.getCurrencyCode()))
+            return VolumeUtil.getRoundedTraditionalVolume(volumeByAmount);
+        return volumeByAmount;
+    }
+
     public static Volume getRoundedFiatVolume(Volume volumeByAmount) {
         // We want to get rounded to 1 unit of the fiat currency, e.g. 1 EUR.
         return getAdjustedFiatVolume(volumeByAmount, 1);
+    }
+
+    private static Volume getRoundedAtmCashVolume(Volume volumeByAmount) {
+        // EUR has precision TraditionalMoney.SMALLEST_UNIT_EXPONENT and we want multiple of 10 so we divide by EXPONENT then
+        // round and multiply with 10
+        return getAdjustedFiatVolume(volumeByAmount, 10);
     }
 
     public static Volume getRoundedTraditionalVolume(Volume volumeByAmount) {
         DecimalFormat decimalFormat = new DecimalFormat("#.####");
         double roundedVolume = Double.parseDouble(decimalFormat.format(Double.parseDouble(volumeByAmount.toString())));
         return Volume.parse(String.valueOf(roundedVolume), volumeByAmount.getCurrencyCode());
-    }
-
-    public static Volume getAdjustedVolumeForHalCash(Volume volumeByAmount) {
-        // EUR has precision TraditionalMoney.SMALLEST_UNIT_EXPONENT and we want multiple of 10 so we divide by EXPONENT then
-        // round and multiply with 10
-        return getAdjustedFiatVolume(volumeByAmount, 10);
     }
 
     /**

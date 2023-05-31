@@ -82,6 +82,12 @@ public class CurrencyUtil {
     public static List<TradeCurrency> getAllFiatCurrencies() {
         return getAllTraditionalCurrencies().stream()
                 .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
+                .collect(Collectors.toList());
+    }
+
+    public static List<TradeCurrency> getAllSortedFiatCurrencies() {
+        return getAllSortedTraditionalCurrencies().stream()
+                .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
                 .collect(Collectors.toList());  // sorted by currency name
     }
 

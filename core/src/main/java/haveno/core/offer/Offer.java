@@ -246,10 +246,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return null;
         }
         Volume volumeByAmount = price.getVolumeByAmount(amount);
-        if (offerPayload.getPaymentMethodId().equals(PaymentMethod.HAL_CASH_ID))
-            volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-        else if (isFiatOffer())
-            volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
+        volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, getPaymentMethod().getId());
 
         return volumeByAmount;
     }
