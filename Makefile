@@ -122,6 +122,15 @@ seednode-local:
 		--appName=haveno-XMR_LOCAL_Seed_2002 \
 		--xmrNode=http://localhost:28081 \
 
+seednode2-local:
+	./haveno-seednode$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_LOCAL \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=2003 \
+		--appName=haveno-XMR_LOCAL_Seed_2003 \
+		--xmrNode=http://localhost:28081 \
+
 arbitrator-daemon-local:
 	# Arbitrator needs to be registered before making trades
 	./haveno-daemon$(APP_EXT) \
