@@ -302,18 +302,19 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
                 Price tradePrice = dataModel.tradePrice;
                 long maxTradeLimit = dataModel.getMaxTradeLimit();
-                if (dataModel.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID)) {
-                    BigInteger adjustedAmountForHalCash = CoinUtil.getAdjustedAmountForHalCash(dataModel.getAmount().get(),
+                if (PaymentMethod.isRoundedForAtmCash(dataModel.getPaymentMethod().getId())) {
+                    BigInteger adjustedAmountForHalCash = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(),
                             tradePrice,
                             maxTradeLimit);
                     dataModel.applyAmount(adjustedAmountForHalCash);
                     amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
-                } else if (dataModel.getOffer().isFiatOffer()) {
+                } else if (dataModel.getOffer().isTraditionalOffer()) {
                     if (!isAmountEqualMinAmount(dataModel.getAmount().get()) && (!isAmountEqualMaxAmount(dataModel.getAmount().get()))) {
                         // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                         // Otherwise we could get an amount lower then the minAmount set by rounding
-                        BigInteger roundedAmount = CoinUtil.getRoundedFiatAmount(dataModel.getAmount().get(), tradePrice,
-                                maxTradeLimit);
+                        BigInteger roundedAmount = dataModel.getOffer().isFiatOffer() ?
+                                CoinUtil.getRoundedFiatAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit) :
+                                CoinUtil.getRoundedTraditionalAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit);
                         dataModel.applyAmount(roundedAmount);
                     }
                     amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
@@ -585,13 +586,15 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             long maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.tradePrice;
             if (price != null) {
-                if (dataModel.isUsingHalCashAccount()) {
-                    amount = CoinUtil.getAdjustedAmountForHalCash(amount, price, maxTradeLimit);
-                } else if (dataModel.getOffer().isFiatOffer()
+                if (dataModel.isRoundedForAtmCash()) {
+                    amount = CoinUtil.getRoundedAtmCashAmount(amount, price, maxTradeLimit);
+                } else if (dataModel.getOffer().isTraditionalOffer()
                         && !isAmountEqualMinAmount(amount) && !isAmountEqualMaxAmount(amount)) {
                     // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                     // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = CoinUtil.getRoundedFiatAmount(amount, price, maxTradeLimit);
+                    amount = dataModel.getOffer().isFiatOffer() ? 
+                            CoinUtil.getRoundedFiatAmount(amount, price, maxTradeLimit) :
+                            CoinUtil.getRoundedTraditionalAmount(amount, price, maxTradeLimit);
                 }
             }
             dataModel.applyAmount(amount);

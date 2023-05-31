@@ -31,6 +31,7 @@ import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BizumAccount;
 import haveno.core.payment.CapitualAccount;
+import haveno.core.payment.CashByAtmAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
@@ -162,6 +163,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String AMAZON_GIFT_CARD_ID = "AMAZON_GIFT_CARD";
     public static final String BLOCK_CHAINS_INSTANT_ID = "BLOCK_CHAINS_INSTANT";
     public static final String PAY_BY_MAIL_ID = "PAY_BY_MAIL";
+    public static final String CASH_BY_ATM_ID = "CASH_BY_ATM";
     public static final String CAPITUAL_ID = "CAPITUAL";
     public static final String CELPAY_ID = "CELPAY";
     public static final String MONESE_ID = "MONESE";
@@ -224,6 +226,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod AMAZON_GIFT_CARD;
     public static PaymentMethod BLOCK_CHAINS_INSTANT;
     public static PaymentMethod PAY_BY_MAIL;
+    public static PaymentMethod CASH_BY_ATM;
     public static PaymentMethod CAPITUAL;
     public static PaymentMethod CELPAY;
     public static PaymentMethod MONESE;
@@ -271,6 +274,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Global
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
             PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
+            CASH_BY_ATM = new PaymentMethod(CASH_BY_ATM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashByAtmAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
             NATIONAL_BANK = new PaymentMethod(NATIONAL_BANK_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NationalBankAccount.SUPPORTED_CURRENCIES)),
@@ -559,5 +563,15 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.POPMONEY_ID) ||
                 id.equals(PaymentMethod.MONEY_BEAM_ID) ||
                 id.equals(PaymentMethod.UPHOLD_ID);
+    }
+
+    public static boolean isRoundedForAtmCash(String id) {
+        return id.equals(PaymentMethod.CASH_BY_ATM_ID) ||
+            id.equals(PaymentMethod.HAL_CASH_ID);
+    }
+
+    public static boolean isFixedPriceOnly(String id) {
+        return id.equals(PaymentMethod.CASH_BY_ATM_ID) ||
+            id.equals(PaymentMethod.HAL_CASH_ID);
     }
 }

@@ -32,6 +32,7 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.handlers.TransactionResultHandler;
@@ -81,7 +82,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static java.util.Comparator.comparing;
 
 public abstract class MutableOfferDataModel extends OfferDataModel {
@@ -503,12 +503,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     private Volume calculateVolumeForAmount(ObjectProperty<BigInteger> minAmount) {
         Volume volumeByAmount = price.get().getVolumeByAmount(minAmount.get());
-
-        // For HalCash we want multiple of 10 EUR
-        if (isUsingHalCashAccount())
-            volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-        else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-            volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
+        volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, paymentAccount.getPaymentMethod().getId());
         return volumeByAmount;
     }
 
@@ -516,10 +511,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         if (isNonZeroPrice.test(price) && isNonZeroVolume.test(volume) && allowAmountUpdate) {
             try {
                 BigInteger value = HavenoUtils.coinToAtomicUnits(DisplayUtils.reduceTo4Decimals(HavenoUtils.atomicUnitsToCoin(price.get().getAmountByVolume(volume.get())), btcFormatter));
-                if (isUsingHalCashAccount())
-                    value = CoinUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit());
-                else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                    value = CoinUtil.getRoundedFiatAmount(value, price.get(), getMaxTradeLimit());
+                value = CoinUtil.getRoundedAmount(value, price.get(), getMaxTradeLimit(), tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
 
                 calculateVolume();
 
@@ -680,7 +672,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.triggerPrice = triggerPrice;
     }
 
-    public boolean isUsingHalCashAccount() {
-        return paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
+    public boolean isUsingRoundedAtmCashAccount() {
+        return PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId());
     }
 }

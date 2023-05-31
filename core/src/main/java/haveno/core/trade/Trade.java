@@ -28,13 +28,11 @@ import haveno.common.proto.ProtoUtil;
 import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreMoneroConnectionsService;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
@@ -1438,14 +1436,7 @@ public abstract class Trade implements Tradable, Model {
         try {
             if (getAmount() != null && getPrice() != null) {
                 Volume volumeByAmount = getPrice().getVolumeByAmount(getAmount());
-                if (offer != null) {
-                    if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
-                        volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-                    else if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()))
-                        volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
-                    else if (CurrencyUtil.isTraditionalCurrency(offer.getCurrencyCode()))
-                        volumeByAmount = VolumeUtil.getRoundedTraditionalVolume(volumeByAmount);
-                }
+                if (offer != null) volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
                 return volumeByAmount;
             } else {
                 return null;

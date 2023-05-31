@@ -30,6 +30,7 @@ import haveno.core.payment.payload.AustraliaPayidAccountPayload;
 import haveno.core.payment.payload.BizumAccountPayload;
 import haveno.core.payment.payload.CapitualAccountPayload;
 import haveno.core.payment.payload.CashAppAccountPayload;
+import haveno.core.payment.payload.CashByAtmAccountPayload;
 import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.CelPayAccountPayload;
@@ -201,6 +202,8 @@ public class CoreProtoResolver implements ProtoResolver {
                     return USPostalMoneyOrderAccountPayload.fromProto(proto);
                 case PAY_BY_MAIL_ACCOUNT_PAYLOAD:
                     return PayByMailAccountPayload.fromProto(proto);
+                case CASH_BY_ATM_ACCOUNT_PAYLOAD:
+                    return CashByAtmAccountPayload.fromProto(proto);
                 case PROMPT_PAY_ACCOUNT_PAYLOAD:
                     return PromptPayAccountPayload.fromProto(proto);
                 case ADVANCED_CASH_ACCOUNT_PAYLOAD:

@@ -100,7 +100,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
 import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
 import static haveno.desktop.util.FormBuilder.addAddressTextField;
@@ -828,7 +827,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         int marketPriceAvailableValue = model.marketPriceAvailableProperty.get();
         if (marketPriceAvailableValue > -1) {
             boolean showPriceToggle = marketPriceAvailableValue == 1 &&
-                    !model.getDataModel().paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
+                    !PaymentMethod.isFixedPriceOnly(model.getDataModel().paymentAccount.getPaymentMethod().getId());
             percentagePriceBox.setVisible(showPriceToggle);
             priceTypeToggleButton.setVisible(showPriceToggle);
             boolean fixedPriceSelected = !model.getDataModel().getUseMarketBasedPrice().get() || !showPriceToggle;

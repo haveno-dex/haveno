@@ -841,12 +841,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
                 Volume volume = dataModel.getVolume().get();
                 if (volume != null) {
-                    // For HalCash we want multiple of 10 EUR
-                    if (dataModel.isUsingHalCashAccount())
-                        volume = VolumeUtil.getAdjustedVolumeForHalCash(volume);
-                    else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                        volume = VolumeUtil.getRoundedFiatVolume(volume);
-
+                    volume = VolumeUtil.getAdjustedVolume(volume, dataModel.getPaymentAccount().getPaymentMethod().getId());
                     this.volume.set(VolumeUtil.formatVolume(volume));
                 }
 
@@ -1082,10 +1077,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             long maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.getPrice().get();
             if (price != null && price.isPositive()) {
-                if (dataModel.isUsingHalCashAccount())
-                    amount = CoinUtil.getAdjustedAmountForHalCash(amount, price, maxTradeLimit);
-                else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                    amount = CoinUtil.getRoundedFiatAmount(amount, price, maxTradeLimit);
+                amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
             dataModel.setAmount(amount);
             if (syncMinAmountWithAmount ||
@@ -1106,10 +1098,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             Price price = dataModel.getPrice().get();
             long maxTradeLimit = dataModel.getMaxTradeLimit();
             if (price != null && price.isPositive()) {
-                if (dataModel.isUsingHalCashAccount())
-                    minAmount = CoinUtil.getAdjustedAmountForHalCash(minAmount, price, maxTradeLimit);
-                else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                    minAmount = CoinUtil.getRoundedFiatAmount(minAmount, price, maxTradeLimit);
+                minAmount = CoinUtil.getRoundedAmount(minAmount, price, maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
 
             dataModel.setMinAmount(minAmount);
