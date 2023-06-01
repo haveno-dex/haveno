@@ -63,7 +63,6 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 
 /**
  * Domain for that UI element.
@@ -156,6 +155,7 @@ class TakeOfferDataModel extends OfferDataModel {
             tradeManager.checkOfferAvailability(offer,
                     false,
                     paymentAccount.getId(),
+                    this.amount.get(),
                     () -> {
                     },
                     errorMessage -> new Popup().warning(errorMessage).show());
@@ -375,10 +375,7 @@ class TakeOfferDataModel extends OfferDataModel {
                 amount.get() != null &&
                 amount.get().compareTo(BigInteger.valueOf(0)) != 0) {
             Volume volumeByAmount = tradePrice.getVolumeByAmount(amount.get());
-            if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
-                volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-            else if (offer.isFiatOffer())
-                volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
+            volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
 
             volume.set(volumeByAmount);
 
@@ -490,7 +487,7 @@ class TakeOfferDataModel extends OfferDataModel {
         return offer.getSellerSecurityDeposit();
     }
 
-    public boolean isUsingHalCashAccount() {
-        return paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
+    public boolean isRoundedForAtmCash() {
+        return PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId());
     }
 }

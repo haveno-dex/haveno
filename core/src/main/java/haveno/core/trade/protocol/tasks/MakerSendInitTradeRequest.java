@@ -54,7 +54,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     offer.getId(),
                     processModel.getMyNodeAddress(),
                     processModel.getPubKeyRing(),
-                    offer.getAmount().longValueExact(),
+                    trade.getAmount().longValueExact(),
                     trade.getPrice().getValue(),
                     offer.getMakerFee().longValueExact(),
                     trade.getProcessModel().getAccountId(),

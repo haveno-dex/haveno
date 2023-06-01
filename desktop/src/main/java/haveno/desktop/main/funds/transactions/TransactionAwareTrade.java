@@ -69,7 +69,7 @@ class TransactionAwareTrade implements TransactionAwareTradable {
 
     private boolean isPayoutTx(String txId) {
       return Optional.ofNullable(trade.getPayoutTx())
-              .map(MoneroTxWallet::getHash)
+              .map(MoneroTx::getHash)
               .map(hash -> hash.equals(txId))
               .orElse(false);
     }

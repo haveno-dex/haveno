@@ -89,6 +89,7 @@ class CoreTradesService {
 
     void takeOffer(Offer offer,
                    String paymentAccountId,
+                   long amountAsLong,
                    Consumer<Trade> resultHandler,
                    ErrorMessageHandler errorMessageHandler) {
         try {
@@ -101,18 +102,21 @@ class CoreTradesService {
 
             var useSavingsWallet = true;
 
+            // default to offer amount
+            BigInteger amount = amountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(amountAsLong);
+
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
             BigInteger takerFee;
             BigInteger fundsNeededForTrade;
             synchronized (takeOfferModel) {
-                takeOfferModel.initModel(offer, paymentAccount, useSavingsWallet);
+                takeOfferModel.initModel(offer, paymentAccount, amount, useSavingsWallet);
                 takerFee = takeOfferModel.getTakerFee();
                 fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
                 log.info("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
             }
 
             // take offer
-            tradeManager.onTakeOffer(offer.getAmount(),
+            tradeManager.onTakeOffer(amount,
                     takerFee,
                     fundsNeededForTrade,
                     offer,

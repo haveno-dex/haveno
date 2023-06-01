@@ -66,6 +66,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
+import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
@@ -581,11 +582,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         closeTicketButton.setOnAction(e -> {
 
             // get or create dispute payout tx
-            MoneroTxWallet payoutTx = null;
+            MoneroTx payoutTx = null;
             if (trade.isPayoutPublished()) payoutTx = trade.getPayoutTx();
             else {
                 payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
-                trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
+                trade.getProcessModel().setUnsignedPayoutTx((MoneroTxWallet) payoutTx);
             }
 
             // show confirmation
@@ -608,7 +609,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         });
     }
 
-    private void showPayoutTxConfirmation(Contract contract, DisputeResult disputeResult, MoneroTxWallet payoutTx, ResultHandler resultHandler) {
+    private void showPayoutTxConfirmation(Contract contract, DisputeResult disputeResult, MoneroTx payoutTx, ResultHandler resultHandler) {
         BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
         String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
         BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();

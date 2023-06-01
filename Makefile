@@ -122,6 +122,15 @@ seednode-local:
 		--appName=haveno-XMR_LOCAL_Seed_2002 \
 		--xmrNode=http://localhost:28081 \
 
+seednode2-local:
+	./haveno-seednode$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_LOCAL \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=2003 \
+		--appName=haveno-XMR_LOCAL_Seed_2003 \
+		--xmrNode=http://localhost:28081 \
+
 arbitrator-daemon-local:
 	# Arbitrator needs to be registered before making trades
 	./haveno-daemon$(APP_EXT) \
@@ -188,7 +197,8 @@ user1-desktop-local:
 		--appName=haveno-XMR_LOCAL_user1 \
 		--apiPassword=apitest \
 		--apiPort=9999 \
-		--walletRpcBindPort=38091
+		--walletRpcBindPort=38091 \
+		--logLevel=info
 
 user2-desktop-local:
 	./haveno-desktop$(APP_EXT) \
@@ -228,15 +238,25 @@ monerod-stagenet-custom:
 		--p2p-bind-port 39080 \
 		--rpc-bind-port 39081 \
 		--bootstrap-daemon-address auto \
-		--rpc-access-control-origins http://localhost:8080 \
+		--rpc-access-control-origins http://localhost:8080
 
 seednode-stagenet:
 	./haveno-seednode$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=2002 \
-		--appName=haveno-XMR_STAGENET_Seed_2002 \
+		--nodePort=3002 \
+		--appName=haveno-XMR_STAGENET_Seed_3002 \
+		--xmrNode=http://127.0.0.1:38081
+
+seednode2-stagenet:
+	./haveno-seednode$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=3003 \
+		--appName=haveno-XMR_STAGENET_Seed_3003 \
+		--xmrNode=http://127.0.0.1:38081
 
 arbitrator-daemon-stagenet:
 	# Arbitrator needs to be registered before making trades
@@ -244,10 +264,10 @@ arbitrator-daemon-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=4444 \
+		--nodePort=3100 \
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
-		--apiPort=9998 \
+		--apiPort=3200 \
 		--passwordRequired=false \
 		--xmrNode=http://127.0.0.1:38081
 
@@ -257,10 +277,10 @@ arbitrator-desktop-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=4444 \
+		--nodePort=3100 \
 		--appName=haveno-XMR_STAGENET_arbitrator \
 		--apiPassword=apitest \
-		--apiPort=9998 \
+		--apiPort=3200 \
 		--xmrNode=http://127.0.0.1:38081
 
 user1-daemon-stagenet:
@@ -268,10 +288,10 @@ user1-daemon-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=5555 \
+		--nodePort=3101 \
 		--appName=haveno-XMR_STAGENET_user1 \
 		--apiPassword=apitest \
-		--apiPort=9999 \
+		--apiPort=3201 \
 		--walletRpcBindPort=38091 \
 		--passwordRequired=false
 
@@ -280,10 +300,10 @@ user1-desktop-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=5555 \
+		--nodePort=3101 \
 		--appName=haveno-XMR_STAGENET_user1 \
 		--apiPassword=apitest \
-		--apiPort=9999 \
+		--apiPort=3201 \
 		--walletRpcBindPort=38091
 
 user2-daemon-stagenet:
@@ -291,11 +311,10 @@ user2-daemon-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=6666 \
+		--nodePort=3102 \
 		--appName=haveno-XMR_STAGENET_user2 \
 		--apiPassword=apitest \
-		--apiPort=10000 \
-		--walletRpcBindPort=38092 \
+		--apiPort=3202 \
 		--passwordRequired=false
 
 user2-desktop-stagenet:
@@ -303,11 +322,10 @@ user2-desktop-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=6666 \
+		--nodePort=3102 \
 		--appName=haveno-XMR_STAGENET_user2 \
 		--apiPassword=apitest \
-		--apiPort=10000 \
-		--walletRpcBindPort=38092
+		--apiPort=3202
 
 user3-desktop-stagenet:
 	./haveno-desktop$(APP_EXT) \

@@ -22,6 +22,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
@@ -64,7 +65,7 @@ public class OfferForJson {
     public long primaryMarketMinVolume;
 
     @JsonIgnore
-    transient private final MonetaryFormat traditionalFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    transient private final MonetaryFormat traditionalFormat = new MonetaryFormat().shift(0).minDecimals(TraditionalMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     @JsonIgnore
     transient private final MonetaryFormat cryptoFormat = new MonetaryFormat().shift(0).minDecimals(CryptoMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     @JsonIgnore

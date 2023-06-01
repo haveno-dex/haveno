@@ -19,15 +19,14 @@ package haveno.core.offer.takeoffer;
 
 import haveno.common.taskrunner.Model;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import lombok.Getter;
@@ -41,8 +40,6 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.offer.OfferDirection.SELL;
-import static haveno.core.util.VolumeUtil.getAdjustedVolumeForHalCash;
-import static haveno.core.util.VolumeUtil.getRoundedFiatVolume;
 import static haveno.core.xmr.model.XmrAddressEntry.Context.OFFER_FUNDING;
 
 @Slf4j
@@ -92,6 +89,7 @@ public class TakeOfferModel implements Model {
 
     public void initModel(Offer offer,
                           PaymentAccount paymentAccount,
+                          BigInteger tradeAmount,
                           boolean useSavingsWallet) {
         this.clearModel();
         this.offer = offer;
@@ -100,7 +98,7 @@ public class TakeOfferModel implements Model {
         validateModelInputs();
 
         this.useSavingsWallet = useSavingsWallet;
-        this.amount = offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit()));
+        this.amount = tradeAmount.min(BigInteger.valueOf(getMaxTradeLimit()));
         this.securityDeposit = offer.getDirection() == SELL
                 ? offer.getBuyerSecurityDeposit()
                 : offer.getSellerSecurityDeposit();
@@ -135,11 +133,7 @@ public class TakeOfferModel implements Model {
     private void calculateVolume() {
         Price tradePrice = offer.getPrice();
         Volume volumeByAmount = Objects.requireNonNull(tradePrice).getVolumeByAmount(amount);
-
-        if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
-            volumeByAmount = getAdjustedVolumeForHalCash(volumeByAmount);
-        else if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()))
-            volumeByAmount = getRoundedFiatVolume(volumeByAmount);
+        volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
 
         volume = volumeByAmount;
 

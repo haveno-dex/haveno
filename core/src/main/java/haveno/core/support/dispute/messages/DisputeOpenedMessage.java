@@ -18,6 +18,7 @@
 package haveno.core.support.dispute.messages;
 
 import haveno.common.app.Version;
+import haveno.common.proto.ProtoUtil;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
@@ -90,7 +91,7 @@ public final class DisputeOpenedMessage extends DisputeMessage {
                 proto.getUid(),
                 messageVersion,
                 SupportType.fromProto(proto.getType()),
-                proto.getUpdatedMultisigHex(),
+                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
                 proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null);
     }
 

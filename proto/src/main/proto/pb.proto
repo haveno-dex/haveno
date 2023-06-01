@@ -856,6 +856,7 @@ message PaymentAccountPayload {
         CelPayAccountPayload cel_pay_account_payload = 37;
         MoneseAccountPayload monese_account_payload = 38;
         VerseAccountPayload verse_account_payload = 39;
+        CashByAtmAccountPayload cash_by_atm_account_payload = 40;
     }
 }
 
@@ -1110,6 +1111,10 @@ message PayByMailAccountPayload {
     string postal_address = 1;
     string contact = 2;
     string extra_info = 3;
+}
+
+message CashByAtmAccountPayload {
+    string extra_info = 1;
 }
 
 message PromptPayAccountPayload {

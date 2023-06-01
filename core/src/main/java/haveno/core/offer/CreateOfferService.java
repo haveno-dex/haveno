@@ -25,6 +25,7 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -46,8 +47,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static haveno.core.payment.payload.PaymentMethod.HAL_CASH_ID;
 
 @Slf4j
 @Singleton
@@ -137,7 +136,7 @@ public class CreateOfferService {
         boolean useMarketBasedPriceValue = price == null &&
                 useMarketBasedPrice &&
                 isMarketPriceAvailable(currencyCode) &&
-                !paymentAccount.hasPaymentMethodWithId(HAL_CASH_ID);
+                !PaymentMethod.isFixedPriceOnly(paymentAccount.getPaymentMethod().getId());
 
         // verify price
         if (price == null && !useMarketBasedPriceValue) {

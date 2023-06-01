@@ -28,13 +28,11 @@ import haveno.common.proto.ProtoUtil;
 import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreMoneroConnectionsService;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
@@ -436,7 +434,7 @@ public abstract class Trade implements Tradable, Model {
     transient Boolean makerDepositLocked; // null when unknown, true while locked, false when unlocked
     transient Boolean takerDepositLocked;
     @Nullable
-    transient private MoneroTxWallet payoutTx;
+    transient private MoneroTx payoutTx;
     @Getter
     @Setter
     private String payoutTxId;
@@ -667,7 +665,16 @@ public abstract class Trade implements Tradable, Model {
 
         // sync wallet if applicable
         if (!isDepositRequested() || isPayoutUnlocked()) return;
-        if (!walletExists()) throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
+        if (!walletExists()) {
+            MoneroTx payoutTx = getPayoutTx();
+            if (payoutTx != null && payoutTx.getNumConfirmations() >= 10) {
+                log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                setPayoutStateUnlocked();
+                return;
+            } else {
+                throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
+            }
+        }
         if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
         updateSyncing();
     }
@@ -1350,6 +1357,15 @@ public abstract class Trade implements Tradable, Model {
         throw new RuntimeException("Trade is not maker, taker, or arbitrator");
     }
 
+    private List<TradePeer> getPeers() {
+        List<TradePeer> peers = new ArrayList<TradePeer>();
+        peers.add(getMaker());
+        peers.add(getTaker());
+        peers.add(getArbitrator());
+        if (!peers.remove(getSelf())) throw new IllegalStateException("Failed to remove self from list of peers");
+        return peers;
+    }
+
     public TradePeer getArbitrator() {
         return processModel.getArbitrator();
     }
@@ -1420,12 +1436,7 @@ public abstract class Trade implements Tradable, Model {
         try {
             if (getAmount() != null && getPrice() != null) {
                 Volume volumeByAmount = getPrice().getVolumeByAmount(getAmount());
-                if (offer != null) {
-                    if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
-                        volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-                    else if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()))
-                        volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
-                }
+                if (offer != null) volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
                 return volumeByAmount;
             } else {
                 return null;
@@ -1509,6 +1520,16 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isDepositsConfirmed() {
         return isDepositsPublished() && getState().getPhase().ordinal() >= Phase.DEPOSITS_CONFIRMED.ordinal();
+    }
+
+    // TODO: hacky way to check for deposits confirmed acks, redundant with getDepositsConfirmedTasks()
+    public boolean isDepositsConfirmedAcked() {
+        if (this instanceof BuyerTrade) {
+            return getArbitrator().isDepositsConfirmedMessageAcked();
+        } else {
+            for (TradePeer peer : getPeers()) if (!peer.isDepositsConfirmedMessageAcked()) return false;
+            return true;
+        }
     }
 
     public boolean isDepositsUnlocked() {
@@ -1631,8 +1652,10 @@ public abstract class Trade implements Tradable, Model {
     }
 
     @Nullable
-    public MoneroTxWallet getPayoutTx() {
-        if (payoutTx == null) payoutTx = payoutTxId == null ? null : xmrWalletService.getWallet().getTx(payoutTxId);
+    public MoneroTx getPayoutTx() {
+        if (payoutTx == null) {
+            payoutTx = payoutTxId == null ? null : (this instanceof ArbitratorTrade) ? xmrWalletService.getTxWithCache(payoutTxId) : xmrWalletService.getWallet().getTx(payoutTxId);
+        }
         return payoutTx;
     }
 

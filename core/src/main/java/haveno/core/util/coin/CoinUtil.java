@@ -19,14 +19,17 @@ package haveno.core.util.coin;
 
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.util.MathUtils;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.wallet.Restrictions;
 import org.bitcoinj.core.Coin;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.core.util.VolumeUtil.getAdjustedFiatVolume;
@@ -76,6 +79,21 @@ public class CoinUtil {
         return BigDecimal.valueOf(percent).multiply(new BigDecimal(amount)).toBigInteger();
     }
 
+    public static BigInteger getRoundedAmount(BigInteger amount, Price price, long maxTradeLimit, String currencyCode, String paymentMethodId) {
+        if (PaymentMethod.isRoundedForAtmCash(paymentMethodId)) {
+            return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
+        } else if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            return getRoundedFiatAmount(amount, price, maxTradeLimit);
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return getRoundedTraditionalAmount(amount, price, maxTradeLimit);
+        }
+        return amount;
+    }
+
+    public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, long maxTradeLimit) {
+        return getAdjustedAmount(amount, price, maxTradeLimit, 10);
+    }
+
     /**
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
      * {@code price} and {@code maxTradeLimit} and {@code factor}.
@@ -88,9 +106,11 @@ public class CoinUtil {
     public static BigInteger getRoundedFiatAmount(BigInteger amount, Price price, long maxTradeLimit) {
         return getAdjustedAmount(amount, price, maxTradeLimit, 1);
     }
-
-    public static BigInteger getAdjustedAmountForHalCash(BigInteger amount, Price price, long maxTradeLimit) {
-        return getAdjustedAmount(amount, price, maxTradeLimit, 10);
+    
+    public static BigInteger getRoundedTraditionalAmount(BigInteger amount, Price price, long maxTradeLimit) {
+        DecimalFormat decimalFormat = new DecimalFormat("#.####");
+        double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
+        return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
     }
 
     /**

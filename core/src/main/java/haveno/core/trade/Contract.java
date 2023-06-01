@@ -22,7 +22,6 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.OfferPayload;
@@ -204,12 +203,7 @@ public final class Contract implements NetworkPayload {
 
     public Volume getTradeVolume() {
         Volume volumeByAmount = getPrice().getVolumeByAmount(getTradeAmount());
-
-        if (getPaymentMethodId().equals(PaymentMethod.HAL_CASH_ID))
-            volumeByAmount = VolumeUtil.getAdjustedVolumeForHalCash(volumeByAmount);
-        else if (CurrencyUtil.isFiatCurrency(getOfferPayload().getCurrencyCode()))
-            volumeByAmount = VolumeUtil.getRoundedFiatVolume(volumeByAmount);
-
+        volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, getPaymentMethodId());
         return volumeByAmount;
     }
 
