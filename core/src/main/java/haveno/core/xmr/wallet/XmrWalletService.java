@@ -39,6 +39,7 @@ import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroCheckTx;
 import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroSubaddress;
@@ -488,7 +489,7 @@ public class XmrWalletService {
                     daemon.flushTxPool(txHash); // flush tx from pool
                 } catch (MoneroRpcError err) {
                     System.out.println(daemon.getRpcConnection());
-                    throw err.getCode() == -32601 ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
+                    throw err.getCode().equals(-32601) ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
                 }
             }
             return new Tuple2<>(tx, actualSecurityDeposit);
@@ -838,30 +839,41 @@ public class XmrWalletService {
     // ----------------------------- LEGACY APP -------------------------------
 
     public synchronized XmrAddressEntry getNewAddressEntry() {
-        return getNewAddressEntry(XmrAddressEntry.Context.AVAILABLE);
+        return getNewAddressEntryAux(null, XmrAddressEntry.Context.AVAILABLE);
     }
 
     public synchronized XmrAddressEntry getNewAddressEntry(String offerId, XmrAddressEntry.Context context) {
 
         // try to use available and not yet used entries
         try {
-            List<MoneroTxWallet> incomingTxs = getIncomingTxs(); // prefetch all incoming txs to avoid query per subaddress
+            List<MoneroTxWallet> incomingTxs = getTxsWithIncomingOutputs(); // prefetch all incoming txs to avoid query per subaddress
             Optional<XmrAddressEntry> emptyAvailableAddressEntry = getAddressEntryListAsImmutableList().stream().filter(e -> XmrAddressEntry.Context.AVAILABLE == e.getContext()).filter(e -> isSubaddressUnused(e.getSubaddressIndex(), incomingTxs)).findAny();
             if (emptyAvailableAddressEntry.isPresent()) return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(emptyAvailableAddressEntry.get(), context, offerId);
         } catch (Exception e) {
-            log.warn("Error getting new address entriy based on incoming transactions");
+            log.warn("Error getting new address entry based on incoming transactions");
             e.printStackTrace();
         }
         
-        // create new subaddress and entry
+        // create new entry
+        return getNewAddressEntryAux(offerId, context);
+    }
+
+    private XmrAddressEntry getNewAddressEntryAux(String offerId, XmrAddressEntry.Context context) {
         MoneroSubaddress subaddress = wallet.createSubaddress(0);
         XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
+        log.info("Add new XmrAddressEntry {}", entry);
         xmrAddressEntryList.addAddressEntry(entry);
         return entry;
     }
 
     public synchronized XmrAddressEntry getFreshAddressEntry() {
         List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
+        if (unusedAddressEntries.isEmpty()) return getNewAddressEntry();
+        else return unusedAddressEntries.get(0);
+    }
+
+    public synchronized XmrAddressEntry getFreshAddressEntry(List<MoneroTxWallet> cachedTxs) {
+        List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries(cachedTxs);
         if (unusedAddressEntries.isEmpty()) return getNewAddressEntry();
         else return unusedAddressEntries.get(0);
     }
@@ -883,7 +895,7 @@ public class XmrWalletService {
         Optional<XmrAddressEntry> addressEntry = getAddressEntryListAsImmutableList().stream()
                 .filter(e -> context == e.getContext())
                 .findAny();
-        return addressEntry.isPresent() ? addressEntry.get() : getNewAddressEntry(context);
+        return addressEntry.isPresent() ? addressEntry.get() : getNewAddressEntryAux(null, context);
     }
 
     public synchronized Optional<XmrAddressEntry> getAddressEntry(String offerId, XmrAddressEntry.Context context) {
@@ -923,14 +935,6 @@ public class XmrWalletService {
         swapTradeEntryToAvailableEntry(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
-    private XmrAddressEntry getNewAddressEntry(XmrAddressEntry.Context context) {
-        MoneroSubaddress subaddress = wallet.createSubaddress(0);
-        XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, null, null);
-        log.info("getOrCreateAddressEntry: add new XmrAddressEntry {}", entry);
-        xmrAddressEntryList.addAddressEntry(entry);
-        return entry;
-    }
-
     private Optional<XmrAddressEntry> findAddressEntry(String address, XmrAddressEntry.Context context) {
         return getAddressEntryListAsImmutableList().stream().filter(e -> address.equals(e.getAddressString())).filter(e -> context == e.getContext()).findAny();
     }
@@ -961,13 +965,25 @@ public class XmrWalletService {
     }
 
     public List<XmrAddressEntry> getAddressEntryListAsImmutableList() {
+        List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
+        for (MoneroSubaddress subaddress : subaddresses) {
+            boolean exists = xmrAddressEntryList.getAddressEntriesAsListImmutable().stream().filter(addressEntry -> addressEntry.getAddressString().equals(subaddress.getAddress())).findAny().isPresent();
+            if (!exists) {
+                XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), subaddress.getIndex() == 0 ? XmrAddressEntry.Context.BASE_ADDRESS : XmrAddressEntry.Context.AVAILABLE, null, null);
+                log.info("Add XmrAddressEntry from existing subaddress: {}", entry);
+                xmrAddressEntryList.addAddressEntry(entry);
+            }
+        }
         return xmrAddressEntryList.getAddressEntriesAsListImmutable();
     }
 
     public List<XmrAddressEntry> getUnusedAddressEntries() {
-        List<MoneroTxWallet> incomingTxs = getIncomingTxs(); // prefetch all incoming txs to avoid query per subaddress
+        return getUnusedAddressEntries(getTxsWithIncomingOutputs());
+    }
+
+    public List<XmrAddressEntry> getUnusedAddressEntries(List<MoneroTxWallet> cachedTxs) {
         return getAvailableAddressEntries().stream()
-                .filter(e -> isSubaddressUnused(e.getSubaddressIndex(), incomingTxs))
+                .filter(e -> isSubaddressUnused(e.getSubaddressIndex(), cachedTxs))
                 .collect(Collectors.toList());
     }
 
@@ -976,34 +992,55 @@ public class XmrWalletService {
     }
 
     private boolean isSubaddressUnused(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
-        return getNumTxOutputsForSubaddress(subaddressIndex, incomingTxs) == 0;
+        return getNumOutputsForSubaddress(subaddressIndex, incomingTxs) == 0;
     }
 
-    public int getNumTxOutputsForSubaddress(int subaddressIndex) {
-        return getNumTxOutputsForSubaddress(subaddressIndex, null);
+    public int getNumOutputsForSubaddress(int subaddressIndex) {
+        return getNumOutputsForSubaddress(subaddressIndex, null);
     }
 
-    public int getNumTxOutputsForSubaddress(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
-        if (incomingTxs == null) incomingTxs = getIncomingTxs(subaddressIndex);
+    public int getNumOutputsForSubaddress(int subaddressIndex, List<MoneroTxWallet> incomingTxs) {
+        if (incomingTxs == null) incomingTxs = getTxsWithIncomingOutputs(subaddressIndex);
         int numUnspentOutputs = 0;
         for (MoneroTxWallet tx : incomingTxs) {
             if (tx.getTransfers(new MoneroTransferQuery().setSubaddressIndex(subaddressIndex)).isEmpty()) continue;
-            numUnspentOutputs += tx.isConfirmed() ? tx.getOutputsWallet(new MoneroOutputQuery().setSubaddressIndex(subaddressIndex)).size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
+            numUnspentOutputs += tx.isConfirmed() ? tx.getOutputsWallet(new MoneroOutputQuery().setAccountIndex(0).setSubaddressIndex(subaddressIndex)).size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
         }
         return numUnspentOutputs;
     }
 
-    public List<MoneroTxWallet> getIncomingTxs() {
-        return getIncomingTxs(null);
+    public List<MoneroTxWallet> getTxsWithIncomingOutputs() {
+        return getTxsWithIncomingOutputs(null);
     }
 
-    public List<MoneroTxWallet> getIncomingTxs(Integer subaddressIndex) {
-        return wallet.getTxs(new MoneroTxQuery()
-                .setTransferQuery((new MoneroTransferQuery()
-                        .setAccountIndex(0)
-                        .setSubaddressIndex(subaddressIndex)
-                        .setIsIncoming(true)))
-                .setIncludeOutputs(true));
+    public List<MoneroTxWallet> getTxsWithIncomingOutputs(Integer subaddressIndex) {
+        List<MoneroTxWallet> txs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
+        return getTxsWithIncomingOutputs(txs, subaddressIndex);
+    }
+
+    public static List<MoneroTxWallet> getTxsWithIncomingOutputs(List<MoneroTxWallet> txs, Integer subaddressIndex) {
+        List<MoneroTxWallet> incomingTxs = new ArrayList<>();
+        for (MoneroTxWallet tx : txs) {
+            boolean isIncoming = false;
+            if (tx.getIncomingTransfers() != null) {
+                for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
+                    if (transfer.getAccountIndex().equals(0) && (subaddressIndex == null || transfer.getSubaddressIndex().equals(subaddressIndex))) {
+                        isIncoming = true;
+                        break;
+                    }
+                }
+            }
+            if (tx.getOutputs() != null && !isIncoming) {
+                for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                    if (output.getAccountIndex().equals(0) && (subaddressIndex == null || output.getSubaddressIndex().equals(subaddressIndex))) {
+                        isIncoming = true;
+                        break;
+                    }
+                }
+            }
+            if (isIncoming) incomingTxs.add(tx);
+        }
+        return incomingTxs;
     }
 
     public BigInteger getBalanceForAddress(String address) {

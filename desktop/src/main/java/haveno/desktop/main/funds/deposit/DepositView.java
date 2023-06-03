@@ -62,6 +62,7 @@ import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
+import monero.wallet.model.MoneroWalletListener;
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
 import org.bitcoinj.core.Coin;
@@ -104,9 +105,11 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private final ObservableList<DepositListItem> observableList = FXCollections.observableArrayList();
     private final SortedList<DepositListItem> sortedList = new SortedList<>(observableList);
     private XmrBalanceListener balanceListener;
+    private MoneroWalletListener walletListener;
     private Subscription amountTextFieldSubscription;
     private ChangeListener<DepositListItem> tableViewSelectionListener;
     private int gridRow = 0;
+    List<MoneroTxWallet> txsWithIncomingOutputs;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -130,8 +133,11 @@ public class DepositView extends ActivatableView<VBox, Void> {
         confirmationsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations")));
         usageColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.usage")));
 
-        // trigger creation of at least 1 savings address
-        xmrWalletService.getFreshAddressEntry();
+        // prefetch all incoming txs to avoid query per subaddress
+        txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+
+        // trigger creation of at least 1 address
+        xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs);
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.deposit.noAddresses")));
@@ -147,13 +153,10 @@ public class DepositView extends ActivatableView<VBox, Void> {
         setUsageColumnCellFactory();
         setConfidenceColumnCellFactory();
 
-        // prefetch all incoming txs to avoid query per subaddress
-        List<MoneroTxWallet> incomingTxs = xmrWalletService.getIncomingTxs();
-
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
-        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(incomingTxs)));
-        usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxOutputs));
+        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(txsWithIncomingOutputs)));
+        usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxsWithOutputs));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);
 
@@ -199,7 +202,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         generateNewAddressButton = buttonCheckBoxHBox.first;
 
         generateNewAddressButton.setOnAction(event -> {
-            boolean hasUnUsedAddress = observableList.stream().anyMatch(e -> e.getNumTxOutputs() == 0);
+            boolean hasUnUsedAddress = observableList.stream().anyMatch(e -> e.getSubaddressIndex() != 0 && xmrWalletService.getTxsWithIncomingOutputs(e.getSubaddressIndex()).isEmpty());
             if (hasUnUsedAddress) {
                 new Popup().warning(Res.get("funds.deposit.selectUnused")).show();
             } else {
@@ -219,6 +222,13 @@ public class DepositView extends ActivatableView<VBox, Void> {
             }
         };
 
+        walletListener = new MoneroWalletListener() {
+            @Override
+            public void onNewBlock(long height) {
+                updateList();
+            }
+        };
+
         GUIUtil.focusWhenAddedToScene(amountTextField);
     }
 
@@ -230,6 +240,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
         updateList();
 
         xmrWalletService.addBalanceListener(balanceListener);
+        xmrWalletService.addWalletListener(walletListener);
+
         amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
             addressTextField.setAmount(HavenoUtils.parseXmr(t));
             updateQRCode();
@@ -245,6 +257,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         sortedList.comparatorProperty().unbind();
         observableList.forEach(DepositListItem::cleanup);
         xmrWalletService.removeBalanceListener(balanceListener);
+        xmrWalletService.removeWalletListener(walletListener);
         amountTextFieldSubscription.unsubscribe();
     }
 
@@ -295,9 +308,14 @@ public class DepositView extends ActivatableView<VBox, Void> {
         observableList.forEach(DepositListItem::cleanup);
         observableList.clear();
 
-        List<MoneroTxWallet> incomingTxs = xmrWalletService.getIncomingTxs(); // cache incoming txs for performance
+        // cache incoming txs
+        txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+
+        // add available address entries and base address
         xmrWalletService.getAvailableAddressEntries()
-                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, incomingTxs)));
+                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, txsWithIncomingOutputs)));
+        xmrWalletService.getAddressEntries(XmrAddressEntry.Context.BASE_ADDRESS)
+                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, txsWithIncomingOutputs)));
     }
 
     private Coin getAmount() {

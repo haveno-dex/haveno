@@ -20,7 +20,6 @@ package haveno.desktop.main.funds.deposit;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
-import common.types.Filter;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
@@ -34,8 +33,6 @@ import javafx.beans.property.StringProperty;
 import javafx.scene.control.Tooltip;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroTransferQuery;
-import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
@@ -49,7 +46,7 @@ class DepositListItem {
     private BigInteger balanceAsBI;
     private String usage = "-";
     private XmrBalanceListener balanceListener;
-    private int numTxOutputs = 0;
+    private int numTxsWithOutputs = 0;
     private final Supplier<LazyFields> lazyFieldsSupplier;
 
     private static class LazyFields {
@@ -98,8 +95,8 @@ class DepositListItem {
     }
 
     private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs) {
-        numTxOutputs = xmrWalletService.getNumTxOutputsForSubaddress(addressEntry.getSubaddressIndex(), cachedTxs);
-        usage = numTxOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxOutputs);
+        numTxsWithOutputs = XmrWalletService.getTxsWithIncomingOutputs(cachedTxs, addressEntry.getSubaddressIndex()).size();
+        usage = subaddressIndex == 0 ? "Base address" : numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxsWithOutputs);
     }
 
     public void cleanup() {
@@ -112,6 +109,10 @@ class DepositListItem {
 
     public String getAddressString() {
         return addressEntry.getAddressString();
+    }
+
+    public int getSubaddressIndex() {
+        return addressEntry.getSubaddressIndex();
     }
 
     public String getUsage() {
@@ -130,8 +131,8 @@ class DepositListItem {
         return balanceAsBI;
     }
 
-    public int getNumTxOutputs() {
-        return numTxOutputs;
+    public int getNumTxsWithOutputs() {
+        return numTxsWithOutputs;
     }
 
     public long getNumConfirmationsSinceFirstUsed(List<MoneroTxWallet> incomingTxs) {
@@ -139,14 +140,10 @@ class DepositListItem {
         return tx == null ? 0 : tx.getNumConfirmations();
     }
 
-    private MoneroTxWallet getTxWithFewestConfirmations(List<MoneroTxWallet> incomingTxs) {
+    private MoneroTxWallet getTxWithFewestConfirmations(List<MoneroTxWallet> allIncomingTxs) {
 
-        // get txs with incoming transfers to subaddress
-        MoneroTxQuery query = new MoneroTxQuery()
-                .setTransferQuery(new MoneroTransferQuery()
-                        .setIsIncoming(true)
-                        .setSubaddressIndex(addressEntry.getSubaddressIndex()));
-        List<MoneroTxWallet> txs  = incomingTxs == null ? xmrWalletService.getWallet().getTxs(query) : Filter.apply(query, incomingTxs);
+        // get txs with incoming outputs to subaddress index
+        List<MoneroTxWallet> txs = XmrWalletService.getTxsWithIncomingOutputs(allIncomingTxs, addressEntry.getSubaddressIndex());
         
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;
