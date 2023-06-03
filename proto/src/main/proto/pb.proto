@@ -1308,6 +1308,7 @@ message XmrAddressEntry {
         RESERVED_FOR_TRADE = 4;
         MULTI_SIG = 5;
         TRADE_PAYOUT = 6;
+        BASE_ADDRESS = 7;
     }
 
 	int32 subaddress_index = 7;
