@@ -45,7 +45,7 @@
 
     <TitledGroupBg fx:id="btcHeader" GridPane.rowSpan="5"/>
     <VBox GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
-        <AutoTooltipLabel fx:id="bitcoinPeersLabel" styleClass="small-text"/>
+        <AutoTooltipLabel fx:id="moneroPeersLabel" styleClass="small-text"/>
         <TableView fx:id="moneroPeersTableView">
             <columns>
                 <TableColumn fx:id="moneroPeerAddressColumn" minWidth="220">
@@ -70,13 +70,13 @@
                 </TableColumn>
             </columns>
         </TableView>
-        <AutoTooltipLabel fx:id="localhostBtcNodeInfoLabel" styleClass="small-text"/>
+        <AutoTooltipLabel fx:id="localhostXmrNodeInfoLabel" styleClass="small-text"/>
     </VBox>
 
-    <AutoTooltipCheckBox fx:id="useTorForBtcJCheckBox" GridPane.rowIndex="1"/>
+    <AutoTooltipCheckBox fx:id="useTorForXmrJCheckBox" GridPane.rowIndex="1"/>
 
     <VBox GridPane.rowIndex="2">
-        <AutoTooltipLabel fx:id="bitcoinNodesLabel" styleClass="small-text"/>
+        <AutoTooltipLabel fx:id="moneroNodesLabel" styleClass="small-text"/>
         <HBox spacing="10">
             <AutoTooltipRadioButton fx:id="useProvidedNodesRadio"/>
             <AutoTooltipRadioButton fx:id="useCustomNodesRadio"/>
@@ -85,8 +85,8 @@
     </VBox>
 
     <VBox GridPane.rowIndex="3">
-        <AutoTooltipLabel fx:id="btcNodesLabel" styleClass="small-text"/>
-        <InputTextField fx:id="btcNodesInputTextField"/>
+        <AutoTooltipLabel fx:id="xmrNodesLabel" styleClass="small-text"/>
+        <InputTextField fx:id="xmrNodesInputTextField"/>
     </VBox>
 
     <VBox GridPane.rowIndex="4">

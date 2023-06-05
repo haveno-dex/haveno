@@ -563,7 +563,7 @@ message Filter {
     repeated string seed_nodes = 10;
     repeated string price_relay_nodes = 11;
     bool prevent_public_btc_network = 12;
-    repeated string btc_nodes = 13;
+    repeated string xmr_nodes = 13;
     string disable_trade_below_version = 14;
     repeated string mediators = 15;
     repeated string refundAgents = 16;
@@ -1660,7 +1660,7 @@ message PreferencesPayload {
     bool auto_select_arbitrators = 8;
     map<string, bool> dont_show_again_map = 9;
     bool tac_accepted = 10;
-    bool use_tor_for_bitcoin_j = 11;
+    bool use_tor_for_monero = 11;
     bool show_own_offers_in_offer_book = 12;
     TradeCurrency preferred_trade_currency = 13;
     int64 withdrawal_tx_fee_in_vbytes = 14;
@@ -1671,11 +1671,11 @@ message PreferencesPayload {
     string buy_screen_currency_code = 19;
     string sell_screen_currency_code = 20;
     int32 trade_statistics_tick_unit_index = 21;
-    bool resync_Spv_requested = 22;
+    bool resync_spv_requested = 22;
     bool sort_market_currencies_numerically = 23;
     bool use_percentage_based_price = 24;
     map<string, string> peer_tag_map = 25;
-    string bitcoin_nodes = 26;
+    string monero_nodes = 26;
     repeated string ignore_traders_list = 27;
     string directory_chooser_path = 28;
     bool use_animations = 29;
@@ -1684,7 +1684,7 @@ message PreferencesPayload {
     int32 bridge_option_ordinal = 32;
     int32 tor_transport_ordinal = 33;
     string custom_bridges = 34;
-    int32 bitcoin_nodes_option_ordinal = 35;
+    int32 monero_nodes_option_ordinal = 35;
     string referral_id = 36;
     string phone_key_and_token = 37;
     bool use_sound_for_mobile_notifications = 38;

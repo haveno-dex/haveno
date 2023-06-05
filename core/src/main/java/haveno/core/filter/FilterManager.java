@@ -28,7 +28,7 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.ProvidersRepository;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
-import haveno.core.xmr.nodes.BtcNodes;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
@@ -69,7 +69,7 @@ import static org.bitcoinj.core.Utils.HEX;
 public class FilterManager {
     private static final String BANNED_PRICE_RELAY_NODES = "bannedPriceRelayNodes";
     private static final String BANNED_SEED_NODES = "bannedSeedNodes";
-    private static final String BANNED_BTC_NODES = "bannedBtcNodes";
+    private static final String BANNED_XMR_NODES = "bannedXmrNodes";
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listener
@@ -497,7 +497,7 @@ public class FilterManager {
         // nodes at the next startup and don't update the list in the P2P network domain.
         // We persist it to the property file which is read before any other initialisation.
         saveBannedNodes(BANNED_SEED_NODES, newFilter.getSeedNodes());
-        saveBannedNodes(BANNED_BTC_NODES, newFilter.getBtcNodes());
+        saveBannedNodes(BANNED_XMR_NODES, newFilter.getXmrNodes());
 
         // Banned price relay nodes we can apply at runtime
         List<String> priceRelayNodes = newFilter.getPriceRelayNodes();
@@ -508,8 +508,8 @@ public class FilterManager {
 
         //TODO should be moved to client with listening on onFilterAdded
         if (newFilter.isPreventPublicBtcNetwork() &&
-                preferences.getBitcoinNodesOptionOrdinal() == BtcNodes.BitcoinNodesOption.PUBLIC.ordinal()) {
-            preferences.setBitcoinNodesOptionOrdinal(BtcNodes.BitcoinNodesOption.PROVIDED.ordinal());
+                preferences.getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PUBLIC.ordinal()) {
+            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
         }
 
         listeners.forEach(e -> e.onFilterAdded(newFilter));
@@ -541,7 +541,7 @@ public class FilterManager {
 
     // Clears options files from banned nodes
     private void clearBannedNodes() {
-        saveBannedNodes(BANNED_BTC_NODES, null);
+        saveBannedNodes(BANNED_XMR_NODES, null);
         saveBannedNodes(BANNED_SEED_NODES, null);
         saveBannedNodes(BANNED_PRICE_RELAY_NODES, null);
 

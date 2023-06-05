@@ -18,7 +18,7 @@
 package haveno.core.xmr.nodes;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.network.DnsLookupException;
 import haveno.network.DnsLookupTor;
 import org.bitcoinj.core.PeerAddress;
@@ -32,28 +32,28 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
-class BtcNodeConverter {
-    private static final Logger log = LoggerFactory.getLogger(BtcNodeConverter.class);
+class XmrNodeConverter {
+    private static final Logger log = LoggerFactory.getLogger(XmrNodeConverter.class);
 
     private final Facade facade;
 
-    BtcNodeConverter() {
+    XmrNodeConverter() {
         this.facade = new Facade();
     }
 
-    BtcNodeConverter(Facade facade) {
+    XmrNodeConverter(Facade facade) {
         this.facade = facade;
     }
 
     @Nullable
-    PeerAddress convertOnionHost(BtcNode node) {
+    PeerAddress convertOnionHost(XmrNode node) {
         // no DNS lookup for onion addresses
         String onionAddress = Objects.requireNonNull(node.getOnionAddress());
         return new PeerAddress(onionAddress, node.getPort());
     }
 
     @Nullable
-    PeerAddress convertClearNode(BtcNode node) {
+    PeerAddress convertClearNode(XmrNode node) {
         int port = node.getPort();
 
         PeerAddress result = create(node.getHostNameOrAddress(), port);
@@ -69,7 +69,7 @@ class BtcNodeConverter {
     }
 
     @Nullable
-    PeerAddress convertWithTor(BtcNode node, Socks5Proxy proxy) {
+    PeerAddress convertWithTor(XmrNode node, Socks5Proxy proxy) {
         int port = node.getPort();
 
         PeerAddress result = create(proxy, node.getHostNameOrAddress(), port);

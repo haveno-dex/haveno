@@ -44,7 +44,7 @@ public class BtcNetworkConfigTest {
 
     @Test
     public void testProposePeersWhenProxyPresentAndNoPeers() {
-        BtcNetworkConfig config = new BtcNetworkConfig(delegate, mock(NetworkParameters.class), MODE,
+        XmrNetworkConfig config = new XmrNetworkConfig(delegate, mock(NetworkParameters.class), MODE,
                 mock(Socks5Proxy.class));
         config.proposePeers(Collections.emptyList());
 
@@ -54,7 +54,7 @@ public class BtcNetworkConfigTest {
 
     @Test
     public void testProposePeersWhenProxyNotPresentAndNoPeers() {
-        BtcNetworkConfig config = new BtcNetworkConfig(delegate, mock(NetworkParameters.class), MODE,
+        XmrNetworkConfig config = new XmrNetworkConfig(delegate, mock(NetworkParameters.class), MODE,
                 null);
         config.proposePeers(Collections.emptyList());
 
@@ -64,7 +64,7 @@ public class BtcNetworkConfigTest {
 
     @Test
     public void testProposePeersWhenPeersPresent() {
-        BtcNetworkConfig config = new BtcNetworkConfig(delegate, mock(NetworkParameters.class), MODE,
+        XmrNetworkConfig config = new XmrNetworkConfig(delegate, mock(NetworkParameters.class), MODE,
                 null);
         config.proposePeers(Collections.singletonList(mock(PeerAddress.class)));
 

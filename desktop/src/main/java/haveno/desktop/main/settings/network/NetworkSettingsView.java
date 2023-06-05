@@ -27,7 +27,7 @@ import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
-import haveno.core.xmr.nodes.BtcNodes;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.desktop.app.HavenoApp;
@@ -75,15 +75,15 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     TitledGroupBg p2pHeader, btcHeader;
     @FXML
-    Label btcNodesLabel, bitcoinNodesLabel, localhostBtcNodeInfoLabel;
+    Label xmrNodesLabel, moneroNodesLabel, localhostXmrNodeInfoLabel;
     @FXML
-    InputTextField btcNodesInputTextField;
+    InputTextField xmrNodesInputTextField;
     @FXML
     TextField onionAddress, sentDataTextField, receivedDataTextField, chainHeightTextField;
     @FXML
-    Label p2PPeersLabel, bitcoinPeersLabel;
+    Label p2PPeersLabel, moneroPeersLabel;
     @FXML
-    CheckBox useTorForBtcJCheckBox;
+    CheckBox useTorForXmrJCheckBox;
     @FXML
     RadioButton useProvidedNodesRadio, useCustomNodesRadio, usePublicNodesRadio;
     @FXML
@@ -102,7 +102,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     AutoTooltipButton reSyncSPVChainButton, openTorSettingsButton;
 
     private final Preferences preferences;
-    private final BtcNodes btcNodes;
+    private final XmrNodes xmrNodes;
     private final FilterManager filterManager;
     private final LocalBitcoinNode localBitcoinNode;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
@@ -121,10 +121,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private Subscription moneroPeersSubscription;
     private Subscription moneroBlockHeightSubscription;
     private Subscription nodeAddressSubscription;
-    private ChangeListener<Boolean> btcNodesInputTextFieldFocusListener;
-    private ToggleGroup bitcoinPeersToggleGroup;
-    private BtcNodes.BitcoinNodesOption selectedBitcoinNodesOption;
-    private ChangeListener<Toggle> bitcoinPeersToggleGroupListener;
+    private ChangeListener<Boolean> xmrNodesInputTextFieldFocusListener;
+    private ToggleGroup moneroPeersToggleGroup;
+    private XmrNodes.MoneroNodesOption selectedMoneroNodesOption;
+    private ChangeListener<Toggle> moneroPeersToggleGroupListener;
     private ChangeListener<Filter> filterPropertyListener;
 
     @Inject
@@ -132,7 +132,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                                P2PService p2PService,
                                CoreMoneroConnectionsService connectionManager,
                                Preferences preferences,
-                               BtcNodes btcNodes,
+                               XmrNodes xmrNodes,
                                FilterManager filterManager,
                                LocalBitcoinNode localBitcoinNode,
                                TorNetworkSettingsWindow torNetworkSettingsWindow,
@@ -142,7 +142,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         this.p2PService = p2PService;
         this.connectionManager = connectionManager;
         this.preferences = preferences;
-        this.btcNodes = btcNodes;
+        this.xmrNodes = xmrNodes;
         this.filterManager = filterManager;
         this.localBitcoinNode = localBitcoinNode;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
@@ -154,16 +154,16 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         btcHeader.setText(Res.get("settings.net.btcHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));
-        btcNodesLabel.setText(Res.get("settings.net.btcNodesLabel"));
-        bitcoinPeersLabel.setText(Res.get("settings.net.bitcoinPeersLabel"));
-        useTorForBtcJCheckBox.setText(Res.get("settings.net.useTorForBtcJLabel"));
-        bitcoinNodesLabel.setText(Res.get("settings.net.bitcoinNodesLabel"));
+        xmrNodesLabel.setText(Res.get("settings.net.xmrNodesLabel"));
+        moneroPeersLabel.setText(Res.get("settings.net.moneroPeersLabel"));
+        useTorForXmrJCheckBox.setText(Res.get("settings.net.useTorForXmrJLabel"));
+        moneroNodesLabel.setText(Res.get("settings.net.moneroNodesLabel"));
         moneroPeerAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
         moneroPeerAddressColumn.getStyleClass().add("first-column");
         moneroPeerVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.versionColumn")));
         moneroPeerSubVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.subVersionColumn")));
         moneroPeerHeightColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.heightColumn")));
-        localhostBtcNodeInfoLabel.setText(Res.get("settings.net.localhostBtcNodeInfo"));
+        localhostXmrNodeInfoLabel.setText(Res.get("settings.net.localhostXmrNodeInfo"));
         useProvidedNodesRadio.setText(Res.get("settings.net.useProvidedNodesRadio"));
         useCustomNodesRadio.setText(Res.get("settings.net.useCustomNodesRadio"));
         usePublicNodesRadio.setText(Res.get("settings.net.usePublicNodesRadio"));
@@ -184,8 +184,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         peerTypeColumn.getStyleClass().add("last-column");
         openTorSettingsButton.updateText(Res.get("settings.net.openTorSettingsButton"));
 
-        GridPane.setMargin(bitcoinPeersLabel, new Insets(4, 0, 0, 0));
-        GridPane.setValignment(bitcoinPeersLabel, VPos.TOP);
+        GridPane.setMargin(moneroPeersLabel, new Insets(4, 0, 0, 0));
+        GridPane.setValignment(moneroPeersLabel, VPos.TOP);
 
         GridPane.setMargin(p2PPeersLabel, new Insets(4, 0, 0, 0));
         GridPane.setValignment(p2PPeersLabel, VPos.TOP);
@@ -205,44 +205,45 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         p2pPeersTableView.getSortOrder().add(creationDateColumn);
         creationDateColumn.setSortType(TableColumn.SortType.ASCENDING);
 
-        bitcoinPeersToggleGroup = new ToggleGroup();
-        useProvidedNodesRadio.setToggleGroup(bitcoinPeersToggleGroup);
-        useCustomNodesRadio.setToggleGroup(bitcoinPeersToggleGroup);
-        usePublicNodesRadio.setToggleGroup(bitcoinPeersToggleGroup);
+        moneroPeersToggleGroup = new ToggleGroup();
+        useProvidedNodesRadio.setToggleGroup(moneroPeersToggleGroup);
+        useCustomNodesRadio.setToggleGroup(moneroPeersToggleGroup);
+        usePublicNodesRadio.setToggleGroup(moneroPeersToggleGroup);
 
-        useProvidedNodesRadio.setUserData(BtcNodes.BitcoinNodesOption.PROVIDED);
-        useCustomNodesRadio.setUserData(BtcNodes.BitcoinNodesOption.CUSTOM);
-        usePublicNodesRadio.setUserData(BtcNodes.BitcoinNodesOption.PUBLIC);
+        useProvidedNodesRadio.setUserData(XmrNodes.MoneroNodesOption.PROVIDED);
+        useCustomNodesRadio.setUserData(XmrNodes.MoneroNodesOption.CUSTOM);
+        usePublicNodesRadio.setUserData(XmrNodes.MoneroNodesOption.PUBLIC);
 
-        selectedBitcoinNodesOption = BtcNodes.BitcoinNodesOption.values()[preferences.getBitcoinNodesOptionOrdinal()];
+        selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
         // In case CUSTOM is selected but no custom nodes are set or
         // in case PUBLIC is selected but we blocked it (B2X risk) we revert to provided nodes
-        if ((selectedBitcoinNodesOption == BtcNodes.BitcoinNodesOption.CUSTOM &&
-                (preferences.getBitcoinNodes() == null || preferences.getBitcoinNodes().isEmpty())) ||
-                (selectedBitcoinNodesOption == BtcNodes.BitcoinNodesOption.PUBLIC && isPreventPublicBtcNetwork())) {
-            selectedBitcoinNodesOption = BtcNodes.BitcoinNodesOption.PROVIDED;
-            preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
+        if ((selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.CUSTOM &&
+                (preferences.getMoneroNodes() == null || preferences.getMoneroNodes().isEmpty())) ||
+                (selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC && isPreventPublicXmrNetwork())) {
+            selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
+            preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
         }
 
-        selectBitcoinPeersToggle();
-        onBitcoinPeersToggleSelected(false);
+        selectMoneroPeersToggle();
+        onMoneroPeersToggleSelected(false);
 
-        bitcoinPeersToggleGroupListener = (observable, oldValue, newValue) -> {
+        moneroPeersToggleGroupListener = (observable, oldValue, newValue) -> {
             if (newValue != null) {
-                selectedBitcoinNodesOption = (BtcNodes.BitcoinNodesOption) newValue.getUserData();
-                onBitcoinPeersToggleSelected(true);
+                selectedMoneroNodesOption = (XmrNodes.MoneroNodesOption) newValue.getUserData();
+                onMoneroPeersToggleSelected(true);
             }
         };
 
-        btcNodesInputTextField.setPromptText(Res.get("settings.net.ips"));
+        xmrNodesInputTextField.setPromptText(Res.get("settings.net.ips"));
         RegexValidator regexValidator = RegexValidatorFactory.addressRegexValidator();
-        btcNodesInputTextField.setValidator(regexValidator);
-        btcNodesInputTextField.setErrorMessage(Res.get("validation.invalidAddressList"));
-        btcNodesInputTextFieldFocusListener = (observable, oldValue, newValue) -> {
+        xmrNodesInputTextField.setValidator(regexValidator);
+        xmrNodesInputTextField.setErrorMessage(Res.get("validation.invalidAddressList"));
+        xmrNodesInputTextFieldFocusListener = (observable, oldValue, newValue) -> {
             if (oldValue && !newValue
-                    && !btcNodesInputTextField.getText().equals(preferences.getBitcoinNodes())
-                    && btcNodesInputTextField.validate()) {
-                preferences.setBitcoinNodes(btcNodesInputTextField.getText());
+                    && !xmrNodesInputTextField.getText().equals(preferences.getMoneroNodes())
+                    && xmrNodesInputTextField.validate()) {
+                preferences.setMoneroNodes(xmrNodesInputTextField.getText());
+                preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
                 showShutDownPopup();
             }
         };
@@ -259,25 +260,25 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void activate() {
-        bitcoinPeersToggleGroup.selectedToggleProperty().addListener(bitcoinPeersToggleGroupListener);
+        moneroPeersToggleGroup.selectedToggleProperty().addListener(moneroPeersToggleGroupListener);
 
         if (filterManager.getFilter() != null)
             applyPreventPublicBtcNetwork();
 
         filterManager.filterProperty().addListener(filterPropertyListener);
 
-        useTorForBtcJCheckBox.setSelected(preferences.getUseTorForBitcoinJ());
-        useTorForBtcJCheckBox.setOnAction(event -> {
-            boolean selected = useTorForBtcJCheckBox.isSelected();
-            if (selected != preferences.getUseTorForBitcoinJ()) {
+        useTorForXmrJCheckBox.setSelected(preferences.getUseTorForMonero());
+        useTorForXmrJCheckBox.setOnAction(event -> {
+            boolean selected = useTorForXmrJCheckBox.isSelected();
+            if (selected != preferences.getUseTorForMonero()) {
                 new Popup().information(Res.get("settings.net.needRestart"))
                         .actionButtonText(Res.get("shared.applyAndShutDown"))
                         .onAction(() -> {
-                            preferences.setUseTorForBitcoinJ(selected);
+                            preferences.setUseTorForMonero(selected);
                             UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
                         })
                         .closeButtonText(Res.get("shared.cancel"))
-                        .onClose(() -> useTorForBtcJCheckBox.setSelected(!selected))
+                        .onClose(() -> useTorForXmrJCheckBox.setSelected(!selected))
                         .show();
             }
         });
@@ -314,19 +315,19 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         p2pSortedList.comparatorProperty().bind(p2pPeersTableView.comparatorProperty());
         p2pPeersTableView.setItems(p2pSortedList);
 
-        btcNodesInputTextField.setText(preferences.getBitcoinNodes());
+        xmrNodesInputTextField.setText(preferences.getMoneroNodes());
 
-        btcNodesInputTextField.focusedProperty().addListener(btcNodesInputTextFieldFocusListener);
+        xmrNodesInputTextField.focusedProperty().addListener(xmrNodesInputTextFieldFocusListener);
 
         openTorSettingsButton.setOnAction(e -> torNetworkSettingsWindow.show());
     }
 
     @Override
     public void deactivate() {
-        bitcoinPeersToggleGroup.selectedToggleProperty().removeListener(bitcoinPeersToggleGroupListener);
+        moneroPeersToggleGroup.selectedToggleProperty().removeListener(moneroPeersToggleGroupListener);
         filterManager.filterProperty().removeListener(filterPropertyListener);
 
-        useTorForBtcJCheckBox.setOnAction(null);
+        useTorForXmrJCheckBox.setOnAction(null);
 
         if (nodeAddressSubscription != null)
             nodeAddressSubscription.unsubscribe();
@@ -346,29 +347,27 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         moneroSortedList.comparatorProperty().unbind();
         p2pSortedList.comparatorProperty().unbind();
         p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
-        btcNodesInputTextField.focusedProperty().removeListener(btcNodesInputTextFieldFocusListener);
+        xmrNodesInputTextField.focusedProperty().removeListener(xmrNodesInputTextFieldFocusListener);
 
         openTorSettingsButton.setOnAction(null);
     }
 
-    private boolean isPreventPublicBtcNetwork() {
-        return true;
-        //TODO: re-enable it if we are able to check for core nodes that have the correct configuration
-//        return filterManager.getFilter() != null &&
-//                filterManager.getFilter().isPreventPublicBtcNetwork();
+    private boolean isPreventPublicXmrNetwork() {
+       return filterManager.getFilter() != null &&
+               filterManager.getFilter().isPreventPublicBtcNetwork();
     }
 
-    private void selectBitcoinPeersToggle() {
-        switch (selectedBitcoinNodesOption) {
+    private void selectMoneroPeersToggle() {
+        switch (selectedMoneroNodesOption) {
             case CUSTOM:
-                bitcoinPeersToggleGroup.selectToggle(useCustomNodesRadio);
+                moneroPeersToggleGroup.selectToggle(useCustomNodesRadio);
                 break;
             case PUBLIC:
-                bitcoinPeersToggleGroup.selectToggle(usePublicNodesRadio);
+                moneroPeersToggleGroup.selectToggle(usePublicNodesRadio);
                 break;
             default:
             case PROVIDED:
-                bitcoinPeersToggleGroup.selectToggle(useProvidedNodesRadio);
+                moneroPeersToggleGroup.selectToggle(useProvidedNodesRadio);
                 break;
         }
     }
@@ -381,28 +380,28 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .show();
     }
 
-    private void onBitcoinPeersToggleSelected(boolean calledFromUser) {
+    private void onMoneroPeersToggleSelected(boolean calledFromUser) {
         boolean localBitcoinNodeShouldBeUsed = localBitcoinNode.shouldBeUsed();
-        useTorForBtcJCheckBox.setDisable(localBitcoinNodeShouldBeUsed);
-        bitcoinNodesLabel.setDisable(localBitcoinNodeShouldBeUsed);
-        btcNodesLabel.setDisable(localBitcoinNodeShouldBeUsed);
-        btcNodesInputTextField.setDisable(localBitcoinNodeShouldBeUsed);
-        useProvidedNodesRadio.setDisable(localBitcoinNodeShouldBeUsed || !btcNodes.useProvidedBtcNodes());
+        useTorForXmrJCheckBox.setDisable(localBitcoinNodeShouldBeUsed);
+        moneroNodesLabel.setDisable(localBitcoinNodeShouldBeUsed);
+        xmrNodesLabel.setDisable(localBitcoinNodeShouldBeUsed);
+        xmrNodesInputTextField.setDisable(localBitcoinNodeShouldBeUsed);
+        useProvidedNodesRadio.setDisable(localBitcoinNodeShouldBeUsed);
         useCustomNodesRadio.setDisable(localBitcoinNodeShouldBeUsed);
-        usePublicNodesRadio.setDisable(localBitcoinNodeShouldBeUsed || isPreventPublicBtcNetwork());
+        usePublicNodesRadio.setDisable(localBitcoinNodeShouldBeUsed || isPreventPublicXmrNetwork());
 
-        BtcNodes.BitcoinNodesOption currentBitcoinNodesOption = BtcNodes.BitcoinNodesOption.values()[preferences.getBitcoinNodesOptionOrdinal()];
+        XmrNodes.MoneroNodesOption currentBitcoinNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
 
-        switch (selectedBitcoinNodesOption) {
+        switch (selectedMoneroNodesOption) {
             case CUSTOM:
-                btcNodesInputTextField.setDisable(false);
-                btcNodesLabel.setDisable(false);
-                if (!btcNodesInputTextField.getText().isEmpty()
-                        && btcNodesInputTextField.validate()
-                        && currentBitcoinNodesOption != BtcNodes.BitcoinNodesOption.CUSTOM) {
-                    preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
+                xmrNodesInputTextField.setDisable(false);
+                xmrNodesLabel.setDisable(false);
+                if (!xmrNodesInputTextField.getText().isEmpty()
+                        && xmrNodesInputTextField.validate()
+                        && currentBitcoinNodesOption != XmrNodes.MoneroNodesOption.CUSTOM) {
+                    preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
                     if (calledFromUser) {
-                        if (isPreventPublicBtcNetwork()) {
+                        if (isPreventPublicXmrNetwork()) {
                             new Popup().warning(Res.get("settings.net.warn.useCustomNodes.B2XWarning"))
                                     .onAction(() -> UserThread.runAfter(this::showShutDownPopup, 300, TimeUnit.MILLISECONDS)).show();
                         } else {
@@ -412,19 +411,19 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 }
                 break;
             case PUBLIC:
-                btcNodesInputTextField.setDisable(true);
-                btcNodesLabel.setDisable(true);
-                if (currentBitcoinNodesOption != BtcNodes.BitcoinNodesOption.PUBLIC) {
-                    preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
+                xmrNodesInputTextField.setDisable(true);
+                xmrNodesLabel.setDisable(true);
+                if (currentBitcoinNodesOption != XmrNodes.MoneroNodesOption.PUBLIC) {
+                    preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
                     if (calledFromUser) {
                         new Popup()
                                 .warning(Res.get("settings.net.warn.usePublicNodes"))
                                 .actionButtonText(Res.get("settings.net.warn.usePublicNodes.useProvided"))
                                 .onAction(() -> UserThread.runAfter(() -> {
-                                    selectedBitcoinNodesOption = BtcNodes.BitcoinNodesOption.PROVIDED;
-                                    preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
-                                    selectBitcoinPeersToggle();
-                                    onBitcoinPeersToggleSelected(false);
+                                    selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
+                                    preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
+                                    selectMoneroPeersToggle();
+                                    onMoneroPeersToggleSelected(false);
                                 }, 300, TimeUnit.MILLISECONDS))
                                 .closeButtonText(Res.get("settings.net.warn.usePublicNodes.usePublic"))
                                 .onClose(() -> UserThread.runAfter(this::showShutDownPopup, 300, TimeUnit.MILLISECONDS))
@@ -434,20 +433,13 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 break;
             default:
             case PROVIDED:
-                if (btcNodes.useProvidedBtcNodes()) {
-                    btcNodesInputTextField.setDisable(true);
-                    btcNodesLabel.setDisable(true);
-                    if (currentBitcoinNodesOption != BtcNodes.BitcoinNodesOption.PROVIDED) {
-                        preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
-                        if (calledFromUser) {
-                            showShutDownPopup();
-                        }
+                xmrNodesInputTextField.setDisable(true);
+                xmrNodesLabel.setDisable(true);
+                if (currentBitcoinNodesOption != XmrNodes.MoneroNodesOption.PROVIDED) {
+                    preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
+                    if (calledFromUser) {
+                        showShutDownPopup();
                     }
-                } else {
-                    selectedBitcoinNodesOption = BtcNodes.BitcoinNodesOption.PUBLIC;
-                    preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
-                    selectBitcoinPeersToggle();
-                    onBitcoinPeersToggleSelected(false);
                 }
                 break;
         }
@@ -455,13 +447,13 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
 
     private void applyPreventPublicBtcNetwork() {
-        final boolean preventPublicBtcNetwork = isPreventPublicBtcNetwork();
+        final boolean preventPublicBtcNetwork = isPreventPublicXmrNetwork();
         usePublicNodesRadio.setDisable(localBitcoinNode.shouldBeUsed() || preventPublicBtcNetwork);
-        if (preventPublicBtcNetwork && selectedBitcoinNodesOption == BtcNodes.BitcoinNodesOption.PUBLIC) {
-            selectedBitcoinNodesOption = BtcNodes.BitcoinNodesOption.PROVIDED;
-            preferences.setBitcoinNodesOptionOrdinal(selectedBitcoinNodesOption.ordinal());
-            selectBitcoinPeersToggle();
-            onBitcoinPeersToggleSelected(false);
+        if (preventPublicBtcNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
+            selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
+            preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
+            selectMoneroPeersToggle();
+            onMoneroPeersToggleSelected(false);
         }
     }
 
@@ -475,9 +467,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private void updateMoneroPeersTable(List<MoneroPeer> peers) {
         moneroNetworkListItems.clear();
-        moneroNetworkListItems.setAll(peers.stream()
-                .map(MoneroNetworkListItem::new)
-                .collect(Collectors.toList()));
+        if (peers != null) {
+            moneroNetworkListItems.setAll(peers.stream()
+                    .map(MoneroNetworkListItem::new)
+                    .collect(Collectors.toList()));
+        }
     }
 
     private void updateChainHeightTextField(Number chainHeight) {

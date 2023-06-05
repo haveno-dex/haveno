@@ -19,6 +19,7 @@ package haveno.core.user;
 
 import com.google.common.collect.Maps;
 import com.google.protobuf.Message;
+
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.core.locale.Country;
@@ -57,7 +58,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean autoSelectArbitrators = true;
     private Map<String, Boolean> dontShowAgainMap = new HashMap<>();
     private boolean tacAccepted;
-    private boolean useTorForBitcoinJ = true;
+    private boolean useTorForMonero = true;
     private boolean showOwnOffersInOfferBook = true;
     @Nullable
     private TradeCurrency preferredTradeCurrency;
@@ -81,8 +82,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean sortMarketCurrenciesNumerically = true;
     private boolean usePercentageBasedPrice = true;
     private Map<String, String> peerTagMap = new HashMap<>();
-    // custom btc nodes
-    private String bitcoinNodes = "";
+    // custom xmr nodes
+    private String moneroNodes = "";
     private List<String> ignoreTradersList = new ArrayList<>();
     private String directoryChooserPath;
 
@@ -96,7 +97,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private int torTransportOrdinal;
     @Nullable
     private String customBridges;
-    private int bitcoinNodesOptionOrdinal;
+    private int moneroNodesOptionOrdinal;
     @Nullable
     private String referralId;
     @Nullable
@@ -159,7 +160,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setAutoSelectArbitrators(autoSelectArbitrators)
                 .putAllDontShowAgainMap(dontShowAgainMap)
                 .setTacAccepted(tacAccepted)
-                .setUseTorForBitcoinJ(useTorForBitcoinJ)
+                .setUseTorForMonero(useTorForMonero)
                 .setShowOwnOffersInOfferBook(showOwnOffersInOfferBook)
                 .setWithdrawalTxFeeInVbytes(withdrawalTxFeeInVbytes)
                 .setUseCustomWithdrawalTxFee(useCustomWithdrawalTxFee)
@@ -169,14 +170,14 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setSortMarketCurrenciesNumerically(sortMarketCurrenciesNumerically)
                 .setUsePercentageBasedPrice(usePercentageBasedPrice)
                 .putAllPeerTagMap(peerTagMap)
-                .setBitcoinNodes(bitcoinNodes)
+                .setMoneroNodes(moneroNodes)
                 .addAllIgnoreTradersList(ignoreTradersList)
                 .setDirectoryChooserPath(directoryChooserPath)
                 .setUseAnimations(useAnimations)
                 .setCssTheme(cssTheme)
                 .setBridgeOptionOrdinal(bridgeOptionOrdinal)
                 .setTorTransportOrdinal(torTransportOrdinal)
-                .setBitcoinNodesOptionOrdinal(bitcoinNodesOptionOrdinal)
+                .setMoneroNodesOptionOrdinal(moneroNodesOptionOrdinal)
                 .setUseSoundForMobileNotifications(useSoundForMobileNotifications)
                 .setUseTradeNotifications(useTradeNotifications)
                 .setUseMarketNotifications(useMarketNotifications)
@@ -241,7 +242,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getAutoSelectArbitrators(),
                 Maps.newHashMap(proto.getDontShowAgainMapMap()),
                 proto.getTacAccepted(),
-                proto.getUseTorForBitcoinJ(),
+                proto.getUseTorForMonero(),
                 proto.getShowOwnOffersInOfferBook(),
                 proto.hasPreferredTradeCurrency() ? TradeCurrency.fromProto(proto.getPreferredTradeCurrency()) : null,
                 proto.getWithdrawalTxFeeInVbytes(),
@@ -258,7 +259,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getSortMarketCurrenciesNumerically(),
                 proto.getUsePercentageBasedPrice(),
                 Maps.newHashMap(proto.getPeerTagMapMap()),
-                proto.getBitcoinNodes(),
+                proto.getMoneroNodes(),
                 proto.getIgnoreTradersListList(),
                 proto.getDirectoryChooserPath(),
                 proto.getUseAnimations(),
@@ -268,7 +269,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getBridgeOptionOrdinal(),
                 proto.getTorTransportOrdinal(),
                 ProtoUtil.stringOrNullFromProto(proto.getCustomBridges()),
-                proto.getBitcoinNodesOptionOrdinal(),
+                proto.getMoneroNodesOptionOrdinal(),
                 proto.getReferralId().isEmpty() ? null : proto.getReferralId(),
                 proto.getPhoneKeyAndToken().isEmpty() ? null : proto.getPhoneKeyAndToken(),
                 proto.getUseSoundForMobileNotifications(),

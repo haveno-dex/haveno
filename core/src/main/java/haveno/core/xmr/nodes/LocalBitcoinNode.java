@@ -15,7 +15,7 @@ import java.net.Socket;
 /**
  * Detects whether a Bitcoin node is running on localhost and contains logic for when to
  * ignore it. The query methods lazily trigger the needed checks and cache the results.
- * @see haveno.common.config.Config#ignoreLocalBtcNode
+ * @see haveno.common.config.Config#ignoreLocalXmrNode
  */
 @Singleton
 public class LocalBitcoinNode {
@@ -49,7 +49,7 @@ public class LocalBitcoinNode {
      */
     public boolean shouldBeIgnored() {
         BaseCurrencyNetwork baseCurrencyNetwork = config.baseCurrencyNetwork;
-        return config.ignoreLocalBtcNode;
+        return config.ignoreLocalXmrNode;
     }
 
     /**

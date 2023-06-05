@@ -58,7 +58,7 @@ public class Config {
     public static final String CONFIG_FILE = "configFile";
     public static final String MAX_MEMORY = "maxMemory";
     public static final String LOG_LEVEL = "logLevel";
-    public static final String BANNED_BTC_NODES = "bannedBtcNodes";
+    public static final String BANNED_XMR_NODES = "bannedXmrNodes";
     public static final String BANNED_PRICE_RELAY_NODES = "bannedPriceRelayNodes";
     public static final String BANNED_SEED_NODES = "bannedSeedNodes";
     public static final String BASE_CURRENCY_NETWORK = "baseCurrencyNetwork";
@@ -81,7 +81,7 @@ public class Config {
     public static final String MAX_CONNECTIONS = "maxConnections";
     public static final String SOCKS_5_PROXY_BTC_ADDRESS = "socks5ProxyBtcAddress";
     public static final String SOCKS_5_PROXY_HTTP_ADDRESS = "socks5ProxyHttpAddress";
-    public static final String USE_TOR_FOR_BTC = "useTorForBtc";
+    public static final String USE_TOR_FOR_XMR = "useTorForXmr";
     public static final String TORRC_FILE = "torrcFile";
     public static final String TORRC_OPTIONS = "torrcOptions";
     public static final String TOR_CONTROL_PORT = "torControlPort";
@@ -93,12 +93,12 @@ public class Config {
     public static final String MSG_THROTTLE_PER_10_SEC = "msgThrottlePer10Sec";
     public static final String SEND_MSG_THROTTLE_TRIGGER = "sendMsgThrottleTrigger";
     public static final String SEND_MSG_THROTTLE_SLEEP = "sendMsgThrottleSleep";
-    public static final String IGNORE_LOCAL_BTC_NODE = "ignoreLocalBtcNode";
+    public static final String IGNORE_LOCAL_XMR_NODE = "ignoreLocalXmrNode";
     public static final String BITCOIN_REGTEST_HOST = "bitcoinRegtestHost";
     public static final String XMR_NODE = "xmrNode";
     public static final String XMR_NODE_USERNAME = "xmrNodeUsername";
     public static final String XMR_NODE_PASSWORD = "xmrNodePassword";
-    public static final String BTC_NODES = "btcNodes";
+    public static final String XMR_NODES = "xmrNodes";
     public static final String SOCKS5_DISCOVER_MODE = "socks5DiscoverMode";
     public static final String USE_ALL_PROVIDED_NODES = "useAllProvidedNodes";
     public static final String USER_AGENT = "userAgent";
@@ -145,12 +145,12 @@ public class Config {
     public final int nodePort;
     public final int maxMemory;
     public final String logLevel;
-    public final List<String> bannedBtcNodes;
+    public final List<String> bannedXmrNodes;
     public final List<String> bannedPriceRelayNodes;
     public final List<String> bannedSeedNodes;
     public final BaseCurrencyNetwork baseCurrencyNetwork;
     public final NetworkParameters networkParameters;
-    public final boolean ignoreLocalBtcNode;
+    public final boolean ignoreLocalXmrNode;
     public final String bitcoinRegtestHost;
     public final String referralId;
     public final boolean useDevMode;
@@ -179,9 +179,9 @@ public class Config {
     public final String xmrNode;
     public final String xmrNodeUsername;
     public final String xmrNodePassword;
-    public final String btcNodes;
-    public final boolean useTorForBtc;
-    public final boolean useTorForBtcOptionSetExplicitly;
+    public final String xmrNodes;
+    public final boolean useTorForXmr;
+    public final boolean useTorForXmrOptionSetExplicitly;
     public final String socks5DiscoverMode;
     public final boolean useAllProvidedNodes;
     public final String userAgent;
@@ -295,8 +295,8 @@ public class Config {
                         .describedAs("OFF|ALL|ERROR|WARN|INFO|DEBUG|TRACE")
                         .defaultsTo(Level.INFO.levelStr);
 
-        ArgumentAcceptingOptionSpec<String> bannedBtcNodesOpt =
-                parser.accepts(BANNED_BTC_NODES, "List Bitcoin nodes to ban")
+        ArgumentAcceptingOptionSpec<String> bannedXmrNodesOpt =
+                parser.accepts(BANNED_XMR_NODES, "List Bitcoin nodes to ban")
                         .withRequiredArg()
                         .ofType(String.class)
                         .withValuesSeparatedBy(',')
@@ -324,8 +324,8 @@ public class Config {
                         .withValuesConvertedBy(new EnumValueConverter(BaseCurrencyNetwork.class))
                         .defaultsTo(BaseCurrencyNetwork.XMR_MAINNET);
 
-        ArgumentAcceptingOptionSpec<Boolean> ignoreLocalBtcNodeOpt = // TODO: update this to ignore local XMR node
-                parser.accepts(IGNORE_LOCAL_BTC_NODE,
+        ArgumentAcceptingOptionSpec<Boolean> ignoreLocalXmrNodeOpt = // TODO: update this to ignore local XMR node
+                parser.accepts(IGNORE_LOCAL_XMR_NODE,
                         "If set to true a Monero node running locally will be ignored")
                         .withRequiredArg()
                         .ofType(Boolean.class)
@@ -513,14 +513,14 @@ public class Config {
                         .withRequiredArg()
                         .defaultsTo("");
 
-        ArgumentAcceptingOptionSpec<String> btcNodesOpt =
-                parser.accepts(BTC_NODES, "Custom nodes used for BitcoinJ as comma separated IP addresses.")
+        ArgumentAcceptingOptionSpec<String> xmrNodesOpt =
+                parser.accepts(XMR_NODES, "Custom nodes used for BitcoinJ as comma separated IP addresses.")
                         .withRequiredArg()
                         .describedAs("ip[,...]")
                         .defaultsTo("");
 
-        ArgumentAcceptingOptionSpec<Boolean> useTorForBtcOpt =
-                parser.accepts(USE_TOR_FOR_BTC, "If set to true BitcoinJ is routed over tor (socks 5 proxy).")
+        ArgumentAcceptingOptionSpec<Boolean> useTorForXmrOpt =
+                parser.accepts(USE_TOR_FOR_XMR, "If set to true BitcoinJ is routed over tor (socks 5 proxy).")
                         .withRequiredArg()
                         .ofType(Boolean.class)
                         .defaultsTo(false);
@@ -650,12 +650,12 @@ public class Config {
             this.walletRpcBindPort = options.valueOf(walletRpcBindPortOpt);
             this.maxMemory = options.valueOf(maxMemoryOpt);
             this.logLevel = options.valueOf(logLevelOpt);
-            this.bannedBtcNodes = options.valuesOf(bannedBtcNodesOpt);
+            this.bannedXmrNodes = options.valuesOf(bannedXmrNodesOpt);
             this.bannedPriceRelayNodes = options.valuesOf(bannedPriceRelayNodesOpt);
             this.bannedSeedNodes = options.valuesOf(bannedSeedNodesOpt);
             this.baseCurrencyNetwork = (BaseCurrencyNetwork) options.valueOf(baseCurrencyNetworkOpt);
             this.networkParameters = baseCurrencyNetwork.getParameters();
-            this.ignoreLocalBtcNode = options.valueOf(ignoreLocalBtcNodeOpt);
+            this.ignoreLocalXmrNode = options.valueOf(ignoreLocalXmrNodeOpt);
             this.bitcoinRegtestHost = options.valueOf(bitcoinRegtestHostOpt);
             this.torrcFile = options.has(torrcFileOpt) ? options.valueOf(torrcFileOpt).toFile() : null;
             this.torrcOptions = options.valueOf(torrcOptionsOpt);
@@ -685,9 +685,9 @@ public class Config {
             this.xmrNode = options.valueOf(xmrNodeOpt);
             this.xmrNodeUsername = options.valueOf(xmrNodeUsernameOpt);
             this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
-            this.btcNodes = options.valueOf(btcNodesOpt);
-            this.useTorForBtc = options.valueOf(useTorForBtcOpt);
-            this.useTorForBtcOptionSetExplicitly = options.has(useTorForBtcOpt);
+            this.xmrNodes = options.valueOf(xmrNodesOpt);
+            this.useTorForXmr = options.valueOf(useTorForXmrOpt);
+            this.useTorForXmrOptionSetExplicitly = options.has(useTorForXmrOpt);
             this.socks5DiscoverMode = options.valueOf(socks5DiscoverModeOpt);
             this.useAllProvidedNodes = options.valueOf(useAllProvidedNodesOpt);
             this.userAgent = options.valueOf(userAgentOpt);

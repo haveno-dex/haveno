@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class BtcNetworkConfig {
-    private static final Logger log = LoggerFactory.getLogger(BtcNetworkConfig.class);
+public class XmrNetworkConfig {
+    private static final Logger log = LoggerFactory.getLogger(XmrNetworkConfig.class);
 
     @Nullable
     private final Socks5Proxy proxy;
@@ -39,7 +39,7 @@ public class BtcNetworkConfig {
     private final NetworkParameters parameters;
     private final int socks5DiscoverMode;
 
-    public BtcNetworkConfig(WalletConfig delegate, NetworkParameters parameters, int socks5DiscoverMode,
+    public XmrNetworkConfig(WalletConfig delegate, NetworkParameters parameters, int socks5DiscoverMode,
                             @Nullable Socks5Proxy proxy) {
         this.delegate = delegate;
         this.parameters = parameters;

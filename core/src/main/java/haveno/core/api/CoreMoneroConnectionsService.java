@@ -1,10 +1,13 @@
 package haveno.core.api;
 
 import haveno.common.app.DevEnv;
-import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
+import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.Socks5ProxyProvider;
@@ -32,10 +35,7 @@ import monero.daemon.model.MoneroPeer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -50,38 +50,14 @@ public final class CoreMoneroConnectionsService {
     private static final long MIN_ERROR_LOG_PERIOD_MS = 300000; // minimum period between logging errors fetching daemon info
     private static Long lastErrorTimestamp;
 
-    // default Monero nodes
-    private static final Map<BaseCurrencyNetwork, List<MoneroRpcConnection>> DEFAULT_CONNECTIONS;
-    static {
-        DEFAULT_CONNECTIONS = new HashMap<BaseCurrencyNetwork, List<MoneroRpcConnection>>();
-        DEFAULT_CONNECTIONS.put(BaseCurrencyNetwork.XMR_LOCAL, Arrays.asList(
-                new MoneroRpcConnection("http://127.0.0.1:28081").setPriority(1)
-        ));
-        DEFAULT_CONNECTIONS.put(BaseCurrencyNetwork.XMR_STAGENET, Arrays.asList(
-                new MoneroRpcConnection("http://127.0.0.1:38081").setPriority(1), // localhost is first priority, use loopback address 127.0.0.1 to match url used by local node service
-                new MoneroRpcConnection("http://127.0.0.1:39081").setPriority(2), // from makefile: `monerod-stagenet-custom`
-                new MoneroRpcConnection("http://45.63.8.26:38081").setPriority(2), // hosted by haveno
-                new MoneroRpcConnection("http://stagenet.community.rino.io:38081").setPriority(2),
-                new MoneroRpcConnection("http://stagenet.melo.tools:38081").setPriority(2),
-                new MoneroRpcConnection("http://node.sethforprivacy.com:38089").setPriority(2),
-                new MoneroRpcConnection("http://node2.sethforprivacy.com:38089").setPriority(2),
-                new MoneroRpcConnection("http://plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion:38089").setPriority(2)
-        ));
-        DEFAULT_CONNECTIONS.put(BaseCurrencyNetwork.XMR_MAINNET, Arrays.asList(
-                new MoneroRpcConnection("http://127.0.0.1:18081").setPriority(1),
-                new MoneroRpcConnection("http://node.community.rino.io:18081").setPriority(2),
-                new MoneroRpcConnection("http://xmr-node.cakewallet.com:18081").setPriority(2),
-                new MoneroRpcConnection("http://xmr-node-eu.cakewallet.com:18081").setPriority(2),
-                new MoneroRpcConnection("http://xmr-node-usa-east.cakewallet.com:18081").setPriority(2),
-                new MoneroRpcConnection("http://xmr-node-uk.cakewallet.com:18081").setPriority(2),
-                new MoneroRpcConnection("http://node.sethforprivacy.com:18089").setPriority(2)
-        ));
-    }
+
 
     private final Object lock = new Object();
     private final Config config;
     private final CoreContext coreContext;
+    private final Preferences preferences;
     private final CoreAccountService accountService;
+    private final XmrNodes xmrNodes;
     private final CoreMoneroNodeService nodeService;
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
@@ -103,15 +79,19 @@ public final class CoreMoneroConnectionsService {
     public CoreMoneroConnectionsService(P2PService p2PService,
                                         Config config,
                                         CoreContext coreContext,
+                                        Preferences preferences,
                                         WalletsSetup walletsSetup,
                                         CoreAccountService accountService,
+                                        XmrNodes xmrNodes,
                                         CoreMoneroNodeService nodeService,
                                         MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList,
                                         Socks5ProxyProvider socks5ProxyProvider) {
         this.config = config;
         this.coreContext = coreContext;
+        this.preferences = preferences;
         this.accountService = accountService;
+        this.xmrNodes = xmrNodes;
         this.nodeService = nodeService;
         this.connectionManager = connectionManager;
         this.connectionList = connectionList;
@@ -178,7 +158,7 @@ public final class CoreMoneroConnectionsService {
     public void addConnection(MoneroRpcConnection connection) {
         synchronized (lock) {
             accountService.checkAccountOpen();
-            connectionList.addConnection(connection);
+            if (coreContext.isApiUser()) connectionList.addConnection(connection);
             connectionManager.addConnection(connection);
         }
     }
@@ -342,12 +322,16 @@ public final class CoreMoneroConnectionsService {
             if (isConnectionLocal()) {
                 if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
                 else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
-            } else if (getConnection().isOnion()) {
+            } else if (useProxy(getConnection())) {
                 return REFRESH_PERIOD_ONION_MS;
             } else {
                 return REFRESH_PERIOD_HTTP_MS;
             }
         }
+    }
+
+    private boolean useProxy(MoneroRpcConnection connection) {
+        return connection.isOnion() || (preferences.isUseTorForMonero() && !HavenoUtils.isLocalHost(connection.getUri()));
     }
 
     private void initialize() {
@@ -384,33 +368,59 @@ public final class CoreMoneroConnectionsService {
             connectionManager.reset();
             connectionManager.setTimeout(REFRESH_PERIOD_HTTP_MS);
 
-            // load connections
-            log.info("TOR proxy URI: " + getProxyUri());
-            for (MoneroRpcConnection connection : connectionList.getConnections()) {
-                if (connection.isOnion()) connection.setProxyUri(getProxyUri());
-                connectionManager.addConnection(connection);
-            }
-            log.info("Read " + connectionList.getConnections().size() + " connections from disk");
+            // load previous or default connections
+            if (coreContext.isApiUser()) {
 
-            // add default connections
-            for (MoneroRpcConnection connection : DEFAULT_CONNECTIONS.get(Config.baseCurrencyNetwork())) {
-                if (connectionList.hasConnection(connection.getUri())) continue;
-                if (connection.isOnion()) connection.setProxyUri(getProxyUri());
-                addConnection(connection);
+                // load previous connections
+                for (MoneroRpcConnection connection : connectionList.getConnections()) connectionManager.addConnection(connection);
+                log.info("Read " + connectionList.getConnections().size() + " previous connections from disk");
+
+                // add default connections
+                for (XmrNode node : xmrNodes.getAllXmrNodes()) {
+                    if (node.hasClearNetAddress()) {
+                        MoneroRpcConnection connection = new MoneroRpcConnection(node.getAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                        if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
+                    }
+                    if (node.hasOnionAddress()) {
+                        MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                        if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
+                    }
+                }
+            } else {
+
+                // add default connections
+                for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
+                    if (node.hasClearNetAddress()) {
+                        MoneroRpcConnection connection = new MoneroRpcConnection(node.getAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                        addConnection(connection);
+                    }
+                    if (node.hasOnionAddress()) {
+                        MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                        addConnection(connection);
+                    }
+                }
             }
 
-            // restore last used connection if unconfigured and present
-            Optional<String> currentConnectionUri = null;
+            // set current connection
+            Optional<String> currentConnectionUri = Optional.empty();
             if ("".equals(config.xmrNode)) {
-                currentConnectionUri = connectionList.getCurrentConnectionUri();
-                if (currentConnectionUri.isPresent()) connectionManager.setConnection(currentConnectionUri.get());
+                if (coreContext.isApiUser() && connectionList.getCurrentConnectionUri().isPresent()) {
+                    currentConnectionUri = connectionList.getCurrentConnectionUri();
+                    connectionManager.setConnection(currentConnectionUri.get());
+                }
             } else if (!isInitialized) {
 
                 // set monero connection from startup arguments
                 MoneroRpcConnection connection = new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1);
-                if (connection.isOnion()) connection.setProxyUri(getProxyUri());
+                if (useProxy(connection)) connection.setProxyUri(getProxyUri());
                 connectionManager.setConnection(connection);
                 currentConnectionUri = Optional.of(connection.getUri());
+            }
+
+            // set connection proxies
+            log.info("TOR proxy URI: " + getProxyUri());
+            for (MoneroRpcConnection connection : connectionManager.getConnections()) {
+                if (useProxy(connection)) connection.setProxyUri(getProxyUri());
             }
 
             // restore configuration

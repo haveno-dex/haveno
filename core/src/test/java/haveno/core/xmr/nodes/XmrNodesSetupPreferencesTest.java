@@ -18,26 +18,26 @@
 package haveno.core.xmr.nodes;
 
 import haveno.core.user.Preferences;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static haveno.core.xmr.nodes.BtcNodes.BitcoinNodesOption.CUSTOM;
-import static haveno.core.xmr.nodes.BtcNodes.BitcoinNodesOption.PUBLIC;
+import static haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption.CUSTOM;
+import static haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption.PUBLIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BtcNodesSetupPreferencesTest {
+public class XmrNodesSetupPreferencesTest {
     @Test
     public void testSelectPreferredNodesWhenPublicOption() {
         Preferences delegate = mock(Preferences.class);
-        when(delegate.getBitcoinNodesOptionOrdinal()).thenReturn(PUBLIC.ordinal());
+        when(delegate.getMoneroNodesOptionOrdinal()).thenReturn(PUBLIC.ordinal());
 
-        BtcNodesSetupPreferences preferences = new BtcNodesSetupPreferences(delegate);
-        List<BtcNode> nodes = preferences.selectPreferredNodes(mock(BtcNodes.class));
+        XmrNodesSetupPreferences preferences = new XmrNodesSetupPreferences(delegate);
+        List<XmrNode> nodes = preferences.selectPreferredNodes(mock(XmrNodes.class));
 
         assertTrue(nodes.isEmpty());
     }
@@ -45,11 +45,11 @@ public class BtcNodesSetupPreferencesTest {
     @Test
     public void testSelectPreferredNodesWhenCustomOption() {
         Preferences delegate = mock(Preferences.class);
-        when(delegate.getBitcoinNodesOptionOrdinal()).thenReturn(CUSTOM.ordinal());
-        when(delegate.getBitcoinNodes()).thenReturn("aaa.onion,bbb.onion");
+        when(delegate.getMoneroNodesOptionOrdinal()).thenReturn(CUSTOM.ordinal());
+        when(delegate.getMoneroNodes()).thenReturn("aaa.onion,bbb.onion");
 
-        BtcNodesSetupPreferences preferences = new BtcNodesSetupPreferences(delegate);
-        List<BtcNode> nodes = preferences.selectPreferredNodes(mock(BtcNodes.class));
+        XmrNodesSetupPreferences preferences = new XmrNodesSetupPreferences(delegate);
+        List<XmrNode> nodes = preferences.selectPreferredNodes(mock(XmrNodes.class));
 
         assertEquals(2, nodes.size());
     }
