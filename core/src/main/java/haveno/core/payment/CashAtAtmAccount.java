@@ -20,14 +20,14 @@ package haveno.core.payment;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.CashByAtmAccountPayload;
+import haveno.core.payment.payload.CashAtAtmAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.NonNull;
 
 import java.util.List;
 
-public final class CashByAtmAccount extends PaymentAccount {
+public final class CashAtAtmAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
@@ -35,13 +35,13 @@ public final class CashByAtmAccount extends PaymentAccount {
         PaymentAccountFormField.FieldId.EXTRA_INFO
     );
 
-    public CashByAtmAccount() {
-        super(PaymentMethod.CASH_BY_ATM);
+    public CashAtAtmAccount() {
+        super(PaymentMethod.CASH_AT_ATM);
     }
 
     @Override
     protected PaymentAccountPayload createPayload() {
-        return new CashByAtmAccountPayload(paymentMethod.getId(), id);
+        return new CashAtAtmAccountPayload(paymentMethod.getId(), id);
     }
 
     @Override
@@ -55,10 +55,10 @@ public final class CashByAtmAccount extends PaymentAccount {
     }
 
     public void setExtraInfo(String extraInfo) {
-        ((CashByAtmAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+        ((CashAtAtmAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
     }
 
     public String getExtraInfo() {
-        return ((CashByAtmAccountPayload) paymentAccountPayload).getExtraInfo();
+        return ((CashAtAtmAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }

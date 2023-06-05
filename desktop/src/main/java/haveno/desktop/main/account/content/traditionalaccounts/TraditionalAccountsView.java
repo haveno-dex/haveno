@@ -26,7 +26,7 @@ import haveno.core.locale.Res;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
-import haveno.core.payment.CashByAtmAccount;
+import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.ZelleAccount;
@@ -73,7 +73,7 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
-import haveno.desktop.components.paymentmethods.CashByAtmForm;
+import haveno.desktop.components.paymentmethods.CashAtAtmForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
@@ -272,9 +272,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
                     .show();
-        } else if (paymentAccount instanceof CashByAtmAccount) {
-            // CashByAtm has no chargeback risk so we don't show the text from payment.limits.info.
-            new Popup().information(Res.get("payment.cashByAtm.info"))
+        } else if (paymentAccount instanceof CashAtAtmAccount) {
+            // CashAtAtm has no chargeback risk so we don't show the text from payment.limits.info.
+            new Popup().information(Res.get("payment.cashAtAtm.info"))
                     .width(850)
                     .closeButtonText(Res.get("shared.cancel"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
@@ -569,8 +569,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new CashDepositForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.PAY_BY_MAIL_ID:
                 return new PayByMailForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
-            case PaymentMethod.CASH_BY_ATM_ID:
-                return new CashByAtmForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CASH_AT_ATM_ID:
+                return new CashAtAtmForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.HAL_CASH_ID:
                 return new HalCashForm(paymentAccount, accountAgeWitnessService, halCashValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.F2F_ID:

@@ -22,9 +22,9 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.CashByAtmAccount;
+import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.CashByAtmAccountPayload;
+import haveno.core.payment.payload.CashAtAtmAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
@@ -36,12 +36,12 @@ import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
-public class CashByAtmForm extends PaymentMethodForm {
-    private final CashByAtmAccount cashByAtmAccount;
+public class CashAtAtmForm extends PaymentMethodForm {
+    private final CashAtAtmAccount cashAtAtmAccount;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        CashByAtmAccountPayload cbm = (CashByAtmAccountPayload) paymentAccountPayload;
+        CashAtAtmAccountPayload cbm = (CashAtAtmAccountPayload) paymentAccountPayload;
 
         TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
@@ -50,11 +50,11 @@ public class CashByAtmForm extends PaymentMethodForm {
         return gridRow;
     }
 
-    public CashByAtmForm(PaymentAccount paymentAccount,
+    public CashAtAtmForm(PaymentAccount paymentAccount,
                                   AccountAgeWitnessService accountAgeWitnessService,
                                   InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
-        this.cashByAtmAccount = (CashByAtmAccount) paymentAccount;
+        this.cashAtAtmAccount = (CashAtAtmAccount) paymentAccount;
     }
 
     @Override
@@ -65,11 +65,11 @@ public class CashByAtmForm extends PaymentMethodForm {
         currencyComboBox.setItems(FXCollections.observableArrayList(CurrencyUtil.getAllSortedFiatCurrencies()));
 
         TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
-                Res.get("payment.shared.optionalExtra"), Res.get("payment.cashByAtm.extraInfo.prompt")).second;
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.cashAtAtm.extraInfo.prompt")).second;
         extraTextArea.setMinHeight(70);
         ((JFXTextArea) extraTextArea).setLabelFloat(false);
         extraTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
-            cashByAtmAccount.setExtraInfo(newValue);
+            cashAtAtmAccount.setExtraInfo(newValue);
             updateFromInputs();
         });
 
@@ -79,7 +79,7 @@ public class CashByAtmForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(cashByAtmAccount.getExtraInfo().substring(0, Math.min(50, cashByAtmAccount.getExtraInfo().length())));
+        setAccountNameWithString(cashAtAtmAccount.getExtraInfo().substring(0, Math.min(50, cashAtAtmAccount.getExtraInfo().length())));
     }
 
     @Override
@@ -87,14 +87,14 @@ public class CashByAtmForm extends PaymentMethodForm {
         gridRowFrom = gridRow;
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
-                Res.get(cashByAtmAccount.getPaymentMethod().getId()));
+                Res.get(cashAtAtmAccount.getPaymentMethod().getId()));
 
         TradeCurrency tradeCurrency = paymentAccount.getSingleTradeCurrency();
         String nameAndCode = tradeCurrency != null ? tradeCurrency.getNameAndCode() : "";
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"), nameAndCode);
 
         TextArea textAreaExtra = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
-        textAreaExtra.setText(cashByAtmAccount.getExtraInfo());
+        textAreaExtra.setText(cashAtAtmAccount.getExtraInfo());
         textAreaExtra.setMinHeight(70);
         textAreaExtra.setEditable(false);
 
@@ -104,7 +104,7 @@ public class CashByAtmForm extends PaymentMethodForm {
     @Override
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
-                && !cashByAtmAccount.getExtraInfo().isEmpty()
+                && !cashAtAtmAccount.getExtraInfo().isEmpty()
                 && paymentAccount.getSingleTradeCurrency() != null);
     }
 }
