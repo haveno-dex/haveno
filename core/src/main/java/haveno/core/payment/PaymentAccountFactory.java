@@ -76,8 +76,8 @@ public class PaymentAccountFactory {
                 return new F2FAccount();
             case PaymentMethod.PAY_BY_MAIL_ID:
                 return new PayByMailAccount();
-            case PaymentMethod.CASH_BY_ATM_ID:
-                return new CashByAtmAccount();
+            case PaymentMethod.CASH_AT_ATM_ID:
+                return new CashAtAtmAccount();
             case PaymentMethod.PROMPT_PAY_ID:
                 return new PromptPayAccount();
             case PaymentMethod.ADVANCED_CASH_ID:
