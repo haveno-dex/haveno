@@ -28,7 +28,6 @@ import haveno.core.payment.payload.CashByAtmAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
-import haveno.desktop.util.Layout;
 import javafx.collections.FXCollections;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
@@ -36,7 +35,6 @@ import javafx.scene.layout.GridPane;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
 public class CashByAtmForm extends PaymentMethodForm {
     private final CashByAtmAccount cashByAtmAccount;
@@ -44,10 +42,6 @@ public class CashByAtmForm extends PaymentMethodForm {
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
         CashByAtmAccountPayload cbm = (CashByAtmAccountPayload) paymentAccountPayload;
-        addTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1,
-                Res.get("payment.shared.extraInfo"),
-                cbm.getExtraInfo(),
-                Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
 
         TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);

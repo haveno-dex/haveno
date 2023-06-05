@@ -160,7 +160,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
-            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed;
+            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashByAtmWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
@@ -268,6 +268,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
         maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowCashByAtmWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
             nextButton.setVisible(false);
@@ -1124,7 +1125,24 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             payByMailWarningDisplayed = true;
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
-                        .preamble(Res.get("payment.payByMail.tradingRestrictions"))
+                        .preamble(Res.get("payment.tradingRestrictions"))
+                        .instruction(offer.getExtraInfo())
+                        .actionButtonText(Res.get("shared.iConfirm"))
+                        .closeButtonText(Res.get("shared.close"))
+                        .width(Layout.INITIAL_WINDOW_WIDTH)
+                        .onClose(() -> close(false))
+                        .show();
+            }, 500, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void maybeShowCashByAtmWarning(PaymentAccount paymentAccount, Offer offer) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_BY_ATM_ID) &&
+                !cashByAtmWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
+            cashByAtmWarningDisplayed = true;
+            UserThread.runAfter(() -> {
+                new GenericMessageWindow()
+                        .preamble(Res.get("payment.tradingRestrictions"))
                         .instruction(offer.getExtraInfo())
                         .actionButtonText(Res.get("shared.iConfirm"))
                         .closeButtonText(Res.get("shared.close"))

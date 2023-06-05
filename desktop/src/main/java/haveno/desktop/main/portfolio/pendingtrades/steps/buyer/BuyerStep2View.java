@@ -49,8 +49,10 @@ import haveno.desktop.components.paymentmethods.AdvancedCashForm;
 import haveno.desktop.components.paymentmethods.AliPayForm;
 import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AssetsForm;
+import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
+import haveno.desktop.components.paymentmethods.CashByAtmForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
@@ -259,6 +261,9 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.NATIONAL_BANK_ID:
                 gridRow = NationalBankForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
+            case PaymentMethod.AUSTRALIA_PAYID_ID:
+                gridRow = AustraliaPayidForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
             case PaymentMethod.SAME_BANK_ID:
                 gridRow = SameBankForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
@@ -294,6 +299,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.PAY_BY_MAIL_ID:
                 gridRow = PayByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.CASH_BY_ATM_ID:
+                gridRow = CashByAtmForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.MONEY_GRAM_ID:
                 gridRow = MoneyGramForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
