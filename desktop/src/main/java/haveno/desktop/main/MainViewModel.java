@@ -554,7 +554,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     }
 
     private void showPopupIfInvalidBtcConfig() {
-        preferences.setBitcoinNodesOptionOrdinal(0);
+        preferences.setMoneroNodesOptionOrdinal(0);
         new Popup().warning(Res.get("settings.net.warn.invalidBtcConfig"))
                 .hideCloseButton()
                 .useShutDownButton()

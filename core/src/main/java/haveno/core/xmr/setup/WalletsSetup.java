@@ -33,11 +33,11 @@ import haveno.core.user.Preferences;
 import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.model.AddressEntryList;
-import haveno.core.xmr.nodes.BtcNetworkConfig;
-import haveno.core.xmr.nodes.BtcNodes;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
-import haveno.core.xmr.nodes.BtcNodesRepository;
-import haveno.core.xmr.nodes.BtcNodesSetupPreferences;
+import haveno.core.xmr.nodes.XmrNetworkConfig;
+import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
+import haveno.core.xmr.nodes.XmrNodesRepository;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.network.Socks5MultiDiscovery;
 import haveno.network.Socks5ProxyProvider;
@@ -101,7 +101,7 @@ public class WalletsSetup {
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
     private final LocalBitcoinNode localBitcoinNode;
-    private final BtcNodes btcNodes;
+    private final XmrNodes xmrNodes;
     private final int numConnectionsForBtc;
     private final String userAgent;
     private final NetworkParameters params;
@@ -127,7 +127,7 @@ public class WalletsSetup {
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
                         LocalBitcoinNode localBitcoinNode,
-                        BtcNodes btcNodes,
+                        XmrNodes xmrNodes,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
                         @Named(Config.USE_ALL_PROVIDED_NODES) boolean useAllProvidedNodes,
@@ -139,7 +139,7 @@ public class WalletsSetup {
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
         this.localBitcoinNode = localBitcoinNode;
-        this.btcNodes = btcNodes;
+        this.xmrNodes = xmrNodes;
         this.numConnectionsForBtc = numConnectionsForBtc;
         this.useAllProvidedNodes = useAllProvidedNodes;
         this.userAgent = userAgent;
@@ -171,7 +171,7 @@ public class WalletsSetup {
 
         backupWallets();
 
-        final Socks5Proxy socks5Proxy = preferences.getUseTorForBitcoinJ() ? socks5ProxyProvider.getSocks5Proxy() : null;
+        final Socks5Proxy socks5Proxy = preferences.getUseTorForMonero() ? socks5ProxyProvider.getSocks5Proxy() : null;
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
 
         walletConfig = new WalletConfig(params, walletDir, "haveno") {
@@ -195,7 +195,7 @@ public class WalletsSetup {
         };
         walletConfig.setSocks5Proxy(socks5Proxy);
         walletConfig.setConfig(config);
-        walletConfig.setLocalBitcoinNode(localBitcoinNode);
+        walletConfig.setLocalBitcoinNode(localBitcoinNode); // TODO: adapt to xmr or remove
         walletConfig.setUserAgent(userAgent, Version.VERSION);
         walletConfig.setNumConnectionsForBtc(numConnectionsForBtc);
 
@@ -213,7 +213,7 @@ public class WalletsSetup {
             walletConfig.setCheckpoints(getClass().getResourceAsStream(checkpointsPath));
         }
 
-
+        // TODO: update this for xmr
         if (params.getId().equals(NetworkParameters.ID_REGTEST)) {
             walletConfig.setMinBroadcastConnections(1);
             if (regTestHost == RegTestHost.LOCALHOST) {
@@ -235,7 +235,7 @@ public class WalletsSetup {
             walletConfig.connectToLocalHost();
         } else {
             try {
-                configPeerNodes(socks5Proxy);
+                //configPeerNodes(socks5Proxy);
             } catch (IllegalArgumentException e) {
                 timeoutTimer.stop();
                 walletsSetupFailed.set(true);
@@ -329,14 +329,14 @@ public class WalletsSetup {
     private void configPeerNodes(@Nullable Socks5Proxy proxy) {
         walletConfig.setMinBroadcastConnections(MIN_BROADCAST_CONNECTIONS);
 
-        BtcNodesSetupPreferences btcNodesSetupPreferences = new BtcNodesSetupPreferences(preferences);
-        List<BtcNode> nodes = btcNodesSetupPreferences.selectPreferredNodes(btcNodes);
+        XmrNodesSetupPreferences xmrNodesSetupPreferences = new XmrNodesSetupPreferences(preferences);
+        List<XmrNode> nodes = xmrNodesSetupPreferences.selectPreferredNodes(xmrNodes);
 
-        BtcNodesRepository repository = new BtcNodesRepository(nodes);
-        boolean isUseClearNodesWithProxies = (useAllProvidedNodes || btcNodesSetupPreferences.isUseCustomNodes());
+        XmrNodesRepository repository = new XmrNodesRepository(nodes);
+        boolean isUseClearNodesWithProxies = (useAllProvidedNodes || xmrNodesSetupPreferences.isUseCustomNodes());
         List<PeerAddress> peers = repository.getPeerAddresses(proxy, isUseClearNodesWithProxies);
 
-        BtcNetworkConfig networkConfig = new BtcNetworkConfig(walletConfig, params, socks5DiscoverMode, proxy);
+        XmrNetworkConfig networkConfig = new XmrNetworkConfig(walletConfig, params, socks5DiscoverMode, proxy);
         networkConfig.proposePeers(peers);
     }
 

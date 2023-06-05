@@ -53,7 +53,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
     private final List<String> seedNodes;
     private final List<String> priceRelayNodes;
     private final boolean preventPublicBtcNetwork;
-    private final List<String> btcNodes;
+    private final List<String> xmrNodes;
     // SignatureAsBase64 is not set initially as we use the serialized data for signing. We set it after signature is
     // created by cloning the object with a non-null sig.
     @Nullable
@@ -104,7 +104,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 filter.getSeedNodes(),
                 filter.getPriceRelayNodes(),
                 filter.isPreventPublicBtcNetwork(),
-                filter.getBtcNodes(),
+                filter.getXmrNodes(),
                 filter.getDisableTradeBelowVersion(),
                 filter.getMediators(),
                 filter.getRefundAgents(),
@@ -134,7 +134,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 filter.getSeedNodes(),
                 filter.getPriceRelayNodes(),
                 filter.isPreventPublicBtcNetwork(),
-                filter.getBtcNodes(),
+                filter.getXmrNodes(),
                 filter.getDisableTradeBelowVersion(),
                 filter.getMediators(),
                 filter.getRefundAgents(),
@@ -162,7 +162,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                   List<String> seedNodes,
                   List<String> priceRelayNodes,
                   boolean preventPublicBtcNetwork,
-                  List<String> btcNodes,
+                  List<String> xmrNodes,
                   String disableTradeBelowVersion,
                   List<String> mediators,
                   List<String> refundAgents,
@@ -185,7 +185,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 seedNodes,
                 priceRelayNodes,
                 preventPublicBtcNetwork,
-                btcNodes,
+                xmrNodes,
                 disableTradeBelowVersion,
                 mediators,
                 refundAgents,
@@ -219,7 +219,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                   List<String> seedNodes,
                   List<String> priceRelayNodes,
                   boolean preventPublicBtcNetwork,
-                  List<String> btcNodes,
+                  List<String> xmrNodes,
                   String disableTradeBelowVersion,
                   List<String> mediators,
                   List<String> refundAgents,
@@ -245,7 +245,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
         this.seedNodes = seedNodes;
         this.priceRelayNodes = priceRelayNodes;
         this.preventPublicBtcNetwork = preventPublicBtcNetwork;
-        this.btcNodes = btcNodes;
+        this.xmrNodes = xmrNodes;
         this.disableTradeBelowVersion = disableTradeBelowVersion;
         this.mediators = mediators;
         this.refundAgents = refundAgents;
@@ -286,7 +286,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 .addAllSeedNodes(seedNodes)
                 .addAllPriceRelayNodes(priceRelayNodes)
                 .setPreventPublicBtcNetwork(preventPublicBtcNetwork)
-                .addAllBtcNodes(btcNodes)
+                .addAllXmrNodes(xmrNodes)
                 .setDisableTradeBelowVersion(disableTradeBelowVersion)
                 .addAllMediators(mediators)
                 .addAllRefundAgents(refundAgents)
@@ -323,7 +323,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ProtoUtil.protocolStringListToList(proto.getSeedNodesList()),
                 ProtoUtil.protocolStringListToList(proto.getPriceRelayNodesList()),
                 proto.getPreventPublicBtcNetwork(),
-                ProtoUtil.protocolStringListToList(proto.getBtcNodesList()),
+                ProtoUtil.protocolStringListToList(proto.getXmrNodesList()),
                 proto.getDisableTradeBelowVersion(),
                 ProtoUtil.protocolStringListToList(proto.getMediatorsList()),
                 ProtoUtil.protocolStringListToList(proto.getRefundAgentsList()),
@@ -366,7 +366,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ",\n     seedNodes=" + seedNodes +
                 ",\n     priceRelayNodes=" + priceRelayNodes +
                 ",\n     preventPublicBtcNetwork=" + preventPublicBtcNetwork +
-                ",\n     btcNodes=" + btcNodes +
+                ",\n     xmrNodes=" + xmrNodes +
                 ",\n     signatureAsBase64='" + signatureAsBase64 + '\'' +
                 ",\n     signerPubKeyAsHex='" + signerPubKeyAsHex + '\'' +
                 ",\n     ownerPubKeyBytes=" + Utilities.bytesAsHexString(ownerPubKeyBytes) +

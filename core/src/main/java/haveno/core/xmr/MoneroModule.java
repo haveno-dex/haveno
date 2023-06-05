@@ -27,7 +27,7 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.xmr.model.AddressEntryList;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.model.XmrAddressEntryList;
-import haveno.core.xmr.nodes.BtcNodes;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.setup.RegTestHost;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -74,7 +74,7 @@ public class MoneroModule extends AppModule {
         bindConstant().annotatedWith(named(Config.XMR_NODE)).to(config.xmrNode);
         bindConstant().annotatedWith(named(Config.XMR_NODE_USERNAME)).to(config.xmrNodeUsername);
         bindConstant().annotatedWith(named(Config.XMR_NODE_PASSWORD)).to(config.xmrNodePassword);
-        bindConstant().annotatedWith(named(Config.BTC_NODES)).to(config.btcNodes);
+        bindConstant().annotatedWith(named(Config.XMR_NODES)).to(config.xmrNodes);
         bindConstant().annotatedWith(named(Config.USER_AGENT)).to(config.userAgent);
         bindConstant().annotatedWith(named(Config.NUM_CONNECTIONS_FOR_BTC)).to(config.numConnectionsForBtc);
         bindConstant().annotatedWith(named(Config.USE_ALL_PROVIDED_NODES)).to(config.useAllProvidedNodes);
@@ -89,7 +89,7 @@ public class MoneroModule extends AppModule {
         bind(BtcWalletService.class).in(Singleton.class);
         bind(TradeWalletService.class).in(Singleton.class);
         bind(NonBsqCoinSelector.class).in(Singleton.class);
-        bind(BtcNodes.class).in(Singleton.class);
+        bind(XmrNodes.class).in(Singleton.class);
         bind(Balances.class).in(Singleton.class);
 
         bind(ProvidersRepository.class).in(Singleton.class);

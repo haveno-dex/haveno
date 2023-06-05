@@ -18,8 +18,8 @@
 package haveno.core.xmr.nodes;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.core.xmr.nodes.BtcNodeConverter.Facade;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
+import haveno.core.xmr.nodes.XmrNodeConverter.Facade;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.network.DnsLookupException;
 import org.bitcoinj.core.PeerAddress;
 import org.junit.jupiter.api.Test;
@@ -32,10 +32,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BtcNodeConverterTest {
+public class XmrNodeConverterTest {
     @Test
     public void testConvertOnionHost() {
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.getOnionAddress()).thenReturn("aaa.onion");
 
         //InetAddress inetAddress = mock(InetAddress.class);
@@ -43,7 +43,7 @@ public class BtcNodeConverterTest {
         Facade facade = mock(Facade.class);
         //when(facade.onionHostToInetAddress(any())).thenReturn(inetAddress);
 
-        PeerAddress peerAddress = new BtcNodeConverter(facade).convertOnionHost(node);
+        PeerAddress peerAddress = new XmrNodeConverter(facade).convertOnionHost(node);
         // noinspection ConstantConditions
         assertEquals(node.getOnionAddress(), peerAddress.getHostname());
     }
@@ -52,10 +52,10 @@ public class BtcNodeConverterTest {
     public void testConvertClearNode() {
         final String ip = "192.168.0.1";
 
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.getHostNameOrAddress()).thenReturn(ip);
 
-        PeerAddress peerAddress = new BtcNodeConverter().convertClearNode(node);
+        PeerAddress peerAddress = new XmrNodeConverter().convertClearNode(node);
         // noinspection ConstantConditions
         InetAddress inetAddress = peerAddress.getAddr();
         assertEquals(ip, inetAddress.getHostAddress());
@@ -68,10 +68,10 @@ public class BtcNodeConverterTest {
         Facade facade = mock(Facade.class);
         when(facade.torLookup(any(), anyString())).thenReturn(expected);
 
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.getHostNameOrAddress()).thenReturn("aaa.onion");
 
-        PeerAddress peerAddress = new BtcNodeConverter(facade).convertWithTor(node, mock(Socks5Proxy.class));
+        PeerAddress peerAddress = new XmrNodeConverter(facade).convertWithTor(node, mock(Socks5Proxy.class));
 
         // noinspection ConstantConditions
         assertEquals(expected, peerAddress.getAddr());

@@ -148,7 +148,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             writeLock.unlock();
         }
         if (currentValue != null) {
-            throw new IllegalStateException(String.format("There exists already an connection for \"%s\"", connection.getUri()));
+            throw new IllegalStateException(String.format("There exists already a connection for \"%s\"", connection.getUri()));
         }
         requestPersistence();
     }

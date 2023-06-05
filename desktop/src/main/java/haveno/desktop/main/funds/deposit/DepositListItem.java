@@ -95,7 +95,7 @@ class DepositListItem {
     }
 
     private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs) {
-        numTxsWithOutputs = XmrWalletService.getTxsWithIncomingOutputs(cachedTxs, addressEntry.getSubaddressIndex()).size();
+        numTxsWithOutputs = XmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs).size();
         usage = subaddressIndex == 0 ? "Base address" : numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxsWithOutputs);
     }
 
@@ -143,7 +143,7 @@ class DepositListItem {
     private MoneroTxWallet getTxWithFewestConfirmations(List<MoneroTxWallet> allIncomingTxs) {
 
         // get txs with incoming outputs to subaddress index
-        List<MoneroTxWallet> txs = XmrWalletService.getTxsWithIncomingOutputs(allIncomingTxs, addressEntry.getSubaddressIndex());
+        List<MoneroTxWallet> txs = XmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), allIncomingTxs);
         
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;

@@ -95,7 +95,7 @@ public class WalletAppSetup {
         this.connectionService = connectionService;
         this.config = config;
         this.preferences = preferences;
-        this.useTorForBTC.set(preferences.getUseTorForBitcoinJ());
+        this.useTorForBTC.set(preferences.getUseTorForMonero());
     }
 
     void init(@Nullable Consumer<String> chainFileLockedExceptionHandler,
@@ -259,9 +259,9 @@ public class WalletAppSetup {
 
     private String getBtcNetworkAsString() {
         String postFix;
-        if (config.ignoreLocalBtcNode)
+        if (config.ignoreLocalXmrNode)
             postFix = " " + Res.get("mainView.footer.localhostBitcoinNode");
-        else if (preferences.getUseTorForBitcoinJ())
+        else if (preferences.getUseTorForMonero())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else
             postFix = "";

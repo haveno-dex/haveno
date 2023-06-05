@@ -27,15 +27,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BtcNodesRepository {
-    private final BtcNodeConverter converter;
-    private final List<BtcNodes.BtcNode> nodes;
+public class XmrNodesRepository {
+    private final XmrNodeConverter converter;
+    private final List<XmrNodes.XmrNode> nodes;
 
-    public BtcNodesRepository(List<BtcNodes.BtcNode> nodes) {
-        this(new BtcNodeConverter(), nodes);
+    public XmrNodesRepository(List<XmrNodes.XmrNode> nodes) {
+        this(new XmrNodeConverter(), nodes);
     }
 
-    public BtcNodesRepository(BtcNodeConverter converter, List<BtcNodes.BtcNode> nodes) {
+    public XmrNodesRepository(XmrNodeConverter converter, List<XmrNodes.XmrNode> nodes) {
         this.converter = converter;
         this.nodes = nodes;
     }
@@ -61,21 +61,21 @@ public class BtcNodesRepository {
 
     private List<PeerAddress> getClearNodes() {
         return nodes.stream()
-                .filter(BtcNodes.BtcNode::hasClearNetAddress)
+                .filter(XmrNodes.XmrNode::hasClearNetAddress)
                 .flatMap(node -> nullableAsStream(converter.convertClearNode(node)))
                 .collect(Collectors.toList());
     }
 
     private List<PeerAddress> getOnionHosts() {
         return nodes.stream()
-                .filter(BtcNodes.BtcNode::hasOnionAddress)
+                .filter(XmrNodes.XmrNode::hasOnionAddress)
                 .flatMap(node -> nullableAsStream(converter.convertOnionHost(node)))
                 .collect(Collectors.toList());
     }
 
     private List<PeerAddress> getClearNodesBehindProxy(Socks5Proxy proxy) {
         return nodes.stream()
-                .filter(BtcNodes.BtcNode::hasClearNetAddress)
+                .filter(XmrNodes.XmrNode::hasClearNetAddress)
                 .flatMap(node -> nullableAsStream(converter.convertWithTor(node, proxy)))
                 .collect(Collectors.toList());
     }

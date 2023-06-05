@@ -32,7 +32,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.xmr.MoneroNodeSettings;
-import haveno.core.xmr.nodes.BtcNodes;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
@@ -154,7 +154,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final PersistenceManager<PreferencesPayload> persistenceManager;
     private final Config config;
     private final LocalBitcoinNode localBitcoinNode;
-    private final String btcNodesFromOptions;
+    private final String xmrNodesFromOptions;
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
 
@@ -166,12 +166,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     public Preferences(PersistenceManager<PreferencesPayload> persistenceManager,
                        Config config,
                        LocalBitcoinNode localBitcoinNode,
-                       @Named(Config.BTC_NODES) String btcNodesFromOptions) {
+                       @Named(Config.XMR_NODES) String xmrNodesFromOptions) {
 
         this.persistenceManager = persistenceManager;
         this.config = config;
         this.localBitcoinNode = localBitcoinNode;
-        this.btcNodesFromOptions = btcNodesFromOptions;
+        this.xmrNodesFromOptions = xmrNodesFromOptions;
 
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
@@ -303,16 +303,16 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         dontShowAgainMapAsObservable.putAll(getDontShowAgainMap());
 
         // Override settings with options if set
-        if (config.useTorForBtcOptionSetExplicitly)
-            setUseTorForBitcoinJ(config.useTorForBtc);
+        if (config.useTorForXmrOptionSetExplicitly)
+            setUseTorForMonero(config.useTorForXmr);
 
-        if (btcNodesFromOptions != null && !btcNodesFromOptions.isEmpty()) {
-            if (getBitcoinNodes() != null && !getBitcoinNodes().equals(btcNodesFromOptions)) {
+        if (xmrNodesFromOptions != null && !xmrNodesFromOptions.isEmpty()) {
+            if (getMoneroNodes() != null && !getMoneroNodes().equals(xmrNodesFromOptions)) {
                 log.warn("The Bitcoin node(s) from the program argument and the one(s) persisted in the UI are different. " +
-                        "The Bitcoin node(s) {} from the program argument will be used.", btcNodesFromOptions);
+                        "The Bitcoin node(s) {} from the program argument will be used.", xmrNodesFromOptions);
             }
-            setBitcoinNodes(btcNodesFromOptions);
-            setBitcoinNodesOptionOrdinal(BtcNodes.BitcoinNodesOption.CUSTOM.ordinal());
+            setMoneroNodes(xmrNodesFromOptions);
+            setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.CUSTOM.ordinal());
         }
 
         if (prefPayload.getIgnoreDustThreshold() < Restrictions.getMinNonDustOutput().value) {
@@ -492,8 +492,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         }
     }
 
-    public void setUseTorForBitcoinJ(boolean useTorForBitcoinJ) {
-        prefPayload.setUseTorForBitcoinJ(useTorForBitcoinJ);
+    public void setUseTorForMonero(boolean useTorForMonero) {
+        prefPayload.setUseTorForMonero(useTorForMonero);
         requestPersistence();
     }
 
@@ -577,8 +577,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setBitcoinNodes(String bitcoinNodes) {
-        prefPayload.setBitcoinNodes(bitcoinNodes);
+    public void setMoneroNodes(String bitcoinNodes) {
+        prefPayload.setMoneroNodes(bitcoinNodes);
         requestPersistence();
     }
 
@@ -663,8 +663,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         persistenceManager.forcePersistNow();
     }
 
-    public void setBitcoinNodesOptionOrdinal(int bitcoinNodesOptionOrdinal) {
-        prefPayload.setBitcoinNodesOptionOrdinal(bitcoinNodesOptionOrdinal);
+    public void setMoneroNodesOptionOrdinal(int bitcoinNodesOptionOrdinal) {
+        prefPayload.setMoneroNodesOptionOrdinal(bitcoinNodesOptionOrdinal);
         requestPersistence();
     }
 
@@ -793,18 +793,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return !prefPayload.getDontShowAgainMap().containsKey(key) || !prefPayload.getDontShowAgainMap().get(key);
     }
 
-    public boolean getUseTorForBitcoinJ() {
-        // We override the useTorForBitcoinJ and set it to false if we will use a
-        // localhost Bitcoin node or if we are not on mainnet, unless the useTorForBtc
-        // parameter is explicitly provided. On testnet there are very few Bitcoin tor
-        // nodes and we don't provide tor nodes.
-
-        if ((!Config.baseCurrencyNetwork().isMainnet()
-                || localBitcoinNode.shouldBeUsed())
-                && !config.useTorForBtcOptionSetExplicitly)
-            return false;
-        else
-            return prefPayload.isUseTorForBitcoinJ();
+    public boolean getUseTorForMonero() {
+        return prefPayload.isUseTorForMonero();
     }
 
     public double getBuyerSecurityDepositAsPercent(PaymentAccount paymentAccount) {
@@ -869,7 +859,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setPreferredTradeCurrency(TradeCurrency preferredTradeCurrency);
 
-        void setUseTorForBitcoinJ(boolean useTorForBitcoinJ);
+        void setUseTorForMonero(boolean useTorForMonero);
 
         void setShowOwnOffersInOfferBook(boolean showOwnOffersInOfferBook);
 
@@ -899,7 +889,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setSortMarketCurrenciesNumerically(boolean sortMarketCurrenciesNumerically);
 
-        void setBitcoinNodes(String bitcoinNodes);
+        void setMoneroNodes(String bitcoinNodes);
 
         void setUseCustomWithdrawalTxFee(boolean useCustomWithdrawalTxFee);
 
@@ -931,7 +921,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setCustomBridges(String customBridges);
 
-        void setBitcoinNodesOptionOrdinal(int bitcoinNodesOption);
+        void setMoneroNodesOptionOrdinal(int bitcoinNodesOption);
 
         void setReferralId(String referralId);
 

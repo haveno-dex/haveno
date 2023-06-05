@@ -23,42 +23,41 @@ import haveno.core.user.Preferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 
-public class BtcNodesSetupPreferences {
-    private static final Logger log = LoggerFactory.getLogger(BtcNodesSetupPreferences.class);
+public class XmrNodesSetupPreferences {
+    private static final Logger log = LoggerFactory.getLogger(XmrNodesSetupPreferences.class);
 
     private final Preferences preferences;
 
-    public BtcNodesSetupPreferences(Preferences preferences) {
+    public XmrNodesSetupPreferences(Preferences preferences) {
         this.preferences = preferences;
     }
 
-    public List<BtcNodes.BtcNode> selectPreferredNodes(BtcNodes nodes) {
-        List<BtcNodes.BtcNode> result;
+    public List<XmrNodes.XmrNode> selectPreferredNodes(XmrNodes nodes) {
+        List<XmrNodes.XmrNode> result;
 
-        BtcNodes.BitcoinNodesOption nodesOption = BtcNodes.BitcoinNodesOption.values()[preferences.getBitcoinNodesOptionOrdinal()];
+        XmrNodes.MoneroNodesOption nodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
         switch (nodesOption) {
             case CUSTOM:
-                String bitcoinNodes = preferences.getBitcoinNodes();
+                String bitcoinNodes = preferences.getMoneroNodes();
                 Set<String> distinctNodes = Utilities.commaSeparatedListToSet(bitcoinNodes, false);
-                result = BtcNodes.toBtcNodesList(distinctNodes);
+                result = XmrNodes.toCustomXmrNodesList(distinctNodes);
                 if (result.isEmpty()) {
                     log.warn("Custom nodes is set but no valid nodes are provided. " +
                             "We fall back to provided nodes option.");
-                    preferences.setBitcoinNodesOptionOrdinal(BtcNodes.BitcoinNodesOption.PROVIDED.ordinal());
-                    result = nodes.getProvidedBtcNodes();
+                    preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                    result = nodes.getAllXmrNodes();
                 }
                 break;
             case PUBLIC:
-                result = Collections.emptyList();
+                result = nodes.getPublicXmrNodes();
                 break;
             case PROVIDED:
             default:
-                result = nodes.getProvidedBtcNodes();
+                result = nodes.getAllXmrNodes();
                 break;
         }
 
@@ -66,11 +65,11 @@ public class BtcNodesSetupPreferences {
     }
 
     public boolean isUseCustomNodes() {
-        return BtcNodes.BitcoinNodesOption.CUSTOM.ordinal() == preferences.getBitcoinNodesOptionOrdinal();
+        return XmrNodes.MoneroNodesOption.CUSTOM.ordinal() == preferences.getMoneroNodesOptionOrdinal();
     }
 
-    public int calculateMinBroadcastConnections(List<BtcNodes.BtcNode> nodes) {
-        BtcNodes.BitcoinNodesOption nodesOption = BtcNodes.BitcoinNodesOption.values()[preferences.getBitcoinNodesOptionOrdinal()];
+    public int calculateMinBroadcastConnections(List<XmrNodes.XmrNode> nodes) {
+        XmrNodes.MoneroNodesOption nodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
         int result;
         switch (nodesOption) {
             case CUSTOM:

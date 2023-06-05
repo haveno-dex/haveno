@@ -19,7 +19,7 @@ package haveno.core.xmr.nodes;
 
 import com.google.common.collect.Lists;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import haveno.core.xmr.nodes.BtcNodes.BtcNode;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import org.bitcoinj.core.PeerAddress;
 import org.junit.jupiter.api.Test;
 
@@ -35,14 +35,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class BtcNodesRepositoryTest {
+public class XmrNodesRepositoryTest {
     @Test
     public void testGetPeerAddressesWhenClearNodes() {
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.hasClearNetAddress()).thenReturn(true);
 
-        BtcNodeConverter converter = mock(BtcNodeConverter.class, RETURNS_DEEP_STUBS);
-        BtcNodesRepository repository = new BtcNodesRepository(converter,
+        XmrNodeConverter converter = mock(XmrNodeConverter.class, RETURNS_DEEP_STUBS);
+        XmrNodesRepository repository = new XmrNodesRepository(converter,
                 Collections.singletonList(node));
 
         List<PeerAddress> peers = repository.getPeerAddresses(null, false);
@@ -52,13 +52,13 @@ public class BtcNodesRepositoryTest {
 
     @Test
     public void testGetPeerAddressesWhenConverterReturnsNull() {
-        BtcNodeConverter converter = mock(BtcNodeConverter.class);
+        XmrNodeConverter converter = mock(XmrNodeConverter.class);
         when(converter.convertClearNode(any())).thenReturn(null);
 
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.hasClearNetAddress()).thenReturn(true);
 
-        BtcNodesRepository repository = new BtcNodesRepository(converter,
+        XmrNodesRepository repository = new XmrNodesRepository(converter,
                 Collections.singletonList(node));
 
         List<PeerAddress> peers = repository.getPeerAddresses(null, false);
@@ -69,14 +69,14 @@ public class BtcNodesRepositoryTest {
 
     @Test
     public void testGetPeerAddressesWhenProxyAndClearNodes() {
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.hasClearNetAddress()).thenReturn(true);
 
-        BtcNode onionNode = mock(BtcNode.class);
+        XmrNode onionNode = mock(XmrNode.class);
         when(node.hasOnionAddress()).thenReturn(true);
 
-        BtcNodeConverter converter = mock(BtcNodeConverter.class, RETURNS_DEEP_STUBS);
-        BtcNodesRepository repository = new BtcNodesRepository(converter,
+        XmrNodeConverter converter = mock(XmrNodeConverter.class, RETURNS_DEEP_STUBS);
+        XmrNodesRepository repository = new XmrNodesRepository(converter,
                 Lists.newArrayList(node, onionNode));
 
         List<PeerAddress> peers = repository.getPeerAddresses(mock(Socks5Proxy.class), true);
@@ -86,14 +86,14 @@ public class BtcNodesRepositoryTest {
 
     @Test
     public void testGetPeerAddressesWhenOnionNodesOnly() {
-        BtcNode node = mock(BtcNode.class);
+        XmrNode node = mock(XmrNode.class);
         when(node.hasClearNetAddress()).thenReturn(true);
 
-        BtcNode onionNode = mock(BtcNode.class);
+        XmrNode onionNode = mock(XmrNode.class);
         when(node.hasOnionAddress()).thenReturn(true);
 
-        BtcNodeConverter converter = mock(BtcNodeConverter.class, RETURNS_DEEP_STUBS);
-        BtcNodesRepository repository = new BtcNodesRepository(converter,
+        XmrNodeConverter converter = mock(XmrNodeConverter.class, RETURNS_DEEP_STUBS);
+        XmrNodesRepository repository = new XmrNodesRepository(converter,
                 Lists.newArrayList(node, onionNode));
 
         List<PeerAddress> peers = repository.getPeerAddresses(mock(Socks5Proxy.class), false);

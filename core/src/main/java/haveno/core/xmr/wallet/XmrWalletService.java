@@ -626,6 +626,8 @@ public class XmrWalletService {
         // sync wallet if open
         if (wallet != null) {
             log.info("Monero wallet uri={}, path={}", wallet.getRpcConnection().getUri(), wallet.getPath());
+            int numAttempts = 0;
+            int maxAttempts = 2;
             while (!HavenoUtils.havenoSetup.getWalletInitialized().get()) {
                 try {
                 
@@ -648,8 +650,17 @@ public class XmrWalletService {
                     // save but skip backup on initialization
                     saveMainWallet(false);
                 } catch (Exception e) {
-                    log.warn("Error syncing main wallet: {}. Trying again in {} seconds", e.getMessage(), connectionsService.getRefreshPeriodMs() / 1000);
-                    GenUtils.waitFor(connectionsService.getRefreshPeriodMs());
+                    log.warn("Error syncing main wallet: {}", e.getMessage());
+                    numAttempts++;
+                    if (numAttempts < maxAttempts) {
+                        log.warn("Trying again in {} seconds", connectionsService.getRefreshPeriodMs() / 1000);
+                        GenUtils.waitFor(connectionsService.getRefreshPeriodMs());
+                    } else {
+                        log.warn("Failed to sync main wallet after {} attempts. Opening app without syncing", maxAttempts);
+                        HavenoUtils.havenoSetup.getWalletInitialized().set(true);
+                        saveMainWallet(false);
+                        break;
+                    }
                 }
             }
             
@@ -735,9 +746,10 @@ public class XmrWalletService {
         if (connection != null) {
             cmd.add("--daemon-address");
             cmd.add(connection.getUri());
-            if (connection.isOnion() && connection.getProxyUri() != null) {
+            if (connection.getProxyUri() != null) {
                 cmd.add("--proxy");
                 cmd.add(connection.getProxyUri());
+                if (!connection.isOnion()) cmd.add("--daemon-ssl-allow-any-cert"); // necessary to use proxy with clearnet mmonerod
             }
             if (connection.getUsername() != null) {
                 cmd.add("--daemon-login");
@@ -1015,10 +1027,10 @@ public class XmrWalletService {
 
     public List<MoneroTxWallet> getTxsWithIncomingOutputs(Integer subaddressIndex) {
         List<MoneroTxWallet> txs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
-        return getTxsWithIncomingOutputs(txs, subaddressIndex);
+        return getTxsWithIncomingOutputs(subaddressIndex, txs);
     }
 
-    public static List<MoneroTxWallet> getTxsWithIncomingOutputs(List<MoneroTxWallet> txs, Integer subaddressIndex) {
+    public static List<MoneroTxWallet> getTxsWithIncomingOutputs(Integer subaddressIndex, List<MoneroTxWallet> txs) {
         List<MoneroTxWallet> incomingTxs = new ArrayList<>();
         for (MoneroTxWallet tx : txs) {
             boolean isIncoming = false;
