@@ -59,7 +59,7 @@ btc-blocks:
 
 # Local network
 
-monerod-local1:
+monerod1-local:
 	./.localnet/monerod \
 		--testnet \
 		--no-igd \
@@ -73,7 +73,7 @@ monerod-local1:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 400
 
-monerod-local2:
+monerod2-local:
 	./.localnet/monerod \
 		--testnet \
 		--no-igd \
