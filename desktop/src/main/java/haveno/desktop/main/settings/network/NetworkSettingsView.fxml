@@ -90,8 +90,8 @@
     </VBox>
 
     <VBox GridPane.rowIndex="4">
-        <AutoTooltipLabel fx:id="reSyncSPVChainLabel" styleClass="small-text"/>
-        <AutoTooltipButton fx:id="reSyncSPVChainButton"/>
+        <AutoTooltipLabel fx:id="rescanOutputsLabel" styleClass="small-text"/>
+        <AutoTooltipButton fx:id="rescanOutputsButton"/>
     </VBox>
 
     <TitledGroupBg fx:id="p2pHeader" GridPane.rowIndex="5" GridPane.rowSpan="5">

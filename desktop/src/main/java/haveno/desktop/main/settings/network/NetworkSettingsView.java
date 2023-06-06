@@ -97,9 +97,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     TableColumn<MoneroNetworkListItem, String> moneroPeerAddressColumn, moneroPeerVersionColumn,
             moneroPeerSubVersionColumn, moneroPeerHeightColumn;
     @FXML
-    Label reSyncSPVChainLabel;
+    Label rescanOutputsLabel;
     @FXML
-    AutoTooltipButton reSyncSPVChainButton, openTorSettingsButton;
+    AutoTooltipButton rescanOutputsButton, openTorSettingsButton;
 
     private final Preferences preferences;
     private final XmrNodes xmrNodes;
@@ -167,8 +167,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         useProvidedNodesRadio.setText(Res.get("settings.net.useProvidedNodesRadio"));
         useCustomNodesRadio.setText(Res.get("settings.net.useCustomNodesRadio"));
         usePublicNodesRadio.setText(Res.get("settings.net.usePublicNodesRadio"));
-        reSyncSPVChainLabel.setText(Res.get("settings.net.reSyncSPVChainLabel"));
-        reSyncSPVChainButton.updateText(Res.get("settings.net.reSyncSPVChainButton"));
+        rescanOutputsLabel.setText(Res.get("settings.net.rescanOutputsLabel"));
+        rescanOutputsButton.updateText(Res.get("settings.net.rescanOutputsButton"));
         p2PPeersLabel.setText(Res.get("settings.net.p2PPeersLabel"));
         onionAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
         onionAddressColumn.getStyleClass().add("first-column");
@@ -183,6 +183,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         peerTypeColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.peerTypeColumn")));
         peerTypeColumn.getStyleClass().add("last-column");
         openTorSettingsButton.updateText(Res.get("settings.net.openTorSettingsButton"));
+
+        // TODO: hiding button to rescan outputs until supported
+        rescanOutputsLabel.setVisible(false);
+        rescanOutputsButton.setVisible(false);
 
         GridPane.setMargin(moneroPeersLabel, new Insets(4, 0, 0, 0));
         GridPane.setValignment(moneroPeersLabel, VPos.TOP);
@@ -283,7 +287,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             }
         });
 
-        reSyncSPVChainButton.setOnAction(event -> GUIUtil.reSyncSPVChain(preferences));
+        rescanOutputsButton.setOnAction(event -> GUIUtil.rescanOutputs(preferences));
 
         moneroPeersSubscription = EasyBind.subscribe(connectionManager.peerConnectionsProperty(),
                 this::updateMoneroPeersTable);

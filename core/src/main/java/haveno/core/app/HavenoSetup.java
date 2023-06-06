@@ -98,7 +98,6 @@ import java.util.function.Consumer;
 @Singleton
 public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
-    private static final String RESYNC_SPV_FILE_NAME = "resyncSpv";
 
     private static final long STARTUP_TIMEOUT_MINUTES = 5;
 
@@ -132,8 +131,8 @@ public class HavenoSetup {
     @Setter
     @Nullable
     private Consumer<String> chainFileLockedExceptionHandler,
-            spvFileCorruptedHandler, lockedUpFundsHandler,
-            filterWarningHandler, displaySecurityRecommendationHandler, displayLocalhostHandler,
+            lockedUpFundsHandler, filterWarningHandler,
+            displaySecurityRecommendationHandler, displayLocalhostHandler,
             wrongOSArchitectureHandler, displaySignedByArbitratorHandler,
             displaySignedByPeerHandler, displayPeerLimitLiftedHandler, displayPeerSignerHandler,
             rejectedTxErrorMessageHandler;
@@ -291,7 +290,6 @@ public class HavenoSetup {
         }
 
         persistHavenoVersion();
-        maybeReSyncSPVChain();
         maybeShowTac(this::step2);
     }
 
@@ -325,19 +323,6 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Sub tasks
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void maybeReSyncSPVChain() {
-        // We do the delete of the spv file at startup before BitcoinJ is initialized to avoid issues with locked files under Windows.
-        if (getResyncSpvSemaphore()) {
-            try {
-                walletsSetup.reSyncSPVChain();
-
-            } catch (IOException e) {
-                log.error(e.toString());
-                e.printStackTrace();
-            }
-        }
-    }
 
     private void maybeShowTac(Runnable nextStep) {
         if (!preferences.isTacAcceptedV120() && !DevEnv.isDevMode()) {
@@ -430,8 +415,6 @@ public class HavenoSetup {
         log.info("Init wallet");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         walletAppSetup.init(chainFileLockedExceptionHandler,
-                spvFileCorruptedHandler,
-                getResyncSpvSemaphore(),
                 showFirstPopupIfResyncSPVRequestedHandler,
                 showPopupIfInvalidBtcConfigHandler,
                 () -> {
@@ -531,32 +514,6 @@ public class HavenoSetup {
         }
         return null;
     }
-
-    public static boolean getResyncSpvSemaphore() {
-        File resyncSpvSemaphore = new File(Config.appDataDir(), RESYNC_SPV_FILE_NAME);
-        return resyncSpvSemaphore.exists();
-    }
-
-    public static void setResyncSpvSemaphore(boolean isResyncSpvRequested) {
-        File resyncSpvSemaphore = new File(Config.appDataDir(), RESYNC_SPV_FILE_NAME);
-        if (isResyncSpvRequested) {
-            if (!resyncSpvSemaphore.exists()) {
-                try {
-                    if (!resyncSpvSemaphore.createNewFile()) {
-                        log.error("ResyncSpv file could not be created");
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    log.error("ResyncSpv file could not be created. {}", e.toString());
-                }
-            }
-        } else {
-            resyncSpvSemaphore.delete();
-        }
-    }
-
-
-
 
     private static File getVersionFile() {
         return new File(Config.appDataDir(), VERSION_FILE_NAME);

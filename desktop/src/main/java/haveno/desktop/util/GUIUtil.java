@@ -39,7 +39,6 @@ import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreMoneroConnectionsService;
-import haveno.core.app.HavenoSetup;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CurrencyUtil;
@@ -56,7 +55,6 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
-import haveno.desktop.app.HavenoApp;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.components.InfoAutoTooltipLabel;
@@ -118,7 +116,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -766,19 +763,18 @@ public class GUIUtil {
         UserThread.execute(node::requestFocus);
     }
 
-    public static void reSyncSPVChain(Preferences preferences) {
+    public static void rescanOutputs(Preferences preferences) {
         try {
-            new Popup().information(Res.get("settings.net.reSyncSPVSuccess"))
-                    .useShutDownButton()
-                    .actionButtonText(Res.get("shared.shutDown"))
+            new Popup().information(Res.get("settings.net.rescanOutputsSuccess"))
+                    .actionButtonText(Res.get("shared.yes"))
                     .onAction(() -> {
-                        HavenoSetup.setResyncSpvSemaphore(true);
-                        UserThread.runAfter(HavenoApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
+                        throw new RuntimeException("Rescanning wallet outputs not yet implemented");
+                        //UserThread.runAfter(HavenoApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
                     })
                     .closeButtonText(Res.get("shared.cancel"))
                     .show();
         } catch (Throwable t) {
-            new Popup().error(Res.get("settings.net.reSyncSPVFailed", t)).show();
+            new Popup().error(Res.get("settings.net.rescanOutputsFailed", t)).show();
         }
     }
 

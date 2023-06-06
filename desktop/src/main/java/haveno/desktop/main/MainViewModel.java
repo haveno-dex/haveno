@@ -328,16 +328,11 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 torNetworkSettingsWindow.hide();
             }
         });
-        havenoSetup.setSpvFileCorruptedHandler(msg -> new Popup().warning(msg)
-                .actionButtonText(Res.get("settings.net.reSyncSPVChainButton"))
-                .onAction(() -> GUIUtil.reSyncSPVChain(preferences))
-                .show());
 
         havenoSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
                 .show());
         havenoSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
-        havenoSetup.setShowFirstPopupIfResyncSPVRequestedHandler(this::showFirstPopupIfResyncSPVRequested);
 
         havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))
@@ -529,28 +524,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 getWalletServiceErrorMsg().set(null);
             }
         });
-    }
-
-    private void showFirstPopupIfResyncSPVRequested() {
-        Popup firstPopup = new Popup();
-        firstPopup.information(Res.get("settings.net.reSyncSPVAfterRestart")).show();
-        if (havenoSetup.getBtcSyncProgress().get() == 1) {
-            showSecondPopupIfResyncSPVRequested(firstPopup);
-        } else {
-            havenoSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> {
-                if ((double) newValue == 1)
-                    showSecondPopupIfResyncSPVRequested(firstPopup);
-            });
-        }
-    }
-
-    private void showSecondPopupIfResyncSPVRequested(Popup firstPopup) {
-        firstPopup.hide();
-        HavenoSetup.setResyncSpvSemaphore(false);
-        new Popup().information(Res.get("settings.net.reSyncSPVAfterRestartCompleted"))
-                .hideCloseButton()
-                .useShutDownButton()
-                .show();
     }
 
     private void showPopupIfInvalidBtcConfig() {
