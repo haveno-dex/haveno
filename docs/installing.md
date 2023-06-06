@@ -70,8 +70,8 @@ If you are a developer who wants to test Haveno in a more controlled way, follow
 
 ## Run a local XMR testnet
 
-1. In a new terminal window run `make monerod-local1`
-1. In a new terminal window run `make monerod-local2`
+1. In a new terminal window run `make monerod1-local`
+1. In a new terminal window run `make monerod2-local`
 3. Now mine the first 150 blocks to a random address before using, so wallets only use the latest output type. Run in one of the terminal windows opened above:
 
 `start_mining 9tsUiG9bwcU7oTbAdBwBk2PzxFtysge5qcEsHEpetmEKgerHQa1fDqH7a4FiquZmms7yM22jdifVAD7jAb2e63GSJMuhY75 1`
