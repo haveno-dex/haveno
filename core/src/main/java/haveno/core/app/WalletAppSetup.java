@@ -99,8 +99,6 @@ public class WalletAppSetup {
     }
 
     void init(@Nullable Consumer<String> chainFileLockedExceptionHandler,
-              @Nullable Consumer<String> spvFileCorruptedHandler,
-              boolean isSpvResyncRequested,
               @Nullable Runnable showFirstPopupIfResyncSPVRequestedHandler,
               @Nullable Runnable showPopupIfInvalidBtcConfigHandler,
               Runnable downloadCompleteHandler,
@@ -149,8 +147,6 @@ public class WalletAppSetup {
                         } else if (exception.getCause() instanceof BlockStoreException) {
                             if (exception.getCause().getCause() instanceof ChainFileLockedException && chainFileLockedExceptionHandler != null) {
                                 chainFileLockedExceptionHandler.accept(Res.get("popup.warning.startupFailed.twoInstances"));
-                            } else if (spvFileCorruptedHandler != null) {
-                                spvFileCorruptedHandler.accept(Res.get("error.spvFileCorrupted", exception.getMessage()));
                             }
                         } else if (exception instanceof RejectedTxException) {
                             rejectedTxException.set((RejectedTxException) exception);
