@@ -40,7 +40,7 @@ public class CreateMakerFeeTx extends Task<PlaceOfferModel> {
 
     @Override
     protected void run() {
-        Offer offer = model.getOffer();
+        Offer offer = model.getOpenOffer().getOffer();
 
         try {
             runInterceptHook();

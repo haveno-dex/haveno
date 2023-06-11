@@ -285,6 +285,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     public BigInteger getReserveAmount() {
         BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
         if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
+        reserveAmount = reserveAmount.add(getMakerFee());
         return reserveAmount;
     }
 

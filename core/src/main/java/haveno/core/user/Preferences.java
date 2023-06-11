@@ -497,6 +497,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setSplitOfferOutput(boolean splitOfferOutput) {
+        prefPayload.setSplitOfferOutput(splitOfferOutput);
+        requestPersistence();
+    }
+
     public void setShowOwnOffersInOfferBook(boolean showOwnOffersInOfferBook) {
         prefPayload.setShowOwnOffersInOfferBook(showOwnOffersInOfferBook);
         requestPersistence();
@@ -797,6 +802,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return prefPayload.isUseTorForMonero();
     }
 
+    public boolean getSplitOfferOutput() {
+        return prefPayload.isSplitOfferOutput();
+    }
+
     public double getBuyerSecurityDepositAsPercent(PaymentAccount paymentAccount) {
         double value = PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount) ?
                 prefPayload.getBuyerSecurityDepositAsPercentForCrypto() : prefPayload.getBuyerSecurityDepositAsPercent();
@@ -860,6 +869,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setPreferredTradeCurrency(TradeCurrency preferredTradeCurrency);
 
         void setUseTorForMonero(boolean useTorForMonero);
+
+        void setSplitOfferOutput(boolean splitOfferOutput);
 
         void setShowOwnOffersInOfferBook(boolean showOwnOffersInOfferBook);
 

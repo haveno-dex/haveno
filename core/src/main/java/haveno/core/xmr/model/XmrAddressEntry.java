@@ -39,12 +39,10 @@ import java.util.Optional;
 public final class XmrAddressEntry implements PersistablePayload {
     public enum Context {
         ARBITRATOR,
+        BASE_ADDRESS,
         AVAILABLE,
         OFFER_FUNDING,
-        RESERVED_FOR_TRADE,
-        MULTI_SIG,
-        TRADE_PAYOUT,
-        BASE_ADDRESS
+        TRADE_PAYOUT
     }
 
     // keyPair can be null in case the object is created from deserialization as it is transient.
@@ -120,11 +118,11 @@ public final class XmrAddressEntry implements PersistablePayload {
     }
 
     public boolean isOpenOffer() {
-        return context == Context.OFFER_FUNDING || context == Context.RESERVED_FOR_TRADE;
+        return context == Context.OFFER_FUNDING;
     }
 
     public boolean isTrade() {
-        return context == Context.MULTI_SIG || context == Context.TRADE_PAYOUT;
+        return context == Context.TRADE_PAYOUT;
     }
 
     public boolean isTradable() {

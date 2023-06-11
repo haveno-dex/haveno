@@ -59,6 +59,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private Map<String, Boolean> dontShowAgainMap = new HashMap<>();
     private boolean tacAccepted;
     private boolean useTorForMonero = true;
+    private boolean splitOfferOutput = false;
     private boolean showOwnOffersInOfferBook = true;
     @Nullable
     private TradeCurrency preferredTradeCurrency;
@@ -161,6 +162,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .putAllDontShowAgainMap(dontShowAgainMap)
                 .setTacAccepted(tacAccepted)
                 .setUseTorForMonero(useTorForMonero)
+                .setSplitOfferOutput(splitOfferOutput)
                 .setShowOwnOffersInOfferBook(showOwnOffersInOfferBook)
                 .setWithdrawalTxFeeInVbytes(withdrawalTxFeeInVbytes)
                 .setUseCustomWithdrawalTxFee(useCustomWithdrawalTxFee)
@@ -243,6 +245,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 Maps.newHashMap(proto.getDontShowAgainMapMap()),
                 proto.getTacAccepted(),
                 proto.getUseTorForMonero(),
+                proto.getSplitOfferOutput(),
                 proto.getShowOwnOffersInOfferBook(),
                 proto.hasPreferredTradeCurrency() ? TradeCurrency.fromProto(proto.getPreferredTradeCurrency()) : null,
                 proto.getWithdrawalTxFeeInVbytes(),

@@ -53,7 +53,7 @@ public final class OpenOffer implements Tradable {
     private State state;
     @Setter
     @Getter
-    private boolean autoSplit;
+    private boolean splitOutput;
     @Setter
     @Getter
     @Nullable
@@ -62,6 +62,10 @@ public final class OpenOffer implements Tradable {
     @Getter
     @Nullable
     private List<String> scheduledTxHashes;
+    @Setter
+    @Getter
+    @Nullable
+    String splitOutputTxHash;
     @Nullable
     @Setter
     @Getter
@@ -92,10 +96,10 @@ public final class OpenOffer implements Tradable {
         this(offer, triggerPrice, false);
     }
 
-    public OpenOffer(Offer offer, long triggerPrice, boolean autoSplit) {
+    public OpenOffer(Offer offer, long triggerPrice, boolean splitOutput) {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
-        this.autoSplit = autoSplit;
+        this.splitOutput = splitOutput;
         state = State.SCHEDULED;
     }
 
@@ -106,17 +110,19 @@ public final class OpenOffer implements Tradable {
     private OpenOffer(Offer offer,
                       State state,
                       long triggerPrice,
-                      boolean autoSplit,
+                      boolean splitOutput,
                       @Nullable String scheduledAmount,
                       @Nullable List<String> scheduledTxHashes,
+                      String splitOutputTxHash,
                       @Nullable String reserveTxHash,
                       @Nullable String reserveTxHex,
                       @Nullable String reserveTxKey) {
         this.offer = offer;
         this.state = state;
         this.triggerPrice = triggerPrice;
-        this.autoSplit = autoSplit;
+        this.splitOutput = splitOutput;
         this.scheduledTxHashes = scheduledTxHashes;
+        this.splitOutputTxHash = splitOutputTxHash;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
@@ -131,10 +137,11 @@ public final class OpenOffer implements Tradable {
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
                 .setState(protobuf.OpenOffer.State.valueOf(state.name()))
-                .setAutoSplit(autoSplit);
+                .setSplitOutput(splitOutput);
 
         Optional.ofNullable(scheduledAmount).ifPresent(e -> builder.setScheduledAmount(scheduledAmount));
         Optional.ofNullable(scheduledTxHashes).ifPresent(e -> builder.addAllScheduledTxHashes(scheduledTxHashes));
+        Optional.ofNullable(splitOutputTxHash).ifPresent(e -> builder.setSplitOutputTxHash(splitOutputTxHash));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
@@ -146,9 +153,10 @@ public final class OpenOffer implements Tradable {
         OpenOffer openOffer = new OpenOffer(Offer.fromProto(proto.getOffer()),
                 ProtoUtil.enumFromProto(OpenOffer.State.class, proto.getState().name()),
                 proto.getTriggerPrice(),
-                proto.getAutoSplit(),
+                proto.getSplitOutput(),
                 proto.getScheduledAmount(),
                 proto.getScheduledTxHashesList(),
+                ProtoUtil.stringOrNullFromProto(proto.getSplitOutputTxHash()),
                 proto.getReserveTxHash(),
                 proto.getReserveTxHex(),
                 proto.getReserveTxKey());

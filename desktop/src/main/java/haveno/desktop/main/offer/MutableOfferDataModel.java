@@ -128,6 +128,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private final Predicate<ObjectProperty<Volume>> isNonZeroVolume = (v) -> v.get() != null && !v.get().isZero();
     @Getter
     protected long triggerPrice;
+    @Getter
+    protected boolean splitOutput;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -164,6 +166,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         offerId = OfferUtil.getRandomOfferId();
         shortOfferId = Utilities.getShortId(offerId);
         addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
+
+        splitOutput = preferences.getSplitOfferOutput();
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
         buyerSecurityDepositPct.set(Restrictions.getMinBuyerSecurityDepositAsPercent());
@@ -295,6 +299,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         openOfferManager.placeOffer(offer,
                 useSavingsWallet,
                 triggerPrice,
+                splitOutput,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -457,6 +462,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         } else {
             return 0;
         }
+    }
+
+    public boolean hasAvailableSplitOutput() {
+        BigInteger reserveAmount = totalToPay.get();
+        return openOfferManager.hasAvailableOutput(reserveAmount);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -670,6 +680,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public void setTriggerPrice(long triggerPrice) {
         this.triggerPrice = triggerPrice;
+    }
+
+    public void setSplitOutput(boolean splitOutput) {
+        this.splitOutput = splitOutput;
     }
 
     public boolean isUsingRoundedAtmCashAccount() {

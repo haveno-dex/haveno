@@ -1303,12 +1303,10 @@ message XmrAddressEntry {
     enum Context {
         PB_ERROR = 0;
         ARBITRATOR = 1;
-        AVAILABLE = 2;
-        OFFER_FUNDING = 3;
-        RESERVED_FOR_TRADE = 4;
-        MULTI_SIG = 5;
-        TRADE_PAYOUT = 6;
-        BASE_ADDRESS = 7;
+        BASE_ADDRESS = 2;
+        AVAILABLE = 3;
+        OFFER_FUNDING = 4;
+        TRADE_PAYOUT = 5;
     }
 
 	int32 subaddress_index = 7;
@@ -1379,12 +1377,13 @@ message OpenOffer {
     Offer offer = 1;
     State state = 2;
     int64 trigger_price = 3;
-    bool auto_split = 4;
+    bool split_output = 4;
     repeated string scheduled_tx_hashes = 5;
     string scheduled_amount = 6; // BigInteger
-    string reserve_tx_hash = 7;
-    string reserve_tx_hex = 8;
-    string reserve_tx_key = 9;
+    string split_output_tx_hash = 7;
+    string reserve_tx_hash = 8;
+    string reserve_tx_hex = 9;
+    string reserve_tx_key = 10;
 }
 
 message Tradable {
@@ -1711,6 +1710,7 @@ message PreferencesPayload {
     int32 clear_data_after_days = 59;
     string buy_screen_crypto_currency_code = 60;
     string sell_screen_crypto_currency_code = 61;
+    bool split_offer_output = 62;
 }
 
 message AutoConfirmSettings {

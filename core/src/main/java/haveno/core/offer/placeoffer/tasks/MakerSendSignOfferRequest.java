@@ -55,14 +55,14 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
 
     @Override
     protected void run() {
-        Offer offer = model.getOffer();
+        Offer offer = model.getOpenOffer().getOffer();
         try {
             runInterceptHook();
 
             // create request for arbitrator to sign offer
-            String returnAddress = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.RESERVED_FOR_TRADE).get().getAddressString();
+            String returnAddress = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString();
             SignOfferRequest request = new SignOfferRequest(
-                    model.getOffer().getId(),
+                    offer.getId(),
                     P2PService.getMyNodeAddress(),
                     model.getKeyRing().getPubKeyRing(),
                     model.getUser().getAccountId(),
@@ -113,8 +113,8 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                 if (!ackMessage.getSourceUid().equals(request.getUid())) return;
                 if (ackMessage.isSuccess()) {
                     model.getP2PService().removeDecryptedDirectMessageListener(this);
-                    model.getOffer().getOfferPayload().setArbitratorSigner(arbitratorNodeAddress);
-                    model.getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
+                    model.getOpenOffer().getOffer().getOfferPayload().setArbitratorSigner(arbitratorNodeAddress);
+                    model.getOpenOffer().getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
                     resultHandler.handleResult();
                  } else {
                      errorMessageHandler.handleErrorMessage("Arbitrator nacked SignOfferRequest for offer " + request.getOfferId() + ": " + ackMessage.getErrorMessage());
@@ -127,7 +127,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
         sendSignOfferRequest(request, arbitratorNodeAddress, new SendDirectMessageListener() {
             @Override
             public void onArrived() {
-                log.info("{} arrived at arbitrator: offerId={}", request.getClass().getSimpleName(), model.getOffer().getId());
+                log.info("{} arrived at arbitrator: offerId={}", request.getClass().getSimpleName(), model.getOpenOffer().getId());
             }
 
             // if unavailable, try alternative arbitrator

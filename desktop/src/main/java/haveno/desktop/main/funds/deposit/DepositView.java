@@ -312,9 +312,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
 
         // add available address entries and base address
-        xmrWalletService.getAvailableAddressEntries()
-                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, txsWithIncomingOutputs)));
-        xmrWalletService.getAddressEntries(XmrAddressEntry.Context.BASE_ADDRESS)
+        xmrWalletService.getAddressEntries()
                 .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, txsWithIncomingOutputs)));
     }
 

@@ -82,6 +82,7 @@ class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
             triggerPrice.set("");
         }
         onTriggerPriceTextFieldChanged();
+        onSplitOutputCheckboxChanged();
     }
 
     public void applyOpenOffer(OpenOffer openOffer) {

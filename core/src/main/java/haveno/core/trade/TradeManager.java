@@ -123,6 +123,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final CoreNotificationService notificationService;
     private final OfferBookService offerBookService;
+    @Getter
     private final OpenOfferManager openOfferManager;
     private final ClosedTradableManager closedTradableManager;
     private final FailedTradesManager failedTradesManager;
@@ -1093,8 +1094,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (entries == null)
             return false;
 
-        xmrWalletService.recoverAddressEntry(trade.getId(), entries.first,
-                XmrAddressEntry.Context.MULTI_SIG);
         xmrWalletService.recoverAddressEntry(trade.getId(), entries.second,
                 XmrAddressEntry.Context.TRADE_PAYOUT);
         return true;
