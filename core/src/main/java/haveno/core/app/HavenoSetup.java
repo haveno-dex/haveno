@@ -779,4 +779,8 @@ public class HavenoSetup {
     public BooleanProperty getWalletInitialized() {
         return walletInitialized;
     }
+
+    public AppStartupState getAppStartupState() {
+        return appStartupState;
+    }
 }

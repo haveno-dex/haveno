@@ -88,7 +88,6 @@ import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-import org.fxmisc.easybind.monadic.MonadicBinding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -450,13 +449,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // process after all wallets initialized
             if (HavenoUtils.havenoSetup != null) { // null for seednode
-                MonadicBinding<Boolean> walletsInitialized = EasyBind.combine(HavenoUtils.havenoSetup.getWalletInitialized(), persistedTradesInitialized, (a, b) -> a && b);
-                walletsInitialized.subscribe((observable, oldValue, newValue) -> {
-                    if (!newValue) return;
-    
+
+                // TODO: this subscription fails to fire about 50% on startup
+                // MonadicBinding<Boolean> walletsInitialized = EasyBind.combine(HavenoUtils.havenoSetup.getWalletInitialized(), persistedTradesInitialized, (a, b) -> a && b);
+                // walletsInitialized.subscribe((observable, oldValue, newValue) -> {}
+
+                EasyBind.subscribe(HavenoUtils.havenoSetup.getAppStartupState().applicationFullyInitializedProperty(), appInitialized -> {
+                    if (!appInitialized) return;
+
                     // thaw unreserved outputs
                     thawUnreservedOutputs();
-    
+
                     // reset any available funded address entries
                     xmrWalletService.getAddressEntriesForAvailableBalanceStream()
                             .filter(addressEntry -> addressEntry.getOfferId() != null)
