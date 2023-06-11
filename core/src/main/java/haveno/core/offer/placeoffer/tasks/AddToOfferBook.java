@@ -34,20 +34,20 @@ public class AddToOfferBook extends Task<PlaceOfferModel> {
     protected void run() {
         try {
             runInterceptHook();
-            checkNotNull(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature(), "Offer's arbitrator signature is null: " + model.getOffer().getId());
+            checkNotNull(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature(), "Offer's arbitrator signature is null: " + model.getOpenOffer().getOffer().getId());
             model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
                     () -> {
                         model.setOfferAddedToOfferBook(true);
                         complete();
                     },
                     errorMessage -> {
-                        model.getOffer().setErrorMessage("Could not add offer to offerbook.\n" +
+                        model.getOpenOffer().getOffer().setErrorMessage("Could not add offer to offerbook.\n" +
                                 "Please check your network connection and try again.");
 
                         failed(errorMessage);
                     });
         } catch (Throwable t) {
-            model.getOffer().setErrorMessage("An error occurred.\n" +
+            model.getOpenOffer().getOffer().setErrorMessage("An error occurred.\n" +
                     "Error message:\n"
                     + t.getMessage());
 

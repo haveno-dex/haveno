@@ -84,17 +84,17 @@ public class PlaceOfferProtocol {
     
     // TODO (woodser): switch to fluent
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
-      log.debug("handleSignOfferResponse() " + model.getOffer().getId());
+      log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
       model.setSignOfferResponse(response);
 
-      if (!model.getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
+      if (!model.getOpenOffer().getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
           log.warn("Ignoring sign offer response from different sender");
           return;
       }
 
       // ignore if timer already stopped
       if (timeoutTimer == null) {
-          log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOffer().getId());
+          log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
           return;
       }
 
@@ -112,7 +112,7 @@ public class PlaceOfferProtocol {
               },
               (errorMessage) -> {
                   if (model.isOfferAddedToOfferBook()) {
-                      model.getOfferBookService().removeOffer(model.getOffer().getOfferPayload(),
+                      model.getOfferBookService().removeOffer(model.getOpenOffer().getOffer().getOfferPayload(),
                               () -> {
                                   model.setOfferAddedToOfferBook(false);
                                   log.debug("OfferPayload removed from offer book.");
@@ -141,7 +141,7 @@ public class PlaceOfferProtocol {
         if (timeoutTimer != null) {
             log.error(errorMessage);
             stopTimeoutTimer();
-            model.getOffer().setErrorMessage(errorMessage);
+            model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
             errorMessageHandler.handleErrorMessage(errorMessage);
         }
     }

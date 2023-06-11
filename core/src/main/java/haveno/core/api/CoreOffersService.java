@@ -165,6 +165,7 @@ public class CoreOffersService {
                              long minAmountAsLong,
                              double buyerSecurityDeposit,
                              String triggerPriceAsString,
+                             boolean splitOutput,
                              String paymentAccountId,
                              Consumer<Offer> resultHandler,
                              ErrorMessageHandler errorMessageHandler) {
@@ -200,6 +201,7 @@ public class CoreOffersService {
         placeOffer(offer,
                 triggerPriceAsString,
                 useSavingsWallet,
+                splitOutput,
                 transaction -> resultHandler.accept(offer),
                 errorMessageHandler);
     }
@@ -269,12 +271,14 @@ public class CoreOffersService {
     private void placeOffer(Offer offer,
                             String triggerPriceAsString,
                             boolean useSavingsWallet,
+                            boolean splitOutput,
                             Consumer<Transaction> resultHandler,
                             ErrorMessageHandler errorMessageHandler) {
         long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCurrencyCode());
         openOfferManager.placeOffer(offer,
                 useSavingsWallet,
                 triggerPriceAsLong,
+                splitOutput,
                 resultHandler::accept,
                 errorMessageHandler);
     }

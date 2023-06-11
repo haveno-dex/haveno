@@ -21,8 +21,8 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.taskrunner.Model;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
-import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
@@ -44,7 +44,7 @@ import java.math.BigInteger;
 @Getter
 public class PlaceOfferModel implements Model {
     // Immutable
-    private final Offer offer;
+    private final OpenOffer openOffer;
     private final BigInteger reservedFundsForOffer;
     private final boolean useSavingsWallet;
     private final P2PService p2PService;
@@ -72,7 +72,7 @@ public class PlaceOfferModel implements Model {
     @Setter
     private SignOfferResponse signOfferResponse;
 
-    public PlaceOfferModel(Offer offer,
+    public PlaceOfferModel(OpenOffer openOffer,
                            BigInteger reservedFundsForOffer,
                            boolean useSavingsWallet,
                            P2PService p2PService,
@@ -87,7 +87,7 @@ public class PlaceOfferModel implements Model {
                            KeyRing keyRing,
                            FilterManager filterManager,
                            AccountAgeWitnessService accountAgeWitnessService) {
-        this.offer = offer;
+        this.openOffer = openOffer;
         this.reservedFundsForOffer = reservedFundsForOffer;
         this.useSavingsWallet = useSavingsWallet;
         this.p2PService = p2PService;

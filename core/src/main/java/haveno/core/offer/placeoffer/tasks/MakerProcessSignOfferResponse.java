@@ -33,7 +33,7 @@ public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
 
     @Override
     protected void run() {
-        Offer offer = model.getOffer();
+        Offer offer = model.getOpenOffer().getOffer();
         try {
             runInterceptHook();
             
@@ -46,7 +46,7 @@ public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
             }
             
             // set arbitrator signature for maker's offer
-            model.getOffer().getOfferPayload().setArbitratorSignature(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature());
+            offer.getOfferPayload().setArbitratorSignature(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature());
             offer.setState(Offer.State.AVAILABLE);
             complete();
         } catch (Exception e) {
