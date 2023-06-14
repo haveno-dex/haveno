@@ -68,10 +68,17 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
@@ -108,6 +115,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     private ChangeListener<String> filterTextFieldListener;
     private PortfolioView.OpenOfferActionHandler openOfferActionHandler;
     private ChangeListener<Number> widthListener;
+
+    private Map<String, Subscription> offerStateSubscriptions = new HashMap<String, Subscription>();
 
     @Inject
     public OpenOffersView(OpenOffersViewModel model, Navigation navigation, OfferDetailsWindow offerDetailsWindow) {
@@ -285,16 +294,24 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         root.widthProperty().removeListener(widthListener);
     }
 
+    private void refresh() {
+        tableView.refresh();
+        updateSelectToggleButtonState();
+    }
+
     private void updateSelectToggleButtonState() {
-        if (sortedList.size() == 0) {
+        List<OpenOfferListItem> availableItems = sortedList.stream()
+                .filter(openOfferListItem -> !openOfferListItem.getOpenOffer().isScheduled())
+                .collect(Collectors.toList());
+        if (availableItems.size() == 0) {
             selectToggleButton.setDisable(true);
             selectToggleButton.setSelected(false);
         } else {
             selectToggleButton.setDisable(false);
-            long numDeactivated = sortedList.stream()
+            long numDeactivated = availableItems.stream()
                     .filter(openOfferListItem -> openOfferListItem.getOpenOffer().isDeactivated())
                     .count();
-            if (numDeactivated == sortedList.size()) {
+            if (numDeactivated == availableItems.size()) {
                 selectToggleButton.setSelected(false);
             } else if (numDeactivated == 0) {
                 selectToggleButton.setSelected(true);
@@ -683,15 +700,24 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                             AutoTooltipSlideToggleButton checkBox;
 
                             private void updateState(@NotNull OpenOffer openOffer) {
-                                checkBox.setSelected(!openOffer.isDeactivated());
+                                if (checkBox != null) checkBox.setSelected(!openOffer.isDeactivated());
                             }
 
                             @Override
                             public void updateItem(final OpenOfferListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-
                                 if (item != null && !empty) {
                                     OpenOffer openOffer = item.getOpenOffer();
+                                    if (!offerStateSubscriptions.containsKey(openOffer.getId())) {
+                                        offerStateSubscriptions.put(openOffer.getId(), EasyBind.subscribe(openOffer.stateProperty(), state -> {
+                                            refresh();
+                                        }));
+                                    }
+                                    if (openOffer.getState() == OpenOffer.State.SCHEDULED) {
+                                        setGraphic(new AutoTooltipLabel(Res.get("shared.pending")));
+                                        return;
+                                    }
+
                                     if (checkBox == null) {
                                         checkBox = new AutoTooltipSlideToggleButton();
                                         checkBox.setPadding(new Insets(-7, 0, -7, 0));
