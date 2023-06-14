@@ -342,6 +342,7 @@ public class XmrWalletService {
             log.info("Done creating reserve tx in {} ms", System.currentTimeMillis() - time);
             return reserveTx;
         } catch (Exception e) {
+            if (exactOutputAmount != null) return spendOutputManually(true, tradeFee, sendAmount, securityDeposit, returnAddress, exactOutputAmount);
 
             // retry creating reserve tx using funds outside subaddress
             if (subaddressIndex != null) return createReserveTx(tradeFee, sendAmount, securityDeposit, returnAddress, exactOutputAmount, null);
@@ -349,7 +350,7 @@ public class XmrWalletService {
         }
     }
 
-    /**s
+    /**
      * Create the multisig deposit tx and freeze its inputs.
      *
      * @param trade the trade to create a deposit tx from
@@ -380,13 +381,40 @@ public class XmrWalletService {
                 log.info("Done creating deposit tx for trade {} {} in {} ms", trade.getClass().getSimpleName(), trade.getId(), System.currentTimeMillis() - time);
                 return tradeTx;
             } catch (Exception e) {
+                if (exactOutputAmount != null) return spendOutputManually(false, tradeFee, sendAmount, securityDeposit, multisigAddress, exactOutputAmount);
 
                 // retry creating deposit tx using funds outside subaddress
                 if (subaddressIndex != null) return createDepositTx(trade, exactOutputAmount, null);
                 else throw e;
             }
-
         }
+    }
+
+    // retry with exact outputs in other subaddresses
+    // TODO: this is a hack because wallet2 sometimes prefers to spend multiple inputs intead of exact output; replace with fund by destination address when available
+    private MoneroTxWallet spendOutputManually(boolean isReserveTx, BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String returnAddress, BigInteger exactOutputAmount) {
+        log.warn("Manually selecting subaddress to spend output from");
+        List<MoneroOutputWallet> exactOutputs = wallet.getOutputs(new MoneroOutputQuery()
+                .setAmount(exactOutputAmount)
+                .setIsSpent(false)
+                .setIsFrozen(false));
+        Set<Integer> subaddressIndices = new HashSet<Integer>();
+        for (MoneroOutputWallet output : exactOutputs) {
+            if (!output.getTx().isLocked()) subaddressIndices.add(output.getSubaddressIndex());
+        }
+        Exception err = null;
+        for (Integer idx : subaddressIndices) {
+            try {
+                long startTime = System.currentTimeMillis();
+                MoneroTxWallet reserveTx = createTradeTx(tradeFee, sendAmount, securityDeposit, returnAddress, isReserveTx, exactOutputAmount, idx);
+                log.info("Done creating output tx in {} ms", System.currentTimeMillis() - startTime);
+                return reserveTx;
+            } catch (Exception e2) {
+                err = e2;
+            }
+        }
+        if (err != null) throw new RuntimeException(err);
+        throw new RuntimeException("No output available with amount " + exactOutputAmount);
     }
 
     private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, boolean isReserveTx, BigInteger exactOutputAmount, Integer subaddressIndex) {
@@ -398,7 +426,7 @@ public class XmrWalletService {
             MoneroTxWallet tradeTx = null;
             double appliedTolerance = 0.0; // percent of tolerance to apply, thereby decreasing security deposit
             double searchDiff = 1.0; // difference for next binary search
-            int maxSearches = 5 ;
+            int maxSearches = 5;
             for (int i = 0; i < maxSearches; i++) {
                 try {
                     BigInteger appliedSecurityDeposit = new BigDecimal(securityDeposit).multiply(new BigDecimal(1.0 - SECURITY_DEPOSIT_TOLERANCE * appliedTolerance)).toBigInteger();

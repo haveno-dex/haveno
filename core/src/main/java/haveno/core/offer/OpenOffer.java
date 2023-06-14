@@ -21,6 +21,9 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.trade.Tradable;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -78,15 +81,12 @@ public final class OpenOffer implements Tradable {
     @Setter
     @Getter
     private String reserveTxKey;
-
-
-    // Added in v1.5.3.
-    // If market price reaches that trigger price the offer gets deactivated
     @Getter
     private final long triggerPrice;
     @Getter
     @Setter
     transient private long mempoolStatus = -1;
+    transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
 
     public OpenOffer(Offer offer) {
         this(offer, 0, false);
@@ -185,6 +185,7 @@ public final class OpenOffer implements Tradable {
 
     public void setState(State state) {
         this.state = state;
+        stateProperty.set(state);
 
         // We keep it reserved for a limited time, if trade preparation fails we revert to available state
         if (this.state == State.RESERVED) { // TODO (woodser): remove this?
@@ -192,6 +193,14 @@ public final class OpenOffer implements Tradable {
         } else {
             stopTimeout();
         }
+    }
+
+    public ReadOnlyObjectProperty<State> stateProperty() {
+        return stateProperty;
+    }
+
+    public boolean isScheduled() {
+        return state == State.SCHEDULED;
     }
 
     public boolean isDeactivated() {

@@ -526,7 +526,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     public void activateOpenOffer(OpenOffer openOffer,
                                   ResultHandler resultHandler,
                                   ErrorMessageHandler errorMessageHandler) {
-        if (!offersToBeEdited.containsKey(openOffer.getId())) {
+        if (openOffer.isScheduled()) {
+            resultHandler.handleResult(); // ignore if scheduled
+        } else if (!offersToBeEdited.containsKey(openOffer.getId())) {
             Offer offer = openOffer.getOffer();
             offerBookService.activateOffer(offer,
                     () -> {
@@ -545,14 +547,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                     ResultHandler resultHandler,
                                     ErrorMessageHandler errorMessageHandler) {
         Offer offer = openOffer.getOffer();
-        offerBookService.deactivateOffer(offer.getOfferPayload(),
-                () -> {
-                    openOffer.setState(OpenOffer.State.DEACTIVATED);
-                    requestPersistence();
-                    log.debug("deactivateOpenOffer, offerId={}", offer.getId());
-                    resultHandler.handleResult();
-                },
-                errorMessageHandler);
+        if (openOffer.isScheduled()) {
+            resultHandler.handleResult(); // ignore if scheduled
+        } else {
+            offerBookService.deactivateOffer(offer.getOfferPayload(),
+            () -> {
+                openOffer.setState(OpenOffer.State.DEACTIVATED);
+                requestPersistence();
+                log.debug("deactivateOpenOffer, offerId={}", offer.getId());
+                resultHandler.handleResult();
+            },
+            errorMessageHandler);
+        }
     }
 
     public void removeOpenOffer(OpenOffer openOffer,
@@ -799,6 +805,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     
                     // get offer reserve amount
                     BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
+                    
                     // handle split output offer
                     if (openOffer.isSplitOutput()) {
     
@@ -816,11 +823,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
                             return;
                         } else if (splitOutputTx == null) {
-    
+
                             // handle sufficient available balance to split output
                             boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
                             if (sufficientAvailableBalance) {
-                                
+
                                 // create and relay tx to split output
                                 splitOutputTx = createAndRelaySplitOutputTx(openOffer); // TODO: confirm with user?
 
@@ -975,7 +982,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private MoneroTxWallet createAndRelaySplitOutputTx(OpenOffer openOffer) {
         BigInteger reserveAmount = openOffer.getOffer().getReserveAmount();
-        String fundingSubaddress = xmrWalletService.getAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getAddressString();
+        xmrWalletService.swapTradeEntryToAvailableEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output // TODO: unecessary with destination funding
+        String fundingSubaddress = xmrWalletService.getNewAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).getAddressString();
         return xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
                 .setAddress(fundingSubaddress)
