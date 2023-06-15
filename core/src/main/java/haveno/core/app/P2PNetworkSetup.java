@@ -89,13 +89,13 @@ public class P2PNetworkSetup {
 
         p2PNetworkInfoBinding = EasyBind.combine(bootstrapState, bootstrapWarning, p2PService.getNumConnectedPeers(),
                 connectionService.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
-                (state, warning, numP2pPeers, numBtcPeers, hiddenService, dataReceived) -> {
+                (state, warning, numP2pPeers, numXmrPeers, hiddenService, dataReceived) -> {
                     String result;
                     int p2pPeers = (int) numP2pPeers;
                     if (warning != null && p2pPeers == 0) {
                         result = warning;
                     } else {
-                        String p2pInfo = Res.get("mainView.footer.p2pInfo", numBtcPeers, numP2pPeers);
+                        String p2pInfo = ((int) numXmrPeers > 0 ? Res.get("mainView.footer.xmrPeers", numXmrPeers) + " / " : "") + Res.get("mainView.footer.p2pPeers", numP2pPeers);
                         if (dataReceived && hiddenService) {
                             result = p2pInfo;
                         } else if (p2pPeers == 0)
