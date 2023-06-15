@@ -84,7 +84,7 @@ public class AveragePriceUtil {
 
         for (TradeStatistics3 item : list) {
             accumulatedVolume += item.getTradeVolume().getValue();
-            accumulatedAmount += item.getTradeAmount().getValue(); // Amount of BTC traded
+            accumulatedAmount += item.getTradeAmount().longValueExact(); // Amount of XMR traded
         }
         long averagePrice;
         double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT);
@@ -110,7 +110,7 @@ public class AveragePriceUtil {
                     .orElse(usdBTCPrice);
             var bsqAmount = MathUtils.scaleDownByPowerOf10((double) item.getTradeVolume().getValue(),
                     CryptoMoney.SMALLEST_UNIT_EXPONENT);
-            var btcAmount = MathUtils.scaleDownByPowerOf10((double) item.getTradeAmount().getValue(),
+            var btcAmount = MathUtils.scaleDownByPowerOf10((double) item.getTradeAmount().longValueExact(),
                     CryptoMoney.SMALLEST_UNIT_EXPONENT);
             usdBsqList.add(new Tuple2<>(usdBTCPrice * btcAmount, bsqAmount));
         }

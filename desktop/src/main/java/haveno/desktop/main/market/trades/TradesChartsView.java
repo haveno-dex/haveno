@@ -26,6 +26,7 @@ import haveno.common.util.Tuple3;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.user.CookieKey;
 import haveno.core.user.User;
@@ -78,7 +79,6 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
@@ -377,7 +377,6 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         CompletableFuture.supplyAsync(() -> {
             return model.tradeStatisticsByCurrency.stream()
                     .map(tradeStatistics -> new TradeStatistics3ListItem(tradeStatistics,
-                            coinFormatter,
                             model.showAllTradeCurrenciesProperty.get()))
                     .collect(Collectors.toCollection(FXCollections::observableArrayList));
         }).whenComplete((listItems, throwable) -> {
@@ -438,7 +437,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         String details = showAllTradeCurrencies ? "all-markets" : model.getCurrencyCode();
         GUIUtil.exportCSV("trade-statistics-" + details + ".csv", headerConverter, contentConverter,
-                new TradeStatistics3ListItem(null, coinFormatter, showAllTradeCurrencies),
+                new TradeStatistics3ListItem(null, showAllTradeCurrencies),
                 sortedList,
                 (Stage) root.getScene().getWindow());
     }
@@ -517,7 +516,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         volumeAxisX = new NumberAxis(0, MAX_TICKS + 1, 1);
         volumeAxisY = new NumberAxis();
-        volumeChart = getVolumeChart(volumeAxisX, volumeAxisY, volumeSeries, "BTC");
+        volumeChart = getVolumeChart(volumeAxisX, volumeAxisY, volumeSeries, "XMR");
 
         volumeInUsdAxisX = new NumberAxis(0, MAX_TICKS + 1, 1);
         NumberAxis volumeInUsdAxisY = new NumberAxis();
@@ -557,8 +556,8 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         axisY.setTickLabelFormatter(new StringConverter<>() {
             @Override
             public String toString(Number volume) {
-                return currency.equals("BTC") ?
-                        coinFormatter.formatCoin(Coin.valueOf(MathUtils.doubleToLong((double) volume))) :
+                return currency.equals("XMR") ?
+                        HavenoUtils.formatXmr(MathUtils.doubleToLong((double) volume)) :
                         VolumeUtil.formatLargeFiatWithUnitPostFix((double) volume, "USD");
             }
 
@@ -568,10 +567,10 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
             }
         });
 
-        StringConverter<Number> btcStringConverter = new StringConverter<>() {
+        StringConverter<Number> xmrStringConverter = new StringConverter<>() {
             @Override
             public String toString(Number volume) {
-                return coinFormatter.formatCoinWithCode(Coin.valueOf((long) volume));
+                return HavenoUtils.formatXmr((long) volume, true);
             }
 
             @Override
@@ -579,7 +578,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
                 return null;
             }
         };
-        VolumeChart volumeChart = new VolumeChart(axisX, axisY, btcStringConverter);
+        VolumeChart volumeChart = new VolumeChart(axisX, axisY, xmrStringConverter);
         volumeChart.setId("volume-chart");
         volumeChart.setData(FXCollections.observableArrayList(List.of(series)));
         volumeChart.setMinHeight(138);

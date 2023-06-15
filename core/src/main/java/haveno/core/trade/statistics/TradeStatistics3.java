@@ -28,12 +28,8 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.ExtraDataMapValidator;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
-import haveno.core.monetary.CryptoExchangeRate;
 import haveno.core.monetary.Price;
-import haveno.core.monetary.TraditionalMoney;
-import haveno.core.monetary.TraditionalExchangeRate;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
@@ -47,9 +43,10 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
 
 import javax.annotation.Nullable;
+
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -370,19 +367,17 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         return priceObj;
     }
 
-    public Coin getTradeAmount() {
-        return Coin.valueOf(amount);
+    public BigInteger getTradeAmount() {
+        return BigInteger.valueOf(amount);
     }
 
     public Volume getTradeVolume() {
+        Volume volume = this.volume;
         if (volume == null) {
-            if (getTradePrice().getMonetary() instanceof CryptoMoney) {
-                volume = new Volume(new CryptoExchangeRate((CryptoMoney) getTradePrice().getMonetary()).coinToCrypto(getTradeAmount()));
-            } else {
-                Volume exactVolume = new Volume(new TraditionalExchangeRate((TraditionalMoney) getTradePrice().getMonetary()).coinToTraditionalMoney(getTradeAmount()));
-                boolean isFiat = CurrencyUtil.isFiatCurrency(exactVolume.getCurrencyCode());
-                if (isFiat) volume = VolumeUtil.getRoundedFiatVolume(exactVolume);
-            }
+            Price price = getTradePrice();
+            this.volume = volume = price.getMonetary() instanceof CryptoMoney
+                    ? price.getVolumeByAmount(getTradeAmount())
+                    : VolumeUtil.getAdjustedVolume(price.getVolumeByAmount(getTradeAmount()), paymentMethod);
         }
         return volume;
     }
