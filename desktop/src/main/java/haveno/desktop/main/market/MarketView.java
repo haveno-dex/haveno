@@ -22,6 +22,7 @@ import haveno.common.util.Utilities;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.offer.OfferPayload;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatistics3StorageService;
 import haveno.core.util.FormattingUtils;
@@ -189,7 +190,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
                     sb.append("Date: ").append(DisplayUtils.formatDateTime(tradeStatistics3.getDate())).append("\n")
                             .append("Market: ").append(CurrencyUtil.getCurrencyPair(tradeStatistics3.getCurrency())).append("\n")
                             .append("Price: ").append(FormattingUtils.formatPrice(tradeStatistics3.getTradePrice())).append("\n")
-                            .append("Amount: ").append(formatter.formatCoin(tradeStatistics3.getTradeAmount())).append("\n")
+                            .append("Amount: ").append(HavenoUtils.formatXmr(tradeStatistics3.getTradeAmount())).append("\n")
                             .append("Volume: ").append(VolumeUtil.formatVolume(tradeStatistics3.getTradeVolume())).append("\n")
                             .append("Payment method: ").append(Res.get(tradeStatistics3.getPaymentMethodId())).append("\n")
                             .append("ReferralID: ").append(tradeStatistics3.getExtraDataMap().get(OfferPayload.REFERRAL_ID));

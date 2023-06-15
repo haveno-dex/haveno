@@ -19,10 +19,10 @@ package haveno.desktop.main.market.trades;
 
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
-import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.util.DisplayUtils;
 import lombok.experimental.Delegate;
 import org.jetbrains.annotations.Nullable;
@@ -30,7 +30,6 @@ import org.jetbrains.annotations.Nullable;
 public class TradeStatistics3ListItem {
     @Delegate
     private final TradeStatistics3 tradeStatistics3;
-    private final CoinFormatter coinFormatter;
     private final boolean showAllTradeCurrencies;
     private String dateString;
     private String market;
@@ -40,10 +39,8 @@ public class TradeStatistics3ListItem {
     private String amountString;
 
     public TradeStatistics3ListItem(@Nullable TradeStatistics3 tradeStatistics3,
-                                    CoinFormatter coinFormatter,
                                     boolean showAllTradeCurrencies) {
         this.tradeStatistics3 = tradeStatistics3;
-        this.coinFormatter = coinFormatter;
         this.showAllTradeCurrencies = showAllTradeCurrencies;
     }
 
@@ -87,7 +84,7 @@ public class TradeStatistics3ListItem {
 
     public String getAmountString() {
         if (amountString == null) {
-            amountString = tradeStatistics3 != null ? coinFormatter.formatCoin(tradeStatistics3.getTradeAmount(), 4) : "";
+            amountString = tradeStatistics3 != null ? HavenoUtils.formatXmr(getAmount(), false, 4) : "";
         }
         return amountString;
     }
