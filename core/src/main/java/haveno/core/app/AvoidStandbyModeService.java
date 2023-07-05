@@ -17,21 +17,13 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.file.ResourceNotFoundException;
 import haveno.common.util.Utilities;
 import haveno.core.user.Preferences;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -43,6 +35,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.SourceDataLine;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Prevents that Haveno gets hibernated from the OS. On OSX there is a tool called caffeinate but it seems it does not

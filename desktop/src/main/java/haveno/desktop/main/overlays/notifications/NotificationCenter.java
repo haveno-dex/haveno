@@ -18,6 +18,7 @@
 package haveno.desktop.main.overlays.notifications;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.core.api.NotificationListener;
 import haveno.core.locale.Res;
@@ -45,19 +46,17 @@ import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationMessage.NotificationType;
-import javafx.collections.ListChangeListener;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
-import javax.annotation.Nullable;
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import javafx.collections.ListChangeListener;
+import javax.annotation.Nullable;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
 
 @Slf4j
 @Singleton

@@ -17,25 +17,23 @@
 
 package haveno.desktop.main.offer.offerbook;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
+import static haveno.core.offer.OfferDirection.BUY;
 import haveno.core.offer.OfferRestrictions;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.utils.Utils;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static haveno.core.offer.OfferDirection.BUY;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Holds and manages the unsorted and unfiltered offerbook list (except for banned offers) of both buy and sell offers.

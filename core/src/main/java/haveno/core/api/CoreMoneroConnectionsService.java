@@ -1,18 +1,24 @@
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.nodes.XmrNodes;
-import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.nodes.XmrNodes.XmrNode;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -31,13 +37,6 @@ import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
 import monero.daemon.model.MoneroPeer;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -555,7 +554,7 @@ public final class CoreMoneroConnectionsService {
             // numPeers.set(peers.get().size());
             numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections());
             peers.set(new ArrayList<MoneroPeer>());
-            
+
             // log recovery message
             if (lastErrorTimestamp != null) {
                 log.info("Successfully fetched daemon info after previous error");

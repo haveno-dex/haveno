@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.offer.takeoffer;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
@@ -54,6 +56,7 @@ import haveno.desktop.main.offer.ClosableView;
 import haveno.desktop.main.offer.InitializableViewWithTakeOfferData;
 import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.offer.OfferViewUtil;
+import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
 import haveno.desktop.main.offer.SelectableView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -62,9 +65,27 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
+import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
+import static haveno.desktop.util.FormBuilder.addAddressTextField;
+import static haveno.desktop.util.FormBuilder.addBalanceTextField;
+import static haveno.desktop.util.FormBuilder.addComboBoxTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.getEditableValueBox;
+import static haveno.desktop.util.FormBuilder.getIconForLabel;
+import static haveno.desktop.util.FormBuilder.getNonEditableValueBox;
+import static haveno.desktop.util.FormBuilder.getNonEditableValueBoxWithInfo;
+import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.Transitions;
+import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
@@ -92,29 +113,6 @@ import net.glxn.qrgen.image.ImageType;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.io.ByteArrayInputStream;
-import java.math.BigInteger;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
-
-import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
-import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
-import static haveno.desktop.util.FormBuilder.addAddressTextField;
-import static haveno.desktop.util.FormBuilder.addBalanceTextField;
-import static haveno.desktop.util.FormBuilder.addComboBoxTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addFundsTextfield;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.getEditableValueBox;
-import static haveno.desktop.util.FormBuilder.getIconForLabel;
-import static haveno.desktop.util.FormBuilder.getNonEditableValueBox;
-import static haveno.desktop.util.FormBuilder.getNonEditableValueBoxWithInfo;
-import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
-import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @FxmlView
 public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOfferViewModel> implements ClosableView, InitializableViewWithTakeOfferData, SelectableView {

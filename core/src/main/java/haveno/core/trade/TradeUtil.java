@@ -17,24 +17,22 @@
 
 package haveno.core.trade;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
-import haveno.core.locale.Res;
-import haveno.core.offer.Offer;
-import haveno.core.xmr.wallet.BtcWalletService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.Date;
-import java.util.Objects;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
 import static haveno.core.locale.CurrencyUtil.isTraditionalCurrency;
+import haveno.core.locale.Res;
+import haveno.core.offer.Offer;
 import static haveno.core.util.FormattingUtils.formatDurationAsWords;
+import haveno.core.xmr.wallet.BtcWalletService;
 import static java.lang.String.format;
+import java.util.Date;
+import java.util.Objects;
+import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class contains trade utility methods.

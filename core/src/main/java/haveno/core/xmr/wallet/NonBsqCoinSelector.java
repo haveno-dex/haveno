@@ -17,14 +17,13 @@
 
 package haveno.core.xmr.wallet;
 
+import com.google.inject.Inject;
 import haveno.core.user.Preferences;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.core.TransactionOutput;
-
-import javax.inject.Inject;
 
 /**
  * We use a specialized version of the CoinSelector based on the DefaultCoinSelector implementation.

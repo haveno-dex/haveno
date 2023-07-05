@@ -17,6 +17,8 @@
 
 package haveno.core.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import common.utils.GenUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -34,15 +36,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import monero.common.MoneroConnectionManagerListener;
-import monero.common.MoneroRpcConnection;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -50,6 +43,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import monero.common.MoneroConnectionManagerListener;
+import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles storage and retrieval of offers.

@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.market.offerbook;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXTabPane;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -40,8 +42,15 @@ import haveno.desktop.components.PeerInfoIconSmall;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
+import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
 import haveno.desktop.util.GUIUtil;
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 import haveno.network.p2p.NodeAddress;
+import java.text.DecimalFormat;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -72,17 +81,6 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.text.DecimalFormat;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 
 @FxmlView
 public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookChartViewModel> {

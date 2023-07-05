@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
@@ -37,6 +39,12 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
+import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
+import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
+import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.IntegerProperty;
@@ -58,16 +66,6 @@ import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
-import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
-import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(TradeDetailsWindow.class);

@@ -15,9 +15,9 @@ set -e
 unameOut="$(uname -s)"
 case "${unameOut}" in
     Linux*)
-        JAVA_HOME=/usr/lib/jvm/openjdk-11.0.2
-        JDK_FILENAME=openjdk-11.0.2_linux-x64_bin.tar.gz
-        JDK_URL=https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_linux-x64_bin.tar.gz
+        JAVA_HOME=/usr/lib/jvm/openjdk-20.0.1
+        JDK_FILENAME=openjdk-20.0.1_linux-x64_bin.tar.gz
+        JDK_URL=https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz
 
         # Determine which package manager to use depending on the distribution
         declare -A osInfo;
@@ -52,9 +52,9 @@ case "${unameOut}" in
         update-alternatives --set javac $JAVA_HOME/bin/javac
         ;;
     Darwin*)
-        JAVA_HOME=/Library/Java/JavaVirtualMachines/openjdk-11.0.2.jdk/Contents/Home
-        JDK_FILENAME=openjdk-11.0.2_osx-x64_bin.tar.gz
-        JDK_URL=https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_osx-x64_bin.tar.gz
+        JAVA_HOME=/Library/Java/JavaVirtualMachines/openjdk-20.0.1.jdk/Contents/Home
+        JDK_FILENAME=openjdk-20.0.1_macos-x64_bin.tar.gz
+        JDK_URL=https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_macos-x64_bin.tar.gz
         if [ ! -d "$JAVA_HOME" ]; then
             if [[ $(command -v brew) == "" ]]; then
                 echo "Installing Homebrew"
@@ -66,10 +66,10 @@ case "${unameOut}" in
 
             brew install curl
             curl -L -O $JDK_URL
-            sudo mkdir /Library/Java/JavaVirtualMachines/openjdk-11.0.2.jdk | sudo bash
+            sudo mkdir /Library/Java/JavaVirtualMachines/openjdk-20.0.1.jdk | sudo bash
             gunzip -c $JDK_FILENAME | tar xopf -
-            sudo mv jdk-11.0.2.jdk/* /Library/Java/JavaVirtualMachines/openjdk-11.0.2.jdk
-            sudo rmdir jdk-11.0.2.jdk
+            sudo mv jdk-20.0.1.jdk/* /Library/Java/JavaVirtualMachines/openjdk-20.0.1.jdk
+            sudo rmdir jdk-20.0.1.jdk
             rm $JDK_FILENAME
         fi
 

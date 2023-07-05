@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.portfolio.openoffer;
 
+import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
@@ -40,7 +41,13 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 import haveno.desktop.util.GUIUtil;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -68,19 +75,9 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 @FxmlView
 public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersViewModel> {

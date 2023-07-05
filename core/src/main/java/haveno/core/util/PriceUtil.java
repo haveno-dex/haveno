@@ -17,6 +17,9 @@
 
 package haveno.core.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -29,17 +32,12 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
-import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

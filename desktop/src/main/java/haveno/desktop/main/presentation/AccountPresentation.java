@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.presentation;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
 import haveno.core.user.DontShowAgainLookup;
@@ -25,9 +27,6 @@ import haveno.desktop.main.overlays.popups.Popup;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.MapChangeListener;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 
 @Singleton

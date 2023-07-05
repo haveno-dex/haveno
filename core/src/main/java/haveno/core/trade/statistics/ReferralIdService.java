@@ -17,12 +17,11 @@
 
 package haveno.core.trade.statistics;
 
+import com.google.inject.Inject;
 import haveno.core.user.Preferences;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class ReferralIdService {
     private final Preferences preferences;

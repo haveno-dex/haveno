@@ -18,6 +18,7 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.common.base.Joiner;
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CountryUtil;
@@ -38,8 +39,17 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
+import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
+import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelButton;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addLabelExplorerAddressTextField;
+import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
+import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -53,18 +63,6 @@ import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-import java.util.List;
-
-import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
-import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelButton;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addLabelExplorerAddressTextField;
-import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @Slf4j
 public class ContractWindow extends Overlay<ContractWindow> {

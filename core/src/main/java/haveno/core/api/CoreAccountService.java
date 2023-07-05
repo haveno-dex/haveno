@@ -17,6 +17,9 @@
 
 package haveno.core.api;
 
+import static com.google.common.base.Preconditions.checkState;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
@@ -24,12 +27,6 @@ import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.ZipUtils;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.File;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -37,8 +34,9 @@ import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import static com.google.common.base.Preconditions.checkState;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Manages the account state. A created account must have a password which encrypts

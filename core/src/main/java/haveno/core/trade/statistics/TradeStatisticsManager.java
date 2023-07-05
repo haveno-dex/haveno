@@ -18,6 +18,8 @@
 package haveno.core.trade.statistics;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
 import haveno.core.locale.CurrencyTuple;
@@ -30,13 +32,6 @@ import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableSet;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Named;
-import javax.inject.Singleton;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,6 +39,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableSet;
+import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j

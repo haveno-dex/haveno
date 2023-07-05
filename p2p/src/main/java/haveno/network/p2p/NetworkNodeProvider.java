@@ -17,24 +17,20 @@
 
 package haveno.network.p2p;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.name.Named;
+import haveno.common.config.Config;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import haveno.network.p2p.network.LocalhostNetworkNode;
-import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.NewTor;
 import haveno.network.p2p.network.RunningTor;
 import haveno.network.p2p.network.TorMode;
 import haveno.network.p2p.network.TorNetworkNode;
-
-import haveno.common.config.Config;
-import haveno.common.proto.network.NetworkProtoResolver;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Provider;
-
 import java.io.File;
-
 import javax.annotation.Nullable;
 
 public class NetworkNodeProvider implements Provider<NetworkNode> {

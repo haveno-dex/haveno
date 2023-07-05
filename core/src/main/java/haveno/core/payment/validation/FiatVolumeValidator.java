@@ -17,9 +17,8 @@
 
 package haveno.core.payment.validation;
 
+import com.google.inject.Inject;
 import haveno.core.util.validation.MonetaryValidator;
-
-import javax.inject.Inject;
 
 public class FiatVolumeValidator extends MonetaryValidator {
     @Override

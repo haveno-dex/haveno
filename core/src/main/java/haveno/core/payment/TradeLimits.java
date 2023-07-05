@@ -18,15 +18,14 @@
 package haveno.core.payment;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.util.MathUtils;
 import haveno.core.trade.HavenoUtils;
+import java.math.BigInteger;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.math.BigInteger;
 
 @Slf4j
 @Singleton

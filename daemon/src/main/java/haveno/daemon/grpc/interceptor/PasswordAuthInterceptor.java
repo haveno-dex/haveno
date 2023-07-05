@@ -17,18 +17,16 @@
 
 package haveno.daemon.grpc.interceptor;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import io.grpc.Metadata;
+import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
+import static io.grpc.Metadata.Key;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
-import io.grpc.StatusRuntimeException;
-
-import javax.inject.Inject;
-
-import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
-import static io.grpc.Metadata.Key;
 import static io.grpc.Status.UNAUTHENTICATED;
+import io.grpc.StatusRuntimeException;
 import static java.lang.String.format;
 
 /**

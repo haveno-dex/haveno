@@ -17,30 +17,28 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.MarketDepthInfo;
 import haveno.core.api.model.MarketPriceInfo;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.MarketDepthReply;
 import haveno.proto.grpc.MarketDepthRequest;
 import haveno.proto.grpc.MarketPriceReply;
 import haveno.proto.grpc.MarketPriceRequest;
 import haveno.proto.grpc.MarketPricesReply;
 import haveno.proto.grpc.MarketPricesRequest;
+import static haveno.proto.grpc.PriceGrpc.PriceImplBase;
+import static haveno.proto.grpc.PriceGrpc.getGetMarketPriceMethod;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.PriceGrpc.PriceImplBase;
-import static haveno.proto.grpc.PriceGrpc.getGetMarketPriceMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class GrpcPriceService extends PriceImplBase {

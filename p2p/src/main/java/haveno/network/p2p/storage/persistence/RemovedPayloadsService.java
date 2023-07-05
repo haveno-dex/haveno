@@ -17,14 +17,13 @@
 
 package haveno.network.p2p.storage.persistence;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * We persist the hashes and timestamp when a AddOncePayload payload got removed. This protects that it could be

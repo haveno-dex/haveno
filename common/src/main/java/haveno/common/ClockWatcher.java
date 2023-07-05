@@ -17,12 +17,11 @@
 
 package haveno.common;
 
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Singleton;
+import com.google.inject.Singleton;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 
 // Helps configure listener objects that are run by the `UserThread` each second
 // and can do per second, per minute and delayed second actions. Also detects when we were in standby, and logs it.

@@ -18,16 +18,15 @@
 package haveno.core.notifications;
 
 import com.google.common.base.Charsets;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.binary.Base64;
-
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import java.security.NoSuchAlgorithmException;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.security.NoSuchAlgorithmException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 
 @Slf4j
 @Singleton

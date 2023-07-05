@@ -17,17 +17,16 @@
 
 package haveno.core.network;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.BanFilter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CoreBanFilter implements BanFilter {

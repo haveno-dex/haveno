@@ -17,11 +17,10 @@
 
 package haveno.core.support.dispute.arbitration;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.support.dispute.DisputeListService;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public final class ArbitrationDisputeListService extends DisputeListService<ArbitrationDisputeList> {

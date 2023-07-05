@@ -1,5 +1,6 @@
 package haveno.core.xmr.model;
 
+import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import haveno.common.crypto.CryptoException;
@@ -10,12 +11,6 @@ import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.model.EncryptedConnection;
-import lombok.NonNull;
-import monero.common.MoneroRpcConnection;
-import org.bitcoinj.crypto.KeyCrypterScrypt;
-
-import javax.crypto.SecretKey;
-import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -28,6 +23,10 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.crypto.SecretKey;
+import lombok.NonNull;
+import monero.common.MoneroRpcConnection;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
 
 
 /**

@@ -17,18 +17,16 @@
 
 package haveno.core.api;
 
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import java.io.BufferedReader;
+import static java.io.File.separator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
-import static java.io.File.separator;
 import static java.lang.String.format;
 import static java.lang.System.out;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j

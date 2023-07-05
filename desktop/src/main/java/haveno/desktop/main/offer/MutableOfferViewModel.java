@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.MathUtils;
@@ -47,10 +49,10 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
+import haveno.core.util.validation.NonFiatPriceValidator;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
@@ -62,6 +64,9 @@ import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import java.math.BigInteger;
+import java.util.concurrent.TimeUnit;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -77,13 +82,6 @@ import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
-
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @Slf4j
 public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> extends ActivatableWithDataModel<M> {

@@ -17,6 +17,8 @@
 
 package haveno.core.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.common.util.Utilities;
@@ -38,15 +40,12 @@ import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

@@ -18,14 +18,13 @@
 package haveno.desktop.main.funds.transactions;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Set;
 
 @Singleton
