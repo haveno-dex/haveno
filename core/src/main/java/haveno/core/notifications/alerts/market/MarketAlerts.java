@@ -17,6 +17,8 @@
 
 package haveno.core.notifications.alerts.market;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
@@ -34,12 +36,9 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

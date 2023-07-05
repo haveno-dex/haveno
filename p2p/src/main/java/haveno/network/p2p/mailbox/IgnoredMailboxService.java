@@ -17,12 +17,11 @@
 
 package haveno.network.p2p.mailbox;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * We persist failed attempts to decrypt mailbox messages (expected if mailbox message was not addressed to us).

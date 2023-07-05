@@ -25,9 +25,9 @@ cd /D "%~dp0"
 
 title Install Java
 
-set jdk_version=11.0.2
+set jdk_version=20.0.1
 set jdk_filename=openjdk-%jdk_version%_windows-x64_bin
-set jdk_url=https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip
+set jdk_url=https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_windows-x64_bin.zip
 
 if exist "%PROGRAMFILES%\Java\openjdk\jdk-%jdk_version%" (
     echo %PROGRAMFILES%\Java\openjdk\jdk-%jdk_version% already exists, skipping install

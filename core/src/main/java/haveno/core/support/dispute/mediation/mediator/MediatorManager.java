@@ -17,14 +17,13 @@
 
 package haveno.core.support.dispute.mediation.mediator;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentManager;
 import haveno.core.user.User;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 
 @Singleton

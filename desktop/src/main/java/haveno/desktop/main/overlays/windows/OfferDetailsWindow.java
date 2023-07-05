@@ -18,7 +18,8 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.common.base.Joiner;
-
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
@@ -42,8 +43,17 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
+import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Optional;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -57,19 +67,6 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Optional;
-
-import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(OfferDetailsWindow.class);

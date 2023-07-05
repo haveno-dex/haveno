@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.settings.network;
 
+import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.core.api.CoreMoneroConnectionsService;
@@ -27,8 +28,8 @@ import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
-import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.LocalBitcoinNode;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.ActivatableView;
@@ -42,6 +43,10 @@ import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.Statistic;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -61,13 +66,6 @@ import javafx.scene.layout.GridPane;
 import monero.daemon.model.MoneroPeer;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.inject.Inject;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @FxmlView
 public class NetworkSettingsView extends ActivatableView<GridPane, Void> {

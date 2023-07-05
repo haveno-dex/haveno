@@ -17,6 +17,8 @@
 
 package haveno.core.offer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import common.utils.GenUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -72,8 +74,22 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import monero.common.MoneroConnectionManagerListener;
 import monero.common.MoneroRpcConnection;
@@ -89,24 +105,6 @@ import monero.wallet.model.MoneroWalletListener;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMessageListener, PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(OpenOfferManager.class);
@@ -802,13 +800,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         resultHandler.handleResult(null);
                         return;
                     }
-    
+
                     // get offer reserve amount
                     BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
-                    
+
                     // handle split output offer
                     if (openOffer.isSplitOutput()) {
-    
+
                         // get tx to fund split output
                         MoneroTxWallet splitOutputTx = findSplitOutputFundingTx(openOffers, openOffer);
                         if (openOffer.getScheduledTxHashes() == null && splitOutputTx != null) {
@@ -841,7 +839,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             }
                         }
                     } else {
-    
+
                         // handle sufficient balance
                         boolean hasSufficientBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
                         if (hasSufficientBalance) {
@@ -851,7 +849,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             scheduleOfferWithEarliestTxs(openOffers, openOffer);
                         }
                     }
-    
+
                     // handle result
                     resultHandler.handleResult(null);
                 } catch (Exception e) {

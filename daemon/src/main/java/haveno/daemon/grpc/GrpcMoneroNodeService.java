@@ -16,34 +16,32 @@
  */
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.core.xmr.MoneroNodeSettings;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.GetMoneroNodeSettingsReply;
 import haveno.proto.grpc.GetMoneroNodeSettingsRequest;
 import haveno.proto.grpc.IsMoneroNodeOnlineReply;
 import haveno.proto.grpc.IsMoneroNodeOnlineRequest;
 import haveno.proto.grpc.MoneroNodeGrpc.MoneroNodeImplBase;
+import static haveno.proto.grpc.MoneroNodeGrpc.getGetMoneroNodeSettingsMethod;
+import static haveno.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeOnlineMethod;
+import static haveno.proto.grpc.MoneroNodeGrpc.getStartMoneroNodeMethod;
+import static haveno.proto.grpc.MoneroNodeGrpc.getStopMoneroNodeMethod;
 import haveno.proto.grpc.StartMoneroNodeReply;
 import haveno.proto.grpc.StartMoneroNodeRequest;
 import haveno.proto.grpc.StopMoneroNodeReply;
 import haveno.proto.grpc.StopMoneroNodeRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
-
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Optional;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.MoneroNodeGrpc.getGetMoneroNodeSettingsMethod;
-import static haveno.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeOnlineMethod;
-import static haveno.proto.grpc.MoneroNodeGrpc.getStartMoneroNodeMethod;
-import static haveno.proto.grpc.MoneroNodeGrpc.getStopMoneroNodeMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
 
 @Slf4j
 public class GrpcMoneroNodeService extends MoneroNodeImplBase {

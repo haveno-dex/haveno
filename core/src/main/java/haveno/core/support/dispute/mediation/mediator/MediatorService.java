@@ -17,19 +17,18 @@
 
 package haveno.core.support.dispute.mediation.mediator;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j

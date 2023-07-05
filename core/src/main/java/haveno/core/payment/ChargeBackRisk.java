@@ -17,9 +17,8 @@
 
 package haveno.core.payment;
 
+import com.google.inject.Singleton;
 import haveno.core.payment.payload.PaymentMethod;
-
-import javax.inject.Singleton;
 
 @Singleton
 public class ChargeBackRisk {

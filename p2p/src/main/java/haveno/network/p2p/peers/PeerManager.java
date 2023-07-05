@@ -18,6 +18,9 @@
 package haveno.network.p2p.peers;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkArgument;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -37,12 +40,6 @@ import haveno.network.p2p.network.RuleViolation;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.seed.SeedNodeRepository;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -56,8 +53,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class PeerManager implements ConnectionListener, PersistedDataHost {

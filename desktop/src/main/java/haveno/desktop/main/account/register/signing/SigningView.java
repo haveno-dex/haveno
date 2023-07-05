@@ -18,6 +18,7 @@
 package haveno.desktop.main.account.register.signing;
 
 
+import com.google.inject.Inject;
 import haveno.common.util.Utilities;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
@@ -29,8 +30,6 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
-
-import javax.inject.Inject;
 
 @FxmlView
 public class SigningView extends ActivatableView<AnchorPane, Void> {

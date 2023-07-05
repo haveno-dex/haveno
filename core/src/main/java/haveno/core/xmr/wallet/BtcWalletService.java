@@ -18,6 +18,9 @@
 package haveno.core.xmr.wallet;
 
 import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import haveno.common.util.Tuple2;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.exceptions.AddressEntryException;
@@ -27,6 +30,13 @@ import haveno.core.xmr.exceptions.WalletException;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.model.AddressEntryList;
 import haveno.core.xmr.setup.WalletsSetup;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -45,18 +55,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class BtcWalletService extends WalletService {
     private static final Logger log = LoggerFactory.getLogger(BtcWalletService.class);

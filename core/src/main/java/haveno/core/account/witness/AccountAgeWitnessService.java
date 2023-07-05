@@ -18,6 +18,8 @@
 package haveno.core.account.witness;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
@@ -51,12 +53,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.time.Clock;
@@ -74,8 +70,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 
 @Slf4j
 public class AccountAgeWitnessService {

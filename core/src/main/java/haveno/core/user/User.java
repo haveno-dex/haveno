@@ -17,6 +17,9 @@
 
 package haveno.core.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
@@ -31,26 +34,21 @@ import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.mediation.mediator.Mediator;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.network.p2p.NodeAddress;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableSet;
-import javafx.collections.SetChangeListener;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
+import javax.annotation.Nullable;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The User is persisted locally.

@@ -17,11 +17,10 @@
 
 package haveno.core.payment.validation;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
 import org.apache.commons.lang3.StringUtils;
-
-import javax.inject.Inject;
 
 /*
  * Interac e-Transfer requires a mail address or Canadian (mobile) phone number

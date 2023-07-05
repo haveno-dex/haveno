@@ -8,9 +8,9 @@ Visit the [Gradle website](https://gradle.org/releases/) and decide the:
 
 Adjust the following command with tha arguments above and execute it twice:
 
-    ./gradlew wrapper --gradle-version 8.0.2 \
+    ./gradlew wrapper --gradle-version 8.2 \
         --distribution-type all \
-        --gradle-distribution-sha256-sum 47a5bfed9ef814f90f8debcbbb315e8e7c654109acd224595ea39fca95c5d4da
+        --gradle-distribution-sha256-sum 5022b0b25fe182b0e50867e77f484501dba44feeea88f5c1f13b6b4660463640
 
 The first execution should automatically update:
 

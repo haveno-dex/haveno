@@ -18,6 +18,7 @@
 package haveno.desktop.main.portfolio.failedtrades;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
@@ -28,8 +29,6 @@ import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.util.DisplayUtils;
 import javafx.collections.ObservableList;
-
-import javax.inject.Named;
 
 class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataModel> implements ViewModel {
     private final CoinFormatter formatter;

@@ -18,6 +18,7 @@
 package haveno.desktop.main.market.spread;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.monetary.CryptoMoney;
@@ -35,15 +36,6 @@ import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import lombok.Getter;
-import lombok.Setter;
-
-import javax.inject.Named;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -56,6 +48,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import lombok.Getter;
+import lombok.Setter;
 
 class SpreadViewModel extends ActivatableViewModel {
 

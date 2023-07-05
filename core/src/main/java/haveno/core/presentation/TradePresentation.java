@@ -17,6 +17,7 @@
 
 package haveno.core.presentation;
 
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.core.trade.TradeManager;
 import javafx.beans.property.BooleanProperty;
@@ -24,8 +25,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
-
-import javax.inject.Inject;
 
 public class TradePresentation {
     @Getter

@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.account.content.password;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import com.google.inject.Inject;
 import com.jfoenix.validation.RequiredFieldValidator;
 import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
@@ -33,6 +35,10 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.backup.BackupView;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addPasswordTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.PasswordValidator;
 import javafx.beans.value.ChangeListener;
@@ -40,14 +46,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javax.inject.Inject;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addPasswordTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class PasswordView extends ActivatableView<GridPane, Void> {

@@ -1,8 +1,9 @@
 package haveno.core.xmr.wallet;
 
+import static com.google.common.base.Preconditions.checkState;
 import com.google.common.util.concurrent.Service.State;
+import com.google.inject.Inject;
 import com.google.inject.name.Named;
-
 import common.utils.GenUtils;
 import common.utils.JsonUtils;
 import haveno.common.UserThread;
@@ -25,6 +26,25 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.model.XmrAddressEntryList;
 import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
+import java.io.File;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
@@ -50,33 +70,9 @@ import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletConfig;
 import monero.wallet.model.MoneroWalletListener;
 import monero.wallet.model.MoneroWalletListenerI;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import java.io.File;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkState;
 
 public class XmrWalletService {
     private static final Logger log = LoggerFactory.getLogger(XmrWalletService.class);
@@ -695,7 +691,7 @@ public class XmrWalletService {
             int maxAttempts = 2;
             while (!HavenoUtils.havenoSetup.getWalletInitialized().get()) {
                 try {
-                
+
                     // sync main wallet
                     log.info("Syncing main wallet");
                     long time = System.currentTimeMillis();
@@ -706,12 +702,12 @@ public class XmrWalletService {
 
                     // TODO: using this to signify both daemon and wallet synced, use separate sync handlers
                     connectionsService.doneDownload();
-    
+
                     // notify setup that main wallet is initialized
                     // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected
                     // refactor startup to call this and sync off main thread? but the calls to e.g. getBalance() fail with 'wallet and network is not yet initialized'
                     HavenoUtils.havenoSetup.getWalletInitialized().set(true);
-                    
+
                     // save but skip backup on initialization
                     saveMainWallet(false);
                 } catch (Exception e) {
@@ -728,7 +724,7 @@ public class XmrWalletService {
                     }
                 }
             }
-            
+
             // register internal listener to notify external listeners
             wallet.addListener(new XmrWalletListener());
         }
@@ -747,10 +743,10 @@ public class XmrWalletService {
             // start monero-wallet-rpc instance
             walletRpc = startWalletRpcInstance(port);
             walletRpc.getRpcConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-            
+
             // prevent wallet rpc from syncing
             walletRpc.stopSyncing();
-            
+
             // create wallet
             log.info("Creating wallet " + config.getPath() + " connected to daemon " + connection.getUri());
             long time = System.currentTimeMillis();
@@ -772,10 +768,10 @@ public class XmrWalletService {
             // start monero-wallet-rpc instance
             walletRpc = startWalletRpcInstance(port);
             walletRpc.getRpcConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-            
+
             // prevent wallet rpc from syncing
             walletRpc.stopSyncing();
-            
+
             // open wallet
             log.info("Opening wallet " + config.getPath());
             walletRpc.openWallet(config.setServer(connectionsService.getConnection()));
@@ -930,7 +926,7 @@ public class XmrWalletService {
             log.warn("Error getting new address entry based on incoming transactions");
             e.printStackTrace();
         }
-        
+
         // create new entry
         return getNewAddressEntryAux(offerId, context);
     }

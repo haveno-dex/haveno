@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -34,6 +36,22 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addComboBox;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
+import static haveno.desktop.util.FormBuilder.removeRowsFromGridPane;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
@@ -53,26 +71,6 @@ import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addComboBox;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
-import static haveno.desktop.util.FormBuilder.removeRowsFromGridPane;
 
 @Slf4j
 public class SignPaymentAccountsWindow extends Overlay<SignPaymentAccountsWindow> {
