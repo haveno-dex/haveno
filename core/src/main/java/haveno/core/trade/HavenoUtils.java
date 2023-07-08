@@ -35,26 +35,26 @@ import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
-
-import org.bitcoinj.core.Coin;
-
-import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+import org.bitcoinj.core.Coin;
 
 /**
  * Collection of utilities.
@@ -62,12 +62,14 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class HavenoUtils {
 
+    // Use the US locale as a base for all DecimalFormats (commas should be omitted from number strings).
+    private static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
     private static final long CENTINEROS_AU_MULTIPLIER = 10000;
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
-    public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("0.000000000000");
+    public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
@@ -463,7 +465,7 @@ public class HavenoUtils {
     }
 
     public static List<Future<?>> submitTasks(List<Runnable> tasks) {
-        List<Future<?>> futures = new ArrayList<Future<?>>();
+        List<Future<?>> futures = new ArrayList<>();
         for (Runnable task : tasks) futures.add(submitTask(task));
         return futures;
     }
@@ -481,7 +483,7 @@ public class HavenoUtils {
     public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
         if (tasks.isEmpty()) return;
         ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
-        List<Future<?>> futures = new ArrayList<Future<?>>();
+        List<Future<?>> futures = new ArrayList<>();
         for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();
 
