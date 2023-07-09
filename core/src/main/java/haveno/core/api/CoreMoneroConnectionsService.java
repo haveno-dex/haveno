@@ -498,7 +498,7 @@ public final class CoreMoneroConnectionsService {
                 daemon = null;
                 connectionList.setCurrentConnectionUri(null);
             } else {
-                daemon = new MoneroDaemonRpc(connectionManager.getConnection());
+                daemon = new MoneroDaemonRpc(currentConnection);
                 connectionList.removeConnection(currentConnection.getUri());
                 connectionList.addConnection(currentConnection);
                 connectionList.setCurrentConnectionUri(currentConnection.getUri());
