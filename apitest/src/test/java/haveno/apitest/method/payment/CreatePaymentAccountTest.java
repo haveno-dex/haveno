@@ -958,7 +958,6 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
         List<TradeCurrency> expectedTradeCurrencies = new ArrayList<>() {{
             add(getTradeCurrency("ARS").get()); // 1st in list = selected ccy
             add(getTradeCurrency("CAD").get());
-            add(getTradeCurrency("HRK").get());
             add(getTradeCurrency("CZK").get());
             add(getTradeCurrency(EUR).get());
             add(getTradeCurrency("HKD").get());

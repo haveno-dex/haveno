@@ -54,7 +54,6 @@ public final class TransferwiseAccount extends PaymentAccount {
             new TraditionalCurrency("GBP"),
             new TraditionalCurrency("GEL"),
             new TraditionalCurrency("HKD"),
-            new TraditionalCurrency("HRK"),
             new TraditionalCurrency("HUF"),
             new TraditionalCurrency("IDR"),
             new TraditionalCurrency("ILS"),
