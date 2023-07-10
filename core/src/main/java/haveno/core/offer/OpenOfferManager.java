@@ -287,38 +287,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         cleanUpAddressEntries();
-
-        // TODO: add to invalid offers on failure
-//        openOffers.stream()
-//                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
-//                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
-
-        // process unposted offers
-        processUnpostedOffers((transaction) -> {}, (errorMessage) -> {
-            log.warn("Error processing unposted offers: " + errorMessage);
-        });
-
-        // register to process unposted offers when unlocked balance increases
-        if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
-        xmrWalletService.addWalletListener(new MoneroWalletListener() {
-            @Override
-            public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
-                    processUnpostedOffers((transaction) -> {}, (errorMessage) -> {
-                        log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
-                    });
-                }
-                lastUnlockedBalance = newUnlockedBalance;
-            }
-        });
-
-        // initialize key image poller for signed offers
-        maybeInitializeKeyImagePoller();
-
-        // poll spent status of key images
-        for (SignedOffer signedOffer : signedOffers.getList()) {
-            signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
-        }
     }
 
     private void cleanUpAddressEntries() {
@@ -449,6 +417,38 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
 
         p2PService.getPeerManager().addListener(this);
+
+        // TODO: add to invalid offers on failure
+//        openOffers.stream()
+//                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
+//                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
+
+        // process unposted offers
+        processUnpostedOffers((transaction) -> {}, (errorMessage) -> {
+            log.warn("Error processing unposted offers: " + errorMessage);
+        });
+
+        // register to process unposted offers when unlocked balance increases
+        if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+        xmrWalletService.addWalletListener(new MoneroWalletListener() {
+            @Override
+            public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+                if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
+                    processUnpostedOffers((transaction) -> {}, (errorMessage) -> {
+                        log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
+                    });
+                }
+                lastUnlockedBalance = newUnlockedBalance;
+            }
+        });
+
+        // initialize key image poller for signed offers
+        maybeInitializeKeyImagePoller();
+
+        // poll spent status of key images
+        for (SignedOffer signedOffer : signedOffers.getList()) {
+            signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
+        }
     }
 
 
