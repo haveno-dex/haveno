@@ -840,8 +840,10 @@ public class XmrWalletService {
         if (wallet == null) maybeInitMainWallet();
         else if (wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
             log.info("Restarting main wallet since proxy URI has changed");
-            closeMainWallet(true);
-            maybeInitMainWallet();
+            synchronized (wallet) {
+                closeMainWallet(true);
+                maybeInitMainWallet();
+            }
         } else {
             wallet.setDaemonConnection(connection);
             if (connection != null) {
@@ -1126,19 +1128,29 @@ public class XmrWalletService {
     }
 
     public BigInteger getBalanceForSubaddress(int subaddressIndex) {
-        return wallet.getBalance(0, subaddressIndex);
+        synchronized (wallet) {
+            return wallet.getBalance(0, subaddressIndex);
+        }
     }
 
     public BigInteger getAvailableBalanceForSubaddress(int subaddressIndex) {
-        return wallet.getUnlockedBalance(0, subaddressIndex);
+        synchronized (wallet) {
+            return wallet.getUnlockedBalance(0, subaddressIndex);
+        }
     }
 
     public BigInteger getBalance() {
-        return wallet != null ? wallet.getBalance(0) : BigInteger.valueOf(0);
+        if (wallet == null) return BigInteger.valueOf(0);
+        synchronized (wallet) {
+            return wallet.getBalance(0);
+        }
     }
 
     public BigInteger getAvailableBalance() {
-        return wallet != null ? wallet.getUnlockedBalance(0) : BigInteger.valueOf(0);
+        if (wallet == null) return BigInteger.valueOf(0);
+        synchronized (wallet) {
+            return wallet.getUnlockedBalance(0);
+        }
     }
 
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
