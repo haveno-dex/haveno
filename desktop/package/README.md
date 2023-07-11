@@ -13,7 +13,7 @@ Follow these instructions to create installers for the Haveno Java desktop appli
 
 1. `./gradlew packageInstallers`
 2. Confirm prompts.
-3. Path to installer printed at end. Execute to install: `sudo dpkg -i <path>.deb`
+3. Path to installer printed at end. Execute to install: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
 
 Haveno data folder on Linux: `/home/<username>/.local/share/Haveno/`
 
