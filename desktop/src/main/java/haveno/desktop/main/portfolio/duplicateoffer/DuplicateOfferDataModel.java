@@ -19,7 +19,6 @@ package haveno.desktop.main.portfolio.duplicateoffer;
 
 
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
@@ -40,6 +39,8 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
+
+import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;

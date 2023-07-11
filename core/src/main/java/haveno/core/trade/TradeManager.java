@@ -17,10 +17,8 @@
 
 package haveno.core.trade;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
+
 import common.utils.GenUtils;
 import haveno.common.ClockWatcher;
 import haveno.common.crypto.KeyRing;
@@ -76,6 +74,25 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.TorNetworkNode;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleLongProperty;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import lombok.Getter;
+import lombok.Setter;
+import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroOutputQuery;
+import org.bitcoinj.core.Coin;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
@@ -89,23 +106,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleLongProperty;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javax.annotation.Nullable;
-import lombok.Getter;
-import lombok.Setter;
-import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroOutputQuery;
-import org.bitcoinj.core.Coin;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
@@ -407,7 +410,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             for (Trade trade : trades) {
                 tasks.add(() -> {
                     try {
-
+                        
                         // check for duplicate uid
                         if (!uids.add(trade.getUid())) {
                             log.warn("Found trade with duplicate uid, skipping. That should never happen. {} {}, uid={}", trade.getClass().getSimpleName(), trade.getId(), trade.getUid());
@@ -439,10 +442,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             for (Trade trade : trades) {
                 if (trade.isIdling()) HavenoUtils.submitTask(() -> trade.syncWallet());
             }
-
+    
             getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
             onTradesChanged();
-
+    
             xmrWalletService.setTradeManager(this);
 
             // process after all wallets initialized
@@ -470,7 +473,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // notify that persisted trades initialized
             persistedTradesInitialized.set(true);
-
+    
             // We do not include failed trades as they should not be counted anyway in the trade statistics
             // TODO: remove stats?
             Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());

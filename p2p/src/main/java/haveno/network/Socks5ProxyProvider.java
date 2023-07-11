@@ -18,14 +18,15 @@
 package haveno.network;
 
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.config.Config;
 import haveno.network.p2p.network.NetworkNode;
-import java.net.UnknownHostException;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import javax.inject.Named;
+import java.net.UnknownHostException;
 
 /**
  * Provides Socks5Proxies for the bitcoin network and http requests

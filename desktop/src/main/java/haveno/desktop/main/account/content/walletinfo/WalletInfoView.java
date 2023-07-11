@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.account.content.walletinfo;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.core.locale.Res;
 import haveno.core.util.FormattingUtils;
@@ -31,10 +29,6 @@ import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
-import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 import haveno.desktop.util.Layout;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
@@ -43,6 +37,14 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.wallet.DeterministicKeyChain;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+
+import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 import static org.bitcoinj.wallet.Wallet.BalanceType.ESTIMATED_SPENDABLE;
 
 @FxmlView

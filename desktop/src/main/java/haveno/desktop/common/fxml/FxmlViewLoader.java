@@ -18,21 +18,23 @@
 package haveno.desktop.common.fxml;
 
 import com.google.common.base.Joiner;
-import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.util.Utilities;
 import haveno.desktop.common.ViewfxException;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewFactory;
 import haveno.desktop.common.view.ViewLoader;
+import javafx.fxml.FXMLLoader;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.ResourceBundle;
-import javafx.fxml.FXMLLoader;
-import lombok.extern.slf4j.Slf4j;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @Singleton

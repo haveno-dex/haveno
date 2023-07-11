@@ -18,7 +18,6 @@
 package haveno.desktop.main.portfolio.duplicateoffer;
 
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.OfferPayload;
 import haveno.core.payment.PaymentAccount;
@@ -31,6 +30,8 @@ import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+
+import javax.inject.Named;
 
 @FxmlView
 public class DuplicateOfferView extends MutableOfferView<DuplicateOfferViewModel> {

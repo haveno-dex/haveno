@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.presentation;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -30,10 +28,6 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -49,6 +43,13 @@ import lombok.Getter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Singleton
 public class MarketPricePresentation {

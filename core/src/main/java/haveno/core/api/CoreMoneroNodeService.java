@@ -16,22 +16,23 @@
  */
 package haveno.core.api;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.MoneroNodeSettings;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroUtils;
+import monero.daemon.MoneroDaemonRpc;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroUtils;
-import monero.daemon.MoneroDaemonRpc;
 
 /**
  * Start and stop or connect to a local Monero node.

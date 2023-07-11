@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.portfolio.failedtrades;
 
-import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.jfoenix.controls.JFXButton;
 import de.jensd.fx.fontawesome.AwesomeIcon;
@@ -39,8 +38,6 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
-import java.math.BigInteger;
-import java.util.Comparator;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
@@ -67,6 +64,10 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.Comparator;
 
 @FxmlView
 public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTradesViewModel> {

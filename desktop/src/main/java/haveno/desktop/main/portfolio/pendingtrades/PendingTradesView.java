@@ -17,8 +17,6 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXButton;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
@@ -56,9 +54,6 @@ import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.network.p2p.NodeAddress;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -96,6 +91,12 @@ import javafx.stage.Window;
 import javafx.util.Callback;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 @FxmlView
 public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTradesViewModel> {

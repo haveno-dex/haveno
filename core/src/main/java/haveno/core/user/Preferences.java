@@ -17,10 +17,6 @@
 
 package haveno.core.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
@@ -30,23 +26,16 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.locale.TraditionalCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.xmr.MoneroNodeSettings;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -55,12 +44,25 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @Singleton

@@ -17,17 +17,11 @@
 
 package haveno.core.api;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.support.SupportType;
-import static haveno.core.support.SupportType.ARBITRATION;
-import static haveno.core.support.SupportType.MEDIATION;
-import static haveno.core.support.SupportType.REFUND;
-import static haveno.core.support.SupportType.TRADE;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.Mediator;
@@ -38,16 +32,24 @@ import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import static java.lang.String.format;
-import static java.net.InetAddress.getLoopbackAddress;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.ArrayList;
-import static java.util.Arrays.asList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.ECKey;
+
+import static haveno.core.support.SupportType.ARBITRATION;
+import static haveno.core.support.SupportType.MEDIATION;
+import static haveno.core.support.SupportType.REFUND;
+import static haveno.core.support.SupportType.TRADE;
+import static java.lang.String.format;
+import static java.net.InetAddress.getLoopbackAddress;
+import static java.util.Arrays.asList;
 
 @Singleton
 @Slf4j

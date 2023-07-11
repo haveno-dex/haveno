@@ -17,15 +17,9 @@
 
 package haveno.core.offer;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Version;
 import haveno.common.util.MathUtils;
-import static haveno.common.util.MathUtils.roundDoubleToLong;
-import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -34,16 +28,8 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
-import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
-import static haveno.core.offer.OfferPayload.CAPABILITIES;
-import static haveno.core.offer.OfferPayload.F2F_CITY;
-import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.REFERRAL_ID;
-import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
-import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
-import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
@@ -52,18 +38,34 @@ import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.BtcWalletService;
-import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
-import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
 import haveno.network.p2p.P2PService;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
+import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
+import static haveno.core.offer.OfferPayload.CAPABILITIES;
+import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.F2F_CITY;
+import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.REFERRAL_ID;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
+import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
 
 /**
  * This class holds utility methods for creating, editing and taking an Offer.

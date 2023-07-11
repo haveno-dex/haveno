@@ -17,7 +17,6 @@
 
 package haveno.desktop.main;
 
-import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXProgressBar;
@@ -56,10 +55,6 @@ import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Transitions;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Date;
-import java.util.Locale;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -86,10 +81,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
-import static javafx.scene.layout.AnchorPane.setBottomAnchor;
-import static javafx.scene.layout.AnchorPane.setLeftAnchor;
-import static javafx.scene.layout.AnchorPane.setRightAnchor;
-import static javafx.scene.layout.AnchorPane.setTopAnchor;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -101,6 +92,17 @@ import javafx.util.Duration;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+
+import javax.inject.Inject;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.Locale;
+
+import static javafx.scene.layout.AnchorPane.setBottomAnchor;
+import static javafx.scene.layout.AnchorPane.setLeftAnchor;
+import static javafx.scene.layout.AnchorPane.setRightAnchor;
+import static javafx.scene.layout.AnchorPane.setTopAnchor;
 
 @FxmlView
 @Slf4j

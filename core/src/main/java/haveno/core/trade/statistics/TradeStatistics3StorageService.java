@@ -17,15 +17,16 @@
 
 package haveno.core.trade.statistics;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.HistoricalDataStoreService;
-import java.io.File;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.io.File;
 
 @Singleton
 @Slf4j

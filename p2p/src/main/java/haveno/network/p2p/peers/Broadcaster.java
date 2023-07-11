@@ -17,25 +17,31 @@
 
 package haveno.network.p2p.peers;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.storage.messages.BroadcastMessage;
+
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
-import haveno.network.p2p.NodeAddress;
-import haveno.network.p2p.network.NetworkNode;
-import haveno.network.p2p.storage.messages.BroadcastMessage;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j

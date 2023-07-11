@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.funds.withdrawal;
 
-import com.google.inject.Inject;
 import haveno.common.util.Tuple2;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
@@ -36,15 +35,9 @@ import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TxDetails;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
-import static haveno.desktop.util.FormBuilder.addButton;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -54,6 +47,15 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
+
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+
+import static haveno.desktop.util.FormBuilder.addButton;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 
 @FxmlView
 public class WithdrawalView extends ActivatableView<VBox, Void> {
