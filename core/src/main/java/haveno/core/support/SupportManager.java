@@ -187,13 +187,14 @@ public abstract class SupportManager {
                 log.info("Received AckMessage for {} with tradeId {} and uid {}",
                         ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
 
-                // dispute is opened by ack on chat message
+                // ack message on chat message received when dispute is opened and closed
                 if (ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName())) {
                     Trade trade = tradeManager.getTrade(ackMessage.getSourceId());
                     for (Dispute dispute : trade.getDisputes()) {
                         for (ChatMessage chatMessage : dispute.getChatMessages()) {
                             if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                                if (dispute.isClosed()) trade.syncWalletNormallyForMs(30000); // sync to check for payout
+                                else trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                             }
                         }
                     }
