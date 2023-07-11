@@ -20,8 +20,6 @@ package haveno.core.network.p2p.inventory;
 import com.google.common.base.Enums;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.proto.network.NetworkEnvelope;
@@ -39,10 +37,13 @@ import haveno.network.p2p.network.Statistic;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GetInventoryRequestHandler implements MessageListener {

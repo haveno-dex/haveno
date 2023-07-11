@@ -17,8 +17,6 @@
 
 package haveno.core.api;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
@@ -47,6 +45,15 @@ import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.MoneroNodeSettings;
 import haveno.proto.grpc.NotificationMessage;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Transaction;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -56,12 +63,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.core.Transaction;
 
 /**
  * Provides high level interface to functionality of core Haveno features.

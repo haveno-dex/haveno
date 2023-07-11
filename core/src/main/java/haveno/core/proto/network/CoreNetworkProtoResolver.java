@@ -17,8 +17,6 @@
 
 package haveno.core.proto.network;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.network.NetworkEnvelope;
@@ -71,8 +69,11 @@ import haveno.network.p2p.storage.messages.RemoveMailboxDataMessage;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import java.time.Clock;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.time.Clock;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j

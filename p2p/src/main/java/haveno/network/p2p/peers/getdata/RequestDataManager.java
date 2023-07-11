@@ -17,9 +17,6 @@
 
 package haveno.network.p2p.peers.getdata;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.inject.Inject;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.Version;
@@ -35,6 +32,10 @@ import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import haveno.network.p2p.storage.P2PDataStorage;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
+
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,8 +45,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class RequestDataManager implements MessageListener, ConnectionListener, PeerManager.Listener {

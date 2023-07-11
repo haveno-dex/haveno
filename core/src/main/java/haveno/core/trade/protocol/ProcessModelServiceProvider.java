@@ -17,7 +17,6 @@
 
 package haveno.core.trade.protocol;
 
-import com.google.inject.Inject;
 import haveno.common.crypto.KeyRing;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -33,6 +32,8 @@ import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
 import lombok.Getter;
+
+import javax.inject.Inject;
 
 @Getter
 public class ProcessModelServiceProvider {

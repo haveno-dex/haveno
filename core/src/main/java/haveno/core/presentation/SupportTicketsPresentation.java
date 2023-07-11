@@ -17,7 +17,6 @@
 
 package haveno.core.presentation;
 
-import com.google.inject.Inject;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
@@ -26,6 +25,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
+
+import javax.inject.Inject;
 
 public class SupportTicketsPresentation {
     @Getter

@@ -17,8 +17,8 @@
 
 package haveno.desktop.common.view;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -18,7 +18,6 @@
 package haveno.desktop.main.portfolio.duplicateoffer;
 
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
@@ -30,11 +29,13 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.NonFiatPriceValidator;
+import haveno.core.util.validation.FiatPriceValidator;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferViewModel;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Named;
 
 @Slf4j
 class DuplicateOfferViewModel extends MutableOfferViewModel<DuplicateOfferDataModel> {

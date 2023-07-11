@@ -17,15 +17,17 @@
 
 package haveno.daemon.grpc;
 
-import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.core.app.HavenoHeadlessApp;
 import haveno.proto.grpc.ShutdownServerGrpc;
 import haveno.proto.grpc.StopReply;
 import haveno.proto.grpc.StopRequest;
 import io.grpc.stub.StreamObserver;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 @Slf4j
 class GrpcShutdownService extends ShutdownServerGrpc.ShutdownServerImplBase {

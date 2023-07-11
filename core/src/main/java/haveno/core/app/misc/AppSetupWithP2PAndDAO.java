@@ -17,7 +17,6 @@
 
 package haveno.core.app.misc;
 
-import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -27,6 +26,8 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.P2PDataStorage;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 
 @Slf4j
 public class AppSetupWithP2PAndDAO extends AppSetupWithP2P {

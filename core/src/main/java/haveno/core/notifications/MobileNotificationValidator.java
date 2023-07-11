@@ -17,9 +17,10 @@
 
 package haveno.core.notifications;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Slf4j
 @Singleton

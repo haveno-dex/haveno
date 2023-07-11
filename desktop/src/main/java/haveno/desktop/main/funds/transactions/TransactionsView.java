@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
@@ -38,8 +37,6 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
-import java.util.Comparator;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
@@ -62,6 +59,10 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import monero.wallet.model.MoneroWalletListener;
+
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.util.Comparator;
 
 @FxmlView
 public class TransactionsView extends ActivatableView<VBox, Void> {

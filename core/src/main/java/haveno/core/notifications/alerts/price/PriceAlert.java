@@ -17,8 +17,6 @@
 
 package haveno.core.notifications.alerts.price;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -32,6 +30,9 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Slf4j
 @Singleton

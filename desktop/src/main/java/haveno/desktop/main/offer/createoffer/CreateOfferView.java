@@ -18,7 +18,6 @@
 package haveno.desktop.main.offer.createoffer;
 
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.OfferDirection;
@@ -32,10 +31,12 @@ import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.util.GUIUtil;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
+import javax.inject.Named;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @FxmlView
 public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {

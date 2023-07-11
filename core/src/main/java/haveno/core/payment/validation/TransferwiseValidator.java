@@ -17,8 +17,9 @@
 
 package haveno.core.payment.validation;
 
-import com.google.inject.Inject;
 import haveno.core.util.validation.InputValidator;
+
+import javax.inject.Inject;
 
 public final class TransferwiseValidator extends InputValidator {
     private final EmailValidator emailValidator;

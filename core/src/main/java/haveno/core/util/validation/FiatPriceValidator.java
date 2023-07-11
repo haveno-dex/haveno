@@ -17,7 +17,7 @@
 
 package haveno.core.util.validation;
 
-import com.google.inject.Inject;
+import javax.inject.Inject;
 
 public class FiatPriceValidator extends MonetaryValidator {
     @Override

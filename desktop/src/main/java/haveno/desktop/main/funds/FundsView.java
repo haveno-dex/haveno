@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.funds;
 
-import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableView;
@@ -33,6 +32,8 @@ import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+
+import javax.inject.Inject;
 
 @FxmlView
 public class FundsView extends ActivatableView<TabPane, Void> {

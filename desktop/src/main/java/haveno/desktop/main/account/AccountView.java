@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.account;
 
-import com.google.inject.Inject;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.DontShowAgainLookup;
@@ -40,7 +39,6 @@ import haveno.desktop.main.account.register.mediator.MediatorRegistrationView;
 import haveno.desktop.main.account.register.refundagent.RefundAgentRegistrationView;
 import haveno.desktop.main.account.register.signing.SigningView;
 import haveno.desktop.main.presentation.AccountPresentation;
-import java.util.List;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
@@ -51,6 +49,9 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+
+import javax.inject.Inject;
+import java.util.List;
 
 @FxmlView
 public class AccountView extends ActivatableView<TabPane, Void> {

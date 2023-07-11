@@ -17,15 +17,16 @@
 
 package haveno.core.payment.validation;
 
-import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.validation.NumberValidator;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public class XmrValidator extends NumberValidator {
 
