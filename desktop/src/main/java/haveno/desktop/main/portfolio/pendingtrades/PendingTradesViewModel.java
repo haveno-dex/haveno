@@ -24,7 +24,6 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
-import haveno.core.provider.mempool.MempoolService;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.ClosedTradableManager;
@@ -91,7 +90,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     public final BtcAddressValidator btcAddressValidator;
     final AccountAgeWitnessService accountAgeWitnessService;
     public final P2PService p2PService;
-    private final MempoolService mempoolService;
     private final ClosedTradableManager closedTradableManager;
     private final OfferUtil offerUtil;
     private final TradeUtil tradeUtil;
@@ -121,7 +119,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                                   @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                                   BtcAddressValidator btcAddressValidator,
                                   P2PService p2PService,
-                                  MempoolService mempoolService,
                                   ClosedTradableManager closedTradableManager,
                                   OfferUtil offerUtil,
                                   TradeUtil tradeUtil,
@@ -134,7 +131,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         this.btcFormatter = btcFormatter;
         this.btcAddressValidator = btcAddressValidator;
         this.p2PService = p2PService;
-        this.mempoolService = mempoolService;
         this.closedTradableManager = closedTradableManager;
         this.offerUtil = offerUtil;
         this.tradeUtil = tradeUtil;
