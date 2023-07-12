@@ -34,7 +34,6 @@ import haveno.core.offer.OpenOfferManager;
 import haveno.core.offer.TriggerPriceService;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.RevolutAccount;
-import haveno.core.provider.mempool.MempoolService;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -93,7 +92,6 @@ public class DomainInitialisation {
     private final MarketAlerts marketAlerts;
     private final User user;
     private final TriggerPriceService triggerPriceService;
-    private final MempoolService mempoolService;
     private final MailboxMessageService mailboxMessageService;
 
     @Inject
@@ -126,7 +124,6 @@ public class DomainInitialisation {
                                 MarketAlerts marketAlerts,
                                 User user,
                                 TriggerPriceService triggerPriceService,
-                                MempoolService mempoolService,
                                 MailboxMessageService mailboxMessageService) {
         this.clockWatcher = clockWatcher;
         this.arbitrationManager = arbitrationManager;
@@ -157,7 +154,6 @@ public class DomainInitialisation {
         this.marketAlerts = marketAlerts;
         this.user = user;
         this.triggerPriceService = triggerPriceService;
-        this.mempoolService = mempoolService;
         this.mailboxMessageService = mailboxMessageService;
     }
 
@@ -215,7 +211,6 @@ public class DomainInitialisation {
         priceAlert.onAllServicesInitialized();
         marketAlerts.onAllServicesInitialized();
         triggerPriceService.onAllServicesInitialized();
-        mempoolService.onAllServicesInitialized();
 
         mailboxMessageService.onAllServicesInitialized();
 

@@ -116,7 +116,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<Trade.State> tradeStateListener;
     private ChangeListener<Offer.State> offerStateListener;
-    private ChangeListener<Number> getMempoolStatusListener;
     private ConnectionListener connectionListener;
     //  private Subscription isFeeSufficientSubscription;
     private Runnable takeOfferResultHandler;
@@ -449,7 +448,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         boolean inputDataValid = isBtcInputValid(amount.get()).isValid
                 && dataModel.isMinAmountLessOrEqualAmount()
                 && !dataModel.isAmountLargerThanOfferAmount()
-                && dataModel.mempoolStatus.get() >= 0 // TODO do we want to block in case response is slow (tor can be slow)?
                 && isOfferAvailable.get()
                 && !dataModel.wouldCreateDustForMaker();
         isNextButtonDisabled.set(!inputDataValid);
@@ -490,12 +488,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         tradeStateListener = (ov, oldValue, newValue) -> applyTradeState();
         offerStateListener = (ov, oldValue, newValue) -> applyOfferState(newValue);
-
-        getMempoolStatusListener = (observable, oldValue, newValue) -> {
-            if (newValue.longValue() >= 0) {
-                updateButtonDisableState();
-            }
-        };
 
         connectionListener = new ConnectionListener() {
             @Override
@@ -544,7 +536,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         dataModel.getAmount().addListener(amountListener);
 
         dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
-        dataModel.getMempoolStatus().addListener(getMempoolStatusListener);
         p2PService.getNetworkNode().addConnectionListener(connectionListener);
        /* isFeeSufficientSubscription = EasyBind.subscribe(dataModel.isFeeFromFundingTxSufficient, newValue -> {
             updateButtonDisableState();
@@ -557,7 +548,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().removeListener(amountListener);
-        dataModel.getMempoolStatus().removeListener(getMempoolStatusListener);
 
         dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
         if (offer != null) {
@@ -715,10 +705,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public void resetErrorMessage() {
         offer.setErrorMessage(null);
-    }
-
-    private CoinFormatter getFormatterForTakerFee() {
-        return xmrFormatter;
     }
 
     public Callback<ListView<PaymentAccount>, ListCell<PaymentAccount>> getPaymentAccountListCellFactory(

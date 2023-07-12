@@ -31,7 +31,6 @@ import haveno.core.offer.OfferUtil;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.PaymentMethod;
-import haveno.core.provider.mempool.MempoolService;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
@@ -48,13 +47,10 @@ import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -73,7 +69,6 @@ class TakeOfferDataModel extends OfferDataModel {
     private final TradeManager tradeManager;
     private final OfferBook offerBook;
     private final User user;
-    private final MempoolService mempoolService;
     private final FilterManager filterManager;
     final Preferences preferences;
     private final PriceFeedService priceFeedService;
@@ -94,10 +89,6 @@ class TakeOfferDataModel extends OfferDataModel {
     private PaymentAccount paymentAccount;
     private boolean isTabSelected;
     Price tradePrice;
-    @Getter
-    protected final IntegerProperty mempoolStatus = new SimpleIntegerProperty();
-    @Getter
-    protected String mempoolStatusText;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -111,7 +102,6 @@ class TakeOfferDataModel extends OfferDataModel {
                        OfferUtil offerUtil,
                        XmrWalletService xmrWalletService,
                        User user,
-                       MempoolService mempoolService,
                        FilterManager filterManager,
                        Preferences preferences,
                        PriceFeedService priceFeedService,
@@ -124,7 +114,6 @@ class TakeOfferDataModel extends OfferDataModel {
         this.tradeManager = tradeManager;
         this.offerBook = offerBook;
         this.user = user;
-        this.mempoolService = mempoolService;
         this.filterManager = filterManager;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
@@ -191,15 +180,6 @@ class TakeOfferDataModel extends OfferDataModel {
         securityDeposit = offer.getDirection() == OfferDirection.SELL ?
                 getBuyerSecurityDeposit() :
                 getSellerSecurityDeposit();
-
-        mempoolStatus.setValue(-1);
-        mempoolService.validateOfferMakerTx(offer.getOfferPayload(), (txValidator -> {
-            mempoolStatus.setValue(txValidator.isFail() ? 0 : 1);
-            if (txValidator.isFail()) {
-                mempoolStatusText = txValidator.toString();
-                log.info("Mempool check of OfferFeeTxId returned errors: [{}]", mempoolStatusText);
-            }
-        }));
 
         calculateVolume();
         calculateTotalToPay();
