@@ -407,6 +407,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             Set<Runnable> tasks = new HashSet<Runnable>();
             Set<String> uids = new HashSet<String>();
             Set<Trade> tradesToSkip = new HashSet<Trade>();
+            Set<Trade> tradesToMaybeRemoveOnError = new HashSet<Trade>();
             for (Trade trade : trades) {
                 tasks.add(() -> {
                     try {
@@ -423,9 +424,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                         // remove trade if protocol didn't initialize
                         if (getOpenTradeByUid(trade.getUid()).isPresent() && !trade.isDepositsPublished()) {
-                            maybeRemoveTradeOnError(trade);
+                            tradesToMaybeRemoveOnError.add(trade);
                         }
                     } catch (Exception e) {
+                        e.printStackTrace();
                         log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
                         trade.setInitError(e);
                     }
@@ -458,6 +460,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 EasyBind.subscribe(HavenoUtils.havenoSetup.getAppStartupState().applicationFullyInitializedProperty(), appInitialized -> {
                     if (!appInitialized) return;
 
+                    // maybe remove trades on error
+                    for (Trade trade : tradesToMaybeRemoveOnError) {
+                        maybeRemoveTradeOnError(trade);
+                    }
+
                     // thaw unreserved outputs
                     thawUnreservedOutputs();
 
@@ -468,23 +475,30 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                                 log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
                                 xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), addressEntry.getContext());
                             });
-                });
-            }
 
-            // notify that persisted trades initialized
-            persistedTradesInitialized.set(true);
-    
-            // We do not include failed trades as they should not be counted anyway in the trade statistics
-            // TODO: remove stats?
-            Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());
-            nonFailedTrades.addAll(tradableList.getList());
-            String referralId = referralIdService.getOptionalReferralId().orElse(null);
-            boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
-            tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
+                    onTradesInitiailizedAndAppFullyInitialized();
+                });
+            } else {
+                onTradesInitiailizedAndAppFullyInitialized();
+            }
         }).start();
 
         // allow execution to start
         GenUtils.waitFor(100);
+    }
+
+    private void onTradesInitiailizedAndAppFullyInitialized() {
+
+        // notify that persisted trades initialized
+        persistedTradesInitialized.set(true);
+
+        // We do not include failed trades as they should not be counted anyway in the trade statistics
+        // TODO: remove stats?
+        Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());
+        nonFailedTrades.addAll(tradableList.getList());
+        String referralId = referralIdService.getOptionalReferralId().orElse(null);
+        boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
+        tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
     }
 
     private void initPersistedTrade(Trade trade) {
