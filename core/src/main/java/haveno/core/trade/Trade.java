@@ -573,110 +573,112 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void initialize(ProcessModelServiceProvider serviceProvider) {
-        if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
+        synchronized (this) {
+            if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
-        // set arbitrator pub key ring once known
-        serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(getArbitratorNodeAddress()).ifPresent(arbitrator -> {
-            getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
-        });
+            // set arbitrator pub key ring once known
+            serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(getArbitratorNodeAddress()).ifPresent(arbitrator -> {
+                getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
+            });
 
-        // listen to daemon connection
-        xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> onConnectionChanged(newConnection));
+            // listen to daemon connection
+            xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> onConnectionChanged(newConnection));
 
-        // check if done
-        if (isPayoutUnlocked()) {
-            if (walletExists()) deleteWallet();
-            return;
-        }
-
-        // reset buyer's payment sent state if no ack receive
-        if (this instanceof BuyerTrade && getState().ordinal() >= Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT.ordinal() && getState().ordinal() < Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-            setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-        }
-
-        // reset seller's payment received state if no ack receive
-        if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT.ordinal() && getState().ordinal() < Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-            setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-        }
-
-        // handle trade phase events
-        tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
-            if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
-            if (isCompleted()) {
-                UserThread.execute(() -> {
-                    if (tradePhaseSubscription != null) {
-                        tradePhaseSubscription.unsubscribe();
-                        tradePhaseSubscription = null;
-                    }
-                });
-            }
-        });
-
-        // handle payout state events
-        payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
-            if (isPayoutPublished()) updateWalletRefreshPeriod();
-
-            // cleanup when payout published
-            if (newValue == Trade.PayoutState.PAYOUT_PUBLISHED) {
-                log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
-
-                // complete disputed trade
-                if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
-
-                // complete arbitrator trade
-                if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
-
-                // reset address entries
-                processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(getId());
-            }
-
-            // cleanup when payout unlocks
-            if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
-                if (!isInitialized) return;
-                log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
-                deleteWallet();
-                if (idlePayoutSyncer != null) {
-                    xmrWalletService.removeWalletListener(idlePayoutSyncer);
-                    idlePayoutSyncer = null;
-                }
-                UserThread.execute(() -> {
-                    if (payoutStateSubscription != null) {
-                        payoutStateSubscription.unsubscribe();
-                        payoutStateSubscription = null;
-                    }
-                });
-            }
-        });
-
-        // arbitrator syncs idle wallet when payout unlock expected
-        if (this instanceof ArbitratorTrade) {
-            idlePayoutSyncer = new IdlePayoutSyncer();
-            xmrWalletService.addWalletListener(idlePayoutSyncer);
-        }
-
-        // reprocess pending payout messages
-        this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
-        HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
-
-        // trade is initialized but not synced
-        isInitialized = true;
-
-        // sync wallet if applicable
-        if (!isDepositRequested() || isPayoutUnlocked()) return;
-        if (!walletExists()) {
-            MoneroTx payoutTx = getPayoutTx();
-            if (payoutTx != null && payoutTx.getNumConfirmations() >= 10) {
-                log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
-                setPayoutStateUnlocked();
+            // check if done
+            if (isPayoutUnlocked()) {
+                if (walletExists()) deleteWallet();
                 return;
-            } else {
-                throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
             }
+
+            // reset buyer's payment sent state if no ack receive
+            if (this instanceof BuyerTrade && getState().ordinal() >= Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT.ordinal() && getState().ordinal() < Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG.ordinal()) {
+                log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+                setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+            }
+
+            // reset seller's payment received state if no ack receive
+            if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT.ordinal() && getState().ordinal() < Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
+                log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+                setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            }
+
+            // handle trade phase events
+            tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
+                if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
+                if (isCompleted()) {
+                    UserThread.execute(() -> {
+                        if (tradePhaseSubscription != null) {
+                            tradePhaseSubscription.unsubscribe();
+                            tradePhaseSubscription = null;
+                        }
+                    });
+                }
+            });
+
+            // handle payout state events
+            payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
+                if (isPayoutPublished()) updateWalletRefreshPeriod();
+
+                // cleanup when payout published
+                if (newValue == Trade.PayoutState.PAYOUT_PUBLISHED) {
+                    log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
+
+                    // complete disputed trade
+                    if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
+
+                    // complete arbitrator trade
+                    if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
+
+                    // reset address entries
+                    processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(getId());
+                }
+
+                // cleanup when payout unlocks
+                if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
+                    if (!isInitialized) return;
+                    log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
+                    deleteWallet();
+                    if (idlePayoutSyncer != null) {
+                        xmrWalletService.removeWalletListener(idlePayoutSyncer);
+                        idlePayoutSyncer = null;
+                    }
+                    UserThread.execute(() -> {
+                        if (payoutStateSubscription != null) {
+                            payoutStateSubscription.unsubscribe();
+                            payoutStateSubscription = null;
+                        }
+                    });
+                }
+            });
+
+            // arbitrator syncs idle wallet when payout unlock expected
+            if (this instanceof ArbitratorTrade) {
+                idlePayoutSyncer = new IdlePayoutSyncer();
+                xmrWalletService.addWalletListener(idlePayoutSyncer);
+            }
+
+            // reprocess pending payout messages
+            this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
+            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
+
+            // trade is initialized but not synced
+            isInitialized = true;
+
+            // sync wallet if applicable
+            if (!isDepositRequested() || isPayoutUnlocked()) return;
+            if (!walletExists()) {
+                MoneroTx payoutTx = getPayoutTx();
+                if (payoutTx != null && payoutTx.getNumConfirmations() >= 10) {
+                    log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                    setPayoutStateUnlocked();
+                    return;
+                } else {
+                    throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
+                }
+            }
+            if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
+            updateSyncing();
         }
-        if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
-        updateSyncing();
     }
 
     public void requestPersistence() {
