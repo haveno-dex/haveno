@@ -136,7 +136,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private TextField currencyTextField;
     private AddressTextField addressTextField;
     private BalanceTextField balanceTextField;
-    private CheckBox splitOutputCheckbox;
+    private CheckBox reserveExactAmountCheckbox;
     private FundsTextField totalToPayTextField;
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, marketBasedPriceLabel, percentagePriceDescriptionLabel, tradeFeeDescriptionLabel,
@@ -421,7 +421,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         qrCodeImageView.setVisible(true);
         balanceTextField.setVisible(true);
         cancelButton2.setVisible(true);
-        splitOutputCheckbox.setVisible(true);
+        reserveExactAmountCheckbox.setVisible(true);
     }
 
     private void updateOfferElementsStyle() {
@@ -1093,18 +1093,18 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 Res.get("shared.tradeWalletBalance"));
         balanceTextField.setVisible(false);
 
-        splitOutputCheckbox = FormBuilder.addLabelCheckBox(gridPane, ++gridRow,
+        reserveExactAmountCheckbox = FormBuilder.addLabelCheckBox(gridPane, ++gridRow,
                 Res.get("shared.reserveExactAmount"));
 
-        GridPane.setHalignment(splitOutputCheckbox, HPos.LEFT);
+        GridPane.setHalignment(reserveExactAmountCheckbox, HPos.LEFT);
 
-        splitOutputCheckbox.setVisible(false);
-        splitOutputCheckbox.setSelected(preferences.getSplitOfferOutput());
-        splitOutputCheckbox.setOnAction(event -> {
-            boolean selected = splitOutputCheckbox.isSelected();
+        reserveExactAmountCheckbox.setVisible(false);
+        reserveExactAmountCheckbox.setSelected(preferences.getSplitOfferOutput());
+        reserveExactAmountCheckbox.setOnAction(event -> {
+            boolean selected = reserveExactAmountCheckbox.isSelected();
             if (selected != preferences.getSplitOfferOutput()) {
                 preferences.setSplitOfferOutput(selected);
-                model.dataModel.setSplitOutput(selected);
+                model.dataModel.setReserveExactAmount(selected);
             }
         });
 

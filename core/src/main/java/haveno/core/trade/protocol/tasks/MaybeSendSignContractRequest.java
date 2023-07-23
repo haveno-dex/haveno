@@ -76,12 +76,12 @@ public class MaybeSendSignContractRequest extends TradeTask {
 
           // create deposit tx and freeze inputs
           Integer subaddressIndex = null;
-          boolean isSplitOutputOffer = false;
+          boolean reserveExactAmount = false;
           if (trade instanceof MakerTrade) {
-            isSplitOutputOffer = processModel.getOpenOfferManager().getOpenOfferById(trade.getId()).get().isSplitOutput();
-            if (isSplitOutputOffer) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+            reserveExactAmount = processModel.getOpenOfferManager().getOpenOfferById(trade.getId()).get().isReserveExactAmount();
+            if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
           }
-          MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade, isSplitOutputOffer, subaddressIndex);
+          MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
 
           // collect reserved key images
           List<String> reservedKeyImages = new ArrayList<String>();

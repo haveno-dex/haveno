@@ -1377,7 +1377,7 @@ message OpenOffer {
     Offer offer = 1;
     State state = 2;
     int64 trigger_price = 3;
-    bool split_output = 4;
+    bool reserve_exact_amount = 4;
     repeated string scheduled_tx_hashes = 5;
     string scheduled_amount = 6; // BigInteger
     string split_output_tx_hash = 7;
