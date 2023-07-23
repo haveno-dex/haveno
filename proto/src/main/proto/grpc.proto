@@ -498,7 +498,7 @@ message PostOfferRequest {
     uint64 min_amount = 7 [jstype = JS_STRING];
     double buyer_security_deposit_pct = 8;
     string trigger_price = 9;
-    bool split_output = 10;
+    bool reserve_exact_amount = 10;
     string payment_account_id = 11;
 }
 

@@ -490,13 +490,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     public void placeOffer(Offer offer,
                            boolean useSavingsWallet,
                            long triggerPrice,
-                           boolean splitOutput,
+                           boolean reserveExactAmount,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
         checkNotNull(offer.getMakerFee(), "makerFee must not be null");
 
         // create open offer
-        OpenOffer openOffer = new OpenOffer(offer, triggerPrice, splitOutput);
+        OpenOffer openOffer = new OpenOffer(offer, triggerPrice, reserveExactAmount);
 
         // process open offer to schedule or post
         processUnpostedOffer(getOpenOffers(), openOffer, (transaction) -> {
@@ -807,7 +807,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
                     
                     // handle split output offer
-                    if (openOffer.isSplitOutput()) {
+                    if (openOffer.isReserveExactAmount()) {
 
                         // find tx with exact input amount
                         MoneroTxWallet splitOutputTx = findSplitOutputFundingTx(openOffers, openOffer);

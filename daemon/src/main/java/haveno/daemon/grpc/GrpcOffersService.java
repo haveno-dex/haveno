@@ -158,7 +158,7 @@ class GrpcOffersService extends OffersImplBase {
                     req.getMinAmount(),
                     req.getBuyerSecurityDepositPct(),
                     req.getTriggerPrice(),
-                    req.getSplitOutput(),
+                    req.getReserveExactAmount(),
                     req.getPaymentAccountId(),
                     offer -> {
                         // This result handling consumer's accept operation will return

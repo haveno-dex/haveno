@@ -405,7 +405,7 @@ public class CoreApi {
                                    long minAmountAsLong,
                                    double buyerSecurityDeposit,
                                    String triggerPriceAsString,
-                                   boolean splitOutput,
+                                   boolean reserveExactAmount,
                                    String paymentAccountId,
                                    Consumer<Offer> resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
@@ -418,7 +418,7 @@ public class CoreApi {
                 minAmountAsLong,
                 buyerSecurityDeposit,
                 triggerPriceAsString,
-                splitOutput,
+                reserveExactAmount,
                 paymentAccountId,
                 resultHandler,
                 errorMessageHandler);

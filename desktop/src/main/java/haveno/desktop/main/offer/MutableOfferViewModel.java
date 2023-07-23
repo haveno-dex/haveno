@@ -115,7 +115,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     // If we would change the price representation in the domain we would not be backward compatible
     public final StringProperty price = new SimpleStringProperty();
     public final StringProperty triggerPrice = new SimpleStringProperty("");
-    public final BooleanProperty splitOutput = new SimpleBooleanProperty(true);
+    public final BooleanProperty reserveExactAmount = new SimpleBooleanProperty(true);
     final StringProperty tradeFee = new SimpleStringProperty();
     final StringProperty tradeFeeInXmrWithFiat = new SimpleStringProperty();
     final StringProperty tradeFeeCurrencyCode = new SimpleStringProperty();
@@ -779,8 +779,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
     }
 
-    public void onSplitOutputCheckboxChanged() {
-        dataModel.setSplitOutput(splitOutput.get());
+    public void onReserveExactAmountCheckboxChanged() {
+        dataModel.setReserveExactAmount(reserveExactAmount.get());
     }
 
     void onFixPriceToggleChange(boolean fixedPriceSelected) {

@@ -56,7 +56,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             XmrAddressEntry fundingEntry = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).orElse(null);
             Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress, model.getOpenOffer().isSplitOutput(), preferredSubaddressIndex);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress, model.getOpenOffer().isReserveExactAmount(), preferredSubaddressIndex);
 
             // check for error in case creating reserve tx exceeded timeout
             // TODO: better way?
