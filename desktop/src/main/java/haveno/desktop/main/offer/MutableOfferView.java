@@ -916,7 +916,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void addGridPane() {
         gridPane = new GridPane();
         gridPane.getStyleClass().add("content-pane");
-        gridPane.setPadding(new Insets(30, 25, -1, 25));
+        gridPane.setPadding(new Insets(25, 25, -1, 25));
         gridPane.setHgap(5);
         gridPane.setVgap(5);
         GUIUtil.setDefaultTwoColumnConstraintsForGridPane(gridPane);
@@ -978,7 +978,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addAmountPriceGroup() {
         amountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
-                Res.get("createOffer.setAmountPrice"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("createOffer.setAmountPrice"), 25);
         GridPane.setColumnSpan(amountTitledGroupBg, 2);
 
         addAmountPriceFields();
@@ -1059,7 +1059,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void addFundingGroup() {
         // don't increase gridRow as we removed button when this gets visible
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("createOffer.fundsBox.title"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("createOffer.fundsBox.title"), 25);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
@@ -1067,6 +1067,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
                 Res.get("shared.totalsNeeded"), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
         totalToPayTextField.setVisible(false);
+        GridPane.setMargin(totalToPayTextField, new Insets(65, 10, 0, 0));
 
         qrCodeImageView = new ImageView();
         qrCodeImageView.setVisible(false);
@@ -1261,7 +1262,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         firstRowHBox.getChildren().addAll(amountBox, xLabel, percentagePriceBox, resultLabel, volumeBox);
         GridPane.setColumnSpan(firstRowHBox, 2);
         GridPane.setRowIndex(firstRowHBox, gridRow);
-        GridPane.setMargin(firstRowHBox, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 10, 0, 0));
+        GridPane.setMargin(firstRowHBox, new Insets(40, 10, 0, 0));
         gridPane.getChildren().add(firstRowHBox);
     }
 
