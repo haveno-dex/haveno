@@ -131,7 +131,7 @@ public class VolumeUtil {
     }
 
     public static String formatVolume(Volume volume) {
-        return formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()), false);
+        return volume == null ? "" : formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()), false);
     }
 
     private static String formatVolume(Volume volume, MonetaryFormat volumeFormat, boolean appendCurrencyCode) {

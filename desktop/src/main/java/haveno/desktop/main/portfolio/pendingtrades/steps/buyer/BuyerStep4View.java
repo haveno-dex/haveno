@@ -121,7 +121,7 @@ public class BuyerStep4View extends TradeStepView {
 
     private void handleTradeCompleted() {
         closeButton.setDisable(true);
-        model.dataModel.xmrWalletService.swapTradeEntryToAvailableEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
+        model.dataModel.xmrWalletService.swapAddressEntryToAvailable(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
 
         openTradeFeedbackWindow();
     }

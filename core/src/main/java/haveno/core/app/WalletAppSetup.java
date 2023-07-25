@@ -214,7 +214,7 @@ public class WalletAppSetup {
                                         if (rejectedTxErrorMessageHandler != null) {
                                             rejectedTxErrorMessageHandler.accept(Res.get("popup.warning.openOffer.makerFeeTxRejected", openOffer.getId(), txId));
                                         }
-                                        openOfferManager.removeOpenOffer(openOffer, () -> {
+                                        openOfferManager.cancelOpenOffer(openOffer, () -> {
                                             log.warn("We removed an open offer because the maker fee was rejected by the Bitcoin " +
                                                     "network. OfferId={}, txId={}", openOffer.getShortId(), txId);
                                         }, log::warn);

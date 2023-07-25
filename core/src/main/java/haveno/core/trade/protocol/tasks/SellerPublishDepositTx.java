@@ -44,7 +44,7 @@ public class SellerPublishDepositTx extends TradeTask {
 //
 //                                trade.setState(Trade.State.SELLER_PUBLISHED_DEPOSIT_TX);
 //
-//                                processModel.getBtcWalletService().swapTradeEntryToAvailableEntry(processModel.getOffer().getId(),
+//                                processModel.getBtcWalletService().swapAddressEntryToAvailable(processModel.getOffer().getId(),
 //                                        AddressEntry.Context.RESERVED_FOR_TRADE);
 //
 //                                processModel.getTradeManager().requestPersistence();

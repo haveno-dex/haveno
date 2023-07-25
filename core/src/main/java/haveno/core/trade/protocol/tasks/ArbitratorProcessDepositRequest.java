@@ -22,6 +22,7 @@ import common.utils.JsonUtils;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.common.util.Tuple2;
 import haveno.core.offer.Offer;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -33,6 +34,7 @@ import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.model.MoneroSubmitTxResult;
+import monero.daemon.model.MoneroTx;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -83,8 +85,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             String depositAddress = processModel.getMultisigAddress();
 
             // verify deposit tx
+            Tuple2<MoneroTx, BigInteger> txResult;
             try {
-                trade.getXmrWalletService().verifyTradeTx(
+                txResult = trade.getXmrWalletService().verifyTradeTx(
                     offer.getId(),
                     tradeFee,
                     sendAmount,
@@ -100,6 +103,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             }
 
             // set deposit info
+            trader.setSecurityDeposit(txResult.second);
             trader.setDepositTxHex(request.getDepositTxHex());
             trader.setDepositTxKey(request.getDepositTxKey());
             if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());

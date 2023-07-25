@@ -203,6 +203,10 @@ public final class OpenOffer implements Tradable {
         return state == State.SCHEDULED;
     }
 
+    public boolean isAvailable() {
+        return state == State.AVAILABLE;
+    }
+
     public boolean isDeactivated() {
         return state == State.DEACTIVATED;
     }

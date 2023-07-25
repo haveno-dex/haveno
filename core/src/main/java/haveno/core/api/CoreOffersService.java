@@ -248,8 +248,9 @@ public class CoreOffersService {
             for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
                 if (!seenKeyImages.add(keyImage)) {
                     for (Offer offer2 : offers) {
+                        if (offer == offer2) continue;
                         if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                            log.warn("Key image {} belongs to multiple offers, removing offer {}", keyImage, offer2.getId());
+                            log.warn("Key image {} belongs to multiple offers, seen in offer {}", keyImage, offer2.getId());
                             duplicateFundedOffers.add(offer2);
                         }
                     }

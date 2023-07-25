@@ -356,6 +356,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
         }
         for (OpenOffer openOffer : openOfferManager.getObservableList()) {
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
             reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
         }
 
@@ -473,7 +474,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             .filter(addressEntry -> addressEntry.getOfferId() != null)
                             .forEach(addressEntry -> {
                                 log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
-                                xmrWalletService.swapTradeEntryToAvailableEntry(addressEntry.getOfferId(), addressEntry.getContext());
+                                xmrWalletService.swapAddressEntryToAvailable(addressEntry.getOfferId(), addressEntry.getContext());
                             });
 
                     onTradesInitiailizedAndAppFullyInitialized();
@@ -946,7 +947,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         removeTrade(trade);
 
         // TODO The address entry should have been removed already. Check and if its the case remove that.
-        xmrWalletService.resetAddressEntriesForPendingTrade(trade.getId());
+        xmrWalletService.resetAddressEntriesForTrade(trade.getId());
         requestPersistence();
     }
 
@@ -961,7 +962,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             Trade trade = tradeOptional.get();
             trade.setDisputeState(disputeState);
             onTradeCompleted(trade);
-            xmrWalletService.swapTradeEntryToAvailableEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
+            xmrWalletService.resetAddressEntriesForTrade(trade.getId());
             requestPersistence();
         }
     }

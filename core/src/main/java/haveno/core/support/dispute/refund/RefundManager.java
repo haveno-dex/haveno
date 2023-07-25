@@ -201,7 +201,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
         }
         sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
 
-        // set state after payout as we call swapTradeEntryToAvailableEntry
+        // set state after payout as we call swapAddressEntryToAvailable
         if (tradeManager.getOpenTrade(tradeId).isPresent()) {
             tradeManager.closeDisputedTrade(tradeId, Trade.DisputeState.REFUND_REQUEST_CLOSED);
         } else {

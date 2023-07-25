@@ -588,7 +588,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                     .width(1000)
                     .actionButtonText(Res.get("shared.removeOffer"))
                     .onAction(() -> {
-                        openOfferManager.removeOpenOffer(openOffer, () -> {
+                        openOfferManager.cancelOpenOffer(openOffer, () -> {
                             log.info("Invalid open offer with ID {} was successfully removed.", openOffer.getId());
                         }, log::error);
 
