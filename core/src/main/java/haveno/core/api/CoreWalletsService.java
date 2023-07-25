@@ -130,7 +130,7 @@ class CoreWalletsService {
     }
 
     String getXmrSeed() {
-        return xmrWalletService.getWallet().getMnemonic();
+        return xmrWalletService.getWallet().getSeed();
     }
 
     String getXmrPrimaryAddress() {

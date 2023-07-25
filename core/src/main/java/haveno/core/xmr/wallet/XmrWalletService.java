@@ -511,7 +511,7 @@ public class XmrWalletService {
                 }
 
                 // verify unlock height
-                if (tx.getUnlockHeight() != 0) throw new RuntimeException("Unlock height must be 0");
+                if (!BigInteger.valueOf(0).equals(tx.getUnlockTime())) throw new RuntimeException("Unlock height must be 0");
 
                 // verify miner fee
                 BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
