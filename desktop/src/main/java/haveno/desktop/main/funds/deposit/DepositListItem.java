@@ -95,8 +95,23 @@ class DepositListItem {
     }
 
     private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs) {
-        numTxsWithOutputs = xmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs).size();
-        usage = subaddressIndex == 0 ? "Base address" : numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxsWithOutputs);
+        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs);
+        switch (addressEntry.getContext()) {
+            case BASE_ADDRESS:
+                usage = Res.get("funds.deposit.baseAddress");
+                break;
+            case AVAILABLE:
+                usage = numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxsWithOutputs);
+                break;
+            case OFFER_FUNDING:
+                usage = Res.get("funds.deposit.offerFunding");
+                break;
+            case TRADE_PAYOUT:
+                usage = Res.get("funds.deposit.tradePayout");
+                break;
+            default:
+                usage = addressEntry.getContext().toString();
+            }
     }
 
     public void cleanup() {

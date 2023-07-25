@@ -630,7 +630,7 @@ public abstract class Trade implements Tradable, Model {
                     if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
 
                     // reset address entries
-                    processModel.getXmrWalletService().resetAddressEntriesForPendingTrade(getId());
+                    processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
                 }
 
                 // cleanup when payout unlocks
@@ -922,32 +922,13 @@ public abstract class Trade implements Tradable, Model {
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
-        // create transaction to get fee estimate
-        MoneroTxWallet feeEstimateTx = multisigWallet.createTx(new MoneroTxConfig()
+        // create payout tx
+        MoneroTxWallet payoutTx = multisigWallet.createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
-                .addDestination(buyerPayoutAddress, buyerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))) // reduce payment amount to compute fee of similar tx
-                .addDestination(sellerPayoutAddress, sellerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)))
-                .setRelay(false)
-        );
-
-        // attempt to create payout tx by increasing estimated fee until successful
-        MoneroTxWallet payoutTx = null;
-        int numAttempts = 0;
-        while (payoutTx == null && numAttempts < 50) {
-          BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10 of fee until tx is successful
-          try {
-            numAttempts++;
-            payoutTx = multisigWallet.createTx(new MoneroTxConfig()
-                    .setAccountIndex(0)
-                    .addDestination(buyerPayoutAddress, buyerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2)))) // split fee subtracted from each payout amount
-                    .addDestination(sellerPayoutAddress, sellerPayoutAmount.subtract(feeEstimate.divide(BigInteger.valueOf(2))))
-                    .setRelay(false));
-          } catch (MoneroError e) {
-            // exception expected
-          }
-        }
-        if (payoutTx == null) throw new RuntimeException("Failed to generate payout tx after " + numAttempts + " attempts");
-        log.info("Payout transaction generated on attempt {}", numAttempts);
+                .addDestination(buyerPayoutAddress, buyerPayoutAmount)
+                .addDestination(sellerPayoutAddress, sellerPayoutAmount)
+                .setSubtractFeeFrom(0, 1) // split tx fee
+                .setRelay(false));
 
         // save updated multisig hex
         getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());

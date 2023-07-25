@@ -44,7 +44,7 @@ public class TakerReserveTradeFunds extends TradeTask {
             BigInteger sendAmount = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getAmount() : BigInteger.valueOf(0);
             BigInteger securityDeposit = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getOffer().getSellerSecurityDeposit() : trade.getOffer().getBuyerSecurityDeposit();
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, sendAmount, securityDeposit, returnAddress, null, null);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, sendAmount, securityDeposit, returnAddress, false, null);
 
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();

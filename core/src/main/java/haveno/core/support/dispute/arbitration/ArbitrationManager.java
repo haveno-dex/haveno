@@ -388,9 +388,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger expectedWinnerAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount();
         BigInteger expectedLoserAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
 
-        // add any loss of precision to winner amount
-        expectedWinnerAmount = expectedWinnerAmount.add(trade.getWallet().getUnlockedBalance().subtract(expectedWinnerAmount.add(expectedLoserAmount)));
-
         // winner pays cost if loser gets nothing, otherwise loser pays cost
         if (expectedLoserAmount.equals(BigInteger.ZERO)) expectedWinnerAmount = expectedWinnerAmount.subtract(txCost);
         else expectedLoserAmount = expectedLoserAmount.subtract(txCost);

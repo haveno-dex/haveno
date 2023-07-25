@@ -289,9 +289,9 @@ public class BtcWalletService extends WalletService {
         return addressEntryList.getAddressEntriesAsListImmutable();
     }
 
-    public void swapTradeEntryToAvailableEntry(String offerId, AddressEntry.Context context) {
+    public void swapAddressEntryToAvailable(String offerId, AddressEntry.Context context) {
         if (context == AddressEntry.Context.MULTI_SIG) {
-            log.error("swapTradeEntryToAvailableEntry called with MULTI_SIG context. " +
+            log.error("swapAddressEntryToAvailable called with MULTI_SIG context. " +
                     "This in not permitted as we must not reuse those address entries and there " +
                     "are no redeemable funds on that addresses. Only the keys are used for creating " +
                     "the Multisig address. offerId={}, context={}", offerId, context);
@@ -327,8 +327,8 @@ public class BtcWalletService extends WalletService {
 
     public void resetAddressEntriesForOpenOffer(String offerId) {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
-        swapTradeEntryToAvailableEntry(offerId, AddressEntry.Context.OFFER_FUNDING);
-        swapTradeEntryToAvailableEntry(offerId, AddressEntry.Context.RESERVED_FOR_TRADE);
+        swapAddressEntryToAvailable(offerId, AddressEntry.Context.OFFER_FUNDING);
+        swapAddressEntryToAvailable(offerId, AddressEntry.Context.RESERVED_FOR_TRADE);
     }
 
     public void resetAddressEntriesForPendingTrade(String offerId) {
@@ -342,7 +342,7 @@ public class BtcWalletService extends WalletService {
         // send out the funds to the external wallet. As this cleanup is a rare situation and most users do not use
         // the feature to send out the funds we prefer that strategy (if we keep the address entry it might cause
         // complications in some edge cases after a SPV resync).
-        swapTradeEntryToAvailableEntry(offerId, AddressEntry.Context.TRADE_PAYOUT);
+        swapAddressEntryToAvailable(offerId, AddressEntry.Context.TRADE_PAYOUT);
     }
 
     public void swapAnyTradeEntryContextToAvailableEntry(String offerId) {

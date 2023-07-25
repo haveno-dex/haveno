@@ -156,7 +156,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
         confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(txsWithIncomingOutputs)));
-        usageColumn.setComparator(Comparator.comparingInt(DepositListItem::getNumTxsWithOutputs));
+        usageColumn.setComparator(Comparator.comparing(DepositListItem::getUsage));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);
 
@@ -202,8 +202,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
         generateNewAddressButton = buttonCheckBoxHBox.first;
 
         generateNewAddressButton.setOnAction(event -> {
-            boolean hasUnUsedAddress = observableList.stream().anyMatch(e -> e.getSubaddressIndex() != 0 && xmrWalletService.getTxsWithIncomingOutputs(e.getSubaddressIndex()).isEmpty());
-            if (hasUnUsedAddress) {
+            boolean hasUnusedAddress = !xmrWalletService.getUnusedAddressEntries().isEmpty();
+            if (hasUnusedAddress) {
                 new Popup().warning(Res.get("funds.deposit.selectUnused")).show();
             } else {
                 XmrAddressEntry newSavingsAddressEntry = xmrWalletService.getNewAddressEntry();
@@ -311,7 +311,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         // cache incoming txs
         txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
 
-        // add available address entries and base address
+        // add address entries
         xmrWalletService.getAddressEntries()
                 .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, txsWithIncomingOutputs)));
     }

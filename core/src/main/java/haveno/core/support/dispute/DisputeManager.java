@@ -61,7 +61,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -853,38 +852,24 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 if (winnerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Winner payout cannot be negative");
                 if (loserPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Loser payout cannot be negative");
                 if (winnerPayoutAmount.add(loserPayoutAmount).compareTo(trade.getWallet().getUnlockedBalance()) > 0) {
-                    throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance");
+                    throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs " + winnerPayoutAmount + " + " + loserPayoutAmount + " = " + (winnerPayoutAmount.add(loserPayoutAmount)));
                 }
 
                 // add any loss of precision to winner payout
                 winnerPayoutAmount = winnerPayoutAmount.add(trade.getWallet().getUnlockedBalance().subtract(winnerPayoutAmount.add(loserPayoutAmount)));
 
-                // create transaction to get fee estimate
-                MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
-                if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10))); // reduce payment amount to get fee of similar tx
-                if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.multiply(BigInteger.valueOf(9)).divide(BigInteger.valueOf(10)));
-                MoneroTxWallet feeEstimateTx = trade.getWallet().createTx(txConfig);
-
-                // create payout tx by increasing estimated fee until successful
+                // create dispute payout tx
+                MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0);
+                if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount);
+                if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount);
+                txConfig.setSubtractFeeFrom(loserPayoutAmount.equals(BigInteger.ZERO) ? 0 : txConfig.getDestinations().size() - 1); // winner only pays fee if loser gets 0
                 MoneroTxWallet payoutTx = null;
-                int numAttempts = 0;
-                while (payoutTx == null && numAttempts < 50) {
-                    BigInteger feeEstimate = feeEstimateTx.getFee().add(feeEstimateTx.getFee().multiply(BigInteger.valueOf(numAttempts)).divide(BigInteger.valueOf(10))); // add 1/10th of fee until tx is successful
-                    txConfig = new MoneroTxConfig().setAccountIndex(0).setRelay(false);
-                    if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount.subtract(loserPayoutAmount.equals(BigInteger.ZERO) ? feeEstimate : BigInteger.ZERO)); // winner only pays fee if loser gets 0
-                    if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
-                        if (loserPayoutAmount.compareTo(feeEstimate) < 0) throw new RuntimeException("Loser payout is too small to cover the mining fee");
-                        if (loserPayoutAmount.compareTo(feeEstimate) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount.subtract(feeEstimate)); // loser pays fee
-                    }
-                    numAttempts++;
-                    try {
-                        payoutTx = trade.getWallet().createTx(txConfig);
-                    } catch (MoneroError e) {
-                        // exception expected // TODO: better way of estimating fee?
-                    }
+                try {
+                    payoutTx = trade.getWallet().createTx(txConfig);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException("Loser payout is too small to cover the mining fee");
                 }
-                if (payoutTx == null) throw new RuntimeException("Failed to generate dispute payout tx after " + numAttempts + " attempts");
-                log.info("Dispute payout transaction generated on attempt {}", numAttempts);
 
                 // save updated multisig hex
                 trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());

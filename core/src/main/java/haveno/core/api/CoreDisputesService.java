@@ -237,6 +237,9 @@ public class CoreDisputesService {
                 throw new RuntimeException("Winner payout is more than the trade wallet's balance");
             }
             long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
+            if (loserAmount < 0) {
+                throw new RuntimeException("Loser payout cannot be negative");
+            }
             disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
             disputeResult.setSellerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
         }
