@@ -111,6 +111,7 @@ public class XmrWalletService {
 
     private TradeManager tradeManager;
     private MoneroWalletRpc wallet;
+    private Object walletLock = new Object();
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
     private boolean isShutDownStarted = false;
     private ExecutorService syncWalletThreadPool = Executors.newFixedThreadPool(10); // TODO: adjust based on connection type
@@ -299,14 +300,14 @@ public class XmrWalletService {
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
-        try {
-            synchronized (wallet) {
+        synchronized (walletLock) {
+            try {
                 MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
                 //printTxs("XmrWalletService.createTx", tx);
                 return tx;
+            } catch (Exception e) {
+                throw e;
             }
-        } catch (Exception e) {
-            throw e;
         }
     }
 
@@ -316,7 +317,7 @@ public class XmrWalletService {
      * @param keyImages the key images to thaw
      */
     public void thawOutputs(Collection<String> keyImages) {
-        synchronized (getWallet()) {
+        synchronized (walletLock) {
             for (String keyImage : keyImages) wallet.thawOutput(keyImage);
         }
     }
@@ -365,13 +366,7 @@ public class XmrWalletService {
      * @return MoneroTxWallet the multisig deposit tx
      */
     public MoneroTxWallet createDepositTx(Trade trade, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
-        Offer offer = trade.getProcessModel().getOffer();
-        String multisigAddress = trade.getProcessModel().getMultisigAddress();
-        BigInteger tradeFee = trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee();
-        BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : offer.getAmount();
-        BigInteger securityDeposit = trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
-        MoneroWallet wallet = getWallet();
-        synchronized (wallet) {
+        synchronized (walletLock) {
 
             // thaw reserved outputs
             if (trade.getSelf().getReserveTxKeyImages() != null) {
@@ -379,6 +374,11 @@ public class XmrWalletService {
             }
 
             // create deposit tx
+            Offer offer = trade.getProcessModel().getOffer();
+            String multisigAddress = trade.getProcessModel().getMultisigAddress();
+            BigInteger tradeFee = trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee();
+            BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger securityDeposit = trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             long time = System.currentTimeMillis();
             log.info("Creating deposit tx with multisig address={}", multisigAddress);
             MoneroTxWallet depositTx = createTradeTx(tradeFee, sendAmount, securityDeposit, multisigAddress, false, reserveExactAmount, preferredSubaddressIndex);
@@ -388,8 +388,8 @@ public class XmrWalletService {
     }
 
     private MoneroTxWallet createTradeTx(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, boolean isReserveTx, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
-        MoneroWallet wallet = getWallet();
-        synchronized (wallet) {
+        synchronized (walletLock) {
+            MoneroWallet wallet = getWallet();
 
             // create a list of subaddresses to attempt spending from in preferred order
             List<Integer> subaddressIndices = new ArrayList<Integer>();
@@ -425,29 +425,29 @@ public class XmrWalletService {
 
     private MoneroTxWallet createTradeTxFromSubaddress(BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, boolean isReserveTx, boolean reserveExactAmount, Integer subaddressIndex) {
 
-            // create tx
-            MoneroTxWallet tradeTx = wallet.createTx(new MoneroTxConfig()
-                    .setAccountIndex(0)
-                    .setSubaddressIndices(subaddressIndex)
-                    .addDestination(HavenoUtils.getTradeFeeAddress(), isReserveTx ? securityDeposit : tradeFee) // reserve tx charges security deposit if published
-                    .addDestination(address, sendAmount.add(isReserveTx ? tradeFee : securityDeposit))
-                    .setSubtractFeeFrom(isReserveTx ? 0 : 1)); // pay fee from same destination as security deposit
+        // create tx
+        MoneroTxWallet tradeTx = wallet.createTx(new MoneroTxConfig()
+                .setAccountIndex(0)
+                .setSubaddressIndices(subaddressIndex)
+                .addDestination(HavenoUtils.getTradeFeeAddress(), isReserveTx ? securityDeposit : tradeFee) // reserve tx charges security deposit if published
+                .addDestination(address, sendAmount.add(isReserveTx ? tradeFee : securityDeposit))
+                .setSubtractFeeFrom(isReserveTx ? 0 : 1)); // pay fee from same destination as security deposit
 
-            // check if tx uses exact input, since wallet2 can prefer to spend 2 outputs
-            if (reserveExactAmount) {
-                BigInteger exactInputAmount = tradeFee.add(sendAmount).add(securityDeposit);
-                BigInteger inputSum = BigInteger.valueOf(0);
-                for (MoneroOutputWallet txInput : tradeTx.getInputsWallet()) {
-                    MoneroOutputWallet input = wallet.getOutputs(new MoneroOutputQuery().setKeyImage(txInput.getKeyImage())).get(0);
-                    inputSum = inputSum.add(input.getAmount());
-                }
-                if (inputSum.compareTo(exactInputAmount) > 0) throw new RuntimeException("Cannot create transaction with exact input amount");
+        // check if tx uses exact input, since wallet2 can prefer to spend 2 outputs
+        if (reserveExactAmount) {
+            BigInteger exactInputAmount = tradeFee.add(sendAmount).add(securityDeposit);
+            BigInteger inputSum = BigInteger.valueOf(0);
+            for (MoneroOutputWallet txInput : tradeTx.getInputsWallet()) {
+                MoneroOutputWallet input = wallet.getOutputs(new MoneroOutputQuery().setKeyImage(txInput.getKeyImage())).get(0);
+                inputSum = inputSum.add(input.getAmount());
             }
+            if (inputSum.compareTo(exactInputAmount) > 0) throw new RuntimeException("Cannot create transaction with exact input amount");
+        }
 
-            // freeze inputs
-            for (MoneroOutput input : tradeTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
-            saveMainWallet();
-            return tradeTx;
+        // freeze inputs
+        for (MoneroOutput input : tradeTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
+        saveMainWallet();
+        return tradeTx;
     }
 
     /**
@@ -814,35 +814,35 @@ public class XmrWalletService {
     }
 
     private void onConnectionChanged(MoneroRpcConnection connection) {
-        if (isShutDownStarted) return;
-        if (wallet != null && HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) return;
+        synchronized (walletLock) {
+            if (isShutDownStarted) return;
+            if (wallet != null && HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) return;
 
-        log.info("Setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
-        String oldProxyUri = wallet == null || wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
-        String newProxyUri = connection == null ? null : connection.getProxyUri();
-        if (wallet == null) maybeInitMainWallet();
-        else if (wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
-            log.info("Restarting main wallet since proxy URI has changed");
-            synchronized (wallet) {
+            log.info("Setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
+            String oldProxyUri = wallet == null || wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
+            String newProxyUri = connection == null ? null : connection.getProxyUri();
+            if (wallet == null) maybeInitMainWallet();
+            else if (wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
+                log.info("Restarting main wallet since proxy URI has changed");
                 closeMainWallet(true);
                 maybeInitMainWallet();
+            } else {
+                wallet.setDaemonConnection(connection);
+                if (connection != null) {
+                    wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
+                    new Thread(() -> {
+                        try {
+                            wallet.startSyncing(connectionsService.getRefreshPeriodMs());
+                            if (!Boolean.FALSE.equals(connection.isConnected())) wallet.sync();
+                        } catch (Exception e) {
+                            log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
+                        }
+                    }).start();
+                }
             }
-        } else {
-            wallet.setDaemonConnection(connection);
-            if (connection != null) {
-                wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-                new Thread(() -> {
-                    try {
-                        wallet.startSyncing(connectionsService.getRefreshPeriodMs());
-                        if (!Boolean.FALSE.equals(connection.isConnected())) wallet.sync();
-                    } catch (Exception e) {
-                        log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
-                    }
-                }).start();
-            }
-        }
 
-        log.info("Done setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
+            log.info("Done setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
+        }
     }
 
     private void notifyBalanceListeners() {
@@ -1110,27 +1110,27 @@ public class XmrWalletService {
     }
 
     public BigInteger getBalanceForSubaddress(int subaddressIndex) {
-        synchronized (wallet) {
+        synchronized (walletLock) {
             return wallet.getBalance(0, subaddressIndex);
         }
     }
 
     public BigInteger getAvailableBalanceForSubaddress(int subaddressIndex) {
-        synchronized (wallet) {
+        synchronized (walletLock) {
             return wallet.getUnlockedBalance(0, subaddressIndex);
         }
     }
 
     public BigInteger getBalance() {
         if (wallet == null) return BigInteger.valueOf(0);
-        synchronized (wallet) {
+        synchronized (walletLock) {
             return wallet.getBalance(0);
         }
     }
 
     public BigInteger getAvailableBalance() {
         if (wallet == null) return BigInteger.valueOf(0);
-        synchronized (wallet) {
+        synchronized (walletLock) {
             return wallet.getUnlockedBalance(0);
         }
     }
