@@ -202,13 +202,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         p2PService.addDecryptedDirectMessageListener(this);
 
         failedTradesManager.setUnFailTradeCallback(this::unFailTrade);
-
-        // initialize trades when connected to p2p network
-        p2PService.addP2PServiceListener(new BootstrapListener() {
-            public void onUpdatedDataReceived() {
-                initPersistedTrades();
-            }
-        });
     }
 
 
@@ -259,6 +252,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+        if (p2PService.isBootstrapped()) {
+            initPersistedTrades();
+        } else {
+            p2PService.addP2PServiceListener(new BootstrapListener() {
+                @Override
+                public void onUpdatedDataReceived() {
+                    initPersistedTrades();
+                }
+            });
+        }
 
         // listen for account updates
         accountService.addListener(new AccountServiceListener() {
@@ -443,60 +446,44 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (trade.isIdling()) HavenoUtils.submitTask(() -> trade.syncWallet());
             }
     
-            getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
-            onTradesChanged();
-    
             xmrWalletService.setTradeManager(this);
 
             // process after all wallets initialized
             if (HavenoUtils.havenoSetup != null) { // null for seednode
 
-                // TODO: this subscription fails to fire about 50% on startup
-                // MonadicBinding<Boolean> walletsInitialized = EasyBind.combine(HavenoUtils.havenoSetup.getWalletInitialized(), persistedTradesInitialized, (a, b) -> a && b);
-                // walletsInitialized.subscribe((observable, oldValue, newValue) -> {}
+                // maybe remove trades on error
+                for (Trade trade : tradesToMaybeRemoveOnError) {
+                    maybeRemoveTradeOnError(trade);
+                }
 
-                EasyBind.subscribe(HavenoUtils.havenoSetup.getAppStartupState().applicationFullyInitializedProperty(), appInitialized -> {
-                    if (!appInitialized) return;
+                // thaw unreserved outputs
+                thawUnreservedOutputs();
 
-                    // maybe remove trades on error
-                    for (Trade trade : tradesToMaybeRemoveOnError) {
-                        maybeRemoveTradeOnError(trade);
-                    }
-
-                    // thaw unreserved outputs
-                    thawUnreservedOutputs();
-
-                    // reset any available funded address entries
-                    xmrWalletService.getAddressEntriesForAvailableBalanceStream()
-                            .filter(addressEntry -> addressEntry.getOfferId() != null)
-                            .forEach(addressEntry -> {
-                                log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
-                                xmrWalletService.swapAddressEntryToAvailable(addressEntry.getOfferId(), addressEntry.getContext());
-                            });
-
-                    onTradesInitiailizedAndAppFullyInitialized();
-                });
-            } else {
-                onTradesInitiailizedAndAppFullyInitialized();
+                // reset any available funded address entries
+                xmrWalletService.getAddressEntriesForAvailableBalanceStream()
+                        .filter(addressEntry -> addressEntry.getOfferId() != null)
+                        .forEach(addressEntry -> {
+                            log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
+                            xmrWalletService.swapAddressEntryToAvailable(addressEntry.getOfferId(), addressEntry.getContext());
+                        });
             }
+
+            // notify that persisted trades initialized
+            persistedTradesInitialized.set(true);
+            getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
+            onTradesChanged();
+
+            // We do not include failed trades as they should not be counted anyway in the trade statistics
+            // TODO: remove stats?
+            Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());
+            nonFailedTrades.addAll(tradableList.getList());
+            String referralId = referralIdService.getOptionalReferralId().orElse(null);
+            boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
+            tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
         }).start();
 
         // allow execution to start
         GenUtils.waitFor(100);
-    }
-
-    private void onTradesInitiailizedAndAppFullyInitialized() {
-
-        // notify that persisted trades initialized
-        persistedTradesInitialized.set(true);
-
-        // We do not include failed trades as they should not be counted anyway in the trade statistics
-        // TODO: remove stats?
-        Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());
-        nonFailedTrades.addAll(tradableList.getList());
-        String referralId = referralIdService.getOptionalReferralId().orElse(null);
-        boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
-        tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
     }
 
     private void initPersistedTrade(Trade trade) {
