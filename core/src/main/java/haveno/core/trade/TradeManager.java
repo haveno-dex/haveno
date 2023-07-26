@@ -322,10 +322,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private void closeAllTrades() {
 
         // collect trades to shutdown
-        Set<Trade> trades = new HashSet<Trade>();
-        trades.addAll(tradableList.getList());
-        trades.addAll(closedTradableManager.getClosedTrades());
-        trades.addAll(failedTradesManager.getObservableList());
+        List<Trade> trades = getAllTrades();
 
         // shut down trades in parallel
         Set<Runnable> tasks = new HashSet<Runnable>();

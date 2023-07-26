@@ -334,3 +334,10 @@ user3-desktop-stagenet:
 		--appName=haveno-XMR_STAGENET_user3 \
 		--apiPassword=apitest \
 		--apiPort=3203
+
+# Mainnet network
+
+monerod:
+	./.localnet/monerod \
+		--bootstrap-daemon-address auto \
+		--rpc-access-control-origins http://localhost:8080 \

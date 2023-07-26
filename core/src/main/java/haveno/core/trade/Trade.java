@@ -1137,7 +1137,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void shutDown() {
-        if (wallet != null) log.info("{} {} shutting down", getClass().getSimpleName(), getId());
+        if (!isPayoutUnlocked()) log.info("{} {} shutting down", getClass().getSimpleName(), getId());
         synchronized (this) {
             isInitialized = false;
             isShutDown = true;
