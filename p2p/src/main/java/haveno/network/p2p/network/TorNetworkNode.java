@@ -58,6 +58,7 @@ public class TorNetworkNode extends NetworkNode {
     private boolean streamIsolation;
     private Socks5Proxy socksProxy;
     private boolean shutDownInProgress;
+    private boolean shutDownComplete;
     private final ExecutorService executor;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -121,17 +122,21 @@ public class TorNetworkNode extends NetworkNode {
 
     public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
         log.info("TorNetworkNode shutdown started");
+        if (shutDownComplete) {
+            log.info("TorNetworkNode shutdown already completed");
+            if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
+            return;
+        }
         if (shutDownInProgress) {
-            log.warn("We got shutDown already called");
+            log.warn("Ignoring request to shut down because shut down is in progress");
             return;
         }
         shutDownInProgress = true;
 
         shutDownTimeoutTimer = UserThread.runAfter(() -> {
             log.error("A timeout occurred at shutDown");
-            if (shutDownCompleteHandler != null)
-                shutDownCompleteHandler.run();
-
+            shutDownComplete = true;
+            if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
             executor.shutdownNow();
         }, SHUT_DOWN_TIMEOUT);
 
@@ -148,8 +153,8 @@ public class TorNetworkNode extends NetworkNode {
                 log.error("Shutdown torNetworkNode failed with exception", e);
             } finally {
                 shutDownTimeoutTimer.stop();
-                if (shutDownCompleteHandler != null)
-                    shutDownCompleteHandler.run();
+                shutDownComplete = true;
+                if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
             }
         });
     }

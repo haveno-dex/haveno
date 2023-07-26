@@ -85,7 +85,6 @@ public final class DepositsConfirmedMessage extends TradeMailboxMessage {
     public String toString() {
         return "DepositsConfirmedMessage {" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
-                ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     sellerPaymentAccountKey=" + Utilities.bytesAsHexString(sellerPaymentAccountKey) +
                 ",\n     updatedMultisigHex=" + (updatedMultisigHex == null ? null : updatedMultisigHex.substring(0, Math.max(updatedMultisigHex.length(), 1000))) +
                 "\n} " + super.toString();
