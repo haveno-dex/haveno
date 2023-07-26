@@ -246,10 +246,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // listen for direct messages unless completed
         if (!trade.isCompleted()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
 
-        // initialize trade with lock
-        synchronized (trade) {
-            trade.initialize(processModel.getProvider());
-        }
+        // initialize trade
+        trade.initialize(processModel.getProvider());
 
         // process mailbox messages
         MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
