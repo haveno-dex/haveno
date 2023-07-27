@@ -687,7 +687,7 @@ public class XmrWalletService {
                     wallet.startSyncing(connectionsService.getRefreshPeriodMs());
                     if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) log.info("Monero wallet balance={}, unlocked balance={}", wallet.getBalance(0), wallet.getUnlockedBalance(0));
 
-                    // TODO: using this to signify both daemon and wallet synced, use separate sync handlers
+                    // TODO: using this to signify both daemon and wallet synced, use separate sync handlers?
                     connectionsService.doneDownload();
     
                     // notify setup that main wallet is initialized
@@ -978,12 +978,11 @@ public class XmrWalletService {
     public synchronized void resetAddressEntriesForOpenOffer(String offerId) {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
         swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
-        swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
-    }
 
-    public synchronized void resetOfferFundingForOpenOffer(String offerId) {
-        log.info("resetOfferFundingForOpenOffer offerId={}", offerId);
-        swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
+        // swap trade payout to available if applicable
+        if (tradeManager == null) return;
+        Trade trade = tradeManager.getTrade(offerId);
+        if (trade == null || trade.isPayoutUnlocked()) swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
     public synchronized void resetAddressEntriesForTrade(String offerId) {
@@ -1136,9 +1135,10 @@ public class XmrWalletService {
     }
 
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
-        Stream<XmrAddressEntry> availableAndPayout = Stream.concat(getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream(), getFundedAvailableAddressEntries().stream());
-        Stream<XmrAddressEntry> available = Stream.concat(availableAndPayout, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
+        Stream<XmrAddressEntry> available = getFundedAvailableAddressEntries().stream();
+        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOfferById(entry.getOfferId()).isPresent()));
+        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutUnlocked()));
         return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.valueOf(0)) > 0);
     }
 

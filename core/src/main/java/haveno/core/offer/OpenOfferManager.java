@@ -667,7 +667,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
             removeOpenOffer(openOffer);
             openOffer.setState(OpenOffer.State.CLOSED);
-            xmrWalletService.resetOfferFundingForOpenOffer(offer.getId());
+            xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
             offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                     () -> log.info("Successfully removed offer {}", offer.getId()),
                     log::error);
@@ -764,6 +764,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    public boolean hasAvailableOutput(BigInteger amount) {
+        return findSplitOutputFundingTx(getOpenOffers(), null, amount, null) != null;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Place offer helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -811,7 +815,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                         // find tx with exact input amount
                         MoneroTxWallet splitOutputTx = findSplitOutputFundingTx(openOffers, openOffer);
-                        if (openOffer.getScheduledTxHashes() == null && splitOutputTx != null) {
+                        if (splitOutputTx != null && openOffer.getScheduledTxHashes() == null) {
                             openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
                             openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
                             openOffer.setScheduledAmount(offerReserveAmount.toString());
@@ -829,7 +833,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 // on error, create new tx to split output if offer subaddress does not have exact output
                                 int offerSubaddress = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).getSubaddressIndex();
                                 if (!splitOutputTx.getOutgoingTransfer().getSubaddressIndices().equals(Arrays.asList(offerSubaddress))) {
-                                    log.warn("Splitting new output because spending existing output(s) failed for offer {}", openOffer.getId());
+                                    log.warn("Splitting new output because spending existing output(s) failed for offer {}. Split output tx subaddresses={}. Offer funding subadress={}", openOffer.getId(), splitOutputTx.getOutgoingTransfer().getSubaddressIndices(), offerSubaddress);
                                     splitOrSchedule(openOffers, openOffer, offerReserveAmount);
                                     resultHandler.handleResult(null);
                                 } else {
@@ -846,7 +850,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
                             return;
                         } else if (openOffer.getScheduledTxHashes() == null) {
-                            scheduleOfferWithEarliestTxs(openOffers, openOffer);
+                            scheduleWithEarliestTxs(openOffers, openOffer);
                         }
                     }
     
@@ -858,29 +862,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
             }
         }).start();
-    }
-
-    private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
-        
-        // handle sufficient available balance to split output
-        boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
-        if (sufficientAvailableBalance) {
-
-            // create and relay tx to split output
-            MoneroTxWallet splitOutputTx = createAndRelaySplitOutputTx(openOffer);
-
-            // schedule txs
-            openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
-            openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
-            openOffer.setScheduledAmount(offerReserveAmount.toString());
-            openOffer.setState(OpenOffer.State.SCHEDULED);
-        } else if (openOffer.getScheduledTxHashes() == null) {
-            scheduleOfferWithEarliestTxs(openOffers, openOffer);
-        }
-    }
-
-    public boolean hasAvailableOutput(BigInteger amount) {
-        return findSplitOutputFundingTx(getOpenOffers(), null, amount, null) != null;
     }
 
     private MoneroTxWallet findSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer) {
@@ -968,7 +949,38 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return earliestUnscheduledTx;
     }
 
-    private void scheduleOfferWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
+    private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
+        
+        // handle sufficient available balance to split output
+        boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
+        if (sufficientAvailableBalance) {
+            splitAndSchedule(openOffer);
+        } else if (openOffer.getScheduledTxHashes() == null) {
+            scheduleWithEarliestTxs(openOffers, openOffer);
+        }
+    }
+
+    private MoneroTxWallet splitAndSchedule(OpenOffer openOffer) {
+        BigInteger reserveAmount = openOffer.getOffer().getReserveAmount();
+        xmrWalletService.swapAddressEntryToAvailable(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output(s)
+        XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
+        log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getId(), entry.getSubaddressIndex());
+        MoneroTxWallet splitOutputTx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
+                .setAccountIndex(0)
+                .setAddress(entry.getAddressString())
+                .setAmount(reserveAmount)
+                .setRelay(true));
+        log.info("Done creating split output tx to fund offer {}", openOffer.getId());
+
+        // schedule txs
+        openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
+        openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
+        openOffer.setScheduledAmount(openOffer.getOffer().getReserveAmount().toString());
+        openOffer.setState(OpenOffer.State.SCHEDULED);
+        return splitOutputTx;
+    }
+
+    private void scheduleWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
 
         // check for sufficient balance - scheduled offers amount
         BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
@@ -997,20 +1009,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffer.setScheduledTxHashes(scheduledTxHashes);
         openOffer.setScheduledAmount(scheduledAmount.toString());
         openOffer.setState(OpenOffer.State.SCHEDULED);
-    }
-
-    private MoneroTxWallet createAndRelaySplitOutputTx(OpenOffer openOffer) {
-        BigInteger reserveAmount = openOffer.getOffer().getReserveAmount();
-        xmrWalletService.swapAddressEntryToAvailable(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output(s)
-        String fundingSubaddress = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).getAddressString();
-        log.info("Creating split output tx to fund offer {}", openOffer.getId());
-        MoneroTxWallet splitOutputTx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
-                .setAccountIndex(0)
-                .setAddress(fundingSubaddress)
-                .setAmount(reserveAmount)
-                .setRelay(true));
-        log.info("Done creating split output tx to fund offer {}", openOffer.getId());
-        return splitOutputTx;
     }
 
     private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
