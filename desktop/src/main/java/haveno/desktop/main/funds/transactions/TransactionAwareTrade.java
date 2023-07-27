@@ -27,7 +27,6 @@ import haveno.core.trade.Trade;
 import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.util.Optional;
@@ -68,24 +67,15 @@ class TransactionAwareTrade implements TransactionAwareTradable {
     }
 
     private boolean isPayoutTx(String txId) {
-      return Optional.ofNullable(trade.getPayoutTx())
-              .map(MoneroTx::getHash)
-              .map(hash -> hash.equals(txId))
-              .orElse(false);
+      return txId.equals(trade.getPayoutTxId());
     }
 
     private boolean isMakerDepositTx(String txId) {
-      return Optional.ofNullable(trade.getMakerDepositTx())
-              .map(MoneroTx::getHash)
-              .map(hash -> hash.equals(txId))
-              .orElse(false);
+      return txId.equals(trade.getMaker().getDepositTxHash());
     }
 
     private boolean isTakerDepositTx(String txId) {
-      return Optional.ofNullable(trade.getTakerDepositTx())
-            .map(MoneroTx::getHash)
-            .map(hash -> hash.equals(txId))
-            .orElse(false);
+    return txId.equals(trade.getTaker().getDepositTxHash());
     }
 
     private boolean isOfferFeeTx(String txId) {
