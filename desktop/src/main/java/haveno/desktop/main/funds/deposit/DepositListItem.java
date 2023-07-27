@@ -104,10 +104,10 @@ class DepositListItem {
                 usage = numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxsWithOutputs);
                 break;
             case OFFER_FUNDING:
-                usage = Res.get("funds.deposit.offerFunding");
+                usage = Res.get("funds.deposit.offerFunding", addressEntry.getShortOfferId());
                 break;
             case TRADE_PAYOUT:
-                usage = Res.get("funds.deposit.tradePayout");
+                usage = Res.get("funds.deposit.tradePayout", addressEntry.getShortOfferId());
                 break;
             default:
                 usage = addressEntry.getContext().toString();

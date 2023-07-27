@@ -38,7 +38,7 @@ public class RemoveOffer extends TradeTask {
             if (trade instanceof MakerTrade) {
                 processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(trade.getOffer()));
             } else {
-                trade.getXmrWalletService().resetOfferFundingForOpenOffer(trade.getId());
+                trade.getXmrWalletService().resetAddressEntriesForOpenOffer(trade.getId());
             }
 
             complete();
