@@ -2,7 +2,7 @@ Follow these instructions to create installers for the Haveno Java desktop appli
 
 ## Build Haveno binaries
 
-`make clean && make` (or `make clean && make skip-tests`)
+`./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
 
 ## Create installer and install on each platform
 
