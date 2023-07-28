@@ -133,11 +133,18 @@ public class DepositView extends ActivatableView<VBox, Void> {
         confirmationsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations")));
         usageColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.usage")));
 
-        // prefetch all incoming txs to avoid query per subaddress
-        txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+        // try to initialize with wallet txs
+        try {
 
-        // trigger creation of at least 1 address
-        xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs);
+            // prefetch all incoming txs to avoid query per subaddress
+            txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+
+            // trigger creation of at least 1 address
+            xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs);
+        } catch (Exception e) {
+            log.warn("Failed to get wallet txs to initialize DepositView");
+            e.printStackTrace();
+        }
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.deposit.noAddresses")));
@@ -237,7 +244,13 @@ public class DepositView extends ActivatableView<VBox, Void> {
         tableView.getSelectionModel().selectedItemProperty().addListener(tableViewSelectionListener);
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
 
-        updateList();
+        // try to update deposits list
+        try {
+            updateList();
+        } catch (Exception e) {
+            log.warn("Could not update deposits list");
+            e.printStackTrace();
+        }
 
         xmrWalletService.addBalanceListener(balanceListener);
         xmrWalletService.addWalletListener(walletListener);
