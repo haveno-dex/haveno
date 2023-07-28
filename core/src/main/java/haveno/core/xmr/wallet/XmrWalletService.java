@@ -853,7 +853,12 @@ public class XmrWalletService {
             UserThread.execute(new Runnable() { // TODO (woodser): don't execute on UserThread
                 @Override
                 public void run() {
-                    balanceListener.onBalanceChanged(balance);
+                    try {
+                        balanceListener.onBalanceChanged(balance);
+                    } catch (Exception e) {
+                        log.warn("Failed to notify balance listener of change");
+                        e.printStackTrace();
+                    }
                 }
             });
         }
@@ -1116,20 +1121,21 @@ public class XmrWalletService {
 
     public BigInteger getAvailableBalanceForSubaddress(int subaddressIndex) {
         synchronized (walletLock) {
+            if (wallet == null) throw new IllegalStateException("Cannot get available balance for subaddress because main wallet is null");
             return wallet.getUnlockedBalance(0, subaddressIndex);
         }
     }
 
     public BigInteger getBalance() {
-        if (wallet == null) return BigInteger.valueOf(0);
         synchronized (walletLock) {
+            if (wallet == null) throw new IllegalStateException("Cannot get balance because main wallet is null");
             return wallet.getBalance(0);
         }
     }
 
     public BigInteger getAvailableBalance() {
-        if (wallet == null) return BigInteger.valueOf(0);
         synchronized (walletLock) {
+            if (wallet == null) throw new IllegalStateException("Cannot get available balance because main wallet is null");
             return wallet.getUnlockedBalance(0);
         }
     }

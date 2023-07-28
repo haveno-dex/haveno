@@ -185,7 +185,14 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     protected void activate() {
         sortedDisplayedTransactions.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedDisplayedTransactions);
-        displayedTransactions.update();
+
+        // try to update displayed transactions
+        try {
+            displayedTransactions.update();
+        } catch (Exception e) {
+            log.warn("Failed to update displayed transactions");
+            e.printStackTrace();
+        }
 
         xmrWalletService.addWalletListener(transactionsUpdater);
 
