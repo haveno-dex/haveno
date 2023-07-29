@@ -114,6 +114,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
 
+    private boolean isShutDownStarted;
     private boolean isShutDown;
     private final User user;
     @Getter
@@ -202,6 +203,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         p2PService.addDecryptedDirectMessageListener(this);
 
         failedTradesManager.setUnFailTradeCallback(this::unFailTrade);
+
+        xmrWalletService.setTradeManager(this);
     }
 
 
@@ -293,6 +296,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public void onShutDownStarted() {
         log.info("{}.onShutDownStarted()", getClass().getSimpleName());
+        isShutDownStarted = true;
 
         // collect trades to prepare
         List<Trade> trades = getAllTrades();
@@ -428,15 +432,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             tradesToMaybeRemoveOnError.add(trade);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
-                        log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
-                        trade.setInitError(e);
+                        if (!isShutDownStarted) {
+                            e.printStackTrace();
+                            log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                            trade.setInitError(e);
+                        }
                     }
                 });
             };
             HavenoUtils.executeTasks(tasks, threadPoolSize);
             log.info("Done initializing persisted trades");
-            if (isShutDown) return;
+            if (isShutDownStarted) return;
 
             // remove skipped trades
             trades.removeAll(tradesToSkip);
@@ -446,8 +452,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (trade.isIdling()) HavenoUtils.submitTask(() -> trade.syncWallet());
             }
     
-            xmrWalletService.setTradeManager(this);
-
             // process after all wallets initialized
             if (HavenoUtils.havenoSetup != null) { // null for seednode
 

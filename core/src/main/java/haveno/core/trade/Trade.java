@@ -1851,7 +1851,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            if (!isShutDown && getWallet() != null && isWalletConnected()) {
+            if (!isShutDownStarted && getWallet() != null && isWalletConnected()) {
                 log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
             }
         }
