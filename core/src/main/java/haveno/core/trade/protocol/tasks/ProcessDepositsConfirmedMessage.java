@@ -67,7 +67,7 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             trade.importMultisigHex();
 
             // save wallet off thread
-            new Thread(() -> trade.saveWallet()).start();
+            trade.saveWallet();
 
             // persist and complete
             processModel.getTradeManager().requestPersistence();
