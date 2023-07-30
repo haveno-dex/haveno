@@ -177,7 +177,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
         if (!dispute.getChatMessages().contains(chatMessage)) {
             dispute.addAndPersistChatMessage(chatMessage);
         } else {
-            log.warn("We got a dispute mail msg what we have already stored. TradeId = " + chatMessage.getTradeId());
+            log.warn("We got a dispute mail msg that we have already stored. TradeId = " + chatMessage.getTradeId());
         }
         dispute.setIsClosed();
 
