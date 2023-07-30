@@ -727,24 +727,24 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // Wallet
-    public StringProperty getBtcInfo() {
-        return walletAppSetup.getBtcInfo();
+    public StringProperty getXmrInfo() {
+        return walletAppSetup.getXmrInfo();
     }
 
-    public DoubleProperty getBtcSyncProgress() {
-        return walletAppSetup.getBtcSyncProgress();
+    public DoubleProperty getXmrSyncProgress() {
+        return walletAppSetup.getXmrSyncProgress();
     }
 
     public StringProperty getWalletServiceErrorMsg() {
         return walletAppSetup.getWalletServiceErrorMsg();
     }
 
-    public StringProperty getBtcSplashSyncIconId() {
-        return walletAppSetup.getBtcSplashSyncIconId();
+    public StringProperty getXmrSplashSyncIconId() {
+        return walletAppSetup.getXmrSplashSyncIconId();
     }
 
-    public BooleanProperty getUseTorForBTC() {
-        return walletAppSetup.getUseTorForBTC();
+    public BooleanProperty getUseTorForXMR() {
+        return walletAppSetup.getUseTorForXMR();
     }
 
     // P2P

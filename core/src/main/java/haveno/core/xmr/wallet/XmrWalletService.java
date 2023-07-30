@@ -675,7 +675,7 @@ public class XmrWalletService {
         if (wallet != null) {
             log.info("Monero wallet uri={}, path={}", wallet.getRpcConnection().getUri(), wallet.getPath());
             int numAttempts = 0;
-            int maxAttempts = 2;
+            int maxAttempts = 3;
             while (!HavenoUtils.havenoSetup.getWalletInitialized().get()) {
                 try {
                 

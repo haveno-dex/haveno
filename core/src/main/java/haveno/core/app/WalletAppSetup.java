@@ -67,20 +67,20 @@ public class WalletAppSetup {
     private final Preferences preferences;
 
     @SuppressWarnings("FieldCanBeLocal")
-    private MonadicBinding<String> btcInfoBinding;
+    private MonadicBinding<String> xmrInfoBinding;
 
     @Getter
-    private final DoubleProperty btcSyncProgress = new SimpleDoubleProperty(-1);
+    private final DoubleProperty xmrSyncProgress = new SimpleDoubleProperty(-1);
     @Getter
     private final StringProperty walletServiceErrorMsg = new SimpleStringProperty();
     @Getter
-    private final StringProperty btcSplashSyncIconId = new SimpleStringProperty();
+    private final StringProperty xmrSplashSyncIconId = new SimpleStringProperty();
     @Getter
-    private final StringProperty btcInfo = new SimpleStringProperty(Res.get("mainView.footer.btcInfo.initializing"));
+    private final StringProperty xmrInfo = new SimpleStringProperty(Res.get("mainView.footer.xmrInfo.initializing"));
     @Getter
     private final ObjectProperty<RejectedTxException> rejectedTxException = new SimpleObjectProperty<>();
     @Getter
-    private final BooleanProperty useTorForBTC = new SimpleBooleanProperty();
+    private final BooleanProperty useTorForXMR = new SimpleBooleanProperty();
 
     @Inject
     public WalletAppSetup(CoreContext coreContext,
@@ -95,7 +95,7 @@ public class WalletAppSetup {
         this.connectionService = connectionService;
         this.config = config;
         this.preferences = preferences;
-        this.useTorForBTC.set(preferences.getUseTorForMonero());
+        this.useTorForXMR.set(preferences.getUseTorForMonero());
     }
 
     void init(@Nullable Consumer<String> chainFileLockedExceptionHandler,
@@ -107,58 +107,59 @@ public class WalletAppSetup {
                 VersionMessage.BITCOINJ_VERSION, "2a80db4");
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
-        btcInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(), // TODO (woodser): update to XMR
+        xmrInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(), // TODO (woodser): update to XMR
                 connectionService.chainHeightProperty(),
                 walletServiceException,
-                (downloadPercentage, chainHeight, exception) -> {
+                getWalletServiceErrorMsg(),
+                (downloadPercentage, chainHeight, exception, errorMsg) -> {
                     String result;
-                    if (exception == null) {
+                    if (exception == null && errorMsg == null) {
                         double percentage = (double) downloadPercentage;
-                        btcSyncProgress.set(percentage);
+                        xmrSyncProgress.set(percentage);
                         MoneroDaemonInfo lastInfo = connectionService.getLastInfo();
                         Long bestChainHeight = lastInfo == null ? null : lastInfo.getHeight();
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
                                 String.valueOf(bestChainHeight) :
                                 "";
                         if (percentage == 1) {
-                            String synchronizedWith = Res.get("mainView.footer.btcInfo.synchronizedWith",
-                                    getBtcNetworkAsString(), chainHeightAsString);
+                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWith",
+                                    getXmrNetworkAsString(), chainHeightAsString);
                             String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
-                            result = Res.get("mainView.footer.btcInfo", synchronizedWith, feeInfo);
-                            getBtcSplashSyncIconId().set("image-connection-synced");
+                            result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
+                            getXmrSplashSyncIconId().set("image-connection-synced");
                             downloadCompleteHandler.run();
                         } else if (percentage > 0.0) {
-                            String synchronizingWith = Res.get("mainView.footer.btcInfo.synchronizingWith",
-                                    getBtcNetworkAsString(), chainHeightAsString,
+                            String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith",
+                                    getXmrNetworkAsString(), chainHeightAsString,
                                     FormattingUtils.formatToPercentWithSymbol(percentage));
-                            result = Res.get("mainView.footer.btcInfo", synchronizingWith, "");
+                            result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                         } else {
-                            result = Res.get("mainView.footer.btcInfo",
-                                    Res.get("mainView.footer.btcInfo.connectingTo"),
-                                    getBtcNetworkAsString());
+                            result = Res.get("mainView.footer.xmrInfo",
+                                    Res.get("mainView.footer.xmrInfo.connectingTo"),
+                                    getXmrNetworkAsString());
                         }
                     } else {
-                        result = Res.get("mainView.footer.btcInfo",
-                                Res.get("mainView.footer.btcInfo.connectionFailed"),
-                                getBtcNetworkAsString());
-                        log.error(exception.toString());
-                        if (exception instanceof TimeoutException) {
-                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
-                        } else if (exception.getCause() instanceof BlockStoreException) {
-                            if (exception.getCause().getCause() instanceof ChainFileLockedException && chainFileLockedExceptionHandler != null) {
-                                chainFileLockedExceptionHandler.accept(Res.get("popup.warning.startupFailed.twoInstances"));
+                        result = Res.get("mainView.footer.xmrInfo",
+                                Res.get("mainView.footer.xmrInfo.connectionFailed"),
+                                getXmrNetworkAsString());
+                        if (exception != null) {
+                            if (exception instanceof TimeoutException) {
+                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
+                            } else if (exception.getCause() instanceof BlockStoreException) {
+                                if (exception.getCause().getCause() instanceof ChainFileLockedException && chainFileLockedExceptionHandler != null) {
+                                    chainFileLockedExceptionHandler.accept(Res.get("popup.warning.startupFailed.twoInstances"));
+                                }
+                            } else if (exception instanceof RejectedTxException) {
+                                rejectedTxException.set((RejectedTxException) exception);
+                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
+                            } else {
+                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                             }
-                        } else if (exception instanceof RejectedTxException) {
-                            rejectedTxException.set((RejectedTxException) exception);
-                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
-                        } else {
-                            getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                         }
                     }
                     return result;
-
                 });
-        btcInfoBinding.subscribe((observable, oldValue, newValue) -> UserThread.execute(() -> btcInfo.set(newValue)));
+        xmrInfoBinding.subscribe((observable, oldValue, newValue) -> UserThread.execute(() -> xmrInfo.set(newValue)));
 
         walletsSetup.initialize(null,
                 () -> {
@@ -253,7 +254,7 @@ public class WalletAppSetup {
         });
     }
 
-    private String getBtcNetworkAsString() {
+    private String getXmrNetworkAsString() {
         String postFix;
         if (config.ignoreLocalXmrNode)
             postFix = " " + Res.get("mainView.footer.localhostBitcoinNode");

@@ -117,15 +117,15 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private final Navigation navigation;
     private final ToggleGroup navButtons = new ToggleGroup();
     private ChangeListener<String> walletServiceErrorMsgListener;
-    private ChangeListener<String> btcSyncIconIdListener;
+    private ChangeListener<String> xmrSyncIconIdListener;
     private ChangeListener<String> splashP2PNetworkErrorMsgListener;
     private ChangeListener<String> splashP2PNetworkIconIdListener;
     private ChangeListener<Boolean> splashP2PNetworkVisibleListener;
     private BusyAnimation splashP2PNetworkBusyAnimation;
     private Label splashP2PNetworkLabel;
-    private ProgressBar btcSyncIndicator, p2pNetworkProgressBar;
-    private Label btcSplashInfo;
-    private Popup p2PNetworkWarnMsgPopup, btcNetworkWarnMsgPopup;
+    private ProgressBar xmrSyncIndicator, p2pNetworkProgressBar;
+    private Label xmrSplashInfo;
+    private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
 
     public static StackPane getRootContainer() {
@@ -515,31 +515,31 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-splash-logo" : "image-splash-testnet-logo");
 
         // createBitcoinInfoBox
-        btcSplashInfo = new AutoTooltipLabel();
-        btcSplashInfo.textProperty().bind(model.getBtcInfo());
+        xmrSplashInfo = new AutoTooltipLabel();
+        xmrSplashInfo.textProperty().bind(model.getXmrInfo());
         walletServiceErrorMsgListener = (ov, oldValue, newValue) -> {
-            btcSplashInfo.setId("splash-error-state-msg");
-            btcSplashInfo.getStyleClass().add("error-text");
+            xmrSplashInfo.setId("splash-error-state-msg");
+            xmrSplashInfo.getStyleClass().add("error-text");
         };
         model.getWalletServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
-        btcSyncIndicator = new JFXProgressBar();
-        btcSyncIndicator.setPrefWidth(305);
-        btcSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
+        xmrSyncIndicator = new JFXProgressBar();
+        xmrSyncIndicator.setPrefWidth(305);
+        xmrSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
-        ImageView btcSyncIcon = new ImageView();
-        btcSyncIcon.setVisible(false);
-        btcSyncIcon.setManaged(false);
+        ImageView xmrSyncIcon = new ImageView();
+        xmrSyncIcon.setVisible(false);
+        xmrSyncIcon.setManaged(false);
 
-        btcSyncIconIdListener = (ov, oldValue, newValue) -> {
-            btcSyncIcon.setId(newValue);
-            btcSyncIcon.setVisible(true);
-            btcSyncIcon.setManaged(true);
+        xmrSyncIconIdListener = (ov, oldValue, newValue) -> {
+            xmrSyncIcon.setId(newValue);
+            xmrSyncIcon.setVisible(true);
+            xmrSyncIcon.setManaged(true);
 
-            btcSyncIndicator.setVisible(false);
-            btcSyncIndicator.setManaged(false);
+            xmrSyncIndicator.setVisible(false);
+            xmrSyncIndicator.setManaged(false);
         };
-        model.getBtcSplashSyncIconId().addListener(btcSyncIconIdListener);
+        model.getXmrSplashSyncIconId().addListener(xmrSyncIconIdListener);
 
 
         HBox blockchainSyncBox = new HBox();
@@ -547,7 +547,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         blockchainSyncBox.setAlignment(Pos.CENTER);
         blockchainSyncBox.setPadding(new Insets(40, 0, 0, 0));
         blockchainSyncBox.setPrefHeight(50);
-        blockchainSyncBox.getChildren().addAll(btcSplashInfo, btcSyncIcon);
+        blockchainSyncBox.getChildren().addAll(xmrSplashInfo, xmrSyncIcon);
 
 
         // create P2PNetworkBox
@@ -574,10 +574,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 splashP2PNetworkBusyAnimation.stop();
                 showTorNetworkSettingsButton.setVisible(true);
                 showTorNetworkSettingsButton.setManaged(true);
-                if (model.getUseTorForBTC().get()) {
-                    // If using tor for BTC, hide the BTC status since tor is not working
-                    btcSyncIndicator.setVisible(false);
-                    btcSplashInfo.setVisible(false);
+                if (model.getUseTorForXMR().get()) {
+                    // If using tor for XMR, hide the XMR status since tor is not working
+                    xmrSyncIndicator.setVisible(false);
+                    xmrSplashInfo.setVisible(false);
                 }
             } else if (model.getSplashP2PNetworkAnimationVisible().get()) {
                 splashP2PNetworkBusyAnimation.setDisable(false);
@@ -623,20 +623,20 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkBox.setPrefHeight(40);
         splashP2PNetworkBox.getChildren().addAll(splashP2PNetworkLabel, splashP2PNetworkBusyAnimation, splashP2PNetworkIcon, showTorNetworkSettingsButton);
 
-        vBox.getChildren().addAll(logo, blockchainSyncBox, btcSyncIndicator, splashP2PNetworkBox);
+        vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox);
         return vBox;
     }
 
     private void disposeSplashScreen() {
         model.getWalletServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
-        model.getBtcSplashSyncIconId().removeListener(btcSyncIconIdListener);
+        model.getXmrSplashSyncIconId().removeListener(xmrSyncIconIdListener);
 
         model.getP2pNetworkWarnMsg().removeListener(splashP2PNetworkErrorMsgListener);
         model.getP2PNetworkIconId().removeListener(splashP2PNetworkIconIdListener);
         model.getSplashP2PNetworkAnimationVisible().removeListener(splashP2PNetworkVisibleListener);
 
-        btcSplashInfo.textProperty().unbind();
-        btcSyncIndicator.progressProperty().unbind();
+        xmrSplashInfo.textProperty().unbind();
+        xmrSyncIndicator.progressProperty().unbind();
 
         splashP2PNetworkLabel.textProperty().unbind();
 
@@ -653,12 +653,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         setRightAnchor(separator, 0d);
         setTopAnchor(separator, 0d);
 
-        // BTC
-        Label btcInfoLabel = new AutoTooltipLabel();
-        btcInfoLabel.setId("footer-pane");
-        btcInfoLabel.textProperty().bind(model.getBtcInfo());
-        setLeftAnchor(btcInfoLabel, 10d);
-        setBottomAnchor(btcInfoLabel, 7d);
+        // XMR
+        Label xmrInfoLabel = new AutoTooltipLabel();
+        xmrInfoLabel.setId("footer-pane");
+        xmrInfoLabel.textProperty().bind(model.getXmrInfo());
+        setLeftAnchor(xmrInfoLabel, 10d);
+        setBottomAnchor(xmrInfoLabel, 7d);
 
         // temporarily disabled due to high CPU usage (per issue #4649)
         //ProgressBar blockchainSyncIndicator = new JFXProgressBar(-1);
@@ -668,16 +668,16 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         model.getWalletServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
-                btcInfoLabel.setId("splash-error-state-msg");
-                btcInfoLabel.getStyleClass().add("error-text");
-                if (btcNetworkWarnMsgPopup == null) {
-                    btcNetworkWarnMsgPopup = new Popup().warning(newValue);
-                    btcNetworkWarnMsgPopup.show();
-                }
+                xmrInfoLabel.setId("splash-error-state-msg");
+                xmrInfoLabel.getStyleClass().add("error-text");
+                // if (xmrNetworkWarnMsgPopup == null) {
+                //     xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
+                //     xmrNetworkWarnMsgPopup.show();
+                // }
             } else {
-                btcInfoLabel.setId("footer-pane");
-                if (btcNetworkWarnMsgPopup != null)
-                    btcNetworkWarnMsgPopup.hide();
+                xmrInfoLabel.setId("footer-pane");
+                // if (xmrNetworkWarnMsgPopup != null)
+                //     xmrNetworkWarnMsgPopup.hide();
             }
         });
 
@@ -787,7 +787,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         setRightAnchor(vBox, 53d);
         setBottomAnchor(vBox, 5d);
 
-        return new AnchorPane(separator, btcInfoLabel, versionBox, vBox, p2PNetworkStatusIcon, p2PNetworkIcon) {{
+        return new AnchorPane(separator, xmrInfoLabel, versionBox, vBox, p2PNetworkStatusIcon, p2PNetworkIcon) {{
             setId("footer-pane");
             setMinHeight(30);
             setMaxHeight(30);
