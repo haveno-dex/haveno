@@ -57,11 +57,11 @@ public final class ArbitrationDisputeList extends DisputeList<Dispute> {
 
     @Override
     public Message toProtoMessage() {
-
-        forEach(dispute -> checkArgument(dispute.getSupportType().equals(SupportType.ARBITRATION), "Support type has to be ARBITRATION"));
-
-        return protobuf.PersistableEnvelope.newBuilder().setArbitrationDisputeList(protobuf.ArbitrationDisputeList.newBuilder()
-                .addAllDispute(ProtoUtil.collectionToProto(getList(), protobuf.Dispute.class))).build();
+        synchronized (this.list) {
+            forEach(dispute -> checkArgument(dispute.getSupportType().equals(SupportType.ARBITRATION), "Support type has to be ARBITRATION"));
+            return protobuf.PersistableEnvelope.newBuilder().setArbitrationDisputeList(protobuf.ArbitrationDisputeList.newBuilder()
+                    .addAllDispute(ProtoUtil.collectionToProto(getList(), protobuf.Dispute.class))).build();
+        }
     }
 
     public static ArbitrationDisputeList fromProto(protobuf.ArbitrationDisputeList proto,
