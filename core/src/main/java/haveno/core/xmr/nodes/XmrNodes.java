@@ -56,22 +56,22 @@ public class XmrNodes {
                 return Arrays.asList(
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 38081, 1, "@local"),
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 39081, 1, "@local"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "45.63.8.26", 38081, 1, "@haveno"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "stagenet.community.rino.io", 38081, 2, "@RINOwallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "stagenet.melo.tools", 38081, 2, null),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 38089, 2, null),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.sethforprivacy.com", 38089, 2, null),
+                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "45.63.8.26", 38081, 2, "@haveno"),
+                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "stagenet.community.rino.io", 38081, 3, "@RINOwallet"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "stagenet.melo.tools", 38081, 3, null),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 38089, 3, null),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.sethforprivacy.com", 38089, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 38089, 2, null)
                 );
             case XMR_MAINNET:
                 return Arrays.asList(
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 18081, 1, "@local"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node.cakewallet.com", 18081, 1, "@cakewallet"),
+                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node.cakewallet.com", 18081, 2, "@cakewallet"),
+                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-eu.cakewallet.com", 18081, 2, "@cakewallet"),
+                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-usa-east.cakewallet.com", 18081, 2, "@cakewallet"),
+                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-uk.cakewallet.com", 18081, 2, "@cakewallet"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.community.rino.io", 18081, 2, "@RINOwallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr-node-eu.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr-node-usa-east.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr-node-uk.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy")
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 3, "@sethforprivacy")
                 );
             default:
                 throw new IllegalStateException("Unexpected base currency network: " + Config.baseCurrencyNetwork());

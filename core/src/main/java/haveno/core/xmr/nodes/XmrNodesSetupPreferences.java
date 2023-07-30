@@ -42,8 +42,8 @@ public class XmrNodesSetupPreferences {
         XmrNodes.MoneroNodesOption nodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
         switch (nodesOption) {
             case CUSTOM:
-                String bitcoinNodes = preferences.getMoneroNodes();
-                Set<String> distinctNodes = Utilities.commaSeparatedListToSet(bitcoinNodes, false);
+                String moneroNodes = preferences.getMoneroNodes();
+                Set<String> distinctNodes = Utilities.commaSeparatedListToSet(moneroNodes, false);
                 result = XmrNodes.toCustomXmrNodesList(distinctNodes);
                 if (result.isEmpty()) {
                     log.warn("Custom nodes is set but no valid nodes are provided. " +

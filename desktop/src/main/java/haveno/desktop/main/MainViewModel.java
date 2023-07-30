@@ -260,7 +260,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         });
 
         setupP2PNumPeersWatcher();
-        setupXmrNumPeersWatcher();
 
         marketPricePresentation.setup();
         accountPresentation.setup();
@@ -421,7 +420,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .warning(Res.get("popup.error.takeOfferRequestFailed", errorMessage))
                 .show());
 
-        havenoSetup.getBtcSyncProgress().addListener((observable, oldValue, newValue) -> updateBtcSyncProgress());
+        havenoSetup.getXmrSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrSyncProgress());
 
         havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
@@ -496,36 +495,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         });
     }
 
-    private void setupXmrNumPeersWatcher() {
-        connectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            int numPeers = (int) newValue;
-            if ((int) oldValue > 0 && numPeers == 0) {
-                if (checkNumberOfXmrPeersTimer != null)
-                    checkNumberOfXmrPeersTimer.stop();
-
-                checkNumberOfXmrPeersTimer = UserThread.runAfter(() -> {
-                    // check again numPeers
-                    if (connectionService.numPeersProperty().get() == 0) {
-                        if (localBitcoinNode.shouldBeUsed())
-                            getWalletServiceErrorMsg().set(
-                                    Res.get("mainView.networkWarning.localhostBitcoinLost", // TODO: update error message for XMR
-                                            Res.getBaseCurrencyName().toLowerCase()));
-                        else
-                            getWalletServiceErrorMsg().set(
-                                    Res.get("mainView.networkWarning.allConnectionsLost",
-                                            Res.getBaseCurrencyName().toLowerCase()));
-                    } else {
-                        getWalletServiceErrorMsg().set(null);
-                    }
-                }, 5);
-            } else if ((int) oldValue == 0 && numPeers > 0) {
-                if (checkNumberOfXmrPeersTimer != null)
-                    checkNumberOfXmrPeersTimer.stop();
-                getWalletServiceErrorMsg().set(null);
-            }
-        });
-    }
-
     private void showPopupIfInvalidBtcConfig() {
         preferences.setMoneroNodesOptionOrdinal(0);
         new Popup().warning(Res.get("settings.net.warn.invalidBtcConfig"))
@@ -564,10 +533,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         }
     }
 
-    private void updateBtcSyncProgress() {
-        final DoubleProperty btcSyncProgress = havenoSetup.getBtcSyncProgress();
+    private void updateXmrSyncProgress() {
+        final DoubleProperty xmrSyncProgress = havenoSetup.getXmrSyncProgress();
 
-            combinedSyncProgress.set(btcSyncProgress.doubleValue());
+            combinedSyncProgress.set(xmrSyncProgress.doubleValue());
     }
 
     private void setupInvalidOpenOffersHandler() {
@@ -637,9 +606,9 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
 
     // Wallet
-    StringProperty getBtcInfo() {
+    StringProperty getXmrInfo() {
         final StringProperty combinedInfo = new SimpleStringProperty();
-        combinedInfo.bind(havenoSetup.getBtcInfo());
+        combinedInfo.bind(havenoSetup.getXmrInfo());
         return combinedInfo;
     }
 
@@ -657,12 +626,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return havenoSetup.getWalletServiceErrorMsg();
     }
 
-    StringProperty getBtcSplashSyncIconId() {
-        return havenoSetup.getBtcSplashSyncIconId();
+    StringProperty getXmrSplashSyncIconId() {
+        return havenoSetup.getXmrSplashSyncIconId();
     }
 
-    BooleanProperty getUseTorForBTC() {
-        return havenoSetup.getUseTorForBTC();
+    BooleanProperty getUseTorForXMR() {
+        return havenoSetup.getUseTorForXMR();
     }
 
     // P2P
