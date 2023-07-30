@@ -181,7 +181,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 dispute.addAndPersistChatMessage(message);
                 requestPersistence();
             } else {
-                log.warn("We got a chatMessage what we have already stored. UId = {} TradeId = {}",
+                log.warn("We got a chatMessage that we have already stored. UId = {} TradeId = {}",
                         message.getUid(), message.getTradeId());
             }
         });
@@ -331,7 +331,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         synchronized (disputeList) {
             if (disputeList.contains(dispute)) {
-                String msg = "We got a dispute msg what we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
+                String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
                 log.warn(msg);
                 faultHandler.handleFault(msg, new DisputeAlreadyOpenException());
                 return;
