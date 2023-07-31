@@ -83,12 +83,11 @@ class GrpcOffersService extends OffersImplBase {
         }
     }
 
-    // TODO: merge with getOffer()?
     @Override
     public void getMyOffer(GetMyOfferRequest req,
                            StreamObserver<GetMyOfferReply> responseObserver) {
         try {
-            OpenOffer openOffer = coreApi.getMyOpenOffer(req.getId());
+            OpenOffer openOffer = coreApi.getMyOffer(req.getId());
             var reply = GetMyOfferReply.newBuilder()
                     .setOffer(OfferInfo.toMyOfferInfo(openOffer).toProtoMessage())
                     .build();
@@ -123,9 +122,8 @@ class GrpcOffersService extends OffersImplBase {
                             StreamObserver<GetMyOffersReply> responseObserver) {
         try {
             List<OfferInfo> result = new ArrayList<OfferInfo>();
-            for (Offer offer : coreApi.getMyOffers(req.getDirection(), req.getCurrencyCode())) {
-                OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
-                result.add(OfferInfo.toMyOfferInfo(openOffer));
+            for (OpenOffer offer : coreApi.getMyOffers(req.getDirection(), req.getCurrencyCode())) {
+                result.add(OfferInfo.toMyOfferInfo(offer));
             }
             var reply = GetMyOffersReply.newBuilder()
                     .addAllOffers(result.stream()
@@ -163,7 +161,7 @@ class GrpcOffersService extends OffersImplBase {
                     offer -> {
                         // This result handling consumer's accept operation will return
                         // the new offer to the gRPC client after async placement is done.
-                        OpenOffer openOffer = coreApi.getMyOpenOffer(offer.getId());
+                        OpenOffer openOffer = coreApi.getMyOffer(offer.getId());
                         OfferInfo offerInfo = OfferInfo.toMyOfferInfo(openOffer);
                         PostOfferReply reply = PostOfferReply.newBuilder()
                                 .setOffer(offerInfo.toProtoMessage())
