@@ -1178,9 +1178,6 @@ public abstract class Trade implements Tradable, Model {
     public void setStateIfValidTransitionTo(State newState) {
         if (state.isValidTransitionTo(newState)) {
             setState(newState);
-        } else {
-            log.warn("State change is not getting applied because it would cause an invalid transition. " +
-                    "Trade state={}, intended state={}", state, newState);
         }
     }
 
