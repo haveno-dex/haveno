@@ -139,16 +139,16 @@ public class FilterWindow extends Overlay<FilterWindow> {
                 Res.get("filterWindow.mediators"));
         InputTextField refundAgentsTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.refundAgents"));
-        InputTextField btcFeeReceiverAddressesTF = addInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.btcFeeReceiverAddresses"));
+        InputTextField xmrFeeReceiverAddressesTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.xmrFeeReceiverAddresses"));
         InputTextField seedNodesTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.seedNode"));
         InputTextField priceRelayNodesTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.priceRelayNode"));
         InputTextField xmrNodesTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.xmrNode"));
-        CheckBox preventPublicBtcNetworkCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
-                Res.get("filterWindow.preventPublicBtcNetwork"));
+        CheckBox preventPublicXmrNetworkCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
+                Res.get("filterWindow.preventPublicXmrNetwork"));
         CheckBox disableAutoConfCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
                 Res.get("filterWindow.disableAutoConf"));
         InputTextField disableTradeBelowVersionTF = addInputTextField(gridPane, ++rowIndex,
@@ -174,14 +174,14 @@ public class FilterWindow extends Overlay<FilterWindow> {
             setupFieldFromList(arbitratorsTF, filter.getArbitrators());
             setupFieldFromList(mediatorsTF, filter.getMediators());
             setupFieldFromList(refundAgentsTF, filter.getRefundAgents());
-            setupFieldFromList(btcFeeReceiverAddressesTF, filter.getBtcFeeReceiverAddresses());
+            setupFieldFromList(xmrFeeReceiverAddressesTF, filter.getXmrFeeReceiverAddresses());
             setupFieldFromList(seedNodesTF, filter.getSeedNodes());
             setupFieldFromList(priceRelayNodesTF, filter.getPriceRelayNodes());
             setupFieldFromList(xmrNodesTF, filter.getXmrNodes());
             setupFieldFromList(bannedPrivilegedDevPubKeysTF, filter.getBannedPrivilegedDevPubKeys());
             setupFieldFromList(autoConfExplorersTF, filter.getBannedAutoConfExplorers());
 
-            preventPublicBtcNetworkCheckBox.setSelected(filter.isPreventPublicBtcNetwork());
+            preventPublicXmrNetworkCheckBox.setSelected(filter.isPreventPublicXmrNetwork());
             disableAutoConfCheckBox.setSelected(filter.isDisableAutoConf());
             disableTradeBelowVersionTF.setText(filter.getDisableTradeBelowVersion());
             disableMempoolValidationCheckBox.setSelected(filter.isDisableMempoolValidation());
@@ -205,13 +205,13 @@ public class FilterWindow extends Overlay<FilterWindow> {
                         readAsList(arbitratorsTF),
                         readAsList(seedNodesTF),
                         readAsList(priceRelayNodesTF),
-                        preventPublicBtcNetworkCheckBox.isSelected(),
+                        preventPublicXmrNetworkCheckBox.isSelected(),
                         readAsList(xmrNodesTF),
                         disableTradeBelowVersionTF.getText(),
                         readAsList(mediatorsTF),
                         readAsList(refundAgentsTF),
                         readAsList(bannedAccountWitnessSignerPubKeysTF),
-                        readAsList(btcFeeReceiverAddressesTF),
+                        readAsList(xmrFeeReceiverAddressesTF),
                         filterManager.getOwnerPubKey(),
                         signerPubKeyAsHex,
                         readAsList(bannedPrivilegedDevPubKeysTF),

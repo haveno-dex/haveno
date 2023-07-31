@@ -507,7 +507,7 @@ public class FilterManager {
         providersRepository.applyBannedNodes(priceRelayNodes);
 
         //TODO should be moved to client with listening on onFilterAdded
-        if (newFilter.isPreventPublicBtcNetwork() &&
+        if (newFilter.isPreventPublicXmrNetwork() &&
                 preferences.getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PUBLIC.ordinal()) {
             preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
         }
