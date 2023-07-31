@@ -561,7 +561,7 @@ public final class CoreMoneroConnectionsService {
             }
 
             // notify error message
-            HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
+            if (HavenoUtils.havenoSetup != null) HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
 
             // check connection which notifies of changes
             synchronized (this) {
