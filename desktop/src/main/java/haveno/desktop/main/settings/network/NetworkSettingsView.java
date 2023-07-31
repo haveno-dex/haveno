@@ -251,7 +251,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 showShutDownPopup();
             }
         };
-        filterPropertyListener = (observable, oldValue, newValue) -> applyPreventPublicBtcNetwork();
+        filterPropertyListener = (observable, oldValue, newValue) -> applyPreventPublicXmrNetwork();
 
         //TODO sorting needs other NetworkStatisticListItem as columns type
        /* creationDateColumn.setComparator((o1, o2) ->
@@ -267,7 +267,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         moneroPeersToggleGroup.selectedToggleProperty().addListener(moneroPeersToggleGroupListener);
 
         if (filterManager.getFilter() != null)
-            applyPreventPublicBtcNetwork();
+            applyPreventPublicXmrNetwork();
 
         filterManager.filterProperty().addListener(filterPropertyListener);
 
@@ -358,7 +358,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private boolean isPreventPublicXmrNetwork() {
        return filterManager.getFilter() != null &&
-               filterManager.getFilter().isPreventPublicBtcNetwork();
+               filterManager.getFilter().isPreventPublicXmrNetwork();
     }
 
     private void selectMoneroPeersToggle() {
@@ -450,10 +450,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
 
-    private void applyPreventPublicBtcNetwork() {
-        final boolean preventPublicBtcNetwork = isPreventPublicXmrNetwork();
-        usePublicNodesRadio.setDisable(localBitcoinNode.shouldBeUsed() || preventPublicBtcNetwork);
-        if (preventPublicBtcNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
+    private void applyPreventPublicXmrNetwork() {
+        final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
+        usePublicNodesRadio.setDisable(localBitcoinNode.shouldBeUsed() || preventPublicXmrNetwork);
+        if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
             selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
             preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
             selectMoneroPeersToggle();

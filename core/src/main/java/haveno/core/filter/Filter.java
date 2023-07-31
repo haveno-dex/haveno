@@ -52,7 +52,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
     private final List<String> arbitrators;
     private final List<String> seedNodes;
     private final List<String> priceRelayNodes;
-    private final boolean preventPublicBtcNetwork;
+    private final boolean preventPublicXmrNetwork;
     private final List<String> xmrNodes;
     // SignatureAsBase64 is not set initially as we use the serialized data for signing. We set it after signature is
     // created by cloning the object with a non-null sig.
@@ -69,7 +69,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
 
     private final List<String> bannedAccountWitnessSignerPubKeys;
 
-    private final List<String> btcFeeReceiverAddresses;
+    private final List<String> xmrFeeReceiverAddresses;
 
     private final long creationDate;
 
@@ -103,13 +103,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 filter.getArbitrators(),
                 filter.getSeedNodes(),
                 filter.getPriceRelayNodes(),
-                filter.isPreventPublicBtcNetwork(),
+                filter.isPreventPublicXmrNetwork(),
                 filter.getXmrNodes(),
                 filter.getDisableTradeBelowVersion(),
                 filter.getMediators(),
                 filter.getRefundAgents(),
                 filter.getBannedAccountWitnessSignerPubKeys(),
-                filter.getBtcFeeReceiverAddresses(),
+                filter.getXmrFeeReceiverAddresses(),
                 filter.getOwnerPubKeyBytes(),
                 filter.getCreationDate(),
                 filter.getExtraDataMap(),
@@ -133,13 +133,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 filter.getArbitrators(),
                 filter.getSeedNodes(),
                 filter.getPriceRelayNodes(),
-                filter.isPreventPublicBtcNetwork(),
+                filter.isPreventPublicXmrNetwork(),
                 filter.getXmrNodes(),
                 filter.getDisableTradeBelowVersion(),
                 filter.getMediators(),
                 filter.getRefundAgents(),
                 filter.getBannedAccountWitnessSignerPubKeys(),
-                filter.getBtcFeeReceiverAddresses(),
+                filter.getXmrFeeReceiverAddresses(),
                 filter.getOwnerPubKeyBytes(),
                 filter.getCreationDate(),
                 filter.getExtraDataMap(),
@@ -161,13 +161,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                   List<String> arbitrators,
                   List<String> seedNodes,
                   List<String> priceRelayNodes,
-                  boolean preventPublicBtcNetwork,
+                  boolean preventPublicXmrNetwork,
                   List<String> xmrNodes,
                   String disableTradeBelowVersion,
                   List<String> mediators,
                   List<String> refundAgents,
                   List<String> bannedAccountWitnessSignerPubKeys,
-                  List<String> btcFeeReceiverAddresses,
+                  List<String> xmrFeeReceiverAddresses,
                   PublicKey ownerPubKey,
                   String signerPubKeyAsHex,
                   List<String> bannedPrivilegedDevPubKeys,
@@ -184,13 +184,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 arbitrators,
                 seedNodes,
                 priceRelayNodes,
-                preventPublicBtcNetwork,
+                preventPublicXmrNetwork,
                 xmrNodes,
                 disableTradeBelowVersion,
                 mediators,
                 refundAgents,
                 bannedAccountWitnessSignerPubKeys,
-                btcFeeReceiverAddresses,
+                xmrFeeReceiverAddresses,
                 Sig.getPublicKeyBytes(ownerPubKey),
                 System.currentTimeMillis(),
                 null,
@@ -218,13 +218,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                   List<String> arbitrators,
                   List<String> seedNodes,
                   List<String> priceRelayNodes,
-                  boolean preventPublicBtcNetwork,
+                  boolean preventPublicXmrNetwork,
                   List<String> xmrNodes,
                   String disableTradeBelowVersion,
                   List<String> mediators,
                   List<String> refundAgents,
                   List<String> bannedAccountWitnessSignerPubKeys,
-                  List<String> btcFeeReceiverAddresses,
+                  List<String> xmrFeeReceiverAddresses,
                   byte[] ownerPubKeyBytes,
                   long creationDate,
                   @Nullable Map<String, String> extraDataMap,
@@ -244,13 +244,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
         this.arbitrators = arbitrators;
         this.seedNodes = seedNodes;
         this.priceRelayNodes = priceRelayNodes;
-        this.preventPublicBtcNetwork = preventPublicBtcNetwork;
+        this.preventPublicXmrNetwork = preventPublicXmrNetwork;
         this.xmrNodes = xmrNodes;
         this.disableTradeBelowVersion = disableTradeBelowVersion;
         this.mediators = mediators;
         this.refundAgents = refundAgents;
         this.bannedAccountWitnessSignerPubKeys = bannedAccountWitnessSignerPubKeys;
-        this.btcFeeReceiverAddresses = btcFeeReceiverAddresses;
+        this.xmrFeeReceiverAddresses = xmrFeeReceiverAddresses;
         this.ownerPubKeyBytes = ownerPubKeyBytes;
         this.creationDate = creationDate;
         this.extraDataMap = ExtraDataMapValidator.getValidatedExtraDataMap(extraDataMap);
@@ -285,13 +285,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 .addAllArbitrators(arbitrators)
                 .addAllSeedNodes(seedNodes)
                 .addAllPriceRelayNodes(priceRelayNodes)
-                .setPreventPublicBtcNetwork(preventPublicBtcNetwork)
+                .setPreventPublicXmrNetwork(preventPublicXmrNetwork)
                 .addAllXmrNodes(xmrNodes)
                 .setDisableTradeBelowVersion(disableTradeBelowVersion)
                 .addAllMediators(mediators)
                 .addAllRefundAgents(refundAgents)
                 .addAllBannedSignerPubKeys(bannedAccountWitnessSignerPubKeys)
-                .addAllBtcFeeReceiverAddresses(btcFeeReceiverAddresses)
+                .addAllXmrFeeReceiverAddresses(xmrFeeReceiverAddresses)
                 .setOwnerPubKeyBytes(ByteString.copyFrom(ownerPubKeyBytes))
                 .setSignerPubKeyAsHex(signerPubKeyAsHex)
                 .setCreationDate(creationDate)
@@ -322,13 +322,13 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ProtoUtil.protocolStringListToList(proto.getArbitratorsList()),
                 ProtoUtil.protocolStringListToList(proto.getSeedNodesList()),
                 ProtoUtil.protocolStringListToList(proto.getPriceRelayNodesList()),
-                proto.getPreventPublicBtcNetwork(),
+                proto.getPreventPublicXmrNetwork(),
                 ProtoUtil.protocolStringListToList(proto.getXmrNodesList()),
                 proto.getDisableTradeBelowVersion(),
                 ProtoUtil.protocolStringListToList(proto.getMediatorsList()),
                 ProtoUtil.protocolStringListToList(proto.getRefundAgentsList()),
                 ProtoUtil.protocolStringListToList(proto.getBannedSignerPubKeysList()),
-                ProtoUtil.protocolStringListToList(proto.getBtcFeeReceiverAddressesList()),
+                ProtoUtil.protocolStringListToList(proto.getXmrFeeReceiverAddressesList()),
                 proto.getOwnerPubKeyBytes().toByteArray(),
                 proto.getCreationDate(),
                 CollectionUtils.isEmpty(proto.getExtraDataMap()) ? null : proto.getExtraDataMap(),
@@ -365,7 +365,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ",\n     arbitrators=" + arbitrators +
                 ",\n     seedNodes=" + seedNodes +
                 ",\n     priceRelayNodes=" + priceRelayNodes +
-                ",\n     preventPublicBtcNetwork=" + preventPublicBtcNetwork +
+                ",\n     preventPublicXmrNetwork=" + preventPublicXmrNetwork +
                 ",\n     xmrNodes=" + xmrNodes +
                 ",\n     signatureAsBase64='" + signatureAsBase64 + '\'' +
                 ",\n     signerPubKeyAsHex='" + signerPubKeyAsHex + '\'' +
@@ -374,7 +374,7 @@ public final class Filter implements ProtectedStoragePayload, ExpirablePayload {
                 ",\n     mediators=" + mediators +
                 ",\n     refundAgents=" + refundAgents +
                 ",\n     bannedAccountWitnessSignerPubKeys=" + bannedAccountWitnessSignerPubKeys +
-                ",\n     btcFeeReceiverAddresses=" + btcFeeReceiverAddresses +
+                ",\n     xmrFeeReceiverAddresses=" + xmrFeeReceiverAddresses +
                 ",\n     creationDate=" + creationDate +
                 ",\n     bannedPrivilegedDevPubKeys=" + bannedPrivilegedDevPubKeys +
                 ",\n     extraDataMap=" + extraDataMap +
