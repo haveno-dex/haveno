@@ -1032,7 +1032,6 @@ public class XmrWalletService {
             boolean exists = xmrAddressEntryList.getAddressEntriesAsListImmutable().stream().filter(addressEntry -> addressEntry.getAddressString().equals(subaddress.getAddress())).findAny().isPresent();
             if (!exists) {
                 XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), subaddress.getIndex() == 0 ? XmrAddressEntry.Context.BASE_ADDRESS : XmrAddressEntry.Context.AVAILABLE, null, null);
-                log.info("Add XmrAddressEntry from existing subaddress: {}", entry);
                 xmrAddressEntryList.addAddressEntry(entry);
             }
         }

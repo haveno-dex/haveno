@@ -64,6 +64,7 @@ import static java.util.Comparator.comparing;
 public class CoreOffersService {
 
     private final Supplier<Comparator<Offer>> priceComparator = () -> comparing(Offer::getPrice);
+    private final Supplier<Comparator<OpenOffer>> openOfferPriceComparator = () -> comparing(openOffer -> openOffer.getOffer().getPrice());
     private final Supplier<Comparator<Offer>> reversePriceComparator = () -> comparing(Offer::getPrice).reversed();
 
     private final CoreContext coreContext;
@@ -125,31 +126,23 @@ public class CoreOffersService {
                         new IllegalStateException(format("offer with id '%s' not found", id)));
     }
 
-    List<Offer> getMyOffers() {
-        List<Offer> offers = openOfferManager.getOpenOffers().stream()
-                .map(OpenOffer::getOffer)
-                .filter(o -> o.isMyOffer(keyRing))
+    List<OpenOffer> getMyOffers() {
+        List<OpenOffer> offers = openOfferManager.getOpenOffers().stream()
+                .filter(o -> o.getOffer().isMyOffer(keyRing))
                 .collect(Collectors.toList());
-        offers.removeAll(getOffersWithDuplicateKeyImages(offers));
-        return offers;
+        Set<Offer> offersWithDuplicateKeyImages = getOffersWithDuplicateKeyImages(offers.stream().map(OpenOffer::getOffer).collect(Collectors.toList())); // TODO: this is hacky way of filtering offers with duplicate key images
+        Set<String> offerIdsWithDuplicateKeyImages = offersWithDuplicateKeyImages.stream().map(Offer::getId).collect(Collectors.toSet());
+        return offers.stream().filter(o -> !offerIdsWithDuplicateKeyImages.contains(o.getId())).collect(Collectors.toList());
     };
 
-    List<Offer> getMyOffers(String direction, String currencyCode) {
+    List<OpenOffer> getMyOffers(String direction, String currencyCode) {
         return getMyOffers().stream()
-                .filter(o -> offerMatchesDirectionAndCurrency(o, direction, currencyCode))
-                .sorted(priceComparator(direction))
+                .filter(o -> offerMatchesDirectionAndCurrency(o.getOffer(), direction, currencyCode))
+                .sorted(openOfferPriceComparator(direction, CurrencyUtil.isTraditionalCurrency(currencyCode)))
                 .collect(Collectors.toList());
     }
 
-    Offer getMyOffer(String id) {
-        return getMyOffers().stream()
-                .filter(o -> o.getId().equals(id))
-                .findAny().orElseThrow(() ->
-                        new IllegalStateException(format("offer with id '%s' not found", id)));
-    }
-
-    OpenOffer getMyOpenOffer(String id) {
-        getMyOffer(id); // ensure offer is valid
+    OpenOffer getMyOffer(String id) {
         return openOfferManager.getOpenOfferById(id)
                 .filter(open -> open.getOffer().isMyOffer(keyRing))
                 .orElseThrow(() ->
@@ -229,7 +222,7 @@ public class CoreOffersService {
     }
 
     void cancelOffer(String id) {
-        Offer offer = getMyOffer(id);
+        Offer offer = getMyOffer(id).getOffer();
         openOfferManager.removeOffer(offer,
                 () -> {
                 },
@@ -301,6 +294,19 @@ public class CoreOffersService {
         return direction.equalsIgnoreCase(BUY.name())
                 ? reversePriceComparator.get()
                 : priceComparator.get();
+    }
+
+    private Comparator<OpenOffer> openOfferPriceComparator(String direction, boolean isTraditional) {
+        // A buyer probably wants to see sell orders in price ascending order.
+        // A seller probably wants to see buy orders in price descending order.
+        if (isTraditional)
+            return direction.equalsIgnoreCase(OfferDirection.BUY.name())
+                    ? openOfferPriceComparator.get().reversed()
+                    : openOfferPriceComparator.get();
+        else
+            return direction.equalsIgnoreCase(OfferDirection.SELL.name())
+                    ? openOfferPriceComparator.get().reversed()
+                    : openOfferPriceComparator.get();
     }
 
     private long priceStringToLong(String priceAsString, String currencyCode) {

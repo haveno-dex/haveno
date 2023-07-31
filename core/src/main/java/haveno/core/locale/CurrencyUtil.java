@@ -209,11 +209,13 @@ public class CurrencyUtil {
 
     public static boolean isFiatCurrency(String currencyCode) {
         if (!isTraditionalCurrency(currencyCode)) return false;
-        if ("xag".equalsIgnoreCase(currencyCode) || "xau".equalsIgnoreCase(currencyCode)) return false;
+        if ("XAG".equalsIgnoreCase(currencyCode) || "XAU".equalsIgnoreCase(currencyCode)) return false;
         return true;
     }
 
     public static boolean isTraditionalCurrency(String currencyCode) {
+        if (currencyCode != null) currencyCode = currencyCode.toUpperCase();
+
         if (currencyCode != null && isTraditionalCurrencyMap.containsKey(currencyCode)) {
             return isTraditionalCurrencyMap.get(currencyCode);
         }
@@ -471,18 +473,6 @@ public class CurrencyUtil {
 
     public static String getOfferVolumeCode(String currencyCode) {
         return Res.get("shared.offerVolumeCode", currencyCode);
-    }
-
-    public static boolean apiSupportsCryptoCurrency(String currencyCode) {
-        // Although this method is only used by the core.api package, its
-        // presence here avoids creating a new util class just for this method.
-        if (isCryptoCurrency(currencyCode))
-            return currencyCode.equals("BTC")
-                    || currencyCode.equals("XMR");
-        else
-            throw new IllegalArgumentException(
-                    format("Method requires a crypto currency code, but was given '%s'.",
-                            currencyCode));
     }
 
     public static List<TradeCurrency> getAllTransferwiseUSDCurrencies() {
