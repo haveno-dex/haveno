@@ -6,7 +6,6 @@ import com.google.inject.name.Named;
 import common.utils.GenUtils;
 import common.utils.JsonUtils;
 import haveno.common.UserThread;
-import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.util.Tuple2;
@@ -87,12 +86,14 @@ public class XmrWalletService {
     public static final int NUM_BLOCKS_UNLOCK = 10;
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
-    public static final String MONERO_WALLET_RPC_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero-wallet-rpc and wallet files
+    public static final String MONERO_WALLET_RPC_DIR = Config.baseCurrencyNetwork().isTestnet() ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero-wallet-rpc and wallet files
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
+    private static final String KEYS_FILE_POSTFIX = ".keys";
+    private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
     private static final int NUM_MAX_BACKUP_WALLETS = 10;
     private static final int MONERO_LOG_LEVEL = 0;
@@ -217,7 +218,7 @@ public class XmrWalletService {
 
     public boolean walletExists(String walletName) {
         String path = walletDir.toString() + File.separator + walletName;
-        return new File(path + ".keys").exists();
+        return new File(path + KEYS_FILE_POSTFIX).exists();
     }
 
     public MoneroWalletRpc createWallet(String walletName) {
@@ -282,21 +283,21 @@ public class XmrWalletService {
         log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
         if (!walletExists(walletName)) throw new Error("Wallet does not exist at path: " + walletName);
         String path = walletDir.toString() + File.separator + walletName;
-        if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        if (!new File(path + ".keys").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
-        if (!new File(path + ".address.txt").delete()) throw new RuntimeException("Failed to delete wallet file: " + path);
+        if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet cache file: " + path);
+        if (!new File(path + KEYS_FILE_POSTFIX).delete()) throw new RuntimeException("Failed to delete wallet keys file: " + path + KEYS_FILE_POSTFIX);
+        if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + path + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
     }
 
     public void backupWallet(String walletName) {
         FileUtil.rollingBackup(walletDir, walletName, NUM_MAX_BACKUP_WALLETS);
-        FileUtil.rollingBackup(walletDir, walletName + ".keys", NUM_MAX_BACKUP_WALLETS);
-        FileUtil.rollingBackup(walletDir, walletName + ".address.txt", NUM_MAX_BACKUP_WALLETS);
+        FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_MAX_BACKUP_WALLETS);
+        FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_MAX_BACKUP_WALLETS);
     }
 
     public void deleteWalletBackups(String walletName) {
         FileUtil.deleteRollingBackup(walletDir, walletName);
-        FileUtil.deleteRollingBackup(walletDir, walletName + ".keys");
-        FileUtil.deleteRollingBackup(walletDir, walletName + ".address.txt");
+        FileUtil.deleteRollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX);
+        FileUtil.deleteRollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX);
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
