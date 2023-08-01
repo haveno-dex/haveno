@@ -440,7 +440,7 @@ public final class CoreMoneroConnectionsService {
                 else connectionManager.setAutoSwitch(true);
 
                 // start local node if used last and offline
-                startLocalNodeIfUsedLast();
+                maybeStartLocalNode();
 
                 // update connection
                 if (connectionManager.getConnection() == null || connectionManager.getAutoSwitch()) {
@@ -457,7 +457,7 @@ public final class CoreMoneroConnectionsService {
                 connectionManager.setConnection(connection);
 
                 // start local node if used last and offline
-                startLocalNodeIfUsedLast();
+                maybeStartLocalNode();
 
                 // update connection
                 checkConnection();
@@ -472,7 +472,10 @@ public final class CoreMoneroConnectionsService {
         }
     }
 
-    private void startLocalNodeIfUsedLast() {
+    private void maybeStartLocalNode() {
+
+        // skip if seed node
+        if (HavenoUtils.havenoSetup == null) return;
 
         // start local node if offline and used as last connection
         if (connectionManager.getConnection() != null && nodeService.equalsUri(connectionManager.getConnection().getUri()) && !nodeService.isOnline()) {

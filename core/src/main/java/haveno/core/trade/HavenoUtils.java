@@ -74,7 +74,7 @@ public class HavenoUtils {
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-    // TODO: better way to share refernces?
+    // TODO: better way to share references?
     public static ArbitrationManager arbitrationManager;
     public static HavenoSetup havenoSetup;
 
