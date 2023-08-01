@@ -61,7 +61,7 @@ public class XmrNodes {
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "stagenet.melo.tools", 38081, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 38089, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.sethforprivacy.com", 38089, 3, null),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 38089, 2, null)
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 38089, 3, null)
                 );
             case XMR_MAINNET:
                 return Arrays.asList(
