@@ -439,16 +439,8 @@ public final class CoreMoneroConnectionsService {
                 if (coreContext.isApiUser()) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
                 else connectionManager.setAutoSwitch(true);
 
-                // start local node if used as last connection and currently offline
-                if (connectionManager.getConnection() != null && nodeService.equalsUri(connectionManager.getConnection().getUri()) && !nodeService.isOnline()) {
-                    try {
-                        log.info("Starting local node");
-                        nodeService.startMoneroNode();
-                    } catch (Exception e) {
-                        log.warn("Unable to start local monero node: " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                }
+                // start local node if used last and offline
+                startLocalNodeIfUsedLast();
 
                 // update connection
                 if (connectionManager.getConnection() == null || connectionManager.getAutoSwitch()) {
@@ -463,6 +455,12 @@ public final class CoreMoneroConnectionsService {
                 MoneroRpcConnection connection = new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1);
                 if (useProxy(connection)) connection.setProxyUri(getProxyUri());
                 connectionManager.setConnection(connection);
+
+                // start local node if used last and offline
+                startLocalNodeIfUsedLast();
+
+                // update connection
+                checkConnection();
             }
 
             // register connection listener
@@ -471,6 +469,20 @@ public final class CoreMoneroConnectionsService {
             // notify final connection
             isInitialized = true;
             onConnectionChanged(connectionManager.getConnection());
+        }
+    }
+
+    private void startLocalNodeIfUsedLast() {
+
+        // start local node if offline and used as last connection
+        if (connectionManager.getConnection() != null && nodeService.equalsUri(connectionManager.getConnection().getUri()) && !nodeService.isOnline()) {
+            try {
+                log.info("Starting local node");
+                nodeService.startMoneroNode();
+            } catch (Exception e) {
+                log.warn("Unable to start local monero node: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 
@@ -544,7 +556,7 @@ public final class CoreMoneroConnectionsService {
             if (lastErrorTimestamp != null) {
                 log.info("Successfully fetched daemon info after previous error");
                 lastErrorTimestamp = null;
-                HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
+                if (HavenoUtils.havenoSetup != null) HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
             }
 
             // update and notify connected state
