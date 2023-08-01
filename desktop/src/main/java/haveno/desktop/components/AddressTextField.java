@@ -97,7 +97,7 @@ public class AddressTextField extends AnchorPane {
 
     private void openWallet() {
         try {
-            Utilities.openURI(URI.create(getBitcoinURI()));
+            Utilities.openURI(URI.create(getMoneroURI()));
         } catch (Exception e) {
             log.warn(e.getMessage());
             new Popup().warning(Res.get("addressTextField.openWallet.failed")).show();
@@ -150,12 +150,15 @@ public class AddressTextField extends AnchorPane {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private String getBitcoinURI() {
+    private String getMoneroURI() {
         if (amount.get().compareTo(BigInteger.valueOf(0)) < 0) {
             log.warn("Amount must not be negative");
             setAmount(BigInteger.valueOf(0));
         }
-        return GUIUtil.getBitcoinURI(address.get(), HavenoUtils.atomicUnitsToCoin(amount.get()),
-                paymentLabel.get());
-    }
+        return GUIUtil.getMoneroURI(
+                address.get(),
+                amount.get(),
+                paymentLabel.get(),
+                HavenoUtils.havenoSetup.getXmrWalletService().getWallet());
+}
 }
