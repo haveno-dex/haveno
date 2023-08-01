@@ -107,6 +107,7 @@ public class HavenoSetup {
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final BtcWalletService btcWalletService;
+    @Getter
     private final XmrWalletService xmrWalletService;
     private final P2PService p2PService;
     private final PrivateNotificationManager privateNotificationManager;

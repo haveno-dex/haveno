@@ -96,9 +96,7 @@ import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxConfig;
 import org.apache.commons.lang3.StringUtils;
-import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.uri.BitcoinURI;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -681,13 +679,6 @@ public class GUIUtil {
                 .setAddress(address)
                 .setAmount(amount)
                 .setNote(label));
-    }
-
-    public static String getBitcoinURI(String address, Coin amount, String label) {
-        return address != null ?
-                BitcoinURI.convertToBitcoinURI(Address.fromString(Config.baseCurrencyNetworkParameters(),
-                        address), amount, label, null) :
-                "";
     }
 
     public static boolean isBootstrappedOrShowPopup(P2PService p2PService) {
