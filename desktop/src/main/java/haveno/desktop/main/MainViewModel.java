@@ -22,6 +22,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.app.Version;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.util.Tuple2;
@@ -272,16 +273,17 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // We only show the popup if the user has already set up any traditional account. For new users it is not a rule
-        // change and for crypto its not relevant.
-        String key = "newFeatureDuplicateOffer";
-        if (DontShowAgainLookup.showAgain(key)) {
-            UserThread.runAfter(() -> {
-                new Popup().attention(Res.get("popup.attention.newFeatureDuplicateOffer")).
-                        dontShowAgainId(key)
-                        .closeButtonText(Res.get("shared.iUnderstand"))
-                        .show();
-            }, 1);
+        // show welcome message if not mainnet
+        if (Config.baseCurrencyNetwork() != BaseCurrencyNetwork.XMR_MAINNET) {
+            String key = "welcome.test";
+            if (DontShowAgainLookup.showAgain(key)) {
+                UserThread.runAfter(() -> {
+                    new Popup().attention(Res.get("popup.attention.welcome.test")).
+                            dontShowAgainId(key)
+                            .closeButtonText(Res.get("shared.iUnderstand"))
+                            .show();
+                }, 1);
+            }
         }
     }
 

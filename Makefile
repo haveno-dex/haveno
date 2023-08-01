@@ -341,3 +341,98 @@ monerod:
 	./.localnet/monerod \
 		--bootstrap-daemon-address auto \
 		--rpc-access-control-origins http://localhost:8080 \
+
+seednode:
+	./haveno-seednode$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1002 \
+		--appName=haveno-XMR_MAINNET_Seed_1002 \
+		--xmrNode=http://127.0.0.1:18081
+
+seednode2:
+	./haveno-seednode$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1003 \
+		--appName=haveno-XMR_MAINNET_Seed_1003 \
+		--xmrNode=http://127.0.0.1:18081
+
+arbitrator-daemon:
+	# Arbitrator needs to be registered before making trades
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1100 \
+		--appName=haveno-XMR_MAINNET_arbitrator \
+		--apiPassword=apitest \
+		--apiPort=1200 \
+		--passwordRequired=false \
+		--xmrNode=http://127.0.0.1:18081
+
+# Arbitrator needs to be registered before making trades
+arbitrator-desktop:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1100 \
+		--appName=haveno-XMR_MAINNET_arbitrator \
+		--apiPassword=apitest \
+		--apiPort=1200 \
+		--xmrNode=http://127.0.0.1:18081
+
+user1-daemon:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1101 \
+		--appName=haveno-XMR_MAINNET_user1 \
+		--apiPassword=apitest \
+		--apiPort=1201 \
+		--passwordRequired=false
+
+user1-desktop:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1101 \
+		--appName=haveno-XMR_MAINNET_user1 \
+		--apiPassword=apitest \
+		--apiPort=1201
+
+user2-daemon:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1102 \
+		--appName=haveno-XMR_MAINNET_user2 \
+		--apiPassword=apitest \
+		--apiPort=1202 \
+		--passwordRequired=false
+
+user2-desktop:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1102 \
+		--appName=haveno-XMR_MAINNET_user2 \
+		--apiPassword=apitest \
+		--apiPort=1202
+
+user3-desktop:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=1103 \
+		--appName=haveno-XMR_MAINNET_user3 \
+		--apiPassword=apitest \
+		--apiPort=1203
