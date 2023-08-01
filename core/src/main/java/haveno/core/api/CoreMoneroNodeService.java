@@ -31,7 +31,6 @@ import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,7 +40,6 @@ import java.util.List;
 @Singleton
 public class CoreMoneroNodeService {
 
-    private static final String MONERO_NETWORK_TYPE = Config.baseCurrencyNetwork().getNetwork().toLowerCase();
     public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
     public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
@@ -51,12 +49,13 @@ public class CoreMoneroNodeService {
     private final List<MoneroNodeServiceListener> listeners = new ArrayList<>();
 
     // required arguments
-    private static final List<String> MONEROD_ARGS = Arrays.asList(
-            MONEROD_PATH,
-            "--" + MONERO_NETWORK_TYPE,
-            "--no-igd",
-            "--hide-my-port"
-    );
+    private static final List<String> MONEROD_ARGS = new ArrayList<String>();
+    static {
+        MONEROD_ARGS.add(MONEROD_PATH);
+        MONEROD_ARGS.add("--no-igd");
+        MONEROD_ARGS.add("--hide-my-port");
+        if (!Config.baseCurrencyNetwork().isMainnet()) MONEROD_ARGS.add("--" + Config.baseCurrencyNetwork().getNetwork().toLowerCase());
+    }
 
     // client to the local Monero node
     private MoneroDaemonRpc daemon;
