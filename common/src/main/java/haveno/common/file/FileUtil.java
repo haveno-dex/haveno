@@ -25,6 +25,7 @@ import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -172,6 +173,16 @@ public class FileUtil {
             try (FileOutputStream fileOutputStream = new FileOutputStream(destinationFile)) {
                 IOUtils.copy(inputStream, fileOutputStream);
             }
+        }
+    }
+
+    public static boolean resourceEqualToFile(String resourcePath,
+                                      File destinationFile) throws ResourceNotFoundException, IOException {
+        try (InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new ResourceNotFoundException(resourcePath);
+            }
+            return IOUtils.contentEquals(inputStream, new FileInputStream(destinationFile));
         }
     }
 
