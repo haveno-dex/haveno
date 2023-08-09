@@ -528,7 +528,7 @@ public class GUIUtil {
     public static void updateConfidence(MoneroTx tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
-        if (tx != null && !tx.isRelayed()) {
+        if (tx != null && (tx.getNumConfirmations() == null || !tx.isRelayed())) {
             tooltip.setText(Res.get("confidence.unknown"));
             txConfidenceIndicator.setProgress(0);
         } else if (tx != null && tx.isFailed()) {
