@@ -40,7 +40,7 @@ import java.util.List;
 @Singleton
 public class CoreMoneroNodeService {
 
-    public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
+    public static final String MONEROD_DIR = Config.appDataDir().getAbsolutePath();
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
     public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
     private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
