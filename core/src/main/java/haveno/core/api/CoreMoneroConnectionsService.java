@@ -246,7 +246,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     public boolean isConnectionLocal() {
-        return getConnection() != null && HavenoUtils.isLocalHost(getConnection().getUri());
+        return isConnectionLocal(getConnection());
     }
 
     public long getRefreshPeriodMs() {
@@ -315,17 +315,20 @@ public final class CoreMoneroConnectionsService {
 
     // ------------------------------- HELPERS --------------------------------
 
+    private boolean isConnectionLocal(MoneroRpcConnection connection) {
+        return connection != null && HavenoUtils.isLocalHost(connection.getUri());
+    }
+
     private long getDefaultRefreshPeriodMs() {
-        if (daemon == null) return REFRESH_PERIOD_LOCAL_MS;
-        else {
-            if (isConnectionLocal()) {
-                if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
-                else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
-            } else if (useProxy(getConnection())) {
-                return REFRESH_PERIOD_ONION_MS;
-            } else {
-                return REFRESH_PERIOD_HTTP_MS;
-            }
+        MoneroRpcConnection connection = getConnection();
+        if (connection == null) return REFRESH_PERIOD_LOCAL_MS;
+        if (isConnectionLocal(connection)) {
+            if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
+            else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
+        } else if (useProxy(connection)) {
+            return REFRESH_PERIOD_ONION_MS;
+        } else {
+            return REFRESH_PERIOD_HTTP_MS;
         }
     }
 
