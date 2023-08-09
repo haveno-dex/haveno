@@ -1650,7 +1650,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 final OpenOffer openOffer = openOffersList.get(i);
                                 UserThread.runAfterRandomDelay(() -> {
                                     // we need to check if in the meantime the offer has been removed
-                                    if (openOffers.contains(openOffer) && !openOffer.isDeactivated())
+                                    if (openOffers.contains(openOffer) && openOffer.isAvailable())
                                         refreshOffer(openOffer);
                                 }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
                             }
