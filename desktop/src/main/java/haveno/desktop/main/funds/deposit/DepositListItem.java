@@ -162,7 +162,11 @@ class DepositListItem {
         
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;
-        for (MoneroTxWallet tx : txs) if (highestTx == null || tx.getNumConfirmations() < highestTx.getNumConfirmations()) highestTx = tx;
+        for (MoneroTxWallet tx : txs) {
+            if (highestTx == null || tx.getHeight() == null || (highestTx.getHeight() != null && tx.getHeight() > highestTx.getHeight())) {
+                highestTx = tx;
+            }
+        }
         return highestTx;
     }
 }

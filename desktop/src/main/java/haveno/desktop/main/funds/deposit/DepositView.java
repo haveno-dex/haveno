@@ -318,11 +318,13 @@ public class DepositView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateList() {
-        observableList.forEach(DepositListItem::cleanup);
-        observableList.clear();
 
         // cache incoming txs
         txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+
+        // clear existing items
+        observableList.forEach(DepositListItem::cleanup);
+        observableList.clear();
 
         // add address entries
         xmrWalletService.getAddressEntries()
