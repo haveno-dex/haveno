@@ -548,7 +548,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     public boolean isReadyForTxBroadcast() {
-        return GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, connectionService);
+        return GUIUtil.isBootstrappedOrShowPopup(p2PService) && GUIUtil.isReadyForTxBroadcastOrShowPopup(connectionService);
     }
 
     public boolean isBootstrappedOrShowPopup() {
