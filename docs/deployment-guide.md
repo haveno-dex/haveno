@@ -1,15 +1,16 @@
 # Deployment Guide
 
-This guide describes how to deploy a Haveno network by:
+This guide describes how to deploy a Haveno network:
 
-- Building Haveno
-- Starting a Monero node
-- Building and starting price nodes
-- Creating and registering seed nodes
-- Generating keypairs with privileges for arbitrators and developers
-- Creating and registering arbitrators
-- Setting a network filter
-- Building Haveno installers for distribution
+- Build Haveno
+- Start a Monero node
+- Build and start price nodes
+- Create and register seed nodes
+- Generate keypairs with privileges for arbitrators and developers
+- Create and register arbitrators
+- Set a network filter
+- Build Haveno installers for distribution
+- Manage services on a VPS (WIP)
 
 ## Build Haveno
 
@@ -76,9 +77,9 @@ Remember that for the network to run correctly and people to be able to open and
 
 IMPORTANT: Do not reuse keypairs, and remember to revoke the private keypair to terminate the arbitrator.
 
-## Register a filter object on mainnet
+## Set a network filter on mainnet
 
-On mainnet, the p2p network is expected to have a filter object to filter out offers, onions, currencies, payment methods, etc.
+On mainnet, the p2p network is expected to have a filter object for offers, onions, currencies, payment methods, etc.
 
 To set the network's filter object:
 
@@ -98,7 +99,9 @@ Test trades among the users and arbitrator.
 
 ## Build Haveno installers for distribution
 
-See https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md.
+For mainnet, first modify [package.gradle](https://github.com/haveno-dex/haveno/blob/aeb0822f9fc72bd5a0e23d0c42c2a8f5f87625bb/desktop/package/package.gradle#L252) to remove the line with ` --arguments --baseCurrencyNetwork=XMR_STAGENET` (also remove the `+` on the preceding line).
+
+Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md.
 
 ## Deploy to a VPS
 
