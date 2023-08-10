@@ -689,11 +689,7 @@ public class GUIUtil {
         return false;
     }
 
-    public static boolean isReadyForTxBroadcastOrShowPopup(P2PService p2PService, CoreMoneroConnectionsService connectionService) {
-        if (!GUIUtil.isBootstrappedOrShowPopup(p2PService)) {
-            return false;
-        }
-
+    public static boolean isReadyForTxBroadcastOrShowPopup(CoreMoneroConnectionsService connectionService) {
         if (!connectionService.hasSufficientPeersForBroadcast()) {
             new Popup().information(Res.get("popup.warning.notSufficientConnectionsToBtcNetwork", connectionService.getMinBroadcastConnections())).show();
             return false;
