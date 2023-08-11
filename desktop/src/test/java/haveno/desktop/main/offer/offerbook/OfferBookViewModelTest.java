@@ -329,10 +329,9 @@ public class OfferBookViewModelTest {
         model.activate();
 
         assertEquals(9, model.maxPlacesForVolume.intValue());
-        offerBookListItems.addAll(make(xmrItemWithRange.but(with(amount, 20000000000000L))));
+        offerBookListItems.addAll(make(xmrItemWithRange.but(with(amount, 200000000000000000L))));
         assertEquals(11, model.maxPlacesForVolume.intValue());
-        offerBookListItems.addAll(make(xmrItemWithRange.but(with(minAmount, 300000000000000L),
-                with(amount, 300000000000000L))));
+        offerBookListItems.addAll(make(xmrItemWithRange.but(with(minAmount, 3000000000000000000L), with(amount, 3000000000000000000L))));
         assertEquals(19, model.maxPlacesForVolume.intValue());
     }
 
@@ -362,9 +361,9 @@ public class OfferBookViewModelTest {
         model.activate();
 
         assertEquals(7, model.maxPlacesForPrice.intValue());
-        offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 149558240L)))); //14955.8240
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 1495582400000L)))); //149558240
         assertEquals(10, model.maxPlacesForPrice.intValue());
-        offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 14955824L)))); //1495.58240
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 149558240000L)))); //149558240
         assertEquals(10, model.maxPlacesForPrice.intValue());
     }
 

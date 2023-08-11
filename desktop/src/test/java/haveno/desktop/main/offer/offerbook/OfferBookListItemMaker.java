@@ -19,14 +19,13 @@ package haveno.desktop.main.offer.offerbook;
 
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.MakeItEasy;
+import static com.natpryce.makeiteasy.MakeItEasy.a;
+import static com.natpryce.makeiteasy.MakeItEasy.make;
+import static com.natpryce.makeiteasy.MakeItEasy.with;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
 import haveno.core.offer.OfferDirection;
 import haveno.desktop.maker.OfferMaker;
-
-import static com.natpryce.makeiteasy.MakeItEasy.a;
-import static com.natpryce.makeiteasy.MakeItEasy.make;
-import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.desktop.maker.OfferMaker.xmrUsdOffer;
 
 public class OfferBookListItemMaker {
@@ -43,7 +42,7 @@ public class OfferBookListItemMaker {
 
     public static final Instantiator<OfferBookListItem> OfferBookListItem = lookup ->
             new OfferBookListItem(make(xmrUsdOffer.but(
-                    MakeItEasy.with(OfferMaker.price, lookup.valueOf(price, 100000L)),
+                    with(OfferMaker.price, lookup.valueOf(price, 1000000000L)),
                     with(OfferMaker.amount, lookup.valueOf(amount, 1000000000L)),
                     with(OfferMaker.minAmount, lookup.valueOf(amount, 1000000000L)),
                     with(OfferMaker.direction, lookup.valueOf(direction, OfferDirection.BUY)),
