@@ -96,7 +96,7 @@ public class CreateOfferViewModelTest {
                         Instant.now().getEpochSecond(),
                         true));
         when(user.findFirstPaymentAccountWithCurrency(any())).thenReturn(paymentAccount);
-        when(paymentAccount.getPaymentMethod()).thenReturn(mock(PaymentMethod.class));
+        when(paymentAccount.getPaymentMethod()).thenReturn(PaymentMethod.ZELLE);
         when(user.getPaymentAccountsAsObservable()).thenReturn(FXCollections.observableSet());
         when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(false));
         when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any())).thenReturn(100000000L);

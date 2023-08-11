@@ -118,6 +118,10 @@ configure(subprojects) {
             }
         }
     }
+
+    test {
+        useJUnitPlatform()
+    }
 }
 
 configure([project(':cli'),
@@ -570,10 +574,6 @@ configure(project(':cli')) {
         testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
         testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
-
-    test {
-        useJUnitPlatform()
-    }
 }
 
 configure(project(':desktop')) {
@@ -663,13 +663,6 @@ configure(project(':desktop')) {
 
 configure(project(':monitor')) {
     mainClassName = 'haveno.monitor.Monitor'
-
-    test {
-        useJUnitPlatform()
-        testLogging {
-            events "passed", "skipped", "failed"
-        }
-    }
 
     dependencies {
         implementation project(':assets')
@@ -856,7 +849,6 @@ configure(project(':apitest')) {
     test.enabled = System.getProperty("runApiTests") == "true"
 
     test {
-        useJUnitPlatform()
         outputs.upToDateWhen { false }          // Don't use previously cached test outputs.
         testLogging {
             showStackTraces = true              // Show full stack traces in the console.

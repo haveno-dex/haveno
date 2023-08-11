@@ -23,6 +23,7 @@ import haveno.core.monetary.TraditionalMoney;
 import haveno.core.offer.OfferPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
@@ -118,7 +119,7 @@ public class TradesChartsViewModelTest {
         long high = TraditionalMoney.parseTraditionalMoney("EUR", "600").value;
         long average = TraditionalMoney.parseTraditionalMoney("EUR", "550").value;
         long median = TraditionalMoney.parseTraditionalMoney("EUR", "550").value;
-        long amount = Coin.parseCoin("4").value;
+        long amount = HavenoUtils.xmrToAtomicUnits(4).longValue();
         long volume = TraditionalMoney.parseTraditionalMoney("EUR", "2200").value;
         boolean isBullish = true;
 
@@ -127,7 +128,7 @@ public class TradesChartsViewModelTest {
 
         set.add(new TradeStatistics3(offer.getCurrencyCode(),
                 Price.parse("EUR", "520").getValue(),
-                Coin.parseCoin("1").getValue(),
+                HavenoUtils.xmrToAtomicUnits(1).longValue(),
                 PaymentMethod.BLOCK_CHAINS_ID,
                 now.getTime(),
                 null,
@@ -135,7 +136,7 @@ public class TradesChartsViewModelTest {
                 null));
         set.add(new TradeStatistics3(offer.getCurrencyCode(),
                 Price.parse("EUR", "500").getValue(),
-                Coin.parseCoin("1").getValue(),
+                HavenoUtils.xmrToAtomicUnits(1).longValue(),
                 PaymentMethod.BLOCK_CHAINS_ID,
                 now.getTime() + 100,
                 null,
@@ -143,7 +144,7 @@ public class TradesChartsViewModelTest {
                 null));
         set.add(new TradeStatistics3(offer.getCurrencyCode(),
                 Price.parse("EUR", "600").getValue(),
-                Coin.parseCoin("1").getValue(),
+                HavenoUtils.xmrToAtomicUnits(1).longValue(),
                 PaymentMethod.BLOCK_CHAINS_ID,
                 now.getTime() + 200,
                 null,
@@ -151,7 +152,7 @@ public class TradesChartsViewModelTest {
                 null));
         set.add(new TradeStatistics3(offer.getCurrencyCode(),
                 Price.parse("EUR", "580").getValue(),
-                Coin.parseCoin("1").getValue(),
+                HavenoUtils.xmrToAtomicUnits(1).longValue(),
                 PaymentMethod.BLOCK_CHAINS_ID,
                 now.getTime() + 300,
                 null,

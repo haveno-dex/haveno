@@ -89,9 +89,9 @@ public class OfferBookChartViewModelTest {
         final OfferBookChartViewModel model = new OfferBookChartViewModel(offerBook, null, empty, service, null, null);
         model.activate();
         assertEquals(7, model.maxPlacesForBuyPrice.intValue());
-        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.price, 94016475L))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.price, 940164750000L))));
         assertEquals(9, model.maxPlacesForBuyPrice.intValue()); // 9401.6475
-        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.price, 101016475L))));
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(OfferBookListItemMaker.price, 1010164750000L))));
         assertEquals(10, model.maxPlacesForBuyPrice.intValue()); //10101.6475
     }
 
@@ -167,9 +167,9 @@ public class OfferBookChartViewModelTest {
         final OfferBookChartViewModel model = new OfferBookChartViewModel(offerBook, null, empty, service, null, null);
         model.activate();
         assertEquals(7, model.maxPlacesForSellPrice.intValue()); // 10.0000 default price
-        offerBookListItems.addAll(make(xmrSellItem.but(with(OfferBookListItemMaker.price, 94016475L))));
+        offerBookListItems.addAll(make(xmrSellItem.but(with(OfferBookListItemMaker.price, 940164750000L))));
         assertEquals(9, model.maxPlacesForSellPrice.intValue()); // 9401.6475
-        offerBookListItems.addAll(make(xmrSellItem.but(with(OfferBookListItemMaker.price, 101016475L))));
+        offerBookListItems.addAll(make(xmrSellItem.but(with(OfferBookListItemMaker.price, 1010164750000L))));
         assertEquals(10, model.maxPlacesForSellPrice.intValue()); // 10101.6475
     }
 

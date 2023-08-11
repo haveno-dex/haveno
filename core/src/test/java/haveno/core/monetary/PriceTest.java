@@ -28,30 +28,23 @@ public class PriceTest {
 
     @Test
     public void testParse() {
-        Price result = parse("USD", "0.1");
         assertEquals(
                 "0.10 XMR/USD",
-                result.toFriendlyString(),
+                parse("USD", "0.1").toFriendlyString(),
                 "Fiat value should be formatted with two decimals."
         );
 
-        result = parse("EUR", "0.1234");
         assertEquals(
                 "0.1234 XMR/EUR",
-                result.toFriendlyString(),
+                parse("EUR", "0.1234").toFriendlyString(),
                 "Fiat value should be given two decimals"
         );
 
-        try {
-            parse("EUR", "0.12345");
-            fail("Expected IllegalArgumentException to be thrown when too many decimals are used.");
-        } catch (IllegalArgumentException iae) {
-            assertEquals(
-                    "java.lang.ArithmeticException: Rounding necessary",
-                    iae.getMessage(),
-                    "Unexpected exception message."
-            );
-        }
+        assertEquals(
+                "0.1235 XMR/EUR",
+                parse("EUR", "0.12345").toFriendlyString(),
+                "Too many decimals of fiat value should get rounded up properly."
+        );
 
         assertEquals(
                 -100000000L,
@@ -96,17 +89,15 @@ public class PriceTest {
     }
     @Test
     public void testValueOf() {
-        Price result = valueOf("USD", 1);
         assertEquals(
                 "0.0001 XMR/USD",
-                result.toFriendlyString(),
+                valueOf("USD", 10000).toFriendlyString(),
                 "Fiat value should have four decimals."
         );
 
-        result = valueOf("EUR", 1234);
         assertEquals(
                 "0.1234 XMR/EUR",
-                result.toFriendlyString(),
+                valueOf("EUR", 12340000).toFriendlyString(),
                 "Fiat value should be given two decimals"
         );
 
