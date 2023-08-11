@@ -17,7 +17,7 @@
 
 package haveno.desktop.main.funds.withdrawal;
 
-import haveno.common.util.Tuple2;
+import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -30,19 +30,21 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
-import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TxDetails;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
+import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
-import haveno.desktop.util.Layout;
 import haveno.network.p2p.P2PService;
 import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import monero.wallet.model.MoneroTxConfig;
@@ -51,6 +53,7 @@ import monero.wallet.model.MoneroTxWallet;
 import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static haveno.desktop.util.FormBuilder.addButton;
@@ -65,6 +68,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
     private Label amountLabel;
     private TextField amountTextField, withdrawToTextField, withdrawMemoTextField;
+    private RadioButton feeExcludedRadioButton, feeIncludedRadioButton;
 
     private final XmrWalletService xmrWalletService;
     private final TradeManager tradeManager;
@@ -73,6 +77,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private BigInteger amount = BigInteger.valueOf(0);
     private ChangeListener<String> amountListener;
     private ChangeListener<Boolean> amountFocusListener;
+    private ChangeListener<Toggle> feeToggleGroupListener;
+    private ToggleGroup feeToggleGroup;
+    private boolean feeExcluded;
     private int rowIndex = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -98,15 +105,22 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         titledGroupBg.getStyleClass().add("last");
 
         withdrawToTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
-        Res.get("funds.withdrawal.toLabel", Res.getBaseCurrencyCode())).second;
+                Res.get("funds.withdrawal.toLabel", Res.getBaseCurrencyCode())).second;
 
-        final Tuple2<Label, InputTextField> amountTuple3 = addTopLabelInputTextField(gridPane, ++rowIndex,
+        feeToggleGroup = new ToggleGroup();
+
+        final Tuple4<Label, TextField, RadioButton, RadioButton> feeTuple3 = FormBuilder.addTopLabelTextFieldRadioButtonRadioButton(gridPane, ++rowIndex, feeToggleGroup,
                 Res.get("funds.withdrawal.receiverAmount", Res.getBaseCurrencyCode()),
-                Layout.COMPACT_FIRST_ROW_DISTANCE);
+                "",
+                Res.get("funds.withdrawal.feeExcluded"),
+                Res.get("funds.withdrawal.feeIncluded"),
+                0);
 
-        amountLabel = amountTuple3.first;
-        amountTextField = amountTuple3.second;
+        amountLabel = feeTuple3.first;
+        amountTextField = feeTuple3.second;
         amountTextField.setMinWidth(180);
+        feeExcludedRadioButton = feeTuple3.third;
+        feeIncludedRadioButton = feeTuple3.fourth;
 
         withdrawMemoTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
                 Res.get("funds.withdrawal.memoLabel", Res.getBaseCurrencyCode())).second;
@@ -139,6 +153,14 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
             }
         };
         amountLabel.setText(Res.get("funds.withdrawal.receiverAmount"));
+        feeExcludedRadioButton.setToggleGroup(feeToggleGroup);
+        feeIncludedRadioButton.setToggleGroup(feeToggleGroup);
+        feeToggleGroupListener = (observable, oldValue, newValue) -> {
+            feeExcluded = newValue == feeExcludedRadioButton;
+            amountLabel.setText(feeExcluded ?
+                    Res.get("funds.withdrawal.receiverAmount") :
+                    Res.get("funds.withdrawal.senderAmount"));
+        };
     }
 
     @Override
@@ -148,6 +170,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         amountTextField.textProperty().addListener(amountListener);
         amountTextField.focusedProperty().addListener(amountFocusListener);
         xmrWalletService.addBalanceListener(balanceListener);
+        feeToggleGroup.selectedToggleProperty().addListener(feeToggleGroupListener);
+
+        if (feeToggleGroup.getSelectedToggle() == null) feeToggleGroup.selectToggle(feeExcludedRadioButton);
 
         GUIUtil.requestFocus(withdrawToTextField);
     }
@@ -157,6 +182,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         xmrWalletService.removeBalanceListener(balanceListener);
         amountTextField.textProperty().removeListener(amountListener);
         amountTextField.focusedProperty().removeListener(amountFocusListener);
+        feeToggleGroup.selectedToggleProperty().removeListener(feeToggleGroupListener);
     }
 
 
@@ -171,21 +197,19 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // get withdraw address
                 final String withdrawToAddress = withdrawToTextField.getText();
 
-                // get receiver amount
-                BigInteger receiverAmount = amount;
-                if (receiverAmount.compareTo(BigInteger.valueOf(0)) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
-
                 // create tx
+                if (amount.compareTo(BigInteger.valueOf(0)) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
                 MoneroTxWallet tx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
-                        .setAmount(receiverAmount)
-                        .setAddress(withdrawToAddress));
+                        .setAmount(amount)
+                        .setAddress(withdrawToAddress)
+                        .setSubtractFeeFrom(feeExcluded ? null : Arrays.asList(0)));
 
                 // create confirmation message
-                BigInteger sendersAmount = receiverAmount;
+                BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
                 BigInteger fee = tx.getFee();
                 String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                        HavenoUtils.formatXmr(sendersAmount, true),
+                        HavenoUtils.formatXmr(amount, true),
                         withdrawToAddress,
                         HavenoUtils.formatXmr(fee, true),
                         HavenoUtils.formatXmr(receiverAmount, true));
@@ -202,7 +226,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                                 xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
                                 String key = "showTransactionSent";
                                 if (DontShowAgainLookup.showAgain(key)) {
-                                    new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(sendersAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                                    new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
                                             .dontShowAgainId(key)
                                             .show();
                                 }
