@@ -824,22 +824,24 @@ public class XmrWalletService {
             String newProxyUri = connection == null ? null : connection.getProxyUri();
             if (wallet == null) maybeInitMainWallet();
             else if (wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
-                log.info("Restarting main wallet since proxy URI has changed");
+                log.info("Restarting main wallet because proxy URI has changed");
                 closeMainWallet(true);
                 maybeInitMainWallet();
             } else {
                 wallet.setDaemonConnection(connection);
-                if (connection != null) {
-                    wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-                    new Thread(() -> {
-                        try {
-                            wallet.startSyncing(connectionsService.getRefreshPeriodMs());
-                            if (!Boolean.FALSE.equals(connection.isConnected())) wallet.sync();
-                        } catch (Exception e) {
-                            log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
-                        }
-                    }).start();
-                }
+            }
+
+            // sync wallet on new thread
+            if (connection != null) {
+                wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
+                new Thread(() -> {
+                    try {
+                        if (!Boolean.FALSE.equals(connection.isConnected())) wallet.sync();
+                        wallet.startSyncing(connectionsService.getRefreshPeriodMs());
+                    } catch (Exception e) {
+                        log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
+                    }
+                }).start();
             }
 
             log.info("Done setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
