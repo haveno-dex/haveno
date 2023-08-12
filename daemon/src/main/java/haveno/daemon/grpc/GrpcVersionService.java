@@ -18,9 +18,12 @@
 package haveno.daemon.grpc;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
 import haveno.proto.grpc.GetVersionReply;
 import haveno.proto.grpc.GetVersionRequest;
 import io.grpc.ServerInterceptor;
@@ -32,7 +35,6 @@ import java.util.HashMap;
 import java.util.Optional;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
 import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -70,7 +72,7 @@ public class GrpcVersionService extends GetVersionImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetVersionMethod().getFullMethodName(), new GrpcCallRateMeter(5, SECONDS));
+                            put(getGetVersionMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 5 : 1, SECONDS));
                         }}
                 )));
     }

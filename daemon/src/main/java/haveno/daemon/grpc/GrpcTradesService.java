@@ -17,6 +17,7 @@
 
 package haveno.daemon.grpc;
 
+import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.TradeInfo;
 import haveno.core.trade.Trade;
@@ -38,6 +39,7 @@ import haveno.proto.grpc.SendChatMessageReply;
 import haveno.proto.grpc.SendChatMessageRequest;
 import haveno.proto.grpc.TakeOfferReply;
 import haveno.proto.grpc.TakeOfferRequest;
+import haveno.proto.grpc.TradesGrpc.TradesImplBase;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +52,6 @@ import java.util.stream.Collectors;
 
 import static haveno.core.api.model.TradeInfo.toTradeInfo;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.TradesGrpc.TradesImplBase;
 import static haveno.proto.grpc.TradesGrpc.getCompleteTradeMethod;
 import static haveno.proto.grpc.TradesGrpc.getConfirmPaymentReceivedMethod;
 import static haveno.proto.grpc.TradesGrpc.getConfirmPaymentSentMethod;
@@ -235,15 +236,15 @@ class GrpcTradesService extends TradesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(30, SECONDS));
-                            put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getConfirmPaymentSentMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES));
-                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 30 : 1, SECONDS));
+                            put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
+                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getConfirmPaymentSentMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(3, MINUTES));
+                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                         }}
                 )));
     }

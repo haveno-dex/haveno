@@ -1,5 +1,6 @@
 package haveno.daemon.grpc;
 
+import haveno.common.config.Config;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.api.CoreApi;
 import haveno.core.support.dispute.Attachment;
@@ -137,11 +138,11 @@ public class GrpcDisputesService extends DisputesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
+                            put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
+                            put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
+                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
+                            put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
+                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 2, SECONDS));
                         }}
                 )));
     }

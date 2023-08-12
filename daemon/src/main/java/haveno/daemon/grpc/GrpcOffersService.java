@@ -17,6 +17,7 @@
 
 package haveno.daemon.grpc;
 
+import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.OfferInfo;
 import haveno.core.offer.Offer;
@@ -54,6 +55,7 @@ import static haveno.proto.grpc.OffersGrpc.getGetMyOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getPostOfferMethod;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
@@ -201,12 +203,12 @@ class GrpcOffersService extends OffersImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
-                            put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getPostOfferMethod().getFullMethodName(), new GrpcCallRateMeter(20, SECONDS));
-                            put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
+                            put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
+                            put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
+                            put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getPostOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                         }}
                 )));
     }
