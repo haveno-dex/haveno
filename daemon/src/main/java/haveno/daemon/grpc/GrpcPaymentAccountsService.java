@@ -17,6 +17,7 @@
 
 package haveno.daemon.grpc;
 
+import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
@@ -39,6 +40,7 @@ import haveno.proto.grpc.GetPaymentAccountsReply;
 import haveno.proto.grpc.GetPaymentAccountsRequest;
 import haveno.proto.grpc.GetPaymentMethodsReply;
 import haveno.proto.grpc.GetPaymentMethodsRequest;
+import haveno.proto.grpc.PaymentAccountsGrpc.PaymentAccountsImplBase;
 import haveno.proto.grpc.ValidateFormFieldReply;
 import haveno.proto.grpc.ValidateFormFieldRequest;
 import io.grpc.ServerInterceptor;
@@ -51,12 +53,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.PaymentAccountsGrpc.PaymentAccountsImplBase;
 import static haveno.proto.grpc.PaymentAccountsGrpc.getCreateCryptoCurrencyPaymentAccountMethod;
 import static haveno.proto.grpc.PaymentAccountsGrpc.getCreatePaymentAccountMethod;
 import static haveno.proto.grpc.PaymentAccountsGrpc.getGetPaymentAccountFormMethod;
 import static haveno.proto.grpc.PaymentAccountsGrpc.getGetPaymentAccountsMethod;
 import static haveno.proto.grpc.PaymentAccountsGrpc.getGetPaymentMethodsMethod;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
@@ -199,11 +201,11 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getCreatePaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
-                            put(getCreateCryptoCurrencyPaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
-                            put(getGetPaymentAccountsMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
-                            put(getGetPaymentMethodsMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
-                            put(getGetPaymentAccountFormMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS));
+                            put(getCreatePaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getCreateCryptoCurrencyPaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getGetPaymentAccountsMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS));
+                            put(getGetPaymentMethodsMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS));
+                            put(getGetPaymentAccountFormMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS));
                         }}
                 )));
     }

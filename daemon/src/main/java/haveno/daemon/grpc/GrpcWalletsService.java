@@ -18,6 +18,7 @@
 package haveno.daemon.grpc;
 
 import haveno.common.UserThread;
+import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.AddressBalanceInfo;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
@@ -48,6 +49,7 @@ import haveno.proto.grpc.SetWalletPasswordReply;
 import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletReply;
 import haveno.proto.grpc.UnlockWalletRequest;
+import haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +65,6 @@ import java.util.stream.Collectors;
 
 import static haveno.core.api.model.XmrTx.toXmrTx;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
 import static haveno.proto.grpc.WalletsGrpc.getGetAddressBalanceMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetBalancesMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetFundingAddressesMethod;
@@ -289,7 +290,7 @@ class GrpcWalletsService extends WalletsImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetBalancesMethod().getFullMethodName(), new GrpcCallRateMeter(100, SECONDS)); // TODO: why do tests make so many calls to get balances?
+                            put(getGetBalancesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS)); // TODO: why do tests make so many calls to get balances?
                             put(getGetAddressBalanceMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getGetFundingAddressesMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
 
