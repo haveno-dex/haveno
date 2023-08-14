@@ -125,8 +125,6 @@ public class ContractWindow extends Overlay<ContractWindow> {
         boolean showAcceptedCountryCodes = acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty();
 
         int rows = 18;
-        if (dispute.getDepositTxSerialized() != null)
-            rows++;
         if (dispute.getPayoutTxSerialized() != null)
             rows++;
         if (dispute.getDelayedPayoutTxId() != null)

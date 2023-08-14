@@ -1137,7 +1137,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     // TODO (woodser): make Optional<Trade> versus Trade return types consistent
     public Trade getTrade(String tradeId) {
-        return getOpenTrade(tradeId).orElseGet(() -> getClosedTrade(tradeId).orElseGet(() -> null));
+        return getOpenTrade(tradeId).orElseGet(() -> getClosedTrade(tradeId).orElseGet(() -> getFailedTrade(tradeId).orElseGet(() -> null)));
     }
 
     public Optional<Trade> getOpenTrade(String tradeId) {
@@ -1175,6 +1175,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public Optional<Trade> getClosedTrade(String tradeId) {
         return closedTradableManager.getClosedTrades().stream().filter(e -> e.getId().equals(tradeId)).findFirst();
+    }
+    
+    public Optional<Trade> getFailedTrade(String tradeId) {
+        return failedTradesManager.getTradeById(tradeId);
     }
 
     private void addTrade(Trade trade) {

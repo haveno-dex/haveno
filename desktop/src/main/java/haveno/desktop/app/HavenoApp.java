@@ -17,6 +17,11 @@
 
 package haveno.desktop.app;
 
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
+import static haveno.desktop.util.Layout.INITIAL_WINDOW_WIDTH;
+import static haveno.desktop.util.Layout.MIN_WINDOW_HEIGHT;
+import static haveno.desktop.util.Layout.MIN_WINDOW_WIDTH;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.common.base.Joiner;
@@ -26,12 +31,18 @@ import com.google.inject.name.Names;
 import haveno.common.app.DevEnv;
 import haveno.common.app.Log;
 import haveno.common.config.Config;
+import haveno.common.crypto.Hash;
 import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.setup.UncaughtExceptionHandler;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.mediation.MediationManager;
+import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
 import haveno.core.user.Cookie;
 import haveno.core.user.CookieKey;
 import haveno.core.user.Preferences;
@@ -47,7 +58,15 @@ import haveno.desktop.main.overlays.windows.FilterWindow;
 import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
 import haveno.desktop.util.CssTheme;
+import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.ImageUtil;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import javafx.application.Application;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
@@ -64,16 +83,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Consumer;
-
-import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
-import static haveno.desktop.util.Layout.INITIAL_WINDOW_WIDTH;
-import static haveno.desktop.util.Layout.MIN_WINDOW_HEIGHT;
-import static haveno.desktop.util.Layout.MIN_WINDOW_WIDTH;
 
 @Slf4j
 public class HavenoApp extends Application implements UncaughtExceptionHandler {
@@ -327,30 +336,80 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     private void shutDownByUser() {
-        boolean hasOpenOffers = false;
+        String potentialIssues = checkTradesAtShutdown() + checkDisputesAtShutdown() + checkOffersAtShutdown();
+        promptUserAtShutdown(potentialIssues).thenAccept(asyncOkToShutDown -> {
+            if (asyncOkToShutDown) {
+                stop();
+            }
+        });
+    }
+
+    private String checkTradesAtShutdown() {
+       log.info("Checking trades at shutdown");
+       Instant fiveMinutesAgo = Instant.ofEpochSecond(Instant.now().getEpochSecond() - TimeUnit.MINUTES.toSeconds(5));
+       for (Trade trade : injector.getInstance(TradeManager.class).getObservableList()) {
+           if (trade.getPhase().equals(Trade.Phase.DEPOSIT_REQUESTED) &&
+                   trade.getTakeOfferDate().toInstant().isAfter(fiveMinutesAgo)) {
+               String tradeDateString = DisplayUtils.formatDateTime(trade.getTakeOfferDate());
+               String tradeInfo = Res.get("shared.tradeId") + ": " + trade.getShortId() + " " +
+                       Res.get("shared.dateTime") + ": " + tradeDateString;
+               return Res.get("popup.info.shutDownWithTradeInit", tradeInfo) + System.lineSeparator() + System.lineSeparator();
+           }
+       }
+       return "";
+    }
+
+    private String checkDisputesAtShutdown() {
+        log.info("Checking disputes at shutdown");
+        if (injector.getInstance(ArbitrationManager.class).hasPendingMessageAtShutdown() ||
+                injector.getInstance(MediationManager.class).hasPendingMessageAtShutdown() ||
+                injector.getInstance(RefundManager.class).hasPendingMessageAtShutdown()) {
+            return Res.get("popup.info.shutDownWithDisputeInit") + System.lineSeparator() + System.lineSeparator();
+        }
+        return "";
+    }
+
+    private String checkOffersAtShutdown() {
+        log.info("Checking offers at shutdown");
         for (OpenOffer openOffer : injector.getInstance(OpenOfferManager.class).getObservableList()) {
             if (openOffer.getState().equals(OpenOffer.State.AVAILABLE)) {
-                hasOpenOffers = true;
-                break;
+                return Res.get("popup.info.shutDownWithOpenOffers") + System.lineSeparator() + System.lineSeparator();
             }
         }
-        if (!hasOpenOffers) {
-            // No open offers, so no need to show the popup.
-            stop();
-            return;
-        }
+        return "";
+    }
 
-        // We show a popup to inform user that open offers will be removed if Haveno is not running.
-        String key = "showOpenOfferWarnPopupAtShutDown";
+    private CompletableFuture<Boolean> promptUserAtShutdown(String issueInfo) {
+        final CompletableFuture<Boolean> asyncStatus = new CompletableFuture<>();
+        if (issueInfo.length() > 0) {
+            // We maybe show a popup to inform user that some issues are pending
+            String key = Utilities.encodeToHex(Hash.getSha256Hash(issueInfo));
+            if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
+                new Popup().warning(issueInfo)
+                        .actionButtonText(Res.get("shared.okWait"))
+                        .onAction(() -> asyncStatus.complete(false))
+                        .closeButtonText(Res.get("shared.closeAnywayDanger"))
+                        .onClose(() -> asyncStatus.complete(true))
+                        .dontShowAgainId(key)
+                        .width(800)
+                        .show();
+                return asyncStatus;
+            }
+        }
+        // if no warning popup has been shown yet, prompt user if they really intend to shut down
+        String key = "popup.info.shutDownQuery";
         if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-            new Popup().information(Res.get("popup.info.shutDownWithOpenOffers"))
+            new Popup().headLine(Res.get("popup.info.shutDownQuery"))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(() -> asyncStatus.complete(true))
+                    .closeButtonText(Res.get("shared.no"))
+                    .onClose(() -> asyncStatus.complete(false))
                     .dontShowAgainId(key)
-                    .useShutDownButton()
-                    .closeButtonText(Res.get("shared.cancel"))
                     .show();
         } else {
-            stop();
+            asyncStatus.complete(true);
         }
+        return asyncStatus;
     }
 
     // Used for debugging trade process

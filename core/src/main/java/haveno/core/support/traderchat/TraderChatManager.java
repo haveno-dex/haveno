@@ -31,13 +31,14 @@ import haveno.core.trade.TradeManager;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Slf4j
 @Singleton
@@ -97,10 +98,9 @@ public class TraderChatManager extends SupportManager {
     }
 
     @Override
-    public List<ChatMessage> getAllChatMessages() {
-        return tradeManager.getObservableList().stream()
-                .flatMap(trade -> trade.getChatMessages().stream())
-                .collect(Collectors.toList());
+    public List<ChatMessage> getAllChatMessages(String tradeId) {
+        return Optional.of(tradeManager.getTrade(tradeId)).map(Trade::getChatMessages)
+                .orElse(FXCollections.emptyObservableList());
     }
 
     @Override

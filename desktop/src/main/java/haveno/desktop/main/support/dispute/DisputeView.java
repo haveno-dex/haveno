@@ -440,9 +440,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
             return FilterResult.SELLER_ACCOUNT_DETAILS;
         }
 
-        if (dispute.getDepositTxId() != null && dispute.getDepositTxId().contains(filter)) {
-            return FilterResult.DEPOSIT_TX;
-        }
         if (dispute.getPayoutTxId() != null && dispute.getPayoutTxId().contains(filter)) {
             return FilterResult.PAYOUT_TX;
         }
