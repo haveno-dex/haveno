@@ -157,7 +157,7 @@ public class FormattingUtils {
     }
 
     public static String formatPrice(Price price) {
-        return formatPrice(price, getPriceMonetaryFormat(price.getCurrencyCode()), false);
+        return formatPrice(price, price == null ? null : getPriceMonetaryFormat(price.getCurrencyCode()), false);
     }
 
     public static String formatMarketPrice(double price, String currencyCode) {

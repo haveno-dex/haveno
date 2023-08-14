@@ -624,7 +624,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             openOffer.setState(OpenOffer.State.CANCELED);
             removeOpenOffer(openOffer);
 
-            OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice);
+            OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
             editedOpenOffer.setState(originalState);
 
             addOpenOffer(editedOpenOffer);
@@ -1172,8 +1172,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     true);
 
             // arbitrator signs offer to certify they have valid reserve tx
-            String offerPayloadAsJson = JsonUtil.objectToJson(request.getOfferPayload());
-            byte[] signature = HavenoUtils.sign(keyRing, offerPayloadAsJson);
+            byte[] signature = HavenoUtils.signOffer(request.getOfferPayload(), keyRing);
             OfferPayload signedOfferPayload = request.getOfferPayload();
             signedOfferPayload.setArbitratorSignature(signature);
 

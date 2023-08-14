@@ -41,7 +41,7 @@ public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
             Arbitrator arbitrator = checkNotNull(model.getUser().getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner()), "user.getAcceptedArbitratorByAddress(arbitratorSigner) must not be null");
             
             // validate arbitrator signature
-            if (!HavenoUtils.isArbitratorSignatureValid(new Offer(model.getSignOfferResponse().getSignedOfferPayload()), arbitrator)) {
+            if (!HavenoUtils.isArbitratorSignatureValid(model.getSignOfferResponse().getSignedOfferPayload(), arbitrator)) {
                 throw new RuntimeException("Offer payload has invalid arbitrator signature");
             }
             

@@ -20,13 +20,13 @@ package haveno.core.trade;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 import haveno.common.config.Config;
+import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import haveno.core.app.HavenoSetup;
-import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
@@ -245,6 +245,10 @@ public class HavenoUtils {
         return sign(keyRing.getSignatureKeyPair().getPrivate(), message);
     }
 
+    public static byte[] sign(KeyRing keyRing, byte[] bytes) {
+        return sign(keyRing.getSignatureKeyPair().getPrivate(), bytes);
+    }
+
     public static byte[] sign(PrivateKey privateKey, String message) {
         return sign(privateKey, message.getBytes(Charsets.UTF_8));
     }
@@ -263,9 +267,10 @@ public class HavenoUtils {
 
     public static void verifySignature(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
         try {
-            Sig.verify(pubKeyRing.getSignaturePubKey(), bytes, signature);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            boolean isValid = Sig.verify(pubKeyRing.getSignaturePubKey(), bytes, signature);
+            if (!isValid) throw new IllegalArgumentException("Signature verification failed.");
+        } catch (CryptoException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -283,26 +288,25 @@ public class HavenoUtils {
     }
 
     /**
+     * Sign an offer.
+     * 
+     * @param offer is an unsigned offer to sign
+     * @param keyRing is the arbitrator's key ring to sign with
+     * @return the arbitrator's signature
+     */
+    public static byte[] signOffer(OfferPayload offer, KeyRing keyRing) {
+        return HavenoUtils.sign(keyRing, offer.getSignatureHash());
+    }
+
+    /**
      * Check if the arbitrator signature is valid for an offer.
      *
      * @param offer is a signed offer with payload
      * @param arbitrator is the original signing arbitrator
      * @return true if the arbitrator's signature is valid for the offer
      */
-    public static boolean isArbitratorSignatureValid(Offer offer, Arbitrator arbitrator) {
-
-        // copy offer payload
-        OfferPayload offerPayloadCopy = OfferPayload.fromProto(offer.toProtoMessage().getOfferPayload());
-
-        // remove arbitrator signature from signed payload
-        byte[] signature = offerPayloadCopy.getArbitratorSignature();
-        offerPayloadCopy.setArbitratorSignature(null);
-
-        // get unsigned offer payload as json string
-        String unsignedOfferAsJson = JsonUtil.objectToJson(offerPayloadCopy);
-
-        // verify signature
-        return isSignatureValid(arbitrator.getPubKeyRing(), unsignedOfferAsJson, signature);
+    public static boolean isArbitratorSignatureValid(OfferPayload offer, Arbitrator arbitrator) {
+        return isSignatureValid(arbitrator.getPubKeyRing(), offer.getSignatureHash(), offer.getArbitratorSignature());
     }
 
     /**

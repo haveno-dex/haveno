@@ -1078,7 +1078,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                 hbox.setSpacing(8);
                                 hbox.setAlignment(Pos.CENTER);
                                 hbox.getChildren().add(button);
-                                //hbox.getChildren().add(button2); // TODO: re-enable editing offers
+                                hbox.getChildren().add(button2);
                                 HBox.setHgrow(button, Priority.ALWAYS);
                                 HBox.setHgrow(button2, Priority.ALWAYS);
                             }

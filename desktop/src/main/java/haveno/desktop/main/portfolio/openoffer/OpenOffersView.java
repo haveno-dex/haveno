@@ -153,7 +153,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         setPaymentMethodColumnCellFactory();
         setDateColumnCellFactory();
         setDeactivateColumnCellFactory();
-        // setEditColumnCellFactory(); // TODO: re-enable to edit offer price, etc?
+        setEditColumnCellFactory();
         setTriggerIconColumnCellFactory();
         setTriggerPriceColumnCellFactory();
         setRemoveColumnCellFactory();
