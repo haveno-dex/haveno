@@ -30,6 +30,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -101,6 +102,21 @@ public final class OpenOffer implements Tradable {
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
         state = State.SCHEDULED;
+    }
+
+    public OpenOffer(Offer offer, long triggerPrice, OpenOffer openOffer) {
+        this.offer = offer;
+        this.triggerPrice = triggerPrice;
+
+        // copy open offer fields
+        this.state = openOffer.state;
+        this.reserveExactAmount = openOffer.reserveExactAmount;
+        this.scheduledAmount = openOffer.scheduledAmount;
+        this.scheduledTxHashes = openOffer.scheduledTxHashes == null ? null : new ArrayList<String>(openOffer.scheduledTxHashes);
+        this.splitOutputTxHash = openOffer.splitOutputTxHash;
+        this.reserveTxHash = openOffer.reserveTxHash;
+        this.reserveTxHex = openOffer.reserveTxHex;
+        this.reserveTxKey = openOffer.reserveTxKey;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

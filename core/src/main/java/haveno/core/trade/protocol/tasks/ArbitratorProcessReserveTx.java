@@ -71,6 +71,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                     null,
                     true);
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new RuntimeException("Error processing reserve tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 

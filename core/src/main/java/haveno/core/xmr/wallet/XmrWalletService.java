@@ -467,6 +467,7 @@ public class XmrWalletService {
      * @return tuple with the verified tx and its actual security deposit
      */
     public Tuple2<MoneroTx, BigInteger> verifyTradeTx(String offerId, BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages, boolean isReserveTx) {
+        if (txHash == null) throw new IllegalArgumentException("Cannot verify trade tx with null id");
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         MoneroTx tx = null;

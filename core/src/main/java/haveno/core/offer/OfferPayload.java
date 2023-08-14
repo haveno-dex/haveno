@@ -243,6 +243,52 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         return this.hash;
     }
 
+    public byte[] getSignatureHash() {
+
+        // create copy with ignored fields standardized
+        OfferPayload signee = new OfferPayload(
+            id,
+            date,
+            ownerNodeAddress,
+            pubKeyRing,
+            direction,
+            price,
+            0,
+            false,
+            amount,
+            minAmount,
+            baseCurrencyCode,
+            counterCurrencyCode,
+            paymentMethodId,
+            makerPaymentAccountId,
+            offerFeeTxId,
+            countryCode,
+            acceptedCountryCodes,
+            bankId,
+            acceptedBankIds,
+            versionNr,
+            blockHeightAtOfferCreation,
+            makerFee,
+            buyerSecurityDeposit,
+            sellerSecurityDeposit,
+            maxTradeLimit,
+            maxTradePeriod,
+            useAutoClose,
+            useReOpenAfterAutoClose,
+            lowerClosePrice,
+            upperClosePrice,
+            isPrivateOffer,
+            hashOfChallenge,
+            extraDataMap,
+            protocolVersion,
+            arbitratorSigner,
+            null,
+            reserveTxKeyImages
+        );
+
+        return signee.getHash();
+    }
+
     @Override
     public long getTTL() {
         return TTL;

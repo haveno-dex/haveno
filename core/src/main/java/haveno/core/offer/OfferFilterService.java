@@ -243,7 +243,7 @@ public class OfferFilterService {
     public boolean hasValidSignature(Offer offer) {
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
-        return HavenoUtils.isArbitratorSignatureValid(offer, arbitrator);
+        return HavenoUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
     }
 
     public boolean isReservedFundsSpent(Offer offer) {
