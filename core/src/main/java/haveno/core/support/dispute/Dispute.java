@@ -92,11 +92,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     @Nullable
     private final byte[] contractHash;
     @Nullable
-    private final byte[] depositTxSerialized;
-    @Nullable
     private final byte[] payoutTxSerialized;
-    @Nullable
-    private final String depositTxId;
     @Nullable
     private final String payoutTxId;
     private String contractAsJson;
@@ -171,9 +167,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                    long tradePeriodEnd,
                    Contract contract,
                    @Nullable byte[] contractHash,
-                   @Nullable byte[] depositTxSerialized,
                    @Nullable byte[] payoutTxSerialized,
-                   @Nullable String depositTxId,
                    @Nullable String payoutTxId,
                    String contractAsJson,
                    @Nullable byte[] makerContractSignature,
@@ -194,9 +188,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         this.tradePeriodEnd = tradePeriodEnd;
         this.contract = contract;
         this.contractHash = contractHash;
-        this.depositTxSerialized = depositTxSerialized;
         this.payoutTxSerialized = payoutTxSerialized;
-        this.depositTxId = depositTxId;
         this.payoutTxId = payoutTxId;
         this.contractAsJson = contractAsJson;
         this.makerContractSignature = makerContractSignature;
@@ -243,9 +235,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 .setId(id);
 
         Optional.ofNullable(contractHash).ifPresent(e -> builder.setContractHash(ByteString.copyFrom(e)));
-        Optional.ofNullable(depositTxSerialized).ifPresent(e -> builder.setDepositTxSerialized(ByteString.copyFrom(e)));
         Optional.ofNullable(payoutTxSerialized).ifPresent(e -> builder.setPayoutTxSerialized(ByteString.copyFrom(e)));
-        Optional.ofNullable(depositTxId).ifPresent(builder::setDepositTxId);
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         Optional.ofNullable(disputePayoutTxId).ifPresent(builder::setDisputePayoutTxId);
         Optional.ofNullable(makerContractSignature).ifPresent(e -> builder.setMakerContractSignature(ByteString.copyFrom(e)));
@@ -273,9 +263,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 proto.getTradePeriodEnd(),
                 Contract.fromProto(proto.getContract(), coreProtoResolver),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getContractHash()),
-                ProtoUtil.byteArrayOrNullFromProto(proto.getDepositTxSerialized()),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSerialized()),
-                ProtoUtil.stringOrNullFromProto(proto.getDepositTxId()),
                 ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()),
                 proto.getContractAsJson(),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getMakerContractSignature()),
@@ -516,9 +504,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
                 ",\n     tradePeriodEnd=" + tradePeriodEnd +
                 ",\n     contract=" + contract +
                 ",\n     contractHash=" + Utilities.bytesAsHexString(contractHash) +
-                ",\n     depositTxSerialized=" + Utilities.bytesAsHexString(depositTxSerialized) +
                 ",\n     payoutTxSerialized=" + Utilities.bytesAsHexString(payoutTxSerialized) +
-                ",\n     depositTxId='" + depositTxId + '\'' +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
                 ",\n     contractAsJson='" + contractAsJson + '\'' +
                 ",\n     makerContractSignature='" + Utilities.bytesAsHexString(makerContractSignature) + '\'' +

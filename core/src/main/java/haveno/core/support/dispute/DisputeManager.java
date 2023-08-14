@@ -91,6 +91,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     protected final DisputeListService<T> disputeListService;
     private final Config config;
     private final PriceFeedService priceFeedService;
+    protected String pendingOutgoingMessage;
 
     @Getter
     protected final ObservableList<DisputeValidation.ValidationException> validationExceptions =
@@ -122,6 +123,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         this.disputeListService = disputeListService;
         this.config = config;
         this.priceFeedService = priceFeedService;
+        clearPendingMessage();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -140,7 +142,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     @Override
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
         Optional<Dispute> disputeOptional = findDispute(message);
-        if (!disputeOptional.isPresent()) {
+        if (disputeOptional.isEmpty()) {
             log.warn("Could not find dispute for tradeId = {} traderId = {}",
                     message.getTradeId(), message.getTraderId());
             return null;
@@ -151,7 +153,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     @Override
     public PubKeyRing getPeerPubKeyRing(ChatMessage message) {
         Optional<Dispute> disputeOptional = findDispute(message);
-        if (!disputeOptional.isPresent()) {
+        if (disputeOptional.isEmpty()) {
             log.warn("Could not find dispute for tradeId = {} traderId = {}",
                     message.getTradeId(), message.getTraderId());
             return null;
@@ -161,12 +163,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     @Override
-    public List<ChatMessage> getAllChatMessages() {
-        synchronized (getDisputeList()) {
-            return getDisputeList().stream()
-                    .flatMap(dispute -> dispute.getChatMessages().stream())
-                    .collect(Collectors.toList());
-        }
+    public List<ChatMessage> getAllChatMessages(String tradeId) {
+        return getDisputeList().stream()
+                .filter(dispute -> dispute.getTradeId().equals(tradeId))
+                .flatMap(dispute -> dispute.getChatMessages().stream())
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -369,6 +370,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
                         disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
                         chatMessage.getUid());
+                recordPendingMessage(disputeOpenedMessage.getClass().getSimpleName());
                 mailboxMessageService.sendEncryptedMailboxMessage(agentNodeAddress,
                         dispute.getAgentPubKeyRing(),
                         disputeOpenedMessage,
@@ -380,6 +382,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                         disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
                                         disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
                                         chatMessage.getUid());
+                                clearPendingMessage();
 
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
@@ -396,6 +399,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                         disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
                                         disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
                                         chatMessage.getUid());
+                                clearPendingMessage();
 
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
@@ -413,6 +417,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                         disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
                                         chatMessage.getUid(), errorMessage);
 
+                                clearPendingMessage();
                                 // We use the chatMessage wrapped inside the openNewDisputeMessage for
                                 // the state, as that is displayed to the user and we only persist that msg
                                 chatMessage.setSendMessageError(errorMessage);
@@ -586,9 +591,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 disputeFromOpener.getTradePeriodEnd().getTime(),
                 contractFromOpener,
                 disputeFromOpener.getContractHash(),
-                disputeFromOpener.getDepositTxSerialized(),
                 disputeFromOpener.getPayoutTxSerialized(),
-                disputeFromOpener.getDepositTxId(),
                 disputeFromOpener.getPayoutTxId(),
                 disputeFromOpener.getContractAsJson(),
                 disputeFromOpener.getMakerContractSignature(),
@@ -653,6 +656,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 peerOpenedDisputeMessage.getClass().getSimpleName(), peersNodeAddress,
                 peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
                 chatMessage.getUid());
+        recordPendingMessage(peerOpenedDisputeMessage.getClass().getSimpleName());
         mailboxMessageService.sendEncryptedMailboxMessage(peersNodeAddress,
                 peersPubKeyRing,
                 peerOpenedDisputeMessage,
@@ -665,6 +669,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
                                 chatMessage.getUid());
 
+                        clearPendingMessage();
                         // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
                         // the state, as that is displayed to the user and we only persist that msg
                         chatMessage.setArrived(true);
@@ -679,6 +684,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
                                 chatMessage.getUid());
 
+                        clearPendingMessage();
                         // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
                         // the state, as that is displayed to the user and we only persist that msg
                         chatMessage.setStoredInMailbox(true);
@@ -693,6 +699,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
                                 chatMessage.getUid(), errorMessage);
 
+                        clearPendingMessage();
                         // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
                         // the state, as that is displayed to the user and we only persist that msg
                         chatMessage.setSendMessageError(errorMessage);
@@ -749,6 +756,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     disputeClosedMessage.getClass().getSimpleName(), receiver.getNodeAddress(),
                     disputeClosedMessage.getClass().getSimpleName(), disputeClosedMessage.getTradeId(),
                     disputeClosedMessage.getUid(), disputeResult.getChatMessage().getUid());
+            recordPendingMessage(disputeClosedMessage.getClass().getSimpleName());
             mailboxMessageService.sendEncryptedMailboxMessage(receiver.getNodeAddress(),
                     dispute.getTraderPubKeyRing(),
                     disputeClosedMessage,
@@ -761,6 +769,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                     disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
                                     disputeResult.getChatMessage().getUid());
 
+                            clearPendingMessage();
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setArrived(true);
@@ -778,6 +787,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                     disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
                                     disputeResult.getChatMessage().getUid());
 
+                            clearPendingMessage();
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setStoredInMailbox(true);
@@ -795,6 +805,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                     disputeClosedMessage.getTradeId(), disputeClosedMessage.getUid(),
                                     disputeResult.getChatMessage().getUid(), errorMessage);
 
+                            clearPendingMessage();
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setSendMessageError(errorMessage);
@@ -1090,5 +1101,21 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         } else {
             return null;
         }
+    }
+
+    public boolean hasPendingMessageAtShutdown() {
+        if (pendingOutgoingMessage.length() > 0) {
+            log.warn("{} has an outgoing message pending: {}", this.getClass().getSimpleName(), pendingOutgoingMessage);
+            return true;
+        }
+        return false;
+    }
+
+    private void recordPendingMessage(String className) {
+        pendingOutgoingMessage = className;
+    }
+
+    private void clearPendingMessage() {
+        pendingOutgoingMessage = "";
     }
 }

@@ -105,8 +105,6 @@ public class CoreDisputesService {
 
             PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
             checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
-            byte[] depositTxSerialized = null; // depositTx.bitcoinSerialize(); TODO (woodser)
-            String depositTxHashAsString = null; // depositTx.getHashAsString(); TODO (woodser)
             Dispute dispute = new Dispute(new Date().getTime(),
                     trade.getId(),
                     pubKey.hashCode(), // trader id,
@@ -118,9 +116,7 @@ public class CoreDisputesService {
                     trade.getMaxTradePeriodDate().getTime(),
                     trade.getContract(),
                     trade.getContractHash(),
-                    depositTxSerialized,
                     payoutTxSerialized,
-                    depositTxHashAsString,
                     payoutTxHashAsString,
                     trade.getContractAsJson(),
                     trade.getMaker().getContractSignature(),

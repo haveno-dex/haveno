@@ -114,7 +114,7 @@ public abstract class SupportManager {
 
     public abstract boolean channelOpen(ChatMessage message);
 
-    public abstract List<ChatMessage> getAllChatMessages();
+    public abstract List<ChatMessage> getAllChatMessages(String tradeId);
 
     public abstract void addAndPersistChatMessage(ChatMessage message);
 
@@ -204,7 +204,7 @@ public abstract class SupportManager {
                         ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getErrorMessage());
             }
 
-            getAllChatMessages().stream()
+            getAllChatMessages(ackMessage.getSourceId()).stream()
                     .filter(msg -> msg.getUid().equals(ackMessage.getSourceUid()))
                     .forEach(msg -> {
                         if (ackMessage.isSuccess())

@@ -178,8 +178,6 @@ public class AccountAgeWitnessServiceTest {
                 null,
                 null,
                 null,
-                null,
-                null,
                 "contractAsJson",
                 null,
                 null,
