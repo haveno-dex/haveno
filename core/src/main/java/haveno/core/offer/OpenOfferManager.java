@@ -1138,10 +1138,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify offer not seen before
-            Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId); // TODO: check if offer is on books, not open offer
-            if (openOfferOptional.isPresent()) {
-                errorMessage = "We already got a request to sign offer id " + request.offerId;
-                log.info(errorMessage);
+            Optional<SignedOffer> signedOfferOptional = getSignedOfferById(request.offerId);
+            if (signedOfferOptional.isPresent()) {
+                errorMessage = "We already signed offer id " + request.offerId;
+                log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
