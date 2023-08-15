@@ -1168,8 +1168,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
-                    request.getReserveTxKeyImages(),
-                    true);
+                    request.getReserveTxKeyImages());
 
             // arbitrator signs offer to certify they have valid reserve tx
             byte[] signature = HavenoUtils.signOffer(request.getOfferPayload(), keyRing);
@@ -1182,7 +1181,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     signedOfferPayload.getPubKeyRing().hashCode(), // trader id
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
-                    txResult.second.longValueExact(),
+                    tradeFee.longValueExact(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),
