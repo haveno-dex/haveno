@@ -36,7 +36,6 @@ import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.setup.UncaughtExceptionHandler;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
-import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
@@ -336,12 +335,62 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     private void shutDownByUser() {
-        String potentialIssues = checkTradesAtShutdown() + checkDisputesAtShutdown() + checkOffersAtShutdown();
-        promptUserAtShutdown(potentialIssues).thenAccept(asyncOkToShutDown -> {
-            if (asyncOkToShutDown) {
+        promptUserAtShutdown().thenAccept(okToShutDown -> {
+            if (okToShutDown) {
                 stop();
             }
         });
+    }
+
+    private CompletableFuture<Boolean> promptUserAtShutdown() {
+        final CompletableFuture<Boolean> resp = new CompletableFuture<>();
+
+        // check for trade or dispute issues
+        String issues = checkTradesAtShutdown() + checkDisputesAtShutdown();
+        if (issues.length() > 0) {
+            String key = Utilities.encodeToHex(Hash.getSha256Hash(issues));
+            if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
+                new Popup().warning(issues)
+                        .actionButtonText(Res.get("shared.okWait"))
+                        .onAction(() -> resp.complete(false))
+                        .closeButtonText(Res.get("shared.closeAnywayDanger"))
+                        .onClose(() -> resp.complete(true))
+                        .dontShowAgainId(key)
+                        .width(800)
+                        .show();
+                return resp;
+            }
+        }
+
+        // check for open offers
+        if (injector.getInstance(OpenOfferManager.class).hasOpenOffers()) {
+            String key = "showOpenOfferWarnPopupAtShutDown";
+            if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
+                new Popup().warning(Res.get("popup.info.shutDownWithOpenOffers"))
+                        .actionButtonText(Res.get("shared.shutDown"))
+                        .onAction(() -> resp.complete(true))
+                        .closeButtonText(Res.get("shared.cancel"))
+                        .onClose(() -> resp.complete(false))
+                        .dontShowAgainId(key)
+                        .show();
+                return resp;
+            }
+        }
+
+        // if no warning popup has been shown yet, prompt user if they really intend to shut down
+        String key = "popup.info.shutDownQuery";
+        if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
+            new Popup().headLine(Res.get("popup.info.shutDownQuery"))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(() -> resp.complete(true))
+                    .closeButtonText(Res.get("shared.no"))
+                    .onClose(() -> resp.complete(false))
+                    .dontShowAgainId(key)
+                    .show();
+        } else {
+            resp.complete(true);
+        }
+        return resp;
     }
 
     private String checkTradesAtShutdown() {
@@ -367,49 +416,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             return Res.get("popup.info.shutDownWithDisputeInit") + System.lineSeparator() + System.lineSeparator();
         }
         return "";
-    }
-
-    private String checkOffersAtShutdown() {
-        log.info("Checking offers at shutdown");
-        for (OpenOffer openOffer : injector.getInstance(OpenOfferManager.class).getObservableList()) {
-            if (openOffer.getState().equals(OpenOffer.State.AVAILABLE)) {
-                return Res.get("popup.info.shutDownWithOpenOffers") + System.lineSeparator() + System.lineSeparator();
-            }
-        }
-        return "";
-    }
-
-    private CompletableFuture<Boolean> promptUserAtShutdown(String issueInfo) {
-        final CompletableFuture<Boolean> asyncStatus = new CompletableFuture<>();
-        if (issueInfo.length() > 0) {
-            // We maybe show a popup to inform user that some issues are pending
-            String key = Utilities.encodeToHex(Hash.getSha256Hash(issueInfo));
-            if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-                new Popup().warning(issueInfo)
-                        .actionButtonText(Res.get("shared.okWait"))
-                        .onAction(() -> asyncStatus.complete(false))
-                        .closeButtonText(Res.get("shared.closeAnywayDanger"))
-                        .onClose(() -> asyncStatus.complete(true))
-                        .dontShowAgainId(key)
-                        .width(800)
-                        .show();
-                return asyncStatus;
-            }
-        }
-        // if no warning popup has been shown yet, prompt user if they really intend to shut down
-        String key = "popup.info.shutDownQuery";
-        if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-            new Popup().headLine(Res.get("popup.info.shutDownQuery"))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(() -> asyncStatus.complete(true))
-                    .closeButtonText(Res.get("shared.no"))
-                    .onClose(() -> asyncStatus.complete(false))
-                    .dontShowAgainId(key)
-                    .show();
-        } else {
-            asyncStatus.complete(true);
-        }
-        return asyncStatus;
     }
 
     // Used for debugging trade process
