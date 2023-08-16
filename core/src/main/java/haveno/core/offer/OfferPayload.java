@@ -160,7 +160,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     public OfferPayload(String id,
                         long date,
-                        NodeAddress ownerNodeAddress,
+                        @Nullable NodeAddress ownerNodeAddress,
                         PubKeyRing pubKeyRing,
                         OfferDirection direction,
                         long price,
@@ -249,7 +249,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         OfferPayload signee = new OfferPayload(
             id,
             date,
-            ownerNodeAddress,
+            null,
             pubKeyRing,
             direction,
             price,
@@ -317,7 +317,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         protobuf.OfferPayload.Builder builder = protobuf.OfferPayload.newBuilder()
                 .setId(id)
                 .setDate(date)
-                .setOwnerNodeAddress(ownerNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setDirection(OfferDirection.toProtoMessage(direction))
                 .setPrice(price)
@@ -342,7 +341,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setUpperClosePrice(upperClosePrice)
                 .setIsPrivateOffer(isPrivateOffer)
                 .setProtocolVersion(protocolVersion);
-        Optional.ofNullable(arbitratorSigner).ifPresent(e -> builder.setArbitratorSigner(arbitratorSigner.toProtoMessage()));
+        Optional.ofNullable(ownerNodeAddress).ifPresent(e -> builder.setOwnerNodeAddress(ownerNodeAddress.toProtoMessage()));
         Optional.ofNullable(offerFeeTxId).ifPresent(builder::setOfferFeeTxId);
         Optional.ofNullable(countryCode).ifPresent(builder::setCountryCode);
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
@@ -350,6 +349,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         Optional.ofNullable(acceptedCountryCodes).ifPresent(builder::addAllAcceptedCountryCodes);
         Optional.ofNullable(hashOfChallenge).ifPresent(builder::setHashOfChallenge);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
+        Optional.ofNullable(arbitratorSigner).ifPresent(e -> builder.setArbitratorSigner(arbitratorSigner.toProtoMessage()));
         Optional.ofNullable(arbitratorSignature).ifPresent(e -> builder.setArbitratorSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(reserveTxKeyImages).ifPresent(builder::addAllReserveTxKeyImages);
 
@@ -367,7 +367,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
         return new OfferPayload(proto.getId(),
                 proto.getDate(),
-                NodeAddress.fromProto(proto.getOwnerNodeAddress()),
+                proto.hasOwnerNodeAddress() ? NodeAddress.fromProto(proto.getOwnerNodeAddress()) : null,
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 OfferDirection.fromProto(proto.getDirection()),
                 proto.getPrice(),
@@ -443,8 +443,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     upperClosePrice=" + upperClosePrice +
                 ",\r\n     isPrivateOffer=" + isPrivateOffer +
                 ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
-                ",\n     arbitratorSigner=" + arbitratorSigner +
-                ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
+                ",\r\n     arbitratorSigner=" + arbitratorSigner +
+                ",\r\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
                 "\r\n} ";
     }
 
