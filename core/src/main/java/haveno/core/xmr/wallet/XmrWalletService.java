@@ -95,7 +95,7 @@ public class XmrWalletService {
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
-    private static final int NUM_MAX_BACKUP_WALLETS = 10;
+    private static final int NUM_MAX_BACKUP_WALLETS = 1;
     private static final int MONERO_LOG_LEVEL = 0;
     private static final boolean PRINT_STACK_TRACE = false;
 
