@@ -629,7 +629,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             addOpenOffer(editedOpenOffer);
 
-            if (!editedOpenOffer.isDeactivated())
+            if (editedOpenOffer.isAvailable())
                 republishOffer(editedOpenOffer);
 
             offersToBeEdited.remove(openOffer.getId());
@@ -1138,7 +1138,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify offer not seen before
-            Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
+            Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId); // TODO: check if offer is on books, not open offer
             if (openOfferOptional.isPresent()) {
                 errorMessage = "We already got a request to sign offer id " + request.offerId;
                 log.info(errorMessage);
@@ -1431,8 +1431,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // Update persisted offer if a new capability is required after a software update
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO (woodser): arbitrator signature will be invalid if offer updated (exclude updateable fields from signature? re-sign?)
-
     private void maybeUpdatePersistedOffers() {
         // We need to clone to avoid ConcurrentModificationException
         List<OpenOffer> openOffersClone = getOpenOffers();
@@ -1570,7 +1568,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         synchronized (openOffers) {
             contained = openOffers.contains(openOffer);
         }
-        if (contained && !openOffer.isDeactivated() && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && !openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty()) {
+        if (contained && openOffer.isAvailable()) {
             // TODO It is not clear yet if it is better for the node and the network to send out all add offer
             //  messages in one go or to spread it over a delay. With power users who have 100-200 offers that can have
             //  some significant impact to user experience and the network
@@ -1591,10 +1589,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void republishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
-        offerBookService.addOffer(openOffer.getOffer(),
+
+        // re-add to offer book if signature is valid
+        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
+        boolean isValid = arbitrator != null && HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator);
+        if (isValid) {
+            offerBookService.addOffer(openOffer.getOffer(),
                 () -> {
                     if (!stopped) {
-                        // Refresh means we send only the data needed to refresh the TTL (hash, signature and sequence no.)
+
+                        // refresh means we send only the data needed to refresh the TTL (hash, signature and sequence no.)
                         if (periodicRefreshOffersTimer == null) {
                             startPeriodicRefreshOffersTimer();
                         }
@@ -1609,12 +1613,38 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         stopRetryRepublishOffersTimer();
                         retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
                                 RETRY_REPUBLISH_DELAY_SEC);
-
-                        if (completeHandler != null) {
-                            completeHandler.run();
-                        }
+                        if (completeHandler != null) completeHandler.run();
                     }
                 });
+            return;
+        }
+
+        // cancel and recreate offer
+        log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
+        onCancelled(openOffer);
+        Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
+        updatedOffer.setPriceFeedService(priceFeedService);
+        OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
+
+        // repost offer
+        new Thread(() -> {
+            synchronized (processOffersLock) {
+                CountDownLatch latch = new CountDownLatch(1);
+                processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
+                    addOpenOffer(updatedOpenOffer);
+                    requestPersistence();
+                    latch.countDown();
+                    if (completeHandler != null) completeHandler.run();
+                }, (errorMessage) -> {
+                    log.warn("Error reposting offer {} with invalid signature: {}", updatedOpenOffer.getId(), errorMessage);
+                    onCancelled(updatedOpenOffer);
+                    updatedOffer.setErrorMessage(errorMessage);
+                    latch.countDown();
+                    if (completeHandler != null) completeHandler.run();
+                });
+                HavenoUtils.awaitLatch(latch);
+            }
+        }).start();
     }
 
     private void startPeriodicRepublishOffersTimer() {

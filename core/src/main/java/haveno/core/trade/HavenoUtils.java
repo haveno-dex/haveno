@@ -245,17 +245,17 @@ public class HavenoUtils {
         return sign(keyRing.getSignatureKeyPair().getPrivate(), message);
     }
 
-    public static byte[] sign(KeyRing keyRing, byte[] bytes) {
-        return sign(keyRing.getSignatureKeyPair().getPrivate(), bytes);
+    public static byte[] sign(KeyRing keyRing, byte[] message) {
+        return sign(keyRing.getSignatureKeyPair().getPrivate(), message);
     }
 
     public static byte[] sign(PrivateKey privateKey, String message) {
         return sign(privateKey, message.getBytes(Charsets.UTF_8));
     }
 
-    public static byte[] sign(PrivateKey privateKey, byte[] bytes) {
+    public static byte[] sign(PrivateKey privateKey, byte[] message) {
         try {
-            return Sig.sign(privateKey, bytes);
+            return Sig.sign(privateKey, message);
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
@@ -265,9 +265,9 @@ public class HavenoUtils {
         verifySignature(pubKeyRing, message.getBytes(Charsets.UTF_8), signature);
     }
 
-    public static void verifySignature(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
+    public static void verifySignature(PubKeyRing pubKeyRing, byte[] message, byte[] signature) {
         try {
-            boolean isValid = Sig.verify(pubKeyRing.getSignaturePubKey(), bytes, signature);
+            boolean isValid = Sig.verify(pubKeyRing.getSignaturePubKey(), message, signature);
             if (!isValid) throw new IllegalArgumentException("Signature verification failed.");
         } catch (CryptoException e) {
             throw new IllegalArgumentException(e);
@@ -278,9 +278,9 @@ public class HavenoUtils {
         return isSignatureValid(pubKeyRing, message.getBytes(Charsets.UTF_8), signature);
     }
 
-    public static boolean isSignatureValid(PubKeyRing pubKeyRing, byte[] bytes, byte[] signature) {
+    public static boolean isSignatureValid(PubKeyRing pubKeyRing, byte[] message, byte[] signature) {
         try {
-            verifySignature(pubKeyRing, bytes, signature);
+            verifySignature(pubKeyRing, message, signature);
             return true;
         } catch (Exception e) {
             return false;

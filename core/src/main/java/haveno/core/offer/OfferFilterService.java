@@ -131,9 +131,6 @@ public class OfferFilterService {
         if (isMyInsufficientTradeLimit(offer)) {
             return Result.IS_MY_INSUFFICIENT_TRADE_LIMIT;
         }
-        if (!hasValidArbitrator(offer)) {
-            return Result.ARBITRATOR_NOT_VALIDATED;
-        }
         if (!hasValidSignature(offer)) {
             return Result.SIGNATURE_NOT_VALIDATED;
         }
@@ -222,26 +219,23 @@ public class OfferFilterService {
         return result;
     }
 
-    public boolean hasValidArbitrator(Offer offer) {
+    public boolean hasValidSignature(Offer offer) {
+
+        // get accepted arbitrator by address
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
-        if (arbitrator != null) return true;
 
         // accepted arbitrator is null if we are the signing arbitrator
-        if (offer.getOfferPayload().getArbitratorSigner() != null) {
+        if (arbitrator == null && offer.getOfferPayload().getArbitratorSigner() != null) {
             Arbitrator thisArbitrator = user.getRegisteredArbitrator();
             if (thisArbitrator != null && thisArbitrator.getNodeAddress().equals(offer.getOfferPayload().getArbitratorSigner())) {
-                if (thisArbitrator.getNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) return true; // TODO: unnecessary to compare arbitrator and p2pservice address?
+                if (thisArbitrator.getNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) arbitrator = thisArbitrator; // TODO: unnecessary to compare arbitrator and p2pservice address?
             }
 
             // otherwise log warning
             List<NodeAddress> arbitratorAddresses = user.getAcceptedArbitrators().stream().map(Arbitrator::getNodeAddress).collect(Collectors.toList());
             log.warn("No arbitrator is registered with offer's signer. offerId={}, arbitrator signer={}, accepted arbitrators={}", offer.getId(), offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
         }
-        return false;
-    }
 
-    public boolean hasValidSignature(Offer offer) {
-        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
         if (arbitrator == null) return false; // invalid arbitrator
         return HavenoUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
     }
