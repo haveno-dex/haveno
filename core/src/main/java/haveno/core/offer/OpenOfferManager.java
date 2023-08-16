@@ -703,6 +703,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return offer.isMyOffer(keyRing);
     }
 
+    public boolean hasOpenOffers() {
+        synchronized (openOffers) {
+            for (OpenOffer openOffer : getOpenOffers()) {
+                if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     public List<OpenOffer> getOpenOffers() {
         synchronized (openOffers) {
             return new ArrayList<>(getObservableList());
