@@ -1148,15 +1148,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
-            // verify offer not seen before
-            Optional<SignedOffer> signedOfferOptional = getSignedOfferById(request.offerId);
-            if (signedOfferOptional.isPresent()) {
-                errorMessage = "We already signed offer id " + request.offerId;
-                log.warn(errorMessage);
-                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
-                return;
-            }
-
             // verify maker's trade fee
             Offer offer = new Offer(request.getOfferPayload());
             BigInteger tradeFee = HavenoUtils.getMakerFee(offer.getAmount());
