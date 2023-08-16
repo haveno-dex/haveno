@@ -423,7 +423,6 @@ public class HavenoSetup {
                 () -> {
                     if (allBasicServicesInitialized) {
                         checkForLockedUpFunds();
-                        checkForInvalidMakerFeeTxs();
                     }
                 },
                 () -> {});
@@ -440,7 +439,6 @@ public class HavenoSetup {
 
         if (walletsSetup.downloadPercentageProperty().get() == 1) { // TODO: update for XMR
             checkForLockedUpFunds();
-            checkForInvalidMakerFeeTxs();
         }
 
         alertManager.alertMessageProperty().addListener((observable, oldValue, newValue) ->
@@ -481,24 +479,6 @@ public class HavenoSetup {
                 lockedUpFundsHandler.accept(e.getMessage());
             }
         }
-    }
-
-    private void checkForInvalidMakerFeeTxs() {
-        // We check if we have open offers with no confidence object at the maker fee tx. That can happen if the
-        // miner fee was too low and the transaction got removed from mempool and got out from our wallet after a
-        // resync.
-        // TODO (woodser): check for invalid maker fee txs with xmr?
-//        openOfferManager.getObservableList().forEach(e -> {
-//            String offerFeeTxId = e.getOffer().getOfferFeeTxId();
-//            if (btcWalletService.getConfidenceForTxId(offerFeeTxId) == null) { // TODO (woodser): verify xmr maker fee tx
-//                String message = Res.get("popup.warning.openOfferWithInvalidMakerFeeTx",
-//                        e.getOffer().getShortId(), offerFeeTxId);
-//                log.warn(message);
-//                if (lockedUpFundsHandler != null) {
-//                    lockedUpFundsHandler.accept(message);
-//                }
-//            }
-//        });
     }
 
     @Nullable

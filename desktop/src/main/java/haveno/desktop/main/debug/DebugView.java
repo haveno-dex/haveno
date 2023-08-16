@@ -35,7 +35,6 @@ import haveno.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
 import haveno.core.trade.protocol.tasks.SellerPublishDepositTx;
 import haveno.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import haveno.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
-import haveno.core.trade.protocol.tasks.TakerVerifyMakerFeePayment;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.InitializableView;
@@ -85,7 +84,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
         addGroup("SellerAsTakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
-                        TakerVerifyMakerFeePayment.class,
 
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
@@ -96,10 +94,8 @@ public class DebugView extends InitializableView<GridPane, Void> {
 
                         ProcessPaymentSentMessage.class,
                         ApplyFilter.class,
-                        TakerVerifyMakerFeePayment.class,
 
                         ApplyFilter.class,
-                        TakerVerifyMakerFeePayment.class,
                         SellerPreparePaymentReceivedMessage.class,
                         //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
                         SellerSendPaymentReceivedMessageToBuyer.class
@@ -126,13 +122,11 @@ public class DebugView extends InitializableView<GridPane, Void> {
         addGroup("BuyerAsTakerProtocol",
                 FXCollections.observableArrayList(Arrays.asList(
                         ApplyFilter.class,
-                        TakerVerifyMakerFeePayment.class,
 
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
 
                         ApplyFilter.class,
-                        TakerVerifyMakerFeePayment.class,
                         BuyerPreparePaymentSentMessage.class,
                         BuyerSendPaymentSentMessage.class,
 

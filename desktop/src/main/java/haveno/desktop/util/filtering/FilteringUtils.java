@@ -29,7 +29,7 @@ public class FilteringUtils {
         if (StringUtils.containsIgnoreCase(offer.getPaymentMethod().getDisplayString(), filterString)) {
             return true;
         }
-        return offer.getOfferFeeTxId() != null && StringUtils.containsIgnoreCase(offer.getOfferFeeTxId(), filterString);
+        return false;
     }
 
     public static boolean match(Trade trade, String filterString) {

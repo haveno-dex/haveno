@@ -1494,7 +1494,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getCounterCurrencyCode(),
                         originalOfferPayload.getPaymentMethodId(),
                         originalOfferPayload.getMakerPaymentAccountId(),
-                        originalOfferPayload.getOfferFeeTxId(),
                         originalOfferPayload.getCountryCode(),
                         originalOfferPayload.getAcceptedCountryCodes(),
                         originalOfferPayload.getBankId(),

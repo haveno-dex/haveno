@@ -533,15 +533,14 @@ message OfferInfo {
     uint64 date = 17;
     string state = 18;
     uint64 seller_security_deposit = 19 [jstype = JS_STRING];
-    string offer_fee_tx_id = 20;
-    uint64 maker_fee = 22 [jstype = JS_STRING];
-    bool is_activated = 23;
-    bool is_my_offer = 24;
-    string owner_node_address = 25;
-    string pub_key_ring = 26;
-    string version_nr = 27;
-    int32 protocol_version = 28;
-    string arbitrator_signer = 29;
+    uint64 maker_fee = 20 [jstype = JS_STRING];
+    bool is_activated = 21;
+    bool is_my_offer = 22;
+    string owner_node_address = 23;
+    string pub_key_ring = 24;
+    string version_nr = 25;
+    int32 protocol_version = 26;
+    string arbitrator_signer = 27;
 }
 
 message AvailabilityResultWithDescription {

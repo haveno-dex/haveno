@@ -18,7 +18,6 @@
 package haveno.core.api.model;
 
 import haveno.common.Payload;
-import haveno.common.proto.ProtoUtil;
 import haveno.core.api.model.builder.OfferInfoBuilder;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
@@ -55,7 +54,6 @@ public class OfferInfo implements Payload {
     private final String minVolume;
     private final long makerFee;
     @Nullable
-    private final String offerFeeTxId;
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
     private final String triggerPrice;
@@ -88,7 +86,6 @@ public class OfferInfo implements Payload {
         this.volume = builder.getVolume();
         this.minVolume = builder.getMinVolume();
         this.makerFee = builder.getMakerFee();
-        this.offerFeeTxId = builder.getOfferFeeTxId();
         this.buyerSecurityDeposit = builder.getBuyerSecurityDeposit();
         this.sellerSecurityDeposit = builder.getSellerSecurityDeposit();
         this.triggerPrice = builder.getTriggerPrice();
@@ -154,7 +151,6 @@ public class OfferInfo implements Payload {
                 .withVolume(roundedVolume)
                 .withMinVolume(roundedMinVolume)
                 .withMakerFee(offer.getMakerFee().longValueExact())
-                .withOfferFeeTxId(offer.getOfferFeeTxId())
                 .withBuyerSecurityDeposit(offer.getBuyerSecurityDeposit().longValueExact())
                 .withSellerSecurityDeposit(offer.getSellerSecurityDeposit().longValueExact())
                 .withPaymentAccountId(offer.getMakerPaymentAccountId())
@@ -205,7 +201,6 @@ public class OfferInfo implements Payload {
                 .setVersionNr(versionNumber)
                 .setProtocolVersion(protocolVersion);
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
-        Optional.ofNullable(offerFeeTxId).ifPresent(builder::setOfferFeeTxId);
         return builder.build();
     }
 
@@ -222,7 +217,6 @@ public class OfferInfo implements Payload {
                 .withVolume(proto.getVolume())
                 .withMinVolume(proto.getMinVolume())
                 .withMakerFee(proto.getMakerFee())
-                .withOfferFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getOfferFeeTxId()))
                 .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
                 .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
                 .withTriggerPrice(proto.getTriggerPrice())

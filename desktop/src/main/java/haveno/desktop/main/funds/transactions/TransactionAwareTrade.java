@@ -18,7 +18,6 @@
 package haveno.desktop.main.funds.transactions;
 
 import haveno.common.crypto.PubKeyRing;
-import haveno.core.offer.Offer;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.refund.RefundManager;
@@ -28,8 +27,6 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTxWallet;
-
-import java.util.Optional;
 
 
 @Slf4j
@@ -56,14 +53,12 @@ class TransactionAwareTrade implements TransactionAwareTradable {
     public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
         String txId = transaction.getHash();
 
-        boolean isOfferFeeTx = isOfferFeeTx(txId);
         boolean isMakerDepositTx = isMakerDepositTx(txId);
         boolean isTakerDepositTx = isTakerDepositTx(txId);
         boolean isPayoutTx = isPayoutTx(txId);
         boolean isDisputedPayoutTx = isDisputedPayoutTx(txId);
 
-        return isOfferFeeTx || isMakerDepositTx || isTakerDepositTx ||
-                isPayoutTx || isDisputedPayoutTx;
+        return isMakerDepositTx || isTakerDepositTx || isPayoutTx || isDisputedPayoutTx;
     }
 
     private boolean isPayoutTx(String txId) {
@@ -75,14 +70,7 @@ class TransactionAwareTrade implements TransactionAwareTradable {
     }
 
     private boolean isTakerDepositTx(String txId) {
-    return txId.equals(trade.getTaker().getDepositTxHash());
-    }
-
-    private boolean isOfferFeeTx(String txId) {
-        return Optional.ofNullable(trade.getOffer())
-                .map(Offer::getOfferFeeTxId)
-                .map(paymentTxId -> paymentTxId.equals(txId))
-                .orElse(false);
+        return txId.equals(trade.getTaker().getDepositTxHash());
     }
 
     private boolean isDisputedPayoutTx(String txId) {

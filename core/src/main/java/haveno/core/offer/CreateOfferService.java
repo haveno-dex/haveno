@@ -193,7 +193,6 @@ public class CreateOfferService {
                 counterCurrencyCode,
                 paymentAccount.getPaymentMethod().getId(),
                 paymentAccount.getId(),
-                null,
                 countryCode,
                 acceptedCountryCodes,
                 bankId,
