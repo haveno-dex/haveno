@@ -243,7 +243,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             postFixes.add("DEV MODE");
         }
         if (!postFixes.isEmpty()) {
-            appName += " [" + Joiner.on(", ").join(postFixes) + " ]";
+            appName += " [" + Joiner.on(", ").join(postFixes) + "]";
         }
 
         stage.setTitle(appName);
