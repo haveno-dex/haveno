@@ -37,12 +37,8 @@ import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.network.p2p.P2PService;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -250,59 +246,5 @@ public class OfferUtil {
 
     public static boolean isCryptoOffer(Offer offer) {
         return offer.getCounterCurrencyCode().equals("XMR");
-    }
-
-    public static Optional<String> getInvalidMakerFeeTxErrorMessage(Offer offer, BtcWalletService btcWalletService) {
-        String offerFeeTxId = offer.getOfferFeeTxId();
-        if (offerFeeTxId == null) {
-            return Optional.empty();
-        }
-
-        Transaction makerFeeTx = btcWalletService.getTransaction(offerFeeTxId);
-        if (makerFeeTx == null) {
-            return Optional.empty();
-        }
-
-        String errorMsg = null;
-        String header = "The offer with offer ID '" + offer.getShortId() +
-                "' has an invalid maker fee transaction.\n\n";
-        String spendingTransaction = null;
-        String extraString = "\nYou have to remove that offer to avoid failed trades.\n" +
-                "If this happened because of a bug please contact the Haveno developers " +
-                "and you can request reimbursement for the lost maker fee.";
-        if (makerFeeTx.getOutputs().size() > 1) {
-            // Our output to fund the deposit tx is at index 1
-            TransactionOutput output = makerFeeTx.getOutput(1);
-            TransactionInput spentByTransactionInput = output.getSpentBy();
-            if (spentByTransactionInput != null) {
-                spendingTransaction = spentByTransactionInput.getConnectedTransaction() != null ?
-                        spentByTransactionInput.getConnectedTransaction().toString() :
-                        "null";
-                // We this is an exceptional case we do not translate that error msg.
-                errorMsg = "The output of the maker fee tx is already spent.\n" +
-                        extraString +
-                        "\n\nTransaction input which spent the reserved funds for that offer: '" +
-                        spentByTransactionInput.getConnectedTransaction().getTxId().toString() + ":" +
-                        (spentByTransactionInput.getConnectedOutput() != null ?
-                                spentByTransactionInput.getConnectedOutput().getIndex() + "'" :
-                                "null'");
-                log.error("spentByTransactionInput {}", spentByTransactionInput);
-            }
-        } else {
-            errorMsg = "The maker fee tx is invalid as it does not has at least 2 outputs." + extraString +
-                    "\nMakerFeeTx=" + makerFeeTx.toString();
-        }
-
-        if (errorMsg == null) {
-            return Optional.empty();
-        }
-
-        errorMsg = header + errorMsg;
-        log.error(errorMsg);
-        if (spendingTransaction != null) {
-            log.error("Spending transaction: {}", spendingTransaction);
-        }
-
-        return Optional.of(errorMsg);
     }
 }

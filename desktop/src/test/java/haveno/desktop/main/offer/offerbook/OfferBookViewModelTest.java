@@ -609,7 +609,6 @@ public class OfferBookViewModelTest {
                 tradeCurrencyCode,
                 paymentMethodId,
                 null,
-                null,
                 countryCode,
                 acceptedCountryCodes,
                 bankId,

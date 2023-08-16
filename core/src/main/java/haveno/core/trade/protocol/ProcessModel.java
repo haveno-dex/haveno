@@ -98,9 +98,6 @@ public class ProcessModel implements Model, PersistablePayload {
     // Persistable Mutable
     @Nullable
     @Setter
-    private String takeOfferFeeTxId;
-    @Nullable
-    @Setter
     private byte[] payoutTxSignature;
     @Nullable
     @Setter
@@ -207,7 +204,6 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
-        Optional.ofNullable(takeOfferFeeTxId).ifPresent(builder::setTakeOfferFeeTxId);
         Optional.ofNullable(payoutTxSignature).ifPresent(e -> builder.setPayoutTxSignature(ByteString.copyFrom(payoutTxSignature)));
         Optional.ofNullable(tempTradePeerNodeAddress).ifPresent(e -> builder.setTempTradePeerNodeAddress(tempTradePeerNodeAddress.toProtoMessage()));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
@@ -231,7 +227,6 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
 
         // nullable
-        processModel.setTakeOfferFeeTxId(ProtoUtil.stringOrNullFromProto(proto.getTakeOfferFeeTxId()));
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));
         processModel.setTempTradePeerNodeAddress(proto.hasTempTradePeerNodeAddress() ? NodeAddress.fromProto(proto.getTempTradePeerNodeAddress()) : null);
         processModel.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
@@ -257,11 +252,6 @@ public class ProcessModel implements Model, PersistablePayload {
     public void onComplete() {
     }
 
-    public void setTakeOfferFeeTx(MoneroTxWallet takeOfferFeeTx) {
-        this.takeOfferFeeTx = takeOfferFeeTx;
-        takeOfferFeeTxId = takeOfferFeeTx.getHash();
-    }
-
     @Nullable
     public PaymentAccountPayload getPaymentAccountPayload(String paymentAccountId) {
         PaymentAccount paymentAccount = getUser().getPaymentAccount(paymentAccountId);
@@ -270,13 +260,6 @@ public class ProcessModel implements Model, PersistablePayload {
 
     public Coin getFundsNeededForTrade() {
         return Coin.valueOf(fundsNeededForTrade);
-    }
-
-    public MoneroTxWallet resolveTakeOfferFeeTx(Trade trade) {
-      if (takeOfferFeeTx == null) {
-        takeOfferFeeTx = provider.getXmrWalletService().getWallet().getTx(takeOfferFeeTxId);
-      }
-      return takeOfferFeeTx;
     }
 
     public NodeAddress getMyNodeAddress() {

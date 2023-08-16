@@ -206,21 +206,6 @@ public class WalletAppSetup {
                     log.warn("We handle that reject message as it is likely critical.");
                     UserThread.runAfter(() -> {
                         String txId = newValue.getTxId();
-                        openOfferManager.getObservableList().stream()
-                                .filter(openOffer -> txId.equals(openOffer.getOffer().getOfferFeeTxId()))
-                                .forEach(openOffer -> {
-                                    // We delay to avoid concurrent modification exceptions
-                                    UserThread.runAfter(() -> {
-                                        openOffer.getOffer().setErrorMessage(newValue.getMessage());
-                                        if (rejectedTxErrorMessageHandler != null) {
-                                            rejectedTxErrorMessageHandler.accept(Res.get("popup.warning.openOffer.makerFeeTxRejected", openOffer.getId(), txId));
-                                        }
-                                        openOfferManager.cancelOpenOffer(openOffer, () -> {
-                                            log.warn("We removed an open offer because the maker fee was rejected by the Bitcoin " +
-                                                    "network. OfferId={}, txId={}", openOffer.getShortId(), txId);
-                                        }, log::warn);
-                                    }, 1);
-                                });
 
                         tradeManager.getObservableList().stream()
                                 .filter(trade -> trade.getOffer() != null)
@@ -231,11 +216,7 @@ public class WalletAppSetup {
                                     }
                                     if (txId.equals(trade.getTaker().getDepositTxHash())) {
                                       details = Res.get("popup.warning.trade.txRejected.deposit");
-                                  }
-                                    if (txId.equals(trade.getOffer().getOfferFeeTxId())) {
-                                        details = Res.get("popup.warning.trade.txRejected.tradeFee");
                                     }
-
                                     if (details != null) {
                                         // We delay to avoid concurrent modification exceptions
                                         String finalDetails = details;

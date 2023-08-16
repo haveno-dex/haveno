@@ -17,28 +17,25 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
 import haveno.core.trade.Tradable;
 import monero.wallet.model.MoneroTxWallet;
 
 class TransactionAwareOpenOffer implements TransactionAwareTradable {
-    private final OpenOffer delegate;
+    private final OpenOffer openOffer;
 
     TransactionAwareOpenOffer(OpenOffer delegate) {
-        this.delegate = delegate;
+        this.openOffer = delegate;
     }
 
+    @Override
     public boolean isRelatedToTransaction(MoneroTxWallet transaction) {
-        Offer offer = delegate.getOffer();
-        String paymentTxId = offer.getOfferFeeTxId();
-
         String txId = transaction.getHash();
-
-        return txId.equals(paymentTxId);
+        return txId.equals(openOffer.getReserveTxHash());
     }
 
+    @Override
     public Tradable asTradable() {
-        return delegate;
+        return openOffer;
     }
 }
