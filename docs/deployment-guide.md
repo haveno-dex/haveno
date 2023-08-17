@@ -36,6 +36,8 @@ Start a Monero node by running `make monerod` for mainnet or `make monerod-stage
 
 The price node is separated from Haveno and is to be run as a standalone service. To deploy a pricenode on both Tor and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode
 
+After a price node is deployed, add the price node to `DEFAULT_NODES` in ProvidersRepository.java.
+
 ## Create and register seed nodes
 
 From the root of the repository, run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
