@@ -18,7 +18,7 @@ package haveno.core.api;
 
 import monero.daemon.MoneroDaemonRpc;
 
-public class MoneroNodeServiceListener {
+public class LocalMoneroNodeListener {
     public void onNodeStarted(MoneroDaemonRpc daemon) {}
     public void onNodeStopped() {}
 }

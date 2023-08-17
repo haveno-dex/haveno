@@ -57,7 +57,7 @@ public final class CoreMoneroConnectionsService {
     private final Preferences preferences;
     private final CoreAccountService accountService;
     private final XmrNodes xmrNodes;
-    private final CoreMoneroNodeService nodeService;
+    private final LocalMoneroNode nodeService;
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
     private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
@@ -82,7 +82,7 @@ public final class CoreMoneroConnectionsService {
                                         WalletsSetup walletsSetup,
                                         CoreAccountService accountService,
                                         XmrNodes xmrNodes,
-                                        CoreMoneroNodeService nodeService,
+                                        LocalMoneroNode nodeService,
                                         MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList,
                                         Socks5ProxyProvider socks5ProxyProvider) {
@@ -374,7 +374,7 @@ public final class CoreMoneroConnectionsService {
             if (!isInitialized) {
 
                 // register local node listener
-                nodeService.addListener(new MoneroNodeServiceListener() {
+                nodeService.addListener(new LocalMoneroNodeListener() {
                     @Override
                     public void onNodeStarted(MoneroDaemonRpc daemon) {
                         log.info(getClass() + ".onNodeStarted() called");
@@ -481,7 +481,7 @@ public final class CoreMoneroConnectionsService {
         if (HavenoUtils.havenoSetup == null) return;
 
         // start local node if offline and used as last connection
-        if (connectionManager.getConnection() != null && nodeService.equalsUri(connectionManager.getConnection().getUri()) && !nodeService.isOnline()) {
+        if (connectionManager.getConnection() != null && nodeService.equalsUri(connectionManager.getConnection().getUri()) && !nodeService.isDetected()) {
             try {
                 log.info("Starting local node");
                 nodeService.startMoneroNode();

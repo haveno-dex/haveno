@@ -33,7 +33,6 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.xmr.MoneroNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import javafx.beans.property.BooleanProperty;
@@ -153,7 +152,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     private final PersistenceManager<PreferencesPayload> persistenceManager;
     private final Config config;
-    private final LocalBitcoinNode localBitcoinNode;
     private final String xmrNodesFromOptions;
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
@@ -165,12 +163,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Inject
     public Preferences(PersistenceManager<PreferencesPayload> persistenceManager,
                        Config config,
-                       LocalBitcoinNode localBitcoinNode,
                        @Named(Config.XMR_NODES) String xmrNodesFromOptions) {
 
         this.persistenceManager = persistenceManager;
         this.config = config;
-        this.localBitcoinNode = localBitcoinNode;
         this.xmrNodesFromOptions = xmrNodesFromOptions;
 
         useAnimationsProperty.addListener((ov) -> {

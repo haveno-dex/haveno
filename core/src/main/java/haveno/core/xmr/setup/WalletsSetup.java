@@ -29,6 +29,7 @@ import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.handlers.ExceptionHandler;
 import haveno.common.handlers.ResultHandler;
+import haveno.core.api.LocalMoneroNode;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.model.AddressEntry;
@@ -38,7 +39,6 @@ import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.core.xmr.nodes.XmrNodesRepository;
 import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.network.Socks5MultiDiscovery;
 import haveno.network.Socks5ProxyProvider;
 import javafx.beans.property.BooleanProperty;
@@ -100,7 +100,7 @@ public class WalletsSetup {
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
-    private final LocalBitcoinNode localBitcoinNode;
+    private final LocalMoneroNode localMoneroNode;
     private final XmrNodes xmrNodes;
     private final int numConnectionsForBtc;
     private final String userAgent;
@@ -126,7 +126,7 @@ public class WalletsSetup {
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
-                        LocalBitcoinNode localBitcoinNode,
+                        LocalMoneroNode localMoneroNode,
                         XmrNodes xmrNodes,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
@@ -138,7 +138,7 @@ public class WalletsSetup {
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
-        this.localBitcoinNode = localBitcoinNode;
+        this.localMoneroNode = localMoneroNode;
         this.xmrNodes = xmrNodes;
         this.numConnectionsForBtc = numConnectionsForBtc;
         this.useAllProvidedNodes = useAllProvidedNodes;
@@ -195,7 +195,7 @@ public class WalletsSetup {
         };
         walletConfig.setSocks5Proxy(socks5Proxy);
         walletConfig.setConfig(config);
-        walletConfig.setLocalBitcoinNode(localBitcoinNode); // TODO: adapt to xmr or remove
+        walletConfig.setLocalMoneroNodeService(localMoneroNode); // TODO: adapt to xmr or remove
         walletConfig.setUserAgent(userAgent, Version.VERSION);
         walletConfig.setNumConnectionsForBtc(numConnectionsForBtc);
 
@@ -230,7 +230,7 @@ public class WalletsSetup {
                     return;
                 }
             }
-        } else if (localBitcoinNode.shouldBeUsed()) {
+        } else if (localMoneroNode.shouldBeUsed()) {
             walletConfig.setMinBroadcastConnections(1);
             walletConfig.connectToLocalHost();
         } else {
