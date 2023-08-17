@@ -87,7 +87,7 @@ public class CoreApi {
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
     private final CoreMoneroConnectionsService coreMoneroConnectionsService;
-    private final CoreMoneroNodeService coreMoneroNodeService;
+    private final LocalMoneroNode coreMoneroNodeService;
 
     @Inject
     public CoreApi(Config config,
@@ -104,7 +104,7 @@ public class CoreApi {
                    TradeStatisticsManager tradeStatisticsManager,
                    CoreNotificationService notificationService,
                    CoreMoneroConnectionsService coreMoneroConnectionsService,
-                   CoreMoneroNodeService coreMoneroNodeService) {
+                   LocalMoneroNode coreMoneroNodeService) {
         this.config = config;
         this.appStartupState = appStartupState;
         this.coreAccountService = coreAccountService;
@@ -236,7 +236,7 @@ public class CoreApi {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public boolean isMoneroNodeOnline() {
-        return coreMoneroNodeService.isOnline();
+        return coreMoneroNodeService.isDetected();
     }
 
     public MoneroNodeSettings getMoneroNodeSettings() {

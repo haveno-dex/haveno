@@ -20,6 +20,7 @@ package haveno.desktop.main.settings.network;
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.LocalMoneroNode;
 import haveno.core.filter.Filter;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
@@ -28,7 +29,6 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
 import haveno.core.xmr.nodes.XmrNodes;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.ActivatableView;
@@ -104,7 +104,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final Preferences preferences;
     private final XmrNodes xmrNodes;
     private final FilterManager filterManager;
-    private final LocalBitcoinNode localBitcoinNode;
+    private final LocalMoneroNode localMoneroNode;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final ClockWatcher clockWatcher;
     private final WalletsSetup walletsSetup;
@@ -134,7 +134,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                                Preferences preferences,
                                XmrNodes xmrNodes,
                                FilterManager filterManager,
-                               LocalBitcoinNode localBitcoinNode,
+                               LocalMoneroNode localMoneroNode,
                                TorNetworkSettingsWindow torNetworkSettingsWindow,
                                ClockWatcher clockWatcher) {
         super();
@@ -144,7 +144,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
         this.filterManager = filterManager;
-        this.localBitcoinNode = localBitcoinNode;
+        this.localMoneroNode = localMoneroNode;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
         this.clockWatcher = clockWatcher;
     }
@@ -385,16 +385,16 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void onMoneroPeersToggleSelected(boolean calledFromUser) {
-        boolean localBitcoinNodeShouldBeUsed = localBitcoinNode.shouldBeUsed();
-        useTorForXmrJCheckBox.setDisable(localBitcoinNodeShouldBeUsed);
-        moneroNodesLabel.setDisable(localBitcoinNodeShouldBeUsed);
-        xmrNodesLabel.setDisable(localBitcoinNodeShouldBeUsed);
-        xmrNodesInputTextField.setDisable(localBitcoinNodeShouldBeUsed);
-        useProvidedNodesRadio.setDisable(localBitcoinNodeShouldBeUsed);
-        useCustomNodesRadio.setDisable(localBitcoinNodeShouldBeUsed);
-        usePublicNodesRadio.setDisable(localBitcoinNodeShouldBeUsed || isPreventPublicXmrNetwork());
+        boolean localMoneroNodeShouldBeUsed = localMoneroNode.shouldBeUsed();
+        useTorForXmrJCheckBox.setDisable(localMoneroNodeShouldBeUsed);
+        moneroNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
+        xmrNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
+        xmrNodesInputTextField.setDisable(localMoneroNodeShouldBeUsed);
+        useProvidedNodesRadio.setDisable(localMoneroNodeShouldBeUsed);
+        useCustomNodesRadio.setDisable(localMoneroNodeShouldBeUsed);
+        usePublicNodesRadio.setDisable(localMoneroNodeShouldBeUsed || isPreventPublicXmrNetwork());
 
-        XmrNodes.MoneroNodesOption currentBitcoinNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
+        XmrNodes.MoneroNodesOption currentMoneroNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
 
         switch (selectedMoneroNodesOption) {
             case CUSTOM:
@@ -402,7 +402,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 xmrNodesLabel.setDisable(false);
                 if (!xmrNodesInputTextField.getText().isEmpty()
                         && xmrNodesInputTextField.validate()
-                        && currentBitcoinNodesOption != XmrNodes.MoneroNodesOption.CUSTOM) {
+                        && currentMoneroNodesOption != XmrNodes.MoneroNodesOption.CUSTOM) {
                     preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
                     if (calledFromUser) {
                         if (isPreventPublicXmrNetwork()) {
@@ -417,7 +417,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             case PUBLIC:
                 xmrNodesInputTextField.setDisable(true);
                 xmrNodesLabel.setDisable(true);
-                if (currentBitcoinNodesOption != XmrNodes.MoneroNodesOption.PUBLIC) {
+                if (currentMoneroNodesOption != XmrNodes.MoneroNodesOption.PUBLIC) {
                     preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
                     if (calledFromUser) {
                         new Popup()
@@ -439,7 +439,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             case PROVIDED:
                 xmrNodesInputTextField.setDisable(true);
                 xmrNodesLabel.setDisable(true);
-                if (currentBitcoinNodesOption != XmrNodes.MoneroNodesOption.PROVIDED) {
+                if (currentMoneroNodesOption != XmrNodes.MoneroNodesOption.PROVIDED) {
                     preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
                     if (calledFromUser) {
                         showShutDownPopup();
@@ -452,7 +452,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private void applyPreventPublicXmrNetwork() {
         final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
-        usePublicNodesRadio.setDisable(localBitcoinNode.shouldBeUsed() || preventPublicXmrNetwork);
+        usePublicNodesRadio.setDisable(localMoneroNode.shouldBeUsed() || preventPublicXmrNetwork);
         if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
             selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
             preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());

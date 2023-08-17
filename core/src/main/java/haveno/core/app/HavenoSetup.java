@@ -33,7 +33,7 @@ import haveno.core.alert.Alert;
 import haveno.core.alert.AlertManager;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
-import haveno.core.api.CoreMoneroNodeService;
+import haveno.core.api.LocalMoneroNode;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AmazonGiftCardAccount;
@@ -52,7 +52,6 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.model.AddressEntry;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
@@ -121,7 +120,7 @@ public class HavenoSetup {
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
     private final CoinFormatter formatter;
-    private final LocalBitcoinNode localBitcoinNode;
+    private final LocalMoneroNode localMoneroNode;
     private final AppStartupState appStartupState;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
@@ -215,7 +214,7 @@ public class HavenoSetup {
                        AccountAgeWitnessService accountAgeWitnessService,
                        TorSetup torSetup,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                       LocalBitcoinNode localBitcoinNode,
+                       LocalMoneroNode localMoneroNode,
                        AppStartupState appStartupState,
                        Socks5ProxyProvider socks5ProxyProvider,
                        MediationManager mediationManager,
@@ -240,7 +239,7 @@ public class HavenoSetup {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
         this.formatter = formatter;
-        this.localBitcoinNode = localBitcoinNode;
+        this.localMoneroNode = localMoneroNode;
         this.appStartupState = appStartupState;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
@@ -339,12 +338,12 @@ public class HavenoSetup {
 
     private void maybeInstallDependencies() {
         try {
-            File monerodFile = new File(CoreMoneroNodeService.MONEROD_PATH);
-            String monerodResourcePath = "bin/" + CoreMoneroNodeService.MONEROD_NAME;
+            File monerodFile = new File(LocalMoneroNode.MONEROD_PATH);
+            String monerodResourcePath = "bin/" + LocalMoneroNode.MONEROD_NAME;
             if (!monerodFile.exists() || !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile)) {
                 log.info("Installing monerod");
                 monerodFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile("bin/" + CoreMoneroNodeService.MONEROD_NAME, monerodFile);
+                FileUtil.resourceToFile("bin/" + LocalMoneroNode.MONEROD_NAME, monerodFile);
                 monerodFile.setExecutable(true);
             }
 
@@ -621,7 +620,7 @@ public class HavenoSetup {
     }
 
     private void maybeShowLocalhostRunningInfo() {
-        maybeTriggerDisplayHandler("bitcoinLocalhostNode", displayLocalhostHandler, localBitcoinNode.shouldBeUsed());
+        maybeTriggerDisplayHandler("moneroLocalhostNode", displayLocalhostHandler, localMoneroNode.shouldBeUsed());
     }
 
     private void maybeShowAccountSigningStateInfo() {

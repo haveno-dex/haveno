@@ -25,7 +25,6 @@ import haveno.core.xmr.MoneroNodeSettings;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemonRpc;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
@@ -38,15 +37,16 @@ import java.util.List;
  */
 @Slf4j
 @Singleton
-public class CoreMoneroNodeService {
+public class LocalMoneroNode {
 
     public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
     public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
     private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
 
+    private final Config config;
     private final Preferences preferences;
-    private final List<MoneroNodeServiceListener> listeners = new ArrayList<>();
+    private final List<LocalMoneroNodeListener> listeners = new ArrayList<>();
 
     // required arguments
     private static final List<String> MONEROD_ARGS = new ArrayList<String>();
@@ -68,16 +68,34 @@ public class CoreMoneroNodeService {
     }
 
     @Inject
-    public CoreMoneroNodeService(Preferences preferences) {
+    public LocalMoneroNode(Config config, Preferences preferences) {
+        this.config = config;
         this.preferences = preferences;
         this.daemon = new MoneroDaemonRpc("http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort);
     }
 
-    public void addListener(MoneroNodeServiceListener listener) {
+    /**
+     * Returns whether Haveno should use a local Monero node, meaning that a node was
+     * detected and conditions under which it should be ignored have not been met. If
+     * the local node should be ignored, a call to this method will not trigger an
+     * unnecessary detection attempt.
+     */
+    public boolean shouldBeUsed() {
+        return !shouldBeIgnored() && isDetected();
+    }
+
+    /**
+     * Returns whether Haveno should ignore a local Monero node even if it is usable.
+     */
+    public boolean shouldBeIgnored() {
+        return config.ignoreLocalXmrNode;
+    }
+
+    public void addListener(LocalMoneroNodeListener listener) {
         listeners.add(listener);
     }
 
-    public boolean removeListener(MoneroNodeServiceListener listener) {
+    public boolean removeListener(LocalMoneroNodeListener listener) {
         return listeners.remove(listener);
     }
 
@@ -97,9 +115,9 @@ public class CoreMoneroNodeService {
     }
 
     /**
-     * Check if local Monero node is online.
+     * Check if local Monero node is detected.
      */
-    public boolean isOnline() {
+    public boolean isDetected() {
         checkConnection();
         return daemon.getRpcConnection().isOnline();
     }
@@ -129,7 +147,7 @@ public class CoreMoneroNodeService {
      * Persist the settings to preferences if the node started successfully.
      */
     public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
-        if (isOnline()) throw new IllegalStateException("Local Monero node already online");
+        if (isDetected()) throw new IllegalStateException("Local Monero node already online");
 
         log.info("Starting local Monero node: " + settings);
 
@@ -161,7 +179,7 @@ public class CoreMoneroNodeService {
      * Does not remove the last MoneroNodeSettings.
      */
     public void stopMoneroNode() {
-        if (!isOnline()) throw new IllegalStateException("Local Monero node is not running");
+        if (!isDetected()) throw new IllegalStateException("Local Monero node is not running");
         if (daemon.getProcess() == null || !daemon.getProcess().isAlive()) throw new IllegalStateException("Cannot stop local Monero node because we don't own its process"); // TODO (woodser): remove isAlive() check after monero-java 0.5.4 which nullifies internal process
         daemon.stopProcess();
         for (var listener : listeners) listener.onNodeStopped();

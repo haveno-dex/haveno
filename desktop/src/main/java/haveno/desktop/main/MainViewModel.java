@@ -48,7 +48,6 @@ import haveno.core.trade.TradeManager;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ViewModel;
@@ -122,7 +121,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @Getter
     private final PriceFeedService priceFeedService;
     private final Config config;
-    private final LocalBitcoinNode localBitcoinNode;
     private final AccountAgeWitnessService accountAgeWitnessService;
     @Getter
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
@@ -166,7 +164,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          TacWindow tacWindow,
                          PriceFeedService priceFeedService,
                          Config config,
-                         LocalBitcoinNode localBitcoinNode,
                          AccountAgeWitnessService accountAgeWitnessService,
                          TorNetworkSettingsWindow torNetworkSettingsWindow,
                          CorruptedStorageFileHandler corruptedStorageFileHandler,
@@ -190,7 +187,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         this.tacWindow = tacWindow;
         this.priceFeedService = priceFeedService;
         this.config = config;
-        this.localBitcoinNode = localBitcoinNode;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
         this.corruptedStorageFileHandler = corruptedStorageFileHandler;
@@ -359,7 +355,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setDisplaySecurityRecommendationHandler(key -> {});
         havenoSetup.setDisplayLocalhostHandler(key -> {
             if (!DevEnv.isDevMode()) {
-                Popup popup = new Popup().backgroundInfo(Res.get("popup.bitcoinLocalhostNode.msg"))
+                Popup popup = new Popup().backgroundInfo(Res.get("popup.moneroLocalhostNode.msg"))
                         .dontShowAgainId(key);
                 popup.setDisplayOrderPriority(5);
                 popupQueue.add(popup);

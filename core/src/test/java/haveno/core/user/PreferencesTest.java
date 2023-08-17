@@ -19,13 +19,13 @@ package haveno.core.user;
 
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
+import haveno.core.api.LocalMoneroNode;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
-import haveno.core.xmr.nodes.LocalBitcoinNode;
 import javafx.collections.ObservableList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,9 +56,9 @@ public class PreferencesTest {
 
         persistenceManager = mock(PersistenceManager.class);
         Config config = new Config();
-        LocalBitcoinNode localBitcoinNode = new LocalBitcoinNode(config);
+        LocalMoneroNode localMoneroNode = new LocalMoneroNode(config, preferences);
         preferences = new Preferences(
-                persistenceManager, config, localBitcoinNode, null);
+                persistenceManager, config, null);
     }
 
     @Test
