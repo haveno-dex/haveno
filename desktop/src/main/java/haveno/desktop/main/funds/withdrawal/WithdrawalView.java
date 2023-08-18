@@ -73,6 +73,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private final XmrWalletService xmrWalletService;
     private final TradeManager tradeManager;
     private final P2PService p2PService;
+    private final WalletPasswordWindow walletPasswordWindow;
     private XmrBalanceListener balanceListener;
     private BigInteger amount = BigInteger.valueOf(0);
     private ChangeListener<String> amountListener;
@@ -96,6 +97,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         this.xmrWalletService = xmrWalletService;
         this.tradeManager = tradeManager;
         this.p2PService = p2PService;
+        this.walletPasswordWindow = walletPasswordWindow;
     }
 
     @Override
@@ -215,33 +217,19 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         HavenoUtils.formatXmr(receiverAmount, true));
 
                 // popup confirmation message
-                new Popup().headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
+                Popup popup = new Popup();
+                popup.headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
                         .confirmation(messageText)
                         .actionButtonText(Res.get("shared.yes"))
                         .onAction(() -> {
-
-                            // relay tx
-                            try {
-                                xmrWalletService.getWallet().relayTx(tx);
-                                xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
-                                String key = "showTransactionSent";
-                                if (DontShowAgainLookup.showAgain(key)) {
-                                    new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
-                                            .dontShowAgainId(key)
-                                            .show();
-                                }
-                                log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
-
-                                List<Trade> trades = new ArrayList<>(tradeManager.getObservableList());
-                                trades.stream()
-                                        .filter(Trade::isPayoutPublished)
-                                        .forEach(trade -> xmrWalletService.getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT)
-                                                .ifPresent(addressEntry -> {
-                                                    if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).compareTo(BigInteger.valueOf(0)) == 0)
-                                                        tradeManager.onTradeCompleted(trade);
-                                                }));
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                            if (xmrWalletService.isWalletEncrypted()) {
+                                walletPasswordWindow.headLine(Res.get("walletPasswordWindow.headline")).onSuccess(() -> {
+                                    relayTx(tx, withdrawToAddress, amount, fee);
+                                }).onClose(() -> {
+                                    popup.hide();
+                                }).hideForgotPasswordButton().show();
+                            } else {
+                                relayTx(tx, withdrawToAddress, amount, fee);
                             }
                         })
                         .closeButtonText(Res.get("shared.cancel"))
@@ -250,10 +238,35 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 if (e.getMessage().contains("enough")) new Popup().warning(Res.get("funds.withdrawal.warn.amountExceeds")).show();
                 else {
                     e.printStackTrace();
-                    log.error(e.toString());
-                    new Popup().warning(e.toString()).show();
+                    new Popup().warning(e.getMessage()).show();
                 }
             }
+        }
+    }
+
+    private void relayTx(MoneroTxWallet tx, String withdrawToAddress, BigInteger receiverAmount, BigInteger fee) {
+        try {
+            xmrWalletService.getWallet().relayTx(tx);
+            xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
+            String key = "showTransactionSent";
+            if (DontShowAgainLookup.showAgain(key)) {
+                new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                        .dontShowAgainId(key)
+                        .show();
+            }
+            log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
+
+            // TODO: remove this?
+            List<Trade> trades = new ArrayList<>(tradeManager.getObservableList());
+            trades.stream()
+                    .filter(Trade::isPayoutPublished)
+                    .forEach(trade -> xmrWalletService.getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT)
+                            .ifPresent(addressEntry -> {
+                                if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).compareTo(BigInteger.valueOf(0)) == 0)
+                                    tradeManager.onTradeCompleted(trade);
+                            }));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
