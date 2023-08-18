@@ -904,6 +904,7 @@ public class XmrWalletService {
 
         // excute tasks in parallel
         HavenoUtils.executeTasks(tasks, Math.min(10, 1 + trades.size()));
+        log.info("Done changing all wallet passwords");
     }
 
     private void closeMainWallet(boolean save) {

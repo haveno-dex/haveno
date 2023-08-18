@@ -357,7 +357,7 @@ public final class CoreMoneroConnectionsService {
 
             @Override
             public void onPasswordChanged(String oldPassword, String newPassword) {
-                log.info(getClass() + ".onPasswordChanged({}, {}) called", oldPassword, newPassword);
+                log.info(getClass() + ".onPasswordChanged({}, {}) called", oldPassword == null ? null : "***", newPassword == null ? null : "***");
                 connectionList.changePassword(oldPassword, newPassword);
             }
         });
