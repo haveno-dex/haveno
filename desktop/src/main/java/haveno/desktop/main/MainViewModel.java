@@ -270,7 +270,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         UserThread.execute(() -> getShowAppScreen().set(true));
 
         // show welcome message if not mainnet
-        if (Config.baseCurrencyNetwork() != BaseCurrencyNetwork.XMR_MAINNET) {
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET) {
             String key = "welcome.test";
             if (DontShowAgainLookup.showAgain(key)) {
                 UserThread.runAfter(() -> {
