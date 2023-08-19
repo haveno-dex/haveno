@@ -928,7 +928,8 @@ public abstract class Trade implements Tradable, Model {
                 .addDestination(buyerPayoutAddress, buyerPayoutAmount)
                 .addDestination(sellerPayoutAddress, sellerPayoutAmount)
                 .setSubtractFeeFrom(0, 1) // split tx fee
-                .setRelay(false));
+                .setRelay(false)
+                .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
 
         // save updated multisig hex
         getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
