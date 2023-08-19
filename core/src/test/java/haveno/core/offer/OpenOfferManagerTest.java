@@ -13,7 +13,6 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -51,7 +50,6 @@ public class OpenOfferManagerTest {
     }
 
     @Test
-    @Disabled // TODO: re-enable when editing offers supported
     public void testStartEditOfferForActiveOffer() {
         P2PService p2PService = mock(P2PService.class);
         OfferBookService offerBookService = mock(OfferBookService.class);
@@ -89,6 +87,7 @@ public class OpenOfferManagerTest {
         }).when(offerBookService).deactivateOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
 
         final OpenOffer openOffer = new OpenOffer(make(btcUsdOffer));
+        openOffer.setState(OpenOffer.State.AVAILABLE);
 
         ResultHandler resultHandler = () -> startEditOfferSuccessful.set(true);
 
@@ -97,7 +96,6 @@ public class OpenOfferManagerTest {
         verify(offerBookService, times(1)).deactivateOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
 
         assertTrue(startEditOfferSuccessful.get());
-
     }
 
     @Test
