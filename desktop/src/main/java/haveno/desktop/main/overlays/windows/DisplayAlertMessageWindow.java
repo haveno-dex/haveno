@@ -77,7 +77,7 @@ public class DisplayAlertMessageWindow extends Overlay<DisplayAlertMessageWindow
         checkNotNull(alert, "alertMessage must not be null");
         addMultilineLabel(gridPane, ++rowIndex, alert.getMessage(), 10);
         if (alert.isSoftwareUpdateNotification()) {
-            String url = "https://haveno.network/downloads";
+            String url = "https://haveno.exchange/downloads";
             HyperlinkWithIcon hyperlinkWithIcon = FormBuilder.addLabelHyperlinkWithIcon(gridPane, ++rowIndex,
                     Res.get("displayAlertMessageWindow.update.download"), url, url).second;
             hyperlinkWithIcon.setMaxWidth(550);

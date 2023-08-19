@@ -1,7 +1,7 @@
 # All assets available for trading on the Haveno network.
 # Contents are sorted according to the output of `sort --ignore-case --dictionary-order`.
 # See haveno.asset.Asset and haveno.asset.AssetRegistry for further details.
-# See https://haveno.network/list-asset for complete instructions.
+# See https://haveno.exchange/list-asset for complete instructions.
 haveno.asset.coins.Bitcoin$Mainnet
 haveno.asset.coins.BitcoinCash
 haveno.asset.coins.Ether

@@ -130,7 +130,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     @Override
     protected String getDisputeInfo(Dispute dispute) {
         String role = Res.get("shared.mediator").toLowerCase();
-        String link = "https://docs.bisq.network/trading-rules.html#mediation";
+        String link = "https://docs.haveno.exchange/trading-rules.html#mediation";
         return Res.get("support.initialInfo", role, role, link);
     }
 

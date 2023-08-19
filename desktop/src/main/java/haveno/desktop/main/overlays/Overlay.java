@@ -380,7 +380,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T useReportBugButton() {
         this.closeButtonText = Res.get("shared.reportBug");
-        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://haveno.network/source/haveno/issues"));
+        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://haveno.exchange/source/haveno/issues"));
         return cast();
     }
 
@@ -861,7 +861,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         gitHubButton.setOnAction(event -> {
             if (message != null)
                 Utilities.copyToClipboard(message);
-            GUIUtil.openWebPage("https://haveno.network/source/haveno/issues");
+            GUIUtil.openWebPage("https://haveno.exchange/source/haveno/issues");
             hide();
         });
     }

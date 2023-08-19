@@ -228,7 +228,7 @@ public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
 
     // Setup
     private void onDownload() {
-        GUIUtil.openWebPage("https://haveno.network/downloads");
+        GUIUtil.openWebPage("https://haveno.exchange/downloads");
     }
 
     private void onErase() {
