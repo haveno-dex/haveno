@@ -57,7 +57,7 @@ public class XmrNetworkConfig {
                 MainNetParams mainNetParams = MainNetParams.get();
                 if (parameters.equals(mainNetParams)) {
                     log.warn("You use the public Bitcoin network and are exposed to privacy issues " +
-                            "caused by the broken bloom filters. See https://haveno.network/blog/privacy-in-bitsquare/ " +
+                            "caused by the broken bloom filters. See https://haveno.exchange/blog/privacy-in-bitsquare/ " +
                             "for more info. It is recommended to use the provided nodes.");
                 }
             }
@@ -65,7 +65,7 @@ public class XmrNetworkConfig {
             delegate.setDiscovery(new Socks5MultiDiscovery(proxy, parameters, socks5DiscoverMode));
         } else if (Config.baseCurrencyNetwork().isMainnet()) {
             log.warn("You don't use tor and use the public Bitcoin network and are exposed to privacy issues " +
-                    "caused by the broken bloom filters. See https://haveno.network/blog/privacy-in-bitsquare/ " +
+                    "caused by the broken bloom filters. See https://haveno.exchange/blog/privacy-in-bitsquare/ " +
                     "for more info. It is recommended to use Tor and the provided nodes.");
         }
     }

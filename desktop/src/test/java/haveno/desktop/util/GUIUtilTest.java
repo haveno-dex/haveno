@@ -76,13 +76,13 @@ public class GUIUtilTest {
 /*        PowerMockito.mockStatic(Utilities.class);
         ArgumentCaptor<URI> captor = ArgumentCaptor.forClass(URI.class);
         PowerMockito.doNothing().when(Utilities.class, "openURI", captor.capture());
-        GUIUtil.openWebPage("https://haveno.network");
+        GUIUtil.openWebPage("https://haveno.exchange");
 
-        assertEquals("https://haveno.network?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en", captor.getValue().toString());
+        assertEquals("https://haveno.exchange?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en", captor.getValue().toString());
 
-        GUIUtil.openWebPage("https://docs.bisq.network/trading-rules.html#f2f-trading");
+        GUIUtil.openWebPage("https://docs.haveno.exchange/trading-rules.html#f2f-trading");
 
-        assertEquals("https://docs.bisq.network/trading-rules.html?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en#f2f-trading", captor.getValue().toString());
+        assertEquals("https://docs.haveno.exchange/trading-rules.html?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en#f2f-trading", captor.getValue().toString());
 */
     }
 

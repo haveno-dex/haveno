@@ -53,8 +53,8 @@ public class HavenoInstaller {
     private static final String FINGER_PRINT_MANFRED_KARRER = "F379A1C6";
     private static final String FINGER_PRINT_CHRIS_BEAMS = "5BC5ED73";
     private static final String FINGER_PRINT_CHRISTOPH_ATTENEDER = "29CDFD3B";
-    private static final String PUB_KEY_HOSTING_URL = "https://haveno.network/pubkey/";
-    private static final String DOWNLOAD_HOST_URL = "https://haveno.network/downloads/";
+    private static final String PUB_KEY_HOSTING_URL = "https://haveno.exchange/pubkey/";
+    private static final String DOWNLOAD_HOST_URL = "https://haveno.exchange/downloads/";
 
     public boolean isSupportedOS() {
         return Utilities.isOSX() || Utilities.isWindows() || Utilities.isDebianLinux() || Utilities.isRedHatLinux();

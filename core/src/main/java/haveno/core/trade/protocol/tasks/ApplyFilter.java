@@ -53,7 +53,7 @@ public class ApplyFilter extends TradeTask {
                         "Payment method=" + trade.getOffer().getPaymentMethod().getId());
             } else if (filterManager.requireUpdateToNewVersionForTrading()) {
                 failed("Your version of Haveno is not compatible for trading anymore. " +
-                        "Please update to the latest Haveno version at https://haveno.network/downloads.");
+                        "Please update to the latest Haveno version at https://haveno.exchange/downloads.");
             } else {
                 complete();
             }

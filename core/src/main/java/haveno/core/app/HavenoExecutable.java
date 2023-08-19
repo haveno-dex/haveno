@@ -103,7 +103,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             System.exit(EXIT_FAILURE);
         } catch (Throwable ex) {
             System.err.println("fault: An unexpected error occurred. " +
-                    "Please file a report at https://haveno.network/issues");
+                    "Please file a report at https://haveno.exchange/issues");
             ex.printStackTrace(System.err);
             System.exit(EXIT_FAILURE);
         }
