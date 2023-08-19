@@ -44,6 +44,7 @@ import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroSyncResult;
 import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxPriority;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletConfig;
@@ -82,19 +83,19 @@ public class XmrWalletService {
     private static final Logger log = LoggerFactory.getLogger(XmrWalletService.class);
 
     // Monero configuration
-    // TODO: don't hard code configuration, inject into classes?
     public static final int NUM_BLOCKS_UNLOCK = 10;
-    private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
-    private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     public static final String MONERO_WALLET_RPC_DIR = Config.baseCurrencyNetwork().isTestnet() ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero-wallet-rpc and wallet files
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + MONERO_WALLET_RPC_NAME;
+    public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
+    public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.ELEVATED;
+    private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
+    private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
-    public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
     private static final int NUM_MAX_BACKUP_WALLETS = 1;
     private static final int MONERO_LOG_LEVEL = 0;
     private static final boolean PRINT_STACK_TRACE = false;
@@ -432,7 +433,8 @@ public class XmrWalletService {
                 .setSubaddressIndices(subaddressIndex)
                 .addDestination(HavenoUtils.getTradeFeeAddress(), tradeFee)
                 .addDestination(address, sendAmount.add(securityDeposit))
-                .setSubtractFeeFrom(1)); // pay fee from security deposit
+                .setSubtractFeeFrom(1)
+                .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY)); // pay fee from security deposit
 
         // check if tx uses exact input, since wallet2 can prefer to spend 2 outputs
         if (reserveExactAmount) {
@@ -498,7 +500,7 @@ public class XmrWalletService {
                 if (!BigInteger.valueOf(0).equals(tx.getUnlockTime())) throw new RuntimeException("Unlock height must be 0");
 
                 // verify miner fee
-                BigInteger feeEstimate = getFeeEstimate(tx.getWeight());
+                BigInteger feeEstimate = getElevatedFeeEstimate(tx.getWeight());
                 double feeDiff = tx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
                 if (feeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), feeDiff);
@@ -552,11 +554,11 @@ public class XmrWalletService {
      * @param txWeight - the tx weight
      * @return the tx fee estimate
      */
-    public BigInteger getFeeEstimate(long txWeight) {
+    private BigInteger getElevatedFeeEstimate(long txWeight) {
 
         // get fee estimates per kB from daemon
         MoneroFeeEstimate feeEstimates = getDaemon().getFeeEstimate();
-        BigInteger baseFeeEstimate = feeEstimates.getFee(); // get normal fee per kB
+        BigInteger baseFeeEstimate = feeEstimates.getFees().get(2); // get elevated fee per kB
         BigInteger qmask = feeEstimates.getQuantizationMask();
         log.info("Monero base fee estimate={}, qmask={}: " + baseFeeEstimate, qmask);
 

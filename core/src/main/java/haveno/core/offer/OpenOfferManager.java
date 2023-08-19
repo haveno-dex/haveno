@@ -994,7 +994,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 .setAccountIndex(0)
                 .setAddress(entry.getAddressString())
                 .setAmount(reserveAmount)
-                .setRelay(true));
+                .setRelay(true)
+                .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
         log.info("Done creating split output tx to fund offer {}", openOffer.getId());
 
         // schedule txs

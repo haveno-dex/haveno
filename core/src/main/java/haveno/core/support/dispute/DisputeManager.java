@@ -874,6 +874,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount);
                 if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount);
                 txConfig.setSubtractFeeFrom(loserPayoutAmount.equals(BigInteger.ZERO) ? 0 : txConfig.getDestinations().size() - 1); // winner only pays fee if loser gets 0
+                txConfig.setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
                 MoneroTxWallet payoutTx = null;
                 try {
                     payoutTx = trade.getWallet().createTx(txConfig);
