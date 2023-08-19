@@ -557,17 +557,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                     ResultHandler resultHandler,
                                     ErrorMessageHandler errorMessageHandler) {
         Offer offer = openOffer.getOffer();
-        if (openOffer.isScheduled()) {
-            resultHandler.handleResult(); // ignore if scheduled
-        } else {
+        if (openOffer.isAvailable()) {
             offerBookService.deactivateOffer(offer.getOfferPayload(),
-            () -> {
-                openOffer.setState(OpenOffer.State.DEACTIVATED);
-                requestPersistence();
-                log.debug("deactivateOpenOffer, offerId={}", offer.getId());
-                resultHandler.handleResult();
-            },
-            errorMessageHandler);
+                    () -> {
+                        openOffer.setState(OpenOffer.State.DEACTIVATED);
+                        requestPersistence();
+                        log.debug("deactivateOpenOffer, offerId={}", offer.getId());
+                        resultHandler.handleResult();
+                    },
+                    errorMessageHandler);
+        } else {
+            resultHandler.handleResult(); // ignore if unavailable
         }
     }
 
@@ -598,15 +598,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         offersToBeEdited.put(openOffer.getId(), openOffer);
 
-        if (openOffer.isDeactivated()) {
-            resultHandler.handleResult();
-        } else {
+        if (openOffer.isAvailable()) {
             deactivateOpenOffer(openOffer,
                     resultHandler,
                     errorMessage -> {
                         offersToBeEdited.remove(openOffer.getId());
                         errorMessageHandler.handleErrorMessage(errorMessage);
                     });
+        } else {
+            resultHandler.handleResult();
         }
     }
 
