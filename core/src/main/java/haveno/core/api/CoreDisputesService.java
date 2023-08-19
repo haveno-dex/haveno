@@ -270,7 +270,6 @@ public class CoreDisputesService {
         }
 
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
-        summaryText += Res.get("disputeSummaryWindow.close.nextStepsForRefundAgentArbitration");
 
         disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, () -> {
             dispute.setDisputeResult(disputeResult);
