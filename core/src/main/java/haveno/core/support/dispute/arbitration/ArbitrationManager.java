@@ -219,6 +219,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                 // verify arbitrator signature
                 String summaryText = chatMessage.getMessage();
+                if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
                 if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
                 else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail is arbitrator is unregistered)
 
