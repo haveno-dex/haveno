@@ -719,8 +719,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (trade == null) throw new RuntimeException("Dispute trade " + dispute.getTradeId() + " does not exist");
 
             // persist result in dispute's chat message once
-            boolean resending = disputeResult.getChatMessage() != null;
-            if (!resending) {
+            boolean exists = disputeResult.getChatMessage() != null && disputeResult.getChatMessage().getMessage() != null && !disputeResult.getChatMessage().getMessage().isEmpty();
+            if (!exists) {
                 ChatMessage chatMessage = new ChatMessage(
                     getSupportType(),
                     dispute.getTradeId(),
@@ -742,7 +742,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             MoneroTxWallet unsignedPayoutTx = receiver.getUpdatedMultisigHex() == null ? null : trade.getProcessModel().getUnsignedPayoutTx();
             String unsignedPayoutTxHex = unsignedPayoutTx == null ? null : unsignedPayoutTx.getTxSet().getMultisigTxHex();
             TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-            boolean deferPublishPayout = !resending && unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal() ;
+            boolean deferPublishPayout = !exists && unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal();
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
