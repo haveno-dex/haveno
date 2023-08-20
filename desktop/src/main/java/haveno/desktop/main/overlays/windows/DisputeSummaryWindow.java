@@ -66,11 +66,12 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -580,21 +581,17 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Button cancelButton = tuple.second;
 
         closeTicketButton.setOnAction(e -> {
-
-            // get or create dispute payout tx
-            MoneroTx payoutTx = null;
-            if (trade.isPayoutPublished()) payoutTx = trade.getPayoutTx();
-            else {
-                payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
-                trade.getProcessModel().setUnsignedPayoutTx((MoneroTxWallet) payoutTx);
-            }
-
-            // show confirmation
             if (dispute.getSupportType() == SupportType.ARBITRATION &&
                     peersDisputeOptional.isPresent() &&
-                    !peersDisputeOptional.get().isClosed()) {
+                    !peersDisputeOptional.get().isClosed() &&
+                    !trade.isPayoutPublished()) {
+
+                // create payout tx
+                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
+                trade.getProcessModel().setUnsignedPayoutTx((MoneroTxWallet) payoutTx);
+
+                // show confirmation
                 showPayoutTxConfirmation(contract,
-                        disputeResult,
                         payoutTx,
                         () -> doClose(closeTicketButton));
             } else {
@@ -609,12 +606,16 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         });
     }
 
-    private void showPayoutTxConfirmation(Contract contract, DisputeResult disputeResult, MoneroTx payoutTx, ResultHandler resultHandler) {
-        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
+    private void showPayoutTxConfirmation(Contract contract, MoneroTxWallet payoutTx, ResultHandler resultHandler) {
+
+        // get buyer and seller destinations (order not preserved)
         String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
-        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
         String sellerPayoutAddressString = contract.getSellerPayoutAddressString();
-        BigInteger outputAmount = buyerPayoutAmount.add(sellerPayoutAmount);
+        List<MoneroDestination> destinations = payoutTx.getOutgoingTransfer().getDestinations();
+        boolean buyerFirst = destinations.get(0).getAddress().equals(buyerPayoutAddressString);
+        BigInteger buyerPayoutAmount = buyerFirst ? destinations.get(0).getAmount() : destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.valueOf(0);
+        BigInteger sellerPayoutAmount = buyerFirst ? (destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.valueOf(0)) : destinations.get(0).getAmount();
+
         String buyerDetails = "";
         if (buyerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
@@ -627,6 +628,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     HavenoUtils.formatXmr(sellerPayoutAmount, true),
                     sellerPayoutAddressString);
         }
+        BigInteger outputAmount = buyerPayoutAmount.add(sellerPayoutAmount).add(payoutTx.getFee());
         if (outputAmount.compareTo(BigInteger.valueOf(0)) > 0) {
             new Popup().width(900)
                     .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
