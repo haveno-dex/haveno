@@ -198,14 +198,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                 log.info("Processing {} for {} {}", disputeClosedMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), disputeResult.getTradeId());
 
-                // verify arbitrator signature
-                String summaryText = chatMessage.getMessage();
-                DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager);
-
-                // save dispute closed message for reprocessing
-                trade.getProcessModel().setDisputeClosedMessage(disputeClosedMessage);
-                requestPersistence();
-
                 // get dispute
                 Optional<Dispute> disputeOptional = findDispute(disputeResult);
                 String uid = disputeClosedMessage.getUid();
@@ -225,7 +217,16 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
                 dispute = disputeOptional.get();
 
-                // verify that arbitrator does not get DisputeClosedMessage
+                // verify arbitrator signature
+                String summaryText = chatMessage.getMessage();
+                if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
+                else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail is arbitrator is unregistered)
+
+                // save dispute closed message for reprocessing
+                trade.getProcessModel().setDisputeClosedMessage(disputeClosedMessage);
+                requestPersistence();
+
+                // verify arbitrator does not receive DisputeClosedMessage
                 if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
                     log.error("Arbitrator received disputeResultMessage. That should never happen.");
                     trade.getProcessModel().setDisputeClosedMessage(null); // don't reprocess

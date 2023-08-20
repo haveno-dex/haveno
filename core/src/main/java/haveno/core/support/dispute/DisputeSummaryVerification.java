@@ -18,6 +18,7 @@
 package haveno.core.support.dispute;
 
 import haveno.common.crypto.Hash;
+import haveno.common.crypto.PubKeyRing;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.agent.DisputeAgent;
@@ -59,20 +60,35 @@ public class DisputeSummaryVerification {
     }
 
     public static void verifySignature(String input,
-                                         ArbitratorManager arbitratorMediator) {
+                                         ArbitratorManager arbitratorManager) {
+        // get dispute agent
+        DisputeAgent disputeAgent = null;
         try {
             String[] parts = input.split(SEPARATOR1);
             String textToSign = parts[0];
             String fullAddress = textToSign.split("\n")[1].split(": ")[1];
             NodeAddress nodeAddress = new NodeAddress(fullAddress);
-            DisputeAgent disputeAgent = arbitratorMediator.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
+            disputeAgent = arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
             checkNotNull(disputeAgent, "Dispute agent is null");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            throw new IllegalArgumentException(Res.get("support.sigCheck.popup.invalidFormat"));
+        }
 
+        // verify signature with pub key ring
+        verifySignature(input, disputeAgent.getPubKeyRing());
+    }
+
+    public static void verifySignature(String input,
+                                         PubKeyRing agentPubKeyRing) {
+        try {
+            String[] parts = input.split(SEPARATOR1);
+            String textToSign = parts[0];
             String sigString = parts[1].split(SEPARATOR2)[0];
             byte[] sig = Utilities.decodeFromHex(sigString);
             byte[] hash = Hash.getSha256Hash(textToSign);
             try {
-                HavenoUtils.verifySignature(disputeAgent.getPubKeyRing(), hash, sig);
+                HavenoUtils.verifySignature(agentPubKeyRing, hash, sig);
             } catch (Exception e) {
                 throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
             }
