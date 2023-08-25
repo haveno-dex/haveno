@@ -37,6 +37,7 @@ public final class F2FAccount extends CountryBasedPaymentAccount {
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.CONTACT, // TODO: contact is not used anywhere?
             PaymentAccountFormField.FieldId.CITY,
             PaymentAccountFormField.FieldId.EXTRA_INFO,
@@ -89,6 +90,7 @@ public final class F2FAccount extends CountryBasedPaymentAccount {
     @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
         if (field.getId() == PaymentAccountFormField.FieldId.CITY) field.setLabel(Res.get("payment.f2f.city"));
         if (field.getId() == PaymentAccountFormField.FieldId.CONTACT) field.setLabel(Res.get("payment.f2f.contact"));
         if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.shared.extraInfo.prompt"));
