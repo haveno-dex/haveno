@@ -169,7 +169,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         ngnTwOptional.ifPresent(tradeCurrencies::remove);
 
         try {
-            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(paymentMethodId));
+            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethodOrNA(paymentMethodId));
             account.getTradeCurrencies().clear();
             account.setId(proto.getId());
             account.setCreationDate(proto.getCreationDate());
@@ -348,7 +348,7 @@ public abstract class PaymentAccount implements PersistablePayload {
     }
 
     private static Class<? extends PaymentAccount> getPaymentAccountClass(String paymentMethodId) {
-        PaymentMethod paymentMethod = PaymentMethod.getPaymentMethod(paymentMethodId);
+        PaymentMethod paymentMethod = PaymentMethod.getPaymentMethodOrNA(paymentMethodId);
         return PaymentAccountFactory.getPaymentAccount(paymentMethod).getClass();
     }
 
