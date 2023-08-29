@@ -106,7 +106,7 @@ class CorePaymentAccountsService {
     }
 
     PaymentAccountForm getPaymentAccountForm(String paymentMethodId) {
-        return PaymentAccountForm.getForm(paymentMethodId);
+        return PaymentAccountForm.getForm(paymentMethodId.toUpperCase());
     }
 
     PaymentAccountForm getPaymentAccountForm(PaymentAccount paymentAccount) {
