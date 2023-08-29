@@ -60,18 +60,19 @@ public final class PaymentAccountForm implements PersistablePayload {
 
     public enum FormId {
         BLOCK_CHAINS,
+        FASTER_PAYMENTS,
+        F2F,
+        MONEY_GRAM,
+        PAXUM,
+        PAY_BY_MAIL,
         REVOLUT,
         SEPA,
         SEPA_INSTANT,
-        TRANSFERWISE,
-        ZELLE,
-        SWIFT,
-        F2F,
         STRIKE,
-        MONEY_GRAM,
-        FASTER_PAYMENTS,
+        SWIFT,
+        TRANSFERWISE,
         UPHOLD,
-        PAXUM;
+        ZELLE;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

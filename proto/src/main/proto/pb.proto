@@ -1840,6 +1840,7 @@ message PaymentAccountForm {
         FASTER_PAYMENTS = 10;
         UPHOLD = 11;
         PAXUM = 12;
+        PAY_BY_MAIL = 13;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
