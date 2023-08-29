@@ -771,7 +771,7 @@ public class AccountAgeWitnessService {
         boolean isFiltered = filterManager.isNodeAddressBanned(dispute.getContract().getBuyerNodeAddress()) ||
                 filterManager.isNodeAddressBanned(dispute.getContract().getSellerNodeAddress()) ||
                 filterManager.isCurrencyBanned(dispute.getContract().getOfferPayload().getCurrencyCode()) ||
-                filterManager.isPaymentMethodBanned(PaymentMethod.getPaymentMethod(dispute.getContract().getPaymentMethodId())) ||
+                filterManager.isPaymentMethodBanned(PaymentMethod.getPaymentMethodOrNA(dispute.getContract().getPaymentMethodId())) ||
                 filterManager.arePeersPaymentAccountDataBanned(dispute.getBuyerPaymentAccountPayload()) ||
                 filterManager.arePeersPaymentAccountDataBanned(dispute.getSellerPaymentAccountPayload()) ||
                 filterManager.isWitnessSignerPubKeyBanned(Utils.HEX.encode(dispute.getContract().getBuyerPubKeyRing().getSignaturePubKeyBytes())) ||

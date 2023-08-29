@@ -449,6 +449,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     public static PaymentMethod getPaymentMethod(String id) {
         return getActivePaymentMethod(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid payment method id: " + id));
+    }
+
+    public static PaymentMethod getPaymentMethodOrNA(String id) {
+        return getActivePaymentMethod(id)
                 .orElseGet(() -> new PaymentMethod(Res.get("shared.na")));
     }
 
