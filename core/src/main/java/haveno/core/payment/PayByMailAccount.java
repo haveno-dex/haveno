@@ -19,6 +19,7 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -35,6 +36,15 @@ public final class PayByMailAccount extends PaymentAccount {
         super(PaymentMethod.PAY_BY_MAIL);
     }
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+        PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+        PaymentAccountFormField.FieldId.CONTACT,
+        PaymentAccountFormField.FieldId.POSTAL_ADDRESS,
+        PaymentAccountFormField.FieldId.EXTRA_INFO,
+        PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.SALT
+    );
+
     @Override
     protected PaymentAccountPayload createPayload() {
         return new PayByMailAccountPayload(paymentMethod.getId(), id);
@@ -47,7 +57,7 @@ public final class PayByMailAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setPostalAddress(String postalAddress) {
@@ -72,5 +82,15 @@ public final class PayByMailAccount extends PaymentAccount {
 
     public String getExtraInfo() {
         return ((PayByMailAccountPayload) paymentAccountPayload).getExtraInfo();
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+        if (field.getId() == PaymentAccountFormField.FieldId.CONTACT) field.setLabel(Res.get("payment.payByMail.contact.prompt"));
+        if (field.getId() == PaymentAccountFormField.FieldId.POSTAL_ADDRESS) field.setLabel(Res.get("payment.postal.address"));
+        if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.shared.optionalExtra"));
+        return field;
     }
 }

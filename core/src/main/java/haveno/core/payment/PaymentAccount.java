@@ -28,6 +28,7 @@ import haveno.core.locale.BankUtil;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -501,7 +502,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case PIX_KEY:
             throw new IllegalArgumentException("Not implemented");
         case POSTAL_ADDRESS:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new InputValidator().validate(value));
+            break;
         case PROMPT_PAY_ID:
             throw new IllegalArgumentException("Not implemented");
         case QUESTION:
@@ -709,7 +711,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case PIX_KEY:
             throw new IllegalArgumentException("Not implemented");
         case POSTAL_ADDRESS:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
+            field.setLabel(Res.get("payment.postal.address"));
+            break;
         case PROMPT_PAY_ID:
             throw new IllegalArgumentException("Not implemented");
         case QUESTION:
