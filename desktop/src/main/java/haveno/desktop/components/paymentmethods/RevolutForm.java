@@ -105,12 +105,6 @@ public class RevolutForm extends PaymentMethodForm {
         TextField userNameTf = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.userName"), userName).second;
         userNameTf.setMouseTransparent(false);
 
-        if (account.hasOldAccountId()) {
-            String accountId = account.getAccountId();
-            TextField accountIdTf = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.phoneNr"), accountId).second;
-            accountIdTf.setMouseTransparent(false);
-        }
-
         addLimitations(true);
         addCurrenciesGrid(false);
     }
