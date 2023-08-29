@@ -90,16 +90,8 @@ public final class RevolutAccount extends PaymentAccount {
         return (revolutAccountPayload()).getUserName();
     }
 
-    public String getAccountId() {
-        return (revolutAccountPayload()).getAccountId();
-    }
-
     public boolean userNameNotSet() {
         return (revolutAccountPayload()).userNameNotSet();
-    }
-
-    public boolean hasOldAccountId() {
-        return (revolutAccountPayload()).hasOldAccountId();
     }
 
     private RevolutAccountPayload revolutAccountPayload() {
@@ -109,9 +101,6 @@ public final class RevolutAccount extends PaymentAccount {
     @Override
     public void onAddToUser() {
         super.onAddToUser();
-
-        // At save we apply the userName to accountId in case it is empty for backward compatibility
-        revolutAccountPayload().maybeApplyUserNameToAccountId();
     }
 
     @Override

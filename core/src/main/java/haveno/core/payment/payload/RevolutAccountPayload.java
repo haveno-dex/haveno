@@ -37,10 +37,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 @ToString
 @Slf4j
 public final class RevolutAccountPayload extends PaymentAccountPayload {
-    // Only used as internal Id to not break existing account witness objects
-    // We still show it in case it is different to the userName for additional security
-    @Getter
-    private String accountId = "";
 
     // Was added in 1.3.8
     // To not break signed accounts we keep accountId as internal id used for signing.
@@ -66,7 +62,6 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
 
     private RevolutAccountPayload(String paymentMethod,
                                   String id,
-                                  String accountId,
                                   @Nullable String userName,
                                   long maxTradePeriod,
                                   Map<String, String> excludeFromJsonDataMap) {
@@ -75,14 +70,12 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
                 maxTradePeriod,
                 excludeFromJsonDataMap);
 
-        this.accountId = accountId;
         this.userName = userName;
     }
 
     @Override
     public Message toProtoMessage() {
         protobuf.RevolutAccountPayload.Builder revolutBuilder = protobuf.RevolutAccountPayload.newBuilder()
-                .setAccountId(accountId)
                 .setUserName(userName);
         return getPaymentAccountPayloadBuilder().setRevolutAccountPayload(revolutBuilder).build();
     }
@@ -92,7 +85,6 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
         protobuf.RevolutAccountPayload revolutAccountPayload = proto.getRevolutAccountPayload();
         return new RevolutAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
-                revolutAccountPayload.getAccountId(),
                 revolutAccountPayload.getUserName(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
@@ -112,20 +104,9 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
     private Tuple2<String, String> getLabelValueTuple() {
         String label;
         String value;
-        checkArgument(!userName.isEmpty() || hasOldAccountId(),
-                "Either username must be set or we have an old account with accountId");
-        if (!userName.isEmpty()) {
-            label = Res.get("payment.account.userName");
-            value = userName;
-
-            if (hasOldAccountId()) {
-                label += "/" + Res.get("payment.account.phoneNr");
-                value += "/" + accountId;
-            }
-        } else {
-            label = Res.get("payment.account.phoneNr");
-            value = accountId;
-        }
+        checkArgument(!userName.isEmpty(), "Username must be set");
+        label = Res.get("payment.account.userName");
+        value = userName;
         return new Tuple2<>(label, value);
     }
 
@@ -142,35 +123,14 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
 
     @Override
     public byte[] getAgeWitnessInputData() {
-        // getAgeWitnessInputData is called at new account creation when accountId is empty string.
-        if (hasOldAccountId()) {
-            // If the accountId was already in place (updated user who had used accountId for account age) we keep the
-            // old accountId to not invalidate the existing account age witness.
-            return super.getAgeWitnessInputData(accountId.getBytes(StandardCharsets.UTF_8));
-
-        } else {
-            // If a new account was registered from version 1.3.8 or later we use the userName.
-            return super.getAgeWitnessInputData(userName.getBytes(StandardCharsets.UTF_8));
-        }
+        return super.getAgeWitnessInputData(userName.getBytes(StandardCharsets.UTF_8));
     }
 
     public boolean userNameNotSet() {
         return userName.isEmpty();
     }
 
-    public boolean hasOldAccountId() {
-        return !accountId.equals(userName);
-    }
-
     public void setUserName(String userName) {
         this.userName = userName;
-    }
-
-    // In case it is a new account we need to fill the accountId field to support not-updated traders who are not
-    // aware of the new userName field
-    public void maybeApplyUserNameToAccountId() {
-        if (accountId.isEmpty()) {
-            accountId = userName;
-        }
     }
 }
