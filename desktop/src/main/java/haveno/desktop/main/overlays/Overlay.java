@@ -54,6 +54,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -154,6 +156,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected Integer displayOrderPriority = Integer.MAX_VALUE;
 
     protected boolean useAnimation = true;
+    protected boolean showScrollPane = false;
 
     protected Label headlineIcon, headLineLabel, messageLabel;
     protected String headLine, message, closeButtonText, actionButtonText,
@@ -164,6 +167,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected Button actionButton, secondaryActionButton;
     private HBox buttonBox;
     protected AutoTooltipButton closeButton;
+    protected ScrollPane scrollPane;
 
     private HPos buttonAlignment = HPos.RIGHT;
 
@@ -467,6 +471,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T disableActionButton() {
         this.disableActionButton = true;
+        return cast();
+    }
+
+    public T showScrollPane() {
+        this.showScrollPane = true;
         return cast();
     }
 
@@ -807,13 +816,26 @@ public abstract class Overlay<T extends Overlay<T>> {
             messageLabel = new AutoTooltipLabel(truncatedMessage);
             messageLabel.setMouseTransparent(true);
             messageLabel.setWrapText(true);
-            GridPane.setHalignment(messageLabel, HPos.LEFT);
-            GridPane.setHgrow(messageLabel, Priority.ALWAYS);
-            GridPane.setMargin(messageLabel, new Insets(3, 0, 0, 0));
-            GridPane.setRowIndex(messageLabel, ++rowIndex);
-            GridPane.setColumnIndex(messageLabel, 0);
-            GridPane.setColumnSpan(messageLabel, 2);
-            gridPane.getChildren().add(messageLabel);
+
+            Region messageRegion;
+            if (showScrollPane) {
+                scrollPane = new ScrollPane(messageLabel);
+                scrollPane.setHbarPolicy(ScrollBarPolicy.NEVER);
+                scrollPane.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+                scrollPane.setFitToWidth(true);
+
+                messageRegion = scrollPane;
+            } else
+                messageRegion = messageLabel;
+
+            GridPane.setHalignment(messageRegion, HPos.LEFT);
+            GridPane.setHgrow(messageRegion, Priority.ALWAYS);
+            GridPane.setMargin(messageRegion, new Insets(3, 0, 0, 0));
+            GridPane.setRowIndex(messageRegion, ++rowIndex);
+            GridPane.setColumnIndex(messageRegion, 0);
+            GridPane.setColumnSpan(messageRegion, 2);
+            gridPane.getChildren().add(messageRegion);
+
             addFooter();
         }
     }

@@ -271,6 +271,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                     .closeButtonText(Res.get("shared.cancel"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
+                    .showScrollPane()
                     .show();
         } else if (paymentAccount instanceof CashAtAtmAccount) {
             // CashAtAtm has no chargeback risk so we don't show the text from payment.limits.info.
