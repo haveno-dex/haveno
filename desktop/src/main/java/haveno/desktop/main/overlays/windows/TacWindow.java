@@ -91,6 +91,7 @@ public class TacWindow extends Overlay<TacWindow> {
                 "    - The arbitrator will then make a reimbursement request to the Haveno to get reimbursed for the refund they paid to the trader.\n\n" +
                 "For more details and a general overview please read the full documentation about dispute resolution.";
         message(text);
+        showScrollPane();
         actionButtonText(Res.get("tacWindow.agree"));
         closeButtonText(Res.get("tacWindow.disagree"));
         onClose(HavenoApp.getShutDownHandler());
