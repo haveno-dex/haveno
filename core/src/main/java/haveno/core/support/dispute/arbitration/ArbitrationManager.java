@@ -249,7 +249,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                 // sync and save wallet
                 if (!trade.isPayoutPublished()) {
-                    trade.syncWallet();
+                    trade.syncAndPollWallet();
                     trade.saveWallet();
                 }
 
@@ -266,7 +266,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     if (disputeClosedMessage.isDeferPublishPayout()) {
                         log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                         GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
-                        if (!trade.isPayoutUnlocked()) trade.syncWallet();
+                        if (!trade.isPayoutUnlocked()) trade.syncAndPollWallet();
                     }
 
                     // sign and publish dispute payout tx if peer still has not published
@@ -277,7 +277,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         } catch (Exception e) {
 
                             // check if payout published again
-                            trade.syncWallet();
+                            trade.syncAndPollWallet();
                             if (trade.isPayoutPublished()) {
                                 log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
                             } else {

@@ -333,7 +333,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     private boolean useProxy(MoneroRpcConnection connection) {
-        return connection.isOnion() || (preferences.isUseTorForMonero() && !HavenoUtils.isLocalHost(connection.getUri()));
+        return connection.isOnion() || (preferences.getUseTorForXmr().isUseTorForXmr() && !HavenoUtils.isLocalHost(connection.getUri()));
     }
 
     private void initialize() {

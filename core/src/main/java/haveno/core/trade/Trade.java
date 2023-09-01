@@ -111,6 +111,7 @@ public abstract class Trade implements Tradable, Model {
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
     private MoneroWallet wallet; // trade wallet
     private Object walletLock = new Object();
+    boolean wasWalletSynced = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -382,6 +383,7 @@ public abstract class Trade implements Tradable, Model {
     transient final private ObjectProperty<DisputeState> disputeStateProperty = new SimpleObjectProperty<>(disputeState);
     transient final private ObjectProperty<TradePeriodState> tradePeriodStateProperty = new SimpleObjectProperty<>(periodState);
     transient final private StringProperty errorMessageProperty = new SimpleStringProperty();
+    transient private Subscription tradeStateSubscription;
     transient private Subscription tradePhaseSubscription;
     transient private Subscription payoutStateSubscription;
     transient private TaskLooper txPollLooper;
@@ -602,6 +604,14 @@ public abstract class Trade implements Tradable, Model {
                 setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             }
 
+            // handle trade state events
+            tradeStateSubscription = EasyBind.subscribe(stateProperty, newValue -> {
+                if (newValue == Trade.State.MULTISIG_COMPLETED) {
+                    updateWalletRefreshPeriod();
+                    startPolling();
+                }
+            });
+
             // handle trade phase events
             tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
                 if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
@@ -615,7 +625,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             });
 
-            // handle payout state events
+            // handle payout events
             payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
                 if (isPayoutPublished()) updateWalletRefreshPeriod();
 
@@ -657,15 +667,13 @@ public abstract class Trade implements Tradable, Model {
                 xmrWalletService.addWalletListener(idlePayoutSyncer);
             }
 
-            // reprocess pending payout messages
-            this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
-            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
-
-            // trade is initialized but not synced
+            // trade is initialized
             isInitialized = true;
 
-            // sync wallet if applicable
+            // done if payout unlocked or deposit not requested
             if (!isDepositRequested() || isPayoutUnlocked()) return;
+
+            // done if wallet does not exist
             if (!walletExists()) {
                 MoneroTx payoutTx = getPayoutTx();
                 if (payoutTx != null && payoutTx.getNumConfirmations() >= 10) {
@@ -676,8 +684,9 @@ public abstract class Trade implements Tradable, Model {
                     throw new IllegalStateException("Missing trade wallet for " + getClass().getSimpleName() + " " + getId());
                 }
             }
-            if (xmrWalletService.getConnectionsService().getConnection() == null || Boolean.FALSE.equals(xmrWalletService.getConnectionsService().isConnected())) return;
-            updateSyncing();
+
+            // initialize syncing and polling
+            initSyncing();
         }
     }
 
@@ -726,7 +735,7 @@ public abstract class Trade implements Tradable, Model {
             if (wallet != null) return wallet;
             if (!walletExists()) return null;
             if (isShutDownStarted) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because shut down is started");
-            else wallet = xmrWalletService.openWallet(getWalletName());
+            else wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
             return wallet;
         }
     }
@@ -755,23 +764,8 @@ public abstract class Trade implements Tradable, Model {
         return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists(); // arbitrator idles trade after deposits confirm
     }
 
-    public void syncWallet() {
-        if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
-        if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
-        log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getId());
-        xmrWalletService.syncWallet(getWallet());
-        pollWallet();
-        log.info("Done syncing wallet for {} {}", getClass().getSimpleName(), getId());
-    }
-
-    private void trySyncWallet() {
-        try {
-            syncWallet();
-        } catch (Exception e) {
-            if (!isShutDown && walletExists()) {
-                log.warn("Error syncing trade wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
-            }
-        }
+    public void syncAndPollWallet() {
+        syncWallet(true);
     }
 
     public void syncWalletNormallyForMs(long syncNormalDuration) {
@@ -1148,6 +1142,7 @@ public abstract class Trade implements Tradable, Model {
                     stopWallet();
                 }
             }
+            if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
             idlePayoutSyncer = null; // main wallet removes listener itself
@@ -1697,43 +1692,75 @@ public abstract class Trade implements Tradable, Model {
             // set daemon connection (must restart monero-wallet-rpc if proxy uri changed)
             String oldProxyUri = wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
             String newProxyUri = connection == null ? null : connection.getProxyUri();
-            log.info("Setting daemon connection for trade wallet {}: {}", getId() , connection == null ? null : connection.getUri());
-            if (wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
-                log.info("Restarting monero-wallet-rpc for trade wallet to set proxy URI {}: {}", getId() , connection == null ? null : connection.getUri());
+            log.info("Setting daemon connection for trade wallet {}: uri={}, proxyUri={}", getId() , connection == null ? null : connection.getUri(), newProxyUri);
+            if (xmrWalletService.isProxyApplied(wasWalletSynced) && wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
+                log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri);
                 closeWallet();
                 wallet = getWallet();
             } else {
                 wallet.setDaemonConnection(connection);
             }
-            updateWalletRefreshPeriod();
 
             // sync and reprocess messages on new thread
-            if (connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
+            if (isInitialized && connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
                 HavenoUtils.submitTask(() -> {
-                    updateSyncing();
-    
-                    // reprocess pending payout messages
-                    this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
-                    HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
+                    initSyncing();
                 });
             }
         }
     }
 
-    private void updateSyncing() {
+    private void initSyncing() {
         if (isShutDownStarted) return;
         if (!isIdling()) {
-            updateWalletRefreshPeriod();
-            trySyncWallet();
+            initSyncingAux();
         }  else {
             long startSyncingInMs = ThreadLocalRandom.current().nextLong(0, getWalletRefreshPeriod()); // random time to start syncing
             UserThread.runAfter(() -> {
                 if (!isShutDownStarted) {
-                    updateWalletRefreshPeriod();
-                    trySyncWallet();
+                    initSyncingAux();
                 }
             }, startSyncingInMs / 1000l);
         }
+    }
+    
+    private void initSyncingAux() {
+        if (!wasWalletSynced) trySyncWallet(false);
+        updateWalletRefreshPeriod();
+        
+        // reprocess pending payout messages
+        this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
+        HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
+
+        startPolling();
+    }
+
+    private void trySyncWallet(boolean pollWallet) {
+        try {
+            syncWallet(pollWallet);
+        } catch (Exception e) {
+            if (!isShutDown && walletExists()) {
+                log.warn("Error syncing trade wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            }
+        }
+    }
+
+    private void syncWallet(boolean pollWallet) {
+        if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+        if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+        log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getId());
+        xmrWalletService.syncWallet(getWallet());
+        log.info("Done syncing wallet for {} {}", getClass().getSimpleName(), getId());
+
+        // apply tor after wallet synced depending on configuration
+        if (!wasWalletSynced) {
+            wasWalletSynced = true;
+            if (xmrWalletService.isProxyApplied(wasWalletSynced)) {
+                onConnectionChanged(xmrWalletService.getConnectionsService().getConnection());
+            }
+        }
+
+        if (pollWallet) pollWallet();
     }
 
     public void updateWalletRefreshPeriod() {
@@ -1749,14 +1776,16 @@ public abstract class Trade implements Tradable, Model {
                 log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), walletRefreshPeriod);
                 getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
             }
-            stopPolling();
+            if (isPolling()) {
+                stopPolling();
+                startPolling();
+            }
         }
-        startPolling();
     }
 
     private void startPolling() {
         synchronized (walletLock) {
-            if (txPollLooper != null) return;
+            if (isPolling()) return;
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
             txPollLooper = new TaskLooper(() -> pollWallet());
             txPollLooper.start(walletRefreshPeriod);
@@ -1765,10 +1794,16 @@ public abstract class Trade implements Tradable, Model {
 
     private void stopPolling() {
         synchronized (walletLock) {
-            if (txPollLooper != null) {
+            if (isPolling()) {
                 txPollLooper.stop();
                 txPollLooper = null;
             }
+        }
+    }
+    
+    private boolean isPolling() {
+        synchronized (walletLock) {
+            return txPollLooper != null;
         }
     }
 
@@ -1855,7 +1890,6 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
-
     private long getWalletRefreshPeriod() {
         if (isIdling()) return IDLE_SYNC_PERIOD_MS;
         return xmrWalletService.getConnectionsService().getRefreshPeriodMs();
@@ -1924,7 +1958,7 @@ public abstract class Trade implements Tradable, Model {
                     long currentHeight = xmrWalletService.getDaemon().getHeight();
                     if (!isPayoutConfirmed() || (payoutHeight != null && currentHeight >= payoutHeight + XmrWalletService.NUM_BLOCKS_UNLOCK)) {
                         log.info("Syncing idle trade wallet to update payout tx, tradeId={}", getId());
-                        syncWallet();
+                        syncAndPollWallet();
                     }
                     processing = false;
                 } catch (Exception e) {

@@ -105,7 +105,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
         // update wallet
         trade.importMultisigHex();
-        trade.syncWallet();
+        trade.syncAndPollWallet();
         trade.saveWallet();
 
         // handle if payout tx not published
@@ -117,7 +117,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (deferSignAndPublish) {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
-                if (!trade.isPayoutUnlocked()) trade.syncWallet();
+                if (!trade.isPayoutUnlocked()) trade.syncAndPollWallet();
             }
 
             // verify and publish payout tx
@@ -136,7 +136,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                             trade.verifyPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (Exception e) {
-                        trade.syncWallet();
+                        trade.syncAndPollWallet();
                         if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
                         else throw e;
                     }

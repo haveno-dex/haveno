@@ -49,7 +49,6 @@ import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
@@ -75,7 +74,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     TitledGroupBg p2pHeader, btcHeader;
     @FXML
-    Label xmrNodesLabel, moneroNodesLabel, localhostXmrNodeInfoLabel;
+    Label useTorForXmrLabel, xmrNodesLabel, moneroNodesLabel, localhostXmrNodeInfoLabel;
     @FXML
     InputTextField xmrNodesInputTextField;
     @FXML
@@ -83,7 +82,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     Label p2PPeersLabel, moneroPeersLabel;
     @FXML
-    CheckBox useTorForXmrJCheckBox;
+    RadioButton useTorForXmrAfterSyncRadio, useTorForXmrOffRadio, useTorForXmrOnRadio;
     @FXML
     RadioButton useProvidedNodesRadio, useCustomNodesRadio, usePublicNodesRadio;
     @FXML
@@ -122,8 +121,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private Subscription moneroBlockHeightSubscription;
     private Subscription nodeAddressSubscription;
     private ChangeListener<Boolean> xmrNodesInputTextFieldFocusListener;
+    private ToggleGroup useTorForXmrToggleGroup;
     private ToggleGroup moneroPeersToggleGroup;
+    private Preferences.UseTorForXmr selectedUseTorForXmr;
     private XmrNodes.MoneroNodesOption selectedMoneroNodesOption;
+    private ChangeListener<Toggle> useTorForXmrToggleGroupListener;
     private ChangeListener<Toggle> moneroPeersToggleGroupListener;
     private ChangeListener<Filter> filterPropertyListener;
 
@@ -156,7 +158,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));
         xmrNodesLabel.setText(Res.get("settings.net.xmrNodesLabel"));
         moneroPeersLabel.setText(Res.get("settings.net.moneroPeersLabel"));
-        useTorForXmrJCheckBox.setText(Res.get("settings.net.useTorForXmrJLabel"));
+        useTorForXmrLabel.setText(Res.get("settings.net.useTorForXmrJLabel"));
+        useTorForXmrAfterSyncRadio.setText(Res.get("settings.net.useTorForXmrAfterSyncRadio"));
+        useTorForXmrOffRadio.setText(Res.get("settings.net.useTorForXmrOffRadio"));
+        useTorForXmrOnRadio.setText(Res.get("settings.net.useTorForXmrOnRadio"));
         moneroNodesLabel.setText(Res.get("settings.net.moneroNodesLabel"));
         moneroPeerAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
         moneroPeerAddressColumn.getStyleClass().add("first-column");
@@ -208,6 +213,31 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         p2pPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
         p2pPeersTableView.getSortOrder().add(creationDateColumn);
         creationDateColumn.setSortType(TableColumn.SortType.ASCENDING);
+        
+        // use tor for xmr radio buttons
+
+        useTorForXmrToggleGroup = new ToggleGroup();
+        useTorForXmrAfterSyncRadio.setToggleGroup(useTorForXmrToggleGroup);
+        useTorForXmrOffRadio.setToggleGroup(useTorForXmrToggleGroup);
+        useTorForXmrOnRadio.setToggleGroup(useTorForXmrToggleGroup);
+
+        useTorForXmrAfterSyncRadio.setUserData(Preferences.UseTorForXmr.AFTER_SYNC);
+        useTorForXmrOffRadio.setUserData(Preferences.UseTorForXmr.OFF);
+        useTorForXmrOnRadio.setUserData(Preferences.UseTorForXmr.ON);
+
+        selectedUseTorForXmr = Preferences.UseTorForXmr.values()[preferences.getUseTorForXmrOrdinal()];
+
+        selectUseTorForXmrToggle();
+        onUseTorForXmrToggleSelected(false);
+
+        useTorForXmrToggleGroupListener = (observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                selectedUseTorForXmr = (Preferences.UseTorForXmr) newValue.getUserData();
+                onUseTorForXmrToggleSelected(true);
+            }
+        };
+        
+        // monero nodes radio buttons
 
         moneroPeersToggleGroup = new ToggleGroup();
         useProvidedNodesRadio.setToggleGroup(moneroPeersToggleGroup);
@@ -264,28 +294,13 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void activate() {
+        useTorForXmrToggleGroup.selectedToggleProperty().addListener(useTorForXmrToggleGroupListener);
         moneroPeersToggleGroup.selectedToggleProperty().addListener(moneroPeersToggleGroupListener);
 
         if (filterManager.getFilter() != null)
             applyPreventPublicXmrNetwork();
 
         filterManager.filterProperty().addListener(filterPropertyListener);
-
-        useTorForXmrJCheckBox.setSelected(preferences.getUseTorForMonero());
-        useTorForXmrJCheckBox.setOnAction(event -> {
-            boolean selected = useTorForXmrJCheckBox.isSelected();
-            if (selected != preferences.getUseTorForMonero()) {
-                new Popup().information(Res.get("settings.net.needRestart"))
-                        .actionButtonText(Res.get("shared.applyAndShutDown"))
-                        .onAction(() -> {
-                            preferences.setUseTorForMonero(selected);
-                            UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
-                        })
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .onClose(() -> useTorForXmrJCheckBox.setSelected(!selected))
-                        .show();
-            }
-        });
 
         rescanOutputsButton.setOnAction(event -> GUIUtil.rescanOutputs(preferences));
 
@@ -328,10 +343,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void deactivate() {
+        useTorForXmrToggleGroup.selectedToggleProperty().removeListener(useTorForXmrToggleGroupListener);
         moneroPeersToggleGroup.selectedToggleProperty().removeListener(moneroPeersToggleGroupListener);
         filterManager.filterProperty().removeListener(filterPropertyListener);
-
-        useTorForXmrJCheckBox.setOnAction(null);
 
         if (nodeAddressSubscription != null)
             nodeAddressSubscription.unsubscribe();
@@ -360,6 +374,21 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
        return filterManager.getFilter() != null &&
                filterManager.getFilter().isPreventPublicXmrNetwork();
     }
+    
+    private void selectUseTorForXmrToggle() {
+        switch (selectedUseTorForXmr) {
+            case OFF:
+                useTorForXmrToggleGroup.selectToggle(useTorForXmrOffRadio);
+                break;
+            case ON:
+                useTorForXmrToggleGroup.selectToggle(useTorForXmrOnRadio);
+                break;
+            default:
+            case AFTER_SYNC:
+                useTorForXmrToggleGroup.selectToggle(useTorForXmrAfterSyncRadio);
+                break;
+        }
+    }
 
     private void selectMoneroPeersToggle() {
         switch (selectedMoneroNodesOption) {
@@ -383,10 +412,30 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .useShutDownButton()
                 .show();
     }
+    
+    private void onUseTorForXmrToggleSelected(boolean calledFromUser) {
+        Preferences.UseTorForXmr currentUseTorForXmr = Preferences.UseTorForXmr.values()[preferences.getUseTorForXmrOrdinal()];
+        if (currentUseTorForXmr != selectedUseTorForXmr) {
+            if (calledFromUser) {
+                new Popup().information(Res.get("settings.net.needRestart"))
+                    .actionButtonText(Res.get("shared.applyAndShutDown"))
+                    .onAction(() -> {
+                        preferences.setUseTorForXmrOrdinal(selectedUseTorForXmr.ordinal());
+                        UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
+                    })
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> {
+                        selectedUseTorForXmr = currentUseTorForXmr;
+                        selectUseTorForXmrToggle();
+                    })
+                    .show();
+            }
+        }
+    }
 
     private void onMoneroPeersToggleSelected(boolean calledFromUser) {
         boolean localMoneroNodeShouldBeUsed = localMoneroNode.shouldBeUsed();
-        useTorForXmrJCheckBox.setDisable(localMoneroNodeShouldBeUsed);
+        useTorForXmrLabel.setDisable(localMoneroNodeShouldBeUsed);
         moneroNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
         xmrNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
         xmrNodesInputTextField.setDisable(localMoneroNodeShouldBeUsed);

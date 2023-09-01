@@ -112,7 +112,6 @@ public class ProcessInitMultisigRequest extends TradeTask {
             processModel.setMultisigAddress(result.getAddress());
             new Thread(() -> trade.saveWallet()).start(); // save multisig wallet off thread on completion
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
-            trade.updateWalletRefreshPeriod(); // starts syncing
           }
 
           // update multisig participants if new state to communicate

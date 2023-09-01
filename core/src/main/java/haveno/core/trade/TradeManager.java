@@ -449,7 +449,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // sync idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling()) HavenoUtils.submitTask(() -> trade.syncWallet());
+                if (trade.isIdling()) HavenoUtils.submitTask(() -> trade.syncAndPollWallet());
             }
     
             // process after all wallets initialized
