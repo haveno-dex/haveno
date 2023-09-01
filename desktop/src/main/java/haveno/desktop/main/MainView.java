@@ -574,7 +574,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 splashP2PNetworkBusyAnimation.stop();
                 showTorNetworkSettingsButton.setVisible(true);
                 showTorNetworkSettingsButton.setManaged(true);
-                if (model.getUseTorForXMR().get()) {
+                if (model.getUseTorForXmr().get().isUseTorForXmr()) {
                     // If using tor for XMR, hide the XMR status since tor is not working
                     xmrSyncIndicator.setVisible(false);
                     xmrSplashInfo.setVisible(false);

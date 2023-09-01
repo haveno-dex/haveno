@@ -47,6 +47,7 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
+import haveno.core.user.Preferences.UseTorForXmr;
 import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
@@ -628,8 +629,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return havenoSetup.getXmrSplashSyncIconId();
     }
 
-    BooleanProperty getUseTorForXMR() {
-        return havenoSetup.getUseTorForXMR();
+    ObjectProperty<UseTorForXmr> getUseTorForXmr() {
+        return havenoSetup.getUseTorForXmr();
     }
 
     // P2P

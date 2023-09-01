@@ -137,6 +137,12 @@ public class Config {
     public final boolean helpRequested;
     public final File configFile;
 
+    public enum UseTorForXmr {
+        AFTER_SYNC,
+        OFF,
+        ON
+    }
+
     // Options supported on cmd line and in the config file
     public final String appName;
     public final File userDataDir;
@@ -180,7 +186,7 @@ public class Config {
     public final String xmrNodeUsername;
     public final String xmrNodePassword;
     public final String xmrNodes;
-    public final boolean useTorForXmr;
+    public final UseTorForXmr useTorForXmr;
     public final boolean useTorForXmrOptionSetExplicitly;
     public final String socks5DiscoverMode;
     public final boolean useAllProvidedNodes;
@@ -514,16 +520,18 @@ public class Config {
                         .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<String> xmrNodesOpt =
-                parser.accepts(XMR_NODES, "Custom nodes used for BitcoinJ as comma separated IP addresses.")
+                parser.accepts(XMR_NODES, "Custom nodes used for Monero as comma separated IP addresses.")
                         .withRequiredArg()
                         .describedAs("ip[,...]")
                         .defaultsTo("");
 
-        ArgumentAcceptingOptionSpec<Boolean> useTorForXmrOpt =
-                parser.accepts(USE_TOR_FOR_XMR, "If set to true BitcoinJ is routed over tor (socks 5 proxy).")
+        //noinspection rawtypes
+        ArgumentAcceptingOptionSpec<Enum> useTorForXmrOpt =
+                parser.accepts(USE_TOR_FOR_XMR, "Configure TOR for Monero connections, one of: after_sync, off, or on.")
                         .withRequiredArg()
-                        .ofType(Boolean.class)
-                        .defaultsTo(false);
+                        .ofType(UseTorForXmr.class)
+                        .withValuesConvertedBy(new EnumValueConverter(UseTorForXmr.class))
+                        .defaultsTo(UseTorForXmr.AFTER_SYNC);
 
         ArgumentAcceptingOptionSpec<String> socks5DiscoverModeOpt =
                 parser.accepts(SOCKS5_DISCOVER_MODE, "Specify discovery mode for Bitcoin nodes. " +
@@ -686,7 +694,7 @@ public class Config {
             this.xmrNodeUsername = options.valueOf(xmrNodeUsernameOpt);
             this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
             this.xmrNodes = options.valueOf(xmrNodesOpt);
-            this.useTorForXmr = options.valueOf(useTorForXmrOpt);
+            this.useTorForXmr = (UseTorForXmr) options.valueOf(useTorForXmrOpt);
             this.useTorForXmrOptionSetExplicitly = options.has(useTorForXmrOpt);
             this.socks5DiscoverMode = options.valueOf(socks5DiscoverModeOpt);
             this.useAllProvidedNodes = options.valueOf(useAllProvidedNodesOpt);

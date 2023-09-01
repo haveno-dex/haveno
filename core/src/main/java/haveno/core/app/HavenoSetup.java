@@ -49,6 +49,7 @@ import haveno.core.trade.TradeManager;
 import haveno.core.trade.TradeTxException;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
+import haveno.core.user.Preferences.UseTorForXmr;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.model.AddressEntry;
@@ -63,6 +64,7 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.utils.Utils;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
@@ -725,8 +727,8 @@ public class HavenoSetup {
         return walletAppSetup.getXmrSplashSyncIconId();
     }
 
-    public BooleanProperty getUseTorForXMR() {
-        return walletAppSetup.getUseTorForXMR();
+    public ObjectProperty<UseTorForXmr> getUseTorForXmr() {
+        return walletAppSetup.getUseTorForXmr();
     }
 
     // P2P

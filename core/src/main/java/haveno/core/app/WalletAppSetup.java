@@ -25,15 +25,14 @@ import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
+import haveno.core.user.Preferences.UseTorForXmr;
 import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.exceptions.RejectedTxException;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.WalletsManager;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -80,7 +79,7 @@ public class WalletAppSetup {
     @Getter
     private final ObjectProperty<RejectedTxException> rejectedTxException = new SimpleObjectProperty<>();
     @Getter
-    private final BooleanProperty useTorForXMR = new SimpleBooleanProperty();
+    private final ObjectProperty<UseTorForXmr> useTorForXmr = new SimpleObjectProperty<UseTorForXmr>();
 
     @Inject
     public WalletAppSetup(CoreContext coreContext,
@@ -95,7 +94,7 @@ public class WalletAppSetup {
         this.connectionService = connectionService;
         this.config = config;
         this.preferences = preferences;
-        this.useTorForXMR.set(preferences.getUseTorForMonero());
+        this.useTorForXmr.set(preferences.getUseTorForXmr());
     }
 
     void init(@Nullable Consumer<String> chainFileLockedExceptionHandler,
@@ -239,7 +238,7 @@ public class WalletAppSetup {
         String postFix;
         if (config.ignoreLocalXmrNode)
             postFix = " " + Res.get("mainView.footer.localhostBitcoinNode");
-        else if (preferences.getUseTorForMonero())
+        else if (preferences.getUseTorForXmr().isUseTorForXmr())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else
             postFix = "";

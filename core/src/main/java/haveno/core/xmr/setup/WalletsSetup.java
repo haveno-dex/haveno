@@ -171,7 +171,7 @@ public class WalletsSetup {
 
         backupWallets();
 
-        final Socks5Proxy socks5Proxy = preferences.getUseTorForMonero() ? socks5ProxyProvider.getSocks5Proxy() : null;
+        final Socks5Proxy socks5Proxy = socks5ProxyProvider.getSocks5Proxy();
         log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
 
         walletConfig = new WalletConfig(params, walletDir, "haveno") {

@@ -73,7 +73,14 @@
         <AutoTooltipLabel fx:id="localhostXmrNodeInfoLabel" styleClass="small-text"/>
     </VBox>
 
-    <AutoTooltipCheckBox fx:id="useTorForXmrJCheckBox" GridPane.rowIndex="1"/>
+    <VBox GridPane.rowIndex="1">
+        <AutoTooltipLabel fx:id="useTorForXmrLabel" styleClass="small-text"/>
+        <HBox spacing="10">
+            <AutoTooltipRadioButton fx:id="useTorForXmrAfterSyncRadio"/>
+            <AutoTooltipRadioButton fx:id="useTorForXmrOnRadio"/>
+            <AutoTooltipRadioButton fx:id="useTorForXmrOffRadio"/>
+        </HBox>
+    </VBox>
 
     <VBox GridPane.rowIndex="2">
         <AutoTooltipLabel fx:id="moneroNodesLabel" styleClass="small-text"/>

@@ -66,6 +66,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 @Singleton
 public final class Preferences implements PersistedDataHost, BridgeAddressProvider {
+    
+    public enum UseTorForXmr {
+        AFTER_SYNC,
+        OFF,
+        ON;
+
+        public boolean isUseTorForXmr() {
+            return this != UseTorForXmr.OFF;
+        }
+    }
 
     private static final ArrayList<BlockChainExplorer> BTC_MAIN_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
             new BlockChainExplorer("mempool.space (@wiz)", "https://mempool.space/tx/", "https://mempool.space/address/"),
@@ -300,7 +310,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         // Override settings with options if set
         if (config.useTorForXmrOptionSetExplicitly)
-            setUseTorForMonero(config.useTorForXmr);
+            setUseTorForXmr(config.useTorForXmr);
 
         if (xmrNodesFromOptions != null && !xmrNodesFromOptions.isEmpty()) {
             if (getMoneroNodes() != null && !getMoneroNodes().equals(xmrNodesFromOptions)) {
@@ -488,9 +498,20 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         }
     }
 
-    public void setUseTorForMonero(boolean useTorForMonero) {
-        prefPayload.setUseTorForMonero(useTorForMonero);
-        requestPersistence();
+    public void setUseTorForXmr(Config.UseTorForXmr useTorForXmr) {
+        switch (useTorForXmr) {
+        case AFTER_SYNC:
+            setUseTorForXmrOrdinal(Preferences.UseTorForXmr.AFTER_SYNC.ordinal());
+            break;
+        case OFF:
+            setUseTorForXmrOrdinal(Preferences.UseTorForXmr.OFF.ordinal());
+            break;
+        case ON:
+            setUseTorForXmrOrdinal(Preferences.UseTorForXmr.ON.ordinal());
+            break;
+        default:
+            throw new IllegalArgumentException("Unexpected case: " + useTorForXmr);
+        }
     }
 
     public void setSplitOfferOutput(boolean splitOfferOutput) {
@@ -663,6 +684,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         prefPayload.setCustomBridges(customBridges);
         persistenceManager.forcePersistNow();
     }
+    
+    public void setUseTorForXmrOrdinal(int useTorForXmrOrdinal) {
+        prefPayload.setUseTorForXmrOrdinal(useTorForXmrOrdinal);
+        requestPersistence();
+    }
 
     public void setMoneroNodesOptionOrdinal(int bitcoinNodesOptionOrdinal) {
         prefPayload.setMoneroNodesOptionOrdinal(bitcoinNodesOptionOrdinal);
@@ -794,8 +820,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return !prefPayload.getDontShowAgainMap().containsKey(key) || !prefPayload.getDontShowAgainMap().get(key);
     }
 
-    public boolean getUseTorForMonero() {
-        return prefPayload.isUseTorForMonero();
+    public UseTorForXmr getUseTorForXmr() {
+        return UseTorForXmr.class.getEnumConstants()[prefPayload.getUseTorForXmrOrdinal()];
+    }
+
+    public boolean isProxyApplied(boolean wasWalletSynced) {
+        return getUseTorForXmr() == UseTorForXmr.ON || (getUseTorForXmr() == UseTorForXmr.AFTER_SYNC && wasWalletSynced);
     }
 
     public boolean getSplitOfferOutput() {
@@ -864,8 +894,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setPreferredTradeCurrency(TradeCurrency preferredTradeCurrency);
 
-        void setUseTorForMonero(boolean useTorForMonero);
-
         void setSplitOfferOutput(boolean splitOfferOutput);
 
         void setShowOwnOffersInOfferBook(boolean showOwnOffersInOfferBook);
@@ -927,6 +955,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setTorTransportOrdinal(int torTransportOrdinal);
 
         void setCustomBridges(String customBridges);
+        
+        void setUseTorForXmrOrdinal(int useTorForXmrOrdinal);
 
         void setMoneroNodesOptionOrdinal(int bitcoinNodesOption);
 

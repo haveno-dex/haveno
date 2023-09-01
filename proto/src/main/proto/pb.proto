@@ -1654,7 +1654,7 @@ message PreferencesPayload {
     bool auto_select_arbitrators = 8;
     map<string, bool> dont_show_again_map = 9;
     bool tac_accepted = 10;
-    bool use_tor_for_monero = 11;
+    int32 use_tor_for_xmr_ordinal = 11;
     bool show_own_offers_in_offer_book = 12;
     TradeCurrency preferred_trade_currency = 13;
     int64 withdrawal_tx_fee_in_vbytes = 14;

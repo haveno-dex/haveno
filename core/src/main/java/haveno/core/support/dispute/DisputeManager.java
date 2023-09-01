@@ -838,7 +838,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         trade.importMultisigHex();
 
         // sync and save wallet
-        trade.syncWallet();
+        trade.syncAndPollWallet();
         trade.saveWallet();
 
         // create unsigned dispute payout tx if not already published
@@ -887,7 +887,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
                 return payoutTx;
             } catch (Exception e) {
-                trade.syncWallet();
+                trade.syncAndPollWallet();
                 if (!trade.isPayoutPublished()) throw e;
             }
         }
