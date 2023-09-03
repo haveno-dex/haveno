@@ -47,8 +47,8 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.util.validation.NonFiatPriceValidator;
-import haveno.core.util.validation.FiatPriceValidator;
+import haveno.core.util.validation.AmountValidator8Decimals;
+import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
 import haveno.core.xmr.wallet.Restrictions;
@@ -95,8 +95,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private final Preferences preferences;
     protected final CoinFormatter btcFormatter;
     private final FiatVolumeValidator fiatVolumeValidator;
-    private final FiatPriceValidator fiatPriceValidator;
-    private final NonFiatPriceValidator nonFiatPriceValidator;
+    private final AmountValidator4Decimals amountValidator4Decimals;
+    private final AmountValidator8Decimals amountValidator8Decimals;
     protected final OfferUtil offerUtil;
 
     private String amountDescription;
@@ -184,8 +184,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     @Inject
     public MutableOfferViewModel(M dataModel,
                                  FiatVolumeValidator fiatVolumeValidator,
-                                 FiatPriceValidator fiatPriceValidator,
-                                 NonFiatPriceValidator nonFiatPriceValidator,
+                                 AmountValidator4Decimals amountValidator4Decimals,
+                                 AmountValidator8Decimals amountValidator8Decimals,
                                  XmrValidator btcValidator,
                                  SecurityDepositValidator securityDepositValidator,
                                  PriceFeedService priceFeedService,
@@ -197,8 +197,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         super(dataModel);
 
         this.fiatVolumeValidator = fiatVolumeValidator;
-        this.fiatPriceValidator = fiatPriceValidator;
-        this.nonFiatPriceValidator = nonFiatPriceValidator;
+        this.amountValidator4Decimals = amountValidator4Decimals;
+        this.amountValidator8Decimals = amountValidator8Decimals;
         this.xmrValidator = btcValidator;
         this.securityDepositValidator = securityDepositValidator;
         this.priceFeedService = priceFeedService;
@@ -763,7 +763,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         InputValidator.ValidationResult result = PriceUtil.isTriggerPriceValid(triggerPriceAsString,
                 marketPrice,
                 dataModel.isSellOffer(),
-                dataModel.isTraditionalCurrency()
+                dataModel.getCurrencyCode()
         );
         triggerPriceValidationResult.set(result);
         updateButtonDisableState();
@@ -1175,16 +1175,20 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         return getVolumeValidator().validate(input);
     }
 
+    // TODO: replace with PriceUtils and VolumeUtils?
+
     private MonetaryValidator getPriceValidator() {
-        return CurrencyUtil.isFiatCurrency(getTradeCurrency().getCode()) ? fiatPriceValidator : nonFiatPriceValidator;
+        return CurrencyUtil.isPricePrecise(getTradeCurrency().getCode()) ? amountValidator8Decimals : amountValidator4Decimals;
     }
 
     private MonetaryValidator getVolumeValidator() {
         final String code = getTradeCurrency().getCode();
         if (CurrencyUtil.isFiatCurrency(code)) {
             return fiatVolumeValidator;
+        } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(code)) {
+            return amountValidator4Decimals;
         } else {
-            return nonFiatPriceValidator;
+            return amountValidator8Decimals;
         }
     }
 

@@ -39,7 +39,7 @@ public class MarketsPrintTool {
 
         final Collection<TraditionalCurrency> allSortedTraditionalCurrencies = CurrencyUtil.getAllSortedTraditionalCurrencies();
         final Stream<MarketCurrency> traditionalStream = allSortedTraditionalCurrencies.stream()
-                .filter(e -> !e.getCurrency().getCurrencyCode().equals("XMR")) // TODO (woodser): update to XMR
+                .filter(e -> !e.getCode().equals("XMR"))
                 .map(e -> new MarketCurrency("xmr_" + e.getCode().toLowerCase(), e.getName(), e.getCode()))
                 .distinct();
 

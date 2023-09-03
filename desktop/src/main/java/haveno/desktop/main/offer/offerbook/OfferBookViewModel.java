@@ -427,7 +427,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     int getNumberOfDecimalsForVolume(OfferBookListItem item) {
-        return item.getOffer().isFiatOffer() ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
+        return CurrencyUtil.isVolumeRoundedToNearestUnit(item.getOffer().getCurrencyCode()) ? GUIUtil.NUM_DECIMALS_UNIT : GUIUtil.NUM_DECIMALS_PRECISE;
     }
 
     String getPaymentMethod(OfferBookListItem item) {

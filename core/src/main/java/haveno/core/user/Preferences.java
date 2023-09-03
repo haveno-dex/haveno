@@ -632,7 +632,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public void setTraditionalCurrencies(List<TraditionalCurrency> currencies) {
         traditionalCurrenciesAsObservable.setAll(currencies.stream()
-                .map(traditionalCurrency -> new TraditionalCurrency(traditionalCurrency.getCurrency()))
+                .map(traditionalCurrency -> new TraditionalCurrency(traditionalCurrency))
                 .distinct().collect(Collectors.toList()));
         requestPersistence();
     }

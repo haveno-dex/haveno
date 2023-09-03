@@ -32,7 +32,6 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.handlers.TransactionResultHandler;
@@ -684,9 +683,5 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public void setReserveExactAmount(boolean reserveExactAmount) {
         this.reserveExactAmount = reserveExactAmount;
-    }
-
-    public boolean isUsingRoundedAtmCashAccount() {
-        return PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId());
     }
 }

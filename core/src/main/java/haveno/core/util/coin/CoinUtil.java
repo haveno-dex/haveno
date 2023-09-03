@@ -32,7 +32,7 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static haveno.core.util.VolumeUtil.getAdjustedFiatVolume;
+import static haveno.core.util.VolumeUtil.getAdjustedVolumeUnit;
 
 public class CoinUtil {
 
@@ -82,10 +82,10 @@ public class CoinUtil {
     public static BigInteger getRoundedAmount(BigInteger amount, Price price, long maxTradeLimit, String currencyCode, String paymentMethodId) {
         if (PaymentMethod.isRoundedForAtmCash(paymentMethodId)) {
             return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
-        } else if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            return getRoundedFiatAmount(amount, price, maxTradeLimit);
+        } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode)) {
+            return getRoundedAmountUnit(amount, price, maxTradeLimit);
         } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            return getRoundedTraditionalAmount(amount, price, maxTradeLimit);
+            return getRoundedAmountPrecise(amount, price, maxTradeLimit);
         }
         return amount;
     }
@@ -98,16 +98,16 @@ public class CoinUtil {
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
      * {@code price} and {@code maxTradeLimit} and {@code factor}.
      *
-     * @param amount            Bitcoin amount which is a candidate for getting rounded.
+     * @param amount            Monero amount which is a candidate for getting rounded.
      * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in satoshis.
+     * @param maxTradeLimit     The max. trade limit of the users account, in atomic units.
      * @return The adjusted amount
      */
-    public static BigInteger getRoundedFiatAmount(BigInteger amount, Price price, long maxTradeLimit) {
+    public static BigInteger getRoundedAmountUnit(BigInteger amount, Price price, long maxTradeLimit) {
         return getAdjustedAmount(amount, price, maxTradeLimit, 1);
     }
     
-    public static BigInteger getRoundedTraditionalAmount(BigInteger amount, Price price, long maxTradeLimit) {
+    public static BigInteger getRoundedAmountPrecise(BigInteger amount, Price price, long maxTradeLimit) {
         DecimalFormat decimalFormat = new DecimalFormat("#.####");
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
@@ -154,8 +154,8 @@ public class CoinUtil {
 
         // We get the adjusted volume from our amount
         Volume volume = useSmallestUnitForAmount
-                ? getAdjustedFiatVolume(price.getVolumeByAmount(smallestUnitForAmount), factor)
-                : getAdjustedFiatVolume(price.getVolumeByAmount(amount), factor);
+                ? getAdjustedVolumeUnit(price.getVolumeByAmount(smallestUnitForAmount), factor)
+                : getAdjustedVolumeUnit(price.getVolumeByAmount(amount), factor);
         if (volume.getValue() <= 0)
             return BigInteger.valueOf(0);
 

@@ -56,6 +56,14 @@ public class CurrencyUtil {
 
     private static String baseCurrencyCode = "XMR";
 
+    private static List<TraditionalCurrency> getTraditionalNonFiatCurrencies() {
+        return Arrays.asList(
+            new TraditionalCurrency("XAG", "Gold"),
+            new TraditionalCurrency("XAU", "Silver"),
+            new TraditionalCurrency("XGB", "Goldback")
+        );
+    }
+
     // Calls to isTraditionalCurrency and isCryptoCurrency are very frequent so we use a cache of the results.
     // The main improvement was already achieved with using memoize for the source maps, but
     // the caching still reduces performance costs by about 20% for isCryptoCurrency (1752 ms vs 2121 ms) and about 50%
@@ -101,7 +109,7 @@ public class CurrencyUtil {
 
     public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies(Comparator comparator) {
         return (List<TraditionalCurrency>) getAllSortedTraditionalCurrencies().stream()
-                .sorted(comparator)                     // sorted by comparator param
+                .sorted(comparator)
                 .collect(Collectors.toList());
     }
 
@@ -109,7 +117,7 @@ public class CurrencyUtil {
         List<TraditionalCurrency> currencies = CountryUtil.getAllCountries().stream()
                 .map(country -> getCurrencyByCountryCode(country.code))
                 .collect(Collectors.toList());
-        for (String isoCode : nonFiatIsoCodes) currencies.add(new TraditionalCurrency(Currency.getInstance(isoCode)));
+        currencies.addAll(getTraditionalNonFiatCurrencies());
         return currencies.stream().sorted(TradeCurrency::compareTo)
                 .distinct()
                 .collect(Collectors.toMap(TradeCurrency::getCode, Function.identity(), (x, y) -> x, LinkedHashMap::new));
@@ -131,12 +139,14 @@ public class CurrencyUtil {
 
     public static List<TraditionalCurrency> getMainTraditionalCurrencies() {
         List<TraditionalCurrency> list = getMainFiatCurrencies();
-        for (String isoCode : nonFiatIsoCodes) list.add(new TraditionalCurrency(isoCode));
+        list.addAll(getTraditionalNonFiatCurrencies());
         postProcessTraditionalCurrenciesList(list);
         return list;
     }
 
-    private static List<String> nonFiatIsoCodes = Arrays.asList("XAG", "XAU");
+    private static boolean isTraditionalNonFiatCurrency(String currencyCode) {
+        return getTraditionalNonFiatCurrencies().stream().anyMatch(c -> c.getCode().equals(currencyCode));
+    }
 
     private static void postProcessTraditionalCurrenciesList(List<TraditionalCurrency> list) {
         list.sort(TradeCurrency::compareTo);
@@ -209,7 +219,7 @@ public class CurrencyUtil {
 
     public static boolean isFiatCurrency(String currencyCode) {
         if (!isTraditionalCurrency(currencyCode)) return false;
-        if ("XAG".equalsIgnoreCase(currencyCode) || "XAU".equalsIgnoreCase(currencyCode)) return false;
+        if (isTraditionalNonFiatCurrency(currencyCode)) return false;
         return true;
     }
 
@@ -224,7 +234,7 @@ public class CurrencyUtil {
             boolean isTraditionalCurrency = currencyCode != null
                     && !currencyCode.isEmpty()
                     && !isCryptoCurrency(currencyCode)
-                    && Currency.getInstance(currencyCode) != null;
+                    && (isTraditionalNonFiatCurrency(currencyCode) || Currency.getInstance(currencyCode) != null);
 
             if (currencyCode != null) {
                 isTraditionalCurrencyMap.put(currencyCode, isTraditionalCurrency);
@@ -235,6 +245,17 @@ public class CurrencyUtil {
             isTraditionalCurrencyMap.put(currencyCode, false);
             return false;
         }
+    }
+
+    public static boolean isVolumeRoundedToNearestUnit(String currencyCode) {
+        return isFiatCurrency(currencyCode) ||
+                "XGB".equals(currencyCode.toUpperCase());
+    }
+
+    public static boolean isPricePrecise(String currencyCode) {
+        return isCryptoCurrency(currencyCode) ||
+            "XAU".equals(currencyCode.toUpperCase()) || 
+            "XAG".equals(currencyCode.toUpperCase());
     }
 
     public static Optional<TraditionalCurrency> getTraditionalCurrency(String currencyCode) {

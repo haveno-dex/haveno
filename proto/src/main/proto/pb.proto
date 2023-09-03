@@ -1786,7 +1786,6 @@ message CryptoCurrency {
 }
 
 message TraditionalCurrency {
-    Currency currency = 1;
 }
 
 message Country {

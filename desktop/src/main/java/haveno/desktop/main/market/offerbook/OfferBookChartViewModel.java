@@ -257,15 +257,15 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public int getMaxNumberOfPriceZeroDecimalsToColorize(Offer offer) {
-        return offer.isFiatOffer()
-                ? GUIUtil.FIAT_DECIMALS_WITH_ZEROS
-                : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
+        return CurrencyUtil.isVolumeRoundedToNearestUnit(offer.getCurrencyCode())
+                ? GUIUtil.NUM_DECIMALS_UNIT
+                : GUIUtil.NUM_DECIMALS_PRECISE;
     }
 
     public int getZeroDecimalsForPrice(Offer offer) {
-        return offer.isFiatOffer()
-                ? GUIUtil.FIAT_PRICE_DECIMALS_WITH_ZEROS
-                : GUIUtil.CRYPTOS_DECIMALS_WITH_ZEROS;
+        return CurrencyUtil.isPricePrecise(offer.getCurrencyCode())
+                ? GUIUtil.NUM_DECIMALS_PRECISE
+                : GUIUtil.NUM_DECIMALS_PRICE_LESS_PRECISE;
     }
 
     public String getPrice(Offer offer) {

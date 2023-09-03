@@ -126,9 +126,9 @@ public class GUIUtil {
 
     public final static String OPEN_WEB_PAGE_KEY = "warnOpenURLWhenTorEnabled";
 
-    public final static int FIAT_DECIMALS_WITH_ZEROS = 0;
-    public final static int FIAT_PRICE_DECIMALS_WITH_ZEROS = 3;
-    public final static int CRYPTOS_DECIMALS_WITH_ZEROS = 7;
+    public final static int NUM_DECIMALS_UNIT = 0;
+    public final static int NUM_DECIMALS_PRICE_LESS_PRECISE = 3;
+    public final static int NUM_DECIMALS_PRECISE = 7;
     public final static int AMOUNT_DECIMALS_WITH_ZEROS = 3;
     public final static int AMOUNT_DECIMALS = 4;
 

@@ -29,8 +29,8 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
-import haveno.core.util.validation.NonFiatPriceValidator;
-import haveno.core.util.validation.FiatPriceValidator;
+import haveno.core.util.validation.AmountValidator8Decimals;
+import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
 import lombok.extern.slf4j.Slf4j;
@@ -53,21 +53,21 @@ public class PriceUtil {
         this.priceFeedService = priceFeedService;
     }
 
-    public static MonetaryValidator getPriceValidator(boolean isFiatCurrency) {
-        return isFiatCurrency ?
-                new FiatPriceValidator() :
-                new NonFiatPriceValidator();
+    public static MonetaryValidator getPriceValidator(String currencyCode) {
+        return CurrencyUtil.isPricePrecise(currencyCode) ?
+                new AmountValidator4Decimals() :
+                new AmountValidator8Decimals();
     }
 
     public static InputValidator.ValidationResult isTriggerPriceValid(String triggerPriceAsString,
                                                                       MarketPrice marketPrice,
                                                                       boolean isSellOffer,
-                                                                      boolean isFiatCurrency) {
+                                                                      String currencyCode) {
         if (triggerPriceAsString == null || triggerPriceAsString.isEmpty()) {
             return new InputValidator.ValidationResult(true);
         }
 
-        InputValidator.ValidationResult result = getPriceValidator(isFiatCurrency).validate(triggerPriceAsString);
+        InputValidator.ValidationResult result = getPriceValidator(currencyCode).validate(triggerPriceAsString);
         if (!result.isValid) {
             return result;
         }
@@ -76,7 +76,8 @@ public class PriceUtil {
         long marketPriceAsLong = PriceUtil.getMarketPriceAsLong("" +  marketPrice.getPrice(), marketPrice.getCurrencyCode());
         String marketPriceAsString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
 
-        if ((isSellOffer && isFiatCurrency) || (!isSellOffer && !isFiatCurrency)) {
+        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
+        if ((isSellOffer && !isCryptoCurrency) || (!isSellOffer && isCryptoCurrency)) {
             if (triggerPriceAsLong >= marketPriceAsLong) {
                 return new InputValidator.ValidationResult(false,
                         Res.get("createOffer.triggerPrice.invalid.tooHigh", marketPriceAsString));

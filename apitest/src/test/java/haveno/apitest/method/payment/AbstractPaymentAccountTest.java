@@ -209,7 +209,7 @@ public class AbstractPaymentAccountTest extends MethodTest {
     protected final String getCommaDelimitedTraditionalCurrencyCodes(Collection<TraditionalCurrency> traditionalCurrencies) {
         return traditionalCurrencies.stream()
                 .sorted(Comparator.comparing(TradeCurrency::getCode))
-                .map(c -> c.getCurrency().getCurrencyCode())
+                .map(c -> c.getCode())
                 .collect(Collectors.joining(","));
     }
 

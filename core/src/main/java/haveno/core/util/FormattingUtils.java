@@ -29,9 +29,8 @@ public class FormattingUtils {
 
     public final static String RANGE_SEPARATOR = " - ";
 
-    private static final MonetaryFormat fiatPriceFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
-    private static final MonetaryFormat nonFiatPriceFormat = new MonetaryFormat().shift(0).minDecimals(8).repeatOptionalDecimals(0, 0);
-    private static final MonetaryFormat traditionalFormat = new MonetaryFormat().shift(0).minDecimals(TraditionalMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat priceFormat4Decimals = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    private static final MonetaryFormat priceFormat8Decimals = new MonetaryFormat().shift(0).minDecimals(8).repeatOptionalDecimals(0, 0);
     private static final MonetaryFormat cryptoFormat = new MonetaryFormat().shift(0).minDecimals(CryptoMoney.SMALLEST_UNIT_EXPONENT).repeatOptionalDecimals(0, 0);
     private static final DecimalFormat decimalFormat = new DecimalFormat("#.#");
 
@@ -293,11 +292,7 @@ public class FormattingUtils {
         return formattedNumber;
     }
 
-    public static MonetaryFormat getMonetaryFormat(String currencyCode) {
-        return CurrencyUtil.isTraditionalCurrency(currencyCode) ? traditionalFormat : cryptoFormat;
-    }
-
     public static MonetaryFormat getPriceMonetaryFormat(String currencyCode) {
-        return CurrencyUtil.isFiatCurrency(currencyCode) ? fiatPriceFormat : nonFiatPriceFormat;
+        return CurrencyUtil.isPricePrecise(currencyCode) ? priceFormat8Decimals : priceFormat4Decimals;
     }
 }
