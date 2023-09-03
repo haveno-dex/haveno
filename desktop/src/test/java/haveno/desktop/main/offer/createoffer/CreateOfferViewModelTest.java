@@ -37,8 +37,8 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.core.util.validation.NonFiatPriceValidator;
-import haveno.core.util.validation.FiatPriceValidator;
+import haveno.core.util.validation.AmountValidator8Decimals;
+import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -72,8 +72,8 @@ public class CreateOfferViewModelTest {
         Res.setup();
 
         final XmrValidator btcValidator = new XmrValidator();
-        final NonFiatPriceValidator nonFiatPriceValidator = new NonFiatPriceValidator();
-        final FiatPriceValidator fiatPriceValidator = new FiatPriceValidator();
+        final AmountValidator8Decimals priceValidator8Decimals = new AmountValidator8Decimals();
+        final AmountValidator4Decimals priceValidator4Decimals = new AmountValidator4Decimals();
 
         XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
         XmrWalletService xmrWalletService = mock(XmrWalletService.class);
@@ -121,8 +121,8 @@ public class CreateOfferViewModelTest {
 
         model = new CreateOfferViewModel(dataModel,
                 null,
-                fiatPriceValidator,
-                nonFiatPriceValidator,
+                priceValidator4Decimals,
+                priceValidator8Decimals,
                 btcValidator,
                 securityDepositValidator,
                 priceFeedService,

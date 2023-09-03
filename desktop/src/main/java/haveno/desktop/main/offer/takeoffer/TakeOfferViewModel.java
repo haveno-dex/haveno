@@ -311,9 +311,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     if (!isAmountEqualMinAmount(dataModel.getAmount().get()) && (!isAmountEqualMaxAmount(dataModel.getAmount().get()))) {
                         // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                         // Otherwise we could get an amount lower then the minAmount set by rounding
-                        BigInteger roundedAmount = dataModel.getOffer().isFiatOffer() ?
-                                CoinUtil.getRoundedFiatAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit) :
-                                CoinUtil.getRoundedTraditionalAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit);
+                        BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                         dataModel.applyAmount(roundedAmount);
                     }
                     amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
@@ -582,9 +580,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                         && !isAmountEqualMinAmount(amount) && !isAmountEqualMaxAmount(amount)) {
                     // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                     // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = dataModel.getOffer().isFiatOffer() ? 
-                            CoinUtil.getRoundedFiatAmount(amount, price, maxTradeLimit) :
-                            CoinUtil.getRoundedTraditionalAmount(amount, price, maxTradeLimit);
+                    amount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), price, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                 }
             }
             dataModel.applyAmount(amount);

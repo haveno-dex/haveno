@@ -27,8 +27,8 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.validation.NonFiatPriceValidator;
-import haveno.core.util.validation.FiatPriceValidator;
+import haveno.core.util.validation.AmountValidator8Decimals;
+import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.main.offer.MutableOfferViewModel;
@@ -40,8 +40,8 @@ class CreateOfferViewModel extends MutableOfferViewModel<CreateOfferDataModel> i
     @Inject
     public CreateOfferViewModel(CreateOfferDataModel dataModel,
                                 FiatVolumeValidator fiatVolumeValidator,
-                                FiatPriceValidator fiatPriceValidator,
-                                NonFiatPriceValidator nonFiatPriceValidator,
+                                AmountValidator4Decimals priceValidator4Decimals,
+                                AmountValidator8Decimals priceValidator8Decimals,
                                 XmrValidator btcValidator,
                                 SecurityDepositValidator securityDepositValidator,
                                 PriceFeedService priceFeedService,
@@ -52,8 +52,8 @@ class CreateOfferViewModel extends MutableOfferViewModel<CreateOfferDataModel> i
                                 OfferUtil offerUtil) {
         super(dataModel,
                 fiatVolumeValidator,
-                fiatPriceValidator,
-                nonFiatPriceValidator,
+                priceValidator4Decimals,
+                priceValidator8Decimals,
                 btcValidator,
                 securityDepositValidator,
                 priceFeedService,

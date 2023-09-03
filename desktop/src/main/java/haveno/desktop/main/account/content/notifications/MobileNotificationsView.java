@@ -40,8 +40,6 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
 import haveno.core.util.PriceUtil;
-import haveno.core.util.validation.NonFiatPriceValidator;
-import haveno.core.util.validation.FiatPriceValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
@@ -313,9 +311,8 @@ public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
         TradeCurrency selectedItem = currencyComboBox.getSelectionModel().getSelectedItem();
         if (selectedItem != null) {
             selectedPriceAlertTradeCurrency = selectedItem.getCode();
-            boolean isFiatCurrency = CurrencyUtil.isFiatCurrency(selectedPriceAlertTradeCurrency);
-            priceAlertHighInputTextField.setValidator(isFiatCurrency ? new FiatPriceValidator() : new NonFiatPriceValidator());
-            priceAlertLowInputTextField.setValidator(isFiatCurrency ? new FiatPriceValidator() : new NonFiatPriceValidator());
+            priceAlertHighInputTextField.setValidator(PriceUtil.getPriceValidator(selectedPriceAlertTradeCurrency));
+            priceAlertLowInputTextField.setValidator(PriceUtil.getPriceValidator(selectedPriceAlertTradeCurrency));
         } else {
             selectedPriceAlertTradeCurrency = null;
         }

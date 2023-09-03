@@ -29,8 +29,8 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.validation.NonFiatPriceValidator;
-import haveno.core.util.validation.FiatPriceValidator;
+import haveno.core.util.validation.AmountValidator8Decimals;
+import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferViewModel;
 import lombok.extern.slf4j.Slf4j;
@@ -43,8 +43,8 @@ class DuplicateOfferViewModel extends MutableOfferViewModel<DuplicateOfferDataMo
     @Inject
     public DuplicateOfferViewModel(DuplicateOfferDataModel dataModel,
                               FiatVolumeValidator fiatVolumeValidator,
-                              FiatPriceValidator fiatPriceValidator,
-                              NonFiatPriceValidator nonFiatPriceValidator,
+                              AmountValidator4Decimals priceValidator4Decimals,
+                              AmountValidator8Decimals priceValidator8Decimals,
                               XmrValidator btcValidator,
                               SecurityDepositValidator securityDepositValidator,
                               PriceFeedService priceFeedService,
@@ -55,8 +55,8 @@ class DuplicateOfferViewModel extends MutableOfferViewModel<DuplicateOfferDataMo
                               OfferUtil offerUtil) {
         super(dataModel,
                 fiatVolumeValidator,
-                fiatPriceValidator,
-                nonFiatPriceValidator,
+                priceValidator4Decimals,
+                priceValidator8Decimals,
                 btcValidator,
                 securityDepositValidator,
                 priceFeedService,
