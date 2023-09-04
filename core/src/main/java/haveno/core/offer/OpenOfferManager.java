@@ -764,6 +764,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void addSignedOffer(SignedOffer signedOffer) {
         log.info("Adding SignedOffer offer for offer {}", signedOffer.getOfferId());
         synchronized (signedOffers) {
+
+            // remove signed offers with common key images
+            for (String keyImage : signedOffer.getReserveTxKeyImages()) {
+                removeSignedOffers(keyImage);
+            }
+
+            // add new signed offer
             signedOffers.add(signedOffer);
             signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
         }
