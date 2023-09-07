@@ -687,11 +687,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
             } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-
-                if (Double.parseDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())){
+                if (Double.parseDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())) {
                     amountValidationResult.set(result);
-                }
-                else{
+                } else {
                     amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
                     boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
                     new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
@@ -700,7 +698,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             .width(900)
                             .show();
                 }
-
             }
             // We want to trigger a recalculation of the volume
             UserThread.execute(() -> {
