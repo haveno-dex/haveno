@@ -128,7 +128,7 @@ public final class CoreMoneroConnectionsService {
         synchronized (lock) {
             isInitialized = false;
             if (daemonPollLooper != null) daemonPollLooper.stop();
-            connectionManager.stopCheckingConnection();
+            connectionManager.stopPolling();
             daemon = null;
         }
     }
@@ -225,7 +225,7 @@ public final class CoreMoneroConnectionsService {
     public void stopCheckingConnection() {
         synchronized (lock) {
             accountService.checkAccountOpen();
-            connectionManager.stopCheckingConnection();
+            connectionManager.stopPolling();
             connectionList.setRefreshPeriod(-1L);
         }
     }
