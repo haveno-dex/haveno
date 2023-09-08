@@ -74,7 +74,7 @@ import static javafx.beans.binding.Bindings.createStringBinding;
 class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> implements ViewModel {
     final TakeOfferDataModel dataModel;
     private final OfferUtil offerUtil;
-    private final XmrValidator btcValidator;
+    private final XmrValidator xmrValidator;
     private final P2PService p2PService;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
@@ -136,7 +136,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         super(dataModel);
         this.dataModel = dataModel;
         this.offerUtil = offerUtil;
-        this.btcValidator = btcValidator;
+        this.xmrValidator = btcValidator;
         this.p2PService = p2PService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
@@ -210,9 +210,9 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         errorMessage.set(offer.getErrorMessage());
 
-        btcValidator.setMaxValue(offer.getAmount());
-        btcValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()).min(offer.getAmount()));
-        btcValidator.setMinValue(offer.getMinAmount());
+        xmrValidator.setMaxValue(offer.getAmount());
+        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()).min(offer.getAmount()));
+        xmrValidator.setMinValue(offer.getMinAmount());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -240,7 +240,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
-        btcValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()).min(offer.getAmount()));
+        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()).min(offer.getAmount()));
         updateButtonDisableState();
     }
 
@@ -288,7 +288,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     // On focus out we do validation and apply the data to the model
     void onFocusOutAmountTextField(boolean oldValue, boolean newValue, String userInput) {
         if (oldValue && !newValue) {
-            InputValidator.ValidationResult result = isBtcInputValid(amount.get());
+            InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
             if (result.isValid) {
                 showWarningInvalidBtcDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, xmrFormatter));
@@ -328,7 +328,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 if (dataModel.wouldCreateDustForMaker())
                     amountValidationResult.set(new InputValidator.ValidationResult(false,
                             Res.get("takeOffer.validation.amountLargerThanOfferAmountMinusFee")));
-            } else if (btcValidator.getMaxTradeLimit() != null && btcValidator.getMaxTradeLimit().equals(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)) {
+            } else if (xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().equals(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT)) {
                 if (dataModel.getDirection() == OfferDirection.BUY) {
                     new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller",
                             HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
@@ -443,7 +443,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private void updateButtonDisableState() {
-        boolean inputDataValid = isBtcInputValid(amount.get()).isValid
+        boolean inputDataValid = isXmrInputValid(amount.get()).isValid
                 && dataModel.isMinAmountLessOrEqualAmount()
                 && !dataModel.isAmountLargerThanOfferAmount()
                 && isOfferAvailable.get()
@@ -470,7 +470,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     private void createListeners() {
         amountStrListener = (ov, oldValue, newValue) -> {
-            if (isBtcInputValid(newValue).isValid) {
+            if (isXmrInputValid(newValue).isValid) {
                 setAmountToModel();
                 calculateVolume();
                 dataModel.calculateTotalToPay();
@@ -580,7 +580,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                         && !isAmountEqualMinAmount(amount) && !isAmountEqualMaxAmount(amount)) {
                     // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                     // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), price, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
+                    amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                 }
             }
             dataModel.applyAmount(amount);
@@ -618,8 +618,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         return false;
     }
 
-    private InputValidator.ValidationResult isBtcInputValid(String input) {
-        return btcValidator.validate(input);
+    private InputValidator.ValidationResult isXmrInputValid(String input) {
+        return xmrValidator.validate(input);
     }
 
     public Offer getOffer() {
