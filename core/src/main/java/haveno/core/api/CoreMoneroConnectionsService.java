@@ -1,5 +1,6 @@
 package haveno.core.api;
 
+import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
@@ -468,6 +469,13 @@ public final class CoreMoneroConnectionsService {
 
             // register connection listener
             connectionManager.addListener(this::onConnectionChanged);
+
+            // start polling for best connection after delay
+            if ("".equals(config.xmrNode)) {
+                UserThread.runAfter(() -> {
+                    if (!isShutDownStarted) connectionManager.startPolling(getRefreshPeriodMs() * 2);
+                }, getDefaultRefreshPeriodMs() * 2 / 1000);
+            }
 
             // notify final connection
             isInitialized = true;
