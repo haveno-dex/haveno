@@ -334,19 +334,20 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static List<PaymentMethod> getPaymentMethods() {
         List<String> paymentMethodIds = List.of(
                 BLOCK_CHAINS_ID,
+                CASH_AT_ATM_ID,
+                FASTER_PAYMENTS_ID,
+                F2F_ID,
+                MONEY_GRAM_ID,
+                PAXUM_ID,
+                PAY_BY_MAIL_ID,
                 REVOLUT_ID,
                 SEPA_ID,
                 SEPA_INSTANT_ID,
-                TRANSFERWISE_ID,
-                ZELLE_ID,
-                SWIFT_ID,
-                F2F_ID,
                 STRIKE_ID,
-                MONEY_GRAM_ID,
-                FASTER_PAYMENTS_ID,
+                SWIFT_ID,
+                TRANSFERWISE_ID,
                 UPHOLD_ID,
-                PAXUM_ID,
-                PAY_BY_MAIL_ID);
+                ZELLE_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 

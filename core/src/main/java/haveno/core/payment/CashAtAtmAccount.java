@@ -19,6 +19,7 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.CashAtAtmAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -32,7 +33,10 @@ public final class CashAtAtmAccount extends PaymentAccount {
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
-        PaymentAccountFormField.FieldId.EXTRA_INFO
+        PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+        PaymentAccountFormField.FieldId.EXTRA_INFO,
+        PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.SALT
     );
 
     public CashAtAtmAccount() {
@@ -60,5 +64,13 @@ public final class CashAtAtmAccount extends PaymentAccount {
 
     public String getExtraInfo() {
         return ((CashAtAtmAccountPayload) paymentAccountPayload).getExtraInfo();
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+        if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.cashAtAtm.extraInfo.prompt"));
+        return field;
     }
 }

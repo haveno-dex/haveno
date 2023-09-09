@@ -60,6 +60,7 @@ public final class PaymentAccountForm implements PersistablePayload {
 
     public enum FormId {
         BLOCK_CHAINS,
+        CASH_AT_ATM,
         FASTER_PAYMENTS,
         F2F,
         MONEY_GRAM,
