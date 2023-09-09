@@ -1839,6 +1839,7 @@ message PaymentAccountForm {
         UPHOLD = 11;
         PAXUM = 12;
         PAY_BY_MAIL = 13;
+        CASH_AT_ATM = 14;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
