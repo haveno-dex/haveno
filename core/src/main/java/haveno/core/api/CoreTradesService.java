@@ -20,7 +20,10 @@ package haveno.core.api;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferUtil;
 import haveno.core.offer.takeoffer.TakeOfferModel;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.traderchat.TradeChatSession;
 import haveno.core.support.traderchat.TraderChatManager;
@@ -32,6 +35,7 @@ import haveno.core.trade.TradeUtil;
 import haveno.core.trade.protocol.BuyerProtocol;
 import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.user.User;
+import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.BtcAddressValidator;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -64,6 +68,7 @@ class CoreTradesService {
     private final TradeManager tradeManager;
     private final TraderChatManager traderChatManager;
     private final TradeUtil tradeUtil;
+    private final OfferUtil offerUtil;
     private final User user;
 
     @Inject
@@ -75,6 +80,7 @@ class CoreTradesService {
                              TradeManager tradeManager,
                              TraderChatManager traderChatManager,
                              TradeUtil tradeUtil,
+                             OfferUtil offerUtil,
                              User user) {
         this.coreContext = coreContext;
         this.coreWalletsService = coreWalletsService;
@@ -84,6 +90,7 @@ class CoreTradesService {
         this.tradeManager = tradeManager;
         this.traderChatManager = traderChatManager;
         this.tradeUtil = tradeUtil;
+        this.offerUtil = offerUtil;
         this.user = user;
     }
 
@@ -104,6 +111,21 @@ class CoreTradesService {
 
             // default to offer amount
             BigInteger amount = amountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(amountAsLong);
+
+            // adjust amount for fixed-price offer (based on TakeOfferViewModel)
+            String currencyCode = offer.getCurrencyCode();
+            OfferDirection direction = offer.getOfferPayload().getDirection();
+            long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
+            if (offer.getPrice() != null) {
+                if (PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId())) {
+                    amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), maxTradeLimit);
+                } else if (offer.isTraditionalOffer()
+                        && !amount.equals(offer.getMinAmount()) && !amount.equals(amount)) {
+                    // We only apply the rounding if the amount is variable (minAmount is lower as amount).
+                    // Otherwise we could get an amount lower then the minAmount set by rounding
+                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), maxTradeLimit, offer.getCurrencyCode(), offer.getPaymentMethodId());
+                }
+            }
 
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
             BigInteger takerFee;

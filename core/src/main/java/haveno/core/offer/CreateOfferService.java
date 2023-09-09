@@ -100,7 +100,7 @@ public class CreateOfferService {
                                    String currencyCode,
                                    BigInteger amount,
                                    BigInteger minAmount,
-                                   Price price,
+                                   Price fixedPrice,
                                    boolean useMarketBasedPrice,
                                    double marketPriceMargin,
                                    double buyerSecurityDepositAsDouble,
@@ -109,7 +109,7 @@ public class CreateOfferService {
         log.info("create and get offer with offerId={}, " +
                         "currencyCode={}, " +
                         "direction={}, " +
-                        "price={}, " +
+                        "fixedPrice={}, " +
                         "useMarketBasedPrice={}, " +
                         "marketPriceMargin={}, " +
                         "amount={}, " +
@@ -118,7 +118,7 @@ public class CreateOfferService {
                 offerId,
                 currencyCode,
                 direction,
-                price == null ? null : price.getValue(),
+                fixedPrice == null ? null : fixedPrice.getValue(),
                 useMarketBasedPrice,
                 marketPriceMargin,
                 amount,
@@ -126,24 +126,31 @@ public class CreateOfferService {
                 buyerSecurityDepositAsDouble);
 
         // verify fixed price xor market price with margin
-        if (price != null) {
+        if (fixedPrice != null) {
             if (useMarketBasedPrice) throw new IllegalArgumentException("Can create offer with fixed price or floating market price but not both");
             if (marketPriceMargin != 0) throw new IllegalArgumentException("Cannot set market price margin with fixed price");
         }
 
         long creationTime = new Date().getTime();
         NodeAddress makerAddress = p2PService.getAddress();
-        boolean useMarketBasedPriceValue = price == null &&
+        boolean useMarketBasedPriceValue = fixedPrice == null &&
                 useMarketBasedPrice &&
                 isMarketPriceAvailable(currencyCode) &&
                 !PaymentMethod.isFixedPriceOnly(paymentAccount.getPaymentMethod().getId());
 
         // verify price
-        if (price == null && !useMarketBasedPriceValue) {
-            throw new IllegalArgumentException("Must provide fixed price because market price is unavailable");
+        if (fixedPrice == null && !useMarketBasedPriceValue) {
+            throw new IllegalArgumentException("Must provide fixed price");
         }
 
-        long priceAsLong = price != null ? price.getValue() : 0L;
+        // adjust amount and min amount for fixed-price offer
+        long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
+        if (fixedPrice != null) {
+            amount = CoinUtil.getRoundedAmount(amount, fixedPrice, maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+            minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+        }
+
+        long priceAsLong = fixedPrice != null ? fixedPrice.getValue() : 0L;
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.longValueExact() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.longValueExact() : 0L;
@@ -158,7 +165,6 @@ public class CreateOfferService {
         BigInteger makerFee = HavenoUtils.getMakerFee(amount);
         BigInteger buyerSecurityDeposit = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
         BigInteger sellerSecurityDeposit = getSellerSecurityDeposit(amount, sellerSecurityDepositAsDouble);
-        long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
 
         // reserved for future use cases

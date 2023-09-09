@@ -302,10 +302,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 Price tradePrice = dataModel.tradePrice;
                 long maxTradeLimit = dataModel.getMaxTradeLimit();
                 if (PaymentMethod.isRoundedForAtmCash(dataModel.getPaymentMethod().getId())) {
-                    BigInteger adjustedAmountForHalCash = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(),
+                    BigInteger adjustedAmountForAtm = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(),
                             tradePrice,
                             maxTradeLimit);
-                    dataModel.applyAmount(adjustedAmountForHalCash);
+                    dataModel.applyAmount(adjustedAmountForAtm);
                     amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
                 } else if (dataModel.getOffer().isTraditionalOffer()) {
                     if (!isAmountEqualMinAmount(dataModel.getAmount().get()) && (!isAmountEqualMaxAmount(dataModel.getAmount().get()))) {
