@@ -52,6 +52,7 @@ public class JFXRadioButtonSkinHavenoStyle extends RadioButtonSkin {
 
     public JFXRadioButtonSkinHavenoStyle(JFXRadioButton control) {
         super(control);
+        control.setSelectedColor(Color.web("#0b65da"));
 
         final double radioRadius = 7;
         radio = new Circle(radioRadius);

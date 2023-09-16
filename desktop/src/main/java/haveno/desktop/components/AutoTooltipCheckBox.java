@@ -41,6 +41,7 @@ public class AutoTooltipCheckBox extends JFXCheckBox {
     private class AutoTooltipCheckBoxSkin extends JFXCheckBoxSkin {
         public AutoTooltipCheckBoxSkin(JFXCheckBox checkBox) {
             super(checkBox);
+            checkBox.setStyle("-jfx-checked-color: #0b65da");
         }
 
         @Override
