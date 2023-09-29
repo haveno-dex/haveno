@@ -14,6 +14,9 @@ localnet:
 haveno:
 	./gradlew build
 
+update-dependencies:
+	./gradlew --refresh-dependencies && ./gradlew --write-verification-metadata sha256
+
 # build haveno without tests
 skip-tests: localnet
 	./gradlew build -x test -x checkstyleMain -x checkstyleTest
