@@ -62,7 +62,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     private final Map<String, EncryptedConnection> items = new HashMap<>();
     private @NonNull String currentConnectionUrl = "";
-    private long refreshPeriod;
+    private long refreshPeriod; // -1 means no refresh, 0 means default, >0 means custom
     private boolean autoSwitch;
 
     @Inject
