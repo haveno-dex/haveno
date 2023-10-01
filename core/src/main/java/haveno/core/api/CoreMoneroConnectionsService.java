@@ -251,11 +251,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     public long getRefreshPeriodMs() {
-        if (connectionList.getRefreshPeriod() < 0 || connectionList.getRefreshPeriod() > 0) {
-            return connectionList.getRefreshPeriod();
-        } else {
-            return getDefaultRefreshPeriodMs();
-        }
+        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs();
     }
 
     public void verifyConnection() {
@@ -526,7 +522,7 @@ public final class CoreMoneroConnectionsService {
         new Thread(() -> {
             synchronized (lock) {
                 stopPolling();
-                if (getRefreshPeriodMs() > 0) startPolling();
+                if (connectionList.getRefreshPeriod() >= 0) startPolling(); // 0 means default refresh poll
             }
         }).start();
     }
