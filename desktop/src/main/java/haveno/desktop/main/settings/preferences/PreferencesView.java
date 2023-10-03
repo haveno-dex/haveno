@@ -512,8 +512,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useDarkMode = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.useDarkMode"));
         sortMarketCurrenciesNumerically = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.sortWithNumOffers"));
         hideNonAccountPaymentMethodsToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.onlyShowPaymentMethodsFromAccount"));
-        denyApiTakerToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.denyApiTaker"));
-        notifyOnPreReleaseToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.notifyOnPreRelease"));
+        //denyApiTakerToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.denyApiTaker")); // TODO: re-enable?
+        //notifyOnPreReleaseToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.notifyOnPreRelease"));
         resetDontShowAgainButton = addButton(root, ++gridRow, Res.get("setting.preferences.resetAllFlags"), 0);
         resetDontShowAgainButton.getStyleClass().add("compact-button");
         resetDontShowAgainButton.setMaxWidth(Double.MAX_VALUE);
@@ -762,11 +762,11 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         hideNonAccountPaymentMethodsToggle.setOnAction(e -> preferences.setHideNonAccountPaymentMethods(hideNonAccountPaymentMethodsToggle.isSelected()));
         hideNonAccountPaymentMethodsToggle.setDisable(disableToggle);
 
-        denyApiTakerToggle.setSelected(preferences.isDenyApiTaker());
-        denyApiTakerToggle.setOnAction(e -> preferences.setDenyApiTaker(denyApiTakerToggle.isSelected()));
+        //denyApiTakerToggle.setSelected(preferences.isDenyApiTaker());
+        //denyApiTakerToggle.setOnAction(e -> preferences.setDenyApiTaker(denyApiTakerToggle.isSelected()));
 
-        notifyOnPreReleaseToggle.setSelected(preferences.isNotifyOnPreRelease());
-        notifyOnPreReleaseToggle.setOnAction(e -> preferences.setNotifyOnPreRelease(notifyOnPreReleaseToggle.isSelected()));
+        //notifyOnPreReleaseToggle.setSelected(preferences.isNotifyOnPreRelease());
+        //notifyOnPreReleaseToggle.setOnAction(e -> preferences.setNotifyOnPreRelease(notifyOnPreReleaseToggle.isSelected()));
 
         resetDontShowAgainButton.setOnAction(e -> preferences.resetDontShowAgain());
 
@@ -837,8 +837,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useDarkMode.setOnAction(null);
         sortMarketCurrenciesNumerically.setOnAction(null);
         hideNonAccountPaymentMethodsToggle.setOnAction(null);
-        denyApiTakerToggle.setOnAction(null);
-        notifyOnPreReleaseToggle.setOnAction(null);
+        //denyApiTakerToggle.setOnAction(null);
+        //notifyOnPreReleaseToggle.setOnAction(null);
         showOwnOffersInOfferBook.setOnAction(null);
         resetDontShowAgainButton.setOnAction(null);
         if (displayStandbyModeFeature) {
