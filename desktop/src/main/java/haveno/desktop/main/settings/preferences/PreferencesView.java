@@ -211,7 +211,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initializeGeneralOptions() {
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 9 : 8;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 7 : 6;
         TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
