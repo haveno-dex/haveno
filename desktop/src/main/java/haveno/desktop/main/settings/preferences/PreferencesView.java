@@ -771,7 +771,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         resetDontShowAgainButton.setOnAction(e -> preferences.resetDontShowAgain());
 
         editCustomBtcExplorer.setOnAction(e -> {
-            EditCustomExplorerWindow urlWindow = new EditCustomExplorerWindow("BTC",
+            EditCustomExplorerWindow urlWindow = new EditCustomExplorerWindow("XMR",
                     preferences.getBlockChainExplorer(), preferences.getBlockChainExplorers());
             urlWindow
                     .actionButtonText(Res.get("shared.save"))

@@ -22,9 +22,7 @@ import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
-import haveno.core.user.BlockChainExplorer;
 import haveno.core.user.Preferences;
-import haveno.desktop.util.GUIUtil;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -40,7 +38,7 @@ public class ExplorerAddressTextField extends AnchorPane {
 
     @Getter
     private final TextField textField;
-    private final Label copyIcon, blockExplorerIcon, missingAddressWarningIcon;
+    private final Label copyIcon, missingAddressWarningIcon;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -55,14 +53,6 @@ public class ExplorerAddressTextField extends AnchorPane {
         AnchorPane.setRightAnchor(copyIcon, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("explorerAddressTextField.blockExplorerIcon.tooltip"));
-
-        blockExplorerIcon = new Label();
-        blockExplorerIcon.getStyleClass().addAll("icon", "highlight");
-        blockExplorerIcon.setTooltip(tooltip);
-        AwesomeDude.setIcon(blockExplorerIcon, AwesomeIcon.EXTERNAL_LINK);
-        blockExplorerIcon.setMinWidth(20);
-        AnchorPane.setRightAnchor(blockExplorerIcon, 52.0);
-        AnchorPane.setTopAnchor(blockExplorerIcon, 4.0);
 
         missingAddressWarningIcon = new Label();
         missingAddressWarningIcon.getStyleClass().addAll("icon", "error-icon");
@@ -81,15 +71,13 @@ public class ExplorerAddressTextField extends AnchorPane {
         AnchorPane.setRightAnchor(textField, 80.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
-        getChildren().addAll(textField, missingAddressWarningIcon, blockExplorerIcon, copyIcon);
+        getChildren().addAll(textField, missingAddressWarningIcon, copyIcon);
     }
 
     public void setup(@Nullable String address) {
         if (address == null) {
             textField.setText(Res.get("shared.na"));
             textField.setId("address-text-field-error");
-            blockExplorerIcon.setVisible(false);
-            blockExplorerIcon.setManaged(false);
             copyIcon.setVisible(false);
             copyIcon.setManaged(false);
             missingAddressWarningIcon.setVisible(true);
@@ -98,26 +86,12 @@ public class ExplorerAddressTextField extends AnchorPane {
         }
 
         textField.setText(address);
-        textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(address));
-        blockExplorerIcon.setOnMouseClicked(mouseEvent -> openBlockExplorer(address));
         copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(address));
     }
 
     public void cleanup() {
         textField.setOnMouseClicked(null);
-        blockExplorerIcon.setOnMouseClicked(null);
         copyIcon.setOnMouseClicked(null);
         textField.setText("");
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void openBlockExplorer(String address) {
-        if (preferences != null) {
-            BlockChainExplorer blockChainExplorer = preferences.getBlockChainExplorer();
-            GUIUtil.openWebPage(blockChainExplorer.addressUrl + address, false);
-        }
     }
 }

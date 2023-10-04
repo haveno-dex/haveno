@@ -33,7 +33,6 @@ import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AddressTextField;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
@@ -308,11 +307,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
         }
     }
 
-    private void openBlockExplorer(DepositListItem item) {
-        if (item.getAddressString() != null)
-            GUIUtil.openWebPage(preferences.getBlockChainExplorer().addressUrl + item.getAddressString(), false);
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -391,13 +385,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
                                 if (item != null && !empty) {
                                     String address = item.getAddressString();
-                                    field = new ExternalHyperlink(address);
-                                    field.setOnAction(event -> {
-                                        openBlockExplorer(item);
-                                        tableView.getSelectionModel().select(item);
-                                    });
-                                    field.setTooltip(new Tooltip(Res.get("tooltip.openBlockchainForAddress", address)));
-                                    setGraphic(field);
+                                    setGraphic(new AutoTooltipLabel(address));
                                 } else {
                                     setGraphic(null);
                                     if (field != null)

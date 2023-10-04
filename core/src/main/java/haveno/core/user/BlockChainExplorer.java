@@ -23,22 +23,19 @@ import haveno.common.proto.persistable.PersistablePayload;
 public final class BlockChainExplorer implements PersistablePayload {
     public final String name;
     public final String txUrl;
-    public final String addressUrl;
 
-    public BlockChainExplorer(String name, String txUrl, String addressUrl) {
+    public BlockChainExplorer(String name, String txUrl) {
         this.name = name;
         this.txUrl = txUrl;
-        this.addressUrl = addressUrl;
     }
 
     @Override
     public Message toProtoMessage() {
-        return protobuf.BlockChainExplorer.newBuilder().setName(name).setTxUrl(txUrl).setAddressUrl(addressUrl).build();
+        return protobuf.BlockChainExplorer.newBuilder().setName(name).setTxUrl(txUrl).build();
     }
 
     public static BlockChainExplorer fromProto(protobuf.BlockChainExplorer proto) {
         return new BlockChainExplorer(proto.getName(),
-                proto.getTxUrl(),
-                proto.getAddressUrl());
+                proto.getTxUrl());
     }
 }

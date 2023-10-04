@@ -35,7 +35,6 @@ import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
@@ -221,10 +220,6 @@ public class ReservedView extends ActivatableView<VBox, Void> {
                 .collect(Collectors.toList()));
     }
 
-    private void openBlockExplorer(ReservedListItem item) {
-        GUIUtil.openWebPage(preferences.getBlockChainExplorer().addressUrl + item.getAddressString(), false);
-    }
-
     private Optional<Tradable> getTradable(ReservedListItem item) {
         String offerId = item.getAddressEntry().getOfferId();
         Optional<Trade> tradeOptional = tradeManager.getOpenTrade(offerId);
@@ -329,7 +324,6 @@ public class ReservedView extends ActivatableView<VBox, Void> {
                     public TableCell<ReservedListItem, ReservedListItem> call(TableColumn<ReservedListItem,
                             ReservedListItem> column) {
                         return new TableCell<>() {
-                            private HyperlinkWithIcon hyperlinkWithIcon;
 
                             @Override
                             public void updateItem(final ReservedListItem item, boolean empty) {
@@ -337,14 +331,9 @@ public class ReservedView extends ActivatableView<VBox, Void> {
 
                                 if (item != null && !empty) {
                                     String address = item.getAddressString();
-                                    hyperlinkWithIcon = new ExternalHyperlink(address);
-                                    hyperlinkWithIcon.setOnAction(event -> openBlockExplorer(item));
-                                    hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("tooltip.openBlockchainForAddress", address)));
-                                    setGraphic(hyperlinkWithIcon);
+                                    setGraphic(new AutoTooltipLabel(address));
                                 } else {
                                     setGraphic(null);
-                                    if (hyperlinkWithIcon != null)
-                                        hyperlinkWithIcon.setOnAction(null);
                                 }
                             }
                         };
