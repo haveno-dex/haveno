@@ -37,7 +37,7 @@ import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public class FasterPaymentsForm extends PaymentMethodForm {
-    private static final String UK_SORT_CODE = "UK sort code";
+    private static final String UK_SORT_CODE = Res.get("payment.fasterPayments.ukSortCode");
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
