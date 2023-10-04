@@ -553,26 +553,26 @@ public abstract class PaymentAccount implements PersistablePayload {
         switch (fieldId) {
         case ACCEPTED_COUNTRY_CODES:
             field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
-            field.setLabel("Accepted country codes");
+            field.setLabel(Res.get("payment.accepted.countries"));
             field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
             break;
         case ACCOUNT_ID:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Username or email or phone no.");
+            field.setLabel(Res.get("payment.uphold.accountId"));
             break;
         case ACCOUNT_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Account name"); // TODO: pull all labels from language file
+            field.setLabel(Res.get("payment.account.name"));
             field.setMinLength(3);
             field.setMaxLength(100);
             break;
         case ACCOUNT_NR:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Account number");
+            field.setLabel("payment.accountNr");
             break;
         case ACCOUNT_OWNER:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Account owner full name");
+            field.setLabel(Res.get("payment.account.owner"));
             break;
         case ACCOUNT_TYPE:
             throw new IllegalArgumentException("Not implemented");
@@ -586,15 +586,15 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case BANK_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
-            field.setLabel("Receiving Bank address");
+            field.setLabel(Res.get("payment.swift.address.bank"));
             break;
         case BANK_BRANCH:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Receiving Bank branch");
+            field.setLabel(Res.get("payment.swift.branch.bank"));
             break;
         case BANK_BRANCH_CODE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Receiving Bank SWIFT code"); // TODO: only used for swift?
+            field.setLabel(Res.get("payment.swift.swiftCode.bank"));
             break;
         case BANK_BRANCH_NAME:
             throw new IllegalArgumentException("Not implemented");
@@ -602,37 +602,37 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case BANK_COUNTRY_CODE:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
-            field.setLabel("Country of bank");
+            field.setLabel(Res.get("payment.bank.country"));
             break;
         case BANK_ID:
             throw new IllegalArgumentException("Not implemented");
         case BANK_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Receiving Bank name");
+            field.setLabel(Res.get("payment.swift.name.bank"));
             break;
         case BANK_SWIFT_CODE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Receiving Bank SWIFT Code");
+            field.setLabel(Res.get("payment.swift.swiftCode.bank"));
             break;
         case BENEFICIARY_ACCOUNT_NR:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Account No. (or IBAN)");
+            field.setLabel(Res.get("payment.swift.account"));
             break;
         case BENEFICIARY_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
-            field.setLabel("Beneficiary address");
+            field.setLabel(Res.get("payment.swift.address.beneficiary"));
             break;
         case BENEFICIARY_CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Beneficiary city");
+            field.setLabel(Res.get("payment.account.city"));
             break;
         case BENEFICIARY_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Account owner full name");
+            field.setLabel(Res.get("payment.account.owner"));
             break;
         case BENEFICIARY_PHONE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Beneficiary phone number");
+            field.setLabel(Res.get("payment.swift.phone.beneficiary"));
             break;
         case BIC:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -642,27 +642,27 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("City");
+            field.setLabel(Res.get("payment.account.city"));
         case CONTACT:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Contact info");
+            field.setLabel(Res.get("payment.payByMail.contact"));
         case COUNTRY:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
-            field.setLabel("Country");
+            field.setLabel(Res.get("shared.country"));
             if (this instanceof CountryBasedPaymentAccount) field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
             break;
         case EMAIL:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setType("email");
-            field.setLabel("Email");
+            field.setLabel(Res.get("payment.email"));
             break;
         case EMAIL_OR_MOBILE_NR:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Email or mobile number");
+            field.setLabel(Res.get("payment.email.mobile"));
             break;
         case EXTRA_INFO:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
-            field.setLabel("Optional additional information");
+            field.setLabel(Res.get("payment.shared.optionalExtra"));
             break;
         case HOLDER_ADDRESS:
             throw new IllegalArgumentException("Not implemented");
@@ -670,7 +670,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case HOLDER_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Account owner full name");
+            field.setLabel(Res.get("payment.account.owner"));
             field.setMinLength(2);
             field.setMaxLength(100);
             break;
@@ -684,23 +684,23 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case INTERMEDIARY_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
-            field.setLabel("Intermediary Bank address");
+            field.setLabel(Res.get("payment.swift.address.intermediary"));
             break;
         case INTERMEDIARY_BRANCH:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Intermediary Bank branch");
+            field.setLabel(Res.get("payment.swift.branch.intermediary"));
             break;
         case INTERMEDIARY_COUNTRY_CODE:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
-            field.setLabel("Intermediary Bank country");
+            field.setLabel(Res.get("payment.swift.country.intermediary"));
             break;
         case INTERMEDIARY_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Intermediary Bank name");
+            field.setLabel(Res.get("payment.swift.name.intermediary"));
             break;
         case INTERMEDIARY_SWIFT_CODE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Intermediary Bank SWIFT Code"); // TODO: swift only?
+            field.setLabel(Res.get("payment.swift.swiftCode.intermediary"));
             break;
         case MOBILE_NR:
             throw new IllegalArgumentException("Not implemented");
@@ -726,32 +726,32 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         case SORT_CODE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("UK sort code");
+            field.setLabel(Res.get("payment.fasterPayments.ukSortCode"));
             break;
         case SPECIAL_INSTRUCTIONS:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Special instructions");
+            field.setLabel(Res.get("payment.shared.extraInfo"));
             break;
         case STATE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("State/Province/Region");
+            field.setLabel(Res.get("payment.account.state"));
             field.setRequiredForCountries(CountryUtil.getCountryCodes(BankUtil.getAllStateRequiredCountries()));
             break;
         case TRADE_CURRENCIES:
             field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
-            field.setLabel("Supported currencies");
+            field.setLabel(Res.get("payment.supportedCurrencies"));
             field.setSupportedCurrencies(getSupportedCurrencies());
             field.setValue(String.join(",", getSupportedCurrencies().stream().map(TradeCurrency::getCode).collect(Collectors.toList())));
             break;
         case USER_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("User name");
+            field.setLabel(Res.get("payment.account.userName"));
             field.setMinLength(3);
             field.setMaxLength(100);
             break;
         case ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("Address");
+            field.setLabel(Res.get("payment.account.address"));
             field.setMinLength(10);
             field.setMaxLength(150);
             break;
