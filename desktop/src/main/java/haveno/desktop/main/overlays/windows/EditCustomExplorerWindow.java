@@ -54,7 +54,7 @@ import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> {
 
-    private InputTextField nameInputTextField, txUrlInputTextField, addressUrlInputTextField;
+    private InputTextField nameInputTextField, txUrlInputTextField;
     private UrlInputValidator urlInputValidator;
     private BlockChainExplorer currentExplorer;
     private ListView<BlockChainExplorer> listView;
@@ -70,9 +70,10 @@ public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> 
 
     public BlockChainExplorer getEditedBlockChainExplorer() {
         return new BlockChainExplorer(nameInputTextField.getText(),
-                txUrlInputTextField.getText(), addressUrlInputTextField.getText());
+                txUrlInputTextField.getText());
     }
 
+    @Override
     public void show() {
 
         width = 1000;
@@ -83,20 +84,17 @@ public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> 
 
         urlInputValidator = new UrlInputValidator();
         txUrlInputTextField.setValidator(urlInputValidator);
-        addressUrlInputTextField.setValidator(urlInputValidator);
         nameInputTextField.setValidator(new LengthValidator(1, 50));
 
         actionButton.disableProperty().bind(createBooleanBinding(() -> {
                     String name = nameInputTextField.getText();
                     String txUrl = txUrlInputTextField.getText();
-                    String addressUrl = addressUrlInputTextField.getText();
 
                     // Otherwise we require that input is valid
                     return !nameInputTextField.getValidator().validate(name).isValid ||
-                            !txUrlInputTextField.getValidator().validate(txUrl).isValid ||
-                            !addressUrlInputTextField.getValidator().validate(addressUrl).isValid;
+                            !txUrlInputTextField.getValidator().validate(txUrl).isValid;
                 },
-                nameInputTextField.textProperty(), txUrlInputTextField.textProperty(), addressUrlInputTextField.textProperty()));
+                nameInputTextField.textProperty(), txUrlInputTextField.textProperty()));
 
         applyStyles();
         display();
@@ -127,7 +125,6 @@ public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> 
             if (blockChainExplorer != null) {
                 nameInputTextField.setText(blockChainExplorer.name);
                 txUrlInputTextField.setText(blockChainExplorer.txUrl);
-                addressUrlInputTextField.setText(blockChainExplorer.addressUrl);
             }
         });
         button.setStyle("-fx-pref-width: 50px; -fx-pref-height: 30; -fx-padding: 3 3 3 3;");
@@ -169,7 +166,6 @@ public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> 
                             BlockChainExplorer blockChainExplorer = listView.getSelectionModel().getSelectedItem();
                             nameInputTextField.setText(blockChainExplorer.name);
                             txUrlInputTextField.setText(blockChainExplorer.txUrl);
-                            addressUrlInputTextField.setText(blockChainExplorer.addressUrl);
                         }
                     }
                 });
@@ -186,9 +182,7 @@ public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> 
         nameInputTextField = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("settings.preferences.editCustomExplorer.name"), Layout.FIRST_ROW_DISTANCE);
         nameInputTextField.setPrefWidth(Layout.INITIAL_WINDOW_WIDTH);
         txUrlInputTextField = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("settings.preferences.editCustomExplorer.txUrl"));
-        addressUrlInputTextField = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("settings.preferences.editCustomExplorer.addressUrl"));
         nameInputTextField.setText(currentExplorer.name);
         txUrlInputTextField.setText(currentExplorer.txUrl);
-        addressUrlInputTextField.setText(currentExplorer.addressUrl);
     }
 }

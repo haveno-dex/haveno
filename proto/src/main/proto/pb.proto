@@ -1748,7 +1748,6 @@ message UserPayload {
 message BlockChainExplorer {
     string name = 1;
     string tx_url = 2;
-    string address_url = 3;
 }
 
 message PaymentAccount {

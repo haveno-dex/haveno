@@ -244,12 +244,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
             GUIUtil.openWebPage(preferences.getBlockChainExplorer().txUrl + item.getTxId(), false);
     }
 
-    private void openAddressInBlockExplorer(TransactionsListItem item) {
-        if (item.getAddressString() != null) {
-            GUIUtil.openWebPage(preferences.getBlockChainExplorer().addressUrl + item.getAddressString(), false);
-        }
-    }
-
     private void openDetailPopup(TransactionsListItem item) {
         if (item.getTradable() instanceof OpenOffer)
             offerDetailsWindow.show(item.getTradable().getOffer());
@@ -349,7 +343,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                     String addressString = item.getAddressString();
                                     field = new AddressWithIconAndDirection(item.getDirection(), addressString,
                                             item.getReceived());
-                                    field.setOnAction(event -> openAddressInBlockExplorer(item));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.openBlockchainForAddress", addressString)));
                                     setGraphic(field);
                                 } else {

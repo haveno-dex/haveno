@@ -77,43 +77,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         }
     }
 
-    private static final ArrayList<BlockChainExplorer> BTC_MAIN_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
-            new BlockChainExplorer("mempool.space (@wiz)", "https://mempool.space/tx/", "https://mempool.space/address/"),
-            new BlockChainExplorer("mempool.space Tor V3", "http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/tx/", "http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/address/"),
-            new BlockChainExplorer("mempool.emzy.de (@emzy)", "https://mempool.emzy.de/tx/", "https://mempool.emzy.de/address/"),
-            new BlockChainExplorer("mempool.emzy.de Tor V3", "http://mempool4t6mypeemozyterviq3i5de4kpoua65r3qkn5i3kknu5l2cad.onion/tx/", "http://mempool4t6mypeemozyterviq3i5de4kpoua65r3qkn5i3kknu5l2cad.onion/address/"),
-            new BlockChainExplorer("mempool.haveno.services (@devinbileck)", "https://mempool.haveno.services/tx/", "https://mempool.haveno.services/address/"),
-            new BlockChainExplorer("mempool.haveno.services Tor V3", "http://mempoolusb2f67qi7mz2it7n5e77a6komdzx6wftobcduxszkdfun2yd.onion/tx/", "http://mempoolusb2f67qi7mz2it7n5e77a6komdzx6wftobcduxszkdfun2yd.onion/address/"),
-            new BlockChainExplorer("Blockstream.info", "https://blockstream.info/tx/", "https://blockstream.info/address/"),
-            new BlockChainExplorer("Blockstream.info Tor V3", "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion/tx/", "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion/address/"),
-            new BlockChainExplorer("OXT", "https://oxt.me/transaction/", "https://oxt.me/address/"),
-            new BlockChainExplorer("Bitaps", "https://bitaps.com/", "https://bitaps.com/"),
-            new BlockChainExplorer("Blockcypher", "https://live.blockcypher.com/btc/tx/", "https://live.blockcypher.com/btc/address/"),
-            new BlockChainExplorer("Tradeblock", "https://tradeblock.com/bitcoin/tx/", "https://tradeblock.com/bitcoin/address/"),
-            new BlockChainExplorer("Biteasy", "https://www.biteasy.com/transactions/", "https://www.biteasy.com/addresses/"),
-            new BlockChainExplorer("Blockonomics", "https://www.blockonomics.co/api/tx?txid=", "https://www.blockonomics.co/#/search?q="),
-            new BlockChainExplorer("Chainflyer", "http://chainflyer.bitflyer.jp/Transaction/", "http://chainflyer.bitflyer.jp/Address/"),
-            new BlockChainExplorer("Smartbit", "https://www.smartbit.com.au/tx/", "https://www.smartbit.com.au/address/"),
-            new BlockChainExplorer("SoChain. Wow.", "https://chain.so/tx/BTC/", "https://chain.so/address/BTC/"),
-            new BlockChainExplorer("Blockchain.info", "https://blockchain.info/tx/", "https://blockchain.info/address/"),
-            new BlockChainExplorer("Insight", "https://insight.bitpay.com/tx/", "https://insight.bitpay.com/address/"),
-            new BlockChainExplorer("Blockchair", "https://blockchair.com/bitcoin/transaction/", "https://blockchair.com/bitcoin/address/")
-    ));
-    private static final ArrayList<BlockChainExplorer> BTC_TEST_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
-            new BlockChainExplorer("Blockstream.info", "https://blockstream.info/testnet/tx/", "https://blockstream.info/testnet/address/"),
-            new BlockChainExplorer("Blockstream.info Tor V3", "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion/testnet/tx/", "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion/testnet/address/"),
-            new BlockChainExplorer("Blockcypher", "https://live.blockcypher.com/btc-testnet/tx/", "https://live.blockcypher.com/btc-testnet/address/"),
-            new BlockChainExplorer("Blocktrail", "https://www.blocktrail.com/tBTC/tx/", "https://www.blocktrail.com/tBTC/address/"),
-            new BlockChainExplorer("Biteasy", "https://www.biteasy.com/testnet/transactions/", "https://www.biteasy.com/testnet/addresses/"),
-            new BlockChainExplorer("Smartbit", "https://testnet.smartbit.com.au/tx/", "https://testnet.smartbit.com.au/address/"),
-            new BlockChainExplorer("SoChain. Wow.", "https://chain.so/tx/BTCTEST/", "https://chain.so/address/BTCTEST/"),
-            new BlockChainExplorer("Blockchair", "https://blockchair.com/bitcoin/testnet/transaction/", "https://blockchair.com/bitcoin/testnet/address/")
-    ));
     private static final ArrayList<BlockChainExplorer> XMR_MAIN_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
-            new BlockChainExplorer("xmrchain.net", "https://xmrchain.net/tx/", "")
+            new BlockChainExplorer("xmrchain.net", "https://xmrchain.net/tx/")
     ));
     private static final ArrayList<BlockChainExplorer> XMR_STAGE_NET_EXPLORERS = new ArrayList<>(Arrays.asList(
-            new BlockChainExplorer("stagenet.xmrchain.net", "https://stagenet.xmrchain.net/tx/", "")
+            new BlockChainExplorer("stagenet.xmrchain.net", "https://stagenet.xmrchain.net/tx/")
     ));
 
     private static final ArrayList<String> XMR_TX_PROOF_SERVICES_CLEAR_NET = new ArrayList<>(Arrays.asList(
@@ -265,10 +233,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         setCryptoCurrencies(CurrencyUtil.getMainCryptoCurrencies());
 
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
-        if ("BTC".equals(baseCurrencyNetwork.getCurrencyCode())) {
-            setBlockChainExplorerMainNet(BTC_MAIN_NET_EXPLORERS.get(0));
-            setBlockChainExplorerStageNet(BTC_TEST_NET_EXPLORERS.get(0));
-        } else if ("XMR".equals(baseCurrencyNetwork.getCurrencyCode())) {
+        if ("XMR".equals(baseCurrencyNetwork.getCurrencyCode())) {
             setBlockChainExplorerMainNet(XMR_MAIN_NET_EXPLORERS.get(0));
             setBlockChainExplorerStageNet(XMR_STAGE_NET_EXPLORERS.get(0));
         } else {
@@ -806,11 +771,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         BaseCurrencyNetwork baseCurrencyNetwork = Config.baseCurrencyNetwork();
         switch (baseCurrencyNetwork) {
             case XMR_MAINNET:
-                return BTC_MAIN_NET_EXPLORERS;
+                return XMR_MAIN_NET_EXPLORERS;
             case XMR_STAGENET:
-                return BTC_TEST_NET_EXPLORERS;
+                return XMR_STAGE_NET_EXPLORERS;
             case XMR_LOCAL:
-                return BTC_TEST_NET_EXPLORERS; // TODO: no testnet explorer for private testnet
+                return XMR_STAGE_NET_EXPLORERS; // TODO: no testnet explorer for private testnet
             default:
                 throw new RuntimeException("BaseCurrencyNetwork not defined. BaseCurrencyNetwork=" + baseCurrencyNetwork);
         }
