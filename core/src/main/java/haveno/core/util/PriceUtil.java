@@ -196,10 +196,9 @@ public class PriceUtil {
         return FormattingUtils.formatRoundedDoubleWithPrecision(priceAsDouble, precision);
     }
 
-    public static String formatMarketPrice(long price, String currencyCode) {
-        int marketPricePrecision = getMarketPricePrecision(currencyCode);
-        double scaled = MathUtils.scaleDownByPowerOf10(price, marketPricePrecision);
-        return FormattingUtils.formatMarketPrice(scaled, marketPricePrecision);
+    public static String formatMarketPrice(long priceAsLong, String currencyCode) {
+        Price price = Price.valueOf(currencyCode, priceAsLong);
+        return FormattingUtils.formatPrice(price);
     }
 
     public static int getMarketPricePrecision(String currencyCode) {

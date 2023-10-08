@@ -49,7 +49,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
     }
 
     /**
-     * Parse the Bitcoin {@code Price} given a {@code currencyCode} and {@code inputValue}.
+     * Parse the Monero {@code Price} given a {@code currencyCode} and {@code inputValue}.
      *
      * @param currencyCode The currency code to parse, e.g "USD" or "LTC".
      * @param input        The input value to parse as a String, e.g "2.54" or "-0.0001".
@@ -64,7 +64,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
     }
 
     /**
-     * Parse the Bitcoin {@code Price} given a {@code currencyCode} and {@code inputValue}.
+     * Parse the Monero {@code Price} given a {@code currencyCode} and {@code inputValue}.
      *
      * @param currencyCode The currency code to parse, e.g "USD" or "LTC".
      * @param value        The value to parse.
