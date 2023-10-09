@@ -328,8 +328,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     protected void activate() {
         titledGroupBg.setText(getMarketTitle());
         titledGroupBg.setHelpUrl(model.getDirection() == OfferDirection.SELL
-                ? "https://bisq.wiki/Introduction#In_a_nutshell"
-                : "https://bisq.wiki/Taking_an_offer");
+                ? "https://haveno.exchange/wiki/Introduction#In_a_nutshell"
+                : "https://haveno.exchange/wiki/Taking_an_offer");
 
         Map<String, Integer> offerCounts = OfferViewUtil.isShownAsBuyOffer(model.getDirection(), model.getSelectedTradeCurrency()) ? model.getSellOfferCounts() : model.getBuyOfferCounts();
         currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory(Res.get("shared.oneOffer"),

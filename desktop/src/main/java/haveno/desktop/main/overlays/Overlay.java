@@ -1002,7 +1002,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     // separate a popup message from optional hyperlinks.  [bisq-network/bisq/pull/4637]
     // hyperlinks are distinguished by [HYPERLINK:] tag
     // referenced in order from within the message via [1], [2] etc.
-    // e.g. [HYPERLINK:https://bisq.wiki]
+    // e.g. [HYPERLINK:https://haveno.exchange/wiki]
     private void preProcessMessage(String message) {
         Pattern pattern = Pattern.compile("\\[HYPERLINK:(.*?)\\]");
         Matcher matcher = pattern.matcher(message);
