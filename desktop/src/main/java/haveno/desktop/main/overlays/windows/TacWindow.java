@@ -70,12 +70,12 @@ public class TacWindow extends Overlay<TacWindow> {
                 "accordance with the Haveno arbitration rules as at present in force. The arbitration is conducted online. " +
                 "The language to be used in the arbitration proceedings shall be English if not otherwise stated.\n\n" +
 
-                "6. The user confirms that they have read and agreed to the rules regarding the dispute process:\n" +
+                "6. The user confirms that they have read and agreed to the rules regarding the trade and dispute processes:\n" +
                 "    - You must complete trades within the maximum duration specified for each payment method.\n" +
                 "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'monero', 'XMR', or 'Haveno'.\n" +
-                "    - If the bank of the fiat sender charges fees, the sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
+                "    - If the bank of the fiat sender charges fees, the fiat sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
+                "    - If either trader opens a dispute, the arbitrator can settle the dispute and pay out trade funds accordingly.\n" +
                 "    - In case of arbitration, you must cooperate with the arbitrator and respond to each message within 48 hours.\n" +
-                "    - In case of arbitration, the decision of the arbitrator is final.\n" +
                 "    - The arbitrator may charge a small fee (max. the traders security deposit) as compensation for their work.\n";
         message(text);
         showScrollPane();
