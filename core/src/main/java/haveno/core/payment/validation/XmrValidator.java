@@ -97,7 +97,7 @@ public class XmrValidator extends NumberValidator {
         try {
             final BigInteger amount = HavenoUtils.parseXmr(input);
             if (maxTradeLimit != null && amount.compareTo(maxTradeLimit) > 0)
-                return new ValidationResult(false, Res.get("validation.btc.exceedsMaxTradeLimit", HavenoUtils.formatXmr(maxTradeLimit, true)));
+                return new ValidationResult(false, Res.get("validation.xmr.exceedsMaxTradeLimit", HavenoUtils.formatXmr(maxTradeLimit, true)));
             else
                 return new ValidationResult(true);
         } catch (Throwable t) {

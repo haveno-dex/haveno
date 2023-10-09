@@ -691,7 +691,7 @@ public class GUIUtil {
 
     public static boolean isReadyForTxBroadcastOrShowPopup(CoreMoneroConnectionsService connectionService) {
         if (!connectionService.hasSufficientPeersForBroadcast()) {
-            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToBtcNetwork", connectionService.getMinBroadcastConnections())).show();
+            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToXmrNetwork", connectionService.getMinBroadcastConnections())).show();
             return false;
         }
 
@@ -742,7 +742,7 @@ public class GUIUtil {
     }
 
     public static void showWantToBurnBTCPopup(Coin miningFee, Coin amount, CoinFormatter btcFormatter) {
-        new Popup().warning(Res.get("popup.warning.burnBTC", btcFormatter.formatCoinWithCode(miningFee),
+        new Popup().warning(Res.get("popup.warning.burnXMR", btcFormatter.formatCoinWithCode(miningFee),
                 btcFormatter.formatCoinWithCode(amount))).show();
     }
 

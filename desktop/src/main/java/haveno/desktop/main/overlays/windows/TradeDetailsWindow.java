@@ -155,7 +155,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             xmrDirectionInfo = toSpend;
         }
 
-        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.btcAmount") + xmrDirectionInfo,
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.xmrAmount") + xmrDirectionInfo,
                 HavenoUtils.formatXmr(trade.getAmount(), true));
         addConfirmationLabelTextField(gridPane, ++rowIndex,
                 VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + counterCurrencyDirectionInfo,

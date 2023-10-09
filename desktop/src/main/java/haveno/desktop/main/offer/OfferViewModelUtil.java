@@ -46,7 +46,7 @@ public class OfferViewModelUtil {
                                                                     BigInteger tradeAmount,
                                                                     CoinFormatter formatter,
                                                                     BigInteger minTradeFee) {
-        String feeAsBtc = HavenoUtils.formatXmr(tradeFee, true);
+        String feeAsXmr = HavenoUtils.formatXmr(tradeFee, true);
         String percentage;
         if (tradeFee.compareTo(minTradeFee) <= 0) {
             percentage = Res.get("guiUtil.requiredMinimum")
@@ -59,7 +59,7 @@ public class OfferViewModelUtil {
         return offerUtil.getFeeInUserFiatCurrency(tradeFee,
                 formatter)
                 .map(VolumeUtil::formatAverageVolumeWithCode)
-                .map(feeInFiat -> Res.get("feeOptionWindow.btcFeeWithFiatAndPercentage", feeAsBtc, feeInFiat, percentage))
-                .orElseGet(() -> Res.get("feeOptionWindow.btcFeeWithPercentage", feeAsBtc, percentage));
+                .map(feeInFiat -> Res.get("feeOptionWindow.xmrFeeWithFiatAndPercentage", feeAsXmr, feeInFiat, percentage))
+                .orElseGet(() -> Res.get("feeOptionWindow.xmrFeeWithPercentage", feeAsXmr, percentage));
     }
 }

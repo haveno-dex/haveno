@@ -153,7 +153,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void initialize() {
-        btcHeader.setText(Res.get("settings.net.btcHeader"));
+        btcHeader.setText(Res.get("settings.net.xmrHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));
         xmrNodesLabel.setText(Res.get("settings.net.xmrNodesLabel"));

@@ -11,12 +11,12 @@ getaddressbalance
 
 DESCRIPTION
 -----------
-Returns the balance of a BTC address in the Haveno server's wallet.
+Returns the balance of a XMR address in the Haveno server's wallet.
 
 OPTIONS
 -------
 --address=<btc-address>
-		The BTC address.
+		The XMR address.
 
 EXAMPLES
 --------

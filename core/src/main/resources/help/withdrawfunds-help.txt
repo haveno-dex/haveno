@@ -2,7 +2,7 @@ withdrawfunds
 
 NAME
 ----
-withdrawfunds - send BTC received during a trade to an external BTC wallet
+withdrawfunds - send XMR received during a trade to an external XMR wallet
 
 SYNOPSIS
 --------
@@ -13,10 +13,10 @@ withdrawfunds
 
 DESCRIPTION
 -----------
-A BTC buyer completes the final step in the trade protocol by sending received BTC to
-an external BTC wallet.
+A XMR buyer completes the final step in the trade protocol by sending received XMR to
+an external XMR wallet.
 
-The alternative way to close out the trade is to keep the received BTC in the Haveno wallet,
+The alternative way to close out the trade is to keep the received XMR in the Haveno wallet,
 using the keepfunds command.
 
 The buyer needs to complete the trade protocol using the keepfunds or withdrawfunds or command.
@@ -37,14 +37,14 @@ OPTIONS
 
 EXAMPLES
 --------
-A BTC seller has informed the buyer that fiat payment has been received for trade with ID
-83e8b2e2-51b6-4f39-a748-3ebd29c22aea, and locked BTC has been released to the buyer.
-The BTC buyer closes out the trade by sending the received BTC to an external BTC wallet:
+A XMR seller has informed the buyer that fiat payment has been received for trade with ID
+83e8b2e2-51b6-4f39-a748-3ebd29c22aea, and locked XMR has been released to the buyer.
+The XMR buyer closes out the trade by sending the received XMR to an external XMR wallet:
 $ ./haveno-cli --password=xyz --port=9998 withdrawfunds --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
-    --address=2N5J6MyjAsWnashimGiNwoRzUXThsQzRmbv               (bitcoin regtest address)
+    --address=2N5J6MyjAsWnashimGiNwoRzUXThsQzRmbv               (monero stagetnet address)
 
 
-A seller sends a trade's BTC proceeds to an external wallet, and includes an optional memo:
+A seller sends a trade's XMR proceeds to an external wallet, and includes an optional memo:
 $ ./haveno-cli --password=xyz --port=9998 withdrawfunds --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea \
     --address=2N5J6MyjAsWnashimGiNwoRzUXThsQzRmbv \
     --memo="note to self"

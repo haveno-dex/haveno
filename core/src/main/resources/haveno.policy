@@ -16,7 +16,7 @@ grant {
   permission "java.util.PropertyPermission" "maxConnections", "read";
   permission "java.util.PropertyPermission" "networkId", "read";
   permission "java.util.PropertyPermission" "banList", "read";
-  permission "java.util.PropertyPermission" "socks5ProxyBtcAddress", "read";
+  permission "java.util.PropertyPermission" "socks5ProxyXmrAddress", "read";
   permission "java.util.PropertyPermission" "socks5ProxyHttpAddress", "read";
   permission "java.util.PropertyPermission" "useragent.name", "read";
   permission "java.util.PropertyPermission" "useragent.version", "read";
@@ -64,7 +64,7 @@ grant {
   permission "java.lang.RuntimePermission" "getenv.maxConnections";
   permission "java.lang.RuntimePermission" "getenv.networkId";
   permission "java.lang.RuntimePermission" "getenv.banList";
-  permission "java.lang.RuntimePermission" "getenv.socks5ProxyBtcAddress";
+  permission "java.lang.RuntimePermission" "getenv.socks5ProxyXmrAddress";
   permission "java.lang.RuntimePermission" "getenv.socks5ProxyHttpAddress";
   permission "java.lang.RuntimePermission" "getenv.useragent.name";
   permission "java.lang.RuntimePermission" "getenv.useragent.version";

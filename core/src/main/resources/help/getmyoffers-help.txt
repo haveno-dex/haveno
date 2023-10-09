@@ -2,7 +2,7 @@ getmyoffers
 
 NAME
 ----
-getmyoffers - get your own buy or sell BTC offers for a fiat currency
+getmyoffers - get your own buy or sell XMR offers for a fiat currency
 
 SYNOPSIS
 --------
@@ -20,7 +20,7 @@ OPTIONS
 		The direction of the offer (BUY or SELL).
 
 --currency-code
-		The three letter code for the fiat used to buy or sell BTC, e.g., EUR, USD, BRL, ...
+		The three letter code for the fiat used to buy or sell XMR, e.g., EUR, USD, BRL, ...
 
 EXAMPLES
 --------

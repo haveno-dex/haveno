@@ -543,7 +543,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                 });
 
         // amount
-        TableColumn<OfferListItem, OfferListItem> amountColumn = new AutoTooltipTableColumn<>(Res.get("shared.BTCMinMax"));
+        TableColumn<OfferListItem, OfferListItem> amountColumn = new AutoTooltipTableColumn<>(Res.get("shared.XMRMinMax"));
         amountColumn.setMinWidth(115);
         amountColumn.setSortable(false);
         amountColumn.getStyleClass().add("number-column");
