@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 @Slf4j
 public class DisputeAgentLookupMap {
 
-    // See also: https://bisq.wiki/Finding_your_mediator
+    // See also: https://haveno.exchange/wiki/Finding_your_mediator
     @Nullable
     public static String getMatrixUserName(String fullAddress) {
         if (fullAddress.matches("localhost(.*)")) {

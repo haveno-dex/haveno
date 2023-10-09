@@ -94,7 +94,7 @@ public class TacWindow extends Overlay<TacWindow> {
 
         // TODO: link to the wiki
         // HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
-        //         "https://bisq.wiki/Dispute_resolution");
+        //         "https://haveno.exchange/wiki/Dispute_resolution");
         // hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
         // GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
     }
