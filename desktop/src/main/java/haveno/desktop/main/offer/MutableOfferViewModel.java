@@ -491,7 +491,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     private void applyMakerFee() {
         tradeFeeCurrencyCode.set(Res.getBaseCurrencyCode());
-        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionBTCOnly"));
+        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionXMROnly"));
 
         BigInteger makerFee = dataModel.getMakerFee();
         if (makerFee == null) {

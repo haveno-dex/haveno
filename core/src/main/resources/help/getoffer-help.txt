@@ -2,7 +2,7 @@ getoffer
 
 NAME
 ----
-getoffer - get an offer to buy or sell BTC
+getoffer - get an offer to buy or sell XMR
 
 SYNOPSIS
 --------

@@ -67,8 +67,8 @@ public class CreateOfferViewModelTest {
 
     @BeforeEach
     public void setUp() {
-        final CryptoCurrency btc = new CryptoCurrency("XMR", "monero");
-        GlobalSettings.setDefaultTradeCurrency(btc);
+        final CryptoCurrency xmr = new CryptoCurrency("XMR", "monero");
+        GlobalSettings.setDefaultTradeCurrency(xmr);
         Res.setup();
 
         final XmrValidator btcValidator = new XmrValidator();

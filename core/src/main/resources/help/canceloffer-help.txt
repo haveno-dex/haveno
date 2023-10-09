@@ -2,7 +2,7 @@ canceloffer
 
 NAME
 ----
-canceloffer - cancel an existing offer to buy or sell BTC
+canceloffer - cancel an existing offer to buy or sell XMR
 
 SYNOPSIS
 --------

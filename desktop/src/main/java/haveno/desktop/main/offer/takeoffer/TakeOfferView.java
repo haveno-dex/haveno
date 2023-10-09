@@ -645,7 +645,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         showWarningInvalidBtcDecimalPlacesSubscription = EasyBind.subscribe(model.showWarningInvalidBtcDecimalPlaces, newValue -> {
             if (newValue) {
-                new Popup().warning(Res.get("takeOffer.amountPriceBox.warning.invalidBtcDecimalPlaces")).show();
+                new Popup().warning(Res.get("takeOffer.amountPriceBox.warning.invalidXmrDecimalPlaces")).show();
                 model.showWarningInvalidBtcDecimalPlaces.set(false);
             }
         });

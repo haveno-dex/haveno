@@ -162,7 +162,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
-                Res.get("contractWindow.btcAddresses"),
+                Res.get("contractWindow.xmrAddresses"),
                 contract.getBuyerPayoutAddressString() + " / " + contract.getSellerPayoutAddressString());
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,

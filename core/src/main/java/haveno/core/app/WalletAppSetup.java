@@ -237,7 +237,7 @@ public class WalletAppSetup {
     private String getXmrNetworkAsString() {
         String postFix;
         if (config.ignoreLocalXmrNode)
-            postFix = " " + Res.get("mainView.footer.localhostBitcoinNode");
+            postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
         else if (preferences.getUseTorForXmr().isUseTorForXmr())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else

@@ -79,7 +79,7 @@ public class Config {
     public static final String NODE_PORT = "nodePort";
     public static final String USE_LOCALHOST_FOR_P2P = "useLocalhostForP2P";
     public static final String MAX_CONNECTIONS = "maxConnections";
-    public static final String SOCKS_5_PROXY_BTC_ADDRESS = "socks5ProxyBtcAddress";
+    public static final String SOCKS_5_PROXY_XMR_ADDRESS = "socks5ProxyXmrAddress";
     public static final String SOCKS_5_PROXY_HTTP_ADDRESS = "socks5ProxyHttpAddress";
     public static final String USE_TOR_FOR_XMR = "useTorForXmr";
     public static final String TORRC_FILE = "torrcFile";
@@ -169,7 +169,7 @@ public class Config {
     public final List<String> banList;
     public final boolean useLocalhostForP2P;
     public final int maxConnections;
-    public final String socks5ProxyBtcAddress;
+    public final String socks5ProxyXmrAddress;
     public final String socks5ProxyHttpAddress;
     public final File torrcFile;
     public final String torrcOptions;
@@ -418,8 +418,8 @@ public class Config {
                         .ofType(int.class)
                         .defaultsTo(12);
 
-        ArgumentAcceptingOptionSpec<String> socks5ProxyBtcAddressOpt =
-                parser.accepts(SOCKS_5_PROXY_BTC_ADDRESS, "A proxy address to be used for Bitcoin network.")
+        ArgumentAcceptingOptionSpec<String> socks5ProxyXmrAddressOpt =
+                parser.accepts(SOCKS_5_PROXY_XMR_ADDRESS, "A proxy address to be used for Bitcoin network.")
                         .withRequiredArg()
                         .describedAs("host:port")
                         .defaultsTo("");
@@ -684,7 +684,7 @@ public class Config {
             this.banList = options.valuesOf(banListOpt);
             this.useLocalhostForP2P = !this.baseCurrencyNetwork.isMainnet() && options.valueOf(useLocalhostForP2POpt);
             this.maxConnections = options.valueOf(maxConnectionsOpt);
-            this.socks5ProxyBtcAddress = options.valueOf(socks5ProxyBtcAddressOpt);
+            this.socks5ProxyXmrAddress = options.valueOf(socks5ProxyXmrAddressOpt);
             this.socks5ProxyHttpAddress = options.valueOf(socks5ProxyHttpAddressOpt);
             this.msgThrottlePerSec = options.valueOf(msgThrottlePerSecOpt);
             this.msgThrottlePer10Sec = options.valueOf(msgThrottlePer10SecOpt);

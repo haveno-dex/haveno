@@ -267,7 +267,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private void applyTakerFee() {
-        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionBTCOnly"));
+        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionXMROnly"));
         BigInteger takerFee = dataModel.getTakerFee();
         if (takerFee == null) {
             return;
@@ -292,7 +292,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             amountValidationResult.set(result);
             if (result.isValid) {
                 showWarningInvalidBtcDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, xmrFormatter));
-                // only allow max 4 decimal places for btc values
+                // only allow max 4 decimal places for xmr values
                 setAmountToModel();
                 // reformat input
                 amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));

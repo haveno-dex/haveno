@@ -48,7 +48,7 @@ public class SellerStep1View extends TradeStepView {
 
     @Override
     protected String getInfoText() {
-        return Res.get("portfolio.pending.step1.info", Res.get("shared.TheBTCBuyer"));
+        return Res.get("portfolio.pending.step1.info", Res.get("shared.TheXMRBuyer"));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

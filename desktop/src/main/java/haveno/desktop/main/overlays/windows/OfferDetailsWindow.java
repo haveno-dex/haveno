@@ -215,7 +215,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionBothSides(direction), firstRowDistance);
         }
-        String btcAmount = Res.get("shared.btcAmount");
+        String btcAmount = Res.get("shared.xmrAmount");
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(tradeAmount, true));
@@ -224,7 +224,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         } else {
             addConfirmationLabelLabel(gridPane, ++rowIndex, btcAmount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(offer.getAmount(), true));
-            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minBtcAmount"),
+            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minXmrAmount"),
                     HavenoUtils.formatXmr(offer.getMinAmount(), true));
             String volume = VolumeUtil.formatVolumeWithCode(offer.getVolume());
             String minVolume = "";

@@ -91,7 +91,7 @@ public class AccountStatusTooltipLabel extends AutoTooltipLabel {
         infoLabel.getStyleClass().add("small-text");
 
         Label buyLabel = createDetailsItem(
-                Res.get("offerbook.timeSinceSigning.tooltip.checkmark.buyBtc"),
+                Res.get("offerbook.timeSinceSigning.tooltip.checkmark.buyXmr"),
                 witnessAgeData.isAccountSigned()
         );
         Label waitLabel = createDetailsItem(

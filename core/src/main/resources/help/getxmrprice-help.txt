@@ -11,7 +11,7 @@ getbtcprice
 
 DESCRIPTION
 -----------
-Returns the current market BTC price for the given currency-code.
+Returns the current market XMR price for the given currency-code.
 
 OPTIONS
 -------
@@ -21,10 +21,10 @@ OPTIONS
 
 EXAMPLES
 --------
-Get the current BTC market price in Euros:
+Get the current XMR market price in Euros:
 $ ./haveno-cli --password=xyz --port=9998 getbtcprice --currency-code=eur
 
-Get the current BTC market price in Brazilian Reais:
+Get the current XMR market price in Brazilian Reais:
 $ ./haveno-cli --password=xyz --port=9998 getbtcprice --currency-code=brl
 
 

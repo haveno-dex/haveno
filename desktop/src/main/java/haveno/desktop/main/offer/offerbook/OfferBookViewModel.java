@@ -623,7 +623,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
+            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
         else
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
     }

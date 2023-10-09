@@ -763,7 +763,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> getAmountColumn() {
-        AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.BTCMinMax"), Res.get("shared.amountHelp"));
+        AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.XMRMinMax"), Res.get("shared.amountHelp"));
         column.setMinWidth(100);
         column.getStyleClass().add("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
