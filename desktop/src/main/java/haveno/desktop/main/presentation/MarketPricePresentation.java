@@ -124,7 +124,11 @@ public class MarketPricePresentation {
 
         marketPriceBinding = EasyBind.combine(
                 marketPriceCurrencyCode, marketPrice,
-                (currencyCode, price) -> CurrencyUtil.getCurrencyPair(currencyCode) + ": " + price);
+                (currencyCode, price) -> {
+                    MarketPrice currentPrice = priceFeedService.getMarketPrice(currencyCode);
+                    String currentPriceStr = currentPrice == null ? Res.get("shared.na") : FormattingUtils.formatMarketPrice(currentPrice.getPrice(), currencyCode);
+                    return CurrencyUtil.getCurrencyPair(currencyCode) + ": " + currentPriceStr;
+                });
 
         marketPriceBinding.subscribe((observable, oldValue, newValue) -> {
             if (newValue != null && !newValue.equals(oldValue)) {
