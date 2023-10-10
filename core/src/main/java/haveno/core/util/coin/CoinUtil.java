@@ -84,8 +84,8 @@ public class CoinUtil {
             return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
         } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode)) {
             return getRoundedAmountUnit(amount, price, maxTradeLimit);
-        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            return getRoundedAmountPrecise(amount, price, maxTradeLimit);
+        } else if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            return getRoundedAmount4Decimals(amount, price, maxTradeLimit);
         }
         return amount;
     }
@@ -107,7 +107,7 @@ public class CoinUtil {
         return getAdjustedAmount(amount, price, maxTradeLimit, 1);
     }
     
-    public static BigInteger getRoundedAmountPrecise(BigInteger amount, Price price, long maxTradeLimit) {
+    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Price price, long maxTradeLimit) {
         DecimalFormat decimalFormat = new DecimalFormat("#.####");
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);

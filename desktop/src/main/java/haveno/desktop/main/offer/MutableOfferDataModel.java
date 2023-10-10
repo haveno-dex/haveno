@@ -48,7 +48,6 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
-import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.BooleanProperty;
@@ -519,12 +518,16 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     void calculateAmount() {
         if (isNonZeroPrice.test(price) && isNonZeroVolume.test(volume) && allowAmountUpdate) {
             try {
-                BigInteger value = HavenoUtils.coinToAtomicUnits(DisplayUtils.reduceTo4Decimals(HavenoUtils.atomicUnitsToCoin(price.get().getAmountByVolume(volume.get())), btcFormatter));
-                value = CoinUtil.getRoundedAmount(value, price.get(), getMaxTradeLimit(), tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
-
+                Volume volumeBefore = volume.get();
                 calculateVolume();
 
-                amount.set(value);
+                // if the volume != amount * price, we need to adjust the amount
+                if (amount.get() == null || !volumeBefore.equals(price.get().getVolumeByAmount(amount.get()))) {
+                    BigInteger value = price.get().getAmountByVolume(volumeBefore);
+                    value = CoinUtil.getRoundedAmount(value, price.get(), getMaxTradeLimit(), tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
+                    amount.set(value);
+                }
+
                 calculateTotalToPay();
             } catch (Throwable t) {
                 log.error(t.toString());
