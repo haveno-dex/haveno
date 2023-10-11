@@ -65,7 +65,7 @@ public class VolumeUtil {
     }
 
     public static Volume getRoundedVolumePrecise(Volume volumeByAmount) {
-        DecimalFormat decimalFormat = new DecimalFormat("#.####");
+        DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
         double roundedVolume = Double.parseDouble(decimalFormat.format(Double.parseDouble(volumeByAmount.toString())));
         return Volume.parse(String.valueOf(roundedVolume), volumeByAmount.getCurrencyCode());
     }
