@@ -63,7 +63,7 @@ import org.bitcoinj.core.Coin;
 public class HavenoUtils {
 
     // Use the US locale as a base for all DecimalFormats (commas should be omitted from number strings).
-    private static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
+    public static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
