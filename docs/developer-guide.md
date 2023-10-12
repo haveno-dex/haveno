@@ -46,7 +46,7 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 ## Release portable Monero binaries for each platform
 
 1. Update the release-v0.18 branch on Haveno's [monero repo](https://github.com/haveno-dex/monero) to the latest release from upstream + any customizations (e.g. a commit to speed up testnet hardforks for local development).
-2. `git tag <tag> && git push haveno <tag>`
+2. `git tag <tag> && git push haveno-monero <tag>`
 3. Follow instructions to [build portable binaries for each platform](#build-portable-monero-binaries-for-each-platform).
 4. Publish a new release at https://github.com/haveno-dex/monero/releases with the updated binaries and hashes.
 5. Update the paths and hashes in build.gradle and PR.
@@ -57,11 +57,12 @@ Based on these instructions: https://github.com/monero-project/monero#cross-comp
 
 1. Install Ubuntu 20.04.
 2. `sudo apt-get update && sudo apt-get upgrade`
-3. `sudo apt install cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev libtinfo5 autoconf libtool libtool-bin gperf`
-4. `git clone https://github.com/haveno-dex/monero.git`
-5. `cd ./monero (or rename this folder)`
-6. `git fetch origin && git reset --hard origin/release-v0.18`
-7. `git submodule update --init --force`
+3. Install monero dependencies: `sudo apt update && sudo apt install build-essential cmake pkg-config libssl-dev libzmq3-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev libpgm-dev qttools5-dev-tools libhidapi-dev libusb-1.0-0-dev libprotobuf-dev protobuf-compiler libudev-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-locale-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev libboost-system-dev libboost-thread-dev python3 ccache`
+4. `sudo apt install cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev libtinfo5 autoconf libtool libtool-bin gperf git curl`
+5. `git clone https://github.com/haveno-dex/monero.git`
+6. `cd ./monero` (or rename to haveno-monero: `mv monero/ haveno-monero && cd ./haveno-monero`)
+7. `git fetch origin && git reset --hard origin/release-v0.18`
+8. `git submodule update --init --force`
 
 > Note:
 > If you get the prompt "Reversed (or previously applied) patch detected!  Assume -R? [n]" then confirm 'y'.
