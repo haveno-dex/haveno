@@ -687,7 +687,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
             } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-                if (Double.parseDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())) {
+                if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())) {
                     amountValidationResult.set(result);
                 } else {
                     amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
