@@ -34,6 +34,7 @@ import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
+import haveno.core.util.ParsingUtils;
 import haveno.network.p2p.NodeAddress;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -189,7 +190,7 @@ public class HavenoUtils {
     public static BigInteger parseXmr(String input) {
         if (input == null || input.length() == 0) return BigInteger.valueOf(0);
         try {
-            return xmrToAtomicUnits(new BigDecimal(input).doubleValue());
+            return xmrToAtomicUnits(new BigDecimal(ParsingUtils.parseNumberStringToDouble(input)).doubleValue());
         } catch (Exception e) {
             return BigInteger.valueOf(0);
         }
