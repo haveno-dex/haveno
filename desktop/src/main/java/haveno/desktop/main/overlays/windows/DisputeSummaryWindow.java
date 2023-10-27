@@ -216,6 +216,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             disputeResult.setWinner(peersDisputeResult.getWinner());
             disputeResult.setReason(peersDisputeResult.getReason());
             disputeResult.setSummaryNotes(peersDisputeResult.summaryNotesProperty().get());
+            disputeResult.setSubtractFeeFrom(peersDisputeResult.getSubtractFeeFrom());
 
             buyerGetsTradeAmountRadioButton.setDisable(true);
             buyerGetsAllRadioButton.setDisable(true);
@@ -403,7 +404,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         disputeResult.setBuyerPayoutAmount(buyerAmount);
         disputeResult.setSellerPayoutAmount(sellerAmount);
-        disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ?
+        disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ? // TODO: UI should allow selection of receiver of exact custom amount, otherwise defaulting to bigger receiver. could extend API to specify who pays payout tx fee: buyer, seller, or both
                 DisputeResult.Winner.BUYER :
                 DisputeResult.Winner.SELLER);
     }

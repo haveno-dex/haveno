@@ -368,7 +368,7 @@ public class XmrWalletService {
         return reserveTx;
     }
 
-    /**s
+    /**
      * Create the multisig deposit tx and freeze its inputs.
      *
      * @param trade the trade to create a deposit tx from
@@ -388,8 +388,8 @@ public class XmrWalletService {
             Offer offer = trade.getProcessModel().getOffer();
             String multisigAddress = trade.getProcessModel().getMultisigAddress();
             BigInteger tradeFee = trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee();
-            BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : offer.getAmount();
-            BigInteger securityDeposit = trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
+            BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : trade.getAmount();
+            BigInteger securityDeposit = trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit(); // TODO: security deposit should be based on trade amount
             long time = System.currentTimeMillis();
             log.info("Creating deposit tx with multisig address={}", multisigAddress);
             MoneroTxWallet depositTx = createTradeTx(tradeFee, sendAmount, securityDeposit, multisigAddress, reserveExactAmount, preferredSubaddressIndex);
@@ -467,6 +467,7 @@ public class XmrWalletService {
      * Checks double spends, trade fee, deposit amount and destination, and miner fee.
      * The transaction is submitted to the pool then flushed without relaying.
      *
+     * @param offerId id of offer to verify trade tx
      * @param tradeFee trade fee
      * @param sendAmount amount to give peer
      * @param securityDeposit security deposit amount
@@ -876,25 +877,6 @@ public class XmrWalletService {
         }
     }
 
-    private void notifyBalanceListeners() {
-        for (XmrBalanceListener balanceListener : balanceListeners) {
-            BigInteger balance;
-            if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
-            else balance = getAvailableBalance();
-            UserThread.execute(new Runnable() { // TODO (woodser): don't execute on UserThread
-                @Override
-                public void run() {
-                    try {
-                        balanceListener.onBalanceChanged(balance);
-                    } catch (Exception e) {
-                        log.warn("Failed to notify balance listener of change");
-                        e.printStackTrace();
-                    }
-                }
-            });
-        }
-    }
-
     private void changeWalletPasswords(String oldPassword, String newPassword) {
 
         // create task to change main wallet password
@@ -1195,6 +1177,25 @@ public class XmrWalletService {
         balanceListeners.remove(listener);
     }
 
+    public void updateBalanceListeners() {
+        for (XmrBalanceListener balanceListener : balanceListeners) {
+            BigInteger balance;
+            if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
+            else balance = getAvailableBalance();
+            UserThread.execute(new Runnable() { // TODO (woodser): don't execute on UserThread
+                @Override
+                public void run() {
+                    try {
+                        balanceListener.onBalanceChanged(balance);
+                    } catch (Exception e) {
+                        log.warn("Failed to notify balance listener of change");
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+    }
+
     public void saveAddressEntryList() {
         xmrAddressEntryList.requestPersistence();
     }
@@ -1259,7 +1260,7 @@ public class XmrWalletService {
                 @Override
                 public void run() {
                     for (MoneroWalletListenerI listener : walletListeners) listener.onBalancesChanged(newBalance, newUnlockedBalance);
-                    notifyBalanceListeners();
+                    updateBalanceListeners();
                 }
             });
         }

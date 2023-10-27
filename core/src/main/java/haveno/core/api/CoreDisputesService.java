@@ -146,9 +146,10 @@ public class CoreDisputesService {
 
         synchronized (trade) {
             try {
-                var closeDate = new Date();
-                var disputeResult = createDisputeResult(winningDispute, winner, reason, summaryNotes, closeDate);
 
+                // create dispute result
+                var closeDate = new Date();
+                var winnerDisputeResult = createDisputeResult(winningDispute, winner, reason, summaryNotes, closeDate);
                 DisputePayout payout;
                 if (customWinnerAmount > 0) {
                     payout = DisputePayout.CUSTOM;
@@ -159,13 +160,14 @@ public class CoreDisputesService {
                 } else {
                     throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
                 }
-                applyPayoutAmountsToDisputeResult(payout, winningDispute, disputeResult, customWinnerAmount);
+                applyPayoutAmountsToDisputeResult(payout, winningDispute, winnerDisputeResult, customWinnerAmount);
+                winnerDisputeResult.setSubtractFeeFrom(customWinnerAmount == 0 ? DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER : winner == DisputeResult.Winner.BUYER ? DisputeResult.SubtractFeeFrom.SELLER_ONLY : DisputeResult.SubtractFeeFrom.BUYER_ONLY);
 
                 // create dispute payout tx
-                trade.getProcessModel().setUnsignedPayoutTx(arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), disputeResult, false));
+                trade.getProcessModel().setUnsignedPayoutTx(arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), winnerDisputeResult, false));
 
                 // close winning dispute ticket
-                closeDisputeTicket(arbitrationManager, winningDispute, disputeResult, () -> {
+                closeDisputeTicket(arbitrationManager, winningDispute, winnerDisputeResult, () -> {
                     arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
                     throw new IllegalStateException(errMessage, err);
@@ -178,8 +180,9 @@ public class CoreDisputesService {
                 if (!loserDisputeOptional.isPresent()) throw new IllegalStateException("could not find peer dispute");
                 var loserDispute = loserDisputeOptional.get();
                 var loserDisputeResult = createDisputeResult(loserDispute, winner, reason, summaryNotes, closeDate);
-                loserDisputeResult.setBuyerPayoutAmount(disputeResult.getBuyerPayoutAmount());
-                loserDisputeResult.setSellerPayoutAmount(disputeResult.getSellerPayoutAmount());
+                loserDisputeResult.setBuyerPayoutAmount(winnerDisputeResult.getBuyerPayoutAmount());
+                loserDisputeResult.setSellerPayoutAmount(winnerDisputeResult.getSellerPayoutAmount());
+                loserDisputeResult.setSubtractFeeFrom(winnerDisputeResult.getSubtractFeeFrom());
                 closeDisputeTicket(arbitrationManager, loserDispute, loserDisputeResult, () -> {
                     arbitrationManager.requestPersistence();
                 }, (errMessage, err) -> {
@@ -239,6 +242,7 @@ public class CoreDisputesService {
             disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
             disputeResult.setSellerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
         }
+        disputeResult.setSubtractFeeFrom(DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER); // TODO: can extend UI to specify who pays mining fee
     }
 
     public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, ResultHandler resultHandler, FaultHandler faultHandler) {

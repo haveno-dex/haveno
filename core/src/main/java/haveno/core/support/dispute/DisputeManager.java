@@ -69,6 +69,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -869,12 +870,29 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 // add any loss of precision to winner payout
                 winnerPayoutAmount = winnerPayoutAmount.add(trade.getWallet().getUnlockedBalance().subtract(winnerPayoutAmount.add(loserPayoutAmount)));
 
-                // create dispute payout tx
+                // create dispute payout tx config
                 MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0);
+                txConfig.setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
                 if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount);
                 if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount);
-                txConfig.setSubtractFeeFrom(loserPayoutAmount.equals(BigInteger.ZERO) ? 0 : txConfig.getDestinations().size() - 1); // winner only pays fee if loser gets 0
-                txConfig.setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
+
+                // configure who pays mining fee
+                if (loserPayoutAmount.equals(BigInteger.ZERO)) txConfig.setSubtractFeeFrom(0); // winner pays fee if loser gets 0
+                else {
+                    switch (disputeResult.getSubtractFeeFrom()) {
+                        case BUYER_AND_SELLER:
+                            txConfig.setSubtractFeeFrom(Arrays.asList(0, 1));
+                            break;
+                        case BUYER_ONLY:
+                            txConfig.setSubtractFeeFrom(disputeResult.getWinner() == Winner.BUYER ? 0 : 1);
+                            break;
+                        case SELLER_ONLY:
+                            txConfig.setSubtractFeeFrom(disputeResult.getWinner() == Winner.SELLER ? 0 : 1);
+                            break;
+                    }
+                }
+
+                // create dispute payout tx
                 MoneroTxWallet payoutTx = null;
                 try {
                     payoutTx = trade.getWallet().createTx(txConfig);

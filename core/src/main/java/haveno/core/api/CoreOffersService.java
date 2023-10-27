@@ -243,7 +243,7 @@ public class CoreOffersService {
                     for (Offer offer2 : offers) {
                         if (offer == offer2) continue;
                         if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                            log.warn("Key image {} belongs to multiple offers, seen in offer {}", keyImage, offer2.getId());
+                            log.warn("Key image {} belongs to multiple offers, seen in offer {} and {}", keyImage, offer.getId(), offer2.getId());
                             duplicateFundedOffers.add(offer2);
                         }
                     }

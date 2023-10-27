@@ -281,6 +281,8 @@ message DepositResponse {
     string uid = 2;
     int64 current_date = 3;
     string error_message = 4;
+    int64 buyerSecurityDeposit = 5;
+    int64 sellerSecurityDeposit = 6;
 }
 
 message DepositsConfirmedMessage {
@@ -740,6 +742,12 @@ message DisputeResult {
         PEER_WAS_LATE = 12;
     }
 
+    enum SubtractFeeFrom {
+        BUYER_ONLY = 0;
+        SELLER_ONLY = 1;
+        BUYER_AND_SELLER = 2;
+    }
+
     string trade_id = 1;
     int32 trader_id = 2;
     Winner winner = 3;
@@ -752,9 +760,10 @@ message DisputeResult {
     bytes arbitrator_signature = 10;
     int64 buyer_payout_amount = 11;
     int64 seller_payout_amount = 12;
-    bytes arbitrator_pub_key = 13;
-    int64 close_date = 14;
-    bool is_loser_publisher = 15;
+    SubtractFeeFrom subtract_fee_from = 13;
+    bytes arbitrator_pub_key = 14;
+    int64 close_date = 15;
+    bool is_loser_publisher = 16;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1374,12 +1383,13 @@ message OpenOffer {
     State state = 2;
     int64 trigger_price = 3;
     bool reserve_exact_amount = 4;
-    repeated string scheduled_tx_hashes = 5;
-    string scheduled_amount = 6; // BigInteger
-    string split_output_tx_hash = 7;
-    string reserve_tx_hash = 8;
-    string reserve_tx_hex = 9;
-    string reserve_tx_key = 10;
+    string split_output_tx_hash = 5;
+    int64 split_output_tx_fee = 6;
+    repeated string scheduled_tx_hashes = 7;
+    string scheduled_amount = 8; // BigInteger
+    string reserve_tx_hash = 9;
+    string reserve_tx_hex = 10;
+    string reserve_tx_key = 11;
 }
 
 message Tradable {
@@ -1573,9 +1583,10 @@ message TradePeer {
     string deposit_tx_hash = 1008;
     string deposit_tx_hex = 1009;
     string deposit_tx_key = 1010;
-    int64 security_deposit = 1011;
-    string updated_multisig_hex = 1012;
-    bool deposits_confirmed_message_acked = 1013;
+    int64 deposit_tx_fee = 1011;
+    int64 security_deposit = 1012;
+    string updated_multisig_hex = 1013;
+    bool deposits_confirmed_message_acked = 1014;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
