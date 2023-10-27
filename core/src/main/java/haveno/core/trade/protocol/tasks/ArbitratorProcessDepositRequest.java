@@ -80,7 +80,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             boolean isFromTaker = trader == trade.getTaker();
             boolean isFromBuyer = trader == trade.getBuyer();
             BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
-            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : trade.getAmount();
             BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
             String depositAddress = processModel.getMultisigAddress();
 
@@ -103,6 +103,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
             // set deposit info
             trader.setSecurityDeposit(txResult.second);
+            trader.setDepositTxFee(txResult.first.getFee());
             trader.setDepositTxHex(request.getDepositTxHex());
             trader.setDepositTxKey(request.getDepositTxKey());
             if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
@@ -130,7 +131,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                         UUID.randomUUID().toString(),
                         Version.getP2PMessageVersion(),
                         new Date().getTime(),
-                        null);
+                        null,
+                        trade.getBuyer().getSecurityDeposit().longValue(),
+                        trade.getSeller().getSecurityDeposit().longValue());
 
                 // send deposit response to maker and taker
                 sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
@@ -158,7 +161,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     new Date().getTime(),
-                    t.getMessage());
+                    t.getMessage(),
+                    trade.getBuyer().getSecurityDeposit().longValue(),
+                    trade.getSeller().getSecurityDeposit().longValue());
 
                 // send deposit response to maker and taker
                 sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);

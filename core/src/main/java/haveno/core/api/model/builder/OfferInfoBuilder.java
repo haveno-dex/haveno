@@ -59,6 +59,8 @@ public final class OfferInfoBuilder {
     private String versionNumber;
     private int protocolVersion;
     private String arbitratorSigner;
+    private String splitOutputTxHash;
+    private long splitOutputTxFee;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -207,6 +209,16 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withArbitratorSigner(String arbitratorSigner) {
         this.arbitratorSigner = arbitratorSigner;
+        return this;
+    }
+    
+    public OfferInfoBuilder withSplitOutputTxHash(String splitOutputTxHash) {
+        this.splitOutputTxHash = splitOutputTxHash;
+        return this;
+    }
+
+    public OfferInfoBuilder withSplitOutputTxFee(long splitOutputTxFee) {
+        this.splitOutputTxFee = splitOutputTxFee;
         return this;
     }
 

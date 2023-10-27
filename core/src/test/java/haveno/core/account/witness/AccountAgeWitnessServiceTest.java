@@ -192,6 +192,7 @@ public class AccountAgeWitnessServiceTest {
                 1,
                 DisputeResult.Winner.BUYER,
                 DisputeResult.Reason.OTHER.ordinal(),
+                DisputeResult.SubtractFeeFrom.BUYER_ONLY,
                 true,
                 true,
                 true,

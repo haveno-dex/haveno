@@ -1006,8 +1006,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Done creating split output tx to fund offer {}", openOffer.getId());
 
         // schedule txs
-        openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
         openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
+        openOffer.setSplitOutputTxFee(splitOutputTx.getFee().longValueExact());
+        openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
         openOffer.setScheduledAmount(openOffer.getOffer().getReserveAmount().toString());
         openOffer.setState(OpenOffer.State.SCHEDULED);
         return splitOutputTx;

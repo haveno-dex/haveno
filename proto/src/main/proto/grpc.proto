@@ -541,6 +541,8 @@ message OfferInfo {
     string version_nr = 25;
     int32 protocol_version = 26;
     string arbitrator_signer = 27;
+    string split_output_tx_hash = 28;
+    uint64 split_output_tx_fee = 29 [jstype = JS_STRING];
 }
 
 message AvailabilityResultWithDescription {

@@ -815,6 +815,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         checkArgument(!wasOfferAlreadyUsedInTrade(offer.getId()));
 
+        // validate inputs
+        if (amount.compareTo(offer.getAmount()) > 0) throw new RuntimeException("Trade amount exceeds offer amount");
+        if (amount.compareTo(offer.getMinAmount()) < 0) throw new RuntimeException("Trade amount is less than minimum offer amount");
+
         OfferAvailabilityModel model = getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId, amount);
         offer.checkOfferAvailability(model,
                 () -> {
@@ -998,7 +1002,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
-    // we move the trade to failedTradesManager
+    // we move the trade to FailedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
         removeTrade(trade);
         failedTradesManager.add(trade);

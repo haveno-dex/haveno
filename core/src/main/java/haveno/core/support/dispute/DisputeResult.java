@@ -61,12 +61,21 @@ public final class DisputeResult implements NetworkPayload {
         PEER_WAS_LATE
     }
 
+    public enum SubtractFeeFrom {
+        BUYER_ONLY,
+        SELLER_ONLY,
+        BUYER_AND_SELLER
+    }
+
     private final String tradeId;
     private final int traderId;
     @Setter
     @Nullable
     private Winner winner;
     private int reasonOrdinal = Reason.OTHER.ordinal();
+    @Setter
+    @Nullable
+    private SubtractFeeFrom subtractFeeFrom;
     private final BooleanProperty tamperProofEvidenceProperty = new SimpleBooleanProperty();
     private final BooleanProperty idVerificationProperty = new SimpleBooleanProperty();
     private final BooleanProperty screenCastProperty = new SimpleBooleanProperty();
@@ -93,6 +102,7 @@ public final class DisputeResult implements NetworkPayload {
                          int traderId,
                          @Nullable Winner winner,
                          int reasonOrdinal,
+                         @Nullable SubtractFeeFrom subtractFeeFrom,
                          boolean tamperProofEvidence,
                          boolean idVerification,
                          boolean screenCast,
@@ -107,6 +117,7 @@ public final class DisputeResult implements NetworkPayload {
         this.traderId = traderId;
         this.winner = winner;
         this.reasonOrdinal = reasonOrdinal;
+        this.subtractFeeFrom = subtractFeeFrom;
         this.tamperProofEvidenceProperty.set(tamperProofEvidence);
         this.idVerificationProperty.set(idVerification);
         this.screenCastProperty.set(screenCast);
@@ -129,6 +140,7 @@ public final class DisputeResult implements NetworkPayload {
                 proto.getTraderId(),
                 ProtoUtil.enumFromProto(DisputeResult.Winner.class, proto.getWinner().name()),
                 proto.getReasonOrdinal(),
+                ProtoUtil.enumFromProto(DisputeResult.SubtractFeeFrom.class, proto.getSubtractFeeFrom().name()),
                 proto.getTamperProofEvidence(),
                 proto.getIdVerification(),
                 proto.getScreenCast(),
@@ -158,6 +170,7 @@ public final class DisputeResult implements NetworkPayload {
         Optional.ofNullable(arbitratorSignature).ifPresent(arbitratorSignature -> builder.setArbitratorSignature(ByteString.copyFrom(arbitratorSignature)));
         Optional.ofNullable(arbitratorPubKey).ifPresent(arbitratorPubKey -> builder.setArbitratorPubKey(ByteString.copyFrom(arbitratorPubKey)));
         Optional.ofNullable(winner).ifPresent(result -> builder.setWinner(protobuf.DisputeResult.Winner.valueOf(winner.name())));
+        Optional.ofNullable(subtractFeeFrom).ifPresent(result -> builder.setSubtractFeeFrom(protobuf.DisputeResult.SubtractFeeFrom.valueOf(subtractFeeFrom.name())));
         Optional.ofNullable(chatMessage).ifPresent(chatMessage ->
                 builder.setChatMessage(chatMessage.toProtoNetworkEnvelope().getChatMessage()));
 
@@ -201,6 +214,7 @@ public final class DisputeResult implements NetworkPayload {
     }
 
     public void setBuyerPayoutAmount(BigInteger buyerPayoutAmount) {
+        if (buyerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("buyerPayoutAmount cannot be negative");
         this.buyerPayoutAmount = buyerPayoutAmount.longValueExact();
     }
 
@@ -209,6 +223,7 @@ public final class DisputeResult implements NetworkPayload {
     }
 
     public void setSellerPayoutAmount(BigInteger sellerPayoutAmount) {
+        if (sellerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("sellerPayoutAmount cannot be negative");
         this.sellerPayoutAmount = sellerPayoutAmount.longValueExact();
     }
 
@@ -231,6 +246,7 @@ public final class DisputeResult implements NetworkPayload {
                 ",\n     traderId=" + traderId +
                 ",\n     winner=" + winner +
                 ",\n     reasonOrdinal=" + reasonOrdinal +
+                ",\n     subtractFeeFrom=" + subtractFeeFrom +
                 ",\n     tamperProofEvidenceProperty=" + tamperProofEvidenceProperty +
                 ",\n     idVerificationProperty=" + idVerificationProperty +
                 ",\n     screenCastProperty=" + screenCastProperty +

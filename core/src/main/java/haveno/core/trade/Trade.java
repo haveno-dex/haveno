@@ -69,11 +69,13 @@ import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroKeyImage;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroMultisigSignResult;
+import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxQuery;
@@ -1593,6 +1595,24 @@ public abstract class Trade implements Tradable, Model {
     @Override
     public String getShortId() {
         return offer.getShortId();
+    }
+
+    public BigInteger getFrozenAmount() {
+        BigInteger sum = BigInteger.valueOf(0);
+        for (String keyImage : getSelf().getReserveTxKeyImages()) {
+            List<MoneroOutputWallet> outputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage))); // TODO: will this check tx pool? avoid
+            if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
+        }
+        return sum;
+    }
+
+    public BigInteger getReservedAmount() {
+        if (!isDepositsPublished() || isPayoutPublished()) return BigInteger.valueOf(0);
+        if (isArbitrator()) {
+            return getAmount().add(getBuyer().getSecurityDeposit()).add(getSeller().getSecurityDeposit()); // arbitrator reserved balance is sum of amounts sent to multisig
+        } else {
+            return isBuyer() ? getBuyer().getSecurityDeposit() : getAmount().add(getSeller().getSecurityDeposit());
+        }
     }
 
     public Price getPrice() {

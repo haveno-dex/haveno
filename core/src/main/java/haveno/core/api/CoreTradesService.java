@@ -134,7 +134,7 @@ class CoreTradesService {
                 takeOfferModel.initModel(offer, paymentAccount, amount, useSavingsWallet);
                 takerFee = takeOfferModel.getTakerFee();
                 fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
-                log.info("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
+                log.debug("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
             }
 
             // take offer

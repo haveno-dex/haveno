@@ -17,28 +17,24 @@
 
 package haveno.core.xmr;
 
-import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.ClosedTradableManager;
+import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.network.p2p.P2PService;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
-import monero.wallet.model.MoneroTxQuery;
-import monero.wallet.model.MoneroTxWallet;
 
 import javax.inject.Inject;
 import java.math.BigInteger;
@@ -77,19 +73,19 @@ public class Balances {
     }
 
     public void onAllServicesInitialized() {
-        openOfferManager.getObservableList().addListener((ListChangeListener<OpenOffer>) c -> updatedBalances());
-        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> updatedBalances());
-        refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updatedBalances());
+        openOfferManager.getObservableList().addListener((ListChangeListener<OpenOffer>) c -> updateBalances());
+        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> updateBalances());
+        refundManager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) c -> updateBalances());
         xmrWalletService.addBalanceListener(new XmrBalanceListener() {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                updatedBalances();
+                updateBalances();
             }
         });
-        updatedBalances();
+        updateBalances();
     }
 
-    private void updatedBalances() {
+    private void updateBalances() {
         if (!xmrWalletService.isWalletReady()) return;
         try {
             updateAvailableBalance();
@@ -111,7 +107,18 @@ public class Balances {
     private void updatePendingBalance() {
         BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getBalance(0);
         BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0);
-        pendingBalance.set(balance.subtract(unlockedBalance));
+        BigInteger pendingBalanceSum = balance.subtract(unlockedBalance);
+
+        // add frozen trade balances - reserved amounts
+        List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
+        for (Trade trade : trades) {
+            if (trade.getFrozenAmount().equals(new BigInteger("0"))) continue;
+            BigInteger tradeFee = trade instanceof MakerTrade ? trade.getMakerFee() : trade.getTakerFee();
+            pendingBalanceSum = pendingBalanceSum.add(trade.getFrozenAmount()).subtract(trade.getReservedAmount()).subtract(tradeFee).subtract(trade.getSelf().getDepositTxFee());
+        }
+
+        // add frozen offer balances
+        pendingBalance.set(pendingBalanceSum);
     }
 
     private void updateReservedOfferBalance() {
@@ -120,30 +127,21 @@ public class Balances {
             List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
             for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(frozenOutput.getAmount());
         }
+
+        // subtract frozen trade balances
+        List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
+        for (Trade trade : trades) {
+            sum = sum.subtract(trade.getFrozenAmount());
+        }
+
         reservedOfferBalance.set(sum);
     }
 
     private void updateReservedTradeBalance() {
         BigInteger sum = BigInteger.valueOf(0);
-        List<Trade> openTrades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
-        for (Trade trade : openTrades) {
-            try {
-                List<MoneroTxWallet> depositTxs = xmrWalletService.getWallet().getTxs(new MoneroTxQuery()
-                        .setHash(trade.getSelf().getDepositTxHash())
-                        .setInTxPool(false)); // don't check pool
-                if (depositTxs.size() != 1 || !depositTxs.get(0).isConfirmed()) continue; // outputs are frozen until confirmed by arbitrator's broadcast
-            } catch (MoneroError e) {
-                continue;
-            }
-            if (trade.getContract() == null) continue;
-            Long reservedAmt;
-            OfferPayload offerPayload = trade.getContract().getOfferPayload();
-            if (trade.getArbitratorNodeAddress().equals(P2PService.getMyNodeAddress())) { // TODO (woodser): this only works if node address does not change
-                reservedAmt = offerPayload.getAmount() + offerPayload.getBuyerSecurityDeposit() + offerPayload.getSellerSecurityDeposit(); // arbitrator reserved balance is sum of amounts sent to multisig
-            } else {
-                reservedAmt = trade.getContract().isMyRoleBuyer(tradeManager.getKeyRing().getPubKeyRing()) ? offerPayload.getBuyerSecurityDeposit() : offerPayload.getAmount() + offerPayload.getSellerSecurityDeposit();
-            }
-            sum = sum.add(BigInteger.valueOf(reservedAmt));
+        List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
+        for (Trade trade : trades) {
+            sum = sum.add(trade.getReservedAmount());
         }
         reservedTradeBalance.set(sum);
     }

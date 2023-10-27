@@ -53,6 +53,10 @@ public class ProcessInitTradeRequest extends TradeTask {
             checkNotNull(request);
             checkTradeId(processModel.getOfferId(), request);
 
+            // validate inputs
+            if (trade.getAmount().compareTo(trade.getOffer().getAmount()) > 0) throw new RuntimeException("Trade amount exceeds offer amount");
+            if (trade.getAmount().compareTo(trade.getOffer().getMinAmount()) < 0) throw new RuntimeException("Trade amount is less than minimum offer amount");
+
             // handle request as arbitrator
             TradePeer multisigParticipant;
             if (trade instanceof ArbitratorTrade) {

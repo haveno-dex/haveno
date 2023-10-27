@@ -70,6 +70,9 @@ public final class OpenOffer implements Tradable {
     @Getter
     @Nullable
     String splitOutputTxHash;
+    @Getter
+    @Setter
+    long splitOutputTxFee;
     @Nullable
     @Setter
     @Getter
@@ -114,6 +117,7 @@ public final class OpenOffer implements Tradable {
         this.scheduledAmount = openOffer.scheduledAmount;
         this.scheduledTxHashes = openOffer.scheduledTxHashes == null ? null : new ArrayList<String>(openOffer.scheduledTxHashes);
         this.splitOutputTxHash = openOffer.splitOutputTxHash;
+        this.splitOutputTxFee = openOffer.splitOutputTxFee;
         this.reserveTxHash = openOffer.reserveTxHash;
         this.reserveTxHex = openOffer.reserveTxHex;
         this.reserveTxKey = openOffer.reserveTxKey;
@@ -130,6 +134,7 @@ public final class OpenOffer implements Tradable {
                       @Nullable String scheduledAmount,
                       @Nullable List<String> scheduledTxHashes,
                       String splitOutputTxHash,
+                      long splitOutputTxFee,
                       @Nullable String reserveTxHash,
                       @Nullable String reserveTxHex,
                       @Nullable String reserveTxKey) {
@@ -139,6 +144,7 @@ public final class OpenOffer implements Tradable {
         this.reserveExactAmount = reserveExactAmount;
         this.scheduledTxHashes = scheduledTxHashes;
         this.splitOutputTxHash = splitOutputTxHash;
+        this.splitOutputTxFee = splitOutputTxFee;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
@@ -153,6 +159,7 @@ public final class OpenOffer implements Tradable {
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
                 .setState(protobuf.OpenOffer.State.valueOf(state.name()))
+                .setSplitOutputTxFee(splitOutputTxFee)
                 .setReserveExactAmount(reserveExactAmount);
 
         Optional.ofNullable(scheduledAmount).ifPresent(e -> builder.setScheduledAmount(scheduledAmount));
@@ -173,6 +180,7 @@ public final class OpenOffer implements Tradable {
                 proto.getScheduledAmount(),
                 proto.getScheduledTxHashesList(),
                 ProtoUtil.stringOrNullFromProto(proto.getSplitOutputTxHash()),
+                proto.getSplitOutputTxFee(),
                 proto.getReserveTxHash(),
                 proto.getReserveTxHex(),
                 proto.getReserveTxKey());
@@ -253,6 +261,9 @@ public final class OpenOffer implements Tradable {
                 ",\n     offer=" + offer +
                 ",\n     state=" + state +
                 ",\n     triggerPrice=" + triggerPrice +
+                ",\n     reserveExactAmount=" + reserveExactAmount +
+                ",\n     scheduledAmount=" + scheduledAmount +
+                ",\n     splitOutputTxFee=" + splitOutputTxFee +
                 "\n}";
     }
 }

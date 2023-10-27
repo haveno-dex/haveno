@@ -74,6 +74,9 @@ public class OfferInfo implements Payload {
     private final int protocolVersion;
     @Nullable
     private final String arbitratorSigner;
+    @Nullable
+    private final String splitOutputTxHash;
+    private final long splitOutputTxFee;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -103,6 +106,8 @@ public class OfferInfo implements Payload {
         this.versionNumber = builder.getVersionNumber();
         this.protocolVersion = builder.getProtocolVersion();
         this.arbitratorSigner = builder.getArbitratorSigner();
+        this.splitOutputTxHash = builder.getSplitOutputTxHash();
+        this.splitOutputTxFee = builder.getSplitOutputTxFee();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -127,6 +132,8 @@ public class OfferInfo implements Payload {
                 .withTriggerPrice(preciseTriggerPrice)
                 .withState(openOffer.getState().name())
                 .withIsActivated(isActivated)
+                .withSplitOutputTxHash(openOffer.getSplitOutputTxHash())
+                .withSplitOutputTxFee(openOffer.getSplitOutputTxFee())
                 .build();
     }
 
@@ -199,8 +206,10 @@ public class OfferInfo implements Payload {
                 .setOwnerNodeAddress(ownerNodeAddress)
                 .setPubKeyRing(pubKeyRing)
                 .setVersionNr(versionNumber)
-                .setProtocolVersion(protocolVersion);
+                .setProtocolVersion(protocolVersion)
+                .setSplitOutputTxFee(splitOutputTxFee);
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
+        Optional.ofNullable(splitOutputTxHash).ifPresent(builder::setSplitOutputTxHash);
         return builder.build();
     }
 
@@ -234,6 +243,8 @@ public class OfferInfo implements Payload {
                 .withVersionNumber(proto.getVersionNr())
                 .withProtocolVersion(proto.getProtocolVersion())
                 .withArbitratorSigner(proto.getArbitratorSigner())
+                .withSplitOutputTxHash(proto.getSplitOutputTxHash())
+                .withSplitOutputTxFee(proto.getSplitOutputTxFee())
                 .build();
     }
 }

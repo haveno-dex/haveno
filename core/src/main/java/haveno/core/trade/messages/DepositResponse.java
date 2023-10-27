@@ -30,15 +30,21 @@ import java.util.Optional;
 public final class DepositResponse extends TradeMessage implements DirectMessage {
     private final long currentDate;
     private final String errorMessage;
+    private final long buyerSecurityDeposit;
+    private final long sellerSecurityDeposit;
 
     public DepositResponse(String tradeId,
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
-                                     String errorMessage) {
+                                     String errorMessage,
+                                     long buyerSecurityDeposit,
+                                     long sellerSecurityDeposit) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
         this.errorMessage = errorMessage;
+        this.buyerSecurityDeposit = buyerSecurityDeposit;
+        this.sellerSecurityDeposit = sellerSecurityDeposit;
     }
 
 
@@ -52,6 +58,8 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                 .setTradeId(tradeId)
                 .setUid(uid);
         builder.setCurrentDate(currentDate);
+        builder.setBuyerSecurityDeposit(buyerSecurityDeposit);
+        builder.setSellerSecurityDeposit(sellerSecurityDeposit);
         Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(errorMessage));
 
         return getNetworkEnvelopeBuilder().setDepositResponse(builder).build();
@@ -64,7 +72,9 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
-                ProtoUtil.stringOrNullFromProto(proto.getErrorMessage()));
+                ProtoUtil.stringOrNullFromProto(proto.getErrorMessage()),
+                proto.getBuyerSecurityDeposit(),
+                proto.getSellerSecurityDeposit());
     }
 
     @Override
@@ -72,6 +82,8 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
         return "DepositResponse {" +
                 ",\n     currentDate=" + currentDate +
                 ",\n     errorMessage=" + errorMessage +
+                ",\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
+                ",\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
                 "\n} " + super.toString();
     }
 }

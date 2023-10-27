@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 import haveno.common.app.Version;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
@@ -31,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -91,9 +93,14 @@ public class MaybeSendSignContractRequest extends TradeTask {
           processModel.setDepositTxXmr(depositTx); // TODO: redundant with trade.getSelf().setDepositTx(), remove?
           trade.getSelf().setDepositTx(depositTx);
           trade.getSelf().setDepositTxHash(depositTx.getHash());
+          trade.getSelf().setDepositTxFee(depositTx.getFee());
           trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
           trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
           trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
+
+          // TODO: security deposit should be based on trade amount, not max offer amount
+          BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getOffer().getBuyerSecurityDeposit() : trade.getOffer().getSellerSecurityDeposit();
+          trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
 
           // maker signs deposit hash nonce to avoid challenge protocol
           byte[] sig = null;

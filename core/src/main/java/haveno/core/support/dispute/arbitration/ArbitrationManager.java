@@ -390,9 +390,25 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger expectedWinnerAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount();
         BigInteger expectedLoserAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
 
-        // winner pays cost if loser gets nothing, otherwise loser pays cost
-        if (expectedLoserAmount.equals(BigInteger.ZERO)) expectedWinnerAmount = expectedWinnerAmount.subtract(txCost);
-        else expectedLoserAmount = expectedLoserAmount.subtract(txCost);
+        // subtract mining fee from expected payouts
+        if (expectedLoserAmount.equals(BigInteger.ZERO)) expectedWinnerAmount = expectedWinnerAmount.subtract(txCost); // winner pays fee if loser gets 0
+        else {
+            switch (disputeResult.getSubtractFeeFrom()) {
+                case BUYER_AND_SELLER:
+                    BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
+                    expectedWinnerAmount = expectedWinnerAmount.subtract(txCostSplit);
+                    expectedLoserAmount = expectedLoserAmount.subtract(txCostSplit);
+                    break;
+                case BUYER_ONLY:
+                    expectedWinnerAmount = expectedWinnerAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? txCost : BigInteger.ZERO);
+                    expectedLoserAmount = expectedLoserAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? BigInteger.ZERO : txCost);
+                    break;
+                case SELLER_ONLY:
+                    expectedWinnerAmount = expectedWinnerAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? BigInteger.ZERO : txCost);
+                    expectedLoserAmount = expectedLoserAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? txCost : BigInteger.ZERO);
+                    break;
+            }
+        }
 
         // verify winner and loser payout amounts
         if (!expectedWinnerAmount.equals(actualWinnerAmount)) throw new RuntimeException("Unexpected winner payout: " + expectedWinnerAmount + " vs " + actualWinnerAmount);

@@ -116,6 +116,7 @@ public final class TradePeer implements PersistablePayload {
     private String depositTxHex;
     @Nullable
     private String depositTxKey;
+    private long depositTxFee;
     private long securityDeposit;
     @Nullable
     private String updatedMultisigHex;
@@ -126,7 +127,16 @@ public final class TradePeer implements PersistablePayload {
     public TradePeer() {
     }
 
+    public BigInteger getDepositTxFee() {
+        return BigInteger.valueOf(depositTxFee);
+    }
+
+    public void setDepositTxFee(BigInteger depositTxFee) {
+        this.depositTxFee = depositTxFee.longValueExact();
+    }
+
     public BigInteger getSecurityDeposit() {
+        if (depositTxHash == null) return null;
         return BigInteger.valueOf(securityDeposit);
     }
 
@@ -164,6 +174,7 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(depositTxHash).ifPresent(e -> builder.setDepositTxHash(depositTxHash));
         Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
+        Optional.ofNullable(depositTxFee).ifPresent(e -> builder.setDepositTxFee(depositTxFee));
         Optional.ofNullable(securityDeposit).ifPresent(e -> builder.setSecurityDeposit(securityDeposit));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         builder.setDepositsConfirmedMessageAcked(depositsConfirmedMessageAcked);
@@ -206,6 +217,7 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
             tradePeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
+            tradePeer.setDepositTxFee(BigInteger.valueOf(proto.getDepositTxFee()));
             tradePeer.setSecurityDeposit(BigInteger.valueOf(proto.getSecurityDeposit()));
             tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
             tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());

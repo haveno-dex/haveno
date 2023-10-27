@@ -222,7 +222,7 @@ public class OfferUtil {
                         getMaxBuyerSecurityDepositAsPercent());
         checkArgument(buyerSecurityDeposit >= getMinBuyerSecurityDepositAsPercent(),
                 "securityDeposit must not be less than " +
-                        getMinBuyerSecurityDepositAsPercent());
+                        getMinBuyerSecurityDepositAsPercent() + " but was " + buyerSecurityDeposit);
         checkArgument(!filterManager.isCurrencyBanned(currencyCode),
                 Res.get("offerbook.warning.currencyBanned"));
         checkArgument(!filterManager.isPaymentMethodBanned(paymentAccount.getPaymentMethod()),
