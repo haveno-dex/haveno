@@ -529,7 +529,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             processModel.setTradeMessage(message);
             expect(anyPhase(
                     trade.isBuyer() ? new Trade.Phase[] {Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED} :
-                    trade.isArbitrator() ? new Trade.Phase[] {Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT} :  // arbitrator syncs slowly after deposits confirmed
+                    trade.isArbitrator() ? new Trade.Phase[] {Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT} : // arbitrator syncs slowly after deposits confirmed
                     new Trade.Phase[] {Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT})
                 .with(message)
                 .from(peer))
@@ -614,14 +614,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // ACK msg
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void onAckMessage(AckMessage ackMessage, NodeAddress peer) {
+    private void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
 
         // handle ack for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
-            if (trade.getTradePeer(peer) == trade.getSeller()) {
+            if (trade.getTradePeer(sender) == trade.getSeller()) {
                 processModel.setPaymentSentAckMessage(ackMessage);
             } else if (!ackMessage.isSuccess()) {
-                String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ peer + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
+                String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
                 log.warn(err);
                 return; // log error and ignore nack if not seller
             }
@@ -629,16 +629,23 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         if (ackMessage.isSuccess()) {
             log.info("Received AckMessage for {} from {} with tradeId {} and uid {}",
-                    ackMessage.getSourceMsgClassName(), peer, trade.getId(), ackMessage.getSourceUid());
+                    ackMessage.getSourceMsgClassName(), sender, trade.getId(), ackMessage.getSourceUid());
 
             // handle ack for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
             if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
-                if (trade.getTradePeer(peer) != null) {
-                    trade.getTradePeer(peer).setDepositsConfirmedMessageAcked(true);
+                TradePeer peer = trade.getTradePeer(sender);
+                if (peer == null) {
+
+                    // get the applicable peer based on the sourceUid
+                    if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
+                    else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
+                    else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
                 }
+                if (peer == null) log.warn("Received AckMesage for DepositsConfirmedMessage for unknown peer: " + sender);
+                else peer.setDepositsConfirmedMessageAcked(true);
             }
         } else {
-            String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ peer + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
+            String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
             log.warn(err);
 
             // set trade state on deposit request nack
