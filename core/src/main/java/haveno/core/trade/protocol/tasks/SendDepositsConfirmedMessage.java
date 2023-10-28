@@ -125,8 +125,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
     private void tryToSendAgainLater() {
 
-        // skip if already acked
-        if (ackedByReceiver()) return;
+        // skip if already acked or payout published
+        if (ackedByReceiver() || trade.isPayoutPublished()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
