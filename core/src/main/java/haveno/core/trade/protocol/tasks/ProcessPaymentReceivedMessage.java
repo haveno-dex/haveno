@@ -53,6 +53,17 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // verify signature of payment received message
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
 
+            // update to the latest peer address of our peer if message is correct
+            trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
+            if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
+
+            // ack and complete if already processed
+            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal()) {
+                log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
+                complete();
+                return;
+            }
+
             // save message for reprocessing
             processModel.setPaymentReceivedMessage(message);
             trade.requestPersistence();
@@ -61,10 +72,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
-
-            // update to the latest peer address of our peer if message is correct
-            trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
-            if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
 
             // close open disputes
             if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {

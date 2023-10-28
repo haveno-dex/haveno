@@ -519,18 +519,26 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return;
         }
         synchronized (trade) {
-            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal()) {
-                log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
-                handleTaskRunnerSuccess(peer, message);
-                return;
-            }
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), message);
             processModel.setTradeMessage(message);
-            expect(anyPhase(
-                    trade.isBuyer() ? new Trade.Phase[] {Trade.Phase.PAYMENT_SENT, Trade.Phase.PAYMENT_RECEIVED} :
-                    trade.isArbitrator() ? new Trade.Phase[] {Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT} : // arbitrator syncs slowly after deposits confirmed
-                    new Trade.Phase[] {Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT})
+
+
+            // check minimum trade phase
+            if (trade.isBuyer() && trade.getPhase().ordinal() < Trade.Phase.PAYMENT_SENT.ordinal()) {
+                log.warn("Received PaymentReceivedMessage before payment sent for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
+            if (trade.isArbitrator() && trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_CONFIRMED.ordinal()) {
+                log.warn("Received PaymentReceivedMessage before deposits confirmed for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
+            if (trade.isSeller() && trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
+                log.warn("Received PaymentReceivedMessage before deposits unlocked for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
+
+            expect(anyPhase()
                 .with(message)
                 .from(peer))
                 .setup(tasks(
