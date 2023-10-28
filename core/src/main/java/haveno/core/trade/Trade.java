@@ -1607,12 +1607,8 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public BigInteger getReservedAmount() {
-        if (!isDepositsPublished() || isPayoutPublished()) return BigInteger.valueOf(0);
-        if (isArbitrator()) {
-            return getAmount().add(getBuyer().getSecurityDeposit()).add(getSeller().getSecurityDeposit()); // arbitrator reserved balance is sum of amounts sent to multisig
-        } else {
-            return isBuyer() ? getBuyer().getSecurityDeposit() : getAmount().add(getSeller().getSecurityDeposit());
-        }
+        if (isArbitrator() || !isDepositsPublished() || isPayoutPublished()) return BigInteger.valueOf(0);
+        return isBuyer() ? getBuyer().getSecurityDeposit() : getAmount().add(getSeller().getSecurityDeposit());
     }
 
     public Price getPrice() {
