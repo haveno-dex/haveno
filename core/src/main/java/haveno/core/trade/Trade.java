@@ -1105,7 +1105,7 @@ public abstract class Trade implements Tradable, Model {
         // by mediators and we keep the confirm disabled to avoid that the seller can complete the trade
         // without the penalty.
         long payoutAmountFromMediation = processModel.getSellerPayoutAmountFromMediation();
-        long normalPayoutAmount = getSellerSecurityDeposit().longValueExact();
+        long normalPayoutAmount = getSeller().getSecurityDeposit().longValueExact();
         return payoutAmountFromMediation < normalPayoutAmount;
     }
 
@@ -1635,16 +1635,6 @@ public abstract class Trade implements Tradable, Model {
     @Override
     public BigInteger getTotalTxFee() {
         return BigInteger.valueOf(totalTxFee);
-    }
-
-    public BigInteger getBuyerSecurityDeposit() {
-        if (getBuyer().getDepositTxHash() == null) return null;
-        return getBuyer().getSecurityDeposit();
-    }
-
-    public BigInteger getSellerSecurityDeposit() {
-        if (getSeller().getDepositTxHash() == null) return null;
-        return getSeller().getSecurityDeposit();
     }
 
     @Nullable
