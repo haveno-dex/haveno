@@ -212,8 +212,8 @@ public class CoreDisputesService {
     public void applyPayoutAmountsToDisputeResult(DisputePayout payout, Dispute dispute, DisputeResult disputeResult, long customWinnerAmount) {
         Contract contract = dispute.getContract();
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
-        BigInteger buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
-        BigInteger sellerSecurityDeposit = trade.getSellerSecurityDeposit();
+        BigInteger buyerSecurityDeposit = trade.getBuyer().getSecurityDeposit();
+        BigInteger sellerSecurityDeposit = trade.getSeller().getSecurityDeposit();
         BigInteger tradeAmount = contract.getTradeAmount();
         if (payout == DisputePayout.BUYER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmount(tradeAmount.add(buyerSecurityDeposit));

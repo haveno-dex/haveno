@@ -286,11 +286,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeFee"), tradeFee);
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(trade.getBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(trade.getBuyer().getSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(trade.getSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(trade.getSeller().getSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
     }
 
@@ -354,8 +354,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Contract contract = dispute.getContract();
         BigInteger tradeAmount = contract.getTradeAmount();
         BigInteger available = tradeAmount
-                .add(trade.getBuyerSecurityDeposit())
-                .add(trade.getSellerSecurityDeposit());
+                .add(trade.getBuyer().getSecurityDeposit())
+                .add(trade.getSeller().getSecurityDeposit());
         BigInteger totalAmount = buyerAmount.add(sellerAmount);
 
         boolean isRefundAgent = getDisputeManager(dispute) instanceof RefundManager;
@@ -380,8 +380,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         Contract contract = dispute.getContract();
         BigInteger available = contract.getTradeAmount()
-                .add(trade.getBuyerSecurityDeposit())
-                .add(trade.getSellerSecurityDeposit());
+                .add(trade.getBuyer().getSecurityDeposit())
+                .add(trade.getSeller().getSecurityDeposit());
         BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
@@ -716,8 +716,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     private void applyTradeAmountRadioButtonStates() {
         Contract contract = dispute.getContract();
-        BigInteger buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
-        BigInteger sellerSecurityDeposit = trade.getSellerSecurityDeposit();
+        BigInteger buyerSecurityDeposit = trade.getBuyer().getSecurityDeposit();
+        BigInteger sellerSecurityDeposit = trade.getSeller().getSecurityDeposit();
         BigInteger tradeAmount = contract.getTradeAmount();
 
         BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
