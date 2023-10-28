@@ -66,11 +66,6 @@ public abstract class OfferDataModel extends ActivatableDataModel {
 
     protected void updateBalance() {
         updateBalances();
-        if (useSavingsWallet) {
-            if (totalToPay.get() != null) {
-                balance.set(totalToPay.get().min(totalBalance));
-            }
-        }
         missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
         isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
         if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
@@ -80,11 +75,6 @@ public abstract class OfferDataModel extends ActivatableDataModel {
 
     protected void updateAvailableBalance() {
         updateBalances();
-        if (useSavingsWallet) {
-            if (totalToPay.get() != null) {
-                availableBalance.set(totalToPay.get().min(totalAvailableBalance));
-            }
-        }
         missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), availableBalance.get()));
         isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
         if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
@@ -96,8 +86,12 @@ public abstract class OfferDataModel extends ActivatableDataModel {
         BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         BigInteger tradeWalletAvailableBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
         if (useSavingsWallet) {
-            totalBalance = xmrWalletService.getBalance();;
+            totalBalance = xmrWalletService.getBalance();
             totalAvailableBalance = xmrWalletService.getAvailableBalance();
+            if (totalToPay.get() != null) {
+                balance.set(totalToPay.get().min(totalBalance));
+                availableBalance.set(totalToPay.get().min(totalAvailableBalance));
+            }
         } else {
             balance.set(tradeWalletBalance);
             availableBalance.set(tradeWalletAvailableBalance);
