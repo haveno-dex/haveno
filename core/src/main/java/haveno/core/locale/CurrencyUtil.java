@@ -58,8 +58,8 @@ public class CurrencyUtil {
 
     private static List<TraditionalCurrency> getTraditionalNonFiatCurrencies() {
         return Arrays.asList(
-            new TraditionalCurrency("XAG", "Gold"),
-            new TraditionalCurrency("XAU", "Silver"),
+            new TraditionalCurrency("XAG", "Silver"),
+            new TraditionalCurrency("XAU", "Gold"),
             new TraditionalCurrency("XGB", "Goldback")
         );
     }
