@@ -54,10 +54,7 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
     public void initWithData(OfferDirection direction,
                              TradeCurrency tradeCurrency,
                              OfferView.OfferActionHandler offerActionHandler) {
-        // Invert direction for non-Fiat trade currencies -> BUY BSQ is to SELL Bitcoin
-        OfferDirection offerDirection = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode()) ? direction :
-                direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
-        super.initWithData(offerDirection, tradeCurrency, offerActionHandler);
+        super.initWithData(direction, tradeCurrency, offerActionHandler);
     }
 
     @Override
