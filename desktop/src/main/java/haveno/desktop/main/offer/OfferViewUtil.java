@@ -18,7 +18,6 @@
 package haveno.desktop.main.offer;
 
 import haveno.common.UserThread;
-import haveno.common.util.Tuple2;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -26,10 +25,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.Navigation;
-import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.offer.offerbook.XmrOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
@@ -38,13 +34,11 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroSubmitTxResult;
 import org.jetbrains.annotations.NotNull;
@@ -94,36 +88,6 @@ public class OfferViewUtil {
         infoGridPane.getChildren().addAll(label, textField);
     }
 
-    public static Tuple2<AutoTooltipButton, HBox> createBuyBsqButtonBox(Navigation navigation) {
-        String buyBsqText = Res.get("shared.buyCurrency", "BSQ");
-        var buyBsqButton = new AutoTooltipButton(buyBsqText);
-        buyBsqButton.getStyleClass().add("action-button");
-        buyBsqButton.getStyleClass().add("tiny-button");
-        buyBsqButton.setMinWidth(60);
-        buyBsqButton.setOnAction(e -> openBuyBsqOfferBook(navigation)
-        );
-
-        var info = new AutoTooltipLabel("BSQ is colored BTC that helps fund Haveno developers.");
-        var learnMore = new HyperlinkWithIcon("Learn More");
-        learnMore.setOnAction(e -> new Popup().headLine(buyBsqText)
-                .information(Res.get("createOffer.buyBsq.popupMessage"))
-                .actionButtonText(buyBsqText)
-                .buttonAlignment(HPos.CENTER)
-                .onAction(() -> openBuyBsqOfferBook(navigation)).show());
-        learnMore.setMinWidth(100);
-
-        HBox buyBsqBox = new HBox(buyBsqButton, info, learnMore);
-        buyBsqBox.setAlignment(Pos.BOTTOM_LEFT);
-        buyBsqBox.setSpacing(10);
-        buyBsqBox.setPadding(new Insets(0, 0, 4, -20));
-
-        return new Tuple2<>(buyBsqButton, buyBsqBox);
-    }
-
-    private static void openBuyBsqOfferBook(Navigation navigation) {
-        throw new Error("BSQ not supported");
-    }
-
     public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
         if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
@@ -145,7 +109,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(String currencyCode, OfferDirection direction) {
-        return CurrencyUtil.isTraditionalCurrency(currencyCode) == (direction == OfferDirection.SELL);
+        return CurrencyUtil.isFiatCurrency(currencyCode) == (direction == OfferDirection.SELL);
     }
 
     public static boolean isShownAsBuyOffer(Offer offer) {

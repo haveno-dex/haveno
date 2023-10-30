@@ -264,7 +264,12 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         // CreateOffer and TakeOffer must not be cached by ViewLoader as we cannot use a view multiple times
         // in different graphs
         view = viewLoader.load(childViewClass);
-        ((CreateOfferView) view).initWithData(direction, tradeCurrency, offerActionHandler);
+
+        // Invert direction for non-Fiat trade currencies -> BUY BCH is to SELL Monero
+        OfferDirection offerDirection = CurrencyUtil.isFiatCurrency(tradeCurrency.getCode()) ? direction :
+                direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
+
+        ((CreateOfferView) view).initWithData(offerDirection, tradeCurrency, offerActionHandler);
 
         ((SelectableView) view).onTabSelected(true);
 
