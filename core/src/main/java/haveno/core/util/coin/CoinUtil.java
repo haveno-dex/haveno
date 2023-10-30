@@ -47,7 +47,7 @@ public class CoinUtil {
 
     public static double getFeePerVbyte(Coin miningFee, int txVsize) {
         double value = miningFee != null ? miningFee.value : 0;
-        return MathUtils.roundDouble((value / (double) txVsize), 2);
+        return MathUtils.roundDouble((value / txVsize), 2);
     }
 
     /**
@@ -127,8 +127,8 @@ public class CoinUtil {
     @VisibleForTesting
     static BigInteger getAdjustedAmount(BigInteger amount, Price price, long maxTradeLimit, int factor) {
         checkArgument(
-                amount.longValueExact() >= HavenoUtils.xmrToAtomicUnits(0.0001).longValueExact(),
-                "amount needs to be above minimum of 0.0001 xmr" // TODO: update amount for XMR
+                amount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
+                "amount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr"
         );
         checkArgument(
                 factor > 0,
@@ -143,10 +143,9 @@ public class CoinUtil {
         BigInteger smallestUnitForAmount = price.getAmountByVolume(smallestUnitForVolume);
         long minTradeAmount = Restrictions.getMinTradeAmount().longValueExact();
 
-        // We use 10 000 satoshi as min allowed amount
         checkArgument(
-                minTradeAmount >= HavenoUtils.xmrToAtomicUnits(0.0001).longValueExact(),
-                "MinTradeAmount must be at least 0.0001 xmr" // TODO: update amount for XMR
+                minTradeAmount >= Restrictions.getMinTradeAmount().longValueExact(),
+                "MinTradeAmount must be at least " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr"
         );
         smallestUnitForAmount = BigInteger.valueOf(Math.max(minTradeAmount, smallestUnitForAmount.longValueExact()));
         // We don't allow smaller amount values than smallestUnitForAmount
@@ -164,8 +163,7 @@ public class CoinUtil {
         BigInteger amountByVolume = price.getAmountByVolume(volume);
 
         // For the amount we allow only 4 decimal places
-        // TODO: remove rounding for XMR?
-        long adjustedAmount = HavenoUtils.centinerosToAtomicUnits(Math.round((double) HavenoUtils.atomicUnitsToCentineros(amountByVolume) / 10000d) * 10000).longValueExact();
+        long adjustedAmount = HavenoUtils.centinerosToAtomicUnits(Math.round(HavenoUtils.atomicUnitsToCentineros(amountByVolume) / 10000d) * 10000).longValueExact();
 
         // If we are above our trade limit we reduce the amount by the smallestUnitForAmount
         while (adjustedAmount > maxTradeLimit) {

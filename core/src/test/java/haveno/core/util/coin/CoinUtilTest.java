@@ -59,7 +59,7 @@ public class CoinUtilTest {
     @Test
     public void testGetAdjustedAmount() {
         BigInteger result = CoinUtil.getAdjustedAmount(
-                HavenoUtils.xmrToAtomicUnits(0.001),
+                HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
                 HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
                 1);
@@ -78,7 +78,7 @@ public class CoinUtilTest {
             fail("Expected IllegalArgumentException to be thrown when amount is too low.");
         } catch (IllegalArgumentException iae) {
             assertEquals(
-                    "amount needs to be above minimum of 0.0001 xmr",
+                    "amount needs to be above minimum of 0.1 xmr",
                     iae.getMessage(),
                     "Unexpected exception message."
             );
@@ -112,7 +112,7 @@ public class CoinUtilTest {
         // 0.05 USD worth, which is below the factor of 1 USD, but does respect the maxTradeLimit.
         // Basically the given constraints (maxTradeLimit vs factor) are impossible to both fulfill..
         result = CoinUtil.getAdjustedAmount(
-                HavenoUtils.xmrToAtomicUnits(0.001),
+                HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
                 HavenoUtils.xmrToAtomicUnits(0.00005).longValueExact(),
                 1);
