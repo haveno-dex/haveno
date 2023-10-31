@@ -210,10 +210,10 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
             return "BTC" + tradeFee;
         }, Comparator.nullsFirst(Comparator.naturalOrder())));
         buyerSecurityDepositColumn.setComparator(nullsFirstComparing(o ->
-                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getBuyerSecurityDeposit() : null
+                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getMaxBuyerSecurityDeposit() : null
         ));
         sellerSecurityDepositColumn.setComparator(nullsFirstComparing(o ->
-                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getSellerSecurityDeposit() : null
+                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getMaxSellerSecurityDeposit() : null
         ));
         stateColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getState));
 

@@ -623,8 +623,8 @@ message OfferPayload {
     string version_nr = 19;
     int64 block_height_at_offer_creation = 20;
     int64 maker_fee = 21;
-    int64 buyer_security_deposit = 22;
-    int64 seller_security_deposit = 23;
+    double buyer_security_deposit_pct = 22;
+    double seller_security_deposit_pct = 23;
     int64 max_trade_limit = 24;
     int64 max_trade_period = 25;
     bool use_auto_close = 26;

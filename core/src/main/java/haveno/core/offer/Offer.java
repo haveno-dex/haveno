@@ -279,7 +279,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     // get the amount needed for the maker to reserve the offer
     public BigInteger getReserveAmount() {
-        BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
+        BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getMaxBuyerSecurityDeposit() : getMaxSellerSecurityDeposit();
         if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
         reserveAmount = reserveAmount.add(getMakerFee());
         return reserveAmount;
@@ -289,12 +289,20 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return BigInteger.valueOf(offerPayload.getMakerFee());
     }
 
-    public BigInteger getBuyerSecurityDeposit() {
-        return BigInteger.valueOf(offerPayload.getBuyerSecurityDeposit());
+    public BigInteger getMaxBuyerSecurityDeposit() {
+        return offerPayload.getMaxBuyerSecurityDeposit();
     }
 
-    public BigInteger getSellerSecurityDeposit() {
-        return BigInteger.valueOf(offerPayload.getSellerSecurityDeposit());
+    public BigInteger getMaxSellerSecurityDeposit() {
+        return offerPayload.getMaxSellerSecurityDeposit();
+    }
+
+    public double getBuyerSecurityDepositPct() {
+        return offerPayload.getBuyerSecurityDepositPct();
+    }
+
+    public double getSellerSecurityDepositPct() {
+        return offerPayload.getSellerSecurityDepositPct();
     }
 
     public BigInteger getMaxTradeLimit() {

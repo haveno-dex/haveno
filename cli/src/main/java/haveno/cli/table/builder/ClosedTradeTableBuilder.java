@@ -61,8 +61,8 @@ class ClosedTradeTableBuilder extends AbstractTradeListBuilder {
 
             colMixedTradeFee.addRow(toTradeFeeBtc.apply(t), false);
 
-            colBuyerDeposit.addRow(t.getOffer().getBuyerSecurityDeposit());
-            colSellerDeposit.addRow(t.getOffer().getSellerSecurityDeposit());
+            colBuyerDeposit.addRow(t.getOffer().getBuyerSecurityDepositPct());
+            colSellerDeposit.addRow(t.getOffer().getSellerSecurityDepositPct());
             colOfferType.addRow(toOfferType.apply(t));
         });
     }

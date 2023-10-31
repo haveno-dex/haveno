@@ -60,9 +60,9 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     @Nullable
     protected final MixedTradeFeeColumn colMixedTradeFee;
     @Nullable
-    protected final Column<Long> colBuyerDeposit;
+    protected final Column<Double> colBuyerDeposit;
     @Nullable
-    protected final Column<Long> colSellerDeposit;
+    protected final Column<Double> colSellerDeposit;
     @Nullable
     protected final Column<String> colPaymentMethod;
     @Nullable

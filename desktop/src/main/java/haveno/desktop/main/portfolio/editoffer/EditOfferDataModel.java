@@ -122,13 +122,15 @@ class EditOfferDataModel extends MutableOfferDataModel {
             else
                 paymentAccount.setSelectedTradeCurrency(selectedTradeCurrency);
         }
+        
+        // TODO: update for XMR to use percent as double?
 
         // If the security deposit got bounded because it was below the coin amount limit, it can be bigger
         // by percentage than the restriction. We can't determine the percentage originally entered at offer
         // creation, so just use the default value as it doesn't matter anyway.
-        double buyerSecurityDepositPercent = CoinUtil.getAsPercentPerBtc(offer.getBuyerSecurityDeposit(), offer.getAmount());
+        double buyerSecurityDepositPercent = CoinUtil.getAsPercentPerBtc(offer.getMaxBuyerSecurityDeposit(), offer.getAmount());
         if (buyerSecurityDepositPercent > Restrictions.getMaxBuyerSecurityDepositAsPercent()
-                && offer.getBuyerSecurityDeposit().equals(Restrictions.getMinBuyerSecurityDeposit()))
+                && offer.getMaxBuyerSecurityDeposit().equals(Restrictions.getMinBuyerSecurityDeposit()))
             buyerSecurityDepositPct.set(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
         else
             buyerSecurityDepositPct.set(buyerSecurityDepositPercent);
@@ -199,8 +201,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getVersionNr(),
                 offerPayload.getBlockHeightAtOfferCreation(),
                 offerPayload.getMakerFee(),
-                offerPayload.getBuyerSecurityDeposit(),
-                offerPayload.getSellerSecurityDeposit(),
+                offerPayload.getBuyerSecurityDepositPct(),
+                offerPayload.getSellerSecurityDepositPct(),
                 offerPayload.getMaxTradeLimit(),
                 offerPayload.getMaxTradePeriod(),
                 offerPayload.isUseAutoClose(),

@@ -100,8 +100,8 @@ public class TakeOfferModel implements Model {
         this.useSavingsWallet = useSavingsWallet;
         this.amount = tradeAmount.min(BigInteger.valueOf(getMaxTradeLimit()));
         this.securityDeposit = offer.getDirection() == SELL
-                ? offer.getBuyerSecurityDeposit()
-                : offer.getSellerSecurityDeposit();
+                ? offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(amount)
+                : offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(amount);
         this.takerFee = HavenoUtils.getTakerFee(amount);
 
         calculateVolume();

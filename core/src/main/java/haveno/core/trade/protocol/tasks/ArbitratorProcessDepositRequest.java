@@ -81,7 +81,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             boolean isFromBuyer = trader == trade.getBuyer();
             BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
             BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : trade.getAmount();
-            BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
+            BigInteger securityDeposit = isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             String depositAddress = processModel.getMultisigAddress();
 
             // verify deposit tx

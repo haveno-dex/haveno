@@ -1057,7 +1057,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         // The amount we would get if we do a new trade with current price
         BigInteger potentialAmountAtDisputeOpening = priceAtDisputeOpening.getAmountByVolume(contract.getTradeVolume());
-        BigInteger buyerSecurityDeposit = BigInteger.valueOf(offerPayload.getBuyerSecurityDeposit());
+        BigInteger buyerSecurityDeposit = offerPayload.getMaxBuyerSecurityDeposit();
         BigInteger minRefundAtMediatedDispute = Restrictions.getMinRefundAtMediatedDispute();
         // minRefundAtMediatedDispute is always larger as buyerSecurityDeposit at mediated payout, we ignore refund agent case here as there it can be 0.
         BigInteger maxLossSecDeposit = buyerSecurityDeposit.subtract(minRefundAtMediatedDispute);

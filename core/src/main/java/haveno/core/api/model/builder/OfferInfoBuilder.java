@@ -39,8 +39,8 @@ public final class OfferInfoBuilder {
     private String volume;
     private String minVolume;
     private long makerFee;
-    private long buyerSecurityDeposit;
-    private long sellerSecurityDeposit;
+    private double buyerSecurityDepositPct;
+    private double sellerSecurityDepositPct;
     private String triggerPrice;
     private boolean isCurrencyForMakerFeeBtc;
     private String paymentAccountId;
@@ -112,13 +112,13 @@ public final class OfferInfoBuilder {
         return this;
     }
 
-    public OfferInfoBuilder withBuyerSecurityDeposit(long buyerSecurityDeposit) {
-        this.buyerSecurityDeposit = buyerSecurityDeposit;
+    public OfferInfoBuilder withBuyerSecurityDepositPct(double buyerSecurityDepositPct) {
+        this.buyerSecurityDepositPct = buyerSecurityDepositPct;
         return this;
     }
 
-    public OfferInfoBuilder withSellerSecurityDeposit(long sellerSecurityDeposit) {
-        this.sellerSecurityDeposit = sellerSecurityDeposit;
+    public OfferInfoBuilder withSellerSecurityDepositPct(double sellerSecurityDepositPct) {
+        this.sellerSecurityDepositPct = sellerSecurityDepositPct;
         return this;
     }
 

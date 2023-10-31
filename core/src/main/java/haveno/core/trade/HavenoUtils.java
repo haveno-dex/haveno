@@ -122,7 +122,7 @@ public class HavenoUtils {
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+        return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).setScale(8).toBigInteger();
     }
 
     public static long xmrToCentineros(double xmr) {
@@ -174,6 +174,10 @@ public class HavenoUtils {
             }
         }
         return applyDecimals(formatted, Math.max(2, decimalPlaces)) + (appendCode ? " XMR" : "");
+    }
+
+    public static String formatPercent(double percent) {
+        return (percent * 100) + "%";
     }
 
     private static String applyDecimals(String decimalStr, int decimalPlaces) {

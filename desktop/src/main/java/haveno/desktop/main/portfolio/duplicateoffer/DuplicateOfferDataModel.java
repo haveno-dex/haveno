@@ -95,7 +95,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
     }
 
     private double getBuyerSecurityAsPercent(Offer offer) {
-        BigInteger offerBuyerSecurityDeposit = getBoundedBuyerSecurityDeposit(offer.getBuyerSecurityDeposit());
+        BigInteger offerBuyerSecurityDeposit = getBoundedBuyerSecurityDeposit(offer.getMaxBuyerSecurityDeposit());
         double offerBuyerSecurityDepositAsPercent = CoinUtil.getAsPercentPerBtc(offerBuyerSecurityDeposit,
                 offer.getAmount());
         return Math.min(offerBuyerSecurityDepositAsPercent,
