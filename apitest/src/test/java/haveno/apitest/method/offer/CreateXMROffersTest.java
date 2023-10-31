@@ -75,7 +75,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -91,7 +92,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -119,7 +121,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -135,7 +138,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -169,7 +173,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
 
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -189,7 +194,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
 
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -218,7 +224,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertTrue(newOffer.getUseMarketBasedPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -233,7 +240,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertTrue(newOffer.getUseMarketBasedPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());

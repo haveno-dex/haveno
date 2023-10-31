@@ -99,7 +99,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
 
           // TODO: security deposit should be based on trade amount, not max offer amount
-          BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getOffer().getBuyerSecurityDeposit() : trade.getOffer().getSellerSecurityDeposit();
+          BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
           trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
 
           // maker signs deposit hash nonce to avoid challenge protocol

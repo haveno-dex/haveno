@@ -291,8 +291,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         depositColumn.setComparator(Comparator.comparing(item -> {
             boolean isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
             BigInteger deposit = isSellOffer ?
-                    item.getOffer().getBuyerSecurityDeposit() :
-                    item.getOffer().getSellerSecurityDeposit();
+                    item.getOffer().getMaxBuyerSecurityDeposit() :
+                    item.getOffer().getMaxSellerSecurityDeposit();
 
             long amountValue = item.getOffer().getAmount().longValueExact();
             if ((deposit == null || amountValue == 0)) {
@@ -1015,8 +1015,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     var isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
-                                    var deposit = isSellOffer ? item.getOffer().getBuyerSecurityDeposit() :
-                                            item.getOffer().getSellerSecurityDeposit();
+                                    var deposit = isSellOffer ? item.getOffer().getMaxBuyerSecurityDeposit() :
+                                            item.getOffer().getMaxSellerSecurityDeposit();
                                     if (deposit == null) {
                                         setText(Res.get("shared.na"));
                                         setGraphic(null);

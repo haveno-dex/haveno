@@ -55,7 +55,7 @@ public abstract class BuyerTrade extends Trade {
     @Override
     public BigInteger getPayoutAmount() {
         checkNotNull(getAmount(), "Invalid state: getTradeAmount() = null");
-        return checkNotNull(getOffer()).getBuyerSecurityDeposit().add(getAmount());
+        return getAmount().add(getBuyerSecurityDepositBeforeMiningFee());
     }
 
     @Override

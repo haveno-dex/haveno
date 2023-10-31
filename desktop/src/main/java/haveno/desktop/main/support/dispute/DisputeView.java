@@ -85,7 +85,6 @@ import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import lombok.Getter;
-import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -691,8 +690,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 String paymentMethod = Res.get(contract.getPaymentMethodId());
                 String currency = CurrencyUtil.getNameAndCode(contract.getOfferPayload().getCurrencyCode());
                 String tradeAmount = HavenoUtils.formatXmr(contract.getTradeAmount(), true);
-                String buyerDeposit = Coin.valueOf(contract.getOfferPayload().getBuyerSecurityDeposit()).toFriendlyString();
-                String sellerDeposit = Coin.valueOf(contract.getOfferPayload().getSellerSecurityDeposit()).toFriendlyString();
+                String buyerDeposit = HavenoUtils.formatXmr(contract.getOfferPayload().getBuyerSecurityDepositForTradeAmount(contract.getTradeAmount()), true);
+                String sellerDeposit = HavenoUtils.formatXmr(contract.getOfferPayload().getSellerSecurityDepositForTradeAmount(contract.getTradeAmount()), true);
                 stringBuilder.append("Payment method: ")
                         .append(paymentMethod)
                         .append("\n")
@@ -702,7 +701,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                         .append("Trade amount: ")
                         .append(tradeAmount)
                         .append("\n")
-                        .append("Buyer/seller security deposit: ")
+                        .append("Buyer/seller security deposit %: ")
                         .append(buyerDeposit)
                         .append("/")
                         .append(sellerDeposit)

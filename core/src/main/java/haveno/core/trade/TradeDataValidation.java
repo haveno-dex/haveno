@@ -17,7 +17,6 @@
 
 package haveno.core.trade;
 
-import haveno.core.offer.Offer;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.xmr.wallet.BtcWalletService;
 import lombok.Getter;
@@ -35,6 +34,8 @@ import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+// TODO: remove for XMR?
 
 @Slf4j
 public class TradeDataValidation {
@@ -127,9 +128,8 @@ public class TradeDataValidation {
 
         // Check amount
         TransactionOutput output = delayedPayoutTx.getOutput(0);
-        Offer offer = checkNotNull(trade.getOffer());
-        BigInteger msOutputAmount = offer.getBuyerSecurityDeposit()
-                .add(offer.getSellerSecurityDeposit())
+        BigInteger msOutputAmount = trade.getBuyerSecurityDepositBeforeMiningFee()
+                .add(trade.getSellerSecurityDepositBeforeMiningFee())
                 .add(checkNotNull(trade.getAmount()));
 
         if (!output.getValue().equals(msOutputAmount)) {

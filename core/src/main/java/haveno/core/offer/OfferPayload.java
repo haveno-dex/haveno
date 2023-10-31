@@ -28,6 +28,8 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.Hex;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
@@ -39,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;
+import java.math.BigInteger;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,8 +133,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     private final List<String> acceptedBankIds;
     private final long blockHeightAtOfferCreation;
     private final long makerFee;
-    private final long buyerSecurityDeposit;
-    private final long sellerSecurityDeposit;
+    private final double buyerSecurityDepositPct;
+    private final double sellerSecurityDepositPct;
     private final long maxTradeLimit;
     private final long maxTradePeriod;
 
@@ -176,8 +179,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         String versionNr,
                         long blockHeightAtOfferCreation,
                         long makerFee,
-                        long buyerSecurityDeposit,
-                        long sellerSecurityDeposit,
+                        double buyerSecurityDepositPct,
+                        double sellerSecurityDepositPct,
                         long maxTradeLimit,
                         long maxTradePeriod,
                         boolean useAutoClose,
@@ -217,8 +220,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.acceptedBankIds = acceptedBankIds;
         this.blockHeightAtOfferCreation = blockHeightAtOfferCreation;
         this.makerFee = makerFee;
-        this.buyerSecurityDeposit = buyerSecurityDeposit;
-        this.sellerSecurityDeposit = sellerSecurityDeposit;
+        this.buyerSecurityDepositPct = buyerSecurityDepositPct;
+        this.sellerSecurityDepositPct = sellerSecurityDepositPct;
         this.maxTradeLimit = maxTradeLimit;
         this.maxTradePeriod = maxTradePeriod;
         this.useAutoClose = useAutoClose;
@@ -261,8 +264,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             versionNr,
             blockHeightAtOfferCreation,
             makerFee,
-            buyerSecurityDeposit,
-            sellerSecurityDeposit,
+            buyerSecurityDepositPct,
+            sellerSecurityDepositPct,
             maxTradeLimit,
             maxTradePeriod,
             useAutoClose,
@@ -300,6 +303,24 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }
 
+    public BigInteger getMaxBuyerSecurityDeposit() {
+        return getBuyerSecurityDepositForTradeAmount(BigInteger.valueOf(getAmount()));
+    }
+
+    public BigInteger getMaxSellerSecurityDeposit() {
+        return getSellerSecurityDepositForTradeAmount(BigInteger.valueOf(getAmount()));
+    }
+
+    public BigInteger getBuyerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
+        BigInteger securityDepositUnadjusted = HavenoUtils.xmrToAtomicUnits(HavenoUtils.atomicUnitsToXmr(tradeAmount) * getBuyerSecurityDepositPct());
+        return Restrictions.getMinBuyerSecurityDeposit().max(securityDepositUnadjusted);
+    }
+
+    public BigInteger getSellerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
+        BigInteger securityDepositUnadjusted = HavenoUtils.xmrToAtomicUnits(HavenoUtils.atomicUnitsToXmr(tradeAmount) * getSellerSecurityDepositPct());
+        return Restrictions.getMinSellerSecurityDeposit().max(securityDepositUnadjusted);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -323,8 +344,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setVersionNr(versionNr)
                 .setBlockHeightAtOfferCreation(blockHeightAtOfferCreation)
                 .setMakerFee(makerFee)
-                .setBuyerSecurityDeposit(buyerSecurityDeposit)
-                .setSellerSecurityDeposit(sellerSecurityDeposit)
+                .setBuyerSecurityDepositPct(buyerSecurityDepositPct)
+                .setSellerSecurityDepositPct(sellerSecurityDepositPct)
                 .setMaxTradeLimit(maxTradeLimit)
                 .setMaxTradePeriod(maxTradePeriod)
                 .setUseAutoClose(useAutoClose)
@@ -377,8 +398,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getVersionNr(),
                 proto.getBlockHeightAtOfferCreation(),
                 proto.getMakerFee(),
-                proto.getBuyerSecurityDeposit(),
-                proto.getSellerSecurityDeposit(),
+                proto.getBuyerSecurityDepositPct(),
+                proto.getSellerSecurityDepositPct(),
                 proto.getMaxTradeLimit(),
                 proto.getMaxTradePeriod(),
                 proto.getUseAutoClose(),
@@ -422,8 +443,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     acceptedBankIds=" + acceptedBankIds +
                 ",\r\n     blockHeightAtOfferCreation=" + blockHeightAtOfferCreation +
                 ",\r\n     makerFee=" + makerFee +
-                ",\r\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
-                ",\r\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
+                ",\r\n     buyerSecurityDepositPct=" + buyerSecurityDepositPct +
+                ",\r\n     sellerSecurityDeposiPct=" + sellerSecurityDepositPct +
                 ",\r\n     maxTradeLimit=" + maxTradeLimit +
                 ",\r\n     maxTradePeriod=" + maxTradePeriod +
                 ",\r\n     useAutoClose=" + useAutoClose +
@@ -460,8 +481,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             object.add("versionNr", context.serialize(offerPayload.getVersionNr()));
             object.add("blockHeightAtOfferCreation", context.serialize(offerPayload.getBlockHeightAtOfferCreation()));
             object.add("makerFee", context.serialize(offerPayload.getMakerFee()));
-            object.add("buyerSecurityDeposit", context.serialize(offerPayload.getBuyerSecurityDeposit()));
-            object.add("sellerSecurityDeposit", context.serialize(offerPayload.getSellerSecurityDeposit()));
+            object.add("buyerSecurityDepositPct", context.serialize(offerPayload.getBuyerSecurityDepositPct()));
+            object.add("sellerSecurityDepositPct", context.serialize(offerPayload.getSellerSecurityDepositPct()));
             object.add("maxTradeLimit", context.serialize(offerPayload.getMaxTradeLimit()));
             object.add("maxTradePeriod", context.serialize(offerPayload.getMaxTradePeriod()));
             object.add("useAutoClose", context.serialize(offerPayload.isUseAutoClose()));

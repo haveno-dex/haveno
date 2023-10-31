@@ -304,8 +304,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         Trade trade = dataModel.getTrade();
         if (offer != null && trade != null && trade.getAmount() != null) {
             BigInteger securityDeposit = dataModel.isBuyer() ?
-                    offer.getBuyerSecurityDeposit()
-                    : offer.getSellerSecurityDeposit();
+                    offer.getMaxBuyerSecurityDeposit()
+                    : offer.getMaxSellerSecurityDeposit();
 
             BigInteger minSecurityDeposit = dataModel.isBuyer() ?
                     Restrictions.getMinBuyerSecurityDeposit() :

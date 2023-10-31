@@ -154,11 +154,11 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 VolumeUtil.formatVolumeWithCode(contract.getTradeVolume()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(offer.getBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(contract.getTradeAmount()), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(offer.getSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(contract.getTradeAmount()), true);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,

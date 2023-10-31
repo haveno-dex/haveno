@@ -18,6 +18,7 @@
 package haveno.cli.table.builder;
 
 import haveno.cli.table.column.CryptoVolumeColumn;
+import haveno.cli.table.column.DoubleColumn;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.BtcColumn;
 import haveno.cli.table.column.Column;
@@ -169,8 +170,8 @@ class TradeTableColumnSupplier {
                 : null;
     };
 
-    final Function<String, Column<Long>> toSecurityDepositColumn = (name) -> isClosedTradeTblBuilder.get()
-            ? new SatoshiColumn(name)
+    final Function<String, Column<Double>> toSecurityDepositColumn = (name) -> isClosedTradeTblBuilder.get()
+            ? new DoubleColumn(name)
             : null;
 
     final Supplier<StringColumn> offerTypeColumn = () -> isTradeDetailTblBuilder.get()

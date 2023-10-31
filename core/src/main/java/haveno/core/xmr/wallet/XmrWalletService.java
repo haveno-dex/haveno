@@ -13,7 +13,6 @@ import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.CoreMoneroConnectionsService;
-import haveno.core.offer.Offer;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
@@ -385,11 +384,10 @@ public class XmrWalletService {
             }
 
             // create deposit tx
-            Offer offer = trade.getProcessModel().getOffer();
             String multisigAddress = trade.getProcessModel().getMultisigAddress();
             BigInteger tradeFee = trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee();
             BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : trade.getAmount();
-            BigInteger securityDeposit = trade instanceof BuyerTrade ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit(); // TODO: security deposit should be based on trade amount
+            BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             long time = System.currentTimeMillis();
             log.info("Creating deposit tx with multisig address={}", multisigAddress);
             MoneroTxWallet depositTx = createTradeTx(tradeFee, sendAmount, securityDeposit, multisigAddress, reserveExactAmount, preferredSubaddressIndex);
@@ -444,17 +442,6 @@ public class XmrWalletService {
                 .addDestination(address, sendAmount.add(securityDeposit))
                 .setSubtractFeeFrom(1)
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY)); // pay fee from security deposit
-
-        // check if tx uses exact input, since wallet2 can prefer to spend 2 outputs
-        if (reserveExactAmount) {
-            BigInteger exactInputAmount = tradeFee.add(sendAmount).add(securityDeposit);
-            BigInteger inputSum = BigInteger.valueOf(0);
-            for (MoneroOutputWallet txInput : tradeTx.getInputsWallet()) {
-                MoneroOutputWallet input = wallet.getOutputs(new MoneroOutputQuery().setKeyImage(txInput.getKeyImage())).get(0);
-                inputSum = inputSum.add(input.getAmount());
-            }
-            if (inputSum.compareTo(exactInputAmount) > 0) throw new RuntimeException("Cannot create transaction with exact input amount");
-        }
 
         // freeze inputs
         for (MoneroOutput input : tradeTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());

@@ -334,11 +334,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 DisplayUtils.formatDateTime(offer.getDate()));
         String value = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(offer.getBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(offer.getOfferPayload().getMaxBuyerSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(offer.getSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(offer.getOfferPayload().getMaxSellerSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
 
         if (countryCode != null && !isF2F)

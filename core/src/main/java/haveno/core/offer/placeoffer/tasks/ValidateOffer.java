@@ -45,10 +45,10 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             checkBINotNullOrZero(offer.getAmount(), "Amount");
             checkBINotNullOrZero(offer.getMinAmount(), "MinAmount");
             checkBINotNullOrZero(offer.getMakerFee(), "MakerFee");
-            checkBINotNullOrZero(offer.getBuyerSecurityDeposit(), "buyerSecurityDeposit");
-            checkBINotNullOrZero(offer.getSellerSecurityDeposit(), "sellerSecurityDeposit");
             //checkCoinNotNullOrZero(offer.getTxFee(), "txFee"); // TODO: remove from data model
             checkBINotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
+            if (offer.getBuyerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Buyer security deposit must be positive but was " + offer.getBuyerSecurityDepositPct());
+            if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit must be positive but was " + offer.getSellerSecurityDepositPct());
 
             // We remove those checks to be more flexible with future changes.
             /*checkArgument(offer.getMakerFee().value >= FeeService.getMinMakerFee(offer.isCurrencyForMakerFeeBtc()).value,

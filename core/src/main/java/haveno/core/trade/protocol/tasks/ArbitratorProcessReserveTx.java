@@ -48,15 +48,15 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             runInterceptHook();
             Offer offer = trade.getOffer();
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
-            boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
-            boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
+            boolean isFromMaker = request.getSenderNodeAddress().equals(trade.getMaker().getNodeAddress());
+            boolean isFromBuyer = isFromMaker ? offer.getDirection() == OfferDirection.BUY : offer.getDirection() == OfferDirection.SELL;
 
             // TODO (woodser): if signer online, should never be called by maker
 
             // process reserve tx with expected values
-            BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
-            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
-            BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
+            BigInteger tradeFee = isFromMaker ? trade.getMakerFee() : trade.getTakerFee();
+            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
+            BigInteger securityDeposit = isFromMaker ? isFromBuyer ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit() : isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             Tuple2<MoneroTx, BigInteger> txResult;
             try {
                 txResult = trade.getXmrWalletService().verifyTradeTx(
@@ -71,11 +71,11 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                     null);
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException("Error processing reserve tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+                throw new RuntimeException("Error processing reserve tx from " + (isFromMaker ? "maker " : "taker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 
             // save reserve tx to model
-            TradePeer trader = isFromTaker ? processModel.getTaker() : processModel.getMaker();
+            TradePeer trader = isFromMaker ? processModel.getMaker() : processModel.getTaker();
             trader.setReserveTxHash(request.getReserveTxHash());
             trader.setReserveTxHex(request.getReserveTxHex());
             trader.setReserveTxKey(request.getReserveTxKey());

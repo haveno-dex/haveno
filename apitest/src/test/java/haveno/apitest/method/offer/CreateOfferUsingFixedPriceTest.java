@@ -64,7 +64,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3600", newOffer.getVolume());
         assertEquals("3600", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
@@ -80,7 +81,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3600", newOffer.getVolume());
         assertEquals("3600", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
@@ -110,7 +112,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3000", newOffer.getVolume());
         assertEquals("3000", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(USD, newOffer.getCounterCurrencyCode());
@@ -126,7 +129,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3000", newOffer.getVolume());
         assertEquals("3000", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(USD, newOffer.getCounterCurrencyCode());
@@ -156,7 +160,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(5_000_000, newOffer.getMinAmount());
         assertEquals("2950", newOffer.getVolume());
         assertEquals("1475", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(EUR, newOffer.getCounterCurrencyCode());
@@ -172,7 +177,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(5_000_000, newOffer.getMinAmount());
         assertEquals("2950", newOffer.getVolume());
         assertEquals("1475", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(EUR, newOffer.getCounterCurrencyCode());

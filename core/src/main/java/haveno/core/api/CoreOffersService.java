@@ -156,7 +156,7 @@ public class CoreOffersService {
                              double marketPriceMargin,
                              long amountAsLong,
                              long minAmountAsLong,
-                             double buyerSecurityDeposit,
+                             double securityDeposit,
                              String triggerPriceAsString,
                              boolean reserveExactAmount,
                              String paymentAccountId,
@@ -183,7 +183,7 @@ public class CoreOffersService {
                 price,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
-                buyerSecurityDeposit,
+                securityDeposit,
                 paymentAccount);
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);

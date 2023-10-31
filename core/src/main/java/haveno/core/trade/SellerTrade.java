@@ -26,8 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 import java.math.BigInteger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 @Slf4j
 public abstract class SellerTrade extends Trade {
     SellerTrade(Offer offer,
@@ -54,7 +52,7 @@ public abstract class SellerTrade extends Trade {
 
     @Override
     public BigInteger getPayoutAmount() {
-        return checkNotNull(getOffer()).getSellerSecurityDeposit();
+        return getSellerSecurityDepositBeforeMiningFee();
     }
 
     @Override

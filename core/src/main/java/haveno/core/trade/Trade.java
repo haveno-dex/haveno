@@ -1628,6 +1628,14 @@ public abstract class Trade implements Tradable, Model {
         return BigInteger.valueOf(takerFee);
     }
 
+    public BigInteger getBuyerSecurityDepositBeforeMiningFee() {
+        return offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(getAmount());
+    }
+
+    public BigInteger getSellerSecurityDepositBeforeMiningFee() {
+        return offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(getAmount());
+    }
+
     @Override
     public BigInteger getTotalTxFee() {
         return BigInteger.valueOf(totalTxFee);

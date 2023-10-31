@@ -103,7 +103,7 @@ public class CreateOfferService {
                                    Price fixedPrice,
                                    boolean useMarketBasedPrice,
                                    double marketPriceMargin,
-                                   double buyerSecurityDepositAsDouble,
+                                   double securityDepositAsDouble,
                                    PaymentAccount paymentAccount) {
 
         log.info("create and get offer with offerId={}, " +
@@ -114,7 +114,7 @@ public class CreateOfferService {
                         "marketPriceMargin={}, " +
                         "amount={}, " +
                         "minAmount={}, " +
-                        "buyerSecurityDeposit={}",
+                        "securityDeposit={}",
                 offerId,
                 currencyCode,
                 direction,
@@ -123,7 +123,7 @@ public class CreateOfferService {
                 marketPriceMargin,
                 amount,
                 minAmount,
-                buyerSecurityDepositAsDouble);
+                securityDepositAsDouble);
 
         // verify fixed price xor market price with margin
         if (fixedPrice != null) {
@@ -161,10 +161,7 @@ public class CreateOfferService {
         List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
-        double sellerSecurityDepositAsDouble = getSellerSecurityDepositAsDouble(buyerSecurityDepositAsDouble);
         BigInteger makerFee = HavenoUtils.getMakerFee(amount);
-        BigInteger buyerSecurityDeposit = getBuyerSecurityDeposit(amount, buyerSecurityDepositAsDouble);
-        BigInteger sellerSecurityDeposit = getSellerSecurityDeposit(amount, sellerSecurityDepositAsDouble);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
 
         // reserved for future use cases
@@ -180,7 +177,7 @@ public class CreateOfferService {
                 direction);
 
         offerUtil.validateOfferData(
-                buyerSecurityDepositAsDouble,
+                securityDepositAsDouble,
                 paymentAccount,
                 currencyCode,
                 makerFee);
@@ -206,8 +203,8 @@ public class CreateOfferService {
                 Version.VERSION,
                 xmrWalletService.getWallet().getHeight(),
                 makerFee.longValueExact(),
-                buyerSecurityDeposit.longValueExact(),
-                sellerSecurityDeposit.longValueExact(),
+                securityDepositAsDouble,
+                securityDepositAsDouble,
                 maxTradeLimit,
                 maxTradePeriod,
                 useAutoClose,

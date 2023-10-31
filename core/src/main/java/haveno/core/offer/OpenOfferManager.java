@@ -1167,9 +1167,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // verify security deposits are equal
+            if (offer.getBuyerSecurityDepositPct() != offer.getSellerSecurityDepositPct()) {
+                errorMessage = "Buyer and seller security deposits are not equal for offer " + request.offerId;
+                log.info(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
-            BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
+            BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
             Tuple2<MoneroTx, BigInteger> txResult = xmrWalletService.verifyTradeTx(
                     offer.getId(),
                     tradeFee,
@@ -1512,8 +1520,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getVersionNr(),
                         originalOfferPayload.getBlockHeightAtOfferCreation(),
                         originalOfferPayload.getMakerFee(),
-                        originalOfferPayload.getBuyerSecurityDeposit(),
-                        originalOfferPayload.getSellerSecurityDeposit(),
+                        originalOfferPayload.getBuyerSecurityDepositPct(),
+                        originalOfferPayload.getSellerSecurityDepositPct(),
                         originalOfferPayload.getMaxTradeLimit(),
                         originalOfferPayload.getMaxTradePeriod(),
                         originalOfferPayload.isUseAutoClose(),

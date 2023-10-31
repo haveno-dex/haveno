@@ -460,11 +460,11 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     public BigInteger getBuyerSecurityDeposit() {
-        return offer.getBuyerSecurityDeposit();
+        return offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(amount.get());
     }
 
     public BigInteger getSellerSecurityDeposit() {
-        return offer.getSellerSecurityDeposit();
+        return offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(amount.get());
     }
 
     public boolean isRoundedForAtmCash() {
