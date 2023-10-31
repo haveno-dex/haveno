@@ -62,7 +62,7 @@ public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {
         gridPane.getChildren().add(messageLabel2);
 
         HyperlinkWithIcon matrix = addHyperlinkWithIcon(gridPane, ++rowIndex, "https://matrix.to/#/#haveno:monero.social",
-                "https://matrix.to/#/#haveno:monero.social", 40);
+                "https://matrix.to/#/%23haveno:monero.social", 40);
         GridPane.setMargin(matrix, new Insets(-6, 0, 10, 0));
 
         AutoTooltipLabel messageLabel3 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part3"));
