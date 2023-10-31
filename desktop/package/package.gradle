@@ -226,7 +226,7 @@ task packageInstallers {
                     destfile: "${binariesFolderPath}/jar-lib-for-raspberry-pi-${appVersion}.zip")
         }
 
-        String appDescription = 'A decentralized monero exchange network.'
+        //String appDescription = 'A decentralized monero exchange network.'
         String appCopyright = '© 2023 Haveno'
         String appNameAndVendor = 'Haveno'
 
@@ -234,7 +234,7 @@ task packageInstallers {
                 // Generic options
                 " --dest \"${binariesFolderPath}\"" +
                         " --name ${appNameAndVendor}" +
-                        " --description \"${appDescription}\"" +
+                        //" --description \"${appDescription}\"" + // TODO: task managers show app description instead of name, so we disable it
                         " --app-version ${appVersion}" +
                         " --copyright \"${appCopyright}\"" +
                         " --vendor ${appNameAndVendor}" +
