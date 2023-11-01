@@ -506,10 +506,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
                 trade.importMultisigHex();
 
-                // update peer node address
-                // TODO: tests can reuse the same addresses so nullify equal peer
-                sender.setNodeAddress(message.getSenderNodeAddress());
-
                 // add chat message with price info
                 if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
 
