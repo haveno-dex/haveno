@@ -524,6 +524,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 // if the volume != amount * price, we need to adjust the amount
                 if (amount.get() == null || !volumeBefore.equals(price.get().getVolumeByAmount(amount.get()))) {
                     BigInteger value = price.get().getAmountByVolume(volumeBefore);
+                    value = value.min(BigInteger.valueOf(getMaxTradeLimit())); // adjust if above maximum
                     value = value.max(Restrictions.getMinTradeAmount()); // adjust if below minimum
                     value = CoinUtil.getRoundedAmount(value, price.get(), getMaxTradeLimit(), tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
                     amount.set(value);
