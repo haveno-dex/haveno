@@ -96,7 +96,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
@@ -668,7 +667,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                             offer.getCurrencyCode(), offer.getMirroredDirection());
                     new Popup()
                             .warning(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.buyer",
-                                    formatter.formatCoinWithCode(Coin.valueOf(tradeLimit)),
+                                    HavenoUtils.formatXmr(tradeLimit, true),
                                     Res.get("offerbook.warning.newVersionAnnouncement")))
                             .show();
                 } else {
