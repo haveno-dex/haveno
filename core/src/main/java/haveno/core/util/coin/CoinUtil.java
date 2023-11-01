@@ -166,8 +166,10 @@ public class CoinUtil {
         long adjustedAmount = HavenoUtils.centinerosToAtomicUnits(Math.round(HavenoUtils.atomicUnitsToCentineros(amountByVolume) / 10000d) * 10000).longValueExact();
 
         // If we are above our trade limit we reduce the amount by the smallestUnitForAmount
+        BigInteger smallestUnitForAmountUnadjusted = price.getAmountByVolume(smallestUnitForVolume);
         while (adjustedAmount > maxTradeLimit) {
             adjustedAmount -= smallestUnitForAmount.longValueExact();
+            adjustedAmount -= smallestUnitForAmountUnadjusted.longValueExact();
         }
         adjustedAmount = Math.max(minTradeAmount, adjustedAmount);
         adjustedAmount = Math.min(maxTradeLimit, adjustedAmount);
