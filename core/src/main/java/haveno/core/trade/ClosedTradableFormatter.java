@@ -85,13 +85,19 @@ public class ClosedTradableFormatter {
     }
 
     public String getBuyerSecurityDepositAsString(Tradable tradable) {
-        Trade trade = castToTrade(tradable);
-        return HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee());
+        if (tradable instanceof Trade) {
+            Trade trade = castToTrade(tradable);
+            return HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee());
+        }
+        return HavenoUtils.formatXmr(tradable.getOffer().getMaxBuyerSecurityDeposit());
     }
 
     public String getSellerSecurityDepositAsString(Tradable tradable) {
-        Trade trade = castToTrade(tradable);
-        return HavenoUtils.formatXmr(trade.getSellerSecurityDepositBeforeMiningFee());
+        if (tradable instanceof Trade) {
+            Trade trade = castToTrade(tradable);
+            return HavenoUtils.formatXmr(trade.getSellerSecurityDepositBeforeMiningFee());
+        }
+        return HavenoUtils.formatXmr(tradable.getOffer().getMaxSellerSecurityDeposit());
     }
 
     public String getTradeFeeAsString(Tradable tradable, boolean appendCode) {
