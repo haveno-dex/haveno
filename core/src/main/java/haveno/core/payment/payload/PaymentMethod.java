@@ -23,7 +23,6 @@ import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AchTransferAccount;
 import haveno.core.payment.AdvancedCashAccount;
 import haveno.core.payment.AliPayAccount;
@@ -494,13 +493,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         TradeLimits tradeLimits = new TradeLimits();
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().longValueExact();
         long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor);
-
-        // if traditional and stagenet, cap offer amounts to avoid offers which cannot be taken
-        boolean isTraditional = CurrencyUtil.isTraditionalCurrency(currencyCode);
-        boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isTraditional && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-            riskBasedTradeLimit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact();
-        }
         return BigInteger.valueOf(riskBasedTradeLimit);
     }
 
