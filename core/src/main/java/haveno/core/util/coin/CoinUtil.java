@@ -29,6 +29,7 @@ import org.bitcoinj.core.Coin;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -76,7 +77,7 @@ public class CoinUtil {
      */
     public static BigInteger getPercentOfAmount(double percent, BigInteger amount) {
         if (amount == null) amount = BigInteger.valueOf(0);
-        return BigDecimal.valueOf(percent).multiply(new BigDecimal(amount)).toBigInteger();
+        return BigDecimal.valueOf(percent).multiply(new BigDecimal(amount)).setScale(8, RoundingMode.DOWN).toBigInteger();
     }
 
     public static BigInteger getRoundedAmount(BigInteger amount, Price price, long maxTradeLimit, String currencyCode, String paymentMethodId) {

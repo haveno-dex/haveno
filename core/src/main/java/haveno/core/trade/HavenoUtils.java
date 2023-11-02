@@ -38,6 +38,7 @@ import haveno.core.util.ParsingUtils;
 import haveno.network.p2p.NodeAddress;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.text.DecimalFormat;
@@ -122,7 +123,7 @@ public class HavenoUtils {
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).setScale(8).toBigInteger();
+        return BigDecimal.valueOf(xmr).setScale(8, RoundingMode.DOWN).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
     }
 
     public static long xmrToCentineros(double xmr) {
