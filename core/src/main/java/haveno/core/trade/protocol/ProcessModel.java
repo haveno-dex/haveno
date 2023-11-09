@@ -111,7 +111,7 @@ public class ProcessModel implements Model, PersistablePayload {
     // After successful verified we copy that over to the trade.tradePeerAddress
     @Nullable
     @Setter
-    private NodeAddress tempTradePeerNodeAddress; // TODO (woodser): remove entirely?
+    private NodeAddress tempTradePeerNodeAddress;
 
     // Added in v.1.1.6
     @Nullable
@@ -123,8 +123,6 @@ public class ProcessModel implements Model, PersistablePayload {
     private long sellerPayoutAmountFromMediation;
 
     // Added for XMR integration
-    @Getter
-    transient private MoneroTxWallet takeOfferFeeTx; // TODO (woodser): remove
     @Setter
     transient private TradeMessage tradeMessage;
     @Getter
@@ -134,9 +132,6 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     transient private MoneroTxWallet reserveTx;
-    @Getter
-    @Setter
-    transient private MoneroTxWallet depositTxXmr;
     @Getter
     @Setter
     transient private MoneroTxWallet unsignedPayoutTx;

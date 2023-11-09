@@ -68,7 +68,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
           }
 
           // skip if deposit tx already created
-          if (processModel.getDepositTxXmr() != null) {
+          if (trade.getSelf().getDepositTx() != null) {
               complete();
               return;
           }
@@ -90,7 +90,6 @@ public class MaybeSendSignContractRequest extends TradeTask {
           for (MoneroOutput input : depositTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
 
           // save process state
-          processModel.setDepositTxXmr(depositTx); // TODO: redundant with trade.getSelf().setDepositTx(), remove?
           trade.getSelf().setDepositTx(depositTx);
           trade.getSelf().setDepositTxHash(depositTx.getHash());
           trade.getSelf().setDepositTxFee(depositTx.getFee());

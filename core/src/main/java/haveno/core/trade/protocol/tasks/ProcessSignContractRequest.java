@@ -76,7 +76,6 @@ public class ProcessSignContractRequest extends TradeTask {
           }
 
           // sign contract only when both deposit txs hashes known
-          // TODO (woodser): remove makerDepositTxId and takerDepositTxId from Trade
           if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) {
               complete();
               return;
