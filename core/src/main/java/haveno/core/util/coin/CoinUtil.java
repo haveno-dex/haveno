@@ -46,11 +46,6 @@ public class CoinUtil {
         return a.compareTo(b) >= 0 ? a : b;
     }
 
-    public static double getFeePerVbyte(Coin miningFee, int txVsize) {
-        double value = miningFee != null ? miningFee.value : 0;
-        return MathUtils.roundDouble((value / txVsize), 2);
-    }
-
     /**
      * @param value Btc amount to be converted to percent value. E.g. 0.01 BTC is 1% (of 1 BTC)
      * @return The percentage value as double (e.g. 1% is 0.01)
