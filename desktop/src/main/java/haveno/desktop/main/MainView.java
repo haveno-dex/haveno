@@ -670,14 +670,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             if (newValue != null) {
                 xmrInfoLabel.setId("splash-error-state-msg");
                 xmrInfoLabel.getStyleClass().add("error-text");
-                // if (xmrNetworkWarnMsgPopup == null) {
-                //     xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
-                //     xmrNetworkWarnMsgPopup.show();
-                // }
+                if (xmrNetworkWarnMsgPopup == null) {
+                    xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
+                    xmrNetworkWarnMsgPopup.show();
+                }
             } else {
                 xmrInfoLabel.setId("footer-pane");
-                // if (xmrNetworkWarnMsgPopup != null)
-                //     xmrNetworkWarnMsgPopup.hide();
+                if (xmrNetworkWarnMsgPopup != null)
+                    xmrNetworkWarnMsgPopup.hide();
             }
         });
 
