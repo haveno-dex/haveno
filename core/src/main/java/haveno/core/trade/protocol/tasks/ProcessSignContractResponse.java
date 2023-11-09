@@ -80,8 +80,8 @@ public class ProcessSignContractResponse extends TradeTask {
                         Version.getP2PMessageVersion(),
                         new Date().getTime(),
                         trade.getSelf().getContractSignature(),
-                        processModel.getDepositTxXmr().getFullHex(),
-                        processModel.getDepositTxXmr().getKey(),
+                        trade.getSelf().getDepositTx().getFullHex(),
+                        trade.getSelf().getDepositTx().getKey(),
                         trade.getSelf().getPaymentAccountKey());
 
                 // send request to arbitrator
