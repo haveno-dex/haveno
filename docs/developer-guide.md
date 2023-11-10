@@ -14,7 +14,9 @@ This proof of concept demonstrates using Haveno's gRPC server with a web fronten
 
 ## Import Haveno into development environment
 
-Follow [instructions](import-haveno.md) to import Haveno into a development environment.
+VSCode is recommended.
+
+Otherwise follow [instructions](import-haveno.md) to import Haveno into a Eclipse or IntelliJ IDEA.
 
 ## Run end-to-end API tests
 
