@@ -35,7 +35,6 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
 
@@ -62,7 +61,7 @@ import java.util.stream.Collectors;
 public class SignedWitnessService {
     public static final long SIGNER_AGE_DAYS = 30;
     private static final long SIGNER_AGE = SIGNER_AGE_DAYS * ChronoUnit.DAYS.getDuration().toMillis();
-    public static final BigInteger MINIMUM_TRADE_AMOUNT_FOR_SIGNING = HavenoUtils.coinToAtomicUnits(Coin.parseCoin("0.0025"));
+    public static final BigInteger MINIMUM_TRADE_AMOUNT_FOR_SIGNING = HavenoUtils.xmrToAtomicUnits(.1);
 
     private final KeyRing keyRing;
     private final P2PService p2PService;

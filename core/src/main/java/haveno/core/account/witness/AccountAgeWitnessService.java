@@ -844,7 +844,7 @@ public class AccountAgeWitnessService {
     }
 
     public SignState getSignState(Trade trade) {
-        if (trade instanceof ArbitratorTrade) return SignState.UNSIGNED;  // TODO (woodser): arbitrator has two peers
+        if (trade instanceof ArbitratorTrade) return SignState.UNSIGNED;
         return findTradePeerWitness(trade)
                 .map(this::getSignState)
                 .orElse(SignState.UNSIGNED);
