@@ -21,6 +21,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.ClosedTradableFormatter;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Tradable;
@@ -100,7 +101,7 @@ public class ClosedTradesListItem implements FilterableListItem {
 
     public String getDirectionLabel() {
         Offer offer = tradable.getOffer();
-        OfferDirection direction = closedTradableManager.wasMyOffer(offer)
+        OfferDirection direction = closedTradableManager.wasMyOffer(offer) || tradable instanceof ArbitratorTrade
                 ? offer.getDirection()
                 : offer.getMirroredDirection();
         String currencyCode = tradable.getOffer().getCurrencyCode();

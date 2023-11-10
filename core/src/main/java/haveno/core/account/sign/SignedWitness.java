@@ -23,6 +23,7 @@ import haveno.common.app.Capability;
 import haveno.common.crypto.Hash;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.util.Utilities;
+import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.DateTolerantPayload;
@@ -30,7 +31,6 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -176,7 +176,7 @@ public class SignedWitness implements ProcessOncePersistableNetworkPayload, Pers
                 ",\n     signerPubKey=" + Utilities.bytesAsHexString(signerPubKey) +
                 ",\n     witnessOwnerPubKey=" + Utilities.bytesAsHexString(witnessOwnerPubKey) +
                 ",\n     date=" + Instant.ofEpochMilli(date) +
-                ",\n     tradeAmount=" + Coin.valueOf(tradeAmount).toFriendlyString() +
+                ",\n     tradeAmount=" + HavenoUtils.formatXmr(tradeAmount, true) +
                 ",\n     hash=" + Utilities.bytesAsHexString(hash) +
                 "\n}";
     }
