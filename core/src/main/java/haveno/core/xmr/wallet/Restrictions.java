@@ -28,7 +28,7 @@ public class Restrictions {
     public static BigInteger MIN_BUYER_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
     // For the seller we use a fixed one as there is no way the seller can cancel the trade
     // To make it editable would just increase complexity.
-    public static BigInteger SELLER_SECURITY_DEPOSIT = MIN_BUYER_SECURITY_DEPOSIT;
+    public static BigInteger MIN_SELLER_SECURITY_DEPOSIT = MIN_BUYER_SECURITY_DEPOSIT;
     // At mediation we require a min. payout to the losing party to keep incentive for the trader to accept the
     // mediated payout. For Refund agent cases we do not have that restriction.
     private static BigInteger MIN_REFUND_AT_MEDIATED_DISPUTE;
@@ -77,7 +77,7 @@ public class Restrictions {
     }
 
     public static BigInteger getMinSellerSecurityDeposit() {
-        return SELLER_SECURITY_DEPOSIT;
+        return MIN_SELLER_SECURITY_DEPOSIT;
     }
 
     // This value must be lower than MIN_BUYER_SECURITY_DEPOSIT and SELLER_SECURITY_DEPOSIT
