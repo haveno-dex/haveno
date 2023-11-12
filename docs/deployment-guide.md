@@ -128,7 +128,7 @@ Arbitrators can be started in a Screen session and then detached to run in the b
 
 Some good hints about how to secure a VPS are in [Monero's meta repository](https://github.com/monero-project/meta/blob/master/SERVER_SETUP_HARDENING.md).
 
-TODO: gather and document scripts for VPS management
+To run Monero and Haveno binaries as system services, scripts are available for reference in [scripts/deployment](scripts/deployment).
 
 ## Send alerts to update the application
 
@@ -170,7 +170,7 @@ Arbitrators can manually sign payment accounts. First open the legacy UI.
 
 1. Go to Account > `ctrl + i` > `ctrl + o`.
 
-## Other operating tips
+## Other tips
 
 * Avoid all seed nodes going offline at the same time. If all seed nodes go offline at the same time, arbitrator registration and the network filter will be fully reset, so all arbitrators will need to be re-registered, and the network filter will need to be recreated. This should be done immediately or clients will cancel their offers due to the signing arbitrators being unregistered and no replacements being available to re-sign.
 * If a dispute does not open properly, try manually reopening the dispute with a keyboard shortcut: `ctrl + o`.
