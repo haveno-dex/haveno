@@ -1,0 +1,26 @@
+[Unit]
+Description=Monero stagenet node
+After=network.target
+
+[Service]
+User=monero-stagenet
+Group=monero-stagenet
+Type=simple
+ExecStart=/home/monero-stagenet/monerod --config-file /home/monero-stagenet/shared-stagenet.conf --non-interactive
+SyslogIdentifier=stagenet-node
+Restart=always
+
+# Hardening
+PrivateTmp=true
+#ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+MemoryDenyWriteExecute=false
+ProtectControlGroups=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+# limit memory usage to 4gb
+LimitRSS=4000000000
+
+[Install]
+WantedBy=multi-user.target

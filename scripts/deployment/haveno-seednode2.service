@@ -1,0 +1,36 @@
+[Unit]
+Description=Haveno seednode 2
+After=network.target
+
+[Service]
+User=haveno
+Group=haveno
+SyslogIdentifier=Haveno-Seednode2
+
+ExecStart=/bin/sh /home/haveno/haveno/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
+  --useLocalhostForP2P=false\
+  --useDevPrivilegeKeys=false\
+  --nodePort=3003\
+  --appName=haveno-XMR_STAGENET_Seed_3003\
+#  --logLevel=trace\
+  --xmrNode=http://127.0.0.1:38088\
+  --xmrNodeUsername=admin\
+  --xmrNodePassword=password
+
+ExecStop=/bin/kill ${MAINPID}
+Restart=always
+
+# Hardening
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+MemoryDenyWriteExecute=false
+ProtectControlGroups=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+# limit memory usage to 2gb
+LimitRSS=2000000000
+
+[Install]
+WantedBy=multi-user.target
