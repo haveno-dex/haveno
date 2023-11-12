@@ -131,7 +131,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
-    private MoneroNodeSettings moneroNodeSettings;
+    private MoneroNodeSettings moneroNodeSettings = new MoneroNodeSettings();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor

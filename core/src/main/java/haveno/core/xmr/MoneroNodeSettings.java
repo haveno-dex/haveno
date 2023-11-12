@@ -20,17 +20,24 @@ import haveno.common.proto.persistable.PersistableEnvelope;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
 @Slf4j
 @Data
 @AllArgsConstructor
 public class MoneroNodeSettings implements PersistableEnvelope {
 
+    @Nullable
     String blockchainPath;
+    @Nullable
     String bootstrapUrl;
+    @Nullable
     List<String> startupFlags;
+
+    public MoneroNodeSettings() {
+    }
 
     public static MoneroNodeSettings fromProto(protobuf.MoneroNodeSettings proto) {
         return new MoneroNodeSettings(
@@ -41,9 +48,10 @@ public class MoneroNodeSettings implements PersistableEnvelope {
 
     @Override
     public protobuf.MoneroNodeSettings toProtoMessage() {
-        return protobuf.MoneroNodeSettings.newBuilder()
-                .setBlockchainPath(blockchainPath)
-                .setBootstrapUrl(bootstrapUrl)
-                .addAllStartupFlags(startupFlags).build();
+        protobuf.MoneroNodeSettings.Builder builder = protobuf.MoneroNodeSettings.newBuilder();
+        Optional.ofNullable(blockchainPath).ifPresent(e -> builder.setBlockchainPath(blockchainPath));
+        Optional.ofNullable(bootstrapUrl).ifPresent(e -> builder.setBlockchainPath(bootstrapUrl));
+        Optional.ofNullable(startupFlags).ifPresent(e -> builder.addAllStartupFlags(startupFlags));
+        return builder.build();
     }
 }
