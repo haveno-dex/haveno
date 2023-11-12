@@ -69,6 +69,7 @@ import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemon;
+import monero.daemon.model.MoneroDaemonInfo;
 import monero.daemon.model.MoneroKeyImage;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
@@ -810,6 +811,7 @@ public abstract class Trade implements Tradable, Model {
             stopPolling();
             xmrWalletService.closeWallet(wallet, true);
             wallet = null;
+            walletRefreshPeriod = null;
         }
     }
 
@@ -1787,7 +1789,7 @@ public abstract class Trade implements Tradable, Model {
             if (this.walletRefreshPeriod != null && this.walletRefreshPeriod == walletRefreshPeriod) return;
             this.walletRefreshPeriod = walletRefreshPeriod;
             if (getWallet() != null) {
-                log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), walletRefreshPeriod);
+                log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), getWalletRefreshPeriod());
                 getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
             }
             if (isPolling()) {
@@ -1822,7 +1824,14 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void pollWallet() {
+        MoneroWallet wallet = getWallet();
         try {
+
+            // check if wallet's height is less than daemon's
+            MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionsService().getLastInfo();
+            if (lastInfo != null && wallet.getHeight() < lastInfo.getHeight() - 2) {
+                log.warn("Daemon's height is more than 2 blocks ahead of wallet's height; daemon height={}, wallet height={}, tradeId={}", lastInfo.getHeight(), wallet.getHeight(), getShortId());
+            }
 
             // skip if either deposit tx id is unknown
             if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) return;
@@ -1831,7 +1840,7 @@ public abstract class Trade implements Tradable, Model {
             if (isPayoutUnlocked()) return;
 
             // rescan spent outputs to detect payout tx after deposits unlocked
-            if (isDepositsUnlocked() && !isPayoutPublished()) getWallet().rescanSpent();
+            if (isDepositsUnlocked() && !isPayoutPublished()) wallet.rescanSpent();
 
             // get txs from trade wallet
             boolean payoutExpected = isPaymentReceived() || processModel.getPaymentReceivedMessage() != null || disputeState.ordinal() > DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal() || processModel.getDisputeClosedMessage() != null;
@@ -1898,7 +1907,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            if (!isShutDownStarted && getWallet() != null && isWalletConnected()) {
+            if (!isShutDownStarted && wallet != null && isWalletConnected()) {
                 log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
             }
         }
