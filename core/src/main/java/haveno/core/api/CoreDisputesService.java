@@ -14,6 +14,7 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeSummaryVerification;
+import haveno.core.support.dispute.DisputeResult.SubtractFeeFrom;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Contract;
@@ -161,7 +162,6 @@ public class CoreDisputesService {
                     throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
                 }
                 applyPayoutAmountsToDisputeResult(payout, winningDispute, winnerDisputeResult, customWinnerAmount);
-                winnerDisputeResult.setSubtractFeeFrom(customWinnerAmount == 0 ? DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER : winner == DisputeResult.Winner.BUYER ? DisputeResult.SubtractFeeFrom.SELLER_ONLY : DisputeResult.SubtractFeeFrom.BUYER_ONLY);
 
                 // create dispute payout tx
                 trade.getProcessModel().setUnsignedPayoutTx(arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), winnerDisputeResult, false));
@@ -215,6 +215,7 @@ public class CoreDisputesService {
         BigInteger buyerSecurityDeposit = trade.getBuyer().getSecurityDeposit();
         BigInteger sellerSecurityDeposit = trade.getSeller().getSecurityDeposit();
         BigInteger tradeAmount = contract.getTradeAmount();
+        disputeResult.setSubtractFeeFrom(DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER);
         if (payout == DisputePayout.BUYER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmount(tradeAmount.add(buyerSecurityDeposit));
             disputeResult.setSellerPayoutAmount(sellerSecurityDeposit);
@@ -241,8 +242,8 @@ public class CoreDisputesService {
             }
             disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
             disputeResult.setSellerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
+            disputeResult.setSubtractFeeFrom(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? SubtractFeeFrom.SELLER_ONLY : SubtractFeeFrom.BUYER_ONLY); // winner gets exact amount, loser pays mining fee
         }
-        disputeResult.setSubtractFeeFrom(DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER); // TODO: can extend UI to specify who pays mining fee
     }
 
     public void closeDisputeTicket(DisputeManager disputeManager, Dispute dispute, DisputeResult disputeResult, ResultHandler resultHandler, FaultHandler faultHandler) {
