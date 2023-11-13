@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 
 import haveno.common.UserThread;
+import haveno.common.config.Config;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -1122,6 +1123,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void onShutDownStarted() {
+        stopPolling();
         isShutDownStarted = true;
         if (wallet != null) log.info("{} {} preparing for shut down", getClass().getSimpleName(), getId());
 
@@ -1780,6 +1782,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void updateWalletRefreshPeriod() {
+        if (isShutDownStarted) return;
         setWalletRefreshPeriod(getWalletRefreshPeriod());
     }
 
@@ -1824,91 +1827,93 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void pollWallet() {
-        MoneroWallet wallet = getWallet();
-        try {
+        synchronized (walletLock) {
+            MoneroWallet wallet = getWallet();
+            try {
 
-            // check if wallet's height is less than daemon's
-            MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionsService().getLastInfo();
-            if (lastInfo != null && wallet.getHeight() < lastInfo.getHeight() - 2) {
-                log.warn("Daemon's height is more than 2 blocks ahead of wallet's height; daemon height={}, wallet height={}, tradeId={}", lastInfo.getHeight(), wallet.getHeight(), getShortId());
-            }
-
-            // skip if either deposit tx id is unknown
-            if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) return;
-
-            // skip if payout unlocked
-            if (isPayoutUnlocked()) return;
-
-            // rescan spent outputs to detect payout tx after deposits unlocked
-            if (isDepositsUnlocked() && !isPayoutPublished()) wallet.rescanSpent();
-
-            // get txs from trade wallet
-            boolean payoutExpected = isPaymentReceived() || processModel.getPaymentReceivedMessage() != null || disputeState.ordinal() > DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal() || processModel.getDisputeClosedMessage() != null;
-            boolean checkPool = !isDepositsConfirmed() || (!isPayoutConfirmed() && payoutExpected);
-            MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-            if (!checkPool) query.setInTxPool(false); // avoid pool check if possible
-            List<MoneroTxWallet> txs = wallet.getTxs(query);
-
-            // warn on double spend // TODO: other handling?
-            for (MoneroTxWallet tx : txs) {
-                if (Boolean.TRUE.equals(tx.isDoubleSpendSeen())) log.warn("Double spend seen for tx {} for {} {}", tx.getHash(), getClass().getSimpleName(), getId());
-            }
-
-            // check deposit txs
-            if (!isDepositsUnlocked()) {
- 
-                // update trader txs
-                MoneroTxWallet makerDepositTx = null;
-                MoneroTxWallet takerDepositTx = null;
-                for (MoneroTxWallet tx : txs) {
-                    if (tx.getHash().equals(processModel.getMaker().getDepositTxHash())) makerDepositTx = tx;
-                    if (tx.getHash().equals(processModel.getTaker().getDepositTxHash())) takerDepositTx = tx;
-                }
-                if (makerDepositTx != null) getMaker().setDepositTx(makerDepositTx);
-                if (takerDepositTx != null) getTaker().setDepositTx(takerDepositTx);
-
-                // skip if deposit txs not seen
-                if (makerDepositTx == null || takerDepositTx == null) return;
-
-                // set security deposits
-                if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
-                    BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
-                    BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
-                    getBuyer().setSecurityDeposit(buyerSecurityDeposit);
-                    getSeller().setSecurityDeposit(sellerSecurityDeposit);
+                // log warning if wallet is too far behind daemon
+                MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionsService().getLastInfo();
+                if (!Config.baseCurrencyNetwork().isTestnet() && isDepositsPublished() && lastInfo != null && wallet.getHeight() < lastInfo.getHeight() - 3) {
+                    log.warn("Wallet is more than 3 blocks behind monerod for {} {}, wallet height={}, monerod height={},", getClass().getSimpleName(), getShortId(), lastInfo.getHeight(), wallet.getHeight());
                 }
 
-                // update state
-                setStateDepositsPublished();
-                if (makerDepositTx.isConfirmed() && takerDepositTx.isConfirmed()) setStateDepositsConfirmed();
-                if (!makerDepositTx.isLocked() && !takerDepositTx.isLocked()) setStateDepositsUnlocked();
-            }
+                // skip if either deposit tx id is unknown
+                if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) return;
 
-            // check payout tx
-            if (isDepositsUnlocked()) {
+                // skip if payout unlocked
+                if (isPayoutUnlocked()) return;
 
-                // check if any outputs spent (observed on payout published)
+                // rescan spent outputs to detect payout tx after deposits unlocked
+                if (isDepositsUnlocked() && !isPayoutPublished()) wallet.rescanSpent();
+
+                // get txs from trade wallet
+                boolean payoutExpected = isPaymentReceived() || processModel.getPaymentReceivedMessage() != null || disputeState.ordinal() > DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal() || processModel.getDisputeClosedMessage() != null;
+                boolean checkPool = !isDepositsConfirmed() || (!isPayoutConfirmed() && payoutExpected);
+                MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+                if (!checkPool) query.setInTxPool(false); // avoid pool check if possible
+                List<MoneroTxWallet> txs = wallet.getTxs(query);
+
+                // warn on double spend // TODO: other handling?
                 for (MoneroTxWallet tx : txs) {
-                    for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                        if (Boolean.TRUE.equals(output.isSpent()))  {
+                    if (Boolean.TRUE.equals(tx.isDoubleSpendSeen())) log.warn("Double spend seen for tx {} for {} {}", tx.getHash(), getClass().getSimpleName(), getId());
+                }
+
+                // check deposit txs
+                if (!isDepositsUnlocked()) {
+    
+                    // update trader txs
+                    MoneroTxWallet makerDepositTx = null;
+                    MoneroTxWallet takerDepositTx = null;
+                    for (MoneroTxWallet tx : txs) {
+                        if (tx.getHash().equals(processModel.getMaker().getDepositTxHash())) makerDepositTx = tx;
+                        if (tx.getHash().equals(processModel.getTaker().getDepositTxHash())) takerDepositTx = tx;
+                    }
+                    if (makerDepositTx != null) getMaker().setDepositTx(makerDepositTx);
+                    if (takerDepositTx != null) getTaker().setDepositTx(takerDepositTx);
+
+                    // skip if deposit txs not seen
+                    if (makerDepositTx == null || takerDepositTx == null) return;
+
+                    // set security deposits
+                    if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
+                        BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
+                        BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
+                        getBuyer().setSecurityDeposit(buyerSecurityDeposit);
+                        getSeller().setSecurityDeposit(sellerSecurityDeposit);
+                    }
+
+                    // update state
+                    setStateDepositsPublished();
+                    if (makerDepositTx.isConfirmed() && takerDepositTx.isConfirmed()) setStateDepositsConfirmed();
+                    if (!makerDepositTx.isLocked() && !takerDepositTx.isLocked()) setStateDepositsUnlocked();
+                }
+
+                // check payout tx
+                if (isDepositsUnlocked()) {
+
+                    // check if any outputs spent (observed on payout published)
+                    for (MoneroTxWallet tx : txs) {
+                        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                            if (Boolean.TRUE.equals(output.isSpent()))  {
+                                setPayoutStatePublished();
+                            }
+                        }
+                    }
+
+                    // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
+                    for (MoneroTxWallet tx : txs) {
+                        if (tx.isOutgoing()) {
+                            setPayoutTx(tx);
                             setPayoutStatePublished();
+                            if (tx.isConfirmed()) setPayoutStateConfirmed();
+                            if (!tx.isLocked()) setPayoutStateUnlocked();
                         }
                     }
                 }
-
-                // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
-                for (MoneroTxWallet tx : txs) {
-                    if (tx.isOutgoing()) {
-                        setPayoutTx(tx);
-                        setPayoutStatePublished();
-                        if (tx.isConfirmed()) setPayoutStateConfirmed();
-                        if (!tx.isLocked()) setPayoutStateUnlocked();
-                    }
+            } catch (Exception e) {
+                if (!isShutDownStarted && wallet != null && isWalletConnected()) {
+                    log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
                 }
-            }
-        } catch (Exception e) {
-            if (!isShutDownStarted && wallet != null && isWalletConnected()) {
-                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
             }
         }
     }
