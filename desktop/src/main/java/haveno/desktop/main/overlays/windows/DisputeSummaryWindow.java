@@ -404,9 +404,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         disputeResult.setBuyerPayoutAmount(buyerAmount);
         disputeResult.setSellerPayoutAmount(sellerAmount);
-        disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ? // TODO: UI should allow selection of receiver of exact custom amount, otherwise defaulting to bigger receiver. could extend API to specify who pays payout tx fee: buyer, seller, or both
-                DisputeResult.Winner.BUYER :
-                DisputeResult.Winner.SELLER);
+        disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ? DisputeResult.Winner.BUYER : DisputeResult.Winner.SELLER); // TODO: UI should allow selection of receiver of exact custom amount, otherwise defaulting to bigger receiver. could extend API to specify who pays payout tx fee: buyer, seller, or both
+        disputeResult.setSubtractFeeFrom(buyerAmount.compareTo(sellerAmount) > 0 ? DisputeResult.SubtractFeeFrom.SELLER_ONLY : DisputeResult.SubtractFeeFrom.BUYER_ONLY);
     }
 
     private void addPayoutAmountTextFields() {
