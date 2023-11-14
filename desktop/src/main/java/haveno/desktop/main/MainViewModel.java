@@ -217,7 +217,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             if (newValue) {
                 tradeManager.applyTradePeriodState();
 
-                tradeManager.getObservableList().forEach(trade -> {
+                tradeManager.getOpenTrades().forEach(trade -> {
 
                     // check initialization error
                     if (trade.getInitError() != null) {
