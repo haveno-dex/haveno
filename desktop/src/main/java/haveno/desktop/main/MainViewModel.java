@@ -44,6 +44,7 @@ import haveno.core.presentation.BalancePresentation;
 import haveno.core.presentation.SupportTicketsPresentation;
 import haveno.core.presentation.TradePresentation;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
@@ -236,6 +237,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                             key = "displayHalfTradePeriodOver" + trade.getId();
                             if (DontShowAgainLookup.showAgain(key)) {
                                 DontShowAgainLookup.dontShowAgain(key, true);
+                                if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
                                 new Popup().warning(Res.get("popup.warning.tradePeriod.halfReached",
                                         trade.getShortId(),
                                         DisplayUtils.formatDateTime(maxTradePeriodDate)))
@@ -246,6 +248,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                             key = "displayTradePeriodOver" + trade.getId();
                             if (DontShowAgainLookup.showAgain(key)) {
                                 DontShowAgainLookup.dontShowAgain(key, true);
+                                if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
                                 new Popup().warning(Res.get("popup.warning.tradePeriod.ended",
                                         trade.getShortId(),
                                         DisplayUtils.formatDateTime(maxTradePeriodDate)))
