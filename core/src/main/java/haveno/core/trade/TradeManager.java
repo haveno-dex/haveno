@@ -1157,11 +1157,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public List<Trade> getAllTrades() {
-        List<Trade> trades = new ArrayList<Trade>();
-        trades.addAll(tradableList.getList());
-        trades.addAll(closedTradableManager.getClosedTrades());
-        trades.addAll(failedTradesManager.getObservableList());
-        return trades;
+        synchronized (tradableList) {
+            List<Trade> trades = new ArrayList<Trade>();
+            trades.addAll(tradableList.getList());
+            trades.addAll(closedTradableManager.getClosedTrades());
+            trades.addAll(failedTradesManager.getObservableList());
+            return trades;
+        }
     }
 
     public List<Trade> getOpenTrades() {
