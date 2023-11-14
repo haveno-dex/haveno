@@ -1026,15 +1026,17 @@ public class XmrWalletService {
     }
 
     public List<XmrAddressEntry> getAddressEntryListAsImmutableList() {
-        List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
-        for (MoneroSubaddress subaddress : subaddresses) {
-            boolean exists = xmrAddressEntryList.getAddressEntriesAsListImmutable().stream().filter(addressEntry -> addressEntry.getAddressString().equals(subaddress.getAddress())).findAny().isPresent();
-            if (!exists) {
-                XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), subaddress.getIndex() == 0 ? XmrAddressEntry.Context.BASE_ADDRESS : XmrAddressEntry.Context.AVAILABLE, null, null);
-                xmrAddressEntryList.addAddressEntry(entry);
+        synchronized (walletLock) {
+            List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
+            for (MoneroSubaddress subaddress : subaddresses) {
+                boolean exists = xmrAddressEntryList.getAddressEntriesAsListImmutable().stream().filter(addressEntry -> addressEntry.getAddressString().equals(subaddress.getAddress())).findAny().isPresent();
+                if (!exists) {
+                    XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), subaddress.getIndex() == 0 ? XmrAddressEntry.Context.BASE_ADDRESS : XmrAddressEntry.Context.AVAILABLE, null, null);
+                    xmrAddressEntryList.addAddressEntry(entry);
+                }
             }
+            return xmrAddressEntryList.getAddressEntriesAsListImmutable();
         }
-        return xmrAddressEntryList.getAddressEntriesAsListImmutable();
     }
 
     public List<XmrAddressEntry> getUnusedAddressEntries() {
