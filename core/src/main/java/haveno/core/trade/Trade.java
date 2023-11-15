@@ -633,9 +633,16 @@ public abstract class Trade implements Tradable, Model {
             payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
                 if (isPayoutPublished()) updateWalletRefreshPeriod();
 
-                // cleanup when payout published
+                // handle when payout published
                 if (newValue == Trade.PayoutState.PAYOUT_PUBLISHED) {
                     log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
+
+                    // sync main wallet to update pending balance
+                    new Thread(() -> {
+                        GenUtils.waitFor(1000);
+                        if (isShutDownStarted) return;
+                        if (Boolean.TRUE.equals(xmrWalletService.getConnectionsService().isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
+                    }).start();
 
                     // complete disputed trade
                     if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
@@ -647,7 +654,7 @@ public abstract class Trade implements Tradable, Model {
                     processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
                 }
 
-                // cleanup when payout unlocks
+                // handle when payout unlocks
                 if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
                     if (!isInitialized) return;
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
