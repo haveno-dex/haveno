@@ -788,14 +788,16 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void importMultisigHex() {
-        List<String> multisigHexes = new ArrayList<String>();
-        if (getBuyer().getUpdatedMultisigHex() != null) multisigHexes.add(getBuyer().getUpdatedMultisigHex());
-        if (getSeller().getUpdatedMultisigHex() != null) multisigHexes.add(getSeller().getUpdatedMultisigHex());
-        if (getArbitrator().getUpdatedMultisigHex() != null) multisigHexes.add(getArbitrator().getUpdatedMultisigHex());
-        if (!multisigHexes.isEmpty()) {
-            log.info("Importing multisig hex for {} {}", getClass().getSimpleName(), getId());
-            getWallet().importMultisigHex(multisigHexes.toArray(new String[0]));
-            log.info("Done importing multisig hex for {} {}", getClass().getSimpleName(), getId());
+        synchronized (walletLock) {
+            List<String> multisigHexes = new ArrayList<String>();
+            if (getBuyer().getUpdatedMultisigHex() != null) multisigHexes.add(getBuyer().getUpdatedMultisigHex());
+            if (getSeller().getUpdatedMultisigHex() != null) multisigHexes.add(getSeller().getUpdatedMultisigHex());
+            if (getArbitrator().getUpdatedMultisigHex() != null) multisigHexes.add(getArbitrator().getUpdatedMultisigHex());
+            if (!multisigHexes.isEmpty()) {
+                log.info("Importing multisig hex for {} {}", getClass().getSimpleName(), getId());
+                getWallet().importMultisigHex(multisigHexes.toArray(new String[0]));
+                log.info("Done importing multisig hex for {} {}", getClass().getSimpleName(), getId());
+            }
         }
     }
 
