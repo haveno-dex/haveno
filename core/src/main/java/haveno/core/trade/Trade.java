@@ -20,7 +20,7 @@ package haveno.core.trade;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
-
+import common.utils.GenUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.Encryption;
@@ -1833,8 +1833,9 @@ public abstract class Trade implements Tradable, Model {
 
                 // log warning if wallet is too far behind daemon
                 MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionsService().getLastInfo();
-                if (!Config.baseCurrencyNetwork().isTestnet() && isDepositsPublished() && lastInfo != null && wallet.getHeight() < lastInfo.getHeight() - 3) {
-                    log.warn("Wallet is more than 3 blocks behind monerod for {} {}, wallet height={}, monerod height={},", getClass().getSimpleName(), getShortId(), lastInfo.getHeight(), wallet.getHeight());
+                long walletHeight = wallet.getHeight();
+                if (wasWalletSynced && isDepositsPublished() && lastInfo != null && walletHeight < lastInfo.getHeight() - 3 && !Config.baseCurrencyNetwork().isTestnet()) {
+                    log.warn("Wallet is more than 3 blocks behind monerod for {} {}, wallet height={}, monerod height={},", getClass().getSimpleName(), getShortId(), walletHeight, lastInfo.getHeight());
                 }
 
                 // skip if either deposit tx id is unknown
