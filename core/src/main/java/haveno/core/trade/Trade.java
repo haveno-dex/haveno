@@ -1132,9 +1132,9 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void onShutDownStarted() {
-        stopPolling();
         isShutDownStarted = true;
         if (wallet != null) log.info("{} {} preparing for shut down", getClass().getSimpleName(), getId());
+        stopPolling();
 
         // repeatedly acquire trade lock to allow other threads to finish
         for (int i = 0; i < 20; i++) {
@@ -1813,7 +1813,7 @@ public abstract class Trade implements Tradable, Model {
 
     private void startPolling() {
         synchronized (walletLock) {
-            if (isPolling()) return;
+            if (isShutDownStarted || isPolling()) return;
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
             txPollLooper = new TaskLooper(() -> pollWallet());
             txPollLooper.start(walletRefreshPeriod);
