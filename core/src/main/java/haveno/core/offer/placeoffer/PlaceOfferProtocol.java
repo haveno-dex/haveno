@@ -62,12 +62,13 @@ public class PlaceOfferProtocol {
 
     public void placeOffer() {
 
-        timeoutTimer = UserThread.runAfter(() -> {
-            handleError(Res.get("createOffer.timeoutAtPublishing"));
-        }, TradeProtocol.TRADE_TIMEOUT);
+        startTimeoutTimer();
 
         TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
                 () -> {
+
+                    // reset timer if response not yet received
+                    if (model.getSignOfferResponse() == null) startTimeoutTimer();
                 },
                 (errorMessage) -> {
                     handleError(errorMessage);
@@ -99,10 +100,7 @@ public class PlaceOfferProtocol {
       }
 
       // reset timer
-      stopTimeoutTimer();
-      timeoutTimer = UserThread.runAfter(() -> {
-          handleError(Res.get("createOffer.timeoutAtPublishing"));
-      }, TradeProtocol.TRADE_TIMEOUT);
+      startTimeoutTimer();
 
       TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
               () -> {
@@ -128,6 +126,13 @@ public class PlaceOfferProtocol {
       );
 
       taskRunner.run();
+    }
+
+    private void startTimeoutTimer() {
+        stopTimeoutTimer();
+        timeoutTimer = UserThread.runAfter(() -> {
+            handleError(Res.get("createOffer.timeoutAtPublishing"));
+        }, TradeProtocol.TRADE_TIMEOUT);
     }
 
     private void stopTimeoutTimer() {
