@@ -566,12 +566,16 @@ public final class CoreMoneroConnectionsService {
             if (lastErrorTimestamp != null) {
                 log.info("Successfully fetched daemon info after previous error");
                 lastErrorTimestamp = null;
-                if (HavenoUtils.havenoSetup != null) HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
             }
 
             // update and notify connected state
             if (!Boolean.TRUE.equals(connectionManager.isConnected())) {
                 connectionManager.checkConnection();
+            }
+
+            // clear error message
+            if (Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
+                HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
             }
         } catch (Exception e) {
 
@@ -582,13 +586,15 @@ public final class CoreMoneroConnectionsService {
                 if (DevEnv.isDevMode()) e.printStackTrace();
             }
 
-            // notify error message
-            if (HavenoUtils.havenoSetup != null) HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
-
             // check connection which notifies of changes
             synchronized (this) {
                 if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
                 else connectionManager.checkConnection();
+            }
+
+            // set error message
+            if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
+                HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
             }
         }
     }
