@@ -92,6 +92,7 @@ monerod2-local:
 
 funding-wallet-stagenet:
 	./.localnet/monero-wallet-rpc \
+		--stagenet \
 		--rpc-bind-port 18084 \
 		--rpc-login rpc_user:abc123 \
 		--rpc-access-control-origins http://localhost:8080 \
