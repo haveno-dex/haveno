@@ -53,6 +53,7 @@ public final class CoreMoneroConnectionsService {
 
 
     private final Object lock = new Object();
+    private final Object listenersLock = new Object();
     private final Config config;
     private final CoreContext coreContext;
     private final Preferences preferences;
@@ -146,7 +147,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     public void addConnectionListener(MoneroConnectionManagerListener listener) {
-        synchronized (lock) {
+        synchronized (listenersLock) {
             listeners.add(listener);
         }
     }
@@ -512,9 +513,11 @@ public final class CoreMoneroConnectionsService {
         }
         updatePolling();
 
-        // notify listeners
-        synchronized (lock) {
-            for (MoneroConnectionManagerListener listener : listeners) listener.onConnectionChanged(currentConnection);
+        // notify listeners in parallel
+        synchronized (listenersLock) {
+            for (MoneroConnectionManagerListener listener : listeners) {
+                new Thread(() -> listener.onConnectionChanged(currentConnection)).start();
+            }
         }
     }
 
@@ -537,64 +540,68 @@ public final class CoreMoneroConnectionsService {
 
     private void stopPolling() {
         synchronized (lock) {
-            if (daemonPollLooper != null) daemonPollLooper.stop();
+            if (daemonPollLooper != null) {
+                daemonPollLooper.stop();
+                daemonPollLooper = null;
+            }
         }
     }
 
     private void pollDaemonInfo() {
-        if (isShutDownStarted) return;
-        try {
-            log.debug("Polling daemon info");
-            if (daemon == null) throw new RuntimeException("No daemon connection");
-            synchronized (this) {
+        synchronized (lock) {
+            if (isShutDownStarted) return;
+            try {
+                log.debug("Polling daemon info");
+                if (daemon == null) throw new RuntimeException("No daemon connection");
                 lastInfo = daemon.getInfo();
-            }
-            chainHeight.set(lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight());
+                chainHeight.set(lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight());
 
-            // set peer connections
-            // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
-            // try {
-            //     peers.set(getOnlinePeers());
-            // } catch (Exception err) {
-            //     // TODO: peers unknown due to restricted RPC call
-            // }
-            // numPeers.set(peers.get().size());
-            numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections());
-            peers.set(new ArrayList<MoneroPeer>());
-            
-            // handle error recovery
-            if (lastErrorTimestamp != null) {
-                log.info("Successfully fetched daemon info after previous error");
-                lastErrorTimestamp = null;
-            }
+                // set peer connections
+                // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
+                // try {
+                //     peers.set(getOnlinePeers());
+                // } catch (Exception err) {
+                //     // TODO: peers unknown due to restricted RPC call
+                // }
+                // numPeers.set(peers.get().size());
+                numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections());
+                peers.set(new ArrayList<MoneroPeer>());
+                
+                // handle error recovery
+                if (lastErrorTimestamp != null) {
+                    log.info("Successfully fetched daemon info after previous error");
+                    lastErrorTimestamp = null;
+                }
 
-            // update and notify connected state
-            if (!Boolean.TRUE.equals(connectionManager.isConnected())) {
-                connectionManager.checkConnection();
-            }
+                // update and notify connected state
+                if (!Boolean.TRUE.equals(connectionManager.isConnected())) {
+                    connectionManager.checkConnection();
+                }
 
-            // clear error message
-            if (Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
-                HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
-            }
-        } catch (Exception e) {
+                // clear error message
+                if (Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
+                    HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
+                }
+            } catch (Exception e) {
 
-            // log error message periodically
-            if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > MIN_ERROR_LOG_PERIOD_MS)) {
-                lastErrorTimestamp = System.currentTimeMillis();
-                log.warn("Could not update daemon info: " + e.getMessage());
-                if (DevEnv.isDevMode()) e.printStackTrace();
-            }
+                // skip if shut down or connected
+                if (isShutDownStarted || Boolean.TRUE.equals(isConnected())) return;
+                
+                // log error message periodically
+                if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > MIN_ERROR_LOG_PERIOD_MS)) {
+                    lastErrorTimestamp = System.currentTimeMillis();
+                    log.warn("Could not update daemon info: " + e.getMessage());
+                    if (DevEnv.isDevMode()) e.printStackTrace();
+                }
 
-            // check connection which notifies of changes
-            synchronized (this) {
+                // check connection which notifies of changes
                 if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
                 else connectionManager.checkConnection();
-            }
 
-            // set error message
-            if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
-                HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
+                // set error message
+                if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
+                    HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
+                }
             }
         }
     }

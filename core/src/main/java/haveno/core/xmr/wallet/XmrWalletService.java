@@ -3,7 +3,6 @@ package haveno.core.xmr.wallet;
 import com.google.common.util.concurrent.Service.State;
 import com.google.inject.name.Named;
 
-import common.utils.GenUtils;
 import common.utils.JsonUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -97,6 +96,7 @@ public class XmrWalletService {
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_MAX_BACKUP_WALLETS = 1;
     private static final int MONERO_LOG_LEVEL = 0;
+    private static final int MAX_SYNC_ATTEMPTS = 3;
     private static final boolean PRINT_STACK_TRACE = false;
 
     private final Preferences preferences;
@@ -651,14 +651,20 @@ public class XmrWalletService {
 
     private void initialize() {
 
+        // set and listen to daemon connection
+        connectionsService.addConnectionListener(newConnection -> {
+            onConnectionChanged(newConnection);
+        });
+
         // initialize main wallet if connected or previously created
         maybeInitMainWallet(true);
-
-        // set and listen to daemon connection
-        connectionsService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
     }
 
     private void maybeInitMainWallet(boolean sync) {
+        maybeInitMainWallet(sync, MAX_SYNC_ATTEMPTS);
+    }
+
+    private void maybeInitMainWallet(boolean sync, int numAttempts) {
         synchronized (walletLock) {
 
             // open or create wallet main wallet
@@ -676,52 +682,47 @@ public class XmrWalletService {
             // sync wallet and register listener
             if (wallet != null) {
                 log.info("Monero wallet uri={}, path={}", wallet.getRpcConnection().getUri(), wallet.getPath());
-                if (sync) {
-                    int maxAttempts = 3;
-                    for (int i = 0; i < maxAttempts; i++) {
-                        try {
-                            
-                            // sync main wallet
-                            log.info("Syncing main wallet");
-                            long time = System.currentTimeMillis();
-                            wallet.sync(); // blocking
-                            wasWalletSynced = true;
-                            log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
-                            wallet.startSyncing(connectionsService.getRefreshPeriodMs());
-                            if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) log.info("Monero wallet balance={}, unlocked balance={}", wallet.getBalance(0), wallet.getUnlockedBalance(0));
-                            
-                            // reapply connection after wallet synced
-                            onConnectionChanged(connectionsService.getConnection());
+                if (sync && numAttempts > 0) {
+                    try {
+                        
+                        // sync main wallet
+                        log.info("Syncing main wallet");
+                        long time = System.currentTimeMillis();
+                        wallet.sync(); // blocking
+                        wasWalletSynced = true;
+                        log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
+                        wallet.startSyncing(connectionsService.getRefreshPeriodMs());
+                        if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) log.info("Monero wallet balance={}, unlocked balance={}", wallet.getBalance(0), wallet.getUnlockedBalance(0));
+                        
+                        // reapply connection after wallet synced
+                        onConnectionChanged(connectionsService.getConnection());
 
-                            // TODO: using this to signify both daemon and wallet synced, use separate sync handlers?
-                            connectionsService.doneDownload();
-            
-                            // notify setup that main wallet is initialized
-                            // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected
-                            // refactor startup to call this and sync off main thread? but the calls to e.g. getBalance() fail with 'wallet and network is not yet initialized'
+                        // TODO: using this to signify both daemon and wallet synced, use separate sync handlers?
+                        connectionsService.doneDownload();
+        
+                        // notify setup that main wallet is initialized
+                        // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected
+                        // refactor startup to call this and sync off main thread? but the calls to e.g. getBalance() fail with 'wallet and network is not yet initialized'
+                        HavenoUtils.havenoSetup.getWalletInitialized().set(true);
+                        
+                        // save but skip backup on initialization
+                        saveMainWallet(false);
+                    } catch (Exception e) {
+                        log.warn("Error syncing main wallet: {}", e.getMessage());
+                        if (numAttempts <= 1) {
+                            log.warn("Failed to sync main wallet. Opening app without syncing", numAttempts);
                             HavenoUtils.havenoSetup.getWalletInitialized().set(true);
-                            
-                            // save but skip backup on initialization
                             saveMainWallet(false);
-                            break;
-                        } catch (Exception e) {
-                            log.warn("Error syncing main wallet: {}", e.getMessage());
-                            if (i == maxAttempts - 1) {
-                                log.warn("Failed to sync main wallet after {} attempts. Opening app without syncing", maxAttempts);
-                                HavenoUtils.havenoSetup.getWalletInitialized().set(true);
-                                saveMainWallet(false);
 
-                                // reschedule to init main wallet
-                                UserThread.runAfter(() -> {
-                                    new Thread(() -> {
-                                        log.warn("Restarting attempts to sync main wallet");
-                                        maybeInitMainWallet(true);
-                                    });
-                                }, connectionsService.getRefreshPeriodMs() / 1000);
-                            } else {
-                                log.warn("Trying again in {} seconds", connectionsService.getRefreshPeriodMs() / 1000);
-                                GenUtils.waitFor(connectionsService.getRefreshPeriodMs());
-                            }
+                            // reschedule to init main wallet
+                            UserThread.runAfter(() -> {
+                                new Thread(() -> maybeInitMainWallet(true, MAX_SYNC_ATTEMPTS)).start();
+                            }, connectionsService.getRefreshPeriodMs() / 1000);
+                        } else {
+                            log.warn("Trying again in {} seconds", connectionsService.getRefreshPeriodMs() / 1000);
+                            UserThread.runAfter(() -> {
+                                new Thread(() -> maybeInitMainWallet(true, numAttempts - 1)).start();
+                            }, connectionsService.getRefreshPeriodMs() / 1000);
                         }
                     }
                 }
