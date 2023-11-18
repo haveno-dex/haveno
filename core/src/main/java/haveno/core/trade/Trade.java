@@ -587,8 +587,10 @@ public abstract class Trade implements Tradable, Model {
                 getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
             });
 
-            // listen to daemon connection
-            xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> onConnectionChanged(newConnection));
+            // handle daemon changes with max parallelization
+            xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> {
+                HavenoUtils.submitTask(() -> onConnectionChanged(newConnection));
+            });
 
             // check if done
             if (isPayoutUnlocked()) {
