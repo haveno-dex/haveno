@@ -59,7 +59,9 @@ public class Capabilities {
     }
 
     public Capabilities(Collection<Capability> capabilities) {
-        this.capabilities.addAll(capabilities);
+        synchronized (this.capabilities) {
+            this.capabilities.addAll(capabilities);
+        }
     }
 
     public void set(Capability... capabilities) {
@@ -71,21 +73,30 @@ public class Capabilities {
     }
 
     public void set(Collection<Capability> capabilities) {
-        this.capabilities.clear();
-        this.capabilities.addAll(capabilities);
+        synchronized (this.capabilities) {
+            this.capabilities.clear();
+            this.capabilities.addAll(capabilities);
+        }
     }
 
     public void addAll(Capability... capabilities) {
-        this.capabilities.addAll(Arrays.asList(capabilities));
+        synchronized (this.capabilities) {
+            this.capabilities.addAll(Arrays.asList(capabilities));
+        }
     }
 
     public void addAll(Capabilities capabilities) {
-        if (capabilities != null)
-            this.capabilities.addAll(capabilities.capabilities);
+        if (capabilities != null) {
+            synchronized (this.capabilities) {
+                this.capabilities.addAll(capabilities.capabilities);
+            }
+        }
     }
 
     public boolean containsAll(final Set<Capability> requiredItems) {
-        return capabilities.containsAll(requiredItems);
+        synchronized (this.capabilities) {
+            return capabilities.containsAll(requiredItems);
+        }
     }
 
     public boolean containsAll(final Capabilities capabilities) {
@@ -93,15 +104,21 @@ public class Capabilities {
     }
 
     public boolean containsAll(Capability... capabilities) {
-        return this.capabilities.containsAll(Arrays.asList(capabilities));
+        synchronized (this.capabilities) {
+            return this.capabilities.containsAll(Arrays.asList(capabilities));
+        }
     }
 
     public boolean contains(Capability capability) {
-        return this.capabilities.contains(capability);
+        synchronized (this.capabilities) {
+            return this.capabilities.contains(capability);
+        }
     }
 
     public boolean isEmpty() {
-        return capabilities.isEmpty();
+        synchronized (this.capabilities) {
+            return capabilities.isEmpty();
+        }
     }
 
 
@@ -173,10 +190,12 @@ public class Capabilities {
     }
 
     public String prettyPrint() {
-        return capabilities.stream()
-                .sorted(Comparator.comparingInt(Enum::ordinal))
-                .map(e -> e.name() + " [" + e.ordinal() + "]")
-                .collect(Collectors.joining(", "));
+        synchronized (capabilities) {
+            return capabilities.stream()
+                    .sorted(Comparator.comparingInt(Enum::ordinal))
+                    .map(e -> e.name() + " [" + e.ordinal() + "]")
+                    .collect(Collectors.joining(", "));
+        }
     }
 
     public int size() {
