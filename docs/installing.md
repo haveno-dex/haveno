@@ -78,7 +78,7 @@ If you are a developer who wants to test Haveno in a more controlled way, follow
 
 ## Deploy
 
-If you are a *screen* user, simply run `make deploy`. This command will open all needed Haveno instances (seednode, user1, user2, arbitrator) using *screen*. If this is the first time launching the arbitrator desktop application, register the arbitrator as explained in step 3 below.
+If you are a *screen* user, simply run `make deploy`. This command will open all needed Haveno instances (seednode, user1, user2, arbitrator) using *screen*.
 
 If you don't use *screen*, open 4 terminal windows and run in each one of them:
 
