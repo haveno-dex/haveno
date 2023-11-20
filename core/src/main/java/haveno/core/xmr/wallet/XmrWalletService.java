@@ -682,6 +682,8 @@ public class XmrWalletService {
             // sync wallet and register listener
             if (wallet != null) {
                 log.info("Monero wallet uri={}, path={}", wallet.getRpcConnection().getUri(), wallet.getPath());
+
+                // sync main wallet if applicable
                 if (sync && numAttempts > 0) {
                     try {
                         
@@ -692,6 +694,7 @@ public class XmrWalletService {
                         wasWalletSynced = true;
                         log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
                         wallet.startSyncing(connectionsService.getRefreshPeriodMs());
+                        wallet.getTxs(new MoneroTxQuery().setIsLocked(true)); // TODO: main wallet's balance does update on startup with 0 conf PaymentReceivedMessage until pool txs fetched?
                         if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) log.info("Monero wallet balance={}, unlocked balance={}", wallet.getBalance(0), wallet.getUnlockedBalance(0));
                         
                         // reapply connection after wallet synced
