@@ -411,7 +411,7 @@ public class HavenoUtils {
         if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
 
         // verify buyer signature of payment sent message
-        verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
+        if (message.getPaymentSentMessage() != null) verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
     }
 
     // ----------------------------- OTHER UTILS ------------------------------

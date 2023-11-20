@@ -93,7 +93,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                     trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
                     trade.getTradePeer().getAccountAgeWitness(),
                     signedWitness,
-                    trade.getBuyer().getPaymentSentMessage()
+                    getReceiver() == trade.getArbitrator() ? trade.getBuyer().getPaymentSentMessage() : null // buyer already has payment sent message
             );
 
             // sign message
