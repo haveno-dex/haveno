@@ -70,8 +70,12 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // set state
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-            trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
+            if (trade.isArbitrator() && trade.getBuyer().getPaymentSentMessage() == null) {
+                checkNotNull(message.getPaymentSentMessage(), "PaymentSentMessage is null for arbitrator");
+                trade.getBuyer().setPaymentSentMessage(message.getPaymentSentMessage());
+                trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
+            }
             trade.requestPersistence();
 
             // close open disputes
@@ -138,7 +142,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                         PaymentSentMessage paymentSentMessage = (trade.isArbitrator() ? trade.getBuyer() : trade.getArbitrator()).getPaymentSentMessage();
                         if (paymentSentMessage == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
                         if (StringUtils.equals(trade.getPayoutTxHex(), paymentSentMessage.getPayoutTxHex())) { // unsigned
-                            log.info("{} {} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName(), trade.getId());
+                            log.info("{} {} verifying, signing, and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
                         } else {
                             log.info("{} {} re-verifying and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());

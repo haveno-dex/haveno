@@ -46,6 +46,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     private final AccountAgeWitness buyerAccountAgeWitness;
     @Nullable
     private final SignedWitness buyerSignedWitness;
+    @Nullable
     private final PaymentSentMessage paymentSentMessage;
     @Setter
     @Nullable
@@ -60,7 +61,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                                     boolean deferPublishPayout,
                                     AccountAgeWitness buyerAccountAgeWitness,
                                     @Nullable SignedWitness buyerSignedWitness,
-                                    PaymentSentMessage paymentSentMessage) {
+                                    @Nullable PaymentSentMessage paymentSentMessage) {
         this(tradeId,
                 senderNodeAddress,
                 uid,
