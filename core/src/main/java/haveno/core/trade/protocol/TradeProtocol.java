@@ -109,7 +109,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
-        handle(message, peerNodeAddress);
+        new Thread(() -> handle(message, peerNodeAddress)).start();
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
@@ -118,15 +118,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void handle(TradeMessage message, NodeAddress peerNodeAddress) {
-        new Thread(() -> {
-            if (message instanceof DepositsConfirmedMessage) {
-                handle((DepositsConfirmedMessage) message, peerNodeAddress);
-            } else if (message instanceof PaymentSentMessage) {
-                handle((PaymentSentMessage) message, peerNodeAddress);
-            } else if (message instanceof PaymentReceivedMessage) {
-                handle((PaymentReceivedMessage) message, peerNodeAddress);
-            }
-        }).start();
+        if (message instanceof DepositsConfirmedMessage) {
+            handle((DepositsConfirmedMessage) message, peerNodeAddress);
+        } else if (message instanceof PaymentSentMessage) {
+            handle((PaymentSentMessage) message, peerNodeAddress);
+        } else if (message instanceof PaymentReceivedMessage) {
+            handle((PaymentReceivedMessage) message, peerNodeAddress);
+        }
     }
 
     @Override
@@ -522,7 +520,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), message);
             processModel.setTradeMessage(message);
-
 
             // check minimum trade phase
             if (trade.isBuyer() && trade.getPhase().ordinal() < Trade.Phase.PAYMENT_SENT.ordinal()) {
