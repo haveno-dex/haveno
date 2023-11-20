@@ -274,12 +274,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         synchronized (trade) {
 
             // skip if no need to reprocess
-            if (trade.isSeller() || trade.getProcessModel().getPaymentReceivedMessage() == null || trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
+            if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
                 return;
             }
 
             log.warn("Reprocessing payment received message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            new Thread(() -> handle(trade.getProcessModel().getPaymentReceivedMessage(), trade.getProcessModel().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError)).start();
+            new Thread(() -> handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError)).start();
         }
     }
 
@@ -552,7 +552,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             processModel.getTradeManager().requestPersistence();
 
                             // schedule to reprocess message unless deleted
-                            if (trade.getProcessModel().getPaymentReceivedMessage() != null) {
+                            if (trade.getSeller().getPaymentReceivedMessage() != null) {
                                 UserThread.runAfter(() -> {
                                     reprocessPaymentReceivedMessageCount++;
                                     maybeReprocessPaymentReceivedMessage(reprocessOnError);

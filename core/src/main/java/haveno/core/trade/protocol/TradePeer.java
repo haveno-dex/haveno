@@ -19,12 +19,16 @@ package haveno.core.trade.protocol;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.messages.DisputeClosedMessage;
+import haveno.core.trade.messages.PaymentReceivedMessage;
+import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.network.p2p.NodeAddress;
 import lombok.Getter;
 import lombok.Setter;
@@ -79,6 +83,19 @@ public final class TradePeer implements PersistablePayload {
     private String contractAsJson;
     @Nullable
     private byte[] contractSignature;
+    @Nullable
+    @Setter
+    @Getter
+    private PaymentSentMessage paymentSentMessage;
+    @Nullable
+    @Setter
+    @Getter
+    private PaymentReceivedMessage paymentReceivedMessage;
+    @Nullable
+    @Setter
+    @Getter
+    private DisputeClosedMessage disputeClosedMessage;
+
 
     // added in v 0.6
     @Nullable
@@ -164,6 +181,9 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitness).ifPresent(e -> builder.setAccountAgeWitness(accountAgeWitness.toProtoAccountAgeWitness()));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
+        Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
+        Optional.ofNullable(disputeClosedMessage).ifPresent(e -> builder.setDisputeClosedMessage(disputeClosedMessage.toProtoNetworkEnvelope().getDisputeClosedMessage()));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
@@ -207,6 +227,9 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setAccountAgeWitness(protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness));
             tradePeer.setCurrentDate(proto.getCurrentDate());
             tradePeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
+            tradePeer.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
+            tradePeer.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
+            tradePeer.setDisputeClosedMessage(proto.hasDisputeClosedMessage() ? DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), Version.getP2PMessageVersion()) : null);
             tradePeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
             tradePeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
             tradePeer.setReserveTxKey(ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));

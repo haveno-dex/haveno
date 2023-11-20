@@ -28,6 +28,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.value.ChangeListener;
@@ -56,9 +57,17 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
         super(taskHandler, trade);
     }
 
-    protected abstract NodeAddress getReceiverNodeAddress();
+    protected abstract TradePeer getReceiver();
 
-    protected abstract PubKeyRing getReceiverPubKeyRing();
+    @Override
+    protected NodeAddress getReceiverNodeAddress() {
+        return getReceiver().getNodeAddress();
+    }
+
+    @Override
+    protected PubKeyRing getReceiverPubKeyRing() {
+        return getReceiver().getPubKeyRing();
+    }
 
     @Override
     protected void run() {
@@ -72,7 +81,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        if (processModel.getPaymentSentMessage() == null) {
+        if (getReceiver().getPaymentSentMessage() == null) {
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
@@ -98,13 +107,13 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                 String messageAsJson = JsonUtil.objectToJson(message);
                 byte[] sig = HavenoUtils.sign(processModel.getP2PService().getKeyRing(), messageAsJson);
                 message.setBuyerSignature(sig);
-                processModel.setPaymentSentMessage(message);
+                getReceiver().setPaymentSentMessage(message);
                 trade.requestPersistence();
             } catch (Exception e) {
                 throw new RuntimeException (e);
             }
         }
-        return processModel.getPaymentSentMessage();
+        return getReceiver().getPaymentSentMessage();
     }
 
     @Override

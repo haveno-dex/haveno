@@ -1546,9 +1546,6 @@ message ProcessModel {
     TradePeer arbitrator = 11;
     NodeAddress temp_trade_peer_node_address = 12;
     string multisig_address = 13;
-    PaymentSentMessage payment_sent_message = 14;
-    PaymentReceivedMessage payment_received_message = 15;
-    DisputeClosedMessage dispute_closed_message = 16;
     bytes mediated_payout_tx_signature = 17; // placeholder if mediation used in future
     int64 buyer_payout_amount_from_mediation = 18;
     int64 seller_payout_amount_from_mediation = 19;
@@ -1572,6 +1569,9 @@ message TradePeer {
     AccountAgeWitness account_age_witness = 20;
     int64 current_date = 21;
     bytes mediated_payout_tx_signature = 22;
+    PaymentSentMessage payment_sent_message = 23;
+    PaymentReceivedMessage payment_received_message = 24;
+    DisputeClosedMessage dispute_closed_message = 25;
 
     string reserve_tx_hash = 1001;
     string reserve_tx_hex = 1002;

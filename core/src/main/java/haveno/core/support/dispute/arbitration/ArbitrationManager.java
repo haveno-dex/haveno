@@ -224,13 +224,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail is arbitrator is unregistered)
 
                 // save dispute closed message for reprocessing
-                trade.getProcessModel().setDisputeClosedMessage(disputeClosedMessage);
+                trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
                 requestPersistence();
 
                 // verify arbitrator does not receive DisputeClosedMessage
                 if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
                     log.error("Arbitrator received disputeResultMessage. That should never happen.");
-                    trade.getProcessModel().setDisputeClosedMessage(null); // don't reprocess
+                    trade.getArbitrator().setDisputeClosedMessage(null); // don't reprocess
                     return;
                 }
 
@@ -303,14 +303,14 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                 // nack bad message and do not reprocess
                 if (e instanceof IllegalArgumentException) {
-                    trade.getProcessModel().setPaymentReceivedMessage(null); // message is processed
+                    trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
                     sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), false, e.getMessage());
                     requestPersistence();
                     throw e;
                 }
 
                 // schedule to reprocess message unless deleted
-                if (trade.getProcessModel().getDisputeClosedMessage() != null) {
+                if (trade.getArbitrator().getDisputeClosedMessage() != null) {
                     if (!reprocessDisputeClosedMessageCounts.containsKey(trade.getId())) reprocessDisputeClosedMessageCounts.put(trade.getId(), 0);
                     UserThread.runAfter(() -> {
                         reprocessDisputeClosedMessageCounts.put(trade.getId(), reprocessDisputeClosedMessageCounts.get(trade.getId()) + 1); // increment reprocess count
@@ -325,12 +325,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         synchronized (trade) {
 
             // skip if no need to reprocess
-            if (trade.isArbitrator() || trade.getProcessModel().getDisputeClosedMessage() == null || trade.getProcessModel().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
+            if (trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
                 return;
             }
 
             log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            new Thread(() -> handleDisputeClosedMessage(trade.getProcessModel().getDisputeClosedMessage(), reprocessOnError)).start();
+            new Thread(() -> handleDisputeClosedMessage(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError)).start();
         }
     }
 
@@ -343,7 +343,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         Dispute dispute = disputeOptional.get();
         Contract contract = dispute.getContract();
         DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
-        String unsignedPayoutTxHex = trade.getProcessModel().getDisputeClosedMessage().getUnsignedPayoutTxHex();
+        String unsignedPayoutTxHex = trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex();
 
 //    Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
 //    BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMaker().getDepositTxHash() : trade.getTaker().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
@@ -420,10 +420,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // determine if we already signed dispute payout tx
         // TODO: better way, such as by saving signed dispute payout tx hex in designated field instead of shared payoutTxHex field?
         Set<String> nonSignedDisputePayoutTxHexes = new HashSet<String>();
-        if (trade.getProcessModel().getPaymentSentMessage() != null) nonSignedDisputePayoutTxHexes.add(trade.getProcessModel().getPaymentSentMessage().getPayoutTxHex());
-        if (trade.getProcessModel().getPaymentReceivedMessage() != null) {
-            nonSignedDisputePayoutTxHexes.add(trade.getProcessModel().getPaymentReceivedMessage().getUnsignedPayoutTxHex());
-            nonSignedDisputePayoutTxHexes.add(trade.getProcessModel().getPaymentReceivedMessage().getSignedPayoutTxHex());
+        if (trade.getTradePeer().getPaymentSentMessage() != null) nonSignedDisputePayoutTxHexes.add(trade.getTradePeer().getPaymentSentMessage().getPayoutTxHex());
+        if (trade.getTradePeer().getPaymentReceivedMessage() != null) {
+            nonSignedDisputePayoutTxHexes.add(trade.getTradePeer().getPaymentReceivedMessage().getUnsignedPayoutTxHex());
+            nonSignedDisputePayoutTxHexes.add(trade.getTradePeer().getPaymentReceivedMessage().getSignedPayoutTxHex());
         }
         boolean signed = trade.getPayoutTxHex() != null && !nonSignedDisputePayoutTxHexes.contains(trade.getPayoutTxHex());
 

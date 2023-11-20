@@ -48,7 +48,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
 
             // update state from message
-            processModel.setPaymentSentMessage(message);
+            trade.getBuyer().setPaymentSentMessage(message);
             trade.setPayoutTxHex(message.getPayoutTxHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());

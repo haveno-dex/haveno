@@ -17,13 +17,10 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
-import haveno.core.trade.messages.PaymentReceivedMessage;
-import haveno.core.trade.messages.TradeMailboxMessage;
 import haveno.core.trade.messages.TradeMessage;
-import haveno.network.p2p.NodeAddress;
+import haveno.core.trade.protocol.TradePeer;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,21 +32,9 @@ public class SellerSendPaymentReceivedMessageToBuyer extends SellerSendPaymentRe
         super(taskHandler, trade);
     }
 
-
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        if (processModel.getPaymentReceivedMessage() == null) {
-            processModel.setPaymentReceivedMessage((PaymentReceivedMessage) super.getTradeMailboxMessage(tradeId)); // save payment received message for buyer
-        }
-        return processModel.getPaymentReceivedMessage();
-    }
-
-    protected NodeAddress getReceiverNodeAddress() {
-        return trade.getBuyer().getNodeAddress();
-    }
-
-    protected PubKeyRing getReceiverPubKeyRing() {
-        return trade.getBuyer().getPubKeyRing();
+    protected TradePeer getReceiver() {
+        return trade.getBuyer();
     }
 
     // continue execution on fault so payment received message is sent to arbitrator
