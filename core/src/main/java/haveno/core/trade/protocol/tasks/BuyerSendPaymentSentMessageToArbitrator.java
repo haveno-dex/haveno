@@ -17,10 +17,9 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
-import haveno.network.p2p.NodeAddress;
+import haveno.core.trade.protocol.TradePeer;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,12 +31,9 @@ public class BuyerSendPaymentSentMessageToArbitrator extends BuyerSendPaymentSen
         super(taskHandler, trade);
     }
 
-    protected NodeAddress getReceiverNodeAddress() {
-        return trade.getArbitrator().getNodeAddress();
-    }
-
-    protected PubKeyRing getReceiverPubKeyRing() {
-        return trade.getArbitrator().getPubKeyRing();
+    @Override
+    protected TradePeer getReceiver() {
+        return trade.getArbitrator();
     }
 
     @Override

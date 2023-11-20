@@ -26,6 +26,7 @@ import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
+import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -65,13 +66,13 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // save message for reprocessing
-            processModel.setPaymentReceivedMessage(message);
-            trade.requestPersistence();
+            trade.getSeller().setPaymentReceivedMessage(message);
 
             // set state
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
+            trade.requestPersistence();
 
             // close open disputes
             if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
@@ -100,7 +101,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // do not reprocess illegal argument
             if (t instanceof IllegalArgumentException) {
-                processModel.setPaymentReceivedMessage(null); // do not reprocess
+                trade.getSeller().setPaymentReceivedMessage(null); // do not reprocess
                 trade.requestPersistence();
             }
 
@@ -134,8 +135,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
                 } else {
                     try {
-                        if (trade.getProcessModel().getPaymentSentMessage() == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
-                        if (StringUtils.equals(trade.getPayoutTxHex(), trade.getProcessModel().getPaymentSentMessage().getPayoutTxHex())) { // unsigned
+                        PaymentSentMessage paymentSentMessage = (trade.isArbitrator() ? trade.getBuyer() : trade.getArbitrator()).getPaymentSentMessage();
+                        if (paymentSentMessage == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
+                        if (StringUtils.equals(trade.getPayoutTxHex(), paymentSentMessage.getPayoutTxHex())) { // unsigned
                             log.info("{} {} verifying, signing, and publishing seller's payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
                         } else {

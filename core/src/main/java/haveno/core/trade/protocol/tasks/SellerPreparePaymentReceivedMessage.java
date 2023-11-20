@@ -39,7 +39,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             trade.checkDaemonConnection();
 
             // handle first time preparation
-            if (processModel.getPaymentReceivedMessage() == null) {
+            if (trade.getArbitrator().getPaymentReceivedMessage() == null) {
 
                 // import multisig hex
                 trade.importMultisigHex();
@@ -56,11 +56,11 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 } else {
                     createUnsignedPayoutTx();
                 }
-            } else if (processModel.getPaymentReceivedMessage().getSignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
+            } else if (trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
 
                 // republish payout tx from previous message
                 log.info("Seller re-verifying and publishing payout tx for trade {}", trade.getId());
-                trade.verifyPayoutTx(processModel.getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
+                trade.verifyPayoutTx(trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
             }
 
             processModel.getTradeManager().requestPersistence();

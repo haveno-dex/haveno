@@ -18,7 +18,6 @@
 package haveno.core.trade.protocol;
 
 import com.google.protobuf.ByteString;
-import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -34,12 +33,9 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
-import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.messages.PaymentReceivedMessage;
-import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
@@ -139,18 +135,6 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private String multisigAddress;
-    @Nullable
-    @Setter
-    @Getter
-    private PaymentSentMessage paymentSentMessage;
-    @Nullable
-    @Setter
-    @Getter
-    private PaymentReceivedMessage paymentReceivedMessage;
-    @Nullable
-    @Setter
-    @Getter
-    private DisputeClosedMessage disputeClosedMessage;
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
@@ -204,9 +188,6 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
-        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
-        Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
-        Optional.ofNullable(disputeClosedMessage).ifPresent(e -> builder.setDisputeClosedMessage(disputeClosedMessage.toProtoNetworkEnvelope().getDisputeClosedMessage()));
         return builder.build();
     }
 
@@ -232,9 +213,6 @@ public class ProcessModel implements Model, PersistablePayload {
         MessageState paymentSentMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateString);
         processModel.setPaymentSentMessageState(paymentSentMessageState);
 
-        processModel.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
-        processModel.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
-        processModel.setDisputeClosedMessage(proto.hasDisputeClosedMessage() ? DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), Version.getP2PMessageVersion()) : null);
         return processModel;
     }
 

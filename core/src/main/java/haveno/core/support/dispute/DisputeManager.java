@@ -365,7 +365,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         UUID.randomUUID().toString(),
                         getSupportType(),
                         updatedMultisigHex,
-                        trade.getProcessModel().getPaymentSentMessage());
+                        trade.getArbitrator().getPaymentSentMessage());
                 log.info("Send {} to peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
                         "chatMessage.uid={}",
                         disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
@@ -647,7 +647,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 UUID.randomUUID().toString(),
                 getSupportType(),
                 updatedMultisigHex,
-                trade.getProcessModel().getPaymentSentMessage());
+                trade.getArbitrator().getPaymentSentMessage());
 
         log.info("Send {} to peer {}. tradeId={}, peerOpenedDisputeMessage.uid={}, chatMessage.uid={}",
                 peerOpenedDisputeMessage.getClass().getSimpleName(), peersNodeAddress,

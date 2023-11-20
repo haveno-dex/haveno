@@ -45,9 +45,9 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
         try {
             runInterceptHook();
 
-            // skip if already created
-            if (processModel.getPaymentSentMessage() != null) {
-              log.warn("Skipping preparation of payment sent message since it's already created for {} {}", trade.getClass().getSimpleName(), trade.getId());
+            // skip if payout tx already created
+            if (trade.getPayoutTxHex() != null) {
+              log.warn("Skipping preparation of payment sent message because payout tx is already created for {} {}", trade.getClass().getSimpleName(), trade.getId());
               complete();
               return;
             }

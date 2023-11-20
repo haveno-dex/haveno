@@ -27,6 +27,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
@@ -37,16 +38,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
-    PaymentReceivedMessage message = null;
     SignedWitness signedWitness = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
+    
+    protected abstract TradePeer getReceiver();
+    
+    @Override
+    protected NodeAddress getReceiverNodeAddress() {
+        return getReceiver().getNodeAddress();
+    }
 
-    protected abstract NodeAddress getReceiverNodeAddress();
-
-    protected abstract PubKeyRing getReceiverPubKeyRing();
+    @Override
+    protected PubKeyRing getReceiverPubKeyRing() {
+        return getReceiver().getPubKeyRing();
+    }
 
     @Override
     protected void run() {
@@ -61,7 +69,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
-        if (message == null) {
+        if (getReceiver().getPaymentReceivedMessage() == null) {
 
             // sign account witness
             AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
@@ -75,7 +83,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, getReceiverNodeAddress());
-            message = new PaymentReceivedMessage(
+            PaymentReceivedMessage message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
                     deterministicId,
@@ -85,7 +93,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                     trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
                     trade.getTradePeer().getAccountAgeWitness(),
                     signedWitness,
-                    processModel.getPaymentSentMessage()
+                    trade.getBuyer().getPaymentSentMessage()
             );
 
             // sign message
@@ -93,13 +101,13 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                 String messageAsJson = JsonUtil.objectToJson(message);
                 byte[] sig = Sig.sign(processModel.getP2PService().getKeyRing().getSignatureKeyPair().getPrivate(), messageAsJson.getBytes(Charsets.UTF_8));
                 message.setSellerSignature(sig);
-                processModel.setPaymentReceivedMessage(message);
+                getReceiver().setPaymentReceivedMessage(message);
                 trade.requestPersistence();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
-        return message;
+        return getReceiver().getPaymentReceivedMessage();
     }
 
     @Override
