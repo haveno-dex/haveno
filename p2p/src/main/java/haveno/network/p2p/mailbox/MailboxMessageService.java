@@ -104,6 +104,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class MailboxMessageService implements HashMapChangedListener, PersistedDataHost {
     private static final long REPUBLISH_DELAY_SEC = TimeUnit.MINUTES.toSeconds(2);
+    private static final long MAX_SERIALIZED_SIZE = 50000;
 
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
@@ -180,7 +181,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                                 // persisted data the messages, they would add those again and distribute then later at requests to peers.
                                 // Those outdated messages would then stay in the network until TTL triggers removal.
                                 // By not applying large messages we reduce the impact of such cases at costs of extra loading costs if the message is still alive.
-                                if (serializedSize < 20000) {
+                                if (serializedSize < MAX_SERIALIZED_SIZE) {
                                     mailboxItemsByUid.put(mailboxItem.getUid(), mailboxItem);
                                     mailboxMessageList.add(mailboxItem);
                                     totalSize.getAndAdd(serializedSize);
