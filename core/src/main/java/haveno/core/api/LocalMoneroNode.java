@@ -23,6 +23,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.MoneroNodeSettings;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroConnectionManager;
 import monero.common.MoneroUtils;
 import monero.daemon.MoneroDaemonRpc;
 import javax.inject.Inject;
@@ -39,11 +40,16 @@ import java.util.List;
 @Singleton
 public class LocalMoneroNode {
 
+    // constants
+    public static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period for local node
     public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
     public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
     private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
 
+    // instance fields
+    private MoneroDaemonRpc daemon;
+    private MoneroConnectionManager connectionManager;
     private final Config config;
     private final Preferences preferences;
     private final List<LocalMoneroNodeListener> listeners = new ArrayList<>();
@@ -57,8 +63,7 @@ public class LocalMoneroNode {
         if (!Config.baseCurrencyNetwork().isMainnet()) MONEROD_ARGS.add("--" + Config.baseCurrencyNetwork().getNetwork().toLowerCase());
     }
 
-    // client to the local Monero node
-    private MoneroDaemonRpc daemon;
+    // default rpc ports
     private static Integer rpcPort;
     static {
         if (Config.baseCurrencyNetwork().isMainnet()) rpcPort = 18081;
@@ -72,6 +77,15 @@ public class LocalMoneroNode {
         this.config = config;
         this.preferences = preferences;
         this.daemon = new MoneroDaemonRpc("http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort);
+        
+        // initialize connection manager to listen to local connection
+        this.connectionManager = new MoneroConnectionManager().setConnection(daemon.getRpcConnection());
+        this.connectionManager.setTimeout(REFRESH_PERIOD_LOCAL_MS);
+        this.connectionManager.checkConnection();
+        this.connectionManager.addListener((connection) -> {
+            for (var listener : listeners) listener.onConnectionChanged(connection); // notify of connection changes
+        });
+        this.connectionManager.startPolling(REFRESH_PERIOD_LOCAL_MS);
     }
 
     /**
@@ -106,10 +120,6 @@ public class LocalMoneroNode {
         return daemon;
     }
 
-    private boolean checkConnection() {
-        return daemon.getRpcConnection().checkConnection(5000);
-    }
-
     public boolean equalsUri(String uri) {
         return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == rpcPort;
     }
@@ -119,7 +129,7 @@ public class LocalMoneroNode {
      */
     public boolean isDetected() {
         checkConnection();
-        return daemon.getRpcConnection().isOnline();
+        return Boolean.TRUE.equals(connectionManager.getConnection().isOnline());
     }
 
     /**
@@ -127,7 +137,11 @@ public class LocalMoneroNode {
      */
     public boolean isConnected() {
         checkConnection();
-        return daemon.getRpcConnection().isConnected();
+        return Boolean.TRUE.equals(connectionManager.isConnected());
+    }
+
+    private void checkConnection() {
+        connectionManager.checkConnection();
     }
 
     public MoneroNodeSettings getMoneroNodeSettings() {
