@@ -44,16 +44,13 @@ import java.util.stream.Collectors;
 public final class CoreMoneroConnectionsService {
 
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
-    private static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period when connected to local node
     private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
     private static final long MIN_ERROR_LOG_PERIOD_MS = 300000; // minimum period between logging errors fetching daemon info
     private static Long lastErrorTimestamp;
 
-
-
     private final Object lock = new Object();
-    private final Object listenersLock = new Object();
+    private final Object listenerLock = new Object();
     private final Config config;
     private final CoreContext coreContext;
     private final Preferences preferences;
@@ -120,7 +117,7 @@ public final class CoreMoneroConnectionsService {
     public void onShutDownStarted() {
         log.info("{}.onShutDownStarted()", getClass().getSimpleName());
         isShutDownStarted = true;
-        synchronized (this) {
+        synchronized (lock) {
             // ensures request not in progress
         }
     }
@@ -147,7 +144,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     public void addConnectionListener(MoneroConnectionManagerListener listener) {
-        synchronized (listenersLock) {
+        synchronized (listenerLock) {
             listeners.add(listener);
         }
     }
@@ -319,10 +316,10 @@ public final class CoreMoneroConnectionsService {
 
     private long getDefaultRefreshPeriodMs() {
         MoneroRpcConnection connection = getConnection();
-        if (connection == null) return REFRESH_PERIOD_LOCAL_MS;
+        if (connection == null) return LocalMoneroNode.REFRESH_PERIOD_LOCAL_MS;
         if (isConnectionLocal(connection)) {
             if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
-            else return REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
+            else return LocalMoneroNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
         } else if (useProxy(connection)) {
             return REFRESH_PERIOD_ONION_MS;
         } else {
@@ -375,16 +372,23 @@ public final class CoreMoneroConnectionsService {
                 nodeService.addListener(new LocalMoneroNodeListener() {
                     @Override
                     public void onNodeStarted(MoneroDaemonRpc daemon) {
-                        log.info(getClass() + ".onNodeStarted() called");
-                        daemon.getRpcConnection().checkConnection(connectionManager.getTimeout());
-                        setConnection(daemon.getRpcConnection());
-                        checkConnection();
+                        log.info("Local monero node started");
                     }
 
                     @Override
                     public void onNodeStopped() {
-                        log.info(getClass() + ".onNodeStopped() called");
-                        checkConnection();
+                        log.info("Local monero node stopped");
+                    }
+                    
+                    @Override
+                    public void onConnectionChanged(MoneroRpcConnection connection) {
+                        log.info("Local monerod connection changed: " + connection);
+                        if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen()) return;
+                        if (nodeService.isConnected()) {
+                            setConnection(connection.getUri()); // switch to local node if connected
+                        } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
+                            setConnection(getBestAvailableConnection()); // switch to best available if disconnected from local node
+                        }
                     }
                 });
             }
@@ -514,7 +518,7 @@ public final class CoreMoneroConnectionsService {
         updatePolling();
 
         // notify listeners in parallel
-        synchronized (listenersLock) {
+        synchronized (listenerLock) {
             for (MoneroConnectionManagerListener listener : listeners) {
                 new Thread(() -> listener.onConnectionChanged(currentConnection)).start();
             }
