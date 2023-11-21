@@ -39,7 +39,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroDaemonInfo;
 
 import org.bitcoinj.core.RejectMessage;
 import org.bitcoinj.core.VersionMessage;
@@ -115,8 +114,7 @@ public class WalletAppSetup {
                     if (exception == null && errorMsg == null) {
                         double percentage = (double) downloadPercentage;
                         xmrSyncProgress.set(percentage);
-                        MoneroDaemonInfo lastInfo = connectionService.getLastInfo();
-                        Long bestChainHeight = lastInfo == null ? null : lastInfo.getHeight();
+                        Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
                                 String.valueOf(bestChainHeight) :
                                 "";

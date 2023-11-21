@@ -558,7 +558,7 @@ public final class CoreMoneroConnectionsService {
                 log.debug("Polling daemon info");
                 if (daemon == null) throw new RuntimeException("No daemon connection");
                 lastInfo = daemon.getInfo();
-                chainHeight.set(lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight());
+                chainHeight.set(lastInfo.getHeight());
 
                 // set peer connections
                 // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
