@@ -227,6 +227,29 @@ user2-daemon-local:
 		--walletRpcBindPort=38092 \
 		--passwordRequired=false
 
+user3-desktop-local:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_LOCAL \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=7778 \
+		--appName=haveno-XMR_LOCAL_user3 \
+		--apiPassword=apitest \
+		--apiPort=10002 \
+		--walletRpcBindPort=38093
+
+user3-daemon-local:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_LOCAL \
+		--useLocalhostForP2P=true \
+		--useDevPrivilegeKeys=true \
+		--nodePort=7778 \
+		--appName=haveno-XMR_LOCAL_user3 \
+		--apiPassword=apitest \
+		--apiPort=10002 \
+		--walletRpcBindPort=38093 \
+		--passwordRequired=false
+
 # Stagenet network
 
 monerod-stagenet:
