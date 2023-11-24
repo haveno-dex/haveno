@@ -57,7 +57,7 @@ public interface Tradable extends PersistablePayload {
     }
 
     default BigInteger getTotalTxFee() {
-        return asTradeModel().map(Trade::getTotalTxFee).get();
+        return asTradeModel().map(Trade::getTotalTxFee).orElse(BigInteger.ZERO);
     }
 
     default Optional<BigInteger> getOptionalTakerFee() {
