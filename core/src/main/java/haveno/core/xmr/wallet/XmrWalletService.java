@@ -21,6 +21,7 @@ import haveno.core.user.Preferences;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.model.XmrAddressEntryList;
+import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import monero.common.MoneroError;
@@ -69,11 +70,15 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.SimpleLongProperty;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -104,6 +109,8 @@ public class XmrWalletService {
     private final CoreMoneroConnectionsService connectionsService;
     private final XmrAddressEntryList xmrAddressEntryList;
     private final WalletsSetup walletsSetup;
+    private final DownloadListener downloadListener = new DownloadListener();
+    private final LongProperty walletHeight = new SimpleLongProperty(0);
 
     private final File walletDir;
     private final File xmrWalletFile;
@@ -196,7 +203,7 @@ public class XmrWalletService {
         saveWallet(getWallet(), backup);
     }
 
-    public boolean isWalletReady() {
+    public boolean isWalletAvailable() {
         try {
             return getWallet() != null;
         } catch (Exception e) {
@@ -206,6 +213,22 @@ public class XmrWalletService {
 
     public boolean isWalletEncrypted() {
         return accountService.getPassword() != null;
+    }
+
+    public boolean isWalletSynced() {
+        return downloadPercentageProperty().get() == 1d;
+    }
+    
+    public ReadOnlyDoubleProperty downloadPercentageProperty() {
+        return downloadListener.percentageProperty();
+    }
+
+    private void doneDownload() {
+        downloadListener.doneDownload();
+    }
+    
+    public LongProperty walletHeightProperty() {
+        return walletHeight;
     }
 
     public MoneroDaemonRpc getDaemon() {
@@ -651,12 +674,19 @@ public class XmrWalletService {
 
     private void initialize() {
 
-        // set and listen to daemon connection
-        connectionsService.addConnectionListener(newConnection -> {
-            onConnectionChanged(newConnection);
-        });
+        // listen for connection changes
+        connectionsService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
 
-        // initialize main wallet if connected or previously created
+        // wait for monerod to sync
+        if (connectionsService.downloadPercentageProperty().get() != 1) {
+            CountDownLatch latch = new CountDownLatch(1);
+            connectionsService.downloadPercentageProperty().addListener((obs, oldVal, newVal) -> {
+                if (connectionsService.downloadPercentageProperty().get() == 1) latch.countDown();
+            });
+            HavenoUtils.awaitLatch(latch);
+        }
+
+        // initialize main wallet
         maybeInitMainWallet(true);
     }
 
@@ -700,8 +730,8 @@ public class XmrWalletService {
                         // reapply connection after wallet synced
                         onConnectionChanged(connectionsService.getConnection());
 
-                        // TODO: using this to signify both daemon and wallet synced, use separate sync handlers?
-                        connectionsService.doneDownload();
+                        // signal that main wallet is synced
+                        doneDownload();
         
                         // notify setup that main wallet is initialized
                         // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected
@@ -1242,6 +1272,7 @@ public class XmrWalletService {
             UserThread.execute(new Runnable() {
                 @Override
                 public void run() {
+                    walletHeight.set(height);
                     for (MoneroWalletListenerI listener : walletListeners) listener.onNewBlock(height);
                 }
             });

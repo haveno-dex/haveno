@@ -114,7 +114,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                           DisputeListService<T> disputeListService,
                           Config config,
                           PriceFeedService priceFeedService) {
-        super(p2PService, connectionService, notificationService, tradeManager);
+        super(p2PService, connectionService, xmrWalletService, notificationService, tradeManager);
 
         this.tradeWalletService = tradeWalletService;
         this.xmrWalletService = xmrWalletService;
@@ -254,6 +254,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         connectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
             if (connectionService.isDownloadComplete())
+                tryApplyMessages();
+        });
+
+        xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrWalletService.isWalletSynced())
                 tryApplyMessages();
         });
 

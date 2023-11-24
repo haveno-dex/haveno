@@ -86,7 +86,7 @@ public class Balances {
     }
 
     private void updateBalances() {
-        if (!xmrWalletService.isWalletReady()) return;
+        if (!xmrWalletService.isWalletAvailable()) return;
         try {
             updateAvailableBalance();
             updatePendingBalance();
@@ -94,7 +94,7 @@ public class Balances {
             updateReservedTradeBalance();
             updateReservedBalance();
         } catch (Exception e) {
-            if (xmrWalletService.isWalletReady()) throw e; // ignore exception if wallet isn't ready
+            if (xmrWalletService.isWalletAvailable()) throw e; // ignore exception if wallet isn't ready
         }
     }
 

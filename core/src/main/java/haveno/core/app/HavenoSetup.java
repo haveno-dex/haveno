@@ -438,7 +438,7 @@ public class HavenoSetup {
                 revolutAccountsUpdateHandler,
                 amazonGiftCardAccountsUpdateHandler);
 
-        if (walletsSetup.downloadPercentageProperty().get() == 1) { // TODO: update for XMR
+        if (xmrWalletService.downloadPercentageProperty().get() == 1) {
             checkForLockedUpFunds();
         }
 
