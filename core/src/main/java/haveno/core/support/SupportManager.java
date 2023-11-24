@@ -31,6 +31,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.protocol.TradeProtocol.MailboxMessageComparator;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
@@ -53,6 +54,7 @@ public abstract class SupportManager {
     protected final P2PService p2PService;
     protected final TradeManager tradeManager;
     protected final CoreMoneroConnectionsService connectionService;
+    protected final XmrWalletService xmrWalletService;
     protected final CoreNotificationService notificationService;
     protected final Map<String, Timer> delayMsgMap = new HashMap<>();
     private final Object lock = new Object();
@@ -68,10 +70,12 @@ public abstract class SupportManager {
 
     public SupportManager(P2PService p2PService,
                           CoreMoneroConnectionsService connectionService,
+                          XmrWalletService xmrWalletService,
                           CoreNotificationService notificationService,
                           TradeManager tradeManager) {
         this.p2PService = p2PService;
         this.connectionService = connectionService;
+        this.xmrWalletService = xmrWalletService;
         this.mailboxMessageService = p2PService.getMailboxMessageService();
         this.notificationService = notificationService;
         this.tradeManager = tradeManager;
@@ -333,7 +337,8 @@ public abstract class SupportManager {
         return allServicesInitialized &&
                 p2PService.isBootstrapped() &&
                 connectionService.isDownloadComplete() &&
-                connectionService.hasSufficientPeersForBroadcast();
+                connectionService.hasSufficientPeersForBroadcast() &&
+                xmrWalletService.isWalletSynced();
     }
 
 

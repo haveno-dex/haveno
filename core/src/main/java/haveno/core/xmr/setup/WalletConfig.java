@@ -32,7 +32,6 @@ import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.crypto.KeyCrypter;
 import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.script.Script;
@@ -92,7 +91,6 @@ public class WalletConfig extends AbstractIdleService {
     protected volatile File vBtcWalletFile;
 
     protected PeerAddress[] peerAddresses;
-    protected DownloadListener downloadListener;
     protected InputStream checkpoints;
     protected String userAgent, version;
     @Nullable
@@ -167,15 +165,6 @@ public class WalletConfig extends AbstractIdleService {
     public WalletConfig connectToLocalHost() {
         final InetAddress localHost = InetAddress.getLoopbackAddress();
         return setPeerNodes(new PeerAddress(params, localHost, params.getPort()));
-    }
-
-    /**
-     * If you want to learn about the sync process, you can provide a listener here. For instance, a
-     * {@link DownloadProgressTracker} is a good choice.
-     */
-    public WalletConfig setDownloadListener(DownloadListener listener) {
-        this.downloadListener = listener;
-        return this;
     }
 
     /**

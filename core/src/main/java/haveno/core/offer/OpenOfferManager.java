@@ -120,8 +120,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final KeyRing keyRing;
     private final User user;
     private final P2PService p2PService;
+    @Getter
     private final CoreMoneroConnectionsService connectionsService;
     private final BtcWalletService btcWalletService;
+    @Getter
     private final XmrWalletService xmrWalletService;
     private final TradeWalletService tradeWalletService;
     private final OfferBookService offerBookService;

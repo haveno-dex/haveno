@@ -28,6 +28,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -53,10 +54,11 @@ public class TraderChatManager extends SupportManager {
     @Inject
     public TraderChatManager(P2PService p2PService,
                              CoreMoneroConnectionsService connectionService,
+                             XmrWalletService xmrWalletService,
                              CoreNotificationService notificationService,
                              TradeManager tradeManager,
                              PubKeyRingProvider pubKeyRingProvider) {
-        super(p2PService, connectionService, notificationService, tradeManager);
+        super(p2PService, connectionService, xmrWalletService, notificationService, tradeManager);
         this.pubKeyRingProvider = pubKeyRingProvider;
     }
 

@@ -31,6 +31,7 @@ import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.exceptions.RejectedTxException;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -39,9 +40,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
+import monero.common.MoneroUtils;
 import org.bitcoinj.core.RejectMessage;
-import org.bitcoinj.core.VersionMessage;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.ChainFileLockedException;
 import org.fxmisc.easybind.EasyBind;
@@ -61,6 +61,7 @@ public class WalletAppSetup {
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final CoreMoneroConnectionsService connectionService;
+    private final XmrWalletService xmrWalletService;
     private final Config config;
     private final Preferences preferences;
 
@@ -85,12 +86,14 @@ public class WalletAppSetup {
                           WalletsManager walletsManager,
                           WalletsSetup walletsSetup,
                           CoreMoneroConnectionsService connectionService,
+                          XmrWalletService xmrWalletService,
                           Config config,
                           Preferences preferences) {
         this.coreContext = coreContext;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
         this.connectionService = connectionService;
+        this.xmrWalletService = xmrWalletService;
         this.config = config;
         this.preferences = preferences;
         this.useTorForXmr.set(preferences.getUseTorForXmr());
@@ -101,18 +104,21 @@ public class WalletAppSetup {
               @Nullable Runnable showPopupIfInvalidBtcConfigHandler,
               Runnable downloadCompleteHandler,
               Runnable walletInitializedHandler) {
-        log.info("Initialize WalletAppSetup with BitcoinJ version {} and hash of BitcoinJ commit {}",
-                VersionMessage.BITCOINJ_VERSION, "2a80db4");
+        log.info("Initialize WalletAppSetup with monero-java version {}", MoneroUtils.getVersion());
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
-        xmrInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(), // TODO (woodser): update to XMR
+        xmrInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(),
                 connectionService.chainHeightProperty(),
+                xmrWalletService.downloadPercentageProperty(),
+                xmrWalletService.walletHeightProperty(),
                 walletServiceException,
                 getWalletServiceErrorMsg(),
-                (downloadPercentage, chainHeight, exception, errorMsg) -> {
+                (chainDownloadPercentage, chainHeight, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
                     String result;
                     if (exception == null && errorMsg == null) {
-                        double percentage = (double) downloadPercentage;
+                        
+                        // TODO: update for daemon and wallet sync progress
+                        double percentage = (double) chainDownloadPercentage;
                         xmrSyncProgress.set(percentage);
                         Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?

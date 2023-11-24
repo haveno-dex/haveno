@@ -19,6 +19,7 @@ package haveno.core.app;
 
 import haveno.core.api.CoreMoneroConnectionsService;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.BooleanProperty;
@@ -47,11 +48,13 @@ public class AppStartupState {
     private final BooleanProperty applicationFullyInitialized = new SimpleBooleanProperty();
     private final BooleanProperty updatedDataReceived = new SimpleBooleanProperty();
     private final BooleanProperty isBlockDownloadComplete = new SimpleBooleanProperty();
+    private final BooleanProperty isWalletSynced = new SimpleBooleanProperty();
     private final BooleanProperty hasSufficientPeersForBroadcast = new SimpleBooleanProperty();
 
     @Inject
     public AppStartupState(CoreNotificationService notificationService,
                            CoreMoneroConnectionsService connectionsService,
+                           XmrWalletService xmrWalletService,
                            P2PService p2PService) {
 
         p2PService.addP2PServiceListener(new BootstrapListener() {
@@ -66,6 +69,11 @@ public class AppStartupState {
                 isBlockDownloadComplete.set(true);
         });
 
+        xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrWalletService.isWalletSynced())
+                isWalletSynced.set(true);
+        });
+
         connectionsService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
             if (connectionsService.hasSufficientPeersForBroadcast())
                 hasSufficientPeersForBroadcast.set(true);
@@ -73,14 +81,15 @@ public class AppStartupState {
 
         p2pNetworkAndWalletInitialized = EasyBind.combine(updatedDataReceived,
                 isBlockDownloadComplete,
+                isWalletSynced,
                 hasSufficientPeersForBroadcast, // TODO: consider sufficient number of peers?
                 allDomainServicesInitialized,
-                (a, b, c, d) -> {
-                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d), updatedDataReceived.get(), isBlockDownloadComplete.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
-                    if (a && b) {
+                (a, b, c, d, e) -> {
+                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && isWalletSynced={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d && e), updatedDataReceived.get(), isBlockDownloadComplete.get(), isWalletSynced.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
+                    if (a && b && c) {
                         walletAndNetworkReady.set(true);
                     }
-                    return a && d; // app fully initialized before daemon connection and wallet by default // TODO: rename variable
+                    return a && e; // app fully initialized before daemon connection and wallet by default
                 });
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
@@ -134,6 +143,10 @@ public class AppStartupState {
 
     public boolean isBlockDownloadComplete() {
         return isBlockDownloadComplete.get();
+    }
+
+    public boolean isWalletSynced() {
+        return isWalletSynced.get();
     }
 
     public ReadOnlyBooleanProperty isBlockDownloadCompleteProperty() {

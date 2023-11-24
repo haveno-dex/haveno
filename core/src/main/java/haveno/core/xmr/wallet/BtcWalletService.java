@@ -92,6 +92,10 @@ public class BtcWalletService extends WalletService {
     // Overridden Methods
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public boolean isWalletSyncedWithinTolerance() {
+        throw new RuntimeException("Not implemented");
+    }
+
     @Override
     void decryptWallet(@NotNull KeyParameter key) {
         super.decryptWallet(key);

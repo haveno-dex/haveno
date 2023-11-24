@@ -2,6 +2,7 @@ package haveno.core.api;
 
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
@@ -69,6 +70,7 @@ public final class CoreMoneroConnectionsService {
     private MoneroDaemonRpc daemon;
     @Getter
     private MoneroDaemonInfo lastInfo;
+    private Long syncStartHeight = null;
     private TaskLooper daemonPollLooper;
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
@@ -299,16 +301,11 @@ public final class CoreMoneroConnectionsService {
         return downloadPercentageProperty().get() == 1d;
     }
 
-    /**
-     * Signals that both the daemon and wallet have synced.
-     *
-     * TODO: separate daemon and wallet download/done listeners
-     */
-    public void doneDownload() {
+    // ------------------------------- HELPERS --------------------------------
+
+    private void doneDownload() {
         downloadListener.doneDownload();
     }
-
-    // ------------------------------- HELPERS --------------------------------
 
     private boolean isConnectionLocal(MoneroRpcConnection connection) {
         return connection != null && HavenoUtils.isLocalHost(connection.getUri());
@@ -555,10 +552,25 @@ public final class CoreMoneroConnectionsService {
         synchronized (lock) {
             if (isShutDownStarted) return;
             try {
+
+                // poll daemon
                 log.debug("Polling daemon info");
                 if (daemon == null) throw new RuntimeException("No daemon connection");
                 lastInfo = daemon.getInfo();
+
+                // set chain height
                 chainHeight.set(lastInfo.getHeight());
+
+                // update sync progress
+                boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
+                if (lastInfo.isSynchronized() || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because tests cannot sync 3rd local node, see "Can manage Monero daemon connections"
+                else if (lastInfo.isBusySyncing()) {
+                    long targetHeight = lastInfo.getTargetHeight();
+                    long blocksLeft = targetHeight - lastInfo.getHeight();
+                    if (syncStartHeight == null) syncStartHeight = lastInfo.getHeight();
+                    double percent = ((double) Math.max(1, lastInfo.getHeight() - syncStartHeight) / (double) (targetHeight - syncStartHeight)) * 100d; // grant at least 1 block to show progress
+                    downloadListener.progress(percent, blocksLeft, null);
+                }
 
                 // set peer connections
                 // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections

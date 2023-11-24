@@ -97,7 +97,7 @@ public class WalletsManager {
     }
 
     public boolean areWalletsAvailable() {
-        return xmrWalletService.isWalletReady();
+        return xmrWalletService.isWalletAvailable();
     }
 
     public KeyCrypterScrypt getKeyCrypterScrypt() {

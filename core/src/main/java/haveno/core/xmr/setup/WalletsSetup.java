@@ -42,13 +42,7 @@ import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.network.Socks5MultiDiscovery;
 import haveno.network.Socks5ProxyProvider;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleLongProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -107,9 +101,6 @@ public class WalletsSetup {
     private final NetworkParameters params;
     private final File walletDir;
     private final int socks5DiscoverMode;
-    private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
-    private final LongProperty chainHeight = new SimpleLongProperty(0);
-    private final DownloadListener downloadListener = new DownloadListener();
     private final List<Runnable> setupTaskHandlers = new ArrayList<>();
     private final List<Runnable> setupCompletedHandlers = new ArrayList<>();
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
@@ -172,12 +163,12 @@ public class WalletsSetup {
         backupWallets();
 
         final Socks5Proxy socks5Proxy = socks5ProxyProvider.getSocks5Proxy();
-        log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
+        log.info("Using Socks5Proxy: " + socks5Proxy);
 
         walletConfig = new WalletConfig(params, walletDir, "haveno") {
+
             @Override
             protected void onSetupCompleted() {
-                //We are here in the btcj thread Thread[ STARTING,5,main]
                 super.onSetupCompleted();
 
                 // run external startup handlers
@@ -243,8 +234,6 @@ public class WalletsSetup {
                 return;
             }
         }
-
-        walletConfig.setDownloadListener(downloadListener);
 
         // If seed is non-null it means we are restoring from backup.
         if (seed != null) {
@@ -430,26 +419,6 @@ public class WalletsSetup {
         return walletConfig;
     }
 
-    public ReadOnlyIntegerProperty numPeersProperty() {
-        return numPeers;
-    }
-
-    public LongProperty chainHeightProperty() {
-        return chainHeight;
-    }
-
-    public ReadOnlyDoubleProperty downloadPercentageProperty() {
-        return downloadListener.percentageProperty();
-    }
-
-    public boolean isDownloadComplete() {
-        return downloadPercentageProperty().get() == 1d;
-    }
-
-    public boolean isChainHeightSyncedWithinTolerance() {
-        throw new RuntimeException("WalletsSetup.isChainHeightSyncedWithinTolerance() not implemented for BTC");
-    }
-
     public Set<Address> getAddressesByContext(@SuppressWarnings("SameParameterValue") AddressEntry.Context context) {
         return addressEntryList.getAddressEntriesAsListImmutable().stream()
                 .filter(addressEntry -> addressEntry.getContext() == context)
@@ -461,10 +430,6 @@ public class WalletsSetup {
         return addressEntries.stream()
                 .map(AddressEntry::getAddress)
                 .collect(Collectors.toSet());
-    }
-
-    public boolean hasSufficientPeersForBroadcast() {
-        return numPeers.get() >= getMinBroadcastConnections();
     }
 
     public int getMinBroadcastConnections() {
