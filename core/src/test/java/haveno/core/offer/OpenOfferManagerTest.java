@@ -7,7 +7,7 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreContext;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.trade.TradableList;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
@@ -53,7 +53,7 @@ public class OpenOfferManagerTest {
     public void testStartEditOfferForActiveOffer() {
         P2PService p2PService = mock(P2PService.class);
         OfferBookService offerBookService = mock(OfferBookService.class);
-        CoreMoneroConnectionsService connectionsService = mock(CoreMoneroConnectionsService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
 
         when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
 
@@ -61,7 +61,7 @@ public class OpenOfferManagerTest {
                 null,
                 null,
                 p2PService,
-                connectionsService,
+                xmrConnectionService,
                 null,
                 null,
                 null,
@@ -102,14 +102,14 @@ public class OpenOfferManagerTest {
     public void testStartEditOfferForDeactivatedOffer() {
         P2PService p2PService = mock(P2PService.class);
         OfferBookService offerBookService = mock(OfferBookService.class);
-        CoreMoneroConnectionsService connectionsService = mock(CoreMoneroConnectionsService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
         when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
 
         final OpenOfferManager manager = new OpenOfferManager(coreContext,
                 null,
                 null,
                 p2PService,
-                connectionsService,
+                xmrConnectionService,
                 null,
                 null,
                 null,
@@ -142,7 +142,7 @@ public class OpenOfferManagerTest {
     public void testStartEditOfferForOfferThatIsCurrentlyEdited() {
         P2PService p2PService = mock(P2PService.class);
         OfferBookService offerBookService = mock(OfferBookService.class);
-        CoreMoneroConnectionsService connectionsService = mock(CoreMoneroConnectionsService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
 
         when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
 
@@ -151,7 +151,7 @@ public class OpenOfferManagerTest {
                 null,
                 null,
                 p2PService,
-                connectionsService,
+                xmrConnectionService,
                 null,
                 null,
                 null,

@@ -28,7 +28,7 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
@@ -758,9 +758,9 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void checkDaemonConnection() {
-        CoreMoneroConnectionsService connectionService = xmrWalletService.getConnectionsService();
-        connectionService.checkConnection();
-        connectionService.verifyConnection();
+        XmrConnectionService xmrConnectionService = xmrWalletService.getConnectionsService();
+        xmrConnectionService.checkConnection();
+        xmrConnectionService.verifyConnection();
         if (!getWallet().isConnectedToDaemon()) throw new RuntimeException("Trade wallet is not connected to a Monero node");
     }
 

@@ -29,7 +29,7 @@ import haveno.common.util.Tuple2;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.alert.PrivateNotificationManager;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
@@ -103,7 +103,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener {
     private final HavenoSetup havenoSetup;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     private final User user;
     private final BalancePresentation balancePresentation;
     private final TradePresentation tradePresentation;
@@ -147,7 +147,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     @Inject
     public MainViewModel(HavenoSetup havenoSetup,
-                         CoreMoneroConnectionsService connectionService,
+                         XmrConnectionService xmrConnectionService,
                          XmrWalletService xmrWalletService,
                          User user,
                          BalancePresentation balancePresentation,
@@ -171,7 +171,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          CorruptedStorageFileHandler corruptedStorageFileHandler,
                          Navigation navigation) {
         this.havenoSetup = havenoSetup;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.user = user;
         this.balancePresentation = balancePresentation;
         this.tradePresentation = tradePresentation;
@@ -359,7 +359,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setDisplaySecurityRecommendationHandler(key -> {});
         havenoSetup.setDisplayLocalhostHandler(key -> {
             if (!DevEnv.isDevMode()) {
-                Popup popup = new Popup().backgroundInfo(Res.get("popup.moneroLocalhostNode.msg"))
+                Popup popup = new Popup().backgroundInfo(Res.get("popup.xmrLocalNode.msg"))
                         .dontShowAgainId(key);
                 popup.setDisplayOrderPriority(5);
                 popupQueue.add(popup);

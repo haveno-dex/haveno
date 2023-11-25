@@ -23,13 +23,13 @@ import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.util.JsonUtil;
-import haveno.core.xmr.wallet.MoneroKeyImageListener;
-import haveno.core.xmr.wallet.MoneroKeyImagePoller;
+import haveno.core.xmr.wallet.XmrKeyImageListener;
+import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
@@ -63,10 +63,10 @@ public class OfferBookService {
     private final List<OfferBookChangedListener> offerBookChangedListeners = new LinkedList<>();
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
-    private final CoreMoneroConnectionsService connectionsService;
+    private final XmrConnectionService xmrConnectionService;
 
     // poll key images of offers
-    private MoneroKeyImagePoller keyImagePoller;
+    private XmrKeyImagePoller keyImagePoller;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
@@ -84,21 +84,21 @@ public class OfferBookService {
     public OfferBookService(P2PService p2PService,
                             PriceFeedService priceFeedService,
                             FilterManager filterManager,
-                            CoreMoneroConnectionsService connectionsService,
+                            XmrConnectionService xmrConnectionService,
                             @Named(Config.STORAGE_DIR) File storageDir,
                             @Named(Config.DUMP_STATISTICS) boolean dumpStatistics) {
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
-        this.connectionsService = connectionsService;
+        this.xmrConnectionService = xmrConnectionService;
         jsonFileManager = new JsonFileManager(storageDir);
 
         // listen for connection changes to monerod
-        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
+        xmrConnectionService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
-                keyImagePoller.setDaemon(connectionsService.getDaemon());
+                keyImagePoller.setDaemon(xmrConnectionService.getDaemon());
                 keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
             }
         });
@@ -268,10 +268,10 @@ public class OfferBookService {
 
     private synchronized void maybeInitializeKeyImagePoller() {
         if (keyImagePoller != null) return;
-        keyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
+        keyImagePoller = new XmrKeyImagePoller(xmrConnectionService.getDaemon(), getKeyImageRefreshPeriodMs());
 
         // handle when key images spent
-        keyImagePoller.addListener(new MoneroKeyImageListener() {
+        keyImagePoller.addListener(new XmrKeyImageListener() {
             @Override
             public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
                 for (String keyImage : spentStatuses.keySet()) {
@@ -289,7 +289,7 @@ public class OfferBookService {
     }
 
     private long getKeyImageRefreshPeriodMs() {
-        return connectionsService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+        return xmrConnectionService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
     private void updateAffectedOffers(String keyImage) {

@@ -22,7 +22,7 @@ import com.natpryce.makeiteasy.Property;
 import com.natpryce.makeiteasy.SameValueDonor;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.user.Preferences;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
@@ -32,7 +32,7 @@ public class PreferenceMakers {
 
     public static final Property<Preferences, PersistenceManager> storage = new Property<>();
     public static final Property<Preferences, Config> config = new Property<>();
-    public static final Property<Preferences, LocalMoneroNode> localMoneroNode = new Property<>();
+    public static final Property<Preferences, XmrLocalNode> xmrLocalNode = new Property<>();
     public static final Property<Preferences, String> useTorFlagFromOptions = new Property<>();
     public static final Property<Preferences, String> referralID = new Property<>();
 

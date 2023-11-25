@@ -21,7 +21,7 @@ import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroConnectionManager;
 import monero.common.MoneroUtils;
@@ -38,7 +38,7 @@ import java.util.List;
  */
 @Slf4j
 @Singleton
-public class LocalMoneroNode {
+public class XmrLocalNode {
 
     // constants
     public static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period for local node
@@ -52,7 +52,7 @@ public class LocalMoneroNode {
     private MoneroConnectionManager connectionManager;
     private final Config config;
     private final Preferences preferences;
-    private final List<LocalMoneroNodeListener> listeners = new ArrayList<>();
+    private final List<XmrLocalNodeListener> listeners = new ArrayList<>();
 
     // required arguments
     private static final List<String> MONEROD_ARGS = new ArrayList<String>();
@@ -73,7 +73,7 @@ public class LocalMoneroNode {
     }
 
     @Inject
-    public LocalMoneroNode(Config config, Preferences preferences) {
+    public XmrLocalNode(Config config, Preferences preferences) {
         this.config = config;
         this.preferences = preferences;
         this.daemon = new MoneroDaemonRpc("http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort);
@@ -105,11 +105,11 @@ public class LocalMoneroNode {
         return config.ignoreLocalXmrNode;
     }
 
-    public void addListener(LocalMoneroNodeListener listener) {
+    public void addListener(XmrLocalNodeListener listener) {
         listeners.add(listener);
     }
 
-    public boolean removeListener(LocalMoneroNodeListener listener) {
+    public boolean removeListener(XmrLocalNodeListener listener) {
         return listeners.remove(listener);
     }
 
@@ -144,23 +144,23 @@ public class LocalMoneroNode {
         connectionManager.checkConnection();
     }
 
-    public MoneroNodeSettings getMoneroNodeSettings() {
-        return preferences.getMoneroNodeSettings();
+    public XmrNodeSettings getNodeSettings() {
+        return preferences.getXmrNodeSettings();
     }
 
     /**
      * Start a local Monero node from settings.
      */
     public void startMoneroNode() throws IOException {
-        var settings = preferences.getMoneroNodeSettings();
-        this.startMoneroNode(settings);
+        var settings = preferences.getXmrNodeSettings();
+        this.startNode(settings);
     }
 
     /**
      * Start local Monero node. Throws MoneroError if the node cannot be started.
      * Persist the settings to preferences if the node started successfully.
      */
-    public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
+    public void startNode(XmrNodeSettings settings) throws IOException {
         if (isDetected()) throw new IllegalStateException("Local Monero node already online");
 
         log.info("Starting local Monero node: " + settings);
@@ -184,15 +184,15 @@ public class LocalMoneroNode {
         }
 
         daemon = new MoneroDaemonRpc(args); // start daemon as process and re-assign client
-        preferences.setMoneroNodeSettings(settings);
+        preferences.setXmrNodeSettings(settings);
         for (var listener : listeners) listener.onNodeStarted(daemon);
     }
 
     /**
      * Stop the current local Monero node if we own its process.
-     * Does not remove the last MoneroNodeSettings.
+     * Does not remove the last XmrNodeSettings.
      */
-    public void stopMoneroNode() {
+    public void stopNode() {
         if (!isDetected()) throw new IllegalStateException("Local Monero node is not running");
         if (daemon.getProcess() == null || !daemon.getProcess().isAlive()) throw new IllegalStateException("Cannot stop local Monero node because we don't own its process"); // TODO (woodser): remove isAlive() check after monero-java 0.5.4 which nullifies internal process
         daemon.stopProcess();

@@ -19,7 +19,7 @@ package haveno.core.support.traderchat;
 
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportManager;
@@ -53,12 +53,12 @@ public class TraderChatManager extends SupportManager {
 
     @Inject
     public TraderChatManager(P2PService p2PService,
-                             CoreMoneroConnectionsService connectionService,
+                             XmrConnectionService xmrConnectionService,
                              XmrWalletService xmrWalletService,
                              CoreNotificationService notificationService,
                              TradeManager tradeManager,
                              PubKeyRingProvider pubKeyRingProvider) {
-        super(p2PService, connectionService, xmrWalletService, notificationService, tradeManager);
+        super(p2PService, xmrConnectionService, xmrWalletService, notificationService, tradeManager);
         this.pubKeyRingProvider = pubKeyRingProvider;
     }
 

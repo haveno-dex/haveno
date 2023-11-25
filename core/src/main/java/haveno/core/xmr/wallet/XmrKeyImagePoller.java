@@ -21,12 +21,12 @@ import java.util.Set;
  * TODO: move to monero-java?
  */
 @Slf4j
-public class MoneroKeyImagePoller {
+public class XmrKeyImagePoller {
 
     private MoneroDaemon daemon;
     private long refreshPeriodMs;
     private List<String> keyImages = new ArrayList<String>();
-    private Set<MoneroKeyImageListener> listeners = new HashSet<MoneroKeyImageListener>();
+    private Set<XmrKeyImageListener> listeners = new HashSet<XmrKeyImageListener>();
     private TaskLooper looper;
     private Map<String, MoneroKeyImageSpentStatus> lastStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
     private boolean isPolling = false;
@@ -37,7 +37,7 @@ public class MoneroKeyImagePoller {
      * @param refreshPeriodMs - refresh period in milliseconds
      * @param keyImages - key images to listen to
      */
-    public MoneroKeyImagePoller() {
+    public XmrKeyImagePoller() {
         looper = new TaskLooper(() -> poll());
     }
 
@@ -47,7 +47,7 @@ public class MoneroKeyImagePoller {
      * @param refreshPeriodMs - refresh period in milliseconds
      * @param keyImages - key images to listen to
      */
-    public MoneroKeyImagePoller(MoneroDaemon daemon, long refreshPeriodMs, String... keyImages) {
+    public XmrKeyImagePoller(MoneroDaemon daemon, long refreshPeriodMs, String... keyImages) {
         looper = new TaskLooper(() -> poll());
         setDaemon(daemon);
         setRefreshPeriodMs(refreshPeriodMs);
@@ -59,7 +59,7 @@ public class MoneroKeyImagePoller {
      *
      * @param listener - the listener to add
      */
-    public void addListener(MoneroKeyImageListener listener) {
+    public void addListener(XmrKeyImageListener listener) {
         listeners.add(listener);
         refreshPolling();
     }
@@ -69,7 +69,7 @@ public class MoneroKeyImagePoller {
      *
      * @param listener - the listener to remove
      */
-    public void removeListener(MoneroKeyImageListener listener) {
+    public void removeListener(XmrKeyImageListener listener) {
         if (!listeners.contains(listener)) throw new MoneroError("Listener is not registered");
         listeners.remove(listener);
         refreshPolling();
@@ -265,7 +265,7 @@ public class MoneroKeyImagePoller {
 
         // announce changes
         if (!changedStatuses.isEmpty()) {
-            for (MoneroKeyImageListener listener : new ArrayList<MoneroKeyImageListener>(listeners)) {
+            for (XmrKeyImageListener listener : new ArrayList<XmrKeyImageListener>(listeners)) {
                 listener.onSpentStatusChanged(changedStatuses);
             }
         }

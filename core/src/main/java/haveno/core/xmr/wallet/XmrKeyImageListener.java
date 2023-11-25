@@ -4,7 +4,7 @@ import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 import java.util.Map;
 
-public interface MoneroKeyImageListener {
+public interface XmrKeyImageListener {
 
     /**
      * Called with changes to the spent status of key images.

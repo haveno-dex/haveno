@@ -57,28 +57,28 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.MoneroConnectionsImplBase;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getAddConnectionMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getCheckConnectionMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getCheckConnectionsMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getGetBestAvailableConnectionMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getGetConnectionMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getGetConnectionsMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getRemoveConnectionMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getSetAutoSwitchMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getSetConnectionMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getStartCheckingConnectionsMethod;
-import static haveno.proto.grpc.MoneroConnectionsGrpc.getStopCheckingConnectionsMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.XmrConnectionsImplBase;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getAddConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionsMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getGetBestAvailableConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getGetConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getGetConnectionsMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getRemoveConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getSetAutoSwitchMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getSetConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getStartCheckingConnectionsMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getStopCheckingConnectionsMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
-class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
+class GrpcXmrConnectionService extends XmrConnectionsImplBase {
 
     private final CoreApi coreApi;
     private final GrpcExceptionHandler exceptionHandler;
 
     @Inject
-    public GrpcMoneroConnectionsService(CoreApi coreApi, GrpcExceptionHandler exceptionHandler) {
+    public GrpcXmrConnectionService(CoreApi coreApi, GrpcExceptionHandler exceptionHandler) {
         this.coreApi = coreApi;
         this.exceptionHandler = exceptionHandler;
     }
@@ -118,9 +118,9 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
     public void getConnections(GetConnectionsRequest request,
                                StreamObserver<GetConnectionsReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            List<MoneroRpcConnection> connections = coreApi.getMoneroConnections();
+            List<MoneroRpcConnection> connections = coreApi.getXmrConnections();
             List<UrlConnection> replyConnections = connections.stream()
-                    .map(GrpcMoneroConnectionsService::toUrlConnection).collect(Collectors.toList());
+                    .map(GrpcXmrConnectionService::toUrlConnection).collect(Collectors.toList());
             return GetConnectionsReply.newBuilder().addAllConnections(replyConnections).build();
         });
     }
@@ -156,9 +156,9 @@ class GrpcMoneroConnectionsService extends MoneroConnectionsImplBase {
     public void checkConnections(CheckConnectionsRequest request,
                                  StreamObserver<CheckConnectionsReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            List<MoneroRpcConnection> connections = coreApi.checkMoneroConnections();
+            List<MoneroRpcConnection> connections = coreApi.checkXmrConnections();
             List<UrlConnection> replyConnections = connections.stream()
-                    .map(GrpcMoneroConnectionsService::toUrlConnection).collect(Collectors.toList());
+                    .map(GrpcXmrConnectionService::toUrlConnection).collect(Collectors.toList());
             return CheckConnectionsReply.newBuilder().addAllConnections(replyConnections).build();
         });
     }

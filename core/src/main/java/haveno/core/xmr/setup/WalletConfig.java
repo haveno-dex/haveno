@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.AbstractIdleService;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
@@ -101,7 +101,7 @@ public class WalletConfig extends AbstractIdleService {
     protected volatile Context context;
 
     protected Config config;
-    protected LocalMoneroNode localMoneroNode;
+    protected XmrLocalNode xmrLocalNode;
     protected Socks5Proxy socks5Proxy;
     protected int numConnectionsForBtc;
     @Getter
@@ -141,9 +141,9 @@ public class WalletConfig extends AbstractIdleService {
         return this;
     }
 
-    public WalletConfig setLocalMoneroNodeService(LocalMoneroNode localMoneroNode) {
+    public WalletConfig setXmrLocalNode(XmrLocalNode xmrLocalNode) {
         checkState(state() == State.NEW, "Cannot call after startup");
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         return this;
     }
 

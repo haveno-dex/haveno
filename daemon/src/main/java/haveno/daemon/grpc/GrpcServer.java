@@ -54,8 +54,8 @@ public class GrpcServer {
                       GrpcTradesService tradesService,
                       GrpcWalletsService walletsService,
                       GrpcNotificationsService notificationsService,
-                      GrpcMoneroConnectionsService moneroConnectionsService,
-                      GrpcMoneroNodeService moneroNodeService) {
+                      GrpcXmrConnectionService moneroConnectionsService,
+                      GrpcXmrNodeService moneroNodeService) {
         this.server = ServerBuilder.forPort(config.apiPort)
                 .addService(interceptForward(accountService, accountService.interceptors()))
                 .addService(interceptForward(disputeAgentsService, disputeAgentsService.interceptors()))

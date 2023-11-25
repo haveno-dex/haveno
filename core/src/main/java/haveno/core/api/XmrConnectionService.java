@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
-public final class CoreMoneroConnectionsService {
+public final class XmrConnectionService {
 
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
@@ -57,7 +57,7 @@ public final class CoreMoneroConnectionsService {
     private final Preferences preferences;
     private final CoreAccountService accountService;
     private final XmrNodes xmrNodes;
-    private final LocalMoneroNode nodeService;
+    private final XmrLocalNode xmrLocalNode;
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
     private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
@@ -76,14 +76,14 @@ public final class CoreMoneroConnectionsService {
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
 
     @Inject
-    public CoreMoneroConnectionsService(P2PService p2PService,
+    public XmrConnectionService(P2PService p2PService,
                                         Config config,
                                         CoreContext coreContext,
                                         Preferences preferences,
                                         WalletsSetup walletsSetup,
                                         CoreAccountService accountService,
                                         XmrNodes xmrNodes,
-                                        LocalMoneroNode nodeService,
+                                        XmrLocalNode xmrLocalNode,
                                         MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList,
                                         Socks5ProxyProvider socks5ProxyProvider) {
@@ -92,7 +92,7 @@ public final class CoreMoneroConnectionsService {
         this.preferences = preferences;
         this.accountService = accountService;
         this.xmrNodes = xmrNodes;
-        this.nodeService = nodeService;
+        this.xmrLocalNode = xmrLocalNode;
         this.connectionManager = connectionManager;
         this.connectionList = connectionList;
         this.socks5ProxyProvider = socks5ProxyProvider;
@@ -313,10 +313,10 @@ public final class CoreMoneroConnectionsService {
 
     private long getDefaultRefreshPeriodMs() {
         MoneroRpcConnection connection = getConnection();
-        if (connection == null) return LocalMoneroNode.REFRESH_PERIOD_LOCAL_MS;
+        if (connection == null) return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
         if (isConnectionLocal(connection)) {
             if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
-            else return LocalMoneroNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
+            else return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
         } else if (useProxy(connection)) {
             return REFRESH_PERIOD_ONION_MS;
         } else {
@@ -366,7 +366,7 @@ public final class CoreMoneroConnectionsService {
             if (!isInitialized) {
 
                 // register local node listener
-                nodeService.addListener(new LocalMoneroNodeListener() {
+                xmrLocalNode.addListener(new XmrLocalNodeListener() {
                     @Override
                     public void onNodeStarted(MoneroDaemonRpc daemon) {
                         log.info("Local monero node started");
@@ -381,7 +381,7 @@ public final class CoreMoneroConnectionsService {
                     public void onConnectionChanged(MoneroRpcConnection connection) {
                         log.info("Local monerod connection changed: " + connection);
                         if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen()) return;
-                        if (nodeService.isConnected()) {
+                        if (xmrLocalNode.isConnected()) {
                             setConnection(connection.getUri()); // switch to local node if connected
                         } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
                             setConnection(getBestAvailableConnection()); // switch to best available if disconnected from local node
@@ -487,10 +487,10 @@ public final class CoreMoneroConnectionsService {
         if (HavenoUtils.havenoSetup == null) return;
 
         // start local node if offline and used as last connection
-        if (connectionManager.getConnection() != null && nodeService.equalsUri(connectionManager.getConnection().getUri()) && !nodeService.isDetected()) {
+        if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected()) {
             try {
                 log.info("Starting local node");
-                nodeService.startMoneroNode();
+                xmrLocalNode.startMoneroNode();
             } catch (Exception e) {
                 log.warn("Unable to start local monero node: " + e.getMessage());
                 e.printStackTrace();
@@ -499,7 +499,7 @@ public final class CoreMoneroConnectionsService {
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
-        log.info("CoreMoneroConnectionsService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
+        log.info("XmrConnectionService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
         if (isShutDownStarted) return;
         synchronized (lock) {
             if (currentConnection == null) {

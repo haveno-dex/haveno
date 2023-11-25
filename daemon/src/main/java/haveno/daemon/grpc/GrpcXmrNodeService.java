@@ -17,18 +17,18 @@
 package haveno.daemon.grpc;
 
 import haveno.core.api.CoreApi;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
-import haveno.proto.grpc.GetMoneroNodeSettingsReply;
-import haveno.proto.grpc.GetMoneroNodeSettingsRequest;
-import haveno.proto.grpc.IsMoneroNodeOnlineReply;
-import haveno.proto.grpc.IsMoneroNodeOnlineRequest;
-import haveno.proto.grpc.MoneroNodeGrpc.MoneroNodeImplBase;
-import haveno.proto.grpc.StartMoneroNodeReply;
-import haveno.proto.grpc.StartMoneroNodeRequest;
-import haveno.proto.grpc.StopMoneroNodeReply;
-import haveno.proto.grpc.StopMoneroNodeRequest;
+import haveno.proto.grpc.GetXmrNodeSettingsReply;
+import haveno.proto.grpc.GetXmrNodeSettingsRequest;
+import haveno.proto.grpc.IsXmrNodeOnlineReply;
+import haveno.proto.grpc.IsXmrNodeOnlineRequest;
+import haveno.proto.grpc.XmrNodeGrpc.XmrNodeImplBase;
+import haveno.proto.grpc.StartXmrNodeReply;
+import haveno.proto.grpc.StartXmrNodeRequest;
+import haveno.proto.grpc.StopXmrNodeReply;
+import haveno.proto.grpc.StopXmrNodeRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -39,30 +39,30 @@ import java.util.HashMap;
 import java.util.Optional;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.MoneroNodeGrpc.getGetMoneroNodeSettingsMethod;
-import static haveno.proto.grpc.MoneroNodeGrpc.getIsMoneroNodeOnlineMethod;
-import static haveno.proto.grpc.MoneroNodeGrpc.getStartMoneroNodeMethod;
-import static haveno.proto.grpc.MoneroNodeGrpc.getStopMoneroNodeMethod;
+import static haveno.proto.grpc.XmrNodeGrpc.getGetXmrNodeSettingsMethod;
+import static haveno.proto.grpc.XmrNodeGrpc.getIsXmrNodeOnlineMethod;
+import static haveno.proto.grpc.XmrNodeGrpc.getStartXmrNodeMethod;
+import static haveno.proto.grpc.XmrNodeGrpc.getStopXmrNodeMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
-public class GrpcMoneroNodeService extends MoneroNodeImplBase {
+public class GrpcXmrNodeService extends XmrNodeImplBase {
 
     private final CoreApi coreApi;
     private final GrpcExceptionHandler exceptionHandler;
 
     @Inject
-    public GrpcMoneroNodeService(CoreApi coreApi, GrpcExceptionHandler exceptionHandler) {
+    public GrpcXmrNodeService(CoreApi coreApi, GrpcExceptionHandler exceptionHandler) {
         this.coreApi = coreApi;
         this.exceptionHandler = exceptionHandler;
     }
 
     @Override
-    public void isMoneroNodeOnline(IsMoneroNodeOnlineRequest request,
-                                    StreamObserver<IsMoneroNodeOnlineReply> responseObserver) {
+    public void isXmrNodeOnline(IsXmrNodeOnlineRequest request,
+                                    StreamObserver<IsXmrNodeOnlineReply> responseObserver) {
         try {
-            var reply = IsMoneroNodeOnlineReply.newBuilder()
-                    .setIsRunning(coreApi.isMoneroNodeOnline())
+            var reply = IsXmrNodeOnlineReply.newBuilder()
+                    .setIsRunning(coreApi.isXmrNodeOnline())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -72,11 +72,11 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
     }
 
     @Override
-    public void getMoneroNodeSettings(GetMoneroNodeSettingsRequest request,
-                                      StreamObserver<GetMoneroNodeSettingsReply> responseObserver) {
+    public void getXmrNodeSettings(GetXmrNodeSettingsRequest request,
+                                      StreamObserver<GetXmrNodeSettingsReply> responseObserver) {
         try {
-            var settings = coreApi.getMoneroNodeSettings();
-            var builder = GetMoneroNodeSettingsReply.newBuilder();
+            var settings = coreApi.getXmrNodeSettings();
+            var builder = GetXmrNodeSettingsReply.newBuilder();
             if (settings != null) {
                 builder.setSettings(settings.toProtoMessage());
             }
@@ -89,12 +89,12 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
     }
 
     @Override
-    public void startMoneroNode(StartMoneroNodeRequest request,
-                                StreamObserver<StartMoneroNodeReply> responseObserver) {
+    public void startXmrNode(StartXmrNodeRequest request,
+                                StreamObserver<StartXmrNodeReply> responseObserver) {
         try {
             var settings = request.getSettings();
-            coreApi.startMoneroNode(MoneroNodeSettings.fromProto(settings));
-            var reply = StartMoneroNodeReply.newBuilder().build();
+            coreApi.startXmrNode(XmrNodeSettings.fromProto(settings));
+            var reply = StartXmrNodeReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (MoneroError me) {
@@ -105,11 +105,11 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
     }
 
     @Override
-    public void stopMoneroNode(StopMoneroNodeRequest request,
-                               StreamObserver<StopMoneroNodeReply> responseObserver) {
+    public void stopXmrNode(StopXmrNodeRequest request,
+                               StreamObserver<StopXmrNodeReply> responseObserver) {
         try {
-            coreApi.stopMoneroNode();
-            var reply = StopMoneroNodeReply.newBuilder().build();
+            coreApi.stopXmrNode();
+            var reply = StopXmrNodeReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (MoneroError me) {
@@ -141,10 +141,10 @@ public class GrpcMoneroNodeService extends MoneroNodeImplBase {
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
                             int allowedCallsPerTimeWindow = 10;
-                            put(getIsMoneroNodeOnlineMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getGetMoneroNodeSettingsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getStartMoneroNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getStopMoneroNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getIsXmrNodeOnlineMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getGetXmrNodeSettingsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getStartXmrNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getStopXmrNodeMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                         }}
                 )));
     }

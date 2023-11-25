@@ -19,7 +19,7 @@ package haveno.core.user;
 
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
@@ -56,7 +56,7 @@ public class PreferencesTest {
 
         persistenceManager = mock(PersistenceManager.class);
         Config config = new Config();
-        LocalMoneroNode localMoneroNode = new LocalMoneroNode(config, preferences);
+        XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences);
         preferences = new Preferences(
                 persistenceManager, config, null);
     }

@@ -21,7 +21,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.network.NetworkEnvelope;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.Dispute;
@@ -53,7 +53,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public abstract class SupportManager {
     protected final P2PService p2PService;
     protected final TradeManager tradeManager;
-    protected final CoreMoneroConnectionsService connectionService;
+    protected final XmrConnectionService xmrConnectionService;
     protected final XmrWalletService xmrWalletService;
     protected final CoreNotificationService notificationService;
     protected final Map<String, Timer> delayMsgMap = new HashMap<>();
@@ -69,12 +69,12 @@ public abstract class SupportManager {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public SupportManager(P2PService p2PService,
-                          CoreMoneroConnectionsService connectionService,
+                          XmrConnectionService xmrConnectionService,
                           XmrWalletService xmrWalletService,
                           CoreNotificationService notificationService,
                           TradeManager tradeManager) {
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.xmrWalletService = xmrWalletService;
         this.mailboxMessageService = p2PService.getMailboxMessageService();
         this.notificationService = notificationService;
@@ -336,8 +336,8 @@ public abstract class SupportManager {
     private boolean isReady() {
         return allServicesInitialized &&
                 p2PService.isBootstrapped() &&
-                connectionService.isDownloadComplete() &&
-                connectionService.hasSufficientPeersForBroadcast() &&
+                xmrConnectionService.isDownloadComplete() &&
+                xmrConnectionService.hasSufficientPeersForBroadcast() &&
                 xmrWalletService.isWalletSynced();
     }
 

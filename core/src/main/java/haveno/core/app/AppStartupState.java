@@ -17,7 +17,7 @@
 
 package haveno.core.app;
 
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.BootstrapListener;
@@ -53,7 +53,7 @@ public class AppStartupState {
 
     @Inject
     public AppStartupState(CoreNotificationService notificationService,
-                           CoreMoneroConnectionsService connectionsService,
+                           XmrConnectionService xmrConnectionService,
                            XmrWalletService xmrWalletService,
                            P2PService p2PService) {
 
@@ -64,8 +64,8 @@ public class AppStartupState {
             }
         });
 
-        connectionsService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (connectionsService.isDownloadComplete())
+        xmrConnectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrConnectionService.isDownloadComplete())
                 isBlockDownloadComplete.set(true);
         });
 
@@ -74,8 +74,8 @@ public class AppStartupState {
                 isWalletSynced.set(true);
         });
 
-        connectionsService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (connectionsService.hasSufficientPeersForBroadcast())
+        xmrConnectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrConnectionService.hasSufficientPeersForBroadcast())
                 hasSufficientPeersForBroadcast.set(true);
         });
 

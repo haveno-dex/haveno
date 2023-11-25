@@ -31,7 +31,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
@@ -724,8 +724,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setMoneroNodeSettings(MoneroNodeSettings settings) {
-        prefPayload.setMoneroNodeSettings(settings);
+    public void setXmrNodeSettings(XmrNodeSettings settings) {
+        prefPayload.setXmrNodeSettings(settings);
         requestPersistence();
     }
 
@@ -977,6 +977,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setNotifyOnPreRelease(boolean value);
 
-        void setMoneroNodeSettings(MoneroNodeSettings settings);
+        void setXmrNodeSettings(XmrNodeSettings settings);
     }
 }
