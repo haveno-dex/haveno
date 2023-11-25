@@ -1712,7 +1712,7 @@ message PreferencesPayload {
     bool show_offers_matching_my_accounts = 55;
     bool deny_api_taker = 56;
     bool notify_on_pre_release = 57;
-    MoneroNodeSettings monero_node_settings = 58;
+    XmrNodeSettings xmr_node_settings = 58;
     int32 clear_data_after_days = 59;
     string buy_screen_crypto_currency_code = 60;
     string sell_screen_crypto_currency_code = 61;
@@ -1727,7 +1727,7 @@ message AutoConfirmSettings {
     string currency_code = 5;
 }
 
-message MoneroNodeSettings {
+message XmrNodeSettings {
     string blockchain_path = 1;
     string bootstrap_url = 2;
     repeated string startup_flags = 3;

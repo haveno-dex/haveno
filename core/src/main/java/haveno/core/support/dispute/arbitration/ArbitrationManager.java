@@ -25,7 +25,7 @@ import haveno.common.UserThread;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
@@ -84,7 +84,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     public ArbitrationManager(P2PService p2PService,
                               TradeWalletService tradeWalletService,
                               XmrWalletService walletService,
-                              CoreMoneroConnectionsService connectionService,
+                              XmrConnectionService xmrConnectionService,
                               CoreNotificationService notificationService,
                               ArbitratorManager arbitratorManager,
                               TradeManager tradeManager,
@@ -94,7 +94,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               ArbitrationDisputeListService arbitrationDisputeListService,
                               Config config,
                               PriceFeedService priceFeedService) {
-        super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
+        super(p2PService, tradeWalletService, walletService, xmrConnectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
         this.arbitratorManager = arbitratorManager;
         HavenoUtils.arbitrationManager = this; // TODO: storing static reference, better way?

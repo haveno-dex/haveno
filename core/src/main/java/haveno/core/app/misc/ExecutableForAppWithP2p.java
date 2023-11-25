@@ -26,7 +26,7 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.util.Profiler;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
@@ -96,7 +96,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 // notify trade protocols and wallets to prepare for shut down before shutting down
                 Set<Runnable> tasks = new HashSet<Runnable>();
                 tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
-                tasks.add(() -> injector.getInstance(CoreMoneroConnectionsService.class).onShutDownStarted());
+                tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
                 HavenoUtils.executeTasks(tasks); // notify in parallel
 
                 JsonFileManager.shutDownAllInstances();
@@ -124,7 +124,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                         });
                         injector.getInstance(BtcWalletService.class).shutDown();
                         injector.getInstance(XmrWalletService.class).shutDown();
-                        injector.getInstance(CoreMoneroConnectionsService.class).shutDown();
+                        injector.getInstance(XmrConnectionService.class).shutDown();
                         injector.getInstance(WalletsSetup.class).shutDown();
                     });
                 });

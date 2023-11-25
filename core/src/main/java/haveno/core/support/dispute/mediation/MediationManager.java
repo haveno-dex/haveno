@@ -26,7 +26,7 @@ import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -71,7 +71,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     public MediationManager(P2PService p2PService,
                             TradeWalletService tradeWalletService,
                             XmrWalletService walletService,
-                            CoreMoneroConnectionsService connectionService,
+                            XmrConnectionService xmrConnectionService,
                             CoreNotificationService notificationService,
                             TradeManager tradeManager,
                             ClosedTradableManager closedTradableManager,
@@ -80,7 +80,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
                             MediationDisputeListService mediationDisputeListService,
                             Config config,
                             PriceFeedService priceFeedService) {
-        super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
+        super(p2PService, tradeWalletService, walletService, xmrConnectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, mediationDisputeListService, config, priceFeedService);
     }
 

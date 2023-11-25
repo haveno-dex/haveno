@@ -43,7 +43,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import haveno.proto.grpc.NotificationMessage;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -86,8 +86,8 @@ public class CoreApi {
     private final CoreWalletsService walletsService;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
-    private final CoreMoneroConnectionsService coreMoneroConnectionsService;
-    private final LocalMoneroNode coreMoneroNodeService;
+    private final XmrConnectionService xmrConnectionService;
+    private final XmrLocalNode xmrLocalNode;
 
     @Inject
     public CoreApi(Config config,
@@ -103,8 +103,8 @@ public class CoreApi {
                    CoreWalletsService walletsService,
                    TradeStatisticsManager tradeStatisticsManager,
                    CoreNotificationService notificationService,
-                   CoreMoneroConnectionsService coreMoneroConnectionsService,
-                   LocalMoneroNode coreMoneroNodeService) {
+                   XmrConnectionService xmrConnectionService,
+                   XmrLocalNode xmrLocalNode) {
         this.config = config;
         this.appStartupState = appStartupState;
         this.coreAccountService = coreAccountService;
@@ -118,8 +118,8 @@ public class CoreApi {
         this.walletsService = walletsService;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.notificationService = notificationService;
-        this.coreMoneroConnectionsService = coreMoneroConnectionsService;
-        this.coreMoneroNodeService = coreMoneroNodeService;
+        this.xmrConnectionService = xmrConnectionService;
+        this.xmrLocalNode = xmrLocalNode;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -184,71 +184,71 @@ public class CoreApi {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void addMoneroConnection(MoneroRpcConnection connection) {
-        coreMoneroConnectionsService.addConnection(connection);
+        xmrConnectionService.addConnection(connection);
     }
 
     public void removeMoneroConnection(String connectionUri) {
-        coreMoneroConnectionsService.removeConnection(connectionUri);
+        xmrConnectionService.removeConnection(connectionUri);
     }
 
     public MoneroRpcConnection getMoneroConnection() {
-        return coreMoneroConnectionsService.getConnection();
+        return xmrConnectionService.getConnection();
     }
 
-    public List<MoneroRpcConnection> getMoneroConnections() {
-        return coreMoneroConnectionsService.getConnections();
+    public List<MoneroRpcConnection> getXmrConnections() {
+        return xmrConnectionService.getConnections();
     }
 
     public void setMoneroConnection(String connectionUri) {
-        coreMoneroConnectionsService.setConnection(connectionUri);
+        xmrConnectionService.setConnection(connectionUri);
     }
 
     public void setMoneroConnection(MoneroRpcConnection connection) {
-        coreMoneroConnectionsService.setConnection(connection);
+        xmrConnectionService.setConnection(connection);
     }
 
     public MoneroRpcConnection checkMoneroConnection() {
-        return coreMoneroConnectionsService.checkConnection();
+        return xmrConnectionService.checkConnection();
     }
 
-    public List<MoneroRpcConnection> checkMoneroConnections() {
-        return coreMoneroConnectionsService.checkConnections();
+    public List<MoneroRpcConnection> checkXmrConnections() {
+        return xmrConnectionService.checkConnections();
     }
 
     public void startCheckingMoneroConnection(Long refreshPeriod) {
-        coreMoneroConnectionsService.startCheckingConnection(refreshPeriod);
+        xmrConnectionService.startCheckingConnection(refreshPeriod);
     }
 
     public void stopCheckingMoneroConnection() {
-        coreMoneroConnectionsService.stopCheckingConnection();
+        xmrConnectionService.stopCheckingConnection();
     }
 
     public MoneroRpcConnection getBestAvailableMoneroConnection() {
-        return coreMoneroConnectionsService.getBestAvailableConnection();
+        return xmrConnectionService.getBestAvailableConnection();
     }
 
     public void setMoneroConnectionAutoSwitch(boolean autoSwitch) {
-        coreMoneroConnectionsService.setAutoSwitch(autoSwitch);
+        xmrConnectionService.setAutoSwitch(autoSwitch);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Monero node
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public boolean isMoneroNodeOnline() {
-        return coreMoneroNodeService.isDetected();
+    public boolean isXmrNodeOnline() {
+        return xmrLocalNode.isDetected();
     }
 
-    public MoneroNodeSettings getMoneroNodeSettings() {
-        return coreMoneroNodeService.getMoneroNodeSettings();
+    public XmrNodeSettings getXmrNodeSettings() {
+        return xmrLocalNode.getNodeSettings();
     }
 
-    public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
-        coreMoneroNodeService.startMoneroNode(settings);
+    public void startXmrNode(XmrNodeSettings settings) throws IOException {
+        xmrLocalNode.startNode(settings);
     }
 
-    public void stopMoneroNode() {
-        coreMoneroNodeService.stopMoneroNode();
+    public void stopXmrNode() {
+        xmrLocalNode.stopNode();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

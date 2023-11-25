@@ -19,8 +19,8 @@ package haveno.desktop.main.settings.network;
 
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
-import haveno.core.api.CoreMoneroConnectionsService;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.filter.Filter;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
@@ -103,12 +103,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final Preferences preferences;
     private final XmrNodes xmrNodes;
     private final FilterManager filterManager;
-    private final LocalMoneroNode localMoneroNode;
+    private final XmrLocalNode xmrLocalNode;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final ClockWatcher clockWatcher;
     private final WalletsSetup walletsSetup;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionManager;
+    private final XmrConnectionService connectionManager;
 
     private final ObservableList<P2pNetworkListItem> p2pNetworkListItems = FXCollections.observableArrayList();
     private final SortedList<P2pNetworkListItem> p2pSortedList = new SortedList<>(p2pNetworkListItems);
@@ -132,11 +132,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @Inject
     public NetworkSettingsView(WalletsSetup walletsSetup,
                                P2PService p2PService,
-                               CoreMoneroConnectionsService connectionManager,
+                               XmrConnectionService connectionManager,
                                Preferences preferences,
                                XmrNodes xmrNodes,
                                FilterManager filterManager,
-                               LocalMoneroNode localMoneroNode,
+                               XmrLocalNode xmrLocalNode,
                                TorNetworkSettingsWindow torNetworkSettingsWindow,
                                ClockWatcher clockWatcher) {
         super();
@@ -146,7 +146,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
         this.filterManager = filterManager;
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
         this.clockWatcher = clockWatcher;
     }
@@ -434,7 +434,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void onMoneroPeersToggleSelected(boolean calledFromUser) {
-        boolean localMoneroNodeShouldBeUsed = localMoneroNode.shouldBeUsed();
+        boolean localMoneroNodeShouldBeUsed = xmrLocalNode.shouldBeUsed();
         useTorForXmrLabel.setDisable(localMoneroNodeShouldBeUsed);
         moneroNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
         xmrNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
@@ -501,7 +501,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private void applyPreventPublicXmrNetwork() {
         final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
-        usePublicNodesRadio.setDisable(localMoneroNode.shouldBeUsed() || preventPublicXmrNetwork);
+        usePublicNodesRadio.setDisable(xmrLocalNode.shouldBeUsed() || preventPublicXmrNetwork);
         if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
             selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
             preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());

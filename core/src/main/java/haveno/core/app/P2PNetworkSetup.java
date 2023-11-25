@@ -18,7 +18,7 @@
 package haveno.core.app;
 
 import haveno.common.UserThread;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
@@ -46,7 +46,7 @@ import java.util.function.Consumer;
 public class P2PNetworkSetup {
     private final PriceFeedService priceFeedService;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     private final Preferences preferences;
 
     @SuppressWarnings("FieldCanBeLocal")
@@ -72,12 +72,12 @@ public class P2PNetworkSetup {
     @Inject
     public P2PNetworkSetup(PriceFeedService priceFeedService,
                            P2PService p2PService,
-                           CoreMoneroConnectionsService connectionService,
+                           XmrConnectionService xmrConnectionService,
                            Preferences preferences) {
 
         this.priceFeedService = priceFeedService;
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.preferences = preferences;
     }
 
@@ -88,7 +88,7 @@ public class P2PNetworkSetup {
         BooleanProperty initialP2PNetworkDataReceived = new SimpleBooleanProperty();
 
         p2PNetworkInfoBinding = EasyBind.combine(bootstrapState, bootstrapWarning, p2PService.getNumConnectedPeers(),
-                connectionService.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
+                xmrConnectionService.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
                 (state, warning, numP2pPeers, numXmrPeers, hiddenService, dataReceived) -> {
                     String result;
                     int p2pPeers = (int) numP2pPeers;

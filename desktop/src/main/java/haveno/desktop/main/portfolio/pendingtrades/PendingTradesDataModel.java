@@ -26,7 +26,7 @@ import haveno.common.handlers.FaultHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreDisputesService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -89,7 +89,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     public final ArbitrationManager arbitrationManager;
     public final MediationManager mediationManager;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
     public final Navigation navigation;
@@ -129,7 +129,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   TraderChatManager traderChatManager,
                                   Preferences preferences,
                                   P2PService p2PService,
-                                  CoreMoneroConnectionsService connectionService,
+                                  XmrConnectionService xmrConnectionService,
                                   AccountAgeWitnessService accountAgeWitnessService,
                                   Navigation navigation,
                                   WalletPasswordWindow walletPasswordWindow,
@@ -145,7 +145,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         this.traderChatManager = traderChatManager;
         this.preferences = preferences;
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
         this.walletPasswordWindow = walletPasswordWindow;
@@ -544,7 +544,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     public boolean isReadyForTxBroadcast() {
-        return GUIUtil.isBootstrappedOrShowPopup(p2PService) && GUIUtil.isReadyForTxBroadcastOrShowPopup(connectionService);
+        return GUIUtil.isBootstrappedOrShowPopup(p2PService) && GUIUtil.isReadyForTxBroadcastOrShowPopup(xmrConnectionService);
     }
 
     public boolean isBootstrappedOrShowPopup() {

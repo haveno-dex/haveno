@@ -34,7 +34,7 @@ import haveno.common.setup.UncaughtExceptionHandler;
 import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.provider.price.PriceFeedService;
@@ -336,7 +336,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             // notify trade protocols and wallets to prepare for shut down before shutting down
             Set<Runnable> tasks = new HashSet<Runnable>();
             tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
-            tasks.add(() -> injector.getInstance(CoreMoneroConnectionsService.class).onShutDownStarted());
+            tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
             HavenoUtils.executeTasks(tasks); // notify in parallel
 
             injector.getInstance(PriceFeedService.class).shutDown();
@@ -363,7 +363,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                     });
                     injector.getInstance(BtcWalletService.class).shutDown();
                     injector.getInstance(XmrWalletService.class).shutDown();
-                    injector.getInstance(CoreMoneroConnectionsService.class).shutDown();
+                    injector.getInstance(XmrConnectionService.class).shutDown();
                     injector.getInstance(WalletsSetup.class).shutDown();
                 });
             });

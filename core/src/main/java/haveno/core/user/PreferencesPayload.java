@@ -28,7 +28,7 @@ import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.CoreProtoResolver;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -131,7 +131,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
-    private MoneroNodeSettings moneroNodeSettings = new MoneroNodeSettings();
+    private XmrNodeSettings xmrNodeSettings = new XmrNodeSettings();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -217,7 +217,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(rpcUser).ifPresent(builder::setRpcUser);
         Optional.ofNullable(rpcPw).ifPresent(builder::setRpcPw);
         Optional.ofNullable(takeOfferSelectedPaymentAccountId).ifPresent(builder::setTakeOfferSelectedPaymentAccountId);
-        Optional.ofNullable(moneroNodeSettings).ifPresent(settings -> builder.setMoneroNodeSettings(settings.toProtoMessage()));
+        Optional.ofNullable(xmrNodeSettings).ifPresent(settings -> builder.setXmrNodeSettings(settings.toProtoMessage()));
         return protobuf.PersistableEnvelope.newBuilder().setPreferencesPayload(builder).build();
     }
 
@@ -298,7 +298,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getShowOffersMatchingMyAccounts(),
                 proto.getDenyApiTaker(),
                 proto.getNotifyOnPreRelease(),
-                MoneroNodeSettings.fromProto(proto.getMoneroNodeSettings())
+                XmrNodeSettings.fromProto(proto.getXmrNodeSettings())
         );
     }
 }

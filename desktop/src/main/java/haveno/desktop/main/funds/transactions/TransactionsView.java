@@ -20,7 +20,7 @@ package haveno.desktop.main.funds.transactions;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.trade.Trade;
@@ -110,7 +110,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @Inject
     private TransactionsView(XmrWalletService xmrWalletService,
                              P2PService p2PService,
-                             CoreMoneroConnectionsService connectionService,
+                             XmrConnectionService xmrConnectionService,
                              Preferences preferences,
                              TradeDetailsWindow tradeDetailsWindow,
                              OfferDetailsWindow offerDetailsWindow,

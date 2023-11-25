@@ -11,7 +11,7 @@ import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
@@ -106,7 +106,7 @@ public class XmrWalletService {
 
     private final Preferences preferences;
     private final CoreAccountService accountService;
-    private final CoreMoneroConnectionsService connectionsService;
+    private final XmrConnectionService xmrConnectionService;
     private final XmrAddressEntryList xmrAddressEntryList;
     private final WalletsSetup walletsSetup;
     private final DownloadListener downloadListener = new DownloadListener();
@@ -129,14 +129,14 @@ public class XmrWalletService {
     @Inject
     XmrWalletService(Preferences preferences,
                      CoreAccountService accountService,
-                     CoreMoneroConnectionsService connectionsService,
+                     XmrConnectionService xmrConnectionService,
                      WalletsSetup walletsSetup,
                      XmrAddressEntryList xmrAddressEntryList,
                      @Named(Config.WALLET_DIR) File walletDir,
                      @Named(Config.WALLET_RPC_BIND_PORT) int rpcBindPort) {
         this.preferences = preferences;
         this.accountService = accountService;
-        this.connectionsService = connectionsService;
+        this.xmrConnectionService = xmrConnectionService;
         this.walletsSetup = walletsSetup;
         this.xmrAddressEntryList = xmrAddressEntryList;
         this.walletDir = walletDir;
@@ -232,11 +232,11 @@ public class XmrWalletService {
     }
 
     public MoneroDaemonRpc getDaemon() {
-        return connectionsService.getDaemon();
+        return xmrConnectionService.getDaemon();
     }
 
-    public CoreMoneroConnectionsService getConnectionsService() {
-        return connectionsService;
+    public XmrConnectionService getConnectionsService() {
+        return xmrConnectionService;
     }
     
     public boolean isProxyApplied(boolean wasWalletSynced) {
@@ -601,7 +601,7 @@ public class XmrWalletService {
         synchronized (txCache) {
 
             // fetch txs
-            if (getDaemon() == null) connectionsService.verifyConnection(); // will throw
+            if (getDaemon() == null) xmrConnectionService.verifyConnection(); // will throw
             List<MoneroTx> txs = getDaemon().getTxs(txHashes, true);
 
             // store to cache
@@ -612,7 +612,7 @@ public class XmrWalletService {
                 synchronized (txCache) {
                     for (MoneroTx tx : txs) txCache.remove(tx.getHash());
                 }
-            }, connectionsService.getRefreshPeriodMs() / 1000);
+            }, xmrConnectionService.getRefreshPeriodMs() / 1000);
             return txs;
         }
     }
@@ -675,13 +675,13 @@ public class XmrWalletService {
     private void initialize() {
 
         // listen for connection changes
-        connectionsService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
+        xmrConnectionService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
 
         // wait for monerod to sync
-        if (connectionsService.downloadPercentageProperty().get() != 1) {
+        if (xmrConnectionService.downloadPercentageProperty().get() != 1) {
             CountDownLatch latch = new CountDownLatch(1);
-            connectionsService.downloadPercentageProperty().addListener((obs, oldVal, newVal) -> {
-                if (connectionsService.downloadPercentageProperty().get() == 1) latch.countDown();
+            xmrConnectionService.downloadPercentageProperty().addListener((obs, oldVal, newVal) -> {
+                if (xmrConnectionService.downloadPercentageProperty().get() == 1) latch.countDown();
             });
             HavenoUtils.awaitLatch(latch);
         }
@@ -699,12 +699,12 @@ public class XmrWalletService {
 
             // open or create wallet main wallet
             if (wallet == null) {
-                MoneroDaemonRpc daemon = connectionsService.getDaemon();
+                MoneroDaemonRpc daemon = xmrConnectionService.getDaemon();
                 log.info("Initializing main wallet with monerod=" + (daemon == null ? "null" : daemon.getRpcConnection().getUri()));
                 MoneroWalletConfig walletConfig = new MoneroWalletConfig().setPath(MONERO_WALLET_NAME).setPassword(getWalletPassword());
                 if (MoneroUtils.walletExists(xmrWalletFile.getPath())) {
                     wallet = openWalletRpc(walletConfig, rpcBindPort, isProxyApplied(wasWalletSynced));
-                } else if (connectionsService.getConnection() != null && Boolean.TRUE.equals(connectionsService.getConnection().isConnected())) {
+                } else if (xmrConnectionService.getConnection() != null && Boolean.TRUE.equals(xmrConnectionService.getConnection().isConnected())) {
                     wallet = createWalletRpc(walletConfig, rpcBindPort);
                 }
             }
@@ -723,12 +723,12 @@ public class XmrWalletService {
                         wallet.sync(); // blocking
                         wasWalletSynced = true;
                         log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
-                        wallet.startSyncing(connectionsService.getRefreshPeriodMs());
+                        wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                         wallet.getTxs(new MoneroTxQuery().setIsLocked(true)); // TODO: main wallet's balance does update on startup with 0 conf PaymentReceivedMessage until pool txs fetched?
                         if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) log.info("Monero wallet balance={}, unlocked balance={}", wallet.getBalance(0), wallet.getUnlockedBalance(0));
                         
                         // reapply connection after wallet synced
-                        onConnectionChanged(connectionsService.getConnection());
+                        onConnectionChanged(xmrConnectionService.getConnection());
 
                         // signal that main wallet is synced
                         doneDownload();
@@ -750,12 +750,12 @@ public class XmrWalletService {
                             // reschedule to init main wallet
                             UserThread.runAfter(() -> {
                                 new Thread(() -> maybeInitMainWallet(true, MAX_SYNC_ATTEMPTS)).start();
-                            }, connectionsService.getRefreshPeriodMs() / 1000);
+                            }, xmrConnectionService.getRefreshPeriodMs() / 1000);
                         } else {
-                            log.warn("Trying again in {} seconds", connectionsService.getRefreshPeriodMs() / 1000);
+                            log.warn("Trying again in {} seconds", xmrConnectionService.getRefreshPeriodMs() / 1000);
                             UserThread.runAfter(() -> {
                                 new Thread(() -> maybeInitMainWallet(true, numAttempts - 1)).start();
-                            }, connectionsService.getRefreshPeriodMs() / 1000);
+                            }, xmrConnectionService.getRefreshPeriodMs() / 1000);
                         }
                     }
                 }
@@ -769,7 +769,7 @@ public class XmrWalletService {
     private MoneroWalletRpc createWalletRpc(MoneroWalletConfig config, Integer port) {
 
         // must be connected to daemon
-        MoneroRpcConnection connection = connectionsService.getConnection();
+        MoneroRpcConnection connection = xmrConnectionService.getConnection();
         if (connection == null || !Boolean.TRUE.equals(connection.isConnected())) throw new RuntimeException("Must be connected to daemon before creating wallet");
 
         // create wallet
@@ -809,7 +809,7 @@ public class XmrWalletService {
             walletRpc.stopSyncing();
 
             // configure connection
-            MoneroRpcConnection connection = new MoneroRpcConnection(connectionsService.getConnection());
+            MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
             if (!applyProxyUri) connection.setProxyUri(null);
             
             // open wallet
@@ -842,7 +842,7 @@ public class XmrWalletService {
             cmd.add("--" + MONERO_NETWORK_TYPE.toString().toLowerCase());
         }
 
-        MoneroRpcConnection connection = connectionsService.getConnection();
+        MoneroRpcConnection connection = xmrConnectionService.getConnection();
         if (connection != null) {
             cmd.add("--daemon-address");
             cmd.add(connection.getUri());
@@ -887,7 +887,7 @@ public class XmrWalletService {
                 new Thread(() -> {
                     try {
                         if (!Boolean.FALSE.equals(connection.isConnected())) wallet.sync();
-                        wallet.startSyncing(connectionsService.getRefreshPeriodMs());
+                        wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                     } catch (Exception e) {
                         log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
                     }

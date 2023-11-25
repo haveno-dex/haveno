@@ -33,7 +33,7 @@ import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.common.util.Tuple2;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreContext;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.OfferBookService.OfferBookChangedListener;
@@ -58,8 +58,8 @@ import haveno.core.util.JsonUtil;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
-import haveno.core.xmr.wallet.MoneroKeyImageListener;
-import haveno.core.xmr.wallet.MoneroKeyImagePoller;
+import haveno.core.xmr.wallet.XmrKeyImageListener;
+import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
@@ -121,7 +121,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final User user;
     private final P2PService p2PService;
     @Getter
-    private final CoreMoneroConnectionsService connectionsService;
+    private final XmrConnectionService xmrConnectionService;
     private final BtcWalletService btcWalletService;
     @Getter
     private final XmrWalletService xmrWalletService;
@@ -150,7 +150,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final AccountAgeWitnessService accountAgeWitnessService;
 
     // poll key images of signed offers
-    private MoneroKeyImagePoller signedOfferKeyImagePoller;
+    private XmrKeyImagePoller signedOfferKeyImagePoller;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
@@ -166,7 +166,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             KeyRing keyRing,
                             User user,
                             P2PService p2PService,
-                            CoreMoneroConnectionsService connectionsService,
+                            XmrConnectionService xmrConnectionService,
                             BtcWalletService btcWalletService,
                             XmrWalletService xmrWalletService,
                             TradeWalletService tradeWalletService,
@@ -186,7 +186,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.keyRing = keyRing;
         this.user = user;
         this.p2PService = p2PService;
-        this.connectionsService = connectionsService;
+        this.xmrConnectionService = xmrConnectionService;
         this.btcWalletService = btcWalletService;
         this.xmrWalletService = xmrWalletService;
         this.tradeWalletService = tradeWalletService;
@@ -207,7 +207,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
 
         // listen for connection changes to monerod
-        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
+        xmrConnectionService.addConnectionListener(new MoneroConnectionManagerListener() {
             @Override
             public void onConnectionChanged(MoneroRpcConnection connection) {
                 maybeInitializeKeyImagePoller();
@@ -250,10 +250,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private synchronized void maybeInitializeKeyImagePoller() {
         if (signedOfferKeyImagePoller != null) return;
-        signedOfferKeyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
+        signedOfferKeyImagePoller = new XmrKeyImagePoller(xmrConnectionService.getDaemon(), getKeyImageRefreshPeriodMs());
 
         // handle when key images confirmed spent
-        signedOfferKeyImagePoller.addListener(new MoneroKeyImageListener() {
+        signedOfferKeyImagePoller.addListener(new XmrKeyImageListener() {
             @Override
             public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
                 for (Entry<String, MoneroKeyImageSpentStatus> entry : spentStatuses.entrySet()) {
@@ -273,7 +273,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private long getKeyImageRefreshPeriodMs() {
-        return connectionsService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+        return xmrConnectionService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
     public void onAllServicesInitialized() {
@@ -1284,7 +1284,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         // Don't allow trade start if Monero node is not fully synced
-        if (!connectionsService.isSyncedWithinTolerance()) {
+        if (!xmrConnectionService.isSyncedWithinTolerance()) {
             errorMessage = "We got a handleOfferAvailabilityRequest but our chain is not synced.";
             log.info(errorMessage);
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);

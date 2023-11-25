@@ -33,7 +33,7 @@ import haveno.core.alert.Alert;
 import haveno.core.alert.AlertManager;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AmazonGiftCardAccount;
@@ -122,7 +122,7 @@ public class HavenoSetup {
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
     private final CoinFormatter formatter;
-    private final LocalMoneroNode localMoneroNode;
+    private final XmrLocalNode xmrLocalNode;
     private final AppStartupState appStartupState;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
@@ -216,7 +216,7 @@ public class HavenoSetup {
                        AccountAgeWitnessService accountAgeWitnessService,
                        TorSetup torSetup,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                       LocalMoneroNode localMoneroNode,
+                       XmrLocalNode xmrLocalNode,
                        AppStartupState appStartupState,
                        Socks5ProxyProvider socks5ProxyProvider,
                        MediationManager mediationManager,
@@ -241,7 +241,7 @@ public class HavenoSetup {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
         this.formatter = formatter;
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         this.appStartupState = appStartupState;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
@@ -340,12 +340,12 @@ public class HavenoSetup {
 
     private void maybeInstallDependencies() {
         try {
-            File monerodFile = new File(LocalMoneroNode.MONEROD_PATH);
-            String monerodResourcePath = "bin/" + LocalMoneroNode.MONEROD_NAME;
+            File monerodFile = new File(XmrLocalNode.MONEROD_PATH);
+            String monerodResourcePath = "bin/" + XmrLocalNode.MONEROD_NAME;
             if (!monerodFile.exists() || !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile)) {
                 log.info("Installing monerod");
                 monerodFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile("bin/" + LocalMoneroNode.MONEROD_NAME, monerodFile);
+                FileUtil.resourceToFile("bin/" + XmrLocalNode.MONEROD_NAME, monerodFile);
                 monerodFile.setExecutable(true);
             }
 
@@ -622,7 +622,7 @@ public class HavenoSetup {
     }
 
     private void maybeShowLocalhostRunningInfo() {
-        maybeTriggerDisplayHandler("moneroLocalhostNode", displayLocalhostHandler, localMoneroNode.shouldBeUsed());
+        maybeTriggerDisplayHandler("xmrLocalNode", displayLocalhostHandler, xmrLocalNode.shouldBeUsed());
     }
 
     private void maybeShowAccountSigningStateInfo() {

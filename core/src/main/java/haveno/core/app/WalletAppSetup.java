@@ -20,7 +20,7 @@ package haveno.core.app;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.TradeManager;
@@ -60,7 +60,7 @@ public class WalletAppSetup {
     private final CoreContext coreContext;
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     private final XmrWalletService xmrWalletService;
     private final Config config;
     private final Preferences preferences;
@@ -85,14 +85,14 @@ public class WalletAppSetup {
     public WalletAppSetup(CoreContext coreContext,
                           WalletsManager walletsManager,
                           WalletsSetup walletsSetup,
-                          CoreMoneroConnectionsService connectionService,
+                          XmrConnectionService xmrConnectionService,
                           XmrWalletService xmrWalletService,
                           Config config,
                           Preferences preferences) {
         this.coreContext = coreContext;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.xmrWalletService = xmrWalletService;
         this.config = config;
         this.preferences = preferences;
@@ -107,8 +107,8 @@ public class WalletAppSetup {
         log.info("Initialize WalletAppSetup with monero-java version {}", MoneroUtils.getVersion());
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
-        xmrInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(),
-                connectionService.chainHeightProperty(),
+        xmrInfoBinding = EasyBind.combine(xmrConnectionService.downloadPercentageProperty(),
+                xmrConnectionService.chainHeightProperty(),
                 xmrWalletService.downloadPercentageProperty(),
                 xmrWalletService.walletHeightProperty(),
                 walletServiceException,

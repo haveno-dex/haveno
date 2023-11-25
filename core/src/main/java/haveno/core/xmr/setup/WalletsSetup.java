@@ -29,7 +29,7 @@ import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.handlers.ExceptionHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.model.AddressEntry;
@@ -94,7 +94,7 @@ public class WalletsSetup {
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
-    private final LocalMoneroNode localMoneroNode;
+    private final XmrLocalNode xmrLocalNode;
     private final XmrNodes xmrNodes;
     private final int numConnectionsForBtc;
     private final String userAgent;
@@ -117,7 +117,7 @@ public class WalletsSetup {
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
-                        LocalMoneroNode localMoneroNode,
+                        XmrLocalNode xmrLocalNode,
                         XmrNodes xmrNodes,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
@@ -129,7 +129,7 @@ public class WalletsSetup {
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         this.xmrNodes = xmrNodes;
         this.numConnectionsForBtc = numConnectionsForBtc;
         this.useAllProvidedNodes = useAllProvidedNodes;
@@ -186,7 +186,7 @@ public class WalletsSetup {
         };
         walletConfig.setSocks5Proxy(socks5Proxy);
         walletConfig.setConfig(config);
-        walletConfig.setLocalMoneroNodeService(localMoneroNode); // TODO: adapt to xmr or remove
+        walletConfig.setXmrLocalNode(xmrLocalNode); // TODO: adapt to xmr or remove
         walletConfig.setUserAgent(userAgent, Version.VERSION);
         walletConfig.setNumConnectionsForBtc(numConnectionsForBtc);
 
@@ -221,7 +221,7 @@ public class WalletsSetup {
                     return;
                 }
             }
-        } else if (localMoneroNode.shouldBeUsed()) {
+        } else if (xmrLocalNode.shouldBeUsed()) {
             walletConfig.setMinBroadcastConnections(1);
             walletConfig.connectToLocalHost();
         } else {

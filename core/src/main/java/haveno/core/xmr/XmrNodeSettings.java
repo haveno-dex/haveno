@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 @Slf4j
 @Data
 @AllArgsConstructor
-public class MoneroNodeSettings implements PersistableEnvelope {
+public class XmrNodeSettings implements PersistableEnvelope {
 
     @Nullable
     String blockchainPath;
@@ -36,19 +36,19 @@ public class MoneroNodeSettings implements PersistableEnvelope {
     @Nullable
     List<String> startupFlags;
 
-    public MoneroNodeSettings() {
+    public XmrNodeSettings() {
     }
 
-    public static MoneroNodeSettings fromProto(protobuf.MoneroNodeSettings proto) {
-        return new MoneroNodeSettings(
+    public static XmrNodeSettings fromProto(protobuf.XmrNodeSettings proto) {
+        return new XmrNodeSettings(
                 proto.getBlockchainPath(),
                 proto.getBootstrapUrl(),
                 proto.getStartupFlagsList());
     }
 
     @Override
-    public protobuf.MoneroNodeSettings toProtoMessage() {
-        protobuf.MoneroNodeSettings.Builder builder = protobuf.MoneroNodeSettings.newBuilder();
+    public protobuf.XmrNodeSettings toProtoMessage() {
+        protobuf.XmrNodeSettings.Builder builder = protobuf.XmrNodeSettings.newBuilder();
         Optional.ofNullable(blockchainPath).ifPresent(e -> builder.setBlockchainPath(blockchainPath));
         Optional.ofNullable(bootstrapUrl).ifPresent(e -> builder.setBlockchainPath(bootstrapUrl));
         Optional.ofNullable(startupFlags).ifPresent(e -> builder.addAllStartupFlags(startupFlags));

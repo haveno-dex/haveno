@@ -38,7 +38,7 @@ import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CurrencyUtil;
@@ -689,19 +689,19 @@ public class GUIUtil {
         return false;
     }
 
-    public static boolean isReadyForTxBroadcastOrShowPopup(CoreMoneroConnectionsService connectionService) {
-        if (!connectionService.hasSufficientPeersForBroadcast()) {
-            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToXmrNetwork", connectionService.getMinBroadcastConnections())).show();
+    public static boolean isReadyForTxBroadcastOrShowPopup(XmrConnectionService xmrConnectionService) {
+        if (!xmrConnectionService.hasSufficientPeersForBroadcast()) {
+            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToXmrNetwork", xmrConnectionService.getMinBroadcastConnections())).show();
             return false;
         }
 
-        if (!connectionService.isDownloadComplete()) {
+        if (!xmrConnectionService.isDownloadComplete()) {
             new Popup().information(Res.get("popup.warning.downloadNotComplete")).show();
             return false;
         }
 
         try {
-            connectionService.verifyConnection();
+            xmrConnectionService.verifyConnection();
         } catch (Exception e) {
             new Popup().information(e.getMessage()).show();
             return false;
@@ -710,8 +710,8 @@ public class GUIUtil {
         return true;
     }
 
-    public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(CoreMoneroConnectionsService connectionService) {
-        if (!connectionService.isSyncedWithinTolerance()) {
+    public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(XmrConnectionService xmrConnectionService) {
+        if (!xmrConnectionService.isSyncedWithinTolerance()) {
             new Popup().information(Res.get("popup.warning.chainNotSynced")).show();
             return false;
         }

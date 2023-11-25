@@ -280,10 +280,10 @@ message SendNotificationReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// MoneroConnections
+// XmrConnections
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service MoneroConnections {
+service XmrConnections {
     rpc AddConnection (AddConnectionRequest) returns (AddConnectionReply) {
     }
     rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionReply) {
@@ -394,45 +394,45 @@ message SetAutoSwitchRequest {
 message SetAutoSwitchReply {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// MoneroNode
+// XmrNode
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service MoneroNode {
-    rpc IsMoneroNodeOnline (IsMoneroNodeOnlineRequest) returns (IsMoneroNodeOnlineReply) {
+service XmrNode {
+    rpc IsXmrNodeOnline (IsXmrNodeOnlineRequest) returns (IsXmrNodeOnlineReply) {
     }
-    rpc GetMoneroNodeSettings (GetMoneroNodeSettingsRequest) returns (GetMoneroNodeSettingsReply) {
+    rpc GetXmrNodeSettings (GetXmrNodeSettingsRequest) returns (GetXmrNodeSettingsReply) {
     }
-    rpc StartMoneroNode (StartMoneroNodeRequest) returns (StartMoneroNodeReply) {
+    rpc StartXmrNode (StartXmrNodeRequest) returns (StartXmrNodeReply) {
     }
-    rpc StopMoneroNode (StopMoneroNodeRequest) returns (StopMoneroNodeReply) {
+    rpc StopXmrNode (StopXmrNodeRequest) returns (StopXmrNodeReply) {
     }
 }
 
-message IsMoneroNodeOnlineRequest {
+message IsXmrNodeOnlineRequest {
 }
 
-message IsMoneroNodeOnlineReply {
+message IsXmrNodeOnlineReply {
     bool is_running = 1;
 }
 
-message GetMoneroNodeSettingsRequest {
+message GetXmrNodeSettingsRequest {
 }
 
-message GetMoneroNodeSettingsReply {
-    MoneroNodeSettings settings = 1; // pb.proto
+message GetXmrNodeSettingsReply {
+    XmrNodeSettings settings = 1; // pb.proto
 }
 
-message StartMoneroNodeRequest {
-    MoneroNodeSettings settings = 1;
+message StartXmrNodeRequest {
+    XmrNodeSettings settings = 1;
 }
 
-message StartMoneroNodeReply {
+message StartXmrNodeReply {
 }
 
-message StopMoneroNodeRequest {
+message StopXmrNodeRequest {
 }
 
-message StopMoneroNodeReply {
+message StopXmrNodeReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

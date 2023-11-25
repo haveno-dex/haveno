@@ -26,7 +26,7 @@ import haveno.common.handlers.FaultHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Tuple2;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -105,7 +105,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     public DisputeManager(P2PService p2PService,
                           TradeWalletService tradeWalletService,
                           XmrWalletService xmrWalletService,
-                          CoreMoneroConnectionsService connectionService,
+                          XmrConnectionService xmrConnectionService,
                           CoreNotificationService notificationService,
                           TradeManager tradeManager,
                           ClosedTradableManager closedTradableManager,
@@ -114,7 +114,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                           DisputeListService<T> disputeListService,
                           Config config,
                           PriceFeedService priceFeedService) {
-        super(p2PService, connectionService, xmrWalletService, notificationService, tradeManager);
+        super(p2PService, xmrConnectionService, xmrWalletService, notificationService, tradeManager);
 
         this.tradeWalletService = tradeWalletService;
         this.xmrWalletService = xmrWalletService;
@@ -252,8 +252,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             }
         });
 
-        connectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (connectionService.isDownloadComplete())
+        xmrConnectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrConnectionService.isDownloadComplete())
                 tryApplyMessages();
         });
 
@@ -262,8 +262,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 tryApplyMessages();
         });
 
-        connectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (connectionService.hasSufficientPeersForBroadcast())
+        xmrConnectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrConnectionService.hasSufficientPeersForBroadcast())
                 tryApplyMessages();
         });
 

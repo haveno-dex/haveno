@@ -35,8 +35,8 @@ import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
-import haveno.core.xmr.MoneroConnectionModule;
-import haveno.core.xmr.MoneroModule;
+import haveno.core.xmr.XmrConnectionModule;
+import haveno.core.xmr.XmrModule;
 import haveno.network.crypto.EncryptionServiceModule;
 import haveno.network.p2p.P2PModule;
 import haveno.network.p2p.network.BanFilter;
@@ -88,10 +88,10 @@ public class CoreModule extends AppModule {
         install(new EncryptionServiceModule(config));
         install(new OfferModule(config));
         install(new P2PModule(config));
-        install(new MoneroModule(config));
+        install(new XmrModule(config));
         install(new AlertModule(config));
         install(new FilterModule(config));
         install(new CorePresentationModule(config));
-        install(new MoneroConnectionModule(config));
+        install(new XmrConnectionModule(config));
     }
 }
