@@ -252,18 +252,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             }
         });
 
-        xmrConnectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrConnectionService.isDownloadComplete())
-                tryApplyMessages();
-        });
-
         xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrWalletService.isWalletSynced())
-                tryApplyMessages();
-        });
-
-        xmrConnectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrConnectionService.hasSufficientPeersForBroadcast())
+            if (xmrWalletService.isSyncedWithinTolerance())
                 tryApplyMessages();
         });
 

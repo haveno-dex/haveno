@@ -260,15 +260,16 @@ public final class XmrConnectionService {
     }
 
     public boolean isSyncedWithinTolerance() {
-        if (daemon == null) return false;
-        Long targetHeight = lastInfo.getTargetHeight(); // the last time the node thought it was behind the network and was in active sync mode to catch up
-        if (targetHeight == 0) return true; // monero-daemon-rpc sync_info's target_height returns 0 when node is fully synced
-        long currentHeight = chainHeight.get();
-        if (targetHeight - currentHeight <= 3) { // synced if not more than 3 blocks behind target height
-            return true;
-        }
+        Long targetHeight = getTargetHeight();
+        if (targetHeight == null) return false;
+        if (targetHeight - chainHeight.get() <= 3) return true; // synced if within 3 blocks of target height
         log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), targetHeight);
         return false;
+    }
+
+    public Long getTargetHeight() {
+        if (daemon == null || lastInfo == null) return null;
+        return lastInfo.getTargetHeight() == 0 ? chainHeight.get() : lastInfo.getTargetHeight(); // monerod sync_info's target_height returns 0 when node is fully synced
     }
 
     // ----------------------------- APP METHODS ------------------------------

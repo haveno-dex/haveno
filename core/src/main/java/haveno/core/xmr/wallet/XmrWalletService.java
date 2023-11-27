@@ -215,10 +215,6 @@ public class XmrWalletService {
         return accountService.getPassword() != null;
     }
 
-    public boolean isWalletSynced() {
-        return downloadPercentageProperty().get() == 1d;
-    }
-    
     public ReadOnlyDoubleProperty downloadPercentageProperty() {
         return downloadListener.percentageProperty();
     }
@@ -226,16 +222,28 @@ public class XmrWalletService {
     private void doneDownload() {
         downloadListener.doneDownload();
     }
-    
+
+    public boolean isDownloadComplete() {
+        return downloadPercentageProperty().get() == 1d;
+    }
+
     public LongProperty walletHeightProperty() {
         return walletHeight;
+    }
+
+    public boolean isSyncedWithinTolerance() {
+        if (!xmrConnectionService.isSyncedWithinTolerance()) return false;
+        Long targetHeight = xmrConnectionService.getTargetHeight();
+        if (targetHeight == null) return false;
+        if (targetHeight - walletHeight.get() <= 3) return true; // synced if within 3 blocks of target height
+        return false;
     }
 
     public MoneroDaemonRpc getDaemon() {
         return xmrConnectionService.getDaemon();
     }
 
-    public XmrConnectionService getConnectionsService() {
+    public XmrConnectionService getConnectionService() {
         return xmrConnectionService;
     }
     
@@ -721,6 +729,7 @@ public class XmrWalletService {
                         log.info("Syncing main wallet");
                         long time = System.currentTimeMillis();
                         wallet.sync(); // blocking
+                        walletHeight.set(wallet.getHeight());
                         wasWalletSynced = true;
                         log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
                         wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());

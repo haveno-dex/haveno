@@ -689,7 +689,8 @@ public class GUIUtil {
         return false;
     }
 
-    public static boolean isReadyForTxBroadcastOrShowPopup(XmrConnectionService xmrConnectionService) {
+    public static boolean isReadyForTxBroadcastOrShowPopup(XmrWalletService xmrWalletService) {
+        XmrConnectionService xmrConnectionService = xmrWalletService.getConnectionService();
         if (!xmrConnectionService.hasSufficientPeersForBroadcast()) {
             new Popup().information(Res.get("popup.warning.notSufficientConnectionsToXmrNetwork", xmrConnectionService.getMinBroadcastConnections())).show();
             return false;
@@ -697,6 +698,10 @@ public class GUIUtil {
 
         if (!xmrConnectionService.isDownloadComplete()) {
             new Popup().information(Res.get("popup.warning.downloadNotComplete")).show();
+            return false;
+        }
+
+        if (!isWalletSyncedWithinToleranceOrShowPopup(xmrWalletService)) {
             return false;
         }
 
@@ -710,12 +715,11 @@ public class GUIUtil {
         return true;
     }
 
-    public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(XmrConnectionService xmrConnectionService) {
-        if (!xmrConnectionService.isSyncedWithinTolerance()) {
-            new Popup().information(Res.get("popup.warning.chainNotSynced")).show();
+    public static boolean isWalletSyncedWithinToleranceOrShowPopup(XmrWalletService xmrWalletService) {
+        if (!xmrWalletService.isSyncedWithinTolerance()) {
+            new Popup().information(Res.get("popup.warning.walletNotSynced")).show();
             return false;
         }
-
         return true;
     }
 

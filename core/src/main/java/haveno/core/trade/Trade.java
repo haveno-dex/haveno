@@ -588,7 +588,7 @@ public abstract class Trade implements Tradable, Model {
             });
 
             // handle daemon changes with max parallelization
-            xmrWalletService.getConnectionsService().addConnectionListener(newConnection -> {
+            xmrWalletService.getConnectionService().addConnectionListener(newConnection -> {
                 HavenoUtils.submitTask(() -> onConnectionChanged(newConnection));
             });
 
@@ -643,7 +643,7 @@ public abstract class Trade implements Tradable, Model {
                     new Thread(() -> {
                         GenUtils.waitFor(1000);
                         if (isShutDownStarted) return;
-                        if (Boolean.TRUE.equals(xmrWalletService.getConnectionsService().isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
+                        if (Boolean.TRUE.equals(xmrWalletService.getConnectionService().isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
                     }).start();
 
                     // complete disputed trade
@@ -758,7 +758,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void checkDaemonConnection() {
-        XmrConnectionService xmrConnectionService = xmrWalletService.getConnectionsService();
+        XmrConnectionService xmrConnectionService = xmrWalletService.getConnectionService();
         xmrConnectionService.checkConnection();
         xmrConnectionService.verifyConnection();
         if (!getWallet().isConnectedToDaemon()) throw new RuntimeException("Trade wallet is not connected to a Monero node");
@@ -783,7 +783,7 @@ public abstract class Trade implements Tradable, Model {
 
     public void syncWalletNormallyForMs(long syncNormalDuration) {
         syncNormalStartTime = System.currentTimeMillis();
-        setWalletRefreshPeriod(xmrWalletService.getConnectionsService().getRefreshPeriodMs());
+        setWalletRefreshPeriod(xmrWalletService.getConnectionService().getRefreshPeriodMs());
         UserThread.runAfter(() -> {
             if (!isShutDown && System.currentTimeMillis() >= syncNormalStartTime + syncNormalDuration) updateWalletRefreshPeriod();
         }, syncNormalDuration);
@@ -1684,7 +1684,7 @@ public abstract class Trade implements Tradable, Model {
      */
     public long getReprocessDelayInSeconds(int reprocessCount) {
         int retryCycles = 3; // reprocess on next refresh periods for first few attempts (app might auto switch to a good connection)
-        if (reprocessCount < retryCycles) return xmrWalletService.getConnectionsService().getRefreshPeriodMs() / 1000;
+        if (reprocessCount < retryCycles) return xmrWalletService.getConnectionService().getRefreshPeriodMs() / 1000;
         long delay = 60;
         for (int i = retryCycles; i < reprocessCount; i++) delay *= 2;
         return Math.min(MAX_REPROCESS_DELAY_SECONDS, delay);
@@ -1785,7 +1785,7 @@ public abstract class Trade implements Tradable, Model {
         if (!wasWalletSynced) {
             wasWalletSynced = true;
             if (xmrWalletService.isProxyApplied(wasWalletSynced)) {
-                onConnectionChanged(xmrWalletService.getConnectionsService().getConnection());
+                onConnectionChanged(xmrWalletService.getConnectionService().getConnection());
             }
         }
 
@@ -1843,7 +1843,7 @@ public abstract class Trade implements Tradable, Model {
             try {
 
                 // log warning if wallet is too far behind daemon
-                MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionsService().getLastInfo();
+                MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionService().getLastInfo();
                 long walletHeight = wallet.getHeight();
                 if (wasWalletSynced && isDepositsPublished() && lastInfo != null && walletHeight < lastInfo.getHeight() - 3 && !Config.baseCurrencyNetwork().isTestnet()) {
                     log.warn("Wallet is more than 3 blocks behind monerod for {} {}, wallet height={}, monerod height={},", getClass().getSimpleName(), getShortId(), walletHeight, lastInfo.getHeight());
@@ -1924,7 +1924,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             } catch (Exception e) {
                 if (!isShutDownStarted && wallet != null && isWalletConnected()) {
-                    log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionsService().getConnection());
+                    log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
                 }
             }
         }
@@ -1932,7 +1932,7 @@ public abstract class Trade implements Tradable, Model {
 
     private long getWalletRefreshPeriod() {
         if (isIdling()) return IDLE_SYNC_PERIOD_MS;
-        return xmrWalletService.getConnectionsService().getRefreshPeriodMs();
+        return xmrWalletService.getConnectionService().getRefreshPeriodMs();
     }
 
     private void setStateDepositsPublished() {
