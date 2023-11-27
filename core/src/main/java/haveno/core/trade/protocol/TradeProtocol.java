@@ -823,7 +823,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage) {
-        log.error("Task runner failed with error {}. Triggered from {}. Monerod={}" , errorMessage, source, trade.getXmrWalletService().getConnectionsService().getConnection());
+        log.error("Task runner failed with error {}. Triggered from {}. Monerod={}" , errorMessage, source, trade.getXmrWalletService().getConnectionService().getConnection());
 
         if (message != null) {
             sendAckMessage(ackReceiver, message, false, errorMessage);

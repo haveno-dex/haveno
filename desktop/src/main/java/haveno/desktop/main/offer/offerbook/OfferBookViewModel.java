@@ -553,7 +553,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     boolean canCreateOrTakeOffer() {
         return GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation) &&
-                GUIUtil.isChainHeightSyncedWithinToleranceOrShowPopup(openOfferManager.getXmrConnectionService()) &&
+                GUIUtil.isWalletSyncedWithinToleranceOrShowPopup(openOfferManager.getXmrWalletService()) &&
                 GUIUtil.isBootstrappedOrShowPopup(p2PService);
     }
 

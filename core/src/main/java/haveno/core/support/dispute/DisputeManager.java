@@ -258,7 +258,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         });
 
         xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrWalletService.isWalletSynced())
+            if (xmrWalletService.isSyncedWithinTolerance())
                 tryApplyMessages();
         });
 

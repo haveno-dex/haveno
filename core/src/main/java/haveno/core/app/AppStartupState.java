@@ -64,19 +64,9 @@ public class AppStartupState {
             }
         });
 
-        xmrConnectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrConnectionService.isDownloadComplete())
-                isBlockDownloadComplete.set(true);
-        });
-
         xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrWalletService.isWalletSynced())
+            if (xmrWalletService.isDownloadComplete())
                 isWalletSynced.set(true);
-        });
-
-        xmrConnectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrConnectionService.hasSufficientPeersForBroadcast())
-                hasSufficientPeersForBroadcast.set(true);
         });
 
         p2pNetworkAndWalletInitialized = EasyBind.combine(updatedDataReceived,

@@ -193,7 +193,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onWithdraw() {
-        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(xmrWalletService.getConnectionsService())) {
+        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(xmrWalletService)) {
             try {
 
                 // get withdraw address

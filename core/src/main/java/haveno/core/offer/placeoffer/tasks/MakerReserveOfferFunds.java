@@ -47,7 +47,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             runInterceptHook();
 
             // verify monero connection
-            model.getXmrWalletService().getConnectionsService().verifyConnection();
+            model.getXmrWalletService().getConnectionService().verifyConnection();
 
             // create reserve tx
             BigInteger makerFee = offer.getMakerFee();

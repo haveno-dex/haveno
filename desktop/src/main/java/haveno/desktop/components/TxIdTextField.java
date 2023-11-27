@@ -172,7 +172,7 @@ public class TxIdTextField extends AnchorPane {
         MoneroTx tx = null;
         try {
             tx = useCache ? xmrWalletService.getTxWithCache(txId) : xmrWalletService.getTx(txId);
-            tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionsService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+            tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
         } catch (Exception e) {
             // do nothing
         }
