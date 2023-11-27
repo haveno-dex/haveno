@@ -1285,7 +1285,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // listen for block confirmation to remove trade
             long startTime = System.currentTimeMillis();
-            heightSubscription = EasyBind.subscribe(xmrWalletService.getConnectionsService().chainHeightProperty(), lastBlockHeight -> {
+            heightSubscription = EasyBind.subscribe(xmrWalletService.getConnectionService().chainHeightProperty(), lastBlockHeight -> {
                 if (isShutDown) return;
                 if (startHeight == null) startHeight = lastBlockHeight.longValue();
                 if (lastBlockHeight.longValue() >= startHeight + REMOVE_AFTER_NUM_CONFIRMATIONS) {
