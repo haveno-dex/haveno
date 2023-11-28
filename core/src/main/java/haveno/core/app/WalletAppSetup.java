@@ -69,7 +69,7 @@ public class WalletAppSetup {
     private MonadicBinding<String> xmrInfoBinding;
 
     @Getter
-    private final DoubleProperty xmrSyncProgress = new SimpleDoubleProperty(-1);
+    private final DoubleProperty xmrDaemonSyncProgress = new SimpleDoubleProperty(-1);
     @Getter
     private final StringProperty walletServiceErrorMsg = new SimpleStringProperty();
     @Getter
@@ -118,23 +118,23 @@ public class WalletAppSetup {
                     if (exception == null && errorMsg == null) {
                         
                         // TODO: update for daemon and wallet sync progress
-                        double percentage = (double) chainDownloadPercentage;
-                        xmrSyncProgress.set(percentage);
+                        double chainDownloadPercentageD = (double) chainDownloadPercentage;
+                        xmrDaemonSyncProgress.set(chainDownloadPercentageD);
                         Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
                                 String.valueOf(bestChainHeight) :
                                 "";
-                        if (percentage == 1) {
+                        if (chainDownloadPercentageD == 1) {
                             String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWith",
                                     getXmrNetworkAsString(), chainHeightAsString);
                             String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                             result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                             getXmrSplashSyncIconId().set("image-connection-synced");
                             downloadCompleteHandler.run();
-                        } else if (percentage > 0.0) {
+                        } else if (chainDownloadPercentageD > 0.0) {
                             String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith",
                                     getXmrNetworkAsString(), chainHeightAsString,
-                                    FormattingUtils.formatToPercentWithSymbol(percentage));
+                                    FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
                             result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                         } else {
                             result = Res.get("mainView.footer.xmrInfo",
