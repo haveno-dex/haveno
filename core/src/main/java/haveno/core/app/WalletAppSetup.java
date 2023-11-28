@@ -71,6 +71,8 @@ public class WalletAppSetup {
     @Getter
     private final DoubleProperty xmrDaemonSyncProgress = new SimpleDoubleProperty(-1);
     @Getter
+    private final DoubleProperty xmrWalletSyncProgress = new SimpleDoubleProperty(-1);
+    @Getter
     private final StringProperty walletServiceErrorMsg = new SimpleStringProperty();
     @Getter
     private final StringProperty xmrSplashSyncIconId = new SimpleStringProperty();
@@ -117,29 +119,42 @@ public class WalletAppSetup {
                     String result;
                     if (exception == null && errorMsg == null) {
                         
-                        // TODO: update for daemon and wallet sync progress
-                        double chainDownloadPercentageD = (double) chainDownloadPercentage;
-                        xmrDaemonSyncProgress.set(chainDownloadPercentageD);
-                        Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
-                        String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
-                                String.valueOf(bestChainHeight) :
-                                "";
-                        if (chainDownloadPercentageD == 1) {
-                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWith",
-                                    getXmrNetworkAsString(), chainHeightAsString);
+                        // update wallet sync progress
+                        double walletDownloadPercentageD = (double) walletDownloadPercentage;
+                        xmrWalletSyncProgress.set(walletDownloadPercentageD);
+                        Long bestWalletHeight = walletHeight == null ? null : (Long) walletHeight;
+                        String walletHeightAsString = bestWalletHeight != null && bestWalletHeight > 0 ? String.valueOf(bestWalletHeight) : "";
+                        if (walletDownloadPercentageD == 1) {
+                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWalletWith", getXmrNetworkAsString(), walletHeightAsString);
                             String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                             result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                             getXmrSplashSyncIconId().set("image-connection-synced");
                             downloadCompleteHandler.run();
-                        } else if (chainDownloadPercentageD > 0.0) {
-                            String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith",
-                                    getXmrNetworkAsString(), chainHeightAsString,
-                                    FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
-                            result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                        } else if (walletDownloadPercentageD > 0) {
+                            result = "Synchronizing wallet ..."; // TODO: support wallet progress updates and use below translation
+                            // String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWalletWith", getXmrNetworkAsString(), walletHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(walletDownloadPercentageD));
+                            // result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                            getXmrSplashSyncIconId().set(""); // clear synced icon
                         } else {
-                            result = Res.get("mainView.footer.xmrInfo",
-                                    Res.get("mainView.footer.xmrInfo.connectingTo"),
-                                    getXmrNetworkAsString());
+
+                            // update daemon sync progress
+                            double chainDownloadPercentageD = (double) chainDownloadPercentage;
+                            xmrDaemonSyncProgress.set(chainDownloadPercentageD);
+                            Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
+                            String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
+                            if (chainDownloadPercentageD == 1) {
+                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedDaemonWith", getXmrNetworkAsString(), chainHeightAsString);
+                                String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
+                                result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
+                                getXmrSplashSyncIconId().set("image-connection-synced");
+                            } else if (chainDownloadPercentageD > 0.0) {
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingDaemonWith", getXmrNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
+                                result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                            } else {
+                                result = Res.get("mainView.footer.xmrInfo",
+                                        Res.get("mainView.footer.xmrInfo.connectingTo"),
+                                        getXmrNetworkAsString());
+                            }
                         }
                     } else {
                         result = Res.get("mainView.footer.xmrInfo",

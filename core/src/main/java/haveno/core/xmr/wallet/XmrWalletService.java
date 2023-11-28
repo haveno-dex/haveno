@@ -125,6 +125,7 @@ public class XmrWalletService {
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
     private boolean isShutDownStarted = false;
     private ExecutorService syncWalletThreadPool = Executors.newFixedThreadPool(10); // TODO: adjust based on connection type
+    private Long syncStartHeight = null;
 
     @Inject
     XmrWalletService(Preferences preferences,
@@ -724,9 +725,10 @@ public class XmrWalletService {
                 // sync main wallet if applicable
                 if (sync && numAttempts > 0) {
                     try {
-                        
+
                         // sync main wallet
                         log.info("Syncing main wallet");
+                        updateSyncProgress();
                         long time = System.currentTimeMillis();
                         wallet.sync(); // blocking
                         walletHeight.set(wallet.getHeight());
@@ -773,6 +775,15 @@ public class XmrWalletService {
                 wallet.addListener(new XmrWalletListener());
             }
         }
+    }
+
+    private void updateSyncProgress() {
+        walletHeight.set(wallet.getHeight());
+        long targetHeight = xmrConnectionService.getTargetHeight();
+        long blocksLeft = targetHeight - walletHeight.get();
+        if (syncStartHeight == null) syncStartHeight = walletHeight.get();
+        double percent = targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, walletHeight.get() - syncStartHeight) / (double) (targetHeight - syncStartHeight)) * 100d; // grant at least 1 block to show progress
+        downloadListener.progress(percent, blocksLeft, null);
     }
 
     private MoneroWalletRpc createWalletRpc(MoneroWalletConfig config, Integer port) {

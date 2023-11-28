@@ -401,6 +401,7 @@ public class HavenoSetup {
 
         // reset startup timeout on progress
         getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
+        getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
 
         log.info("Init P2P network");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
@@ -725,6 +726,10 @@ public class HavenoSetup {
 
     public DoubleProperty getXmrDaemonSyncProgress() {
         return walletAppSetup.getXmrDaemonSyncProgress();
+    }
+
+    public DoubleProperty getXmrWalletSyncProgress() {
+        return walletAppSetup.getXmrWalletSyncProgress();
     }
 
     public StringProperty getWalletServiceErrorMsg() {
