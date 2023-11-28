@@ -181,6 +181,7 @@ public class HavenoSetup {
     private boolean allBasicServicesInitialized;
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> p2pNetworkAndWalletInitialized;
+    private Timer startupTimeout;
     private final List<HavenoSetupListener> havenoSetupListeners = new ArrayList<>();
 
     public interface HavenoSetupListener {
@@ -368,23 +369,16 @@ public class HavenoSetup {
         p2PService.getP2PDataStorage().readFromResources(postFix, completeHandler);
     }
 
-    private void startP2pNetworkAndWallet(Runnable nextStep) {
-        ChangeListener<Boolean> walletInitializedListener = (observable, oldValue, newValue) -> {
-            // TODO that seems to be called too often if Tor takes longer to start up...
-            if (newValue && !p2pNetworkReady.get() && displayTorNetworkSettingsHandler != null)
-                displayTorNetworkSettingsHandler.accept(true);
-        };
-
-        Timer startupTimeout = UserThread.runAfter(() -> {
+    private synchronized void resetStartupTimeout() {
+        if (p2pNetworkAndWalletInitialized != null && p2pNetworkAndWalletInitialized.get()) return; // skip if already initialized
+        if (startupTimeout != null) startupTimeout.stop();
+        startupTimeout = UserThread.runAfter(() -> {
             if (p2PNetworkSetup.p2pNetworkFailed.get() || walletsSetup.walletsSetupFailed.get()) {
                 // Skip this timeout action if the p2p network or wallet setup failed
                 // since an error prompt will be shown containing the error message
                 return;
             }
             log.warn("startupTimeout called");
-            //TODO (niyid) This has a part to play in the display of the password prompt
-//            if (walletsManager.areWalletsEncrypted())
-//                walletInitialized.addListener(walletInitializedListener);
             if (displayTorNetworkSettingsHandler != null)
                 displayTorNetworkSettingsHandler.accept(true);
 
@@ -393,6 +387,20 @@ public class HavenoSetup {
             // Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
 
         }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+    }
+
+    private void startP2pNetworkAndWallet(Runnable nextStep) {
+        ChangeListener<Boolean> walletInitializedListener = (observable, oldValue, newValue) -> {
+            // TODO that seems to be called too often if Tor takes longer to start up...
+            if (newValue && !p2pNetworkReady.get() && displayTorNetworkSettingsHandler != null)
+                displayTorNetworkSettingsHandler.accept(true);
+        };
+
+        // start startup timeout
+        resetStartupTimeout();
+
+        // reset startup timeout on progress
+        getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
 
         log.info("Init P2P network");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
@@ -715,8 +723,8 @@ public class HavenoSetup {
         return walletAppSetup.getXmrInfo();
     }
 
-    public DoubleProperty getXmrSyncProgress() {
-        return walletAppSetup.getXmrSyncProgress();
+    public DoubleProperty getXmrDaemonSyncProgress() {
+        return walletAppSetup.getXmrDaemonSyncProgress();
     }
 
     public StringProperty getWalletServiceErrorMsg() {

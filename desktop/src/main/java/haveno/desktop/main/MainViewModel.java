@@ -422,7 +422,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .warning(Res.get("popup.error.takeOfferRequestFailed", errorMessage))
                 .show());
 
-        havenoSetup.getXmrSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrSyncProgress());
+        havenoSetup.getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrDaemonSyncProgress());
 
         havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
@@ -535,10 +535,9 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         }
     }
 
-    private void updateXmrSyncProgress() {
-        final DoubleProperty xmrSyncProgress = havenoSetup.getXmrSyncProgress();
-
-            combinedSyncProgress.set(xmrSyncProgress.doubleValue());
+    private void updateXmrDaemonSyncProgress() {
+        final DoubleProperty xmrDaemonSyncProgress = havenoSetup.getXmrDaemonSyncProgress();
+        combinedSyncProgress.set(xmrDaemonSyncProgress.doubleValue());
     }
 
     private void setupInvalidOpenOffersHandler() {
