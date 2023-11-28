@@ -423,6 +423,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .show());
 
         havenoSetup.getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrDaemonSyncProgress());
+        havenoSetup.getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrWalletSyncProgress());
 
         havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
@@ -538,6 +539,11 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     private void updateXmrDaemonSyncProgress() {
         final DoubleProperty xmrDaemonSyncProgress = havenoSetup.getXmrDaemonSyncProgress();
         combinedSyncProgress.set(xmrDaemonSyncProgress.doubleValue());
+    }
+    
+    private void updateXmrWalletSyncProgress() {
+        final DoubleProperty xmrWalletSyncProgress = havenoSetup.getXmrWalletSyncProgress();
+        combinedSyncProgress.set(xmrWalletSyncProgress.doubleValue());
     }
 
     private void setupInvalidOpenOffersHandler() {
