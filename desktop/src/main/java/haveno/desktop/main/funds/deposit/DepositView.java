@@ -320,9 +320,11 @@ public class DepositView extends ActivatableView<VBox, Void> {
         observableList.forEach(DepositListItem::cleanup);
         observableList.clear();
 
-        // add address entries
-        xmrWalletService.getAddressEntries()
-                .forEach(e -> observableList.add(new DepositListItem(e, xmrWalletService, formatter, txsWithIncomingOutputs)));
+        // add non-reserved address entries
+        for (XmrAddressEntry addressEntry : xmrWalletService.getAddressEntries()) {
+            if (addressEntry.getContext().isReserved()) continue;
+            observableList.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs));
+        }
     }
 
     private Coin getAmount() {
