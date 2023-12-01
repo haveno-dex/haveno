@@ -536,8 +536,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             xmrSyncIcon.setVisible(true);
             xmrSyncIcon.setManaged(true);
 
-            xmrSyncIndicator.setVisible(false);
-            xmrSyncIndicator.setManaged(false);
+            // show progress bar until we have checkmark id
+            boolean inProgress = "".equals(newValue);
+            xmrSyncIndicator.setVisible(inProgress);
+            xmrSyncIndicator.setManaged(inProgress);
         };
         model.getXmrSplashSyncIconId().addListener(xmrSyncIconIdListener);
 

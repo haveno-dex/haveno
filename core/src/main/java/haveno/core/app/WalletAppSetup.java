@@ -125,15 +125,14 @@ public class WalletAppSetup {
                         Long bestWalletHeight = walletHeight == null ? null : (Long) walletHeight;
                         String walletHeightAsString = bestWalletHeight != null && bestWalletHeight > 0 ? String.valueOf(bestWalletHeight) : "";
                         if (walletDownloadPercentageD == 1) {
-                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWalletWith", getXmrNetworkAsString(), walletHeightAsString);
+                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWalletWith", getXmrWalletNetworkAsString(), walletHeightAsString);
                             String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                             result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                             getXmrSplashSyncIconId().set("image-connection-synced");
                             downloadCompleteHandler.run();
                         } else if (walletDownloadPercentageD > 0) {
-                            result = "Synchronizing wallet ..."; // TODO: support wallet progress updates and use below translation
-                            // String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWalletWith", getXmrNetworkAsString(), walletHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(walletDownloadPercentageD));
-                            // result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                            String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWalletWith", getXmrWalletNetworkAsString(), walletHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(walletDownloadPercentageD));
+                            result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                             getXmrSplashSyncIconId().set(""); // clear synced icon
                         } else {
 
@@ -143,23 +142,23 @@ public class WalletAppSetup {
                             Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
                             String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
                             if (chainDownloadPercentageD == 1) {
-                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedDaemonWith", getXmrNetworkAsString(), chainHeightAsString);
+                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedDaemonWith", getXmrDaemonNetworkAsString(), chainHeightAsString);
                                 String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                                 result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                                 getXmrSplashSyncIconId().set("image-connection-synced");
                             } else if (chainDownloadPercentageD > 0.0) {
-                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingDaemonWith", getXmrNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingDaemonWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
                                 result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                             } else {
                                 result = Res.get("mainView.footer.xmrInfo",
                                         Res.get("mainView.footer.xmrInfo.connectingTo"),
-                                        getXmrNetworkAsString());
+                                        getXmrDaemonNetworkAsString());
                             }
                         }
                     } else {
                         result = Res.get("mainView.footer.xmrInfo",
                                 Res.get("mainView.footer.xmrInfo.connectionFailed"),
-                                getXmrNetworkAsString());
+                                getXmrDaemonNetworkAsString());
                         if (exception != null) {
                             if (exception instanceof TimeoutException) {
                                 getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
@@ -253,11 +252,22 @@ public class WalletAppSetup {
         });
     }
 
-    private String getXmrNetworkAsString() {
+    private String getXmrDaemonNetworkAsString() {
         String postFix;
-        if (config.ignoreLocalXmrNode)
+        if (xmrConnectionService.isConnectionLocal())
             postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
-        else if (preferences.getUseTorForXmr().isUseTorForXmr())
+        else if (xmrConnectionService.isConnectionTor())
+            postFix = " " + Res.get("mainView.footer.usingTor");
+        else
+            postFix = "";
+        return Res.get(config.baseCurrencyNetwork.name()) + postFix;
+    }
+
+    private String getXmrWalletNetworkAsString() {
+        String postFix;
+        if (xmrConnectionService.isConnectionLocal())
+            postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
+        else if (xmrWalletService.isProxyApplied())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else
             postFix = "";
