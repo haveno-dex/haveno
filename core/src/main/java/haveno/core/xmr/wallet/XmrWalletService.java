@@ -28,6 +28,7 @@ import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
 import monero.common.MoneroUtils;
+import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroFeeEstimate;
 import monero.daemon.model.MoneroNetworkType;
@@ -126,6 +127,7 @@ public class XmrWalletService {
     private boolean isShutDownStarted = false;
     private ExecutorService syncWalletThreadPool = Executors.newFixedThreadPool(10); // TODO: adjust based on connection type
     private Long syncStartHeight = null;
+    private TaskLooper syncLooper = null;
 
     @Inject
     XmrWalletService(Preferences preferences,
@@ -246,6 +248,10 @@ public class XmrWalletService {
 
     public XmrConnectionService getConnectionService() {
         return xmrConnectionService;
+    }
+
+    public boolean isProxyApplied() {
+        return isProxyApplied(wasWalletSynced);
     }
     
     public boolean isProxyApplied(boolean wasWalletSynced) {
@@ -728,11 +734,8 @@ public class XmrWalletService {
 
                         // sync main wallet
                         log.info("Syncing main wallet");
-                        updateSyncProgress();
                         long time = System.currentTimeMillis();
-                        wallet.sync(); // blocking
-                        walletHeight.set(wallet.getHeight());
-                        wasWalletSynced = true;
+                        syncWalletWithProgress(); // blocking
                         log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
                         wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                         wallet.getTxs(new MoneroTxQuery().setIsLocked(true)); // TODO: main wallet's balance does update on startup with 0 conf PaymentReceivedMessage until pool txs fetched?
@@ -777,8 +780,33 @@ public class XmrWalletService {
         }
     }
 
+    private void syncWalletWithProgress() {
+        updateSyncProgress();
+        wallet.startSyncing();
+        CountDownLatch latch = new CountDownLatch(1);
+        syncLooper = new TaskLooper(() -> {
+            if (wallet.getHeight() < xmrConnectionService.getTargetHeight()) updateSyncProgress();
+            else {
+                wasWalletSynced = true;
+                updateSyncProgress();
+                syncLooper.stop();
+                latch.countDown();
+            }
+        });
+        syncLooper.start(1000);
+        HavenoUtils.awaitLatch(latch);
+    }
+
     private void updateSyncProgress() {
         walletHeight.set(wallet.getHeight());
+
+        // new wallet reports height 1 before synced
+        if (wallet.getHeight() == 1) {
+            downloadListener.progress(.0001, xmrConnectionService.getTargetHeight(), null); // >0% shows progress bar
+            return;
+        }
+
+        // set progress
         long targetHeight = xmrConnectionService.getTargetHeight();
         long blocksLeft = targetHeight - walletHeight.get();
         if (syncStartHeight == null) syncStartHeight = walletHeight.get();
