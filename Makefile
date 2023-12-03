@@ -362,6 +362,16 @@ user3-desktop-stagenet:
 		--apiPassword=apitest \
 		--apiPort=3203
 
+haveno-desktop-stagenet:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=3104 \
+		--appName=Haveno \
+		--apiPassword=apitest \
+		--apiPort=3204
+
 # Mainnet network
 
 monerod:
