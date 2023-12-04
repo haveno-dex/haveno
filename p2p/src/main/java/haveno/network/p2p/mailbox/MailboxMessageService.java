@@ -123,6 +123,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     private boolean isBootstrapped;
     private boolean allServicesInitialized;
     private boolean initAfterBootstrapped;
+    private static Comparator<MailboxMessage> mailboxMessageComparator;
 
     @Inject
     public MailboxMessageService(NetworkNode networkNode,
@@ -182,9 +183,11 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                                 // Those outdated messages would then stay in the network until TTL triggers removal.
                                 // By not applying large messages we reduce the impact of such cases at costs of extra loading costs if the message is still alive.
                                 if (serializedSize < MAX_SERIALIZED_SIZE) {
-                                    mailboxItemsByUid.put(mailboxItem.getUid(), mailboxItem);
-                                    mailboxMessageList.add(mailboxItem);
-                                    totalSize.getAndAdd(serializedSize);
+                                    synchronized (mailboxMessageList) {
+                                        mailboxItemsByUid.put(mailboxItem.getUid(), mailboxItem);
+                                        mailboxMessageList.add(mailboxItem);
+                                        totalSize.getAndAdd(serializedSize);
+                                    }
 
                                     // We add it to our map so that it get added to the excluded key set we send for
                                     // the initial data requests. So that helps to lower the load for mailbox messages at
@@ -330,9 +333,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
      */
     public void removeMailboxMsg(MailboxMessage mailboxMessage) {
         if (isBootstrapped) {
-            // We need to delay a bit to not get a ConcurrentModificationException as we might iterate over
-            // mailboxMessageList while getting called.
-            UserThread.execute(() -> {
+            synchronized (mailboxMessageList) {
                 String uid = mailboxMessage.getUid();
                 if (!mailboxItemsByUid.containsKey(uid)) {
                     return;
@@ -349,7 +350,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 // call removeMailboxItemFromMap here. The onRemoved only removes foreign mailBoxMessages.
                 log.trace("## removeMailboxMsg uid={}", uid);
                 removeMailboxItemFromLocalStore(uid);
-            });
+            }
         } else {
             // In case the network was not ready yet we try again later
             UserThread.runAfter(() -> removeMailboxMsg(mailboxMessage), 30);
@@ -397,7 +398,24 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 .forEach(this::removeMailboxItemFromLocalStore);
     }
 
+    public static void setMailboxMessageComparator(Comparator<MailboxMessage> comparator) {
+        mailboxMessageComparator = comparator;
+    }
 
+    public static class DecryptedMessageWithPubKeyComparator implements Comparator<DecryptedMessageWithPubKey> {
+
+        @Override
+        public int compare(DecryptedMessageWithPubKey m1, DecryptedMessageWithPubKey m2) {
+            if (m1.getNetworkEnvelope() instanceof MailboxMessage) {
+                if (m2.getNetworkEnvelope() instanceof MailboxMessage) return mailboxMessageComparator.compare((MailboxMessage) m1.getNetworkEnvelope(), (MailboxMessage) m2.getNetworkEnvelope());
+                else return 1;
+            } else {
+                return m2.getNetworkEnvelope() instanceof MailboxMessage ? -1 : 0;
+            }
+        }
+    }
+
+    
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -429,7 +447,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
 
         Futures.addCallback(future, new FutureCallback<>() {
             public void onSuccess(Set<MailboxItem> decryptedMailboxMessageWithEntries) {
-                UserThread.execute(() -> decryptedMailboxMessageWithEntries.forEach(e -> handleMailboxItem(e)));
+                new Thread(() -> handleMailboxItems(decryptedMailboxMessageWithEntries)).start();
             }
 
             public void onFailure(@NotNull Throwable throwable) {
@@ -471,16 +489,42 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         return new MailboxItem(protectedMailboxStorageEntry, null);
     }
 
+    private void handleMailboxItems(Set<MailboxItem> mailboxItems) {
+
+        // sort mailbox items
+        List<MailboxItem> mailboxItemsSorted = mailboxItems.stream()
+                .filter(e -> !e.isMine())
+                .collect(Collectors.toList());
+        mailboxItemsSorted.addAll(mailboxItems.stream()
+                .filter(e -> e.isMine())
+                .sorted(new MailboxItemComparator())
+                .collect(Collectors.toList()));
+
+        // handle mailbox items
+        mailboxItemsSorted.forEach(e -> handleMailboxItem(e));
+    }
+
+    private static class MailboxItemComparator implements Comparator<MailboxItem> {
+        private DecryptedMessageWithPubKeyComparator comparator = new DecryptedMessageWithPubKeyComparator();
+
+        @Override
+        public int compare(MailboxItem m1, MailboxItem m2) {
+            return comparator.compare(m1.getDecryptedMessageWithPubKey(), m2.getDecryptedMessageWithPubKey());
+        }
+    }
+
     private void handleMailboxItem(MailboxItem mailboxItem) {
         String uid = mailboxItem.getUid();
-        if (!mailboxItemsByUid.containsKey(uid)) {
-            mailboxItemsByUid.put(uid, mailboxItem);
-            mailboxMessageList.add(mailboxItem);
-            log.trace("## handleMailboxItem uid={}\nhash={}",
-                    uid,
-                    P2PDataStorage.get32ByteHashAsByteArray(mailboxItem.getProtectedMailboxStorageEntry().getProtectedStoragePayload()));
+        synchronized (mailboxMessageList) {
+            if (!mailboxItemsByUid.containsKey(uid)) {
+                mailboxItemsByUid.put(uid, mailboxItem);
+                mailboxMessageList.add(mailboxItem);
+                log.trace("## handleMailboxItem uid={}\nhash={}",
+                        uid,
+                        P2PDataStorage.get32ByteHashAsByteArray(mailboxItem.getProtectedMailboxStorageEntry().getProtectedStoragePayload()));
 
-            requestPersistence();
+                requestPersistence();
+            }
         }
 
         // In case we had the item already stored we still prefer to apply it again to the domain.

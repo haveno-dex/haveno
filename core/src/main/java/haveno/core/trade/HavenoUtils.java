@@ -46,8 +46,10 @@ import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,6 +77,7 @@ public class HavenoUtils {
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
+    private static final Map<String, ExecutorService> POOLS = new HashMap<>();
 
     // TODO: better way to share references?
     public static ArbitrationManager arbitrationManager;
@@ -464,6 +467,22 @@ public class HavenoUtils {
             latch.await();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static Future<?> runTask(String threadId, Runnable task) {
+        synchronized (POOLS) {
+            if (!POOLS.containsKey(threadId)) POOLS.put(threadId, Executors.newFixedThreadPool(1));
+            return POOLS.get(threadId).submit(task);
+        }
+    }
+
+    public static void removeThreadId(String threadId) {
+        synchronized (POOLS) {
+            if (POOLS.containsKey(threadId)) {
+                POOLS.get(threadId).shutdown();
+                POOLS.remove(threadId);
+            }
         }
     }
 

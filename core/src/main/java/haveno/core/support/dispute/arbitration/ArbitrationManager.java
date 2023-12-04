@@ -116,7 +116,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             log.info("Received {} from {} with tradeId {} and uid {}",
                     message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid());
 
-            new Thread(() -> {
+            HavenoUtils.runTask(message.getTradeId(), () -> {
                 if (message instanceof DisputeOpenedMessage) {
                     handleDisputeOpenedMessage((DisputeOpenedMessage) message);
                 } else if (message instanceof ChatMessage) {
@@ -126,7 +126,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
                 }
-            }).start();
+            });
         }
     }
 
@@ -221,7 +221,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 String summaryText = chatMessage.getMessage();
                 if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
                 if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
-                else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail is arbitrator is unregistered)
+                else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail if arbitrator is unregistered)
 
                 // save dispute closed message for reprocessing
                 trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
@@ -253,11 +253,9 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     trade.saveWallet();
                 }
 
-                // import multisig hex
-                if (trade.walletExists()) {
-                    if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
-                    trade.importMultisigHex();
-                }
+                // update multisig hex
+                if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
+                if (trade.walletExists()) trade.importMultisigHex();
 
                 // attempt to sign and publish dispute payout tx if given and not already published
                 if (disputeClosedMessage.getUnsignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
@@ -270,7 +268,9 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     }
 
                     // sign and publish dispute payout tx if peer still has not published
-                    if (!trade.isPayoutPublished()) {
+                    if (trade.isPayoutPublished()) {
+                        log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                    } else {
                         try {
                             log.info("Signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                             signAndPublishDisputePayoutTx(trade);
@@ -284,12 +284,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator: " + e.getMessage() + ". TradeId = " + tradeId);
                             }
                         }
-                    } else {
-                        log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
                     }
                 } else {
                     if (trade.isPayoutPublished()) log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
                     else if (disputeClosedMessage.getUnsignedPayoutTxHex() == null) log.info("{} did not receive unsigned dispute payout tx for trade {} because the arbitrator did not have their updated multisig info (can happen if trader went offline after trade started)", trade.getClass().getSimpleName(), trade.getId());
+                }
+
+                // complete disputed trade
+                if (trade.isPayoutPublished()) {
+                    tradeManager.closeDisputedTrade(trade.getId(), Trade.DisputeState.DISPUTE_CLOSED);
                 }
 
                 // We use the chatMessage as we only persist those not the DisputeClosedMessage.

@@ -54,6 +54,7 @@ import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.messages.SignContractResponse;
+import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.ArbitratorProtocol;
 import haveno.core.trade.protocol.MakerProtocol;
 import haveno.core.trade.protocol.ProcessModel;
@@ -232,7 +233,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Override
     public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress peer) {
         NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
-        new Thread(() -> {
+        if (!(networkEnvelope instanceof TradeMessage)) return;
+        String tradeId = ((TradeMessage) networkEnvelope).getTradeId();
+        HavenoUtils.runTask(tradeId, () -> {
             if (networkEnvelope instanceof InitTradeRequest) {
                 handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
             } else if (networkEnvelope instanceof InitMultisigRequest) {
@@ -246,7 +249,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             } else if (networkEnvelope instanceof DepositResponse) {
                 handleDepositResponse((DepositResponse) networkEnvelope, peer);
             }
-        }).start();
+        });
     }
 
 
@@ -1202,6 +1205,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // remove trade
             tradableList.remove(trade);
+            HavenoUtils.removeThreadId(trade.getId());
 
             // unregister and persist
             p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));

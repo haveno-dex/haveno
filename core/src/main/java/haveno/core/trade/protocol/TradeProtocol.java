@@ -93,6 +93,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private int reprocessPaymentReceivedMessageCount;
 
+    // set comparator for processing mailbox messages
+    static {
+        MailboxMessageService.setMailboxMessageComparator(new MailboxMessageComparator());
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -245,12 +250,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (!trade.isCompleted()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
 
         // initialize trade
-        trade.initialize(processModel.getProvider());
+        synchronized (trade) {
+            trade.initialize(processModel.getProvider());
 
-        // process mailbox messages
-        MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
-        if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
-        handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
+            // process mailbox messages
+            MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
+            if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
+            handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
+        }
 
         // send deposits confirmed message if applicable
         maybeSendDepositsConfirmedMessage();
@@ -477,18 +484,18 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 handleTaskRunnerSuccess(peer, message);
                 return;
             }
+            if (trade.getPayoutTx() != null) {
+                log.warn("We received a PaymentSentMessage but we have already created the payout tx " +
+                                        "so we ignore the message. This can happen if the ACK message to the peer did not " +
+                                        "arrive and the peer repeats sending us the message. We send another ACK msg.");
+                sendAckMessage(peer, message, true, null);
+                removeMailboxMessageAfterProcessing(message);
+                return;
+            }
             latchTrade();
             expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED)
                     .with(message)
-                    .from(peer)
-                    .preCondition(trade.getPayoutTx() == null,
-                            () -> {
-                                log.warn("We received a PaymentSentMessage but we have already created the payout tx " +
-                                        "so we ignore the message. This can happen if the ACK message to the peer did not " +
-                                        "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                                sendAckMessage(peer, message, true, null);
-                                removeMailboxMessageAfterProcessing(message);
-                            }))
+                    .from(peer))
                     .setup(tasks(
                             ApplyFilter.class,
                             ProcessPaymentSentMessage.class,
