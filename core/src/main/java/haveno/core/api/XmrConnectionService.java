@@ -330,6 +330,7 @@ public final class XmrConnectionService {
     }
 
     private boolean useTorProxy(MoneroRpcConnection connection) {
+        if (connection == null) return false;
         return connection.isOnion() || (preferences.getUseTorForXmr().isUseTorForXmr() && !HavenoUtils.isLocalHost(connection.getUri()));
     }
 
