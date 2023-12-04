@@ -354,6 +354,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     disputeList.add(dispute);
                 }
 
+                // create dispute opened message
                 NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
                 DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,
                         p2PService.getAddress(),
@@ -367,6 +368,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
                         chatMessage.getUid());
                 recordPendingMessage(disputeOpenedMessage.getClass().getSimpleName());
+
+                // send dispute opened message
                 mailboxMessageService.sendEncryptedMailboxMessage(agentNodeAddress,
                         dispute.getAgentPubKeyRing(),
                         disputeOpenedMessage,
@@ -436,7 +439,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
     protected void handleDisputeOpenedMessage(DisputeOpenedMessage message) {
         Dispute dispute = message.getDispute();
-        log.info("{}.onDisputeOpenedMessage() with trade {}, dispute {}", getClass().getSimpleName(), dispute.getTradeId(), dispute.getId());
+        log.info("Processing {} with trade {}, dispute {}", message.getClass().getSimpleName(), dispute.getTradeId(), dispute.getId());
 
         // get trade
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
@@ -467,6 +470,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress());
                     //DisputeValidation.testIfDisputeTriesReplay(dispute, disputeList.getList());
                 } catch (DisputeValidation.ValidationException e) {
+                    e.printStackTrace();
                     validationExceptions.add(e);
                     throw e;
                 }
@@ -476,6 +480,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 try {
                     DisputeValidation.validatePaymentAccountPayload(dispute);
                 } catch (Exception e) {
+                    e.printStackTrace();
                     log.warn(e.getMessage());
                     trade.prependErrorMessage(e.getMessage());
                 }
@@ -499,7 +504,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                 // update multisig hex
                 if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-                trade.importMultisigHex();
+                if (trade.walletExists()) trade.importMultisigHex();
 
                 // add chat message with price info
                 if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
@@ -518,8 +523,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             errorMessage = null;
                         } else {
                             // valid case if both have opened a dispute and agent was not online
-                            log.debug("We got a dispute already open for that trade and trading peer. TradeId = {}",
-                                    dispute.getTradeId());
+                            log.debug("We got a dispute already open for that trade and trading peer. TradeId = {}", dispute.getTradeId());
                         }
 
                         // add chat message with mediation info if applicable
@@ -529,6 +533,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     }
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 errorMessage = e.getMessage();
                 log.warn(errorMessage);
                 if (trade != null) trade.setErrorMessage(errorMessage);

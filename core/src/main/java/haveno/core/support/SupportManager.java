@@ -29,8 +29,6 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.trade.protocol.TradeProtocol.MailboxMessageComparator;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.AckMessageSourceType;
@@ -40,10 +38,10 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
+import haveno.network.p2p.mailbox.MailboxMessageService.DecryptedMessageWithPubKeyComparator;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,9 +80,9 @@ public abstract class SupportManager {
 
         // We get first the message handler called then the onBootstrapped
         p2PService.addDecryptedDirectMessageListener((decryptedMessageWithPubKey, senderAddress) -> {
-            if (isReady()) applyDirectMessage(decryptedMessageWithPubKey);
-            else {
-                synchronized (lock) {
+            synchronized (lock) {
+                if (isReady()) applyDirectMessage(decryptedMessageWithPubKey);
+                else {
                     // As decryptedDirectMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
                     decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
                     tryApplyMessages();
@@ -92,9 +90,9 @@ public abstract class SupportManager {
             }
         });
         mailboxMessageService.addDecryptedMailboxListener((decryptedMessageWithPubKey, senderAddress) -> {
-            if (isReady()) applyMailboxMessage(decryptedMessageWithPubKey);
-            else {
-                synchronized (lock) {
+            synchronized (lock) {
+                if (isReady()) applyMailboxMessage(decryptedMessageWithPubKey);
+                else {
                     // As decryptedMailboxMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
                     decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
                     tryApplyMessages();
@@ -393,24 +391,6 @@ public abstract class SupportManager {
             AckMessage ackMessage = (AckMessage) networkEnvelope;
             onAckMessage(ackMessage);
             mailboxMessageService.removeMailboxMsg(ackMessage);
-        }
-    }
-
-    private static class DecryptedMessageWithPubKeyComparator implements Comparator<DecryptedMessageWithPubKey> {
-
-        MailboxMessageComparator mailboxMessageComparator;
-        public DecryptedMessageWithPubKeyComparator() {
-            mailboxMessageComparator = new TradeProtocol.MailboxMessageComparator();
-        }
-
-        @Override
-        public int compare(DecryptedMessageWithPubKey m1, DecryptedMessageWithPubKey m2) {
-            if (m1.getNetworkEnvelope() instanceof MailboxMessage) {
-                if (m2.getNetworkEnvelope() instanceof MailboxMessage) return mailboxMessageComparator.compare((MailboxMessage) m1.getNetworkEnvelope(), (MailboxMessage) m2.getNetworkEnvelope());
-                else return 1;
-            } else {
-                return m2.getNetworkEnvelope() instanceof MailboxMessage ? -1 : 0;
-            }
         }
     }
 }
