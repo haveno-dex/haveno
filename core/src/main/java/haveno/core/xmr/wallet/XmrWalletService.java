@@ -890,6 +890,7 @@ public class XmrWalletService {
             cmd.add("--" + MONERO_NETWORK_TYPE.toString().toLowerCase());
         }
 
+        // set connection flags
         MoneroRpcConnection connection = xmrConnectionService.getConnection();
         if (connection != null) {
             cmd.add("--daemon-address");
