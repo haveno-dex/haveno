@@ -581,6 +581,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Button cancelButton = tuple.second;
 
         closeTicketButton.setOnAction(e -> {
+            closeTicketButton.disableProperty().unbind();
+            closeTicketButton.setDisable(true);
             if (dispute.getSupportType() == SupportType.ARBITRATION &&
                     peersDisputeOptional.isPresent() &&
                     !peersDisputeOptional.get().isClosed() &&

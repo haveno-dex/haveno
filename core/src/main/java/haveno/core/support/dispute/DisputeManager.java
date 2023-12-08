@@ -764,6 +764,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                     disputeResult.getChatMessage().getUid());
 
                             clearPendingMessage();
+                            dispute.setIsClosed();
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setArrived(true);
@@ -782,6 +783,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                     disputeResult.getChatMessage().getUid());
 
                             clearPendingMessage();
+                            dispute.setIsClosed();
                             // We use the chatMessage wrapped inside the DisputeClosedMessage for
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setStoredInMailbox(true);

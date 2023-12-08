@@ -392,8 +392,8 @@ public abstract class Trade implements Tradable, Model {
     transient private Subscription tradePhaseSubscription;
     transient private Subscription payoutStateSubscription;
     transient private TaskLooper txPollLooper;
-    transient private Long walletRefreshPeriod;
-    transient private Long syncNormalStartTime;
+    transient private Long walletRefreshPeriodMs;
+    transient private Long syncNormalStartTimeMs;
 
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     private static final long IDLE_SYNC_PERIOD_MS = 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
@@ -775,7 +775,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isIdling() {
-        return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists(); // arbitrator idles trade after deposits confirm
+        return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && syncNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
 
     public void syncAndPollWallet() {
@@ -783,11 +783,25 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void syncWalletNormallyForMs(long syncNormalDuration) {
-        syncNormalStartTime = System.currentTimeMillis();
+        syncNormalStartTimeMs = System.currentTimeMillis();
+
+        // override wallet refresh period
         setWalletRefreshPeriod(xmrWalletService.getConnectionService().getRefreshPeriodMs());
-        UserThread.runAfter(() -> {
-            if (!isShutDown && System.currentTimeMillis() >= syncNormalStartTime + syncNormalDuration) updateWalletRefreshPeriod();
-        }, syncNormalDuration);
+
+        // reset wallet refresh period after duration 
+        new Thread(() -> {
+            GenUtils.waitFor(syncNormalDuration);
+            if (!isShutDown && System.currentTimeMillis() >= syncNormalStartTimeMs + syncNormalDuration) {
+                syncNormalStartTimeMs = null;
+                updateWalletRefreshPeriod();
+            }
+        }).start();
+
+        // TODO: sync wallet because `auto_refresh` will not sync wallet until end of last sync period (which could be a long idle)
+        new Thread(() -> {
+            GenUtils.waitFor(1000);
+            if (!isShutDownStarted) trySyncWallet(true);
+        }).start();
     }
 
     public void importMultisigHex() {
@@ -824,7 +838,7 @@ public abstract class Trade implements Tradable, Model {
             stopPolling();
             xmrWalletService.closeWallet(wallet, true);
             wallet = null;
-            walletRefreshPeriod = null;
+            walletRefreshPeriodMs = null;
         }
     }
 
@@ -1317,11 +1331,14 @@ public abstract class Trade implements Tradable, Model {
             getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()));
         } else if (getDisputeState().isClosed()) {
             DisputeResult disputeResult = getDisputeResult();
-            BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
-            getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
-            getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
-            getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
-            getSeller().setPayoutAmount(disputeResult.getSellerPayoutAmountBeforeCost().subtract(getSeller().getPayoutTxFee()));
+            if (disputeResult == null) log.warn("Dispute result is not set for {} {}", getClass().getSimpleName(), getId());
+            else {
+                BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
+                getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
+                getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
+                getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
+                getSeller().setPayoutAmount(disputeResult.getSellerPayoutAmountBeforeCost().subtract(getSeller().getPayoutTxFee()));
+            }
         }
     }
 
@@ -1834,11 +1851,11 @@ public abstract class Trade implements Tradable, Model {
         setWalletRefreshPeriod(getWalletRefreshPeriod());
     }
 
-    private void setWalletRefreshPeriod(long walletRefreshPeriod) {
+    private void setWalletRefreshPeriod(long walletRefreshPeriodMs) {
         synchronized (walletLock) {
             if (this.isShutDownStarted) return;
-            if (this.walletRefreshPeriod != null && this.walletRefreshPeriod == walletRefreshPeriod) return;
-            this.walletRefreshPeriod = walletRefreshPeriod;
+            if (this.walletRefreshPeriodMs != null && this.walletRefreshPeriodMs == walletRefreshPeriodMs) return;
+            this.walletRefreshPeriodMs = walletRefreshPeriodMs;
             if (getWallet() != null) {
                 log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), getWalletRefreshPeriod());
                 getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
@@ -1855,7 +1872,7 @@ public abstract class Trade implements Tradable, Model {
             if (isShutDownStarted || isPolling()) return;
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
             txPollLooper = new TaskLooper(() -> pollWallet());
-            txPollLooper.start(walletRefreshPeriod);
+            txPollLooper.start(walletRefreshPeriodMs);
         }
     }
 
@@ -1961,6 +1978,7 @@ public abstract class Trade implements Tradable, Model {
                 }
             } catch (Exception e) {
                 if (!isShutDownStarted && wallet != null && isWalletConnected()) {
+                    e.printStackTrace();
                     log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
                 }
             }
