@@ -102,7 +102,7 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
 
     public static void checkBINotNullOrZero(BigInteger value, String name) {
         checkNotNull(value, name + " is null");
-        checkArgument(value.compareTo(BigInteger.valueOf(0)) > 0,
+        checkArgument(value.compareTo(BigInteger.ZERO) > 0,
                 name + " must be positive. " + name + "=" + value);
     }
 

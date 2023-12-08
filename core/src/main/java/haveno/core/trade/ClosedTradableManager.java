@@ -216,8 +216,8 @@ public class ClosedTradableManager implements PersistedDataHost {
 
     public BigInteger getXmrTradeFee(Tradable tradable) {
         return isMaker(tradable) ?
-                tradable.getOptionalMakerFee().orElse(BigInteger.valueOf(0)) :
-                tradable.getOptionalTakerFee().orElse(BigInteger.valueOf(0));
+                tradable.getOptionalMakerFee().orElse(BigInteger.ZERO) :
+                tradable.getOptionalTakerFee().orElse(BigInteger.ZERO);
     }
 
     public boolean isMaker(Tradable tradable) {

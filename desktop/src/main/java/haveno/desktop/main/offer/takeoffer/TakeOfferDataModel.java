@@ -353,7 +353,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void calculateVolume() {
         if (tradePrice != null && offer != null &&
                 amount.get() != null &&
-                amount.get().compareTo(BigInteger.valueOf(0)) != 0) {
+                amount.get().compareTo(BigInteger.ZERO) != 0) {
             Volume volumeByAmount = tradePrice.getVolumeByAmount(amount.get());
             volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
 

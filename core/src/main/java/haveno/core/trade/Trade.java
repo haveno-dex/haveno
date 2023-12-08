@@ -1658,7 +1658,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public BigInteger getFrozenAmount() {
-        BigInteger sum = BigInteger.valueOf(0);
+        BigInteger sum = BigInteger.ZERO;
         for (String keyImage : getSelf().getReserveTxKeyImages()) {
             List<MoneroOutputWallet> outputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage))); // TODO: will this check tx pool? avoid
             if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
@@ -1667,7 +1667,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public BigInteger getReservedAmount() {
-        if (isArbitrator() || !isDepositsPublished() || isPayoutPublished()) return BigInteger.valueOf(0);
+        if (isArbitrator() || !isDepositsPublished() || isPayoutPublished()) return BigInteger.ZERO;
         return isBuyer() ? getBuyer().getSecurityDeposit() : getAmount().add(getSeller().getSecurityDeposit());
     }
 

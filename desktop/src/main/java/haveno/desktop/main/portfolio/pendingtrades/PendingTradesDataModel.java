@@ -276,14 +276,14 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     return offer.getMakerFee();
                 } else {
                     log.error("offer is null");
-                    return BigInteger.valueOf(0);
+                    return BigInteger.ZERO;
                 }
             } else {
                 return trade.getTakerFee();
             }
         } else {
             log.error("Trade is null at getTotalFees");
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
         }
     }
 

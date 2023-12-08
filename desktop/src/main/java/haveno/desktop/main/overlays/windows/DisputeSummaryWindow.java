@@ -364,7 +364,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             // be made
             return totalAmount.compareTo(available) <= 0;
         } else {
-            if (totalAmount.compareTo(BigInteger.valueOf(0)) <= 0) {
+            if (totalAmount.compareTo(BigInteger.ZERO) <= 0) {
                 return false;
             }
             return totalAmount.compareTo(available) == 0;
@@ -612,23 +612,23 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         String sellerPayoutAddressString = contract.getSellerPayoutAddressString();
         List<MoneroDestination> destinations = payoutTx.getOutgoingTransfer().getDestinations();
         boolean buyerFirst = destinations.get(0).getAddress().equals(buyerPayoutAddressString);
-        BigInteger buyerPayoutAmount = buyerFirst ? destinations.get(0).getAmount() : destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.valueOf(0);
-        BigInteger sellerPayoutAmount = buyerFirst ? (destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.valueOf(0)) : destinations.get(0).getAmount();
+        BigInteger buyerPayoutAmount = buyerFirst ? destinations.get(0).getAmount() : destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.ZERO;
+        BigInteger sellerPayoutAmount = buyerFirst ? (destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.ZERO) : destinations.get(0).getAmount();
 
         String buyerDetails = "";
-        if (buyerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (buyerPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
             buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
                     HavenoUtils.formatXmr(buyerPayoutAmount, true),
                     buyerPayoutAddressString);
         }
         String sellerDetails = "";
-        if (sellerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (sellerPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
             sellerDetails = Res.get("disputeSummaryWindow.close.txDetails.seller",
                     HavenoUtils.formatXmr(sellerPayoutAmount, true),
                     sellerPayoutAddressString);
         }
         BigInteger outputAmount = buyerPayoutAmount.add(sellerPayoutAmount).add(payoutTx.getFee());
-        if (outputAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (outputAmount.compareTo(BigInteger.ZERO) > 0) {
             new Popup().width(900)
                     .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
                     .confirmation(Res.get("disputeSummaryWindow.close.txDetails",
@@ -728,13 +728,13 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 sellerPayoutAmount.equals(sellerSecurityDeposit)) {
             buyerGetsTradeAmountRadioButton.setSelected(true);
         } else if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(BigInteger.valueOf(0))) {
+                sellerPayoutAmount.equals(BigInteger.ZERO)) {
             buyerGetsAllRadioButton.setSelected(true);
         } else if (sellerPayoutAmount.equals(tradeAmount.add(sellerSecurityDeposit))
                 && buyerPayoutAmount.equals(buyerSecurityDeposit)) {
             sellerGetsTradeAmountRadioButton.setSelected(true);
         } else if (sellerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit))
-                && buyerPayoutAmount.equals(BigInteger.valueOf(0))) {
+                && buyerPayoutAmount.equals(BigInteger.ZERO)) {
             sellerGetsAllRadioButton.setSelected(true);
         } else {
             customRadioButton.setSelected(true);

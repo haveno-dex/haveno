@@ -367,7 +367,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static PaymentMethod getDummyPaymentMethod(String id) {
-        return new PaymentMethod(id, 0, BigInteger.valueOf(0), Arrays.asList());
+        return new PaymentMethod(id, 0, BigInteger.ZERO, Arrays.asList());
     }
 
 
@@ -417,7 +417,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     // Used for dummy entries in payment methods list (SHOW_ALL)
     private PaymentMethod(String id) {
-        this(id, 0, BigInteger.valueOf(0), new ArrayList<String>());
+        this(id, 0, BigInteger.ZERO, new ArrayList<String>());
     }
 
 

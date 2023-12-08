@@ -62,7 +62,7 @@ public class CoinUtil {
      * @return The percentage value as double (e.g. 1% is 0.01)
      */
     public static double getAsPercentPerBtc(BigInteger part, BigInteger total) {
-        return MathUtils.roundDouble(HavenoUtils.divide(part == null ? BigInteger.valueOf(0) : part, total == null ? BigInteger.valueOf(1) : total), 4);
+        return MathUtils.roundDouble(HavenoUtils.divide(part == null ? BigInteger.ZERO : part, total == null ? BigInteger.valueOf(1) : total), 4);
     }
 
     /**
@@ -71,7 +71,7 @@ public class CoinUtil {
      * @return The percentage as atomic units (e.g. 1% of 1 BTC is 0.01 BTC)
      */
     public static BigInteger getPercentOfAmount(double percent, BigInteger amount) {
-        if (amount == null) amount = BigInteger.valueOf(0);
+        if (amount == null) amount = BigInteger.ZERO;
         return BigDecimal.valueOf(percent).multiply(new BigDecimal(amount)).setScale(8, RoundingMode.DOWN).toBigInteger();
     }
 
@@ -134,7 +134,7 @@ public class CoinUtil {
         // 10 EUR in case of HalCash.
         Volume smallestUnitForVolume = Volume.parse(String.valueOf(factor), price.getCurrencyCode());
         if (smallestUnitForVolume.getValue() <= 0)
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
 
         BigInteger smallestUnitForAmount = price.getAmountByVolume(smallestUnitForVolume);
         long minTradeAmount = Restrictions.getMinTradeAmount().longValueExact();
@@ -152,7 +152,7 @@ public class CoinUtil {
                 ? getAdjustedVolumeUnit(price.getVolumeByAmount(smallestUnitForAmount), factor)
                 : getAdjustedVolumeUnit(price.getVolumeByAmount(amount), factor);
         if (volume.getValue() <= 0)
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
 
         // From that adjusted volume we calculate back the amount. It might be a bit different as
         // the amount used as input before due rounding.

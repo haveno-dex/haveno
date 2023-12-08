@@ -360,7 +360,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     // Called from parent as the view does not get notified when the tab is closed
     public void onClose() {
         BigInteger availableBalance = model.dataModel.getAvailableBalance().get();
-        if (availableBalance != null && availableBalance.compareTo(BigInteger.valueOf(0)) > 0 && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
+        if (availableBalance != null && availableBalance.compareTo(BigInteger.ZERO) > 0 && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
             model.dataModel.swapTradeToSavings();
         }
     }

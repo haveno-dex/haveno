@@ -71,7 +71,7 @@ public class CoinUtilTest {
 
         try {
             CoinUtil.getAdjustedAmount(
-                    BigInteger.valueOf(0),
+                    BigInteger.ZERO,
                     Price.valueOf("USD", 1000_0000),
                     HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
                     1);

@@ -101,12 +101,12 @@ public class Balances {
     // TODO (woodser): converting to long should generally be avoided since can lose precision, but in practice these amounts are below max value
 
     private void updateAvailableBalance() {
-        availableBalance.set(xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0));
+        availableBalance.set(xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getUnlockedBalance(0));
     }
 
     private void updatePendingBalance() {
-        BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getBalance(0);
-        BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? BigInteger.valueOf(0) : xmrWalletService.getWallet().getUnlockedBalance(0);
+        BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getBalance(0);
+        BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getUnlockedBalance(0);
         BigInteger pendingBalanceSum = balance.subtract(unlockedBalance);
 
         // add frozen trade balances - reserved amounts
@@ -122,7 +122,7 @@ public class Balances {
     }
 
     private void updateReservedOfferBalance() {
-        BigInteger sum = BigInteger.valueOf(0);
+        BigInteger sum = BigInteger.ZERO;
         if (xmrWalletService.getWallet() != null) {
             List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
             for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(frozenOutput.getAmount());
@@ -138,7 +138,7 @@ public class Balances {
     }
 
     private void updateReservedTradeBalance() {
-        BigInteger sum = BigInteger.valueOf(0);
+        BigInteger sum = BigInteger.ZERO;
         List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : trades) {
             sum = sum.add(trade.getReservedAmount());

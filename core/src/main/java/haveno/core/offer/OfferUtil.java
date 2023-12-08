@@ -143,9 +143,9 @@ public class OfferUtil {
     public BigInteger getBalanceShortage(BigInteger cost, BigInteger balance) {
         if (cost != null) {
             BigInteger shortage = cost.subtract(balance);
-            return shortage.compareTo(BigInteger.valueOf(0)) < 0 ? BigInteger.valueOf(0) : shortage;
+            return shortage.compareTo(BigInteger.ZERO) < 0 ? BigInteger.ZERO : shortage;
         } else {
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
         }
     }
 

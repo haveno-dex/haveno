@@ -386,7 +386,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // verify payouts sum to unlocked balance within loss of precision due to conversion to centineros
         BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // cost = fee + lost dust change
         if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), trade.getId(), arbitratorSignedPayoutTx.getChangeAmount());
-        if (trade.getWallet().getUnlockedBalance().subtract(actualBuyerAmount.add(actualSellerAmount).add(txCost)).compareTo(BigInteger.valueOf(0)) > 0) {
+        if (trade.getWallet().getUnlockedBalance().subtract(actualBuyerAmount.add(actualSellerAmount).add(txCost)).compareTo(BigInteger.ZERO) > 0) {
             throw new RuntimeException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualBuyerAmount.add(actualSellerAmount) + ", buyer payout=" + actualBuyerAmount + ", seller payout=" + actualSellerAmount);
         }
 
@@ -452,7 +452,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     public static BigInteger[] getBuyerSellerPayoutTxCost(DisputeResult disputeResult, BigInteger payoutTxCost) {
         boolean isBuyerWinner = disputeResult.getWinner() == Winner.BUYER;
         BigInteger loserAmount = isBuyerWinner ? disputeResult.getSellerPayoutAmountBeforeCost() : disputeResult.getBuyerPayoutAmountBeforeCost();
-        if (loserAmount.equals(BigInteger.valueOf(0))) {
+        if (loserAmount.equals(BigInteger.ZERO)) {
             BigInteger buyerPayoutTxFee = isBuyerWinner ? payoutTxCost : BigInteger.ZERO;
             BigInteger sellerPayoutTxFee = isBuyerWinner ? BigInteger.ZERO : payoutTxCost;
             return new BigInteger[] { buyerPayoutTxFee, sellerPayoutTxFee };
