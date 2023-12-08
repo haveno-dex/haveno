@@ -37,6 +37,8 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeResult;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationResultState;
 import haveno.core.support.dispute.refund.RefundResultState;
 import haveno.core.support.messages.ChatMessage;
@@ -323,7 +325,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     private final Offer offer;
     private final long takerFee;
-    private final long totalTxFee;
 
     // Added in 1.5.1
     @Getter
@@ -451,6 +452,7 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     @Setter
     private String payoutTxKey;
+    private long payoutTxFee;
     private Long payoutHeight;
     private IdlePayoutSyncer idlePayoutSyncer;
 
@@ -472,7 +474,6 @@ public abstract class Trade implements Tradable, Model {
         this.offer = offer;
         this.amount = tradeAmount.longValueExact();
         this.takerFee = takerFee.longValueExact();
-        this.totalTxFee = 0l; // TODO: sum tx fees
         this.price = tradePrice;
         this.xmrWalletService = xmrWalletService;
         this.processModel = processModel;
@@ -941,20 +942,25 @@ public abstract class Trade implements Tradable, Model {
                 .setRelay(false)
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
 
-        // save updated multisig hex
+        // update state
+        BigInteger payoutTxFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
+        getBuyer().setPayoutTxFee(payoutTxFeeSplit);
+        getBuyer().setPayoutAmount(HavenoUtils.getDestination(buyerPayoutAddress, payoutTx).getAmount());
+        getSeller().setPayoutTxFee(payoutTxFeeSplit);
+        getSeller().setPayoutAmount(HavenoUtils.getDestination(sellerPayoutAddress, payoutTx).getAmount());
         getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
         return payoutTx;
     }
 
     /**
-     * Verify a payout tx.
+     * Process a payout tx.
      *
      * @param payoutTxHex is the payout tx hex to verify
      * @param sign signs the payout tx if true
      * @param publish publishes the signed payout tx if true
      */
-    public void verifyPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
-        log.info("Verifying payout tx");
+    public void processPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
+        log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
 
         // gather relevant info
         MoneroWallet wallet = getWallet();
@@ -981,6 +987,7 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
 
         // verify change address is multisig's primary address
+        if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), payoutTx.getChangeAmount());
         if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO) && !payoutTx.getChangeAddress().equals(wallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
 
         // verify sum of outputs = destination amounts + change amount
@@ -988,11 +995,12 @@ public abstract class Trade implements Tradable, Model {
 
         // verify buyer destination amount is deposit amount + this amount - 1/2 tx costs
         BigInteger txCost = payoutTx.getFee().add(payoutTx.getChangeAmount());
-        BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
+        BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
+        BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCostSplit);
         if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new IllegalArgumentException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
 
         // verify seller destination amount is deposit amount - this amount - 1/2 tx costs
-        BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCost.divide(BigInteger.valueOf(2)));
+        BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCostSplit);
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // check wallet connection
@@ -1025,7 +1033,6 @@ public abstract class Trade implements Tradable, Model {
 
         // submit payout tx
         if (publish) {
-            //if (true) throw new RuntimeException("Let's pretend there's an error last second submitting tx to daemon, so we need to resubmit payout hex");
             wallet.submitMultisigTxHex(payoutTxHex);
             pollWallet();
         }
@@ -1296,9 +1303,47 @@ public abstract class Trade implements Tradable, Model {
     public void setPayoutTx(MoneroTxWallet payoutTx) {
         this.payoutTx = payoutTx;
         payoutTxId = payoutTx.getHash();
-        if ("".equals(payoutTxId)) payoutTxId = null; // tx hash is empty until signed
+        if ("".equals(payoutTxId)) payoutTxId = null; // tx id is empty until signed
         payoutTxKey = payoutTx.getKey();
+        payoutTxFee = payoutTx.getFee().longValueExact();
         for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
+
+        // set final payout amounts
+        if (getDisputeState().isNotDisputed()) {
+            BigInteger splitTxFee = payoutTx.getFee().divide(BigInteger.valueOf(2));
+            getBuyer().setPayoutTxFee(splitTxFee);
+            getSeller().setPayoutTxFee(splitTxFee);
+            getBuyer().setPayoutAmount(getBuyer().getSecurityDeposit().subtract(getBuyer().getPayoutTxFee()).add(getAmount()));
+            getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()));
+        } else if (getDisputeState().isClosed()) {
+            DisputeResult disputeResult = getDisputeResult();
+            BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
+            getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
+            getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
+            getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
+            getSeller().setPayoutAmount(disputeResult.getSellerPayoutAmountBeforeCost().subtract(getSeller().getPayoutTxFee()));
+        }
+    }
+
+    public DisputeResult getDisputeResult() {
+        if (getDisputes().isEmpty()) return null;
+        return getDisputes().get(getDisputes().size() - 1).getDisputeResultProperty().get();
+    }
+
+    @Nullable
+    public MoneroTx getPayoutTx() {
+        if (payoutTx == null) {
+            payoutTx = payoutTxId == null ? null : (this instanceof ArbitratorTrade) ? xmrWalletService.getTxWithCache(payoutTxId) : xmrWalletService.getWallet().getTx(payoutTxId);
+        }
+        return payoutTx;
+    }
+
+    public void setPayoutTxFee(BigInteger payoutTxFee) {
+        this.payoutTxFee = payoutTxFee.longValueExact();
+    }
+
+    public BigInteger getPayoutTxFee() {
+        return BigInteger.valueOf(payoutTxFee);
     }
 
     public void setErrorMessage(String errorMessage) {
@@ -1653,15 +1698,7 @@ public abstract class Trade implements Tradable, Model {
 
     @Override
     public BigInteger getTotalTxFee() {
-        return BigInteger.valueOf(totalTxFee);
-    }
-
-    @Nullable
-    public MoneroTx getPayoutTx() {
-        if (payoutTx == null) {
-            payoutTx = payoutTxId == null ? null : (this instanceof ArbitratorTrade) ? xmrWalletService.getTxWithCache(payoutTxId) : xmrWalletService.getWallet().getTx(payoutTxId);
-        }
-        return payoutTx;
+        return getSelf().getDepositTxFee().add(getSelf().getPayoutTxFee()); // sum my tx fees
     }
 
     public boolean hasErrorMessage() {
@@ -2019,7 +2056,6 @@ public abstract class Trade implements Tradable, Model {
         protobuf.Trade.Builder builder = protobuf.Trade.newBuilder()
                 .setOffer(offer.toProtoMessage())
                 .setTakerFee(takerFee)
-                .setTotalTxFee(totalTxFee)
                 .setTakeOfferDate(takeOfferDate)
                 .setProcessModel(processModel.toProtoMessage())
                 .setAmount(amount)
@@ -2081,7 +2117,7 @@ public abstract class Trade implements Tradable, Model {
         return "Trade{" +
                 "\n     offer=" + offer +
                 ",\n     takerFee=" + takerFee +
-                ",\n     totalTxFee=" + totalTxFee +
+                ",\n     totalTxFee=" + getTotalTxFee() +
                 ",\n     takeOfferDate=" + takeOfferDate +
                 ",\n     processModel=" + processModel +
                 ",\n     payoutTxId='" + payoutTxId + '\'' +
@@ -2098,7 +2134,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     counterCurrencyTxId='" + counterCurrencyTxId + '\'' +
                 ",\n     counterCurrencyExtraData='" + counterCurrencyExtraData + '\'' +
                 ",\n     chatMessages=" + chatMessages +
-                ",\n     totalTxFee=" + totalTxFee +
                 ",\n     takerFee=" + takerFee +
                 ",\n     xmrWalletService=" + xmrWalletService +
                 ",\n     stateProperty=" + stateProperty +

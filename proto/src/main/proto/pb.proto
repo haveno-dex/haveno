@@ -758,8 +758,8 @@ message DisputeResult {
     string summary_notes = 8;
     ChatMessage chat_message = 9;
     bytes arbitrator_signature = 10;
-    int64 buyer_payout_amount = 11;
-    int64 seller_payout_amount = 12;
+    int64 buyer_payout_amount_before_cost = 11;
+    int64 seller_payout_amount_before_cost = 12;
     SubtractFeeFrom subtract_fee_from = 13;
     bytes arbitrator_pub_key = 14;
     int64 close_date = 15;
@@ -1488,28 +1488,27 @@ message Trade {
     string payout_tx_key = 5;
     int64 amount = 6;
     int64 taker_fee = 8;
-    int64 total_tx_fee = 9;
-    int64 take_offer_date = 10;
-    int64 price = 11;
-    State state = 12;
-    PayoutState payout_state = 13;
-    DisputeState dispute_state = 14;
-    TradePeriodState period_state = 15;
-    Contract contract = 16;
-    string contract_as_json = 17;
-    bytes contract_hash = 18;
-    NodeAddress arbitrator_node_address = 19;
-    NodeAddress mediator_node_address = 20;
-    string error_message = 21;
-    string counter_currency_tx_id = 22;
-    repeated ChatMessage chat_message = 23;
-    MediationResultState mediation_result_state = 24;
-    int64 lock_time = 25;
-    int64 start_time = 26;
-    NodeAddress refund_agent_node_address = 27;
-    RefundResultState refund_result_state = 28;
-    string counter_currency_extra_data = 29;
-    string uid = 30;
+    int64 take_offer_date = 9;
+    int64 price = 10;
+    State state = 11;
+    PayoutState payout_state = 12;
+    DisputeState dispute_state = 13;
+    TradePeriodState period_state = 14;
+    Contract contract = 15;
+    string contract_as_json = 16;
+    bytes contract_hash = 17;
+    NodeAddress arbitrator_node_address = 18;
+    NodeAddress mediator_node_address = 19;
+    string error_message = 20;
+    string counter_currency_tx_id = 21;
+    repeated ChatMessage chat_message = 22;
+    MediationResultState mediation_result_state = 23;
+    int64 lock_time = 24;
+    int64 start_time = 25;
+    NodeAddress refund_agent_node_address = 26;
+    RefundResultState refund_result_state = 27;
+    string counter_currency_extra_data = 28;
+    string uid = 29;
 }
 
 message BuyerAsMakerTrade {
@@ -1572,21 +1571,23 @@ message TradePeer {
     PaymentSentMessage payment_sent_message = 23;
     PaymentReceivedMessage payment_received_message = 24;
     DisputeClosedMessage dispute_closed_message = 25;
-
-    string reserve_tx_hash = 1001;
-    string reserve_tx_hex = 1002;
-    string reserve_tx_key = 1003;
-    repeated string reserve_tx_key_images = 1004;
-    string prepared_multisig_hex = 1005;
-    string made_multisig_hex = 1006;
-    string exchanged_multisig_hex = 1007;
-    string deposit_tx_hash = 1008;
-    string deposit_tx_hex = 1009;
-    string deposit_tx_key = 1010;
-    int64 deposit_tx_fee = 1011;
-    int64 security_deposit = 1012;
-    string updated_multisig_hex = 1013;
-    bool deposits_confirmed_message_acked = 1014;
+    string reserve_tx_hash = 26;
+    string reserve_tx_hex = 27;
+    string reserve_tx_key = 28;
+    repeated string reserve_tx_key_images = 29;
+    string prepared_multisig_hex = 30;
+    string made_multisig_hex = 31;
+    string exchanged_multisig_hex = 32;
+    string updated_multisig_hex = 33;
+    bool deposits_confirmed_message_acked = 34;
+    string deposit_tx_hash = 35;
+    string deposit_tx_hex = 36;
+    string deposit_tx_key = 37;
+    int64 deposit_tx_fee = 38;
+    int64 security_deposit = 39;
+    string unsigned_payout_tx_hex = 40;
+    int64 payout_tx_fee = 41;
+    int64 payout_amount = 42;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

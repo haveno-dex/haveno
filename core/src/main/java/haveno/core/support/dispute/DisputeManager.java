@@ -69,7 +69,6 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -729,23 +728,21 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 dispute.addAndPersistChatMessage(chatMessage);
             }
 
-            // create dispute payout tx if not published
+            // create dispute payout tx once per trader if we have their updated multisig hex
             TradePeer receiver = trade.getTradePeer(dispute.getTraderPubKeyRing());
-            if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null) {
-                trade.getProcessModel().setUnsignedPayoutTx(createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false)); // can be null if we don't have receiver's multisig hex
+            if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null && receiver.getUnsignedPayoutTxHex() == null) {
+                createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
             }
 
             // create dispute closed message
-            MoneroTxWallet unsignedPayoutTx = receiver.getUpdatedMultisigHex() == null ? null : trade.getProcessModel().getUnsignedPayoutTx();
-            String unsignedPayoutTxHex = unsignedPayoutTx == null ? null : unsignedPayoutTx.getTxSet().getMultisigTxHex();
             TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-            boolean deferPublishPayout = !exists && unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal();
+            boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal();
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
                     getSupportType(),
                     trade.getSelf().getUpdatedMultisigHex(),
-                    unsignedPayoutTxHex, // include dispute payout tx if arbitrator has their updated multisig info
+                    receiver.getUnsignedPayoutTxHex(), // include dispute payout tx if arbitrator has their updated multisig info
                     deferPublishPayout); // instruct trader to defer publishing payout tx because peer is expected to publish imminently
 
             // send dispute closed message
@@ -812,12 +809,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         }
                     }
             );
-
-            // save state
-            if (unsignedPayoutTx != null) {
-                trade.setPayoutTx(unsignedPayoutTx);
-                trade.setPayoutTxHex(unsignedPayoutTx.getTxSet().getMultisigTxHex());
-            }
             trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG);
             requestPersistence();
         } catch (Exception e) {
@@ -829,7 +820,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public MoneroTxWallet createDisputePayoutTx(Trade trade, Contract contract, DisputeResult disputeResult, boolean skipMultisigImport) {
+    public MoneroTxWallet createDisputePayoutTx(Trade trade, Contract contract, DisputeResult disputeResult, boolean updateState) {
 
         // import multisig hex
         trade.importMultisigHex();
@@ -848,42 +839,34 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 // trade wallet must be synced
                 if (trade.getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + trade.getId());
 
-                // collect winner and loser payout address and amounts
-                String winnerPayoutAddress = disputeResult.getWinner() == Winner.BUYER ?
-                        (contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString()) :
-                        (contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString());
-                String loserPayoutAddress = winnerPayoutAddress.equals(contract.getMakerPayoutAddressString()) ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
-                BigInteger winnerPayoutAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount();
-                BigInteger loserPayoutAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
-
-                // check sufficient balance
-                if (winnerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Winner payout cannot be negative");
-                if (loserPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Loser payout cannot be negative");
-                if (winnerPayoutAmount.add(loserPayoutAmount).compareTo(trade.getWallet().getUnlockedBalance()) > 0) {
-                    throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs " + winnerPayoutAmount + " + " + loserPayoutAmount + " = " + (winnerPayoutAmount.add(loserPayoutAmount)));
+                // check amounts
+                if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Buyer payout cannot be negative");
+                if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Seller payout cannot be negative");
+                if (disputeResult.getBuyerPayoutAmountBeforeCost().add(disputeResult.getSellerPayoutAmountBeforeCost()).compareTo(trade.getWallet().getUnlockedBalance()) > 0) {
+                    throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs " + disputeResult.getBuyerPayoutAmountBeforeCost() + " + " + disputeResult.getSellerPayoutAmountBeforeCost() + " = " + (disputeResult.getBuyerPayoutAmountBeforeCost().add(disputeResult.getSellerPayoutAmountBeforeCost())));
                 }
-
-                // add any loss of precision to winner payout
-                winnerPayoutAmount = winnerPayoutAmount.add(trade.getWallet().getUnlockedBalance().subtract(winnerPayoutAmount.add(loserPayoutAmount)));
 
                 // create dispute payout tx config
                 MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0);
+                String buyerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString();
+                String sellerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
                 txConfig.setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
-                if (winnerPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(winnerPayoutAddress, winnerPayoutAmount);
-                if (loserPayoutAmount.compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(loserPayoutAddress, loserPayoutAmount);
+                if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(buyerPayoutAddress, disputeResult.getBuyerPayoutAmountBeforeCost());
+                if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(sellerPayoutAddress, disputeResult.getSellerPayoutAmountBeforeCost());
 
                 // configure who pays mining fee
+                BigInteger loserPayoutAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmountBeforeCost() : disputeResult.getBuyerPayoutAmountBeforeCost();
                 if (loserPayoutAmount.equals(BigInteger.ZERO)) txConfig.setSubtractFeeFrom(0); // winner pays fee if loser gets 0
                 else {
                     switch (disputeResult.getSubtractFeeFrom()) {
                         case BUYER_AND_SELLER:
-                            txConfig.setSubtractFeeFrom(Arrays.asList(0, 1));
+                            txConfig.setSubtractFeeFrom(0, 1);
                             break;
                         case BUYER_ONLY:
-                            txConfig.setSubtractFeeFrom(disputeResult.getWinner() == Winner.BUYER ? 0 : 1);
+                            txConfig.setSubtractFeeFrom(0);
                             break;
                         case SELLER_ONLY:
-                            txConfig.setSubtractFeeFrom(disputeResult.getWinner() == Winner.SELLER ? 0 : 1);
+                            txConfig.setSubtractFeeFrom(1);
                             break;
                     }
                 }
@@ -897,8 +880,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     throw new RuntimeException("Loser payout is too small to cover the mining fee");
                 }
 
-                // save updated multisig hex
-                trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
+                // update trade state
+                if (updateState) {
+                    trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
+                    trade.setPayoutTx(payoutTx);
+                    trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                    if (trade.getBuyer().getUpdatedMultisigHex() != null && trade.getBuyer().getUnsignedPayoutTxHex() == null) trade.getBuyer().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                    if (trade.getSeller().getUpdatedMultisigHex() != null && trade.getSeller().getUnsignedPayoutTxHex() == null) trade.getSeller().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                }
                 return payoutTx;
             } catch (Exception e) {
                 trade.syncAndPollWallet();

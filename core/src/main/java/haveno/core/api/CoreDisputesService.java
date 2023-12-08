@@ -163,9 +163,6 @@ public class CoreDisputesService {
                 }
                 applyPayoutAmountsToDisputeResult(payout, winningDispute, winnerDisputeResult, customWinnerAmount);
 
-                // create dispute payout tx
-                trade.getProcessModel().setUnsignedPayoutTx(arbitrationManager.createDisputePayoutTx(trade, winningDispute.getContract(), winnerDisputeResult, false));
-
                 // close winning dispute ticket
                 closeDisputeTicket(arbitrationManager, winningDispute, winnerDisputeResult, () -> {
                     arbitrationManager.requestPersistence();
@@ -180,8 +177,8 @@ public class CoreDisputesService {
                 if (!loserDisputeOptional.isPresent()) throw new IllegalStateException("could not find peer dispute");
                 var loserDispute = loserDisputeOptional.get();
                 var loserDisputeResult = createDisputeResult(loserDispute, winner, reason, summaryNotes, closeDate);
-                loserDisputeResult.setBuyerPayoutAmount(winnerDisputeResult.getBuyerPayoutAmount());
-                loserDisputeResult.setSellerPayoutAmount(winnerDisputeResult.getSellerPayoutAmount());
+                loserDisputeResult.setBuyerPayoutAmountBeforeCost(winnerDisputeResult.getBuyerPayoutAmountBeforeCost());
+                loserDisputeResult.setSellerPayoutAmountBeforeCost(winnerDisputeResult.getSellerPayoutAmountBeforeCost());
                 loserDisputeResult.setSubtractFeeFrom(winnerDisputeResult.getSubtractFeeFrom());
                 closeDisputeTicket(arbitrationManager, loserDispute, loserDisputeResult, () -> {
                     arbitrationManager.requestPersistence();
@@ -217,31 +214,23 @@ public class CoreDisputesService {
         BigInteger tradeAmount = contract.getTradeAmount();
         disputeResult.setSubtractFeeFrom(DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER);
         if (payout == DisputePayout.BUYER_GETS_TRADE_AMOUNT) {
-            disputeResult.setBuyerPayoutAmount(tradeAmount.add(buyerSecurityDeposit));
-            disputeResult.setSellerPayoutAmount(sellerSecurityDeposit);
+            disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit));
+            disputeResult.setSellerPayoutAmountBeforeCost(sellerSecurityDeposit);
         } else if (payout == DisputePayout.BUYER_GETS_ALL) {
-            disputeResult.setBuyerPayoutAmount(tradeAmount
-                    .add(buyerSecurityDeposit)
-                    .add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
-            disputeResult.setSellerPayoutAmount(BigInteger.valueOf(0));
+            disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
+            disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.valueOf(0));
         } else if (payout == DisputePayout.SELLER_GETS_TRADE_AMOUNT) {
-            disputeResult.setBuyerPayoutAmount(buyerSecurityDeposit);
-            disputeResult.setSellerPayoutAmount(tradeAmount.add(sellerSecurityDeposit));
+            disputeResult.setBuyerPayoutAmountBeforeCost(buyerSecurityDeposit);
+            disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit));
         } else if (payout == DisputePayout.SELLER_GETS_ALL) {
-            disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(0));
-            disputeResult.setSellerPayoutAmount(tradeAmount
-                    .add(sellerSecurityDeposit)
-                    .add(buyerSecurityDeposit));
+            disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.valueOf(0));
+            disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit).add(buyerSecurityDeposit));
         } else if (payout == DisputePayout.CUSTOM) {
-            if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) {
-                throw new RuntimeException("Winner payout is more than the trade wallet's balance");
-            }
+            if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) throw new RuntimeException("Winner payout is more than the trade wallet's balance");
             long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
-            if (loserAmount < 0) {
-                throw new RuntimeException("Loser payout cannot be negative");
-            }
-            disputeResult.setBuyerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
-            disputeResult.setSellerPayoutAmount(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
+            if (loserAmount < 0) throw new RuntimeException("Loser payout cannot be negative");
+            disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
+            disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
             disputeResult.setSubtractFeeFrom(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? SubtractFeeFrom.SELLER_ONLY : SubtractFeeFrom.BUYER_ONLY); // winner gets exact amount, loser pays mining fee
         }
     }
@@ -263,8 +252,8 @@ public class CoreDisputesService {
                 currencyCode,
                 Res.get("disputeSummaryWindow.reason." + reason.name()),
                 amount,
-                HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true),
-                HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true),
+                HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost(), true),
+                HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost(), true),
                 disputeResult.summaryNotesProperty().get()
         );
 

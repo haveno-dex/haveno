@@ -136,6 +136,11 @@ public final class TradePeer implements PersistablePayload {
     private long depositTxFee;
     private long securityDeposit;
     @Nullable
+    @Setter
+    private String unsignedPayoutTxHex;
+    private long payoutTxFee;
+    private long payoutAmount;
+    @Nullable
     private String updatedMultisigHex;
     @Getter
     @Setter
@@ -159,6 +164,22 @@ public final class TradePeer implements PersistablePayload {
 
     public void setSecurityDeposit(BigInteger securityDeposit) {
         this.securityDeposit = securityDeposit.longValueExact();
+    }
+
+    public BigInteger getPayoutTxFee() {
+        return BigInteger.valueOf(payoutTxFee);
+    }
+
+    public void setPayoutTxFee(BigInteger payoutTxFee) {
+        this.payoutTxFee = payoutTxFee.longValueExact();
+    }
+
+    public BigInteger getPayoutAmount() {
+        return BigInteger.valueOf(payoutAmount);
+    }
+
+    public void setPayoutAmount(BigInteger payoutAmount) {
+        this.payoutAmount = payoutAmount.longValueExact();
     }
 
     @Override
@@ -191,12 +212,15 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(exchangedMultisigHex).ifPresent(e -> builder.setExchangedMultisigHex(exchangedMultisigHex));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         Optional.ofNullable(depositTxHash).ifPresent(e -> builder.setDepositTxHash(depositTxHash));
         Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
         Optional.ofNullable(depositTxFee).ifPresent(e -> builder.setDepositTxFee(depositTxFee));
         Optional.ofNullable(securityDeposit).ifPresent(e -> builder.setSecurityDeposit(securityDeposit));
-        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        Optional.ofNullable(unsignedPayoutTxHex).ifPresent(e -> builder.setUnsignedPayoutTxHex(unsignedPayoutTxHex));
+        Optional.ofNullable(payoutTxFee).ifPresent(e -> builder.setPayoutTxFee(payoutTxFee));
+        Optional.ofNullable(payoutAmount).ifPresent(e -> builder.setPayoutAmount(payoutAmount));
         builder.setDepositsConfirmedMessageAcked(depositsConfirmedMessageAcked);
 
         builder.setCurrentDate(currentDate);
@@ -237,13 +261,16 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradePeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
             tradePeer.setExchangedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
+            tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
+            tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());
             tradePeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
             tradePeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
             tradePeer.setDepositTxFee(BigInteger.valueOf(proto.getDepositTxFee()));
             tradePeer.setSecurityDeposit(BigInteger.valueOf(proto.getSecurityDeposit()));
-            tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
-            tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());
+            tradePeer.setUnsignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getUnsignedPayoutTxHex()));
+            tradePeer.setPayoutTxFee(BigInteger.valueOf(proto.getPayoutTxFee()));
+            tradePeer.setPayoutAmount(BigInteger.valueOf(proto.getPayoutAmount()));
             return tradePeer;
         }
     }

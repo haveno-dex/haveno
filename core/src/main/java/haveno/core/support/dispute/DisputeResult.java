@@ -86,8 +86,8 @@ public final class DisputeResult implements NetworkPayload {
     @Setter
     @Nullable
     private byte[] arbitratorSignature;
-    private long buyerPayoutAmount;
-    private long sellerPayoutAmount;
+    private long buyerPayoutAmountBeforeCost;
+    private long sellerPayoutAmountBeforeCost;
     @Setter
     @Nullable
     private byte[] arbitratorPubKey;
@@ -109,8 +109,8 @@ public final class DisputeResult implements NetworkPayload {
                          String summaryNotes,
                          @Nullable ChatMessage chatMessage,
                          @Nullable byte[] arbitratorSignature,
-                         long buyerPayoutAmount,
-                         long sellerPayoutAmount,
+                         long buyerPayoutAmountBeforeCost,
+                         long sellerPayoutAmountBeforeCost,
                          @Nullable byte[] arbitratorPubKey,
                          long closeDate) {
         this.tradeId = tradeId;
@@ -124,8 +124,8 @@ public final class DisputeResult implements NetworkPayload {
         this.summaryNotesProperty.set(summaryNotes);
         this.chatMessage = chatMessage;
         this.arbitratorSignature = arbitratorSignature;
-        this.buyerPayoutAmount = buyerPayoutAmount;
-        this.sellerPayoutAmount = sellerPayoutAmount;
+        this.buyerPayoutAmountBeforeCost = buyerPayoutAmountBeforeCost;
+        this.sellerPayoutAmountBeforeCost = sellerPayoutAmountBeforeCost;
         this.arbitratorPubKey = arbitratorPubKey;
         this.closeDate = closeDate;
     }
@@ -147,8 +147,8 @@ public final class DisputeResult implements NetworkPayload {
                 proto.getSummaryNotes(),
                 proto.getChatMessage() == null ? null : ChatMessage.fromPayloadProto(proto.getChatMessage()),
                 proto.getArbitratorSignature().toByteArray(),
-                proto.getBuyerPayoutAmount(),
-                proto.getSellerPayoutAmount(),
+                proto.getBuyerPayoutAmountBeforeCost(),
+                proto.getSellerPayoutAmountBeforeCost(),
                 proto.getArbitratorPubKey().toByteArray(),
                 proto.getCloseDate());
     }
@@ -163,8 +163,8 @@ public final class DisputeResult implements NetworkPayload {
                 .setIdVerification(idVerificationProperty.get())
                 .setScreenCast(screenCastProperty.get())
                 .setSummaryNotes(summaryNotesProperty.get())
-                .setBuyerPayoutAmount(buyerPayoutAmount)
-                .setSellerPayoutAmount(sellerPayoutAmount)
+                .setBuyerPayoutAmountBeforeCost(buyerPayoutAmountBeforeCost)
+                .setSellerPayoutAmountBeforeCost(sellerPayoutAmountBeforeCost)
                 .setCloseDate(closeDate);
 
         Optional.ofNullable(arbitratorSignature).ifPresent(arbitratorSignature -> builder.setArbitratorSignature(ByteString.copyFrom(arbitratorSignature)));
@@ -213,22 +213,22 @@ public final class DisputeResult implements NetworkPayload {
         return summaryNotesProperty;
     }
 
-    public void setBuyerPayoutAmount(BigInteger buyerPayoutAmount) {
-        if (buyerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("buyerPayoutAmount cannot be negative");
-        this.buyerPayoutAmount = buyerPayoutAmount.longValueExact();
+    public void setBuyerPayoutAmountBeforeCost(BigInteger buyerPayoutAmountBeforeCost) {
+        if (buyerPayoutAmountBeforeCost.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("buyerPayoutAmountBeforeCost cannot be negative");
+        this.buyerPayoutAmountBeforeCost = buyerPayoutAmountBeforeCost.longValueExact();
     }
 
-    public BigInteger getBuyerPayoutAmount() {
-        return BigInteger.valueOf(buyerPayoutAmount);
+    public BigInteger getBuyerPayoutAmountBeforeCost() {
+        return BigInteger.valueOf(buyerPayoutAmountBeforeCost);
     }
 
-    public void setSellerPayoutAmount(BigInteger sellerPayoutAmount) {
-        if (sellerPayoutAmount.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("sellerPayoutAmount cannot be negative");
-        this.sellerPayoutAmount = sellerPayoutAmount.longValueExact();
+    public void setSellerPayoutAmountBeforeCost(BigInteger sellerPayoutAmountBeforeCost) {
+        if (sellerPayoutAmountBeforeCost.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("sellerPayoutAmountBeforeCost cannot be negative");
+        this.sellerPayoutAmountBeforeCost = sellerPayoutAmountBeforeCost.longValueExact();
     }
 
-    public BigInteger getSellerPayoutAmount() {
-        return BigInteger.valueOf(sellerPayoutAmount);
+    public BigInteger getSellerPayoutAmountBeforeCost() {
+        return BigInteger.valueOf(sellerPayoutAmountBeforeCost);
     }
 
     public void setCloseDate(Date closeDate) {
@@ -253,8 +253,8 @@ public final class DisputeResult implements NetworkPayload {
                 ",\n     summaryNotesProperty=" + summaryNotesProperty +
                 ",\n     chatMessage=" + chatMessage +
                 ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
-                ",\n     buyerPayoutAmount=" + buyerPayoutAmount +
-                ",\n     sellerPayoutAmount=" + sellerPayoutAmount +
+                ",\n     buyerPayoutAmountBeforeCost=" + buyerPayoutAmountBeforeCost +
+                ",\n     sellerPayoutAmountBeforeCost=" + sellerPayoutAmountBeforeCost +
                 ",\n     arbitratorPubKey=" + Utilities.bytesAsHexString(arbitratorPubKey) +
                 ",\n     closeDate=" + closeDate +
                 "\n}";

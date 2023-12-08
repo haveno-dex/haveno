@@ -639,10 +639,9 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 String sellersRole = contract.isBuyerMakerAndSellerTaker() ? "Seller as taker" : "Seller as maker";
                 String opener = firstDispute.isDisputeOpenerIsBuyer() ? buyersRole : sellersRole;
                 DisputeResult disputeResult = firstDispute.getDisputeResultProperty().get();
-                String winner = disputeResult != null &&
-                        disputeResult.getWinner() == DisputeResult.Winner.BUYER ? "Buyer" : "Seller";
-                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true) : "";
-                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true) : "";
+                String winner = disputeResult != null && disputeResult.getWinner() == DisputeResult.Winner.BUYER ? "Buyer" : "Seller";
+                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost(), true) : "";
+                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost(), true) : "";
 
                 int index = disputeIndex.incrementAndGet();
                 String tradeDateString = dateFormatter.format(firstDispute.getTradeDate());

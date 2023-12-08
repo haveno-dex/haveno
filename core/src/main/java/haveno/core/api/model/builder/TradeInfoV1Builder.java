@@ -41,6 +41,12 @@ public final class TradeInfoV1Builder {
     private long takerFee;
     private long buyerSecurityDeposit;
     private long sellerSecurityDeposit;
+    private long buyerDepositTxFee;
+    private long sellerDepositTxFee;
+    private long buyerPayoutTxFee;
+    private long sellerPayoutTxFee;
+    private long buyerPayoutAmount;
+    private long sellerPayoutAmount;
     private String makerDepositTxId;
     private String takerDepositTxId;
     private String payoutTxId;
@@ -114,6 +120,36 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withSellerSecurityDeposit(long sellerSecurityDeposit) {
         this.sellerSecurityDeposit = sellerSecurityDeposit;
+        return this;
+    }
+
+    public TradeInfoV1Builder withBuyerDepositTxFee(long buyerDepositTxFee) {
+        this.buyerDepositTxFee = buyerDepositTxFee;
+        return this;
+    }
+
+    public TradeInfoV1Builder withSellerDepositTxFee(long sellerDepositTxFee) {
+        this.sellerDepositTxFee = sellerDepositTxFee;
+        return this;
+    }
+
+    public TradeInfoV1Builder withBuyerPayoutTxFee(long buyerPayoutTxFee) {
+        this.buyerPayoutTxFee = buyerPayoutTxFee;
+        return this;
+    }
+
+    public TradeInfoV1Builder withSellerPayoutTxFee(long sellerPayoutTxFee) {
+        this.sellerPayoutTxFee = sellerPayoutTxFee;
+        return this;
+    }
+
+    public TradeInfoV1Builder withBuyerPayoutAmount(long buyerPayoutAmount) {
+        this.buyerPayoutAmount = buyerPayoutAmount;
+        return this;
+    }
+
+    public TradeInfoV1Builder withSellerPayoutAmount(long sellerPayoutAmount) {
+        this.sellerPayoutAmount = sellerPayoutAmount;
         return this;
     }
 

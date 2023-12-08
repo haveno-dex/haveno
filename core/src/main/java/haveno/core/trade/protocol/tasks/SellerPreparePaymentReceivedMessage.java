@@ -48,7 +48,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 if (trade.getPayoutTxHex() != null) {
                     try {
                         log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
-                        trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
+                        trade.processPayoutTx(trade.getPayoutTxHex(), true, true);
                     } catch (Exception e) {
                         log.warn("Error verifying, signing, and publishing payout tx for trade {}: {}. Creating unsigned payout tx", trade.getId(), e.getMessage());
                         createUnsignedPayoutTx();
@@ -60,7 +60,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
 
                 // republish payout tx from previous message
                 log.info("Seller re-verifying and publishing payout tx for trade {}", trade.getId());
-                trade.verifyPayoutTx(trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
+                trade.processPayoutTx(trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
             }
 
             processModel.getTradeManager().requestPersistence();

@@ -380,42 +380,22 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
 
         // get actual payout amounts
-        BigInteger actualWinnerAmount = disputeResult.getWinner() == Winner.BUYER ? buyerPayoutDestination.getAmount() : sellerPayoutDestination.getAmount();
-        BigInteger actualLoserAmount = numDestinations == 1 ? BigInteger.ZERO : disputeResult.getWinner() == Winner.BUYER ? sellerPayoutDestination.getAmount() : buyerPayoutDestination.getAmount();
+        BigInteger actualBuyerAmount = buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount();
+        BigInteger actualSellerAmount = sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount();
 
         // verify payouts sum to unlocked balance within loss of precision due to conversion to centineros
-        BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // fee + lost dust change
-        if (trade.getWallet().getUnlockedBalance().subtract(actualWinnerAmount.add(actualLoserAmount).add(txCost)).compareTo(BigInteger.valueOf(0)) > 0) {
-            throw new RuntimeException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualWinnerAmount.add(actualLoserAmount) + ", winner payout=" + actualWinnerAmount + ", loser payout=" + actualLoserAmount);
+        BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // cost = fee + lost dust change
+        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), trade.getId(), arbitratorSignedPayoutTx.getChangeAmount());
+        if (trade.getWallet().getUnlockedBalance().subtract(actualBuyerAmount.add(actualSellerAmount).add(txCost)).compareTo(BigInteger.valueOf(0)) > 0) {
+            throw new RuntimeException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualBuyerAmount.add(actualSellerAmount) + ", buyer payout=" + actualBuyerAmount + ", seller payout=" + actualSellerAmount);
         }
 
-        // get expected payout amounts
-        BigInteger expectedWinnerAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getBuyerPayoutAmount() : disputeResult.getSellerPayoutAmount();
-        BigInteger expectedLoserAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmount() : disputeResult.getBuyerPayoutAmount();
-
-        // subtract mining fee from expected payouts
-        if (expectedLoserAmount.equals(BigInteger.ZERO)) expectedWinnerAmount = expectedWinnerAmount.subtract(txCost); // winner pays fee if loser gets 0
-        else {
-            switch (disputeResult.getSubtractFeeFrom()) {
-                case BUYER_AND_SELLER:
-                    BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
-                    expectedWinnerAmount = expectedWinnerAmount.subtract(txCostSplit);
-                    expectedLoserAmount = expectedLoserAmount.subtract(txCostSplit);
-                    break;
-                case BUYER_ONLY:
-                    expectedWinnerAmount = expectedWinnerAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? txCost : BigInteger.ZERO);
-                    expectedLoserAmount = expectedLoserAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? BigInteger.ZERO : txCost);
-                    break;
-                case SELLER_ONLY:
-                    expectedWinnerAmount = expectedWinnerAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? BigInteger.ZERO : txCost);
-                    expectedLoserAmount = expectedLoserAmount.subtract(disputeResult.getWinner() == Winner.BUYER ? txCost : BigInteger.ZERO);
-                    break;
-            }
-        }
-
-        // verify winner and loser payout amounts
-        if (!expectedWinnerAmount.equals(actualWinnerAmount)) throw new RuntimeException("Unexpected winner payout: " + expectedWinnerAmount + " vs " + actualWinnerAmount);
-        if (!expectedLoserAmount.equals(actualLoserAmount)) throw new RuntimeException("Unexpected loser payout: " + expectedLoserAmount + " vs " + actualLoserAmount);
+        // verify payout amounts
+        BigInteger[] buyerSellerPayoutTxCost = getBuyerSellerPayoutTxCost(disputeResult, txCost);
+        BigInteger expectedBuyerAmount = disputeResult.getBuyerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[0]);
+        BigInteger expectedSellerAmount = disputeResult.getSellerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[1]);
+        if (!expectedBuyerAmount.equals(actualBuyerAmount)) throw new RuntimeException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + actualBuyerAmount);
+        if (!expectedSellerAmount.equals(actualSellerAmount)) throw new RuntimeException("Unexpected seller payout: " + expectedSellerAmount + " vs " + actualSellerAmount);
 
         // check wallet's daemon connection
         trade.checkDaemonConnection();
@@ -431,7 +411,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         boolean signed = trade.getPayoutTxHex() != null && !nonSignedDisputePayoutTxHexes.contains(trade.getPayoutTxHex());
 
         // sign arbitrator-signed payout tx
-        if (!signed) {
+        if (signed) disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
+        else {
             MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(unsignedPayoutTxHex);
             if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
             String signedMultisigTxHex = result.getSignedMultisigTxHex();
@@ -443,8 +424,9 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
             MoneroTxWallet feeEstimateTx = null;
             try {
-                feeEstimateTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
+                feeEstimateTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
             } catch (Exception e) {
+                e.printStackTrace();
                 log.warn("Could not recreate dispute payout tx to verify fee: " + e.getMessage());
             }
             if (feeEstimateTx != null) {
@@ -453,8 +435,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
                 log.info("Payout tx fee {} is within tolerance, diff %={}", arbitratorSignedPayoutTx.getFee(), feeDiff);
             }
-        } else {
-            disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
         }
 
         // submit fully signed payout tx to the network
@@ -467,5 +447,27 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         trade.setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
         dispute.setDisputePayoutTxId(disputeTxSet.getTxs().get(0).getHash());
         return disputeTxSet;
+    }
+
+    public static BigInteger[] getBuyerSellerPayoutTxCost(DisputeResult disputeResult, BigInteger payoutTxCost) {
+        boolean isBuyerWinner = disputeResult.getWinner() == Winner.BUYER;
+        BigInteger loserAmount = isBuyerWinner ? disputeResult.getSellerPayoutAmountBeforeCost() : disputeResult.getBuyerPayoutAmountBeforeCost();
+        if (loserAmount.equals(BigInteger.valueOf(0))) {
+            BigInteger buyerPayoutTxFee = isBuyerWinner ? payoutTxCost : BigInteger.ZERO;
+            BigInteger sellerPayoutTxFee = isBuyerWinner ? BigInteger.ZERO : payoutTxCost;
+            return new BigInteger[] { buyerPayoutTxFee, sellerPayoutTxFee };
+        } else {
+            switch (disputeResult.getSubtractFeeFrom()) {
+                case BUYER_AND_SELLER:
+                    BigInteger payoutTxFeeSplit = payoutTxCost.divide(BigInteger.valueOf(2));
+                    return new BigInteger[] { payoutTxFeeSplit, payoutTxFeeSplit };
+                case BUYER_ONLY:
+                    return new BigInteger[] { payoutTxCost, BigInteger.ZERO };
+                case SELLER_ONLY:
+                    return new BigInteger[] { BigInteger.ZERO, payoutTxCost };
+                default:
+                    throw new RuntimeException("Unsupported subtract fee from: " + disputeResult.getSubtractFeeFrom());
+            }
+        }
     }
 }

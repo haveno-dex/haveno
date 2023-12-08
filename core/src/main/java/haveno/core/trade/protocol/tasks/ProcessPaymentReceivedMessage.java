@@ -136,17 +136,17 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (!trade.isPayoutPublished()) {
                 if (isSigned) {
                     log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
-                    trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
+                    trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
                 } else {
                     try {
                         PaymentSentMessage paymentSentMessage = (trade.isArbitrator() ? trade.getBuyer() : trade.getArbitrator()).getPaymentSentMessage();
                         if (paymentSentMessage == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
                         if (StringUtils.equals(trade.getPayoutTxHex(), paymentSentMessage.getPayoutTxHex())) { // unsigned
                             log.info("{} {} verifying, signing, and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());
-                            trade.verifyPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
+                            trade.processPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
                         } else {
                             log.info("{} {} re-verifying and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());
-                            trade.verifyPayoutTx(trade.getPayoutTxHex(), false, true);
+                            trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (Exception e) {
                         trade.syncAndPollWallet();
@@ -157,7 +157,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
         } else {
             log.info("Payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            if (message.getSignedPayoutTxHex() != null && !trade.isPayoutConfirmed()) trade.verifyPayoutTx(message.getSignedPayoutTxHex(), false, true);
+            if (message.getSignedPayoutTxHex() != null && !trade.isPayoutConfirmed()) trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
         }
     }
 }

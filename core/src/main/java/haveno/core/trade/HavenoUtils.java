@@ -58,6 +58,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+
 import org.bitcoinj.core.Coin;
 
 /**
@@ -542,5 +545,13 @@ public class HavenoUtils {
         if (c1 == c2) return true;
         if (c1 == null) return false;
         return c1.equals(c2); // equality considers uri, username, and password
+    }
+
+    // TODO: move to monero-java MoneroTxWallet
+    public static MoneroDestination getDestination(String address, MoneroTxWallet tx) {
+        for (MoneroDestination destination : tx.getOutgoingTransfer().getDestinations()) {
+            if (address.equals(destination.getAddress())) return destination;
+        }
+        return null;
     }
 }

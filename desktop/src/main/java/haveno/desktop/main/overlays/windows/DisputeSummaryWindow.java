@@ -211,8 +211,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         if (applyPeersDisputeResult) {
             // If the other peers dispute has been closed we apply the result to ourselves
             DisputeResult peersDisputeResult = peersDisputeOptional.get().getDisputeResultProperty().get();
-            disputeResult.setBuyerPayoutAmount(peersDisputeResult.getBuyerPayoutAmount());
-            disputeResult.setSellerPayoutAmount(peersDisputeResult.getSellerPayoutAmount());
+            disputeResult.setBuyerPayoutAmountBeforeCost(peersDisputeResult.getBuyerPayoutAmountBeforeCost());
+            disputeResult.setSellerPayoutAmountBeforeCost(peersDisputeResult.getSellerPayoutAmountBeforeCost());
             disputeResult.setWinner(peersDisputeResult.getWinner());
             disputeResult.setReason(peersDisputeResult.getReason());
             disputeResult.setSummaryNotes(peersDisputeResult.summaryNotesProperty().get());
@@ -402,8 +402,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             buyerPayoutAmountInputTextField.setText(formattedCounterPartAmount);
         }
 
-        disputeResult.setBuyerPayoutAmount(buyerAmount);
-        disputeResult.setSellerPayoutAmount(sellerAmount);
+        disputeResult.setBuyerPayoutAmountBeforeCost(buyerAmount);
+        disputeResult.setSellerPayoutAmountBeforeCost(sellerAmount);
         disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ? DisputeResult.Winner.BUYER : DisputeResult.Winner.SELLER); // TODO: UI should allow selection of receiver of exact custom amount, otherwise defaulting to bigger receiver. could extend API to specify who pays payout tx fee: buyer, seller, or both
         disputeResult.setSubtractFeeFrom(buyerAmount.compareTo(sellerAmount) > 0 ? DisputeResult.SubtractFeeFrom.SELLER_ONLY : DisputeResult.SubtractFeeFrom.BUYER_ONLY);
     }
@@ -587,8 +587,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     !trade.isPayoutPublished()) {
 
                 // create payout tx
-                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
-                trade.getProcessModel().setUnsignedPayoutTx((MoneroTxWallet) payoutTx);
+                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
 
                 // show confirmation
                 showPayoutTxConfirmation(contract,
@@ -709,8 +708,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             throw new IllegalStateException("Unknown radio button");
         }
         disputesService.applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, -1);
-        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount()));
-        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount()));
+        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost()));
+        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost()));
     }
 
     private void applyTradeAmountRadioButtonStates() {
@@ -719,8 +718,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         BigInteger sellerSecurityDeposit = trade.getSeller().getSecurityDeposit();
         BigInteger tradeAmount = contract.getTradeAmount();
 
-        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
 
         buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(buyerPayoutAmount));
         sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(sellerPayoutAmount));
