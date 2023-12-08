@@ -40,7 +40,6 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
@@ -1353,7 +1352,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         // subscribe to trade's dispute state
                                         Trade trade = tradeManager.getTrade(item.getTradeId());
                                         if (trade == null) log.warn("Dispute's trade is null for trade {}", item.getTradeId());
-                                        else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(disputeState)));
+                                        else subscription = EasyBind.subscribe(item.isClosedProperty(), closedProp -> setText(getDisputeStateText(item)));
                                     } else {
                                         if (closedProperty != null) {
                                             closedProperty.removeListener(listener);
@@ -1373,28 +1372,16 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         return column;
     }
 
-    private String getDisputeStateText(DisputeState disputeState) {
-        switch (disputeState) {
-            case DISPUTE_REQUESTED:
-                return Res.get("support.requested");
-            case DISPUTE_CLOSED:
-                return Res.get("support.closed");
-            default:
-                return Res.get("support.open");
-        }
-    }
-
     private String getDisputeStateText(Dispute dispute) {
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
         if (trade == null) {
             log.warn("Dispute's trade is null for trade {}", dispute.getTradeId());
             return Res.get("support.closed");
         }
+        if (dispute.isClosed()) return Res.get("support.closed");
         switch (trade.getDisputeState()) {
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
-            case DISPUTE_CLOSED:
-                return Res.get("support.closed");
             default:
                 return Res.get("support.open");
         }
