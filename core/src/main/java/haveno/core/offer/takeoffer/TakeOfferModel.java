@@ -66,7 +66,7 @@ public class TakeOfferModel implements Model {
     @Getter
     private BigInteger totalToPay;
     @Getter
-    private BigInteger missingCoin = BigInteger.valueOf(0);
+    private BigInteger missingCoin = BigInteger.ZERO;
     @Getter
     private BigInteger totalAvailableBalance;
     @Getter
@@ -156,7 +156,7 @@ public class TakeOfferModel implements Model {
     @NotNull
     public BigInteger getFundsNeededForTrade() {
         // If taking a buy offer, taker needs to reserve the offer.amt too.
-        return securityDeposit.add(offer.isBuyOffer() ? amount : BigInteger.valueOf(0));
+        return securityDeposit.add(offer.isBuyOffer() ? amount : BigInteger.ZERO);
     }
 
     private void validateModelInputs() {
@@ -173,7 +173,7 @@ public class TakeOfferModel implements Model {
         this.amount = null;
         this.availableBalance = null;
         this.isXmrWalletFunded = false;
-        this.missingCoin = BigInteger.valueOf(0);
+        this.missingCoin = BigInteger.ZERO;
         this.offer = null;
         this.paymentAccount = null;
         this.securityDeposit = null;

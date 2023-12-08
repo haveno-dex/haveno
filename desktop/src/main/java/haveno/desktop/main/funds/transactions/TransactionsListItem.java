@@ -53,7 +53,7 @@ class TransactionsListItem {
     private String direction = "";
     private boolean received;
     private boolean detailsAvailable;
-    private BigInteger amount = BigInteger.valueOf(0);
+    private BigInteger amount = BigInteger.ZERO;
     private String memo = "";
     private long confirmations = 0;
     @Getter
@@ -88,8 +88,8 @@ class TransactionsListItem {
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
 
-        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? BigInteger.valueOf(0) : tx.getIncomingAmount();
-        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? BigInteger.valueOf(0) : tx.getOutgoingAmount();
+        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? BigInteger.ZERO : tx.getIncomingAmount();
+        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? BigInteger.ZERO : tx.getOutgoingAmount();
 
         if (tx.getTransfers().get(0).isIncoming()) {
             addressString = ((MoneroIncomingTransfer) tx.getTransfers().get(0)).getAddress();
@@ -99,7 +99,7 @@ class TransactionsListItem {
             else addressString = "unavailable";
         }
 
-        if (valueSentFromMe.compareTo(BigInteger.valueOf(0)) == 0) {
+        if (valueSentFromMe.compareTo(BigInteger.ZERO) == 0) {
             amount = valueSentToMe;
             direction = Res.get("funds.tx.direction.receivedWith");
             received = true;
@@ -125,13 +125,13 @@ class TransactionsListItem {
                 } else if (trade.getPayoutTxId() != null &&
                         trade.getPayoutTxId().equals(txId)) {
                     details = Res.get("funds.tx.multiSigPayout", tradeId);
-                    if (amount.compareTo(BigInteger.valueOf(0)) == 0) {
+                    if (amount.compareTo(BigInteger.ZERO) == 0) {
                         initialTxConfidenceVisibility = false;
                     }
                 } else {
                     Trade.DisputeState disputeState = trade.getDisputeState();
                     if (disputeState == Trade.DisputeState.DISPUTE_CLOSED) {
-                        if (valueSentToMe.compareTo(BigInteger.valueOf(0)) > 0) {
+                        if (valueSentToMe.compareTo(BigInteger.ZERO) > 0) {
                             details = Res.get("funds.tx.disputePayout", tradeId);
                         } else {
                             details = Res.get("funds.tx.disputeLost", tradeId);
@@ -139,7 +139,7 @@ class TransactionsListItem {
                     } else if (disputeState == Trade.DisputeState.REFUND_REQUEST_CLOSED ||
                             disputeState == Trade.DisputeState.REFUND_REQUESTED ||
                             disputeState == Trade.DisputeState.REFUND_REQUEST_STARTED_BY_PEER) {
-                        if (valueSentToMe.compareTo(BigInteger.valueOf(0)) > 0) {
+                        if (valueSentToMe.compareTo(BigInteger.ZERO) > 0) {
                             details = Res.get("funds.tx.refund", tradeId);
                         } else {
                             // We have spent the deposit tx outputs to the Haveno donation address to enable
@@ -147,7 +147,7 @@ class TransactionsListItem {
                             // already when funding the deposit tx we show 0 BTC as amount.
                             // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds
                             // left our wallet nor we received funds. So we set indicator invisible.
-                            amount = BigInteger.valueOf(0);
+                            amount = BigInteger.ZERO;
                             details = Res.get("funds.tx.collateralForRefund", tradeId);
                             initialTxConfidenceVisibility = false;
                         }
@@ -157,7 +157,7 @@ class TransactionsListItem {
                 }
             }
         } else {
-            if (amount.compareTo(BigInteger.valueOf(0)) == 0) {
+            if (amount.compareTo(BigInteger.ZERO) == 0) {
                 details = Res.get("funds.tx.noFundsFromDispute");
             }
         }

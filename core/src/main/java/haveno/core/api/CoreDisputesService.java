@@ -218,12 +218,12 @@ public class CoreDisputesService {
             disputeResult.setSellerPayoutAmountBeforeCost(sellerSecurityDeposit);
         } else if (payout == DisputePayout.BUYER_GETS_ALL) {
             disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
-            disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.valueOf(0));
+            disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.ZERO);
         } else if (payout == DisputePayout.SELLER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmountBeforeCost(buyerSecurityDeposit);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit));
         } else if (payout == DisputePayout.SELLER_GETS_ALL) {
-            disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.valueOf(0));
+            disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.ZERO);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit).add(buyerSecurityDeposit));
         } else if (payout == DisputePayout.CUSTOM) {
             if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) throw new RuntimeException("Winner payout is more than the trade wallet's balance");

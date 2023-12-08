@@ -151,9 +151,9 @@ public class AddressTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private String getMoneroURI() {
-        if (amount.get().compareTo(BigInteger.valueOf(0)) < 0) {
+        if (amount.get().compareTo(BigInteger.ZERO) < 0) {
             log.warn("Amount must not be negative");
-            setAmount(BigInteger.valueOf(0));
+            setAmount(BigInteger.ZERO);
         }
         return GUIUtil.getMoneroURI(
                 address.get(),

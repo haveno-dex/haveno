@@ -1029,7 +1029,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // get earliest unscheduled txs with sufficient incoming amount
         List<String> scheduledTxHashes = new ArrayList<String>();
-        BigInteger scheduledAmount = BigInteger.valueOf(0);
+        BigInteger scheduledAmount = BigInteger.ZERO;
         for (MoneroTxWallet lockedTx : lockedTxs) {
             if (isTxScheduled(openOffers, lockedTx.getHash())) continue;
             if (lockedTx.getIncomingTransfers() == null || lockedTx.getIncomingTransfers().isEmpty()) continue;
@@ -1048,7 +1048,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
-        BigInteger scheduledAmount = BigInteger.valueOf(0);
+        BigInteger scheduledAmount = BigInteger.ZERO;
         for (OpenOffer openOffer : openOffers) {
             if (openOffer.getState() != OpenOffer.State.SCHEDULED) continue;
             if (openOffer.getScheduledTxHashes() == null) continue;
@@ -1178,7 +1178,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
-            BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.valueOf(0) : offer.getAmount();
+            BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
             Tuple2<MoneroTx, BigInteger> txResult = xmrWalletService.verifyTradeTx(
                     offer.getId(),

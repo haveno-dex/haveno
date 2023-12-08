@@ -121,7 +121,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected boolean allowAmountUpdate = true;
     private final TradeStatisticsManager tradeStatisticsManager;
 
-    private final Predicate<ObjectProperty<BigInteger>> isNonZeroAmount = (c) -> c.get() != null && c.get().compareTo(BigInteger.valueOf(0)) != 0;
+    private final Predicate<ObjectProperty<BigInteger>> isNonZeroAmount = (c) -> c.get() != null && c.get().compareTo(BigInteger.ZERO) != 0;
     private final Predicate<ObjectProperty<Price>> isNonZeroPrice = (p) -> p.get() != null && !p.get().isZero();
     private final Predicate<ObjectProperty<Volume>> isNonZeroVolume = (v) -> v.get() != null && !v.get().isZero();
     @Getter
@@ -642,7 +642,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private BigInteger getSellerSecurityDeposit() {
         BigInteger amount = this.amount.get();
         if (amount == null)
-            amount = BigInteger.valueOf(0);
+            amount = BigInteger.ZERO;
 
         BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(
                 createOfferService.getSellerSecurityDepositAsDouble(buyerSecurityDepositPct.get()), amount);

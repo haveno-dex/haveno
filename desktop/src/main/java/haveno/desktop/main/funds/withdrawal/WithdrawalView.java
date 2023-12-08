@@ -75,7 +75,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private final P2PService p2PService;
     private final WalletPasswordWindow walletPasswordWindow;
     private XmrBalanceListener balanceListener;
-    private BigInteger amount = BigInteger.valueOf(0);
+    private BigInteger amount = BigInteger.ZERO;
     private ChangeListener<String> amountListener;
     private ChangeListener<Boolean> amountFocusListener;
     private ChangeListener<Toggle> feeToggleGroupListener;
@@ -148,7 +148,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         };
         amountFocusListener = (observable, oldValue, newValue) -> {
             if (oldValue && !newValue) {
-                if (amount.compareTo(BigInteger.valueOf(0)) > 0)
+                if (amount.compareTo(BigInteger.ZERO) > 0)
                     amountTextField.setText(HavenoUtils.formatXmr(amount));
                 else
                     amountTextField.setText("");
@@ -200,7 +200,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 final String withdrawToAddress = withdrawToTextField.getText();
 
                 // create tx
-                if (amount.compareTo(BigInteger.valueOf(0)) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
+                if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
                 MoneroTxWallet tx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
                         .setAmount(amount)
@@ -262,7 +262,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                     .filter(Trade::isPayoutPublished)
                     .forEach(trade -> xmrWalletService.getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT)
                             .ifPresent(addressEntry -> {
-                                if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).compareTo(BigInteger.valueOf(0)) == 0)
+                                if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).compareTo(BigInteger.ZERO) == 0)
                                     tradeManager.onTradeCompleted(trade);
                             }));
         } catch (Exception e) {
@@ -276,7 +276,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void reset() {
-        amount = BigInteger.valueOf(0);
+        amount = BigInteger.ZERO;
         amountTextField.setText("");
         amountTextField.setPromptText(Res.get("funds.withdrawal.setAmount"));
 

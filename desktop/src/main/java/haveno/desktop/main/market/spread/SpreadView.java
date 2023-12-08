@@ -123,7 +123,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
         int numberOfBuyOffers = sortedList.stream().mapToInt(item -> item.numberOfBuyOffers).sum();
         int numberOfSellOffers = sortedList.stream().mapToInt(item -> item.numberOfSellOffers).sum();
 
-        BigInteger totalAmount = BigInteger.valueOf(0);
+        BigInteger totalAmount = BigInteger.ZERO;
         for (SpreadItem item : sortedList) totalAmount = totalAmount.add(item.totalAmount);
         String total = HavenoUtils.formatXmr(totalAmount);
 

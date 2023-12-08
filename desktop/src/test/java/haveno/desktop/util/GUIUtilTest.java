@@ -127,6 +127,6 @@ public class GUIUtilTest {
         BigInteger fee = BigInteger.valueOf(100000000L);
 
         assertEquals(" (0.01% of trade amount)",
-                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), BigInteger.valueOf(0)));
+                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), BigInteger.ZERO));
     }
 }

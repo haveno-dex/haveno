@@ -1051,7 +1051,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         String optionTradeDetails;
         // We don't translate those strings (yet) as it is only displayed to mediators/arbitrators.
         String headline;
-        if (potentialGain.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (potentialGain.compareTo(BigInteger.ZERO) > 0) {
             headline = "This might be a potential option trade!";
             optionTradeDetails = "\nBTC amount calculated with price at dispute opening: " + HavenoUtils.formatXmr(potentialAmountAtDisputeOpening, true) +
                     "\nMax loss of security deposit is: " + HavenoUtils.formatXmr(maxLossSecDeposit, true) +

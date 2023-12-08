@@ -129,7 +129,7 @@ class SpreadViewModel extends ActivatableViewModel {
         }
         spreadItems.clear();
 
-        BigInteger totalAmount = BigInteger.valueOf(0);
+        BigInteger totalAmount = BigInteger.ZERO;
 
         for (String key : offersByCurrencyMap.keySet()) {
             List<Offer> offers = offersByCurrencyMap.get(key);

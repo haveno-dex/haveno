@@ -199,11 +199,11 @@ public class HavenoUtils {
     }
 
     public static BigInteger parseXmr(String input) {
-        if (input == null || input.length() == 0) return BigInteger.valueOf(0);
+        if (input == null || input.length() == 0) return BigInteger.ZERO;
         try {
             return xmrToAtomicUnits(new BigDecimal(ParsingUtils.parseNumberStringToDouble(input)).doubleValue());
         } catch (Exception e) {
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
         }
     }
 
@@ -247,7 +247,7 @@ public class HavenoUtils {
 
     public static BigInteger getFeePerXmr(BigInteger feePerXmr, BigInteger amount) {
         BigDecimal feePerXmrAsDecimal = feePerXmr == null ? BigDecimal.valueOf(0) : new BigDecimal(feePerXmr);
-        BigDecimal amountMultiplier = BigDecimal.valueOf(divide(amount == null ? BigInteger.valueOf(0) : amount, HavenoUtils.xmrToAtomicUnits(1.0)));
+        BigDecimal amountMultiplier = BigDecimal.valueOf(divide(amount == null ? BigInteger.ZERO : amount, HavenoUtils.xmrToAtomicUnits(1.0)));
         return feePerXmrAsDecimal.multiply(amountMultiplier).toBigInteger();
     }
 

@@ -49,7 +49,7 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     @Getter
     protected final ObjectProperty<BigInteger> availableBalance = new SimpleObjectProperty<>();
     @Getter
-    protected final ObjectProperty<BigInteger> missingCoin = new SimpleObjectProperty<>(BigInteger.valueOf(0));
+    protected final ObjectProperty<BigInteger> missingCoin = new SimpleObjectProperty<>(BigInteger.ZERO);
     @Getter
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
     @Getter

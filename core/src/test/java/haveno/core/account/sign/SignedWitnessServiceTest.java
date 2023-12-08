@@ -353,7 +353,7 @@ public class SignedWitnessServiceTest {
         when(keyRing.getSignatureKeyPair()).thenReturn(signerKeyPair);
 
         AccountAgeWitness accountAgeWitness = new AccountAgeWitness(account1DataHash, accountCreationTime);
-        signedWitnessService.signAndPublishAccountAgeWitness(BigInteger.valueOf(0), accountAgeWitness, peerKeyPair.getPublic());
+        signedWitnessService.signAndPublishAccountAgeWitness(BigInteger.ZERO, accountAgeWitness, peerKeyPair.getPublic());
 
         verify(p2pService, never()).addPersistableNetworkPayload(any(PersistableNetworkPayload.class), anyBoolean());
     }

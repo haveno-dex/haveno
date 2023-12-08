@@ -94,7 +94,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
         else if (monetary instanceof CryptoMoney && this.monetary instanceof CryptoMoney)
             return HavenoUtils.coinToAtomicUnits(new CryptoExchangeRate((CryptoMoney) this.monetary).cryptoToCoin((CryptoMoney) monetary));
         else
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
     }
 
     public String getCurrencyCode() {

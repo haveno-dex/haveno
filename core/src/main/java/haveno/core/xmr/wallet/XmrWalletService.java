@@ -424,7 +424,7 @@ public class XmrWalletService {
             // create deposit tx
             String multisigAddress = trade.getProcessModel().getMultisigAddress();
             BigInteger tradeFee = trade instanceof MakerTrade ? trade.getOffer().getMakerFee() : trade.getTakerFee();
-            BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.valueOf(0) : trade.getAmount();
+            BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.ZERO : trade.getAmount();
             BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             long time = System.currentTimeMillis();
             log.info("Creating deposit tx with multisig address={}", multisigAddress);
@@ -449,7 +449,7 @@ public class XmrWalletService {
                 subaddressIndices.addAll(subaddressIndicesWithExactInput);
             }
             if (preferredSubaddressIndex != null) {
-                if (wallet.getBalance(0, preferredSubaddressIndex).compareTo(BigInteger.valueOf(0)) > 0) {
+                if (wallet.getBalance(0, preferredSubaddressIndex).compareTo(BigInteger.ZERO) > 0) {
                     subaddressIndices.add(0, preferredSubaddressIndex); // try preferred subaddress first if funded
                 } else if (reserveExactAmount) {
                     subaddressIndices.add(preferredSubaddressIndex); // otherwise only try preferred subaddress if using exact output
@@ -532,7 +532,7 @@ public class XmrWalletService {
                 }
 
                 // verify unlock height
-                if (!BigInteger.valueOf(0).equals(tx.getUnlockTime())) throw new RuntimeException("Unlock height must be 0");
+                if (!BigInteger.ZERO.equals(tx.getUnlockTime())) throw new RuntimeException("Unlock height must be 0");
 
                 // verify miner fee
                 BigInteger feeEstimate = getElevatedFeeEstimate(tx.getWeight());
@@ -603,7 +603,7 @@ public class XmrWalletService {
         // round up to multiple of quantization mask
         BigInteger[] quotientAndRemainder = baseFee.divideAndRemainder(qmask);
         BigInteger feeEstimate = qmask.multiply(quotientAndRemainder[0]);
-        if (quotientAndRemainder[1].compareTo(BigInteger.valueOf(0)) > 0) feeEstimate = feeEstimate.add(qmask);
+        if (quotientAndRemainder[1].compareTo(BigInteger.ZERO) > 0) feeEstimate = feeEstimate.add(qmask);
         return feeEstimate;
     }
 
@@ -1105,7 +1105,7 @@ public class XmrWalletService {
     }
 
     public List<XmrAddressEntry> getFundedAvailableAddressEntries() {
-        return getAvailableAddressEntries().stream().filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.valueOf(0)) > 0).collect(Collectors.toList());
+        return getAvailableAddressEntries().stream().filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.ZERO) > 0).collect(Collectors.toList());
     }
 
     public List<XmrAddressEntry> getAddressEntryListAsImmutableList() {
@@ -1147,7 +1147,7 @@ public class XmrWalletService {
             //if (tx.getTransfers(new MoneroTransferQuery().setSubaddressIndex(subaddressIndex)).isEmpty()) continue; // TODO monero-project: transfers are occluded by transfers from/to same account, so this will return unused when used
             numUnspentOutputs += tx.isConfirmed() ? tx.getOutputsWallet(new MoneroOutputQuery().setAccountIndex(0).setSubaddressIndex(subaddressIndex)).size() : 1; // TODO: monero-project does not provide outputs for unconfirmed txs
         }
-        boolean positiveBalance = wallet.getBalance(0, subaddressIndex).compareTo(BigInteger.valueOf(0)) > 0;
+        boolean positiveBalance = wallet.getBalance(0, subaddressIndex).compareTo(BigInteger.ZERO) > 0;
         if (positiveBalance && numUnspentOutputs == 0) return 1; // outputs do not appear until confirmed and internal transfers are occluded, so report 1 if positive balance
         return numUnspentOutputs;
     }
@@ -1228,7 +1228,7 @@ public class XmrWalletService {
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOfferById(entry.getOfferId()).isPresent()));
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutUnlocked()));
-        return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.valueOf(0)) > 0);
+        return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.ZERO) > 0);
     }
 
     public void addWalletListener(MoneroWalletListenerI listener) {

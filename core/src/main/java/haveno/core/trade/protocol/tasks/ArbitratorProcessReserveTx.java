@@ -55,7 +55,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
 
             // process reserve tx with expected values
             BigInteger tradeFee = isFromMaker ? trade.getMakerFee() : trade.getTakerFee();
-            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
+            BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
             BigInteger securityDeposit = isFromMaker ? isFromBuyer ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit() : isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             Tuple2<MoneroTx, BigInteger> txResult;
             try {
