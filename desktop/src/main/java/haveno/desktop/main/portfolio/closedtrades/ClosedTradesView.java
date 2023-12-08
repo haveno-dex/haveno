@@ -91,8 +91,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         VOLUME(Res.get("shared.amount")),
         VOLUME_CURRENCY(Res.get("shared.currency")),
         TX_FEE(Res.get("shared.txFee")),
-        TRADE_FEE_BTC(Res.get("shared.tradeFee") + " BTC"),
-        TRADE_FEE_BSQ(Res.get("shared.tradeFee") + " BSQ"),
+        TRADE_FEE(Res.get("shared.tradeFee")),
         BUYER_SEC(Res.get("shared.buyerSecurityDeposit")),
         SELLER_SEC(Res.get("shared.sellerSecurityDeposit")),
         OFFER_TYPE(Res.get("shared.offerType")),
@@ -158,7 +157,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @Override
     public void initialize() {
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
-        tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE_BTC.toString().replace(" BTC", "")));
+        tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE.toString().replace(" BTC", "")));
         buyerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.BUYER_SEC.toString()));
         sellerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.SELLER_SEC.toString()));
         priceColumn.setGraphic(new AutoTooltipLabel(ColumnNames.PRICE.toString()));
@@ -275,11 +274,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                 columns[ColumnNames.VOLUME_CURRENCY.ordinal()] = item.getVolumeCurrencyAsString();
                 columns[ColumnNames.TX_FEE.ordinal()] = item.getTxFeeAsString();
                 if (model.dataModel.isCurrencyForTradeFeeBtc(item.getTradable())) {
-                    columns[ColumnNames.TRADE_FEE_BTC.ordinal()] = item.getTradeFeeAsString(false);
-                    columns[ColumnNames.TRADE_FEE_BSQ.ordinal()] = "";
+                    columns[ColumnNames.TRADE_FEE.ordinal()] = item.getTradeFeeAsString(false);
                 } else {
-                    columns[ColumnNames.TRADE_FEE_BTC.ordinal()] = "";
-                    columns[ColumnNames.TRADE_FEE_BSQ.ordinal()] = item.getTradeFeeAsString(false);
+                    columns[ColumnNames.TRADE_FEE.ordinal()] = "";
                 }
                 columns[ColumnNames.BUYER_SEC.ordinal()] = item.getBuyerSecurityDepositAsString();
                 columns[ColumnNames.SELLER_SEC.ordinal()] = item.getSellerSecurityDepositAsString();

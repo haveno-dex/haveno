@@ -188,8 +188,8 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
             Trade trade = tradeOptional.get();
             if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_REQUESTED ||
                     trade.getDisputeState() == Trade.DisputeState.MEDIATION_STARTED_BY_PEER) {
-                trade.getProcessModel().setBuyerPayoutAmountFromMediation(disputeResult.getBuyerPayoutAmount().longValueExact());
-                trade.getProcessModel().setSellerPayoutAmountFromMediation(disputeResult.getSellerPayoutAmount().longValueExact());
+                trade.getProcessModel().setBuyerPayoutAmountFromMediation(disputeResult.getBuyerPayoutAmountBeforeCost().longValueExact());
+                trade.getProcessModel().setSellerPayoutAmountFromMediation(disputeResult.getSellerPayoutAmountBeforeCost().longValueExact());
 
                 trade.setDisputeState(Trade.DisputeState.MEDIATION_CLOSED);
 
@@ -222,8 +222,8 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
         Optional<Dispute> optionalDispute = findDispute(tradeId);
         checkArgument(optionalDispute.isPresent(), "dispute must be present");
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
-        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
         ProcessModel processModel = trade.getProcessModel();
         processModel.setBuyerPayoutAmountFromMediation(buyerPayoutAmount.longValueExact());
         processModel.setSellerPayoutAmountFromMediation(sellerPayoutAmount.longValueExact());

@@ -679,8 +679,8 @@ public abstract class TradeStepView extends AnchorPane {
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
         Contract contract = checkNotNull(trade.getContract(), "contract must not be null");
         boolean isMyRoleBuyer = contract.isMyRoleBuyer(model.dataModel.getPubKeyRingProvider().get());
-        String buyerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true);
-        String sellerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true);
+        String buyerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost(), true);
+        String sellerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost(), true);
         String myPayoutAmount = isMyRoleBuyer ? buyerPayoutAmount : sellerPayoutAmount;
         String peersPayoutAmount = isMyRoleBuyer ? sellerPayoutAmount : buyerPayoutAmount;
 
