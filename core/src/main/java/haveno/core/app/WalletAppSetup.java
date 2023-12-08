@@ -125,7 +125,7 @@ public class WalletAppSetup {
                         Long bestWalletHeight = walletHeight == null ? null : (Long) walletHeight;
                         String walletHeightAsString = bestWalletHeight != null && bestWalletHeight > 0 ? String.valueOf(bestWalletHeight) : "";
                         if (walletDownloadPercentageD == 1) {
-                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWalletWith", getXmrWalletNetworkAsString(), walletHeightAsString);
+                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.syncedWith", getXmrWalletNetworkAsString(), walletHeightAsString);
                             String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                             result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                             getXmrSplashSyncIconId().set("image-connection-synced");
@@ -142,12 +142,12 @@ public class WalletAppSetup {
                             Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
                             String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
                             if (chainDownloadPercentageD == 1) {
-                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedDaemonWith", getXmrDaemonNetworkAsString(), chainHeightAsString);
+                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.syncedWith", getXmrDaemonNetworkAsString(), chainHeightAsString);
                                 String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                                 result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                                 getXmrSplashSyncIconId().set("image-connection-synced");
                             } else if (chainDownloadPercentageD > 0.0) {
-                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingDaemonWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
                                 result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                             } else {
                                 result = Res.get("mainView.footer.xmrInfo",
