@@ -264,15 +264,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void maybeSendDepositsConfirmedMessage() {
-        if (trade.isDepositsConfirmed()) {
+        new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
+        EasyBind.subscribe(trade.stateProperty(), state -> {
             new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
-        } else {
-            EasyBind.subscribe(trade.stateProperty(), state -> {
-                if (trade.isDepositsConfirmed()) {
-                    new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
-                }
-            });
-        }
+        });
     }
 
     public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
@@ -880,8 +875,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void maybeSendDepositsConfirmedMessages() {
+        if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished()) return;
         synchronized (trade) {
-            if (trade.isDepositsConfirmedAcked()) return;
             if (!trade.isInitialized() || trade.isShutDownStarted()) return; // skip if shutting down
             latchTrade();
             expect(new Condition(trade))
