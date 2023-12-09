@@ -737,9 +737,13 @@ public class XmrWalletService {
                         long time = System.currentTimeMillis();
                         syncWalletWithProgress(); // blocking
                         log.info("Done syncing main wallet in " + (System.currentTimeMillis() - time) + " ms");
-                        wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
-                        wallet.getTxs(new MoneroTxQuery().setIsLocked(true)); // TODO: main wallet's balance does update on startup with 0 conf PaymentReceivedMessage until pool txs fetched?
-                        if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) log.info("Monero wallet balance={}, unlocked balance={}", wallet.getBalance(0), wallet.getUnlockedBalance(0));
+
+                        // log wallet balances
+                        if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) {
+                            BigInteger balance = wallet.getBalance();
+                            BigInteger unlockedBalance = wallet.getUnlockedBalance();
+                            log.info("Monero wallet unlocked balance={}, pending balance={}, total balance={}", unlockedBalance, balance.subtract(unlockedBalance), balance);
+                        }
                         
                         // reapply connection after wallet synced
                         onConnectionChanged(xmrConnectionService.getConnection());
@@ -782,14 +786,15 @@ public class XmrWalletService {
 
     private void syncWalletWithProgress() {
         updateSyncProgress();
-        wallet.startSyncing();
+        wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
         CountDownLatch latch = new CountDownLatch(1);
         syncLooper = new TaskLooper(() -> {
             if (wallet.getHeight() < xmrConnectionService.getTargetHeight()) updateSyncProgress();
             else {
+                syncLooper.stop();
+                wallet.sync(); // necessary to fully sync
                 wasWalletSynced = true;
                 updateSyncProgress();
-                syncLooper.stop();
                 latch.countDown();
             }
         });
