@@ -1200,7 +1200,7 @@ public abstract class Trade implements Tradable, Model {
     // Abstract
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public abstract BigInteger getPayoutAmount();
+    public abstract BigInteger getPayoutAmountBeforeCost();
 
     public abstract boolean confirmPermitted();
 

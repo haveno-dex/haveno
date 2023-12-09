@@ -223,9 +223,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         return sellerState;
     }
 
-    public String getPayoutAmount() {
+    public String getPayoutAmountBeforeCost() {
         return dataModel.getTrade() != null
-                ? HavenoUtils.formatXmr(dataModel.getTrade().getPayoutAmount(), true)
+                ? HavenoUtils.formatXmr(dataModel.getTrade().getPayoutAmountBeforeCost(), true)
                 : "";
     }
 

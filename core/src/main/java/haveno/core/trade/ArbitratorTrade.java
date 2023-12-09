@@ -31,7 +31,7 @@ public class ArbitratorTrade extends Trade {
   }
 
   @Override
-  public BigInteger getPayoutAmount() {
+  public BigInteger getPayoutAmountBeforeCost() {
     throw new RuntimeException("Arbitrator does not have a payout amount");
   }
 
