@@ -51,7 +51,7 @@ public abstract class SellerTrade extends Trade {
     }
 
     @Override
-    public BigInteger getPayoutAmount() {
+    public BigInteger getPayoutAmountBeforeCost() {
         return getSellerSecurityDepositBeforeMiningFee();
     }
 
