@@ -595,7 +595,7 @@ public abstract class Trade implements Tradable, Model {
 
             // check if done
             if (isPayoutUnlocked()) {
-                if (walletExists()) deleteWallet();
+                maybeClearProcessData();
                 return;
             }
 
@@ -662,6 +662,7 @@ public abstract class Trade implements Tradable, Model {
                     if (!isInitialized) return;
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
                     deleteWallet();
+                    maybeClearProcessData();
                     if (idlePayoutSyncer != null) {
                         xmrWalletService.removeWalletListener(idlePayoutSyncer);
                         idlePayoutSyncer = null;
@@ -1142,6 +1143,24 @@ public abstract class Trade implements Tradable, Model {
         long payoutAmountFromMediation = processModel.getSellerPayoutAmountFromMediation();
         long normalPayoutAmount = getSeller().getSecurityDeposit().longValueExact();
         return payoutAmountFromMediation < normalPayoutAmount;
+    }
+
+    public void maybeClearProcessData() {
+        synchronized (walletLock) {
+
+            // skip if already cleared
+            if (!walletExists()) return;
+
+            // delete trade wallet
+            deleteWallet();
+
+            // TODO: clear other process data
+            setPayoutTxHex(null);
+            for (TradePeer peer : getPeers()) {
+                peer.setUnsignedPayoutTxHex(null);
+                peer.setUpdatedMultisigHex(null);
+            }
+        }
     }
 
     public void maybeClearSensitiveData() {
