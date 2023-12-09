@@ -139,7 +139,7 @@ To run Monero and Haveno binaries as system services, scripts are available for 
 
 <b>Set the mandatory minimum version for trading (optional)</b>
 
-If applicable, update the mandatory minimum version for trading, by entering `ctrl + f` to open the Filter window, enter a private key with developer privileges, and enter the minimum version (e.g. 1.0.15) in the field labeled "Min. version required for trading".
+If applicable, update the mandatory minimum version for trading, by entering `ctrl + f` to open the Filter window, enter a private key with developer privileges, and enter the minimum version (e.g. 1.0.16) in the field labeled "Min. version required for trading".
 
 <b>Send update alert</b>
 
