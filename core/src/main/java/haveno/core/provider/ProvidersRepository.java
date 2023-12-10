@@ -47,7 +47,7 @@ public class ProvidersRepository {
     @Getter
     @Nullable
     private List<String> bannedNodes;
-    private int index = 0;
+    private int index = -1;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -80,16 +80,21 @@ public class ProvidersRepository {
     }
 
     // returns true if provider selection loops to beginning
-    public boolean selectNextProviderBaseUrl() {
+    public synchronized boolean selectNextProviderBaseUrl() {
         boolean looped = false;
         if (!providerList.isEmpty()) {
+
+            // increment index
+            index++;
+
+            // loop to beginning
             if (index >= providerList.size()) {
                 index = 0;
                 looped = true;
             }
 
+            // update base url
             baseUrl = providerList.get(index);
-            index++;
 
             if (providerList.size() == 1 && config.baseCurrencyNetwork.isMainnet())
                 log.warn("We only have one provider");
