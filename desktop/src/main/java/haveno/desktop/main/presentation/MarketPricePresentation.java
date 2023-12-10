@@ -131,31 +131,33 @@ public class MarketPricePresentation {
                 });
 
         marketPriceBinding.subscribe((observable, oldValue, newValue) -> {
-            if (newValue != null && !newValue.equals(oldValue)) {
-                setMarketPriceInItems();
+            UserThread.execute(() -> {
+                if (newValue != null && !newValue.equals(oldValue)) {
+                    setMarketPriceInItems();
 
-                String code = priceFeedService.currencyCodeProperty().get();
-                Optional<PriceFeedComboBoxItem> itemOptional = findPriceFeedComboBoxItem(code);
-                if (itemOptional.isPresent()) {
-                    itemOptional.get().setDisplayString(newValue);
-                    selectedPriceFeedComboBoxItemProperty.set(itemOptional.get());
-                } else {
-                    if (CurrencyUtil.isCryptoCurrency(code)) {
-                        CurrencyUtil.getCryptoCurrency(code).ifPresent(cryptoCurrency -> {
-                            preferences.addCryptoCurrency(cryptoCurrency);
-                            fillPriceFeedComboBoxItems();
-                        });
+                    String code = priceFeedService.currencyCodeProperty().get();
+                    Optional<PriceFeedComboBoxItem> itemOptional = findPriceFeedComboBoxItem(code);
+                    if (itemOptional.isPresent()) {
+                        itemOptional.get().setDisplayString(newValue);
+                        selectedPriceFeedComboBoxItemProperty.set(itemOptional.get());
                     } else {
-                        CurrencyUtil.getTraditionalCurrency(code).ifPresent(traditionalCurrency -> {
-                            preferences.addTraditionalCurrency(traditionalCurrency);
-                            fillPriceFeedComboBoxItems();
-                        });
+                        if (CurrencyUtil.isCryptoCurrency(code)) {
+                            CurrencyUtil.getCryptoCurrency(code).ifPresent(cryptoCurrency -> {
+                                preferences.addCryptoCurrency(cryptoCurrency);
+                                fillPriceFeedComboBoxItems();
+                            });
+                        } else {
+                            CurrencyUtil.getTraditionalCurrency(code).ifPresent(traditionalCurrency -> {
+                                preferences.addTraditionalCurrency(traditionalCurrency);
+                                fillPriceFeedComboBoxItems();
+                            });
+                        }
                     }
-                }
 
-                if (selectedPriceFeedComboBoxItemProperty.get() != null)
-                    selectedPriceFeedComboBoxItemProperty.get().setDisplayString(newValue);
-            }
+                    if (selectedPriceFeedComboBoxItemProperty.get() != null)
+                        selectedPriceFeedComboBoxItemProperty.get().setDisplayString(newValue);
+                }
+            });
         });
 
         marketPriceCurrencyCode.bind(priceFeedService.currencyCodeProperty());
