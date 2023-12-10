@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.shared;
 
-import haveno.common.UserThread;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
@@ -38,6 +37,6 @@ public class PriceFeedComboBoxItem {
     }
 
     public void setDisplayString(String displayString) {
-        UserThread.execute(() ->  this.displayStringProperty.set(displayString));
+        this.displayStringProperty.set(displayString);
     }
 }

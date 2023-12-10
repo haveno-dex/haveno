@@ -429,14 +429,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         return new ListCell<>() {
             @Override
             protected void updateItem(PriceFeedComboBoxItem item, boolean empty) {
-                UserThread.execute(() -> {
-                    super.updateItem(item, empty);
-                    if (!empty && item != null) {
-                        textProperty().bind(item.displayStringProperty);
-                    } else {
-                        textProperty().unbind();
-                    }
-                });
+                super.updateItem(item, empty);
+                if (!empty && item != null) {
+                    textProperty().bind(item.displayStringProperty);
+                } else {
+                    textProperty().unbind();
+                }
             }
         };
     }
