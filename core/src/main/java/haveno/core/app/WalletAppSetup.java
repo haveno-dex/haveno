@@ -142,7 +142,7 @@ public class WalletAppSetup {
                             Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
                             String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
                             if (chainDownloadPercentageD == 1) {
-                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.syncedWith", getXmrDaemonNetworkAsString(), chainHeightAsString);
+                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.connectedTo", getXmrDaemonNetworkAsString(), chainHeightAsString);
                                 String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
                                 result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
                                 getXmrSplashSyncIconId().set("image-connection-synced");
