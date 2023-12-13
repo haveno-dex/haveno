@@ -270,7 +270,7 @@ public class WalletAppSetup {
         else if (xmrWalletService.isProxyApplied())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else
-            postFix = "";
+            postFix = " " + Res.get("mainView.footer.clearnet");
         return Res.get(config.baseCurrencyNetwork.name()) + postFix;
     }
 }
