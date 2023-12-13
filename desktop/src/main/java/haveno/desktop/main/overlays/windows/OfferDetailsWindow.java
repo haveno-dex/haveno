@@ -420,7 +420,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 } else {
 
                     // subscribe to trade progress
-                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " 0%");
+                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo", "0%"));
                     numTradesSubscription = EasyBind.subscribe(tradeManager.getNumPendingTrades(), newNum -> {
                         subscribeToProgress(spinnerInfoLabel);
                     });
@@ -436,7 +436,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (trade == null || initProgressSubscription != null) return;
         initProgressSubscription = EasyBind.subscribe(trade.initProgressProperty(), newProgress -> {
             String progress = (int) (newProgress.doubleValue() * 100.0) + "%";
-            UserThread.execute(() -> spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo") + " " + progress));
+            UserThread.execute(() -> spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo", progress)));
         });
     }
 }
