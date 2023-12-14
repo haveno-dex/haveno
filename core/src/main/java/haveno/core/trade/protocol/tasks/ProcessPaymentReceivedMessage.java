@@ -78,17 +78,17 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
             trade.requestPersistence();
 
-            // close open disputes
-            if (trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
-                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
-                for (Dispute dispute : trade.getDisputes()) {
-                    dispute.setIsClosed();
-                }
-            }
 
             // process payout tx unless already unlocked
             if (!trade.isPayoutUnlocked()) processPayoutTx(message);
 
+            // close open disputes
+            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
+            }
+
+            // publish signed witness
             SignedWitness signedWitness = message.getBuyerSignedWitness();
             if (signedWitness != null && trade instanceof BuyerTrade) {
                 // We received the signedWitness from the seller and publish the data to the network.
