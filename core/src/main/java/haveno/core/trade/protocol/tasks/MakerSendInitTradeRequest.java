@@ -43,10 +43,11 @@ public class MakerSendInitTradeRequest extends TradeTask {
         try {
             runInterceptHook();
 
-            // verify trade
+            // verify trade state
             InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // arbitrator's InitTradeRequest to maker
             checkNotNull(makerRequest);
             checkTradeId(processModel.getOfferId(), makerRequest);
+            if (trade.getSelf().getReserveTxHash() == null || trade.getSelf().getReserveTxHash().isEmpty()) throw new IllegalStateException("Reserve tx id is not initialized: " + trade.getSelf().getReserveTxHash());
 
             // create request to arbitrator
             Offer offer = processModel.getOffer();

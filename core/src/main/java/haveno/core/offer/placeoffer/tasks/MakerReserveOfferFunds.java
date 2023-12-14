@@ -70,6 +70,9 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
 
             // save offer state
             model.setReserveTx(reserveTx);
+            model.getOpenOffer().setReserveTxHash(reserveTx.getHash());
+            model.getOpenOffer().setReserveTxHex(reserveTx.getFullHex());
+            model.getOpenOffer().setReserveTxKey(reserveTx.getKey());
             offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
             complete();
         } catch (Throwable t) {
