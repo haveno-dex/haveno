@@ -1101,11 +1101,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         PlaceOfferProtocol placeOfferProtocol = new PlaceOfferProtocol(model,
                 transaction -> {
 
-                    // set reserve tx on open offer
-                    openOffer.setReserveTxHash(model.getReserveTx().getHash());
-                    openOffer.setReserveTxHex(model.getReserveTx().getFullHex());
-                    openOffer.setReserveTxKey(model.getReserveTx().getKey());
-
                     // set offer state
                     openOffer.setState(OpenOffer.State.AVAILABLE);
                     openOffer.setScheduledTxHashes(null);
@@ -1609,9 +1604,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void republishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
 
-        // re-add to offer book if signature is valid
+        // determine if offer is valid
+        boolean isValid = true;
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
-        boolean isValid = arbitrator != null && HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator);
+        if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
+            log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
+            isValid = false;
+        }
+        if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && (openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty())) {
+            log.warn("Offer {} is missing reserve tx hash but has reserved key images, reposting", openOffer.getId());
+            isValid = false;
+        }
+
+        // if valid, re-add offer to book
         if (isValid) {
             offerBookService.addOffer(openOffer.getOffer(),
                 () -> {
@@ -1635,35 +1640,34 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         if (completeHandler != null) completeHandler.run();
                     }
                 });
-            return;
+        } else {
+
+            // cancel and recreate offer
+            onCancelled(openOffer);
+            Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
+            updatedOffer.setPriceFeedService(priceFeedService);
+            OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
+
+            // repost offer
+            new Thread(() -> {
+                synchronized (processOffersLock) {
+                    CountDownLatch latch = new CountDownLatch(1);
+                    processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
+                        addOpenOffer(updatedOpenOffer);
+                        requestPersistence();
+                        latch.countDown();
+                        if (completeHandler != null) completeHandler.run();
+                    }, (errorMessage) -> {
+                        log.warn("Error reposting offer {}: {}", updatedOpenOffer.getId(), errorMessage);
+                        onCancelled(updatedOpenOffer);
+                        updatedOffer.setErrorMessage(errorMessage);
+                        latch.countDown();
+                        if (completeHandler != null) completeHandler.run();
+                    });
+                    HavenoUtils.awaitLatch(latch);
+                }
+            }).start();
         }
-
-        // cancel and recreate offer
-        log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
-        onCancelled(openOffer);
-        Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
-        updatedOffer.setPriceFeedService(priceFeedService);
-        OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
-
-        // repost offer
-        new Thread(() -> {
-            synchronized (processOffersLock) {
-                CountDownLatch latch = new CountDownLatch(1);
-                processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
-                    addOpenOffer(updatedOpenOffer);
-                    requestPersistence();
-                    latch.countDown();
-                    if (completeHandler != null) completeHandler.run();
-                }, (errorMessage) -> {
-                    log.warn("Error reposting offer {} with invalid signature: {}", updatedOpenOffer.getId(), errorMessage);
-                    onCancelled(updatedOpenOffer);
-                    updatedOffer.setErrorMessage(errorMessage);
-                    latch.countDown();
-                    if (completeHandler != null) completeHandler.run();
-                });
-                HavenoUtils.awaitLatch(latch);
-            }
-        }).start();
     }
 
     private void startPeriodicRepublishOffersTimer() {
