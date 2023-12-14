@@ -1352,7 +1352,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         // subscribe to trade's dispute state
                                         Trade trade = tradeManager.getTrade(item.getTradeId());
                                         if (trade == null) log.warn("Dispute's trade is null for trade {}", item.getTradeId());
-                                        else subscription = EasyBind.subscribe(item.isClosedProperty(), closedProp -> setText(getDisputeStateText(item)));
+                                        else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(item)));
                                     } else {
                                         if (closedProperty != null) {
                                             closedProperty.removeListener(listener);
