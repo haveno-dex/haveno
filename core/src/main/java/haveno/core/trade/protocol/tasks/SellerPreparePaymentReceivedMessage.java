@@ -18,6 +18,7 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.support.dispute.Dispute;
 import haveno.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTxWallet;
@@ -61,6 +62,12 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 // republish payout tx from previous message
                 log.info("Seller re-verifying and publishing payout tx for trade {}", trade.getId());
                 trade.processPayoutTx(trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
+            }
+
+            // close open disputes
+            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
             }
 
             processModel.getTradeManager().requestPersistence();

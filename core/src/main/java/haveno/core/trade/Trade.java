@@ -1342,7 +1342,7 @@ public abstract class Trade implements Tradable, Model {
         for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
 
         // set final payout amounts
-        if (getDisputeState().isNotDisputed()) {
+        if (hasPaymentReceivedMessage()) { // TODO: replace with isPaymentReceived() but only if correct when trade completes with dispute
             BigInteger splitTxFee = payoutTx.getFee().divide(BigInteger.valueOf(2));
             getBuyer().setPayoutTxFee(splitTxFee);
             getSeller().setPayoutTxFee(splitTxFee);
@@ -1612,6 +1612,10 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isPaymentSent() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal();
+    }
+
+    public boolean hasPaymentReceivedMessage() {
+        return (isSeller() ? getBuyer() : getSeller()).getPaymentReceivedMessage() != null; // seller stores message to buyer and arbitrator, peers store message from seller
     }
 
     public boolean isPaymentReceived() {
