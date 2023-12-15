@@ -84,8 +84,6 @@ public class TradeEvents {
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.completed", shortId);
                         break;
-                    case COMPLETED:
-                        break;
                 }
                 if (msg != null) {
                     MobileMessage message = new MobileMessage(Res.get("account.notifications.trade.message.title"),

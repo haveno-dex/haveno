@@ -62,7 +62,7 @@ public class TradeChatSession extends SupportSession {
 
     @Override
     public boolean chatIsOpen() {
-        return trade != null && trade.getState() != Trade.State.TRADE_COMPLETED;
+        return trade != null && !trade.isCompleted();
     }
 
     @Override

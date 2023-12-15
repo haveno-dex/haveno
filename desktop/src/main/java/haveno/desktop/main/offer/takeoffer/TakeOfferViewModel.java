@@ -402,23 +402,23 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         if (errorMessage != null) {
             String appendMsg = "";
             if (trade != null) {
-                switch (trade.getState().getPhase()) {
-                case INIT:
-                    appendMsg = Res.get("takeOffer.error.noFundsLost");
-                    break;
-                case DEPOSIT_REQUESTED:
-                    appendMsg = Res.get("takeOffer.error.feePaid");
-                    break;
-                case DEPOSITS_PUBLISHED:
-                case PAYMENT_SENT:
-                case PAYMENT_RECEIVED:
-                    appendMsg = Res.get("takeOffer.error.depositPublished");
-                    break;
-                case COMPLETED:
-                    appendMsg = Res.get("takeOffer.error.payoutPublished");
-                    break;
-                default:
-                    break;
+                if (trade.isPayoutPublished()) appendMsg = Res.get("takeOffer.error.payoutPublished");
+                else {
+                    switch (trade.getState().getPhase()) {
+                    case INIT:
+                        appendMsg = Res.get("takeOffer.error.noFundsLost");
+                        break;
+                    case DEPOSIT_REQUESTED:
+                        appendMsg = Res.get("takeOffer.error.feePaid");
+                        break;
+                    case DEPOSITS_PUBLISHED:
+                    case PAYMENT_SENT:
+                    case PAYMENT_RECEIVED:
+                        appendMsg = Res.get("takeOffer.error.depositPublished");
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
             this.errorMessage.set(errorMessage + appendMsg);

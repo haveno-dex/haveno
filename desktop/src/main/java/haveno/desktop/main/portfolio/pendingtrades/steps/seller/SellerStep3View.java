@@ -111,7 +111,11 @@ public class SellerStep3View extends TradeStepView {
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
                 showPopup();
             } else if (trade.isPaymentReceived()) {
-                switch (state) {
+                if (trade.isCompleted()) {
+                    if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
+                    busyAnimation.stop();
+                    statusLabel.setText("");
+                } else switch (state) {
                     case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
                         busyAnimation.play();
                         statusLabel.setText(Res.get("shared.preparingConfirmation"));
@@ -135,11 +139,6 @@ public class SellerStep3View extends TradeStepView {
                         break;
                     case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
                         // We get a popup and the trade closed, so we dont need to show anything here
-                        busyAnimation.stop();
-                        statusLabel.setText("");
-                        break;
-                    case TRADE_COMPLETED:
-                        if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
                         busyAnimation.stop();
                         statusLabel.setText("");
                         break;
