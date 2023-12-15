@@ -119,6 +119,7 @@ class CryptoAccountsDataModel extends ActivatableDataModel {
             });
         }
 
+        if (paymentAccount.getAccountName() == null) throw new IllegalStateException("Account name cannot be null");
         user.addPaymentAccount(paymentAccount);
 
         if (!(paymentAccount instanceof AssetAccount))
@@ -126,6 +127,7 @@ class CryptoAccountsDataModel extends ActivatableDataModel {
     }
 
     public void onUpdateAccount(PaymentAccount paymentAccount) {
+        if (paymentAccount.getAccountName() == null) throw new IllegalStateException("Account name cannot be null");
         paymentAccount.onPersistChanges();
         user.requestPersistence();
     }
