@@ -163,10 +163,7 @@ public abstract class Trade implements Tradable, Model {
         SELLER_SENT_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
-        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
-
-        // trade completed
-        TRADE_COMPLETED(Phase.COMPLETED);
+        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED);
 
         @NotNull
         public Phase getPhase() {
@@ -205,8 +202,7 @@ public abstract class Trade implements Tradable, Model {
         DEPOSITS_CONFIRMED,
         DEPOSITS_UNLOCKED,
         PAYMENT_SENT,
-        PAYMENT_RECEIVED,
-        COMPLETED;
+        PAYMENT_RECEIVED;
 
         public static Trade.Phase fromProto(protobuf.Trade.Phase phase) {
             return ProtoUtil.enumFromProto(Trade.Phase.class, phase.name());
@@ -456,6 +452,10 @@ public abstract class Trade implements Tradable, Model {
     private Long payoutHeight;
     private IdlePayoutSyncer idlePayoutSyncer;
 
+    @Getter
+    @Setter
+    private boolean isCompleted;
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructors
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -622,7 +622,7 @@ public abstract class Trade implements Tradable, Model {
             // handle trade phase events
             tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
                 if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
-                if (isCompleted()) {
+                if (isPaymentReceived()) {
                     UserThread.execute(() -> {
                         if (tradePhaseSubscription != null) {
                             tradePhaseSubscription.unsubscribe();
@@ -650,7 +650,7 @@ public abstract class Trade implements Tradable, Model {
                     // complete disputed trade
                     if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
 
-                    // complete arbitrator trade
+                    // auto complete arbitrator trade
                     if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
 
                     // reset address entries
@@ -1334,15 +1334,19 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void setPayoutTx(MoneroTxWallet payoutTx) {
+
+        // set payout tx fields
         this.payoutTx = payoutTx;
-        payoutTxId = payoutTx.getHash();
-        if ("".equals(payoutTxId)) payoutTxId = null; // tx id is empty until signed
         payoutTxKey = payoutTx.getKey();
         payoutTxFee = payoutTx.getFee().longValueExact();
+        payoutTxId = payoutTx.getHash();
+        if ("".equals(payoutTxId)) payoutTxId = null; // tx id is empty until signed
+
+        // set payout tx id in dispute(s)
         for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
 
         // set final payout amounts
-        if (hasPaymentReceivedMessage()) { // TODO: replace with isPaymentReceived() but only if correct when trade completes with dispute
+        if (isPaymentReceived()) {
             BigInteger splitTxFee = payoutTx.getFee().divide(BigInteger.valueOf(2));
             getBuyer().setPayoutTxFee(splitTxFee);
             getSeller().setPayoutTxFee(splitTxFee);
@@ -1620,10 +1624,6 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
-    }
-
-    public boolean isCompleted() {
-        return getState().getPhase().ordinal() >= Phase.COMPLETED.ordinal();
     }
 
     public boolean isPayoutPublished() {
@@ -2110,7 +2110,8 @@ public abstract class Trade implements Tradable, Model {
                         .collect(Collectors.toList()))
                 .setLockTime(lockTime)
                 .setStartTime(startTime)
-                .setUid(uid);
+                .setUid(uid)
+                .setIsCompleted(isCompleted);
 
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         Optional.ofNullable(contract).ifPresent(e -> builder.setContract(contract.toProtoMessage()));
@@ -2145,6 +2146,7 @@ public abstract class Trade implements Tradable, Model {
         trade.setLockTime(proto.getLockTime());
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
+        trade.setCompleted(proto.getIsCompleted());
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()
                 .map(ChatMessage::fromPayloadProto)
@@ -2192,6 +2194,7 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     startTime=" + startTime +
                 ",\n     refundResultState=" + refundResultState +
                 ",\n     refundResultStateProperty=" + refundResultStateProperty +
+                ",\n     isCompleted=" + isCompleted +
                 "\n}";
     }
 }

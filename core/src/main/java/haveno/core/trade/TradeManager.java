@@ -938,7 +938,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void onTradeCompleted(Trade trade) {
         if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
         closedTradableManager.add(trade);
-        trade.setState(Trade.State.TRADE_COMPLETED);
+        trade.setCompleted(true);
         removeTrade(trade);
 
         // TODO The address entry should have been removed already. Check and if its the case remove that.

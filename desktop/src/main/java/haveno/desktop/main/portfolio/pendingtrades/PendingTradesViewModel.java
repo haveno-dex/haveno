@@ -363,6 +363,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             return;
         }
 
+        if (trade.isCompleted()) {
+            sellerState.set(UNDEFINED);
+            buyerState.set(BuyerState.UNDEFINED);
+            return;
+        }
+
         switch (tradeState) {
 
             // initialization
@@ -423,11 +429,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
                 sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
-                break;
-
-            case TRADE_COMPLETED:
-                sellerState.set(UNDEFINED);
-                buyerState.set(BuyerState.UNDEFINED);
                 break;
 
             default:

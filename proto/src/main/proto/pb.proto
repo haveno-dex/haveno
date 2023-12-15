@@ -1434,7 +1434,6 @@ message Trade {
         SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG = 24;
         SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG = 25;
         SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG = 26;
-        TRADE_COMPLETED = 27;
     }
 
     enum Phase {
@@ -1446,7 +1445,6 @@ message Trade {
         DEPOSITS_UNLOCKED = 5;
         PAYMENT_SENT = 6;
         PAYMENT_RECEIVED = 7;
-        COMPLETED = 8;
     }
 
     enum PayoutState {
@@ -1509,6 +1507,7 @@ message Trade {
     RefundResultState refund_result_state = 27;
     string counter_currency_extra_data = 28;
     string uid = 29;
+    bool is_completed = 30;
 }
 
 message BuyerAsMakerTrade {
