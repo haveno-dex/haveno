@@ -137,6 +137,18 @@ public class PriceFeedService {
         request(false);
     }
 
+    /**
+     * Awaits prices to be available, but does not request them.
+     */
+    public void awaitPrices() {
+        if (hasPrices()) return;
+        CountDownLatch latch = new CountDownLatch(1);
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { latch.countDown(); };
+        updateCounter.addListener(listener);
+        HavenoUtils.awaitLatch(latch);
+        updateCounter.removeListener(listener);
+    }
+
     public boolean hasPrices() {
         return !cache.isEmpty();
     }
