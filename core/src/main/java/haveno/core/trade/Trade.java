@@ -648,7 +648,10 @@ public abstract class Trade implements Tradable, Model {
                     }).start();
 
                     // complete disputed trade
-                    if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
+                    if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) {
+                        processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
+                        if (!isArbitrator()) for (Dispute dispute : getDisputes()) dispute.setIsClosed(); // auto close trader tickets
+                    }
 
                     // auto complete arbitrator trade
                     if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
