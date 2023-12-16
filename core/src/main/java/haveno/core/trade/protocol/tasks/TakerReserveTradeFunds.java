@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
@@ -49,6 +50,15 @@ public class TakerReserveTradeFunds extends TradeTask {
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+
+            // check for error in case creating reserve tx exceeded timeout
+            // TODO: better way?
+            if (!model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).isPresent()) {
+                throw new RuntimeException("An error has occurred taking trade " + trade.getId() + " causing its subaddress entry to be deleted");
+            }
+
+            // extend protocol timeout
+            trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT);
 
             // save process state
             processModel.setReserveTx(reserveTx);

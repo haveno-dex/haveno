@@ -716,7 +716,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected synchronized void startTimeout(long timeoutSec) {
+    public synchronized void startTimeout(long timeoutSec) {
         synchronized (timeoutTimerLock) {
             stopTimeout();
             timeoutTimer = UserThread.runAfter(() -> {
