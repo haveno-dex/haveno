@@ -88,6 +88,8 @@ Run `make arbitrator-desktop` to run an arbitrator on Monero's mainnet or `make 
 
 The Haveno GUI will open. If on mainnet, ignore the error about not receiving a filter object which is not added yet. Click on the `Account` tab and then press `ctrl + r`. A prompt will open asking to enter the key to register the arbitrator. Use a key generated in the previous steps and complete the registration. The arbitrator is now registered and ready to accept requests of dispute resolution.
 
+Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
+
 Remember that for the network to run correctly and people to be able to open and accept trades, at least one arbitrator must be registered on the network.
 
 IMPORTANT: Do not reuse keypairs, and remember to revoke the private keypair to terminate the arbitrator.
