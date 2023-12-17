@@ -74,10 +74,4 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
           }
       }).start();
     }
-
-    @Override
-    protected void handleError(String errorMessage) {
-        trade.getXmrWalletService().resetAddressEntriesForOpenOffer(trade.getId());
-        super.handleError(errorMessage);
-    }
 }

@@ -878,6 +878,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             requestPersistence();
                         }, errorMessage -> {
                             log.warn("Taker error during trade initialization: " + errorMessage);
+                            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId());
                             maybeRemoveTradeOnError(trade);
                             errorMessageHandler.handleErrorMessage(errorMessage);
                             if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
