@@ -902,13 +902,15 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         takeOfferBox.getChildren().add(takeOfferButton);
         takeOfferBox.visibleProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                fundingHBox.getChildren().remove(cancelButton2);
-                takeOfferBox.getChildren().add(cancelButton2);
-            } else if (!fundingHBox.getChildren().contains(cancelButton2)) {
-                takeOfferBox.getChildren().remove(cancelButton2);
-                fundingHBox.getChildren().add(cancelButton2);
-            }
+            UserThread.execute(() -> {
+                if (newValue) {
+                    fundingHBox.getChildren().remove(cancelButton2);
+                    takeOfferBox.getChildren().add(cancelButton2);
+                } else if (!fundingHBox.getChildren().contains(cancelButton2)) {
+                    takeOfferBox.getChildren().remove(cancelButton2);
+                    fundingHBox.getChildren().add(cancelButton2);
+                }
+            });
         });
 
         cancelButton2 = new AutoTooltipButton(Res.get("shared.cancel"));

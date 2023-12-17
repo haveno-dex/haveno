@@ -42,11 +42,13 @@ import haveno.core.setup.CorePersistedDataHost;
 import haveno.core.setup.CoreSetup;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.TradeManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.Connection;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -337,7 +339,12 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             Set<Runnable> tasks = new HashSet<Runnable>();
             tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
             tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
-            HavenoUtils.executeTasks(tasks); // notify in parallel
+            tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
+            try {
+                HavenoUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             injector.getInstance(PriceFeedService.class).shutDown();
             injector.getInstance(ArbitratorManager.class).shutDown();
@@ -357,6 +364,10 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
                     // shut down monero wallets and connections
                     injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
+                        log.info("Shutting down connections");
+                        Connection.shutDownExecutor(30);
+
+                        // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
                         completeShutdown(resultHandler, EXIT_SUCCESS, systemExit);

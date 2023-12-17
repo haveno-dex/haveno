@@ -116,7 +116,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             log.info("Received {} from {} with tradeId {} and uid {}",
                     message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid());
 
-            HavenoUtils.runTask(message.getTradeId(), () -> {
+            HavenoUtils.submitToThread(() -> {
                 if (message instanceof DisputeOpenedMessage) {
                     handleDisputeOpenedMessage((DisputeOpenedMessage) message);
                 } else if (message instanceof ChatMessage) {
@@ -126,7 +126,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
                 }
-            });
+            }, message.getTradeId());
         }
     }
 

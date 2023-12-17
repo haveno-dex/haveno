@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -57,6 +58,19 @@ public class UserThread {
 
     public static void execute(Runnable command) {
         UserThread.executor.execute(command);
+    }
+
+    public static void await(Runnable command) {
+        CountDownLatch latch = new CountDownLatch(1);
+        executor.execute(() -> {
+            command.run();
+            latch.countDown();
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // Prefer FxTimer if a delay is needed in a JavaFx class (gui module)

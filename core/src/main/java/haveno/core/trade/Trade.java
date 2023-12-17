@@ -590,7 +590,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle daemon changes with max parallelization
             xmrWalletService.getConnectionService().addConnectionListener(newConnection -> {
-                HavenoUtils.submitTask(() -> onConnectionChanged(newConnection));
+                HavenoUtils.submitToPool(() -> onConnectionChanged(newConnection));
             });
 
             // check if done
@@ -1812,9 +1812,7 @@ public abstract class Trade implements Tradable, Model {
 
             // sync and reprocess messages on new thread
             if (isInitialized && connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
-                HavenoUtils.submitTask(() -> {
-                    initSyncing();
-                });
+                new Thread(() -> initSyncing()).start();
             }
         }
     }
@@ -2053,7 +2051,7 @@ public abstract class Trade implements Tradable, Model {
 
         @Override
         public void onNewBlock(long height) {
-            HavenoUtils.submitTask(() -> { // allow rapid notifications
+            HavenoUtils.submitToThread(() -> { // allow rapid notifications
 
                 // skip rapid succession blocks
                 synchronized (this) {
@@ -2087,7 +2085,7 @@ public abstract class Trade implements Tradable, Model {
                     e.printStackTrace();
                     if (isInitialized && !isShutDownStarted && !isWalletConnected()) throw e;
                 }
-            });
+            }, getId());
         }
     }
 
