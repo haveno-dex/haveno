@@ -1007,13 +1007,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         xmrWalletService.swapAddressEntryToAvailable(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output(s)
         XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
         log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getId(), entry.getSubaddressIndex());
+        long startTime = System.currentTimeMillis();
         MoneroTxWallet splitOutputTx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
                 .setAddress(entry.getAddressString())
                 .setAmount(reserveAmount)
                 .setRelay(true)
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
-        log.info("Done creating split output tx to fund offer {}", openOffer.getId());
+        log.info("Done creating split output tx to fund offer {} in {} ms", openOffer.getId(), System.currentTimeMillis() - startTime);
 
         // schedule txs
         openOffer.setSplitOutputTxHash(splitOutputTx.getHash());

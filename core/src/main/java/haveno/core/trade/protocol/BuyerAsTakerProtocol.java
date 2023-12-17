@@ -73,10 +73,4 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
           }
       }).start();
     }
-
-    @Override
-    protected void handleError(String errorMessage) {
-        trade.getXmrWalletService().resetAddressEntriesForOpenOffer(trade.getId());
-        super.handleError(errorMessage);
-    }
 }
