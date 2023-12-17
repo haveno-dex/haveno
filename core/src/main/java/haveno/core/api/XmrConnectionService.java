@@ -400,6 +400,7 @@ public final class XmrConnectionService {
                         if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen()) return;
                         if (xmrLocalNode.isConnected()) {
                             setConnection(connection.getUri()); // switch to local node if connected
+                            checkConnection();
                         } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
                             setConnection(getBestAvailableConnection()); // switch to best available if disconnected from local node
                         }
