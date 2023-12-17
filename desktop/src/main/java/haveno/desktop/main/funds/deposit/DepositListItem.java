@@ -20,6 +20,7 @@ package haveno.desktop.main.funds.deposit;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
@@ -65,9 +66,11 @@ class DepositListItem {
         balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                DepositListItem.this.balanceAsBI = balance;
-                DepositListItem.this.balance.set(HavenoUtils.formatXmr(balanceAsBI));
-                updateUsage(addressEntry.getSubaddressIndex(), null);
+                UserThread.execute(() -> {
+                    DepositListItem.this.balanceAsBI = balance;
+                    DepositListItem.this.balance.set(HavenoUtils.formatXmr(balanceAsBI));
+                    updateUsage(addressEntry.getSubaddressIndex(), null);
+                });
             }
         };
         xmrWalletService.addBalanceListener(balanceListener);

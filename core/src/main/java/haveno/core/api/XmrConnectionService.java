@@ -20,6 +20,7 @@ import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
@@ -61,9 +62,11 @@ public final class XmrConnectionService {
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
     private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
+    private final ObjectProperty<MoneroRpcConnection> connectionProperty = new SimpleObjectProperty<>();
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
+    private final LongProperty numUpdates = new SimpleLongProperty(0);
     private Socks5ProxyProvider socks5ProxyProvider;
 
     private boolean isInitialized;
@@ -286,6 +289,10 @@ public final class XmrConnectionService {
         return peers;
     }
 
+    public ReadOnlyObjectProperty<MoneroRpcConnection> connectionProperty() {
+        return connectionProperty;
+    }
+
     public boolean hasSufficientPeersForBroadcast() {
         return numPeers.get() >= getMinBroadcastConnections();
     }
@@ -304,6 +311,10 @@ public final class XmrConnectionService {
 
     public boolean isDownloadComplete() {
         return downloadPercentageProperty().get() == 1d;
+    }
+
+    public ReadOnlyLongProperty numUpdatesProperty() {
+        return numUpdates;
     }
 
     // ------------------------------- HELPERS --------------------------------
@@ -517,6 +528,12 @@ public final class XmrConnectionService {
                 connectionList.addConnection(currentConnection);
                 connectionList.setCurrentConnectionUri(currentConnection.getUri());
             }
+
+            // set connection property on user thread
+            UserThread.execute(() -> {
+                connectionProperty.set(currentConnection);
+                numUpdates.set(numUpdates.get() + 1);
+            });
         }
         updatePolling();
 
@@ -564,31 +581,38 @@ public final class XmrConnectionService {
                 if (daemon == null) throw new RuntimeException("No daemon connection");
                 lastInfo = daemon.getInfo();
 
-                // set chain height
-                chainHeight.set(lastInfo.getHeight());
+                // update properties on user thread
+                UserThread.execute(() -> {
 
-                // update sync progress
-                boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
-                if (lastInfo.isSynchronized() || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because tests cannot sync 3rd local node, see "Can manage Monero daemon connections"
-                else if (lastInfo.isBusySyncing()) {
-                    long targetHeight = lastInfo.getTargetHeight();
-                    long blocksLeft = targetHeight - lastInfo.getHeight();
-                    if (syncStartHeight == null) syncStartHeight = lastInfo.getHeight();
-                    double percent = targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, lastInfo.getHeight() - syncStartHeight) / (double) (targetHeight - syncStartHeight)) * 100d; // grant at least 1 block to show progress
-                    downloadListener.progress(percent, blocksLeft, null);
-                }
+                    // set chain height
+                    chainHeight.set(lastInfo.getHeight());
 
-                // set peer connections
-                // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
-                // try {
-                //     peers.set(getOnlinePeers());
-                // } catch (Exception err) {
-                //     // TODO: peers unknown due to restricted RPC call
-                // }
-                // numPeers.set(peers.get().size());
-                numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections());
-                peers.set(new ArrayList<MoneroPeer>());
-                
+                    // update sync progress
+                    boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
+                    if (lastInfo.isSynchronized() || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because tests cannot sync 3rd local node, see "Can manage Monero daemon connections"
+                    else if (lastInfo.isBusySyncing()) {
+                        long targetHeight = lastInfo.getTargetHeight();
+                        long blocksLeft = targetHeight - lastInfo.getHeight();
+                        if (syncStartHeight == null) syncStartHeight = lastInfo.getHeight();
+                        double percent = targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, lastInfo.getHeight() - syncStartHeight) / (double) (targetHeight - syncStartHeight)) * 100d; // grant at least 1 block to show progress
+                        downloadListener.progress(percent, blocksLeft, null);
+                    }
+
+                    // set peer connections
+                    // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
+                    // try {
+                    //     peers.set(getOnlinePeers());
+                    // } catch (Exception err) {
+                    //     // TODO: peers unknown due to restricted RPC call
+                    // }
+                    // numPeers.set(peers.get().size());
+                    numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections());
+                    peers.set(new ArrayList<MoneroPeer>());
+
+                    // notify update
+                    numUpdates.set(numUpdates.get() + 1);
+                });
+
                 // handle error recovery
                 if (lastErrorTimestamp != null) {
                     log.info("Successfully fetched daemon info after previous error");

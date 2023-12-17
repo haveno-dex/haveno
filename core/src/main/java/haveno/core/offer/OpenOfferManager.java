@@ -111,6 +111,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMessageListener, PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(OpenOfferManager.class);
 
+    private static final String THREAD_ID = OpenOfferManager.class.getSimpleName();
     private static final long RETRY_REPUBLISH_DELAY_SEC = 10;
     private static final long REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC = 30;
     private static final long REPUBLISH_INTERVAL_MS = TimeUnit.MINUTES.toMillis(40);
@@ -307,6 +308,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public void shutDown(@Nullable Runnable completeHandler) {
+        HavenoUtils.shutDownThreadId(THREAD_ID);
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
@@ -403,56 +405,62 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         maybeUpdatePersistedOffers();
 
-        // Republish means we send the complete offer object
-        republishOffers();
-        startPeriodicRepublishOffersTimer();
+        HavenoUtils.submitToThread(() -> {
+            
+            // Wait for prices to be available
+            priceFeedService.awaitPrices();
 
-        // Refresh is started once we get a success from republish
+            // Republish means we send the complete offer object
+            republishOffers();
+            startPeriodicRepublishOffersTimer();
 
-        // We republish after a bit as it might be that our connected node still has the offer in the data map
-        // but other peers have it already removed because of expired TTL.
-        // Those other not directly connected peers would not get the broadcast of the new offer, as the first
-        // connected peer (seed node) does not broadcast if it has the data in the map.
-        // To update quickly to the whole network we repeat the republishOffers call after a few seconds when we
-        // are better connected to the network. There is no guarantee that all peers will receive it but we also
-        // have our periodic timer, so after that longer interval the offer should be available to all peers.
-        if (retryRepublishOffersTimer == null)
-            retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
-                    REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
+            // Refresh is started once we get a success from republish
 
-        p2PService.getPeerManager().addListener(this);
+            // We republish after a bit as it might be that our connected node still has the offer in the data map
+            // but other peers have it already removed because of expired TTL.
+            // Those other not directly connected peers would not get the broadcast of the new offer, as the first
+            // connected peer (seed node) does not broadcast if it has the data in the map.
+            // To update quickly to the whole network we repeat the republishOffers call after a few seconds when we
+            // are better connected to the network. There is no guarantee that all peers will receive it but we also
+            // have our periodic timer, so after that longer interval the offer should be available to all peers.
+            if (retryRepublishOffersTimer == null)
+                retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
+                        REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
 
-        // TODO: add to invalid offers on failure
-//        openOffers.stream()
-//                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
-//                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
+            p2PService.getPeerManager().addListener(this);
 
-        // process scheduled offers
-        processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-            log.warn("Error processing unposted offers: " + errorMessage);
-        });
+            // TODO: add to invalid offers on failure
+    //        openOffers.stream()
+    //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
+    //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
-        // register to process unposted offers when unlocked balance increases
-        if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
-        xmrWalletService.addWalletListener(new MoneroWalletListener() {
-            @Override
-            public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
-                    processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                        log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
-                    });
+            // process scheduled offers
+            processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                log.warn("Error processing unposted offers: " + errorMessage);
+            });
+
+            // register to process unposted offers when unlocked balance increases
+            if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+            xmrWalletService.addWalletListener(new MoneroWalletListener() {
+                @Override
+                public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+                    if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
+                        processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                            log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
+                        });
+                    }
+                    lastUnlockedBalance = newUnlockedBalance;
                 }
-                lastUnlockedBalance = newUnlockedBalance;
+            });
+
+            // initialize key image poller for signed offers
+            maybeInitializeKeyImagePoller();
+
+            // poll spent status of key images
+            for (SignedOffer signedOffer : signedOffers.getList()) {
+                signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
             }
-        });
-
-        // initialize key image poller for signed offers
-        maybeInitializeKeyImagePoller();
-
-        // poll spent status of key images
-        for (SignedOffer signedOffer : signedOffers.getList()) {
-            signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
-        }
+        }, THREAD_ID);
     }
 
 
@@ -503,7 +511,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         OpenOffer openOffer = new OpenOffer(offer, triggerPrice, reserveExactAmount);
 
         // schedule or post offer
-        new Thread(() -> {
+        HavenoUtils.submitToThread(() -> {
             synchronized (processOffersLock) {
                 CountDownLatch latch = new CountDownLatch(1);
                 processUnpostedOffer(getOpenOffers(), openOffer, (transaction) -> {
@@ -520,7 +528,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 });
                 HavenoUtils.awaitLatch(latch);
             }
-        }).start();
+        }, THREAD_ID);
     }
 
     // Remove from offerbook
@@ -804,7 +812,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void processScheduledOffers(TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
-        new Thread(() -> {
+        HavenoUtils.submitToThread(() -> {
             synchronized (processOffersLock) {
                 List<String> errorMessages = new ArrayList<String>();
                 List<OpenOffer> openOffers = getOpenOffers();
@@ -825,7 +833,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 if (errorMessages.size() > 0) errorMessageHandler.handleErrorMessage(errorMessages.toString());
                 else resultHandler.handleResult(null);
             }
-        }).start();
+        }, THREAD_ID);
     }
 
     private void processUnpostedOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -1569,8 +1577,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         stopPeriodicRefreshOffersTimer();
 
-        priceFeedService.awaitPrices();
-
         new Thread(() -> {
             processListForRepublishOffers(getOpenOffers());
         }).start();
@@ -1653,7 +1659,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
 
             // repost offer
-            new Thread(() -> {
+            HavenoUtils.submitToThread(() -> {
                 synchronized (processOffersLock) {
                     CountDownLatch latch = new CountDownLatch(1);
                     processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
@@ -1670,7 +1676,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
                     HavenoUtils.awaitLatch(latch);
                 }
-            }).start();
+            }, THREAD_ID);
         }
     }
 

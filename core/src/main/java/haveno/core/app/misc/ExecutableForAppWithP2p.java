@@ -32,11 +32,13 @@ import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.TradeManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -93,11 +95,16 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
         try {
             if (injector != null) {
 
-                // notify trade protocols and wallets to prepare for shut down before shutting down
+                // notify trade protocols and wallets to prepare for shut down
                 Set<Runnable> tasks = new HashSet<Runnable>();
                 tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
-                HavenoUtils.executeTasks(tasks); // notify in parallel
+                tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
+                try {
+                    HavenoUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 JsonFileManager.shutDownAllInstances();
                 injector.getInstance(ArbitratorManager.class).shutDown();
@@ -117,8 +124,12 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                         injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
                             module.close(injector);
                             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
-                                resultHandler.handleResult();
+                                log.info("Shutting down connections");
+                                Connection.shutDownExecutor(30);
+
+                                // done shutting down
                                 log.info("Graceful shutdown completed. Exiting now.");
+                                resultHandler.handleResult();
                                 UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                             });
                         });

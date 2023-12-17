@@ -109,13 +109,13 @@ public class WalletAppSetup {
         log.info("Initialize WalletAppSetup with monero-java version {}", MoneroUtils.getVersion());
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
-        xmrInfoBinding = EasyBind.combine(xmrConnectionService.downloadPercentageProperty(),
-                xmrConnectionService.chainHeightProperty(),
+        xmrInfoBinding = EasyBind.combine(
+                xmrConnectionService.numUpdatesProperty(), // receives notification of any connection update
                 xmrWalletService.downloadPercentageProperty(),
                 xmrWalletService.walletHeightProperty(),
                 walletServiceException,
                 getWalletServiceErrorMsg(),
-                (chainDownloadPercentage, chainHeight, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
+                (numConnectionUpdates, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
                     String result;
                     if (exception == null && errorMsg == null) {
                         
@@ -137,9 +137,9 @@ public class WalletAppSetup {
                         } else {
 
                             // update daemon sync progress
-                            double chainDownloadPercentageD = (double) chainDownloadPercentage;
+                            double chainDownloadPercentageD = xmrConnectionService.downloadPercentageProperty().doubleValue();
                             xmrDaemonSyncProgress.set(chainDownloadPercentageD);
-                            Long bestChainHeight = chainHeight == null ? null : (Long) chainHeight;
+                            Long bestChainHeight = xmrConnectionService.chainHeightProperty().get();
                             String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
                             if (chainDownloadPercentageD == 1) {
                                 String synchronizedWith = Res.get("mainView.footer.xmrInfo.connectedTo", getXmrDaemonNetworkAsString(), chainHeightAsString);

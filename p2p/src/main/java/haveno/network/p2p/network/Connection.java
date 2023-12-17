@@ -74,6 +74,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -109,6 +110,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(1); // one shared thread to handle messages sequentially
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -121,6 +123,17 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     public static int getShutdownTimeout() {
         return SHUTDOWN_TIMEOUT;
     }
+
+    public static void shutDownExecutor(int timeoutSeconds) {
+        try {
+            EXECUTOR.shutdown();
+            if (!EXECUTOR.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) EXECUTOR.shutdownNow();
+        } catch (InterruptedException e) {
+            EXECUTOR.shutdownNow();
+            e.printStackTrace();
+            log.warn("Error shutting down connection executor: " + e.getMessage());
+        }
+    };
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Class fields
@@ -211,7 +224,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     reportInvalidRequest(RuleViolation.PEER_BANNED);
                 }
             }
-            UserThread.execute(() -> connectionListener.onConnection(this));
+            EXECUTOR.execute(() -> connectionListener.onConnection(this));
         } catch (Throwable e) {
             handleException(e);
         }
@@ -266,8 +279,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             if (!stopped) {
                 protoOutputStream.writeEnvelope(networkEnvelope);
-                UserThread.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)));
-                UserThread.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize));
+                EXECUTOR.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)));
+                EXECUTOR.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize));
             }
         } catch (Throwable t) {
             handleException(t);
@@ -396,7 +409,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         if (networkEnvelope instanceof BundleOfEnvelopes) {
             onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
         } else {
-            UserThread.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)));
+            EXECUTOR.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)));
         }
     }
 
@@ -432,7 +445,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope -> UserThread.execute(() ->
+        envelopesToProcess.forEach(envelope -> EXECUTOR.execute(() ->
                 messageListeners.forEach(listener -> listener.onMessage(envelope, connection))));
     }
 
@@ -516,7 +529,6 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private void doShutDown(CloseConnectionReason closeConnectionReason, @Nullable Runnable shutDownCompleteHandler) {
-        // Use UserThread.execute as it's not clear if that is called from a non-UserThread
         UserThread.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this));
         try {
             protoOutputStream.onConnectionShutdown();
@@ -539,7 +551,6 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             Utilities.shutdownAndAwaitTermination(executorService, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
 
             log.debug("Connection shutdown complete {}", this);
-            // Use UserThread.execute as it's not clear if that is called from a non-UserThread
             if (shutDownCompleteHandler != null)
                 UserThread.execute(shutDownCompleteHandler);
         }
@@ -847,8 +858,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                                     networkEnvelope.getClass().getSimpleName(), uid);
                         }
 
-                        onMessage(networkEnvelope, this);
-                        UserThread.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size));
+                        EXECUTOR.execute(() -> onMessage(networkEnvelope, this));
+                        EXECUTOR.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size));
                     }
                 } catch (InvalidClassException e) {
                     log.error(e.getMessage());
@@ -897,7 +908,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         capabilitiesListeners.forEach(weakListener -> {
             SupportedCapabilitiesListener supportedCapabilitiesListener = weakListener.get();
             if (supportedCapabilitiesListener != null) {
-                UserThread.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities));
+                EXECUTOR.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities));
             }
         });
         return false;

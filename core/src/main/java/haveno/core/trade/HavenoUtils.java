@@ -473,14 +473,22 @@ public class HavenoUtils {
         }
     }
 
-    public static Future<?> runTask(String threadId, Runnable task) {
+    public static Future<?> submitToPool(Runnable task) {
+        return POOL.submit(task);
+    }
+
+    public static Future<?> submitToSharedThread(Runnable task) {
+        return submitToThread(task, HavenoUtils.class.getSimpleName());
+    }
+
+    public static Future<?> submitToThread(Runnable task, String threadId) {
         synchronized (POOLS) {
             if (!POOLS.containsKey(threadId)) POOLS.put(threadId, Executors.newFixedThreadPool(1));
             return POOLS.get(threadId).submit(task);
         }
     }
 
-    public static void removeThreadId(String threadId) {
+    public static void shutDownThreadId(String threadId) {
         synchronized (POOLS) {
             if (POOLS.containsKey(threadId)) {
                 POOLS.get(threadId).shutdown();
@@ -489,33 +497,20 @@ public class HavenoUtils {
         }
     }
 
-    /**
-     * Submit tasks to a global thread pool.
-     */
-    public static Future<?> submitTask(Runnable task) {
-        return POOL.submit(task);
+    // TODO: update monero-java and replace with GenUtils.awaitTasks()
+
+    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks) {
+        return awaitTasks(tasks, tasks.size());
     }
 
-    public static List<Future<?>> submitTasks(List<Runnable> tasks) {
+    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency) {
+        return awaitTasks(tasks, maxConcurrency, null);
+    }
+
+    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
         List<Future<?>> futures = new ArrayList<>();
-        for (Runnable task : tasks) futures.add(submitTask(task));
-        return futures;
-    }
-
-    // TODO: replace with GenUtils.executeTasks() once monero-java updated
-
-    public static void executeTasks(Collection<Runnable> tasks) {
-        executeTasks(tasks, tasks.size());
-    }
-
-    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency) {
-        executeTasks(tasks, maxConcurrency, null);
-    }
-
-    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
-        if (tasks.isEmpty()) return;
+        if (tasks.isEmpty()) return futures;
         ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
-        List<Future<?>> futures = new ArrayList<>();
         for (Runnable task : tasks) futures.add(pool.submit(task));
         pool.shutdown();
 
@@ -535,6 +530,7 @@ public class HavenoUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        return futures;
     }
 
     public static String toCamelCase(String underscore) {
