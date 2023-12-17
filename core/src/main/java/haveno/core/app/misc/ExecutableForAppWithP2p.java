@@ -27,12 +27,15 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.util.Profiler;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -107,7 +110,11 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 }
 
                 JsonFileManager.shutDownAllInstances();
+                injector.getInstance(TradeManager.class).shutDown();
+                injector.getInstance(PriceFeedService.class).shutDown();
                 injector.getInstance(ArbitratorManager.class).shutDown();
+                injector.getInstance(TradeStatisticsManager.class).shutDown();
+                injector.getInstance(AvoidStandbyModeService.class).shutDown();
 
                 // shut down open offer manager
                 log.info("Shutting down OpenOfferManager, OfferBookService, and P2PService");
@@ -120,12 +127,14 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                     injector.getInstance(P2PService.class).shutDown(() -> {
                         log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
+                        // shut down connections pool
+                        log.info("Shutting down connections");
+                        Connection.shutDownExecutor(30);
+
                         // shut down monero wallets and connections
                         injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
                             module.close(injector);
                             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
-                                log.info("Shutting down connections");
-                                Connection.shutDownExecutor(30);
 
                                 // done shutting down
                                 log.info("Graceful shutdown completed. Exiting now.");

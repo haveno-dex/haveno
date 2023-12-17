@@ -346,6 +346,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 e.printStackTrace();
             }
 
+            injector.getInstance(TradeManager.class).shutDown();
             injector.getInstance(PriceFeedService.class).shutDown();
             injector.getInstance(ArbitratorManager.class).shutDown();
             injector.getInstance(TradeStatisticsManager.class).shutDown();
@@ -362,11 +363,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 injector.getInstance(P2PService.class).shutDown(() -> {
                     log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
+                    // shut down connections pool
+                    log.info("Shutting down connections");
+                    Connection.shutDownExecutor(30);
+
                     // shut down monero wallets and connections
                     injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
-                        log.info("Shutting down connections");
-                        Connection.shutDownExecutor(30);
-
+                        
                         // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);

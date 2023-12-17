@@ -664,9 +664,11 @@ public class XmrWalletService {
 
         // remove listeners which stops polling wallet
         // TODO monero-java: wallet.stopPolling()?
-        if (wallet != null) {
-            for (MoneroWalletListenerI listener : new HashSet<>(wallet.getListeners())) {
-                wallet.removeListener(listener);
+        synchronized (walletLock) {
+            if (wallet != null) {
+                for (MoneroWalletListenerI listener : new HashSet<>(wallet.getListeners())) {
+                    wallet.removeListener(listener);
+                }
             }
         }
     }
@@ -676,10 +678,7 @@ public class XmrWalletService {
 
         // shut down trade and main wallets at same time
         walletListeners.clear();
-        List<Runnable> tasks = new ArrayList<Runnable>();
-        if (tradeManager != null) tasks.add(() -> tradeManager.shutDown());
-        tasks.add(() -> closeMainWallet(true));
-        HavenoUtils.awaitTasks(tasks);
+        closeMainWallet(true);
         log.info("Done shutting down all wallets");
     }
 
@@ -984,13 +983,15 @@ public class XmrWalletService {
     }
 
     private void closeMainWallet(boolean save) {
-        try {
-            if (wallet != null) {
-                closeWallet(wallet, true);
-                wallet = null;
+        synchronized (walletLock) {
+            try {
+                if (wallet != null) {
+                    closeWallet(wallet, true);
+                    wallet = null;
+                }
+            } catch (Exception e) {
+                log.warn("Error closing main monero-wallet-rpc subprocess: " + e.getMessage() + ". Was Haveno stopped manually with ctrl+c?");
             }
-        } catch (Exception e) {
-            log.warn("Error closing main monero-wallet-rpc subprocess: " + e.getMessage() + ". Was Haveno stopped manually with ctrl+c?");
         }
     }
 
