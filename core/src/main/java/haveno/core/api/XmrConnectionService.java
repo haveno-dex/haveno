@@ -263,6 +263,7 @@ public final class XmrConnectionService {
 
     public void verifyConnection() {
         if (daemon == null) throw new RuntimeException("No connection to Monero node");
+        if (!Boolean.TRUE.equals(isConnected())) throw new RuntimeException("No connection to Monero node");
         if (!isSyncedWithinTolerance()) throw new RuntimeException("Monero node is not synced");
     }
 
@@ -493,10 +494,11 @@ public final class XmrConnectionService {
                 }, getDefaultRefreshPeriodMs() * 2 / 1000);
             }
 
-            // notify final connection
             isInitialized = true;
-            onConnectionChanged(connectionManager.getConnection());
         }
+
+        // notify initial connection
+        onConnectionChanged(connectionManager.getConnection());
     }
 
     private void maybeStartLocalNode() {
@@ -541,7 +543,7 @@ public final class XmrConnectionService {
         // notify listeners in parallel
         synchronized (listenerLock) {
             for (MoneroConnectionManagerListener listener : listeners) {
-                new Thread(() -> listener.onConnectionChanged(currentConnection)).start();
+                HavenoUtils.submitToPool(() -> listener.onConnectionChanged(currentConnection));
             }
         }
     }

@@ -45,6 +45,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -474,7 +475,13 @@ public class HavenoUtils {
     }
 
     public static Future<?> submitToPool(Runnable task) {
-        return POOL.submit(task);
+        return submitToPool(Arrays.asList(task)).get(0);
+    }
+
+    public static List<Future<?>> submitToPool(List<Runnable> tasks) {
+        List<Future<?>> futures = new ArrayList<>();
+        for (Runnable task : tasks) futures.add(POOL.submit(task));
+        return futures;
     }
 
     public static Future<?> submitToSharedThread(Runnable task) {
@@ -488,7 +495,17 @@ public class HavenoUtils {
         }
     }
 
-    public static void shutDownThreadId(String threadId) {
+    public static Future<?> awaitThread(Runnable task, String threadId) {
+        Future<?> future = submitToThread(task, threadId);
+        try {
+            future.get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return future;
+    }
+
+    public static void removeThreadId(String threadId) {
         synchronized (POOLS) {
             if (POOLS.containsKey(threadId)) {
                 POOLS.get(threadId).shutdown();
@@ -497,7 +514,11 @@ public class HavenoUtils {
         }
     }
 
-    // TODO: update monero-java and replace with GenUtils.awaitTasks()
+    // TODO: these are unused; remove? use monero-java awaitTasks() when updated
+
+    public static Future<?> awaitTask(Runnable task) {
+        return awaitTasks(Arrays.asList(task)).get(0);
+    }
 
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks) {
         return awaitTasks(tasks, tasks.size());

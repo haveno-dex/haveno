@@ -102,6 +102,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -376,6 +377,8 @@ public abstract class Trade implements Tradable, Model {
     // Immutable
     @Getter
     transient final private XmrWalletService xmrWalletService;
+    @Getter
+    transient final private XmrConnectionService xmrConnectionService;
 
     transient final private DoubleProperty initProgressProperty = new SimpleDoubleProperty(0.0);
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
@@ -476,6 +479,7 @@ public abstract class Trade implements Tradable, Model {
         this.takerFee = takerFee.longValueExact();
         this.price = tradePrice;
         this.xmrWalletService = xmrWalletService;
+        this.xmrConnectionService = xmrWalletService.getConnectionService();
         this.processModel = processModel;
         this.uid = uid;
         this.takeOfferDate = new Date().getTime();
@@ -588,9 +592,11 @@ public abstract class Trade implements Tradable, Model {
                 getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
             });
 
-            // handle daemon changes with max parallelization
-            xmrWalletService.getConnectionService().addConnectionListener(newConnection -> {
-                HavenoUtils.submitToPool(() -> onConnectionChanged(newConnection));
+            // handle connection change on dedicated thread
+            xmrConnectionService.addConnectionListener(connection -> {
+                HavenoUtils.submitToPool(() -> {
+                    HavenoUtils.submitToThread(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
+                });
             });
 
             // check if done
@@ -644,7 +650,7 @@ public abstract class Trade implements Tradable, Model {
                     new Thread(() -> {
                         GenUtils.waitFor(1000);
                         if (isShutDownStarted) return;
-                        if (Boolean.TRUE.equals(xmrWalletService.getConnectionService().isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
+                        if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
                     }).start();
 
                     // complete disputed trade
@@ -762,19 +768,31 @@ public abstract class Trade implements Tradable, Model {
         return MONERO_TRADE_WALLET_PREFIX + getId();
     }
 
-    public void checkDaemonConnection() {
-        XmrConnectionService xmrConnectionService = xmrWalletService.getConnectionService();
+    public void checkAndVerifyDaemonConnection() {
+
+        // check connection which might update
         xmrConnectionService.checkConnection();
         xmrConnectionService.verifyConnection();
-        if (!getWallet().isConnectedToDaemon()) throw new RuntimeException("Trade wallet is not connected to a Monero node");
+
+        // check wallet connection on same thread as connection change
+        CountDownLatch latch = new CountDownLatch(1);
+        HavenoUtils.submitToPool((() -> {
+            HavenoUtils.submitToThread(() -> {
+                if (!isWalletConnectedToDaemon()) throw new RuntimeException("Trade wallet is not connected to a Monero node"); // wallet connection is updated on trade thread
+                latch.countDown();
+            }, getConnectionChangedThreadId());
+        }));
+        HavenoUtils.awaitLatch(latch); // TODO: better way?
     }
 
-    public boolean isWalletConnected() {
-        try {
-            checkDaemonConnection();
-            return true;
-        } catch (Exception e) {
-            return false;
+    public boolean isWalletConnectedToDaemon() {
+        synchronized (walletLock) {
+            try {
+                if (wallet == null) return false;
+                return wallet.isConnectedToDaemon();
+            } catch (Exception e) {
+                return false;
+            }
         }
     }
 
@@ -790,7 +808,7 @@ public abstract class Trade implements Tradable, Model {
         syncNormalStartTimeMs = System.currentTimeMillis();
 
         // override wallet refresh period
-        setWalletRefreshPeriod(xmrWalletService.getConnectionService().getRefreshPeriodMs());
+        setWalletRefreshPeriod(xmrConnectionService.getRefreshPeriodMs());
 
         // reset wallet refresh period after duration 
         new Thread(() -> {
@@ -934,7 +952,7 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTxWallet createPayoutTx() {
 
         // check connection to monero daemon
-        checkDaemonConnection();
+        checkAndVerifyDaemonConnection();
 
         // check multisig import
         if (getWallet().isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
@@ -1022,7 +1040,7 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // check wallet connection
-        if (sign || publish) checkDaemonConnection();
+        if (sign || publish) checkAndVerifyDaemonConnection();
 
         // handle tx signing
         if (sign) {
@@ -1215,6 +1233,11 @@ public abstract class Trade implements Tradable, Model {
 
     @Override
     public void onComplete() {
+    }
+
+    public void onRemoved() {
+        HavenoUtils.removeThreadId(getId());
+        HavenoUtils.removeThreadId(getConnectionChangedThreadId());
     }
 
 
@@ -1764,7 +1787,7 @@ public abstract class Trade implements Tradable, Model {
      */
     public long getReprocessDelayInSeconds(int reprocessCount) {
         int retryCycles = 3; // reprocess on next refresh periods for first few attempts (app might auto switch to a good connection)
-        if (reprocessCount < retryCycles) return xmrWalletService.getConnectionService().getRefreshPeriodMs() / 1000;
+        if (reprocessCount < retryCycles) return xmrConnectionService.getRefreshPeriodMs() / 1000;
         long delay = 60;
         for (int i = retryCycles; i < reprocessCount; i++) delay *= 2;
         return Math.min(MAX_REPROCESS_DELAY_SECONDS, delay);
@@ -1774,6 +1797,10 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private String getConnectionChangedThreadId() {
+        return getId() + ".onConnectionChanged";
+    }
 
     // lazy initialization
     private ObjectProperty<BigInteger> getAmountProperty() {
@@ -1812,7 +1839,7 @@ public abstract class Trade implements Tradable, Model {
 
             // sync and reprocess messages on new thread
             if (isInitialized && connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
-                new Thread(() -> initSyncing()).start();
+                HavenoUtils.submitToPool(() -> initSyncing());
             }
         }
     }
@@ -1824,9 +1851,9 @@ public abstract class Trade implements Tradable, Model {
         }  else {
             long startSyncingInMs = ThreadLocalRandom.current().nextLong(0, getWalletRefreshPeriod()); // random time to start syncing
             UserThread.runAfter(() -> {
-                if (!isShutDownStarted) {
-                    initSyncingAux();
-                }
+                HavenoUtils.submitToPool(() -> {
+                    if (!isShutDownStarted) initSyncingAux();
+                });
             }, startSyncingInMs / 1000l);
         }
     }
@@ -1863,7 +1890,7 @@ public abstract class Trade implements Tradable, Model {
         if (!wasWalletSynced) {
             wasWalletSynced = true;
             if (xmrWalletService.isProxyApplied(wasWalletSynced)) {
-                onConnectionChanged(xmrWalletService.getConnectionService().getConnection());
+                onConnectionChanged(xmrConnectionService.getConnection());
             }
         }
 
@@ -1916,12 +1943,11 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void pollWallet() {
-        synchronized (walletLock) {
-            MoneroWallet wallet = getWallet();
-            try {
+        try {
+            synchronized (walletLock) {
 
                 // log warning if wallet is too far behind daemon
-                MoneroDaemonInfo lastInfo = xmrWalletService.getConnectionService().getLastInfo();
+                MoneroDaemonInfo lastInfo = xmrConnectionService.getLastInfo();
                 long walletHeight = wallet.getHeight();
                 if (wasWalletSynced && isDepositsPublished() && !isIdling() && lastInfo != null && walletHeight < lastInfo.getHeight() - 3 && !Config.baseCurrencyNetwork().isTestnet()) {
                     log.warn("Wallet is more than 3 blocks behind monerod for {} {}, wallet height={}, monerod height={},", getClass().getSimpleName(), getShortId(), walletHeight, lastInfo.getHeight());
@@ -1950,7 +1976,7 @@ public abstract class Trade implements Tradable, Model {
 
                 // check deposit txs
                 if (!isDepositsUnlocked()) {
-    
+
                     // update trader txs
                     MoneroTxWallet makerDepositTx = null;
                     MoneroTxWallet takerDepositTx = null;
@@ -2000,18 +2026,20 @@ public abstract class Trade implements Tradable, Model {
                         }
                     }
                 }
-            } catch (Exception e) {
-                if (!isShutDownStarted && wallet != null && isWalletConnected()) {
-                    e.printStackTrace();
-                    log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
-                }
+            }
+        } catch (Exception e) {
+            boolean isWalletConnected = isWalletConnectedToDaemon();
+            if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
+            if (!isShutDownStarted && wallet != null && isWalletConnected) {
+                e.printStackTrace();
+                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
             }
         }
     }
 
     private long getWalletRefreshPeriod() {
         if (isIdling()) return IDLE_SYNC_PERIOD_MS;
-        return xmrWalletService.getConnectionService().getRefreshPeriodMs();
+        return xmrConnectionService.getRefreshPeriodMs();
     }
 
     private void setStateDepositsPublished() {
@@ -2082,8 +2110,12 @@ public abstract class Trade implements Tradable, Model {
                     processing = false;
                 } catch (Exception e) {
                     processing = false;
-                    e.printStackTrace();
-                    if (isInitialized && !isShutDownStarted && !isWalletConnected()) throw e;
+                    boolean isWalletConnected = isWalletConnectedToDaemon();
+                    if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
+                    if (isInitialized &&!isShutDownStarted && isWalletConnected) {
+                        e.printStackTrace();
+                        log.warn("Error polling idle trade for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                    };
                 }
             }, getId());
         }

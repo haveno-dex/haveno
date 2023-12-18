@@ -687,7 +687,9 @@ public class XmrWalletService {
     private void initialize() {
 
         // listen for connection changes
-        xmrConnectionService.addConnectionListener(newConnection -> onConnectionChanged(newConnection));
+        xmrConnectionService.addConnectionListener(connection -> {
+            HavenoUtils.submitToThread(() -> onConnectionChanged(connection), THREAD_ID);
+        });
 
         // wait for monerod to sync
         if (xmrConnectionService.downloadPercentageProperty().get() != 1) {
@@ -937,7 +939,7 @@ public class XmrWalletService {
             // sync wallet on new thread
             if (connection != null) {
                 wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-                HavenoUtils.submitToThread(() -> {
+                HavenoUtils.submitToPool(() -> {
                     synchronized (walletLock) {
                         try {
                             if (Boolean.TRUE.equals(connection.isConnected())) wallet.sync();
@@ -946,7 +948,7 @@ public class XmrWalletService {
                             log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
                         }
                     }
-                }, THREAD_ID);
+                });
             }
 
             log.info("Done setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
