@@ -434,14 +434,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void onMoneroPeersToggleSelected(boolean calledFromUser) {
-        boolean localMoneroNodeShouldBeUsed = xmrLocalNode.shouldBeUsed();
-        useTorForXmrLabel.setDisable(localMoneroNodeShouldBeUsed);
-        moneroNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
-        xmrNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
-        xmrNodesInputTextField.setDisable(localMoneroNodeShouldBeUsed);
-        useProvidedNodesRadio.setDisable(localMoneroNodeShouldBeUsed);
-        useCustomNodesRadio.setDisable(localMoneroNodeShouldBeUsed);
-        usePublicNodesRadio.setDisable(localMoneroNodeShouldBeUsed || isPreventPublicXmrNetwork());
+        usePublicNodesRadio.setDisable(isPreventPublicXmrNetwork());
 
         XmrNodes.MoneroNodesOption currentMoneroNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
 

@@ -33,6 +33,7 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import javafx.beans.property.BooleanProperty;
@@ -315,6 +316,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public MoneroNodesOption getMoneroNodesOption() {
+        return XmrNodes.MoneroNodesOption.values()[getMoneroNodesOptionOrdinal()];
+    }
 
     public void dontShowAgain(String key, boolean dontShowAgain) {
         prefPayload.getDontShowAgainMap().put(key, dontShowAgain);

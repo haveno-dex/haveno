@@ -86,6 +86,10 @@ public class XmrNodes {
         return getXmrNodes(MoneroNodesOption.PUBLIC);
     }
 
+    public List<XmrNode> getCustomXmrNodes() {
+        return getXmrNodes(MoneroNodesOption.CUSTOM);
+    }
+
     private List<XmrNode>  getXmrNodes(MoneroNodesOption type) {
         List<XmrNode> nodes = new ArrayList<>();
         for (XmrNode node : getAllXmrNodes()) if (node.getType() == type) nodes.add(node);
