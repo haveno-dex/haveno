@@ -19,7 +19,7 @@ package haveno.seednode;
 
 import com.google.inject.Injector;
 import haveno.core.app.misc.AppSetup;
-import haveno.core.app.misc.AppSetupWithP2PAndDAO;
+import haveno.core.app.misc.AppSetupWithP2P;
 import haveno.core.network.p2p.inventory.GetInventoryRequestHandler;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ public class SeedNode {
     }
 
     public void startApplication() {
-        appSetup = injector.getInstance(AppSetupWithP2PAndDAO.class);
+        appSetup = injector.getInstance(AppSetupWithP2P.class);
         appSetup.start();
 
         getInventoryRequestHandler = injector.getInstance(GetInventoryRequestHandler.class);
