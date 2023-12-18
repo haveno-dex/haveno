@@ -19,7 +19,7 @@ package haveno.statistics;
 
 import com.google.inject.Injector;
 import haveno.core.app.misc.AppSetup;
-import haveno.core.app.misc.AppSetupWithP2PAndDAO;
+import haveno.core.app.misc.AppSetupWithP2P;
 import haveno.core.offer.OfferBookService;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
@@ -62,7 +62,7 @@ public class Statistics {
             }
         });
 
-        appSetup = injector.getInstance(AppSetupWithP2PAndDAO.class);
+        appSetup = injector.getInstance(AppSetupWithP2P.class);
         appSetup.start();
     }
 }
