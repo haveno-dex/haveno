@@ -135,12 +135,17 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             public void onFault(String errorMessage) {
                 log.warn("Arbitrator unavailable: address={}: {}", arbitratorNodeAddress, errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
+
+                // get alternative arbitrator
                 Arbitrator altArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager(), excludedArbitrators);
                 if (altArbitrator == null) {
                     errorMessageHandler.handleErrorMessage("Offer " + request.getOfferId() + " could not be signed by any arbitrator");
                     return;
                 }
+
+                // send request to alrernative arbitrator
                 log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
+                model.getProtocol().startTimeoutTimer(); // reset timeout
                 sendSignOfferRequests(request, altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
             }
         });

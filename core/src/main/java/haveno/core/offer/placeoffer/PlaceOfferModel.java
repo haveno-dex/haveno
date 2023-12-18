@@ -71,6 +71,9 @@ public class PlaceOfferModel implements Model {
     private MoneroTxWallet reserveTx;
     @Setter
     private SignOfferResponse signOfferResponse;
+    @Setter
+    @Getter
+    protected PlaceOfferProtocol protocol;
 
     public PlaceOfferModel(OpenOffer openOffer,
                            BigInteger reservedFundsForOffer,
