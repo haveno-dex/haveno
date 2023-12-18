@@ -34,8 +34,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import monero.common.MoneroConnectionManagerListener;
-import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,13 +92,10 @@ public class OfferBookService {
         jsonFileManager = new JsonFileManager(storageDir);
 
         // listen for connection changes to monerod
-        xmrConnectionService.addConnectionListener(new MoneroConnectionManagerListener() {
-            @Override
-            public void onConnectionChanged(MoneroRpcConnection connection) {
-                maybeInitializeKeyImagePoller();
-                keyImagePoller.setDaemon(xmrConnectionService.getDaemon());
-                keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
-            }
+        xmrConnectionService.addConnectionListener((connection) -> {
+            maybeInitializeKeyImagePoller();
+            keyImagePoller.setDaemon(xmrConnectionService.getDaemon());
+            keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
         });
 
         // listen for offers

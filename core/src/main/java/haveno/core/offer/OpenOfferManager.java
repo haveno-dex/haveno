@@ -75,8 +75,6 @@ import haveno.network.p2p.peers.PeerManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.Getter;
-import monero.common.MoneroConnectionManagerListener;
-import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroIncomingTransfer;
@@ -208,12 +206,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
 
         // listen for connection changes to monerod
-        xmrConnectionService.addConnectionListener(new MoneroConnectionManagerListener() {
-            @Override
-            public void onConnectionChanged(MoneroRpcConnection connection) {
-                maybeInitializeKeyImagePoller();
-            }
-        });
+        xmrConnectionService.addConnectionListener((connection) -> maybeInitializeKeyImagePoller());
 
         // close open offer if reserved funds spent
         offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
@@ -308,7 +301,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public void shutDown(@Nullable Runnable completeHandler) {
-        HavenoUtils.shutDownThreadId(THREAD_ID);
+        HavenoUtils.removeThreadId(THREAD_ID);
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);

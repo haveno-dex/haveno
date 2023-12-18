@@ -1206,7 +1206,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // remove trade
             tradableList.remove(trade);
-            HavenoUtils.shutDownThreadId(trade.getId());
+            trade.onRemoved();
 
             // unregister and persist
             p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));

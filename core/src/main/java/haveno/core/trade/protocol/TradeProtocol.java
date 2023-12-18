@@ -114,7 +114,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
-        new Thread(() -> handle(message, peerNodeAddress)).start();
+        HavenoUtils.submitToThread(() -> handle(message, peerNodeAddress), trade.getId());
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
@@ -264,9 +264,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void maybeSendDepositsConfirmedMessage() {
-        new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
+        HavenoUtils.submitToThread(() -> maybeSendDepositsConfirmedMessages(), trade.getId());
         EasyBind.subscribe(trade.stateProperty(), state -> {
-            new Thread(() -> maybeSendDepositsConfirmedMessages()).start();
+            HavenoUtils.submitToThread(() -> maybeSendDepositsConfirmedMessages(), trade.getId());
         });
     }
 
@@ -279,7 +279,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             }
 
             log.warn("Reprocessing payment received message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            new Thread(() -> handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError)).start();
+            HavenoUtils.submitToThread(() -> {
+                handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError);
+            }, trade.getId());
         }
     }
 
@@ -351,9 +353,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         .executeTasks(true);
                 awaitTradeLatch();
             } else {
+                
                 // process sign contract request after multisig created
                 EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.MULTISIG_COMPLETED) new Thread(() -> handleSignContractRequest(message, sender)).start(); // process notification without trade lock
+                    if (state == Trade.State.MULTISIG_COMPLETED) HavenoUtils.submitToThread(() -> handleSignContractRequest(message, sender), trade.getId()); // process notification without trade lock
                 });
             }
         }
@@ -393,9 +396,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         .executeTasks(true);
                 awaitTradeLatch();
             } else {
+                
                 // process sign contract response after contract signed
                 EasyBind.subscribe(trade.stateProperty(), state -> {
-                    if (state == Trade.State.CONTRACT_SIGNED) new Thread(() -> handleSignContractResponse(message, sender)).start(); // process notification without trade lock
+                    if (state == Trade.State.CONTRACT_SIGNED) HavenoUtils.submitToThread(() -> handleSignContractResponse(message, sender), trade.getId()); // process notification without trade lock
                 });
             }
         }

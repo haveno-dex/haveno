@@ -235,7 +235,7 @@ public class PriceFeedService {
                 if (baseUrlOfRespondingProvider == null) {
                     final String oldBaseUrl = priceProvider.getBaseUrl();
                     setNewPriceProvider();
-                    log.warn("We did not received a response from provider {}. " +
+                    log.warn("We did not receive a response from provider {}. " +
                             "We select the new provider {} and use that for a new request.", oldBaseUrl, priceProvider.getBaseUrl());
                 }
                 request(true);
