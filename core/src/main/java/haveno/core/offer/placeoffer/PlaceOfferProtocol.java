@@ -51,6 +51,7 @@ public class PlaceOfferProtocol {
                               TransactionResultHandler resultHandler,
                               ErrorMessageHandler errorMessageHandler) {
         this.model = model;
+        this.model.setProtocol(this);
         this.resultHandler = resultHandler;
         this.errorMessageHandler = errorMessageHandler;
     }
@@ -128,7 +129,7 @@ public class PlaceOfferProtocol {
       taskRunner.run();
     }
 
-    private void startTimeoutTimer() {
+    public void startTimeoutTimer() {
         stopTimeoutTimer();
         timeoutTimer = UserThread.runAfter(() -> {
             handleError(Res.get("createOffer.timeoutAtPublishing"));

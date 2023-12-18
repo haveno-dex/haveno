@@ -64,6 +64,9 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 throw new RuntimeException("An error has occurred posting offer " + offer.getId() + " causing its subaddress entry to be deleted");
             }
 
+            // reset protocol timeout
+            model.getProtocol().startTimeoutTimer();
+
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());

@@ -57,7 +57,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                 throw new RuntimeException("An error has occurred taking trade " + trade.getId() + " causing its subaddress entry to be deleted");
             }
 
-            // extend protocol timeout
+            // reset protocol timeout
             trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT);
 
             // save process state
