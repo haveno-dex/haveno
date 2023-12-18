@@ -22,6 +22,7 @@ import haveno.common.util.Utilities;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.XmrNodeSettings;
+import haveno.core.xmr.nodes.XmrNodes;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroConnectionManager;
 import monero.common.MoneroUtils;
@@ -102,7 +103,7 @@ public class XmrLocalNode {
      * Returns whether Haveno should ignore a local Monero node even if it is usable.
      */
     public boolean shouldBeIgnored() {
-        return config.ignoreLocalXmrNode;
+        return config.ignoreLocalXmrNode || preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM;
     }
 
     public void addListener(XmrLocalNodeListener listener) {

@@ -399,11 +399,11 @@ public final class XmrConnectionService {
                     public void onConnectionChanged(MoneroRpcConnection connection) {
                         log.info("Local monerod connection changed: " + connection);
                         if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen()) return;
-                        if (xmrLocalNode.isConnected()) {
-                            setConnection(connection.getUri()); // switch to local node if connected
+                        if (xmrLocalNode.isConnected() && !xmrLocalNode.shouldBeIgnored()) {
+                            setConnection(connection.getUri()); // switch to local node if connected and not ignored
                             checkConnection();
                         } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
-                            setConnection(getBestAvailableConnection()); // switch to best available if disconnected from local node
+                            setConnection(getBestAvailableConnection()); // switch to best available connection
                         }
                     }
                 });
@@ -446,7 +446,7 @@ public final class XmrConnectionService {
                 }
 
                 // restore last connection
-                if (connectionList.getCurrentConnectionUri().isPresent()) {
+                if (connectionList.getCurrentConnectionUri().isPresent() && connectionManager.hasConnection(connectionList.getCurrentConnectionUri().get())) {
                     connectionManager.setConnection(connectionList.getCurrentConnectionUri().get());
                 }
 
@@ -460,7 +460,7 @@ public final class XmrConnectionService {
                 if (coreContext.isApiUser()) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
                 else connectionManager.setAutoSwitch(true);
 
-                // start local node if used last and offline
+                // start local node if applicable
                 maybeStartLocalNode();
 
                 // update connection
@@ -477,7 +477,7 @@ public final class XmrConnectionService {
                 if (useTorProxy(connection)) connection.setProxyUri(getProxyUri());
                 connectionManager.setConnection(connection);
 
-                // start local node if used last and offline
+                // start local node if applicable
                 maybeStartLocalNode();
 
                 // update connection
@@ -507,7 +507,7 @@ public final class XmrConnectionService {
         if (HavenoUtils.havenoSetup == null) return;
 
         // start local node if offline and used as last connection
-        if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected()) {
+        if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored()) {
             try {
                 log.info("Starting local node");
                 xmrLocalNode.startMoneroNode();
