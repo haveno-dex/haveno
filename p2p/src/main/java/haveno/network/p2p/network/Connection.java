@@ -124,17 +124,6 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return SHUTDOWN_TIMEOUT;
     }
 
-    public static void shutDownExecutor(int timeoutSeconds) {
-        try {
-            EXECUTOR.shutdown();
-            if (!EXECUTOR.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) EXECUTOR.shutdownNow();
-        } catch (InterruptedException e) {
-            EXECUTOR.shutdownNow();
-            e.printStackTrace();
-            log.warn("Error shutting down connection executor: " + e.getMessage());
-        }
-    };
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Class fields
     ///////////////////////////////////////////////////////////////////////////////////////////
