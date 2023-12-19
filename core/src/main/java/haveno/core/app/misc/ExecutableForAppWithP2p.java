@@ -41,7 +41,6 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -126,10 +125,6 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                     // shut down p2p service
                     injector.getInstance(P2PService.class).shutDown(() -> {
                         log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
-
-                        // shut down connections pool
-                        log.info("Shutting down connections");
-                        Connection.shutDownExecutor(30);
 
                         // shut down monero wallets and connections
                         injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
