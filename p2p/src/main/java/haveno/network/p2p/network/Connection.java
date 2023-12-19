@@ -499,8 +499,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                         Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
                     } catch (Throwable t) {
-                        log.error(t.getMessage());
-                        t.printStackTrace();
+                        handleException(t);
                     } finally {
                         stopped = true;
                         UserThread.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
