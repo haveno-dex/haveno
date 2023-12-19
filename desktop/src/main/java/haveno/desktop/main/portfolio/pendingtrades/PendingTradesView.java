@@ -54,7 +54,6 @@ import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.network.p2p.NodeAddress;
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -931,11 +930,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null) {
                                     trade = newItem.getTrade();
-                                    listener = (observable, oldValue, newValue) -> Platform.runLater(new Runnable() {
-                                       @Override public void run() {
-                                           update();
-                                       }
-                                    });
+                                    listener = (observable, oldValue, newValue) -> UserThread.execute(() -> update());
                                     trade.stateProperty().addListener(listener);
                                     update();
                                 } else {

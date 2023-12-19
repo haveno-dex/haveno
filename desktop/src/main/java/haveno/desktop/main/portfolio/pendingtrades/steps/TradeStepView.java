@@ -424,12 +424,7 @@ public abstract class TradeStepView extends AnchorPane {
                 log.warn("deactivating TradeStepView because model's trade is null");
 
                 // schedule deactivation to avoid concurrent modification of clock listeners
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        deactivate();
-                    }
-                });
+                Platform.runLater(() -> deactivate());
                 return;
             }
 
