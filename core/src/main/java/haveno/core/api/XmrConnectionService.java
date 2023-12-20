@@ -52,6 +52,7 @@ public final class XmrConnectionService {
     private static Long lastErrorTimestamp;
 
     private final Object lock = new Object();
+    private final Object pollLock = new Object();
     private final Object listenerLock = new Object();
     private final Config config;
     private final CoreContext coreContext;
@@ -70,6 +71,7 @@ public final class XmrConnectionService {
     private Socks5ProxyProvider socks5ProxyProvider;
 
     private boolean isInitialized;
+    private boolean pollInProgress;
     private MoneroDaemonRpc daemon;
     @Getter
     private MoneroDaemonInfo lastInfo;
@@ -575,7 +577,9 @@ public final class XmrConnectionService {
     }
 
     private void pollDaemonInfo() {
-        synchronized (lock) {
+        if (pollInProgress) return;
+        synchronized (pollLock) {
+            pollInProgress = true;
             if (isShutDownStarted) return;
             try {
 
@@ -651,6 +655,8 @@ public final class XmrConnectionService {
                 if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
                     HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
                 }
+            } finally {
+                pollInProgress = false;
             }
         }
     }

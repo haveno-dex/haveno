@@ -116,9 +116,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class Trade implements Tradable, Model {
 
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
-    private MoneroWallet wallet; // trade wallet
-    private Object walletLock = new Object();
-    boolean wasWalletSynced = false;
+    private final Object walletLock = new Object();
+    private final Object pollLock = new Object();
+    private MoneroWallet wallet;
+    boolean wasWalletSynced;
+    boolean pollInProgress;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -1911,7 +1913,7 @@ public abstract class Trade implements Tradable, Model {
                 log.info("Setting wallet refresh rate for {} {} to {}", getClass().getSimpleName(), getId(), getWalletRefreshPeriod());
                 getWallet().startSyncing(getWalletRefreshPeriod()); // TODO (monero-project): wallet rpc waits until last sync period finishes before starting new sync period
             }
-            if (isPolling()) {
+            if (isPollInProgress()) {
                 stopPolling();
                 startPolling();
             }
@@ -1920,7 +1922,7 @@ public abstract class Trade implements Tradable, Model {
 
     private void startPolling() {
         synchronized (walletLock) {
-            if (isShutDownStarted || isPolling()) return;
+            if (isShutDownStarted || isPollInProgress()) return;
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
             txPollLooper = new TaskLooper(() -> pollWallet());
             txPollLooper.start(walletRefreshPeriodMs);
@@ -1929,22 +1931,24 @@ public abstract class Trade implements Tradable, Model {
 
     private void stopPolling() {
         synchronized (walletLock) {
-            if (isPolling()) {
+            if (isPollInProgress()) {
                 txPollLooper.stop();
                 txPollLooper = null;
             }
         }
     }
     
-    private boolean isPolling() {
+    private boolean isPollInProgress() {
         synchronized (walletLock) {
             return txPollLooper != null;
         }
     }
 
     private void pollWallet() {
-        try {
-            synchronized (walletLock) {
+        if (pollInProgress) return;
+        synchronized (pollLock) {
+            pollInProgress = true;
+            try {
 
                 // log warning if wallet is too far behind daemon
                 MoneroDaemonInfo lastInfo = xmrConnectionService.getLastInfo();
@@ -2026,13 +2030,15 @@ public abstract class Trade implements Tradable, Model {
                         }
                     }
                 }
-            }
-        } catch (Exception e) {
-            boolean isWalletConnected = isWalletConnectedToDaemon();
-            if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
-            if (!isShutDownStarted && wallet != null && isWalletConnected) {
-                e.printStackTrace();
-                log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+            } catch (Exception e) {
+                boolean isWalletConnected = isWalletConnectedToDaemon();
+                if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
+                if (!isShutDownStarted && wallet != null && isWalletConnected) {
+                    e.printStackTrace();
+                    log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                }
+            } finally {
+                pollInProgress = false;
             }
         }
     }
