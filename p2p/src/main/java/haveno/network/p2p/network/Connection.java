@@ -32,7 +32,6 @@ import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 
 import haveno.common.Proto;
-import haveno.common.UserThread;
 import haveno.common.app.Capabilities;
 import haveno.common.app.HasCapabilities;
 import haveno.common.app.Version;
@@ -502,7 +501,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         handleException(t);
                     } finally {
                         stopped = true;
-                        UserThread.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
+                        EXECUTOR.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
                     }
                 }, "Connection:SendCloseConnectionMessage-" + this.uid).start();
             } else {
@@ -512,12 +511,12 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         } else {
             //TODO find out why we get called that
             log.debug("stopped was already at shutDown call");
-            UserThread.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
+            EXECUTOR.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
         }
     }
 
     private void doShutDown(CloseConnectionReason closeConnectionReason, @Nullable Runnable shutDownCompleteHandler) {
-        UserThread.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this));
+        EXECUTOR.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this));
         try {
             protoOutputStream.onConnectionShutdown();
             socket.close();
@@ -540,7 +539,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             log.debug("Connection shutdown complete {}", this);
             if (shutDownCompleteHandler != null)
-                UserThread.execute(shutDownCompleteHandler);
+                EXECUTOR.execute(shutDownCompleteHandler);
         }
     }
 
