@@ -1571,9 +1571,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         stopPeriodicRefreshOffersTimer();
 
-        new Thread(() -> {
+        HavenoUtils.submitToThread(() -> {
             processListForRepublishOffers(getOpenOffers());
-        }).start();
+        }, THREAD_ID);
     }
 
     private void processListForRepublishOffers(List<OpenOffer> list) {
@@ -1607,53 +1607,53 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void republishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
+        HavenoUtils.submitToThread(() -> {
 
-        // determine if offer is valid
-        boolean isValid = true;
-        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
-        if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
-            log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
-            isValid = false;
-        }
-        if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && (openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty())) {
-            log.warn("Offer {} is missing reserve tx hash but has reserved key images, reposting", openOffer.getId());
-            isValid = false;
-        }
+            // determine if offer is valid
+            boolean isValid = true;
+            Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
+            if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
+                log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
+                isValid = false;
+            }
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && (openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty())) {
+                log.warn("Offer {} is missing reserve tx hash but has reserved key images, reposting", openOffer.getId());
+                isValid = false;
+            }
 
-        // if valid, re-add offer to book
-        if (isValid) {
-            offerBookService.addOffer(openOffer.getOffer(),
-                () -> {
-                    if (!stopped) {
+            // if valid, re-add offer to book
+            if (isValid) {
+                offerBookService.addOffer(openOffer.getOffer(),
+                    () -> {
+                        if (!stopped) {
 
-                        // refresh means we send only the data needed to refresh the TTL (hash, signature and sequence no.)
-                        if (periodicRefreshOffersTimer == null) {
-                            startPeriodicRefreshOffersTimer();
+                            // refresh means we send only the data needed to refresh the TTL (hash, signature and sequence no.)
+                            if (periodicRefreshOffersTimer == null) {
+                                startPeriodicRefreshOffersTimer();
+                            }
+                            if (completeHandler != null) {
+                                completeHandler.run();
+                            }
                         }
-                        if (completeHandler != null) {
-                            completeHandler.run();
+                    },
+                    errorMessage -> {
+                        if (!stopped) {
+                            log.error("Adding offer to P2P network failed. " + errorMessage);
+                            stopRetryRepublishOffersTimer();
+                            retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
+                                    RETRY_REPUBLISH_DELAY_SEC);
+                            if (completeHandler != null) completeHandler.run();
                         }
-                    }
-                },
-                errorMessage -> {
-                    if (!stopped) {
-                        log.error("Adding offer to P2P network failed. " + errorMessage);
-                        stopRetryRepublishOffersTimer();
-                        retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
-                                RETRY_REPUBLISH_DELAY_SEC);
-                        if (completeHandler != null) completeHandler.run();
-                    }
-                });
-        } else {
+                    });
+            } else {
 
-            // cancel and recreate offer
-            onCancelled(openOffer);
-            Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
-            updatedOffer.setPriceFeedService(priceFeedService);
-            OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
+                // cancel and recreate offer
+                onCancelled(openOffer);
+                Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
+                updatedOffer.setPriceFeedService(priceFeedService);
+                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
 
-            // repost offer
-            HavenoUtils.submitToThread(() -> {
+                // repost offer
                 synchronized (processOffersLock) {
                     CountDownLatch latch = new CountDownLatch(1);
                     processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
@@ -1670,8 +1670,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
                     HavenoUtils.awaitLatch(latch);
                 }
-            }, THREAD_ID);
-        }
+            }
+        }, THREAD_ID);
     }
 
     private void startPeriodicRepublishOffersTimer() {
