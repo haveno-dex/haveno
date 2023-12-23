@@ -33,7 +33,7 @@ import java.util.Date;
 @Getter
 @Slf4j
 public final class Peer implements HasCapabilities, NetworkPayload, PersistablePayload, SupportedCapabilitiesListener {
-    private static final int MAX_FAILED_CONNECTION_ATTEMPTS = 5;
+    private static final int MAX_FAILED_CONNECTION_ATTEMPTS = 6;
 
     private final NodeAddress nodeAddress;
     private final long date;
