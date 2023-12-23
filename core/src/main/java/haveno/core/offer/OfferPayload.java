@@ -55,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 @Getter
 @Slf4j
 public final class OfferPayload implements ProtectedStoragePayload, ExpirablePayload, RequiresOwnerIsOnlinePayload {
-    public static final long TTL = TimeUnit.MINUTES.toMillis(9);
+    public static final long TTL = TimeUnit.MINUTES.toMillis(11);
 
     protected final String id;
     protected final long date;
