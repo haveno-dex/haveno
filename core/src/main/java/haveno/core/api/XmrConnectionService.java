@@ -647,14 +647,15 @@ public final class XmrConnectionService {
                     if (DevEnv.isDevMode()) e.printStackTrace();
                 }
 
-                // check connection which notifies of changes
-                if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
-                else connectionManager.checkConnection();
+                new Thread(() -> {
+                    if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
+                    else connectionManager.checkConnection();
 
-                // set error message
-                if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
-                    HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
-                }
+                    // set error message
+                    if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
+                        HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
+                    }
+                }).start();
             } finally {
                 pollInProgress = false;
             }

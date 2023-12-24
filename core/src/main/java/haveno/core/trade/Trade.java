@@ -802,6 +802,17 @@ public abstract class Trade implements Tradable, Model {
         return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && syncNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
 
+    public boolean isSyncedWithinTolerance() {
+        synchronized (walletLock) {
+            if (wallet == null) return false;
+            if (!xmrConnectionService.isSyncedWithinTolerance()) return false;
+            Long targetHeight = xmrConnectionService.getTargetHeight();
+            if (targetHeight == null) return false;
+            if (targetHeight - wallet.getHeight() <= 3) return true; // synced if within 3 blocks of target height
+            return false;
+        }
+    }
+
     public void syncAndPollWallet() {
         syncWallet(true);
     }
@@ -879,6 +890,18 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             if (walletExists()) {
                 try {
+                    
+                    // check if synced
+                    if (!isSyncedWithinTolerance()) {
+                        log.warn("Refusing to delete wallet for {} {} because it is not synced within tolerance", getClass().getSimpleName(), getId());
+                        return;
+                    }
+
+                    // check if balance > 0
+                    if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
+                        log.warn("Refusing to delete wallet for {} {} because it contains a balance", getClass().getSimpleName(), getId());
+                        return;
+                    }
 
                     // check if funds deposited but payout not unlocked
                     if (isDepositsPublished() && !isPayoutUnlocked()) {
@@ -886,7 +909,7 @@ public abstract class Trade implements Tradable, Model {
                     }
 
                     // force stop the wallet
-                    if (wallet != null) stopWallet();
+                    stopWallet();
 
                     // delete wallet
                     log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
@@ -1279,7 +1302,7 @@ public abstract class Trade implements Tradable, Model {
         }
 
         this.state = state;
-        UserThread.execute(() -> {
+        UserThread.await(() -> {
             stateProperty.set(state);
             phaseProperty.set(state.getPhase());
         });
@@ -1310,9 +1333,7 @@ public abstract class Trade implements Tradable, Model {
         }
 
         this.payoutState = payoutState;
-        UserThread.execute(() -> {
-            payoutStateProperty.set(payoutState);
-        });
+        UserThread.await(() -> payoutStateProperty.set(payoutState));
     }
 
     public void setDisputeState(DisputeState disputeState) {

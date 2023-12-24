@@ -112,6 +112,10 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             // TODO (woodser): add small delay so tx has head start against double spend attempts?
             if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
 
+                // update trade state
+                trade.setState(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
+                processModel.getTradeManager().requestPersistence();
+
                 // relay txs
                 MoneroSubmitTxResult makerResult = daemon.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
                 MoneroSubmitTxResult takerResult = daemon.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
