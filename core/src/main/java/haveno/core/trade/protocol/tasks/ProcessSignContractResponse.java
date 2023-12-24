@@ -84,6 +84,11 @@ public class ProcessSignContractResponse extends TradeTask {
                         trade.getSelf().getDepositTx().getKey(),
                         trade.getSelf().getPaymentAccountKey());
 
+                // update trade state
+                trade.setState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST);
+                processModel.getTradeManager().requestPersistence();
+                trade.addInitProgressStep();
+
                 // send request to arbitrator
                 log.info("Sending {} to arbitrator {}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), request.getUid());
                 processModel.getP2PService().sendEncryptedDirectMessage(trade.getArbitrator().getNodeAddress(), trade.getArbitrator().getPubKeyRing(), request, new SendDirectMessageListener() {
@@ -101,11 +106,6 @@ public class ProcessSignContractResponse extends TradeTask {
                         failed();
                     }
                 });
-
-                // deposit is requested
-                trade.setState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST);
-                trade.addInitProgressStep();
-                processModel.getTradeManager().requestPersistence();
             } else {
                 log.info("Waiting for another contract signature to send deposit request");
                 complete(); // does not yet have needed signatures

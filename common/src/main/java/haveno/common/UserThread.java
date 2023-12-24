@@ -45,6 +45,7 @@ public class UserThread {
     @Getter
     @Setter
     private static Executor executor;
+    private static final String USER_THREAD_NAME = "UserThread";
 
     public static void setTimerClass(Class<? extends Timer> timerClass) {
         UserThread.timerClass = timerClass;
@@ -57,20 +58,29 @@ public class UserThread {
     }
 
     public static void execute(Runnable command) {
-        UserThread.executor.execute(command);
+        UserThread.executor.execute(() -> {
+            Thread.currentThread().setName(USER_THREAD_NAME);
+            command.run();
+        });
     }
 
     public static void await(Runnable command) {
-        CountDownLatch latch = new CountDownLatch(1);
-        executor.execute(() -> {
+        if (isUserThread(Thread.currentThread())) {
             command.run();
-            latch.countDown();
-        });
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        } else {
+            CountDownLatch latch = new CountDownLatch(1);
+            execute(command); // run task
+            execute(() -> latch.countDown()); // await next tick
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
+    }
+
+    public static boolean isUserThread(Thread thread) {
+        return USER_THREAD_NAME.equals(thread.getName());
     }
 
     // Prefer FxTimer if a delay is needed in a JavaFx class (gui module)
