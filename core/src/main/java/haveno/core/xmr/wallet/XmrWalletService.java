@@ -951,7 +951,7 @@ public class XmrWalletService {
                 });
             }
 
-            log.info("Done setting main wallet daemon connection: " + (connection == null ? null : connection.getUri()));
+            log.info("Done setting main wallet daemon connection: " + (wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getUri()));
         }
     }
 
