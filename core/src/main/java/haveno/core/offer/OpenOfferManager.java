@@ -926,10 +926,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             if (earliestUnscheduledTx != null) return earliestUnscheduledTx;
         }
 
-        // return scheduled tx if already assigned
-        if (openOffer.getScheduledTxHashes() != null) {
-            return xmrWalletService.getWallet().getTx(openOffer.getScheduledTxHashes().get(0));
-        }
+        // return if awaiting scheduled tx
+        if (openOffer.getScheduledTxHashes() != null) return null;
 
         // cache all transactions including from pool
         List<MoneroTxWallet> allTxs = xmrWalletService.getWallet().getTxs(new MoneroTxQuery().setIncludeOutputs(true));
