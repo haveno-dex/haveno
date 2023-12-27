@@ -400,12 +400,24 @@ public final class XmrConnectionService {
                     @Override
                     public void onConnectionChanged(MoneroRpcConnection connection) {
                         log.info("Local monerod connection changed: " + connection);
-                        if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen()) return;
-                        if (xmrLocalNode.isConnected() && !xmrLocalNode.shouldBeIgnored()) {
-                            setConnection(connection.getUri()); // switch to local node if connected and not ignored
-                            checkConnection();
+
+                        // skip if ignored
+                        if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen() ||
+                            !connectionManager.hasConnection(connection.getUri()) || xmrLocalNode.shouldBeIgnored()) return;
+                        
+                        // check connection
+                        boolean isConnected = false;
+                        if (xmrLocalNode.isConnected()) {
+                            MoneroRpcConnection conn = connectionManager.getConnectionByUri(connection.getUri());
+                            conn.checkConnection(connectionManager.getTimeout());
+                            isConnected = Boolean.TRUE.equals(conn.isConnected());
+                        }
+
+                        // update connection
+                        if (isConnected) {
+                            setConnection(connection.getUri());
                         } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
-                            setConnection(getBestAvailableConnection()); // switch to best available connection
+                            setConnection(getBestAvailableConnection()); // switch to best connection
                         }
                     }
                 });
