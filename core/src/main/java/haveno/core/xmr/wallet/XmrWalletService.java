@@ -300,6 +300,10 @@ public class XmrWalletService {
         }
     }
 
+    private MoneroSyncResult syncWallet() {
+        return syncWallet(wallet);
+    }
+
     public void saveWallet(MoneroWallet wallet, boolean backup) {
         wallet.save();
         if (backup) backupWallet(wallet.getPath());
@@ -791,7 +795,7 @@ public class XmrWalletService {
             if (wallet.getHeight() < xmrConnectionService.getTargetHeight()) updateSyncProgress();
             else {
                 syncLooper.stop();
-                wallet.sync(); // necessary to fully sync
+                syncWallet(); // necessary to fully sync
                 wasWalletSynced = true;
                 updateSyncProgress();
                 latch.countDown();
@@ -940,13 +944,11 @@ public class XmrWalletService {
             if (connection != null) {
                 wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
                 HavenoUtils.submitToPool(() -> {
-                    synchronized (walletLock) {
-                        try {
-                            if (Boolean.TRUE.equals(connection.isConnected())) wallet.sync();
-                            wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
-                        } catch (Exception e) {
-                            log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
-                        }
+                    try {
+                        if (Boolean.TRUE.equals(connection.isConnected())) syncWallet();
+                        wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
+                    } catch (Exception e) {
+                        log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
                     }
                 });
             }
