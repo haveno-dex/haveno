@@ -24,8 +24,8 @@
             AnchorPane.topAnchor="0.0"
             xmlns:fx="http://javafx.com/fxml">
 
-    <Tab fx:id="withdrawalTab" closable="false"/>
     <Tab fx:id="depositTab" closable="false"/>
+    <Tab fx:id="withdrawalTab" closable="false"/>
     <Tab fx:id="transactionsTab" closable="false"/>
 
 </JFXTabPane>
