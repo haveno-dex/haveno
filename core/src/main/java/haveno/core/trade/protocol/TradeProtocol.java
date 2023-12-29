@@ -62,7 +62,6 @@ import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.DecryptedDirectMessageListener;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
-import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.messaging.DecryptedMailboxListener;
@@ -666,7 +665,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 processModel.getTradeManager().requestPersistence();
             }
 
-            handleError(err);
+            handleError(ackMessage.getErrorMessage());
         }
     }
 
@@ -679,43 +678,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return;
         }
 
-        String tradeId = message.getTradeId();
-        String sourceUid = message.getUid();
-        AckMessage ackMessage = new AckMessage(processModel.getMyNodeAddress(),
-                AckMessageSourceType.TRADE_MESSAGE,
-                message.getClass().getSimpleName(),
-                sourceUid,
-                tradeId,
-                result,
-                errorMessage);
-
-        log.info("Send AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
-                ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
-        processModel.getP2PService().getMailboxMessageService().sendEncryptedMailboxMessage(
-                peer,
-                peersPubKeyRing,
-                ackMessage,
-                new SendMailboxMessageListener() {
-                    @Override
-                    public void onArrived() {
-                        log.info("AckMessage for {} arrived at peer {}. tradeId={}, sourceUid={}",
-                                ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
-                    }
-
-                    @Override
-                    public void onStoredInMailbox() {
-                        log.info("AckMessage for {} stored in mailbox for peer {}. tradeId={}, sourceUid={}",
-                                ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
-                    }
-
-                    @Override
-                    public void onFault(String errorMessage) {
-                        log.error("AckMessage for {} failed. Peer {}. tradeId={}, sourceUid={}, errorMessage={}",
-                                ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid, errorMessage);
-                    }
-                }
-        );
+        // send ack message
+        processModel.getTradeManager().sendAckMessage(peer, peersPubKeyRing, message, result, errorMessage);
     }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Timeout
