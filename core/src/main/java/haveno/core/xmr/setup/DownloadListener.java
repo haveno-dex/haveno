@@ -11,11 +11,11 @@ public class DownloadListener {
     private final DoubleProperty percentage = new SimpleDoubleProperty(-1);
 
     public void progress(double percentage, long blocksLeft, Date date) {
-        UserThread.execute(() -> this.percentage.set(percentage / 100d));
+        UserThread.await(() -> this.percentage.set(percentage / 100d));
     }
 
     public void doneDownload() {
-        UserThread.execute(() -> this.percentage.set(1d));
+        UserThread.await(() -> this.percentage.set(1d));
     }
 
     public ReadOnlyDoubleProperty percentageProperty() {
