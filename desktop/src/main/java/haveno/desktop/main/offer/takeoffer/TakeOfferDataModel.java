@@ -226,8 +226,6 @@ class TakeOfferDataModel extends OfferDataModel {
     // UI actions
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // errorMessageHandler is used only in the check availability phase. As soon we have a trade we write the error msg in the trade object as we want to
-    // have it persisted as well.
     void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler) {
         checkNotNull(getTakerFee(), "takerFee must not be null");
 
