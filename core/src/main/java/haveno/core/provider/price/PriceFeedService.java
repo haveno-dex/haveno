@@ -284,13 +284,15 @@ public class PriceFeedService {
     }
 
     private void setHavenoMarketPrice(String currencyCode, Price price) {
-        if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
-            cache.put(currencyCode, new MarketPrice(currencyCode,
-                    MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
-                    0,
-                    false));
-            updateCounter.set(updateCounter.get() + 1);
-        }
+        UserThread.await(() -> {
+            if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
+                cache.put(currencyCode, new MarketPrice(currencyCode,
+                        MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
+                        0,
+                        false));
+                updateCounter.set(updateCounter.get() + 1);
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -298,12 +300,13 @@ public class PriceFeedService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setCurrencyCode(String currencyCode) {
-        if (this.currencyCode == null || !this.currencyCode.equals(currencyCode)) {
-            this.currencyCode = currencyCode;
-            currencyCodeProperty.set(currencyCode);
-            if (priceConsumer != null)
-                applyPriceToConsumer();
-        }
+        UserThread.await(() -> {
+            if (this.currencyCode == null || !this.currencyCode.equals(currencyCode)) {
+                this.currencyCode = currencyCode;
+                currencyCodeProperty.set(currencyCode);
+                if (priceConsumer != null) applyPriceToConsumer();
+            }
+        });
     }
 
 
@@ -428,7 +431,7 @@ public class PriceFeedService {
                 faultHandler.handleFault(errorMessage, new PriceRequestException(errorMessage));
         }
 
-        updateCounter.set(updateCounter.get() + 1);
+        UserThread.await(() -> updateCounter.set(updateCounter.get() + 1));
 
         return result;
     }
