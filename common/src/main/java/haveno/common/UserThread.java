@@ -58,7 +58,7 @@ public class UserThread {
     }
 
     public static void execute(Runnable command) {
-        UserThread.executor.execute(() -> {
+        executor.execute(() -> {
             Thread.currentThread().setName(USER_THREAD_NAME);
             command.run();
         });
@@ -79,7 +79,8 @@ public class UserThread {
         }
     }
 
-    public static boolean isUserThread(Thread thread) {
+    // TODO: better way to determine if on UserThread, since this is not reliable
+    private static boolean isUserThread(Thread thread) {
         return USER_THREAD_NAME.equals(thread.getName());
     }
 

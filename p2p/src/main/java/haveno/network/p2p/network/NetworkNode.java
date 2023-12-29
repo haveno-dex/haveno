@@ -306,25 +306,23 @@ public abstract class NetworkNode implements MessageListener {
                 }
 
                 public void onFailure(@NotNull Throwable throwable) {
-                    UserThread.execute(() -> {
-                        if (!resultFuture.setException(throwable)) {
-                            // In case the setException returns false we need to cancel the future.
-                            resultFuture.cancel(true);
-                        }
-                    });
+                    UserThread.execute(() -> resolveWithException(resultFuture, throwable));
                 }
             }, MoreExecutors.directExecutor());
 
         } catch (RejectedExecutionException exception) {
-            log.error("RejectedExecutionException at sendMessage: ", exception);
-            UserThread.execute(() -> {
-                if (!resultFuture.setException(exception)) {
-                    // In case the setException returns false we need to cancel the future.
-                    resultFuture.cancel(true);
-                }
-            });
+            if (!executor.isShutdown()) {
+                log.error("RejectedExecutionException at sendMessage: ", exception);
+                UserThread.execute(() -> resolveWithException(resultFuture, exception));
+            }
         }
         return resultFuture;
+    }
+
+    private void resolveWithException(SettableFuture<?> future, Throwable exception) {
+        if (!future.setException(exception)) {
+            future.cancel(true); // In case the setException returns false we need to cancel the future.
+        }
     }
 
     public ReadOnlyObjectProperty<NodeAddress> nodeAddressProperty() {
