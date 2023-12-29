@@ -418,10 +418,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .useShutDownButton()
                 .show());
 
-        tradeManager.setTakeOfferRequestErrorMessageHandler(errorMessage -> new Popup()
-                .warning(Res.get("popup.error.takeOfferRequestFailed", errorMessage))
-                .show());
-
         havenoSetup.getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrDaemonSyncProgress());
         havenoSetup.getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrWalletSyncProgress());
 

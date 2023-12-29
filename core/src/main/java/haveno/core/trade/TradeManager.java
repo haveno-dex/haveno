@@ -86,7 +86,6 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import lombok.Getter;
-import lombok.Setter;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroOutputQuery;
 import org.bitcoinj.core.Coin;
@@ -149,9 +148,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final TradableList<Trade> tradableList = new TradableList<>();
     @Getter
     private final BooleanProperty persistedTradesInitialized = new SimpleBooleanProperty();
-    @Setter
-    @Nullable
-    private ErrorMessageHandler takeOfferRequestErrorMessageHandler;
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
@@ -613,7 +609,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
               maybeRemoveTradeOnError(trade);
-              if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
 
           requestPersistence();
@@ -702,7 +697,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Maker error during trade initialization: " + errorMessage);
               maybeRemoveTradeOnError(trade);
-              if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
           });
 
           requestPersistence();
@@ -893,7 +887,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId());
                             maybeRemoveTradeOnError(trade);
                             errorMessageHandler.handleErrorMessage(errorMessage);
-                            if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
                         });
                         requestPersistence();
                     } else {
@@ -903,7 +896,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 errorMessage -> {
                     log.warn("Taker error during check offer availability: " + errorMessage);
                     errorMessageHandler.handleErrorMessage(errorMessage);
-                    if (takeOfferRequestErrorMessageHandler != null) takeOfferRequestErrorMessageHandler.handleErrorMessage(errorMessage);
                 });
 
         requestPersistence();
