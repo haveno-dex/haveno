@@ -890,26 +890,14 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             if (walletExists()) {
                 try {
-                    
-                    // check if synced
-                    if (!isSyncedWithinTolerance()) {
-                        log.warn("Refusing to delete wallet for {} {} because it is not synced within tolerance", getClass().getSimpleName(), getId());
-                        return;
-                    }
 
-                    // check if balance > 0
-                    if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                        log.warn("Refusing to delete wallet for {} {} because it contains a balance", getClass().getSimpleName(), getId());
-                        return;
-                    }
-
-                    // check if funds deposited but payout not unlocked
+                    // check if deposits published and payout not unlocked
                     if (isDepositsPublished() && !isPayoutUnlocked()) {
                         throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
                     }
 
                     // force stop the wallet
-                    stopWallet();
+                    if (wallet != null) stopWallet();
 
                     // delete wallet
                     log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
@@ -918,9 +906,9 @@ public abstract class Trade implements Tradable, Model {
                     // delete trade wallet backups unless deposits requested and payouts not unlocked
                     if (isDepositRequested() && !isDepositFailed() && !isPayoutUnlocked()) {
                         log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
-                        return;
+                    } else {
+                        xmrWalletService.deleteWalletBackups(getWalletName());
                     }
-                    xmrWalletService.deleteWalletBackups(getWalletName());
                 } catch (Exception e) {
                     log.warn(e.getMessage());
                     e.printStackTrace();
