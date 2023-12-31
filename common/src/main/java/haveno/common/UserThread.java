@@ -45,7 +45,7 @@ public class UserThread {
     @Getter
     @Setter
     private static Executor executor;
-    private static final String USER_THREAD_NAME = "UserThread";
+    private static Thread USER_THREAD;
 
     public static void setTimerClass(Class<? extends Timer> timerClass) {
         UserThread.timerClass = timerClass;
@@ -59,8 +59,10 @@ public class UserThread {
 
     public static void execute(Runnable command) {
         executor.execute(() -> {
-            Thread.currentThread().setName(USER_THREAD_NAME);
-            command.run();
+            synchronized (executor) {
+                USER_THREAD = Thread.currentThread();
+                command.run();
+            }
         });
     }
 
@@ -79,9 +81,9 @@ public class UserThread {
         }
     }
 
-    // TODO: better way to determine if on UserThread, since this is not reliable
-    private static boolean isUserThread(Thread thread) {
-        return USER_THREAD_NAME.equals(thread.getName());
+    public static boolean isUserThread(Thread thread) {
+        return thread == USER_THREAD;
+
     }
 
     // Prefer FxTimer if a delay is needed in a JavaFx class (gui module)
@@ -99,7 +101,7 @@ public class UserThread {
     }
 
     public static Timer runAfter(Runnable runnable, long delay, TimeUnit timeUnit) {
-        return getTimer().runLater(Duration.ofMillis(timeUnit.toMillis(delay)), runnable);
+        return getTimer().runLater(Duration.ofMillis(timeUnit.toMillis(delay)), () -> execute(runnable));
     }
 
     public static Timer runPeriodically(Runnable runnable, long intervalInSec) {
@@ -107,7 +109,7 @@ public class UserThread {
     }
 
     public static Timer runPeriodically(Runnable runnable, long interval, TimeUnit timeUnit) {
-        return getTimer().runPeriodically(Duration.ofMillis(timeUnit.toMillis(interval)), runnable);
+        return getTimer().runPeriodically(Duration.ofMillis(timeUnit.toMillis(interval)), () -> execute(runnable));
     }
 
     private static Timer getTimer() {

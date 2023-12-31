@@ -87,7 +87,6 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import lombok.Getter;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroOutputQuery;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
@@ -353,35 +352,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-    private void thawUnreservedOutputs() {
-        if (xmrWalletService.getWallet() == null) return;
-
-        // collect reserved outputs
-        Set<String> reservedKeyImages = new HashSet<String>();
-        for (Trade trade : getObservableList()) {
-            if (trade.getSelf().getReserveTxKeyImages() == null) continue;
-            reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
-        }
-        for (OpenOffer openOffer : openOfferManager.getObservableList()) {
-            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
-            reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
-        }
-
-        // thaw unreserved outputs
-        Set<String> unreservedFrozenKeyImages = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery()
-                .setIsFrozen(true)
-                .setIsSpent(false))
-                .stream()
-                .map(output -> output.getKeyImage().getHex())
-                .collect(Collectors.toSet());
-        unreservedFrozenKeyImages.removeAll(reservedKeyImages);
-        if (!unreservedFrozenKeyImages.isEmpty()) {
-            log.warn("Thawing outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
-            xmrWalletService.thawOutputs(unreservedFrozenKeyImages);
-            xmrWalletService.saveMainWallet();
-        }
-    }
-
     public TradeProtocol getTradeProtocol(Trade trade) {
         synchronized (tradeProtocolByTradeId) {
             return tradeProtocolByTradeId.get(trade.getUid());
@@ -464,9 +434,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
 
                 // thaw unreserved outputs
-                thawUnreservedOutputs();
+                xmrWalletService.thawUnreservedOutputs();
 
                 // reset any available funded address entries
+                if (isShutDownStarted) return;
                 xmrWalletService.getAddressEntriesForAvailableBalanceStream()
                         .filter(addressEntry -> addressEntry.getOfferId() != null)
                         .forEach(addressEntry -> {
@@ -476,6 +447,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
 
             // notify that persisted trades initialized
+            if (isShutDownStarted) return;
             persistedTradesInitialized.set(true);
             getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
             onTradesChanged();

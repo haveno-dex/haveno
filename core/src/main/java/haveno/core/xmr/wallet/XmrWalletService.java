@@ -12,6 +12,7 @@ import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.offer.OpenOffer;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
@@ -80,6 +81,7 @@ import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleLongProperty;
+import javafx.beans.value.ChangeListener;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -120,6 +122,7 @@ public class XmrWalletService {
     protected final CopyOnWriteArraySet<XmrBalanceListener> balanceListeners = new CopyOnWriteArraySet<>();
     protected final CopyOnWriteArraySet<MoneroWalletListenerI> walletListeners = new CopyOnWriteArraySet<>();
 
+    private ChangeListener<? super Number> walletInitListener;
     private TradeManager tradeManager;
     private MoneroWalletRpc wallet;
     private Object walletLock = new Object();
@@ -360,6 +363,45 @@ public class XmrWalletService {
                 return tx;
             } catch (Exception e) {
                 throw e;
+            }
+        }
+    }
+
+    /**
+     * Thaw all outputs not reserved for a trade.
+     */
+    public void thawUnreservedOutputs() {
+        synchronized (walletLock) {
+
+            // collect reserved outputs
+            Set<String> reservedKeyImages = new HashSet<String>();
+            for (Trade trade : tradeManager.getObservableList()) {
+                if (trade.getSelf().getReserveTxKeyImages() == null) continue;
+                reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
+            }
+            for (OpenOffer openOffer : tradeManager.getOpenOfferManager().getObservableList()) {
+                if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
+                reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+            }
+
+            // ensure wallet is open
+            if (wallet == null) {
+                log.warn("Cannot thaw unreserved outputs because wallet not open");
+                return;
+            }
+
+            // thaw unreserved outputs
+            Set<String> unreservedFrozenKeyImages = wallet.getOutputs(new MoneroOutputQuery()
+                    .setIsFrozen(true)
+                    .setIsSpent(false))
+                    .stream()
+                    .map(output -> output.getKeyImage().getHex())
+                    .collect(Collectors.toSet());
+            unreservedFrozenKeyImages.removeAll(reservedKeyImages);
+            if (!unreservedFrozenKeyImages.isEmpty()) {
+                log.warn("Thawing outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
+                thawOutputs(unreservedFrozenKeyImages);
+                saveMainWallet();
             }
         }
     }
@@ -695,17 +737,21 @@ public class XmrWalletService {
             HavenoUtils.submitToThread(() -> onConnectionChanged(connection), THREAD_ID);
         });
 
-        // wait for monerod to sync
-        if (xmrConnectionService.downloadPercentageProperty().get() != 1) {
-            CountDownLatch latch = new CountDownLatch(1);
-            xmrConnectionService.downloadPercentageProperty().addListener((obs, oldVal, newVal) -> {
-                if (xmrConnectionService.downloadPercentageProperty().get() == 1) latch.countDown();
-            });
-            HavenoUtils.awaitLatch(latch);
-        }
+        // initialize main wallet when daemon synced
+        walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
+        xmrConnectionService.downloadPercentageProperty().addListener(walletInitListener);
+        initMainWalletIfConnected();
+    }
 
-        // initialize main wallet
-        maybeInitMainWallet(true);
+    private void initMainWalletIfConnected() {
+        HavenoUtils.submitToThread(() -> {
+            synchronized (walletLock) {
+                if (xmrConnectionService.downloadPercentageProperty().get() == 1 && wallet == null && !isShutDownStarted) {
+                    maybeInitMainWallet(true);
+                    if (walletInitListener != null) xmrConnectionService.downloadPercentageProperty().removeListener(walletInitListener);
+                }
+            }
+        }, THREAD_ID);
     }
 
     private void maybeInitMainWallet(boolean sync) {
