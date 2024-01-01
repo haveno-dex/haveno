@@ -325,16 +325,18 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {
-        synchronized (trade) {
+        new Thread(() -> {
+            synchronized (trade) {
 
-            // skip if no need to reprocess
-            if (trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
-                return;
+                // skip if no need to reprocess
+                if (trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
+                    return;
+                }
+
+                log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                handleDisputeClosedMessage(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
             }
-
-            log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            new Thread(() -> handleDisputeClosedMessage(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError)).start();
-        }
+        }).start();
     }
 
     private MoneroTxSet signAndPublishDisputePayoutTx(Trade trade) {
