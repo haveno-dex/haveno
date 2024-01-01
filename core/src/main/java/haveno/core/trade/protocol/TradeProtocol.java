@@ -259,29 +259,46 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
 
         // send deposits confirmed message if applicable
-        maybeSendDepositsConfirmedMessage();
+        maybeSendDepositsConfirmedMessages();
+        EasyBind.subscribe(trade.stateProperty(), state -> maybeSendDepositsConfirmedMessages());
     }
 
-    private void maybeSendDepositsConfirmedMessage() {
-        HavenoUtils.submitToThread(() -> maybeSendDepositsConfirmedMessages(), trade.getId());
-        EasyBind.subscribe(trade.stateProperty(), state -> {
-            HavenoUtils.submitToThread(() -> maybeSendDepositsConfirmedMessages(), trade.getId());
-        });
+    public void maybeSendDepositsConfirmedMessages() {
+        HavenoUtils.submitToThread(() -> {
+            if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished()) return;
+            synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDownStarted()) return; // skip if shutting down
+                latchTrade();
+                expect(new Condition(trade))
+                        .setup(tasks(getDepositsConfirmedTasks())
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    handleTaskRunnerSuccess(null, null, "maybeSendDepositsConfirmedMessages");
+                                },
+                                (errorMessage) -> {
+                                    handleTaskRunnerFault(null, null, "maybeSendDepositsConfirmedMessages", errorMessage);
+                                })))
+                        .executeTasks(true);
+                awaitTradeLatch();
+            }
+        }, trade.getId());
     }
 
     public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
-        synchronized (trade) {
+        HavenoUtils.submitToThread(() -> {
+            synchronized (trade) {
 
-            // skip if no need to reprocess
-            if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
-                return;
+                // skip if no need to reprocess
+                if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
+                    return;
+                }
+
+                log.warn("Reprocessing payment received message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError);
             }
 
-            log.warn("Reprocessing payment received message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            HavenoUtils.submitToThread(() -> {
-                handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError);
-            }, trade.getId());
-        }
+            handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError);
+        }, trade.getId());
     }
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
@@ -842,25 +859,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return ackMessage.getSourceType() == AckMessageSourceType.TRADE_MESSAGE && ackMessage.getSourceId().equals(trade.getId());
         } else {
             return false;
-        }
-    }
-
-    public void maybeSendDepositsConfirmedMessages() {
-        if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished()) return;
-        synchronized (trade) {
-            if (!trade.isInitialized() || trade.isShutDownStarted()) return; // skip if shutting down
-            latchTrade();
-            expect(new Condition(trade))
-                    .setup(tasks(getDepositsConfirmedTasks())
-                    .using(new TradeTaskRunner(trade,
-                            () -> {
-                                handleTaskRunnerSuccess(null, null, "maybeSendDepositsConfirmedMessages");
-                            },
-                            (errorMessage) -> {
-                                handleTaskRunnerFault(null, null, "maybeSendDepositsConfirmedMessages", errorMessage);
-                            })))
-                    .executeTasks(true);
-            awaitTradeLatch();
         }
     }
 }
