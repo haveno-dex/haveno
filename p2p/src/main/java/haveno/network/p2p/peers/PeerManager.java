@@ -365,14 +365,16 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         // We check if the reported msg is not violating our rules
         if (peers.size() <= (MAX_REPORTED_PEERS + maxConnectionsAbsolute + 10)) {
-            reportedPeers.addAll(peers);
-            purgeReportedPeersIfExceeds();
+            synchronized (reportedPeers) {
+                reportedPeers.addAll(peers);
+                purgeReportedPeersIfExceeds();
 
-            getPersistedPeers().addAll(peers);
-            purgePersistedPeersIfExceeds();
-            requestPersistence();
+                getPersistedPeers().addAll(peers);
+                purgePersistedPeersIfExceeds();
+                requestPersistence();
 
-            printReportedPeers();
+                printReportedPeers();
+            }
         } else {
             // If a node is trying to send too many list we treat it as rule violation.
             // Reported list include the connected list. We use the max value and give some extra headroom.
@@ -589,8 +591,11 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void removeReportedPeer(Peer reportedPeer) {
-        reportedPeers.remove(reportedPeer);
-        printReportedPeers();
+        synchronized (reportedPeers) {
+            reportedPeers.remove(reportedPeer);
+            printReportedPeers();
+        }
+
     }
 
     private void removeReportedPeer(NodeAddress nodeAddress) {
@@ -611,35 +616,39 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
 
     private void purgeReportedPeersIfExceeds() {
-        int size = reportedPeers.size();
-        if (size > MAX_REPORTED_PEERS) {
-            log.info("We have already {} reported peers which exceeds our limit of {}." +
-                    "We remove random peers from the reported peers list.", size, MAX_REPORTED_PEERS);
-            int diff = size - MAX_REPORTED_PEERS;
-            List<Peer> list = new ArrayList<>(reportedPeers);
-            // we don't use sorting by lastActivityDate to keep it more random
-            for (int i = 0; i < diff; i++) {
-                if (!list.isEmpty()) {
-                    Peer toRemove = list.remove(new Random().nextInt(list.size()));
-                    removeReportedPeer(toRemove);
+        synchronized (reportedPeers) {
+            int size = reportedPeers.size();
+            if (size > MAX_REPORTED_PEERS) {
+                log.info("We have already {} reported peers which exceeds our limit of {}." +
+                        "We remove random peers from the reported peers list.", size, MAX_REPORTED_PEERS);
+                int diff = size - MAX_REPORTED_PEERS;
+                List<Peer> list = new ArrayList<>(reportedPeers);
+                // we don't use sorting by lastActivityDate to keep it more random
+                for (int i = 0; i < diff; i++) {
+                    if (!list.isEmpty()) {
+                        Peer toRemove = list.remove(new Random().nextInt(list.size()));
+                        removeReportedPeer(toRemove);
+                    }
                 }
+            } else {
+                log.trace("No need to purge reported peers.\n\tWe don't have more then {} reported peers yet.", MAX_REPORTED_PEERS);
             }
-        } else {
-            log.trace("No need to purge reported peers.\n\tWe don't have more then {} reported peers yet.", MAX_REPORTED_PEERS);
         }
     }
 
     private void printReportedPeers() {
-        if (!reportedPeers.isEmpty()) {
-            if (PRINT_REPORTED_PEERS_DETAILS) {
-                StringBuilder result = new StringBuilder("\n\n------------------------------------------------------------\n" +
-                        "Collected reported peers:");
-                List<Peer> reportedPeersClone = new ArrayList<>(reportedPeers);
-                reportedPeersClone.forEach(e -> result.append("\n").append(e));
-                result.append("\n------------------------------------------------------------\n");
-                log.trace(result.toString());
+        synchronized (reportedPeers) {
+            if (!reportedPeers.isEmpty()) {
+                if (PRINT_REPORTED_PEERS_DETAILS) {
+                    StringBuilder result = new StringBuilder("\n\n------------------------------------------------------------\n" +
+                            "Collected reported peers:");
+                    List<Peer> reportedPeersClone = new ArrayList<>(reportedPeers);
+                    reportedPeersClone.forEach(e -> result.append("\n").append(e));
+                    result.append("\n------------------------------------------------------------\n");
+                    log.trace(result.toString());
+                }
+                log.debug("Number of reported peers: {}", reportedPeers.size());
             }
-            log.debug("Number of reported peers: {}", reportedPeers.size());
         }
     }
 
