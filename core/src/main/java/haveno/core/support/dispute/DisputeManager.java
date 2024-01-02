@@ -1022,7 +1022,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // proposal). But if gain is larger than this loss he has economically an incentive to default in the trade.
     // We do all those calculations to give a hint to mediators to detect option trades.
     protected void addPriceInfoMessage(Dispute dispute, int counter) {
-        if (!priceFeedService.hasPrices()) {
+        if (!priceFeedService.hasExternalPrices()) {
             if (counter < 3) {
                 log.info("Price provider has still no data. This is expected at startup. We try again in 10 sec.");
                 UserThread.runAfter(() -> addPriceInfoMessage(dispute, counter + 1), 10);

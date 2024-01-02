@@ -403,7 +403,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         HavenoUtils.submitToThread(() -> {
             
             // Wait for prices to be available
-            priceFeedService.awaitPrices();
+            priceFeedService.awaitExternalPrices();
 
             // Republish means we send the complete offer object
             republishOffers();

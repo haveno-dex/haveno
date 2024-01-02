@@ -140,17 +140,24 @@ public class PriceFeedService {
     /**
      * Awaits prices to be available, but does not request them.
      */
-    public void awaitPrices() {
-        if (hasPrices()) return;
+    public void awaitExternalPrices() {
         CountDownLatch latch = new CountDownLatch(1);
-        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { latch.countDown(); };
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { 
+            if (hasExternalPrices()) latch.countDown();
+        };
         updateCounter.addListener(listener);
+        if (hasExternalPrices()) {
+            updateCounter.removeListener(listener);
+            return;
+        }
         HavenoUtils.awaitLatch(latch);
         updateCounter.removeListener(listener);
     }
 
-    public boolean hasPrices() {
-        return !cache.isEmpty();
+    public boolean hasExternalPrices() {
+        synchronized (cache) {
+            return cache.values().stream().anyMatch(MarketPrice::isExternallyProvidedPrice);
+        }
     }
 
     public void startRequestingPrices() {
@@ -280,16 +287,20 @@ public class PriceFeedService {
 
     @Nullable
     public MarketPrice getMarketPrice(String currencyCode) {
-        return cache.getOrDefault(currencyCode, null);
+        synchronized (cache) {
+            return cache.getOrDefault(currencyCode, null);
+        }
     }
 
     private void setHavenoMarketPrice(String currencyCode, Price price) {
         UserThread.await(() -> {
-            if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
-                cache.put(currencyCode, new MarketPrice(currencyCode,
-                        MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
-                        0,
-                        false));
+            synchronized (cache) {
+                if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
+                    cache.put(currencyCode, new MarketPrice(currencyCode,
+                            MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
+                            0,
+                            false));
+                }
                 updateCounter.set(updateCounter.get() + 1);
             }
         });
@@ -456,7 +467,9 @@ public class PriceFeedService {
 
                     Map<String, MarketPrice> priceMap = result;
 
-                    cache.putAll(priceMap);
+                    synchronized (cache) {
+                        cache.putAll(priceMap);
+                    }
 
                     resultHandler.run();
                 });
