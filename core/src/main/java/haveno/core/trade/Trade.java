@@ -905,6 +905,11 @@ public abstract class Trade implements Tradable, Model {
                         throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
                     }
 
+                    // check for balance
+                    if (wallet != null && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
+                        throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance");
+                    }
+
                     // force stop the wallet
                     if (wallet != null) stopWallet();
 
