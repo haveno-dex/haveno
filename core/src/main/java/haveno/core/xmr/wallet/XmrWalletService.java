@@ -841,7 +841,11 @@ public class XmrWalletService {
             if (wallet.getHeight() < xmrConnectionService.getTargetHeight()) updateSyncProgress();
             else {
                 syncLooper.stop();
-                syncWallet(); // necessary to fully sync
+                try {
+                    syncWallet(); // ensure finished syncing
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 wasWalletSynced = true;
                 updateSyncProgress();
                 latch.countDown();
@@ -990,9 +994,10 @@ public class XmrWalletService {
             if (connection != null) {
                 wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
                 HavenoUtils.submitToPool(() -> {
+                    if (isShutDownStarted) return;
+                    wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                     try {
                         if (Boolean.TRUE.equals(connection.isConnected())) syncWallet();
-                        wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                     } catch (Exception e) {
                         log.warn("Failed to sync main wallet after setting daemon connection: " + e.getMessage());
                     }
