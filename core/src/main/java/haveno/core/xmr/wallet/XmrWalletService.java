@@ -164,19 +164,19 @@ public class XmrWalletService {
 
                 @Override
                 public void onAccountCreated() {
-                    log.info(getClass().getSimpleName() + ".accountService.onAccountCreated()");
+                    log.info("onAccountCreated()");
                     initialize();
                 }
 
                 @Override
                 public void onAccountOpened() {
-                    log.info(getClass().getSimpleName() + ".accountService.onAccountOpened()");
+                    log.info("onAccountOpened()");
                     initialize();
                 }
 
                 @Override
                 public void onAccountClosed() {
-                    log.info(getClass().getSimpleName() + ".accountService.onAccountClosed()");
+                    log.info("onAccountClosed()");
                     closeMainWallet(true);
                 }
 
@@ -760,6 +760,7 @@ public class XmrWalletService {
 
     private void maybeInitMainWallet(boolean sync, int numAttempts) {
         synchronized (walletLock) {
+            if (isShutDownStarted) return;
 
             // open or create wallet main wallet
             if (wallet == null) {
@@ -774,7 +775,7 @@ public class XmrWalletService {
             }
 
             // sync wallet and register listener
-            if (wallet != null) {
+            if (wallet != null && !isShutDownStarted) {
                 log.info("Monero wallet uri={}, path={}", wallet.getRpcConnection().getUri(), wallet.getPath());
 
                 // sync main wallet if applicable
