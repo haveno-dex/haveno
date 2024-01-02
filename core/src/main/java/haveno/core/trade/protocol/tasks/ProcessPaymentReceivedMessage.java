@@ -128,8 +128,11 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             boolean deferSignAndPublish = trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout();
             if (deferSignAndPublish) {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
-                if (!trade.isPayoutUnlocked()) trade.syncAndPollWallet();
+                for (int i = 0; i < 5; i++) {
+                    if (trade.isPayoutPublished()) break;
+                    GenUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
+                }
+                if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
             }
 
             // verify and publish payout tx

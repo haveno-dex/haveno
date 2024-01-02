@@ -263,8 +263,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     // wait to sign and publish payout tx if defer flag set
                     if (disputeClosedMessage.isDeferPublishPayout()) {
                         log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        GenUtils.waitFor(Trade.DEFER_PUBLISH_MS);
-                        if (!trade.isPayoutUnlocked()) trade.syncAndPollWallet();
+                        for (int i = 0; i < 5; i++) {
+                            if (trade.isPayoutPublished()) break;
+                            GenUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
+                        }
+                        if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
                     }
 
                     // sign and publish dispute payout tx if peer still has not published

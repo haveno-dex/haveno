@@ -621,70 +621,79 @@ public abstract class Trade implements Tradable, Model {
 
             // handle trade state events
             tradeStateSubscription = EasyBind.subscribe(stateProperty, newValue -> {
-                if (newValue == Trade.State.MULTISIG_COMPLETED) {
-                    updateWalletRefreshPeriod();
-                    startPolling();
-                }
+                HavenoUtils.submitToThread(() -> {
+                    if (newValue == Trade.State.MULTISIG_COMPLETED) {
+                        updateWalletRefreshPeriod();
+                        startPolling();
+                    }
+                }, getId());
             });
 
             // handle trade phase events
             tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
-                if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
-                if (isPaymentReceived()) {
-                    UserThread.execute(() -> {
-                        if (tradePhaseSubscription != null) {
-                            tradePhaseSubscription.unsubscribe();
-                            tradePhaseSubscription = null;
-                        }
-                    });
-                }
+                HavenoUtils.submitToThread(() -> {
+                    if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
+                    if (isPaymentReceived()) {
+                        UserThread.execute(() -> {
+                            if (tradePhaseSubscription != null) {
+                                tradePhaseSubscription.unsubscribe();
+                                tradePhaseSubscription = null;
+                            }
+                        });
+                    }
+                }, getId());
             });
 
             // handle payout events
             payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
-                if (isPayoutPublished()) updateWalletRefreshPeriod();
+                HavenoUtils.submitToThread(() -> {
+                    if (isPayoutPublished()) updateWalletRefreshPeriod();
 
-                // handle when payout published
-                if (newValue == Trade.PayoutState.PAYOUT_PUBLISHED) {
-                    log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
+                    // handle when payout published
+                    if (newValue == Trade.PayoutState.PAYOUT_PUBLISHED) {
+                        log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
 
-                    // sync main wallet to update pending balance
-                    new Thread(() -> {
-                        GenUtils.waitFor(1000);
-                        if (isShutDownStarted) return;
-                        if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
-                    }).start();
+                        // sync main wallet to update pending balance
+                        new Thread(() -> {
+                            GenUtils.waitFor(1000);
+                            if (isShutDownStarted) return;
+                            if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) xmrWalletService.syncWallet(xmrWalletService.getWallet());
+                        }).start();
 
-                    // complete disputed trade
-                    if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) {
-                        processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
-                        if (!isArbitrator()) for (Dispute dispute : getDisputes()) dispute.setIsClosed(); // auto close trader tickets
-                    }
-
-                    // auto complete arbitrator trade
-                    if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
-
-                    // reset address entries
-                    processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
-                }
-
-                // handle when payout unlocks
-                if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
-                    if (!isInitialized) return;
-                    log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
-                    deleteWallet();
-                    maybeClearProcessData();
-                    if (idlePayoutSyncer != null) {
-                        xmrWalletService.removeWalletListener(idlePayoutSyncer);
-                        idlePayoutSyncer = null;
-                    }
-                    UserThread.execute(() -> {
-                        if (payoutStateSubscription != null) {
-                            payoutStateSubscription.unsubscribe();
-                            payoutStateSubscription = null;
+                        // complete disputed trade
+                        if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) {
+                            processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
+                            if (!isArbitrator()) for (Dispute dispute : getDisputes()) dispute.setIsClosed(); // auto close trader tickets
                         }
-                    });
-                }
+
+                        // auto complete arbitrator trade
+                        if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
+
+                        // reset address entries
+                        processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
+                    }
+
+                    // handle when payout unlocks
+                    if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
+                        if (!isInitialized) return;
+                        log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
+                        HavenoUtils.submitToThread(() -> {
+                            deleteWallet();
+                            maybeClearProcessData();
+                            if (idlePayoutSyncer != null) {
+                                xmrWalletService.removeWalletListener(idlePayoutSyncer);
+                                idlePayoutSyncer = null;
+                            }
+                            UserThread.execute(() -> {
+                                if (payoutStateSubscription != null) {
+                                    payoutStateSubscription.unsubscribe();
+                                    payoutStateSubscription = null;
+                                }
+                            });
+                        }, getId());
+                        
+                    }
+                }, getId());
             });
 
             // arbitrator syncs idle wallet when payout unlock expected
