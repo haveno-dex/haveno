@@ -17,54 +17,98 @@
 
 package haveno.network.p2p.network;
 
-import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.peers.keepalive.messages.KeepAliveMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import haveno.common.proto.network.NetworkEnvelope;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
-@NotThreadSafe
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
 class ProtoOutputStream {
     private static final Logger log = LoggerFactory.getLogger(ProtoOutputStream.class);
 
-    private final OutputStream delegate;
+    private final OutputStream outputStream;
     private final Statistic statistic;
 
-    ProtoOutputStream(OutputStream delegate, Statistic statistic) {
-        this.delegate = delegate;
+    private final AtomicBoolean isConnectionActive = new AtomicBoolean(true);
+    private final Lock lock = new ReentrantLock();
+
+    ProtoOutputStream(OutputStream outputStream, Statistic statistic) {
+        this.outputStream = outputStream;
         this.statistic = statistic;
     }
 
     void writeEnvelope(NetworkEnvelope envelope) {
+        lock.lock();
+
         try {
             writeEnvelopeOrThrow(envelope);
         } catch (IOException e) {
+            if (!isConnectionActive.get()) {
+                // Connection was closed by us.
+                return;
+            }
+
             log.error("Failed to write envelope", e);
             throw new HavenoRuntimeException("Failed to write envelope", e);
+
+        } finally {
+            lock.unlock();
         }
     }
 
     void onConnectionShutdown() {
+        isConnectionActive.set(false);
+
+        boolean acquiredLock = tryToAcquireLock();
+        if (!acquiredLock) {
+            return;
+        }
+
         try {
-            delegate.close();
+            outputStream.close();
         } catch (Throwable t) {
             log.error("Failed to close connection", t);
+
+        } finally {
+            lock.unlock();
         }
     }
 
     private void writeEnvelopeOrThrow(NetworkEnvelope envelope) throws IOException {
+        long ts = System.currentTimeMillis();
         protobuf.NetworkEnvelope proto = envelope.toProtoNetworkEnvelope();
-        proto.writeDelimitedTo(delegate);
-        delegate.flush();
-
+        proto.writeDelimitedTo(outputStream);
+        outputStream.flush();
+        long duration = System.currentTimeMillis() - ts;
+        if (duration > 10000) {
+            log.info("Sending {} to peer took {} sec.", envelope.getClass().getSimpleName(), duration / 1000d);
+        }
         statistic.addSentBytes(proto.getSerializedSize());
         statistic.addSentMessage(envelope);
 
         if (!(envelope instanceof KeepAliveMessage)) {
             statistic.updateLastActivityTimestamp();
+        }
+    }
+
+    private boolean tryToAcquireLock() {
+        long shutdownTimeout = Connection.getShutdownTimeout();
+        try {
+            return lock.tryLock(shutdownTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            return false;
         }
     }
 }
