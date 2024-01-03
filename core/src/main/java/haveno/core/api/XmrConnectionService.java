@@ -417,7 +417,8 @@ public final class XmrConnectionService {
                         if (isConnected) {
                             setConnection(connection.getUri());
                         } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
-                            setConnection(getBestAvailableConnection()); // switch to best connection
+                            MoneroRpcConnection bestConnection = getBestAvailableConnection();
+                            if (bestConnection != null) setConnection(bestConnection); // switch to best connection
                         }
                     }
                 });
@@ -533,8 +534,12 @@ public final class XmrConnectionService {
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
-        log.info("XmrConnectionService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
         if (isShutDownStarted) return;
+        log.info("XmrConnectionService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : currentConnection.isConnected());
+        if (currentConnection == null) {
+            log.warn("Setting daemon connection to null");
+            Thread.dumpStack();
+        }
         synchronized (lock) {
             if (currentConnection == null) {
                 daemon = null;
@@ -660,8 +665,12 @@ public final class XmrConnectionService {
                 }
 
                 new Thread(() -> {
-                    if (connectionManager.getAutoSwitch()) connectionManager.setConnection(connectionManager.getBestAvailableConnection());
-                    else connectionManager.checkConnection();
+                    if (connectionManager.getAutoSwitch()) {
+                        MoneroRpcConnection bestConnection = getBestAvailableConnection();
+                        if (bestConnection != null) connectionManager.setConnection(bestConnection);
+                    } else {
+                        connectionManager.checkConnection();
+                    }
 
                     // set error message
                     if (!Boolean.TRUE.equals(connectionManager.isConnected()) && HavenoUtils.havenoSetup != null) {
