@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import common.utils.GenUtils;
 import haveno.common.ClockWatcher;
 import haveno.common.ThreadUtils;
+import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -573,10 +574,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // initialize trade protocol
             initTradeAndProtocol(trade, createTradeProtocol(trade));
-            synchronized (tradableList) {
-                tradableList.add(trade);
-            }
-          }
+            addTrade(trade);
+        }
 
           // process with protocol
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
@@ -654,9 +653,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
           trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
           trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
-          synchronized (tradableList) {
-              tradableList.add(trade);
-          }
+          addTrade(trade);
 
           // notify on phase changes
           // TODO (woodser): save subscription, bind on startup
@@ -671,8 +668,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
               log.warn("Maker error during trade initialization: " + errorMessage);
               maybeRemoveTradeOnError(trade);
           });
-
-          requestPersistence();
       }
     }
 
@@ -845,9 +840,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                         // initialize trade protocol
                         TradeProtocol tradeProtocol = createTradeProtocol(trade);
-                        synchronized (tradableList) {
-                            tradableList.add(trade);
-                        }
+                        addTrade(trade);
 
                         initTradeAndProtocol(trade, tradeProtocol);
 
@@ -1065,11 +1058,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         initPersistedTrade(trade);
 
-        synchronized (tradableList) {
-            if (!tradableList.contains(trade)) {
-                tradableList.add(trade);
+        UserThread.execute(() -> {
+            synchronized (tradableList) {
+                if (!tradableList.contains(trade)) {
+                    tradableList.add(trade);
+                }
             }
-        }
+        });
 
         return true;
     }
@@ -1211,25 +1206,31 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void addTrade(Trade trade) {
-        synchronized (tradableList) {
-            if (tradableList.add(trade)) {
-                requestPersistence();
+        UserThread.execute(() -> {
+            synchronized (tradableList) {
+                if (tradableList.add(trade)) {
+                    requestPersistence();
+                }
             }
-        }
+        });
     }
 
     private void removeTrade(Trade trade) {
         log.info("TradeManager.removeTrade() " + trade.getId());
         synchronized (tradableList) {
             if (!tradableList.contains(trade)) return;
-
-            // remove trade
-            tradableList.remove(trade);
-
-            // unregister and persist
-            p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
-            requestPersistence();
         }
+
+        // remove trade
+        UserThread.execute(() -> {
+            synchronized (tradableList) {
+                tradableList.remove(trade);
+            }
+        });
+
+        // unregister and persist
+        p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
+        requestPersistence();
     }
 
     private void maybeRemoveTradeOnError(Trade trade) {
