@@ -1315,18 +1315,19 @@ public class XmrWalletService {
     }
 
     public void updateBalanceListeners() {
+        BigInteger availableBalance = getAvailableBalance();
         for (XmrBalanceListener balanceListener : balanceListeners) {
             BigInteger balance;
             if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
-            else balance = getAvailableBalance();
-            ThreadUtils.execute(() -> {
+            else balance = availableBalance;
+            ThreadUtils.submitToPool(() -> {
                 try {
                     balanceListener.onBalanceChanged(balance);
                 } catch (Exception e) {
                     log.warn("Failed to notify balance listener of change");
                     e.printStackTrace();
                 }
-            }, THREAD_ID);
+            });
         }
     }
 
@@ -1370,39 +1371,31 @@ public class XmrWalletService {
 
         @Override
         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-            ThreadUtils.execute(() -> {
-                for (MoneroWalletListenerI listener : walletListeners) listener.onSyncProgress(height, startHeight, endHeight, percentDone, message);
-            }, THREAD_ID);
+            for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onSyncProgress(height, startHeight, endHeight, percentDone, message));
         }
 
         @Override
         public void onNewBlock(long height) {
-            ThreadUtils.execute(() -> {
+            UserThread.execute(() -> {
                 walletHeight.set(height);
-                for (MoneroWalletListenerI listener : walletListeners) listener.onNewBlock(height);
-            }, THREAD_ID);
+                for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onNewBlock(height));
+            });
         }
 
         @Override
         public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-            ThreadUtils.execute(() -> {
-                for (MoneroWalletListenerI listener : walletListeners) listener.onBalancesChanged(newBalance, newUnlockedBalance);
-                updateBalanceListeners();
-            }, THREAD_ID);
+            updateBalanceListeners();
+            for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onBalancesChanged(newBalance, newUnlockedBalance));
         }
 
         @Override
         public void onOutputReceived(MoneroOutputWallet output) {
-            ThreadUtils.execute(() -> {
-                for (MoneroWalletListenerI listener : walletListeners) listener.onOutputReceived(output);
-            }, THREAD_ID);
+            for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onOutputReceived(output));
         }
 
         @Override
         public void onOutputSpent(MoneroOutputWallet output) {
-            ThreadUtils.execute(() -> {
-                for (MoneroWalletListenerI listener : walletListeners) listener.onOutputSpent(output);
-            }, THREAD_ID);
+            for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onOutputSpent(output));
         }
     }
 }
