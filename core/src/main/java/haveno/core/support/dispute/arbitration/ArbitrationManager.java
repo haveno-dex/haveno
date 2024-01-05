@@ -331,7 +331,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {
-        new Thread(() -> {
+        if (trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
             synchronized (trade) {
 
                 // skip if no need to reprocess
@@ -342,7 +343,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 handleDisputeClosedMessage(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
             }
-        }).start();
+        }, trade.getId());
     }
 
     private MoneroTxSet signAndPublishDisputePayoutTx(Trade trade) {

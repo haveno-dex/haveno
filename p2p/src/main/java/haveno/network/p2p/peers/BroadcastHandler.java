@@ -276,12 +276,12 @@ public class BroadcastHandler implements PeerManager.Listener {
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
-                log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
-                numOfFailedBroadcasts.incrementAndGet();
-
                 if (stopped.get()) {
                     return;
                 }
+
+                log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
+                numOfFailedBroadcasts.incrementAndGet();
 
                 maybeNotifyListeners(broadcastRequestsForConnection);
                 checkForCompletion();
