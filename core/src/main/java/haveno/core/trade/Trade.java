@@ -591,6 +591,12 @@ public abstract class Trade implements Tradable, Model {
         ThreadUtils.await(() -> {
             if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
+            // check if done
+            if (isPayoutUnlocked()) {
+                clearAndShutDown();
+                return;
+            }
+
             // set arbitrator pub key ring once known
             serviceProvider.getArbitratorManager().getDisputeAgentByNodeAddress(getArbitratorNodeAddress()).ifPresent(arbitrator -> {
                 getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
@@ -602,12 +608,6 @@ public abstract class Trade implements Tradable, Model {
                     ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
                 });
             });
-
-            // check if done
-            if (isPayoutUnlocked()) {
-                maybeClearProcessData();
-                return;
-            }
 
             // reset buyer's payment sent state if no ack receive
             if (this instanceof BuyerTrade && getState().ordinal() >= Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT.ordinal() && getState().ordinal() < Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG.ordinal()) {
@@ -623,6 +623,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle trade state events
             tradeStateSubscription = EasyBind.subscribe(stateProperty, newValue -> {
+                if (isShutDownStarted) return;
                 ThreadUtils.execute(() -> {
                     if (newValue == Trade.State.MULTISIG_COMPLETED) {
                         updateWalletRefreshPeriod();
@@ -633,6 +634,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle trade phase events
             tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
+                if (isShutDownStarted) return;
                 ThreadUtils.execute(() -> {
                     if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
                     if (isPaymentReceived()) {
@@ -648,6 +650,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle payout events
             payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
+                if (isShutDownStarted) return;
                 ThreadUtils.execute(() -> {
                     if (isPayoutPublished()) updateWalletRefreshPeriod();
 
@@ -679,21 +682,7 @@ public abstract class Trade implements Tradable, Model {
                     if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
                         if (!isInitialized) return;
                         log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
-                        ThreadUtils.execute(() -> {
-                            deleteWallet();
-                            maybeClearProcessData();
-                            if (idlePayoutSyncer != null) {
-                                xmrWalletService.removeWalletListener(idlePayoutSyncer);
-                                idlePayoutSyncer = null;
-                            }
-                            UserThread.execute(() -> {
-                                if (payoutStateSubscription != null) {
-                                    payoutStateSubscription.unsubscribe();
-                                    payoutStateSubscription = null;
-                                }
-                            });
-                        }, getId());
-                        
+                        clearAndShutDown();
                     }
                 }, getId());
             });
@@ -912,7 +901,7 @@ public abstract class Trade implements Tradable, Model {
                         throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance");
                     }
 
-                    // force stop the wallet
+                    // force stop wallet
                     if (wallet != null) stopWallet();
 
                     // delete wallet
@@ -1195,21 +1184,24 @@ public abstract class Trade implements Tradable, Model {
         return payoutAmountFromMediation < normalPayoutAmount;
     }
 
-    public void maybeClearProcessData() {
+    public void clearAndShutDown() {
+        ThreadUtils.execute(() -> clearProcessData(), getId());
+        ThreadUtils.submitToPool(() -> shutDown()); // run off trade thread
+    }
+
+    private void clearProcessData() {
+
+        // delete trade wallet
         synchronized (walletLock) {
-
-            // skip if already cleared
-            if (!walletExists()) return;
-
-            // delete trade wallet
+            if (!walletExists()) return; // done if already cleared
             deleteWallet();
+        }
 
-            // TODO: clear other process data
-            setPayoutTxHex(null);
-            for (TradePeer peer : getPeers()) {
-                peer.setUnsignedPayoutTxHex(null);
-                peer.setUpdatedMultisigHex(null);
-            }
+        // TODO: clear other process data
+        setPayoutTxHex(null);
+        for (TradePeer peer : getPeers()) {
+            peer.setUnsignedPayoutTxHex(null);
+            peer.setUpdatedMultisigHex(null);
         }
     }
 
@@ -1230,6 +1222,8 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void shutDown() {
+        if (isShutDown) return; // ignore if already shut down
+        isShutDownStarted = true;
         if (!isPayoutUnlocked()) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
 
         // shut down thread pools with timeout

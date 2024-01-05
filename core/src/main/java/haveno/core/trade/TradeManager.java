@@ -1262,10 +1262,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // remove trade from list
             removeTrade(trade);
-
-            // delete trade wallet
-            if (trade.walletExists()) trade.deleteWallet();
         }
+
+        // clear and shut down trade
+        trade.clearAndShutDown();
     }
 
     private void listenForCleanup(Trade trade) {

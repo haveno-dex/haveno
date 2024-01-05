@@ -17,6 +17,7 @@
 
 package haveno.core.trade.protocol;
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.trade.BuyerTrade;
@@ -97,7 +98,7 @@ public class BuyerProtocol extends DisputeProtocol {
 
     public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         System.out.println("BuyerProtocol.onPaymentSent()");
-        new Thread(() -> {
+        ThreadUtils.execute(() -> {
             synchronized (trade) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
@@ -127,7 +128,7 @@ public class BuyerProtocol extends DisputeProtocol {
                 }
                 awaitTradeLatch();
             }
-        }).start();
+        }, trade.getId());
     }
 
     @SuppressWarnings("unchecked")

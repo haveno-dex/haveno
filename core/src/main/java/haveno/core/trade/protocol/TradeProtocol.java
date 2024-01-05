@@ -265,6 +265,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void maybeSendDepositsConfirmedMessages() {
+        if (!trade.isInitialized() || trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
             if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished()) return;
             synchronized (trade) {
@@ -286,6 +287,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
+        if (trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 

@@ -71,8 +71,10 @@ public class UserThread {
             command.run();
         } else {
             CountDownLatch latch = new CountDownLatch(1);
-            execute(command); // run task
-            execute(() -> latch.countDown()); // await next tick
+            execute(() -> {
+                command.run();
+                latch.countDown();
+            });
             try {
                 latch.await();
             } catch (InterruptedException e) {

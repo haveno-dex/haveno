@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class ThreadUtils {
     
     private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
-    private static final Map<String, Thread> THREAD_BY_ID = new HashMap<>();
+    private static final Map<String, Thread> THREADS = new HashMap<>();
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
@@ -40,8 +40,8 @@ public class ThreadUtils {
         synchronized (EXECUTORS) {
             if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
             EXECUTORS.get(threadId).execute(() -> {
-                synchronized (THREAD_BY_ID) {
-                    THREAD_BY_ID.put(threadId, Thread.currentThread());
+                synchronized (THREADS) {
+                    THREADS.put(threadId, Thread.currentThread());
                 }
                 command.run();
             });
@@ -53,8 +53,10 @@ public class ThreadUtils {
             command.run();
         } else {
             CountDownLatch latch = new CountDownLatch(1);
-            execute(command, threadId); // run task
-            execute(() -> latch.countDown(), threadId); // await next tick
+            execute(() -> {
+                command.run();
+                latch.countDown();
+            }, threadId);
             try {
                 latch.await();
             } catch (InterruptedException e) {
@@ -64,25 +66,29 @@ public class ThreadUtils {
     }
 
     public static void shutDown(String threadId, long timeoutMs) {
-            ExecutorService pool = null;
-            synchronized (EXECUTORS) {
-                if (!EXECUTORS.containsKey(threadId)) return; // thread not found
-                pool = EXECUTORS.get(threadId);
-            }
-            pool.shutdown();
-            try {
-                if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
-            } catch (InterruptedException e) {
-                pool.shutdownNow();
-                throw new RuntimeException(e);
-            } finally {
-                synchronized (EXECUTORS) {
-                    EXECUTORS.remove(threadId);
-                }
-                synchronized (THREAD_BY_ID) {
-                    THREAD_BY_ID.remove(threadId);
-                }
-            }
+        ExecutorService pool = null;
+        synchronized (EXECUTORS) {
+            if (!EXECUTORS.containsKey(threadId)) return; // thread not found
+            pool = EXECUTORS.get(threadId);
+        }
+        pool.shutdown();
+        try {
+            if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
+        } catch (InterruptedException e) {
+            pool.shutdownNow();
+            throw new RuntimeException(e);
+        } finally {
+            remove(threadId);
+        }
+    }
+
+    public static void remove(String threadId) {
+        synchronized (EXECUTORS) {
+            EXECUTORS.remove(threadId);
+        }
+        synchronized (THREADS) {
+            THREADS.remove(threadId);
+        }
     }
 
     public static Future<?> submitToPool(Runnable task) {
@@ -136,9 +142,9 @@ public class ThreadUtils {
     }
 
     private static boolean isCurrentThread(Thread thread, String threadId) {
-        synchronized (THREAD_BY_ID) {
-            if (!THREAD_BY_ID.containsKey(threadId)) return false;
-            return thread == THREAD_BY_ID.get(threadId);
+        synchronized (THREADS) {
+            if (!THREADS.containsKey(threadId)) return false;
+            return thread == THREADS.get(threadId);
         }
     }
 }
