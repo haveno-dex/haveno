@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import common.utils.GenUtils;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.Encryption;
@@ -116,6 +117,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class Trade implements Tradable, Model {
 
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
+    private static final long SHUTDOWN_TIMEOUT_MS = 90000;
     private final Object walletLock = new Object();
     private final Object pollLock = new Object();
     private MoneroWallet wallet;
@@ -586,7 +588,7 @@ public abstract class Trade implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void initialize(ProcessModelServiceProvider serviceProvider) {
-        synchronized (this) {
+        ThreadUtils.await(() -> {
             if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
             // set arbitrator pub key ring once known
@@ -596,8 +598,8 @@ public abstract class Trade implements Tradable, Model {
 
             // handle connection change on dedicated thread
             xmrConnectionService.addConnectionListener(connection -> {
-                HavenoUtils.submitToPool(() -> {
-                    HavenoUtils.submitToThread(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
+                ThreadUtils.submitToPool(() -> { // TODO: remove this?
+                    ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
                 });
             });
 
@@ -621,7 +623,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle trade state events
             tradeStateSubscription = EasyBind.subscribe(stateProperty, newValue -> {
-                HavenoUtils.submitToThread(() -> {
+                ThreadUtils.execute(() -> {
                     if (newValue == Trade.State.MULTISIG_COMPLETED) {
                         updateWalletRefreshPeriod();
                         startPolling();
@@ -631,7 +633,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle trade phase events
             tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
-                HavenoUtils.submitToThread(() -> {
+                ThreadUtils.execute(() -> {
                     if (isDepositsPublished() && !isPayoutUnlocked()) updateWalletRefreshPeriod();
                     if (isPaymentReceived()) {
                         UserThread.execute(() -> {
@@ -646,7 +648,7 @@ public abstract class Trade implements Tradable, Model {
 
             // handle payout events
             payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
-                HavenoUtils.submitToThread(() -> {
+                ThreadUtils.execute(() -> {
                     if (isPayoutPublished()) updateWalletRefreshPeriod();
 
                     // handle when payout published
@@ -677,7 +679,7 @@ public abstract class Trade implements Tradable, Model {
                     if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
                         if (!isInitialized) return;
                         log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
-                        HavenoUtils.submitToThread(() -> {
+                        ThreadUtils.execute(() -> {
                             deleteWallet();
                             maybeClearProcessData();
                             if (idlePayoutSyncer != null) {
@@ -722,7 +724,7 @@ public abstract class Trade implements Tradable, Model {
 
             // initialize syncing and polling
             initSyncing();
-        }
+        }, getId());
     }
 
     public void requestPersistence() {
@@ -787,8 +789,8 @@ public abstract class Trade implements Tradable, Model {
 
         // check wallet connection on same thread as connection change
         CountDownLatch latch = new CountDownLatch(1);
-        HavenoUtils.submitToPool((() -> {
-            HavenoUtils.submitToThread(() -> {
+        ThreadUtils.submitToPool((() -> {
+            ThreadUtils.execute(() -> {
                 if (!isWalletConnectedToDaemon()) throw new RuntimeException("Trade wallet is not connected to a Monero node"); // wallet connection is updated on trade thread
                 latch.countDown();
             }, getConnectionChangedThreadId());
@@ -1222,36 +1224,47 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void onShutDownStarted() {
+        if (wallet != null) log.info("Preparing to shut down {} {}", getClass().getSimpleName(), getId());
         isShutDownStarted = true;
-        if (wallet != null) log.info("{} {} preparing for shut down", getClass().getSimpleName(), getId());
         stopPolling();
-
-        // repeatedly acquire trade lock to allow other threads to finish
-        for (int i = 0; i < 20; i++) {
-            synchronized (this) {
-                synchronized (walletLock) {
-                    if (isShutDown) break;
-                }
-            }
-        }
     }
 
     public void shutDown() {
-        if (!isPayoutUnlocked()) log.info("{} {} shutting down", getClass().getSimpleName(), getId());
-        synchronized (this) {
-            isInitialized = false;
-            isShutDown = true;
-            synchronized (walletLock) {
-                if (wallet != null) {
-                    xmrWalletService.saveWallet(wallet, false); // skip backup
-                    stopWallet();
-                }
+        if (!isPayoutUnlocked()) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
+
+        // shut down thread pools with timeout
+        List<Runnable> tasks = new ArrayList<>();
+        tasks.add(() -> ThreadUtils.shutDown(getId(), SHUTDOWN_TIMEOUT_MS));
+        tasks.add(() -> ThreadUtils.shutDown(getConnectionChangedThreadId(), SHUTDOWN_TIMEOUT_MS));
+        try {
+            ThreadUtils.awaitTasks(tasks);
+        } catch (Exception e) {
+            log.warn("Timeout shutting down {} {}", getClass().getSimpleName(), getId());
+
+            // force stop wallet
+            if (wallet != null) {
+                log.warn("Force stopping wallet for {} {}", getClass().getSimpleName(), getId());
+                xmrWalletService.stopWallet(wallet, wallet.getPath(), true);
+                wallet = null;
             }
+        }
+
+        // de-initialize
+        isInitialized = false;
+        isShutDown = true;
+        if (idlePayoutSyncer != null) {
+            xmrWalletService.removeWalletListener(idlePayoutSyncer);
+            idlePayoutSyncer = null;
+        }
+        if (wallet != null) {
+            xmrWalletService.saveWallet(wallet, false); // skip backup
+            stopWallet();
+        }
+        UserThread.execute(() -> {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
-            idlePayoutSyncer = null; // main wallet removes listener itself
-        }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1260,11 +1273,6 @@ public abstract class Trade implements Tradable, Model {
 
     @Override
     public void onComplete() {
-    }
-
-    public void onRemoved() {
-        HavenoUtils.removeThreadId(getId());
-        HavenoUtils.removeThreadId(getConnectionChangedThreadId());
     }
 
 
@@ -1864,7 +1872,7 @@ public abstract class Trade implements Tradable, Model {
 
             // sync and reprocess messages on new thread
             if (isInitialized && connection != null && !Boolean.FALSE.equals(connection.isConnected())) {
-                HavenoUtils.submitToPool(() -> initSyncing());
+                ThreadUtils.execute(() -> initSyncing(), getId());
             }
         }
     }
@@ -1875,11 +1883,9 @@ public abstract class Trade implements Tradable, Model {
             initSyncingAux();
         }  else {
             long startSyncingInMs = ThreadLocalRandom.current().nextLong(0, getWalletRefreshPeriod()); // random time to start syncing
-            UserThread.runAfter(() -> {
-                HavenoUtils.submitToPool(() -> {
-                    if (!isShutDownStarted) initSyncingAux();
-                });
-            }, startSyncingInMs / 1000l);
+            UserThread.runAfter(() -> ThreadUtils.execute(() -> {
+                if (!isShutDownStarted) initSyncingAux();
+            }, getId()), startSyncingInMs / 1000l);
         }
     }
     
@@ -2108,13 +2114,11 @@ public abstract class Trade implements Tradable, Model {
 
         @Override
         public void onNewBlock(long height) {
-            HavenoUtils.submitToThread(() -> { // allow rapid notifications
+            ThreadUtils.execute(() -> { // allow rapid notifications
 
                 // skip rapid succession blocks
-                synchronized (this) {
-                    if (processing) return;
-                    processing = true;
-                }
+                if (processing) return;
+                processing = true;
 
                 // skip if not idling and not waiting for payout to unlock
                 if (!isIdling() || !isPayoutPublished() || isPayoutUnlocked())  {

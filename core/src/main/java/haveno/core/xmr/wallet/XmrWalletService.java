@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.Service.State;
 import com.google.inject.name.Named;
 
 import common.utils.JsonUtils;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
@@ -707,7 +708,11 @@ public class XmrWalletService {
     public void onShutDownStarted() {
         log.info("XmrWalletService.onShutDownStarted()");
         this.isShutDownStarted = true;
+    }
 
+    public void shutDown() {
+        log.info("Shutting down {}", getClass().getSimpleName());
+        
         // remove listeners which stops polling wallet
         // TODO monero-java: wallet.stopPolling()?
         synchronized (walletLock) {
@@ -717,15 +722,11 @@ public class XmrWalletService {
                 }
             }
         }
-    }
-
-    public void shutDown() {
-        log.info("Shutting down {}", getClass().getSimpleName());
 
         // shut down trade and main wallets at same time
         walletListeners.clear();
         closeMainWallet(true);
-        log.info("Done shutting down all wallets");
+        log.info("Done shutting down main wallet");
     }
 
     // ------------------------------ PRIVATE HELPERS -------------------------
@@ -734,7 +735,7 @@ public class XmrWalletService {
 
         // listen for connection changes
         xmrConnectionService.addConnectionListener(connection -> {
-            HavenoUtils.submitToThread(() -> onConnectionChanged(connection), THREAD_ID);
+            ThreadUtils.execute(() -> onConnectionChanged(connection), THREAD_ID);
         });
 
         // initialize main wallet when daemon synced
@@ -744,7 +745,7 @@ public class XmrWalletService {
     }
 
     private void initMainWalletIfConnected() {
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
             synchronized (walletLock) {
                 if (xmrConnectionService.downloadPercentageProperty().get() == 1 && wallet == null && !isShutDownStarted) {
                     maybeInitMainWallet(true);
@@ -817,12 +818,12 @@ public class XmrWalletService {
 
                             // reschedule to init main wallet
                             UserThread.runAfter(() -> {
-                                HavenoUtils.submitToThread(() -> maybeInitMainWallet(true, MAX_SYNC_ATTEMPTS), THREAD_ID);
+                                ThreadUtils.execute(() -> maybeInitMainWallet(true, MAX_SYNC_ATTEMPTS), THREAD_ID);
                             }, xmrConnectionService.getRefreshPeriodMs() / 1000);
                         } else {
                             log.warn("Trying again in {} seconds", xmrConnectionService.getRefreshPeriodMs() / 1000);
                             UserThread.runAfter(() -> {
-                                HavenoUtils.submitToThread(() -> maybeInitMainWallet(true, numAttempts - 1), THREAD_ID);
+                                ThreadUtils.execute(() -> maybeInitMainWallet(true, numAttempts - 1), THREAD_ID);
                             }, xmrConnectionService.getRefreshPeriodMs() / 1000);
                         }
                     }
@@ -994,7 +995,7 @@ public class XmrWalletService {
             // sync wallet on new thread
             if (connection != null) {
                 wallet.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-                HavenoUtils.submitToPool(() -> {
+                ThreadUtils.submitToPool(() -> {
                     if (isShutDownStarted) return;
                     wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                     try {
@@ -1034,7 +1035,7 @@ public class XmrWalletService {
         }
 
         // excute tasks in parallel
-        HavenoUtils.awaitTasks(tasks, Math.min(10, 1 + trades.size()));
+        ThreadUtils.awaitTasks(tasks, Math.min(10, 1 + trades.size()));
         log.info("Done changing all wallet passwords");
     }
 
@@ -1318,7 +1319,7 @@ public class XmrWalletService {
             BigInteger balance;
             if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
             else balance = getAvailableBalance();
-            HavenoUtils.submitToThread(() -> {
+            ThreadUtils.execute(() -> {
                 try {
                     balanceListener.onBalanceChanged(balance);
                 } catch (Exception e) {
@@ -1369,14 +1370,14 @@ public class XmrWalletService {
 
         @Override
         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-            HavenoUtils.submitToThread(() -> {
+            ThreadUtils.execute(() -> {
                 for (MoneroWalletListenerI listener : walletListeners) listener.onSyncProgress(height, startHeight, endHeight, percentDone, message);
             }, THREAD_ID);
         }
 
         @Override
         public void onNewBlock(long height) {
-            HavenoUtils.submitToThread(() -> {
+            ThreadUtils.execute(() -> {
                 walletHeight.set(height);
                 for (MoneroWalletListenerI listener : walletListeners) listener.onNewBlock(height);
             }, THREAD_ID);
@@ -1384,7 +1385,7 @@ public class XmrWalletService {
 
         @Override
         public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-            HavenoUtils.submitToThread(() -> {
+            ThreadUtils.execute(() -> {
                 for (MoneroWalletListenerI listener : walletListeners) listener.onBalancesChanged(newBalance, newUnlockedBalance);
                 updateBalanceListeners();
             }, THREAD_ID);
@@ -1392,14 +1393,14 @@ public class XmrWalletService {
 
         @Override
         public void onOutputReceived(MoneroOutputWallet output) {
-            HavenoUtils.submitToThread(() -> {
+            ThreadUtils.execute(() -> {
                 for (MoneroWalletListenerI listener : walletListeners) listener.onOutputReceived(output);
             }, THREAD_ID);
         }
 
         @Override
         public void onOutputSpent(MoneroOutputWallet output) {
-            HavenoUtils.submitToThread(() -> {
+            ThreadUtils.execute(() -> {
                 for (MoneroWalletListenerI listener : walletListeners) listener.onOutputSpent(output);
             }, THREAD_ID);
         }

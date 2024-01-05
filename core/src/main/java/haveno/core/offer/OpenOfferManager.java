@@ -18,6 +18,7 @@
 package haveno.core.offer;
 
 import common.utils.GenUtils;
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.Capabilities;
@@ -150,6 +151,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     // poll key images of signed offers
     private XmrKeyImagePoller signedOfferKeyImagePoller;
+    private static final long SHUTDOWN_TIMEOUT_MS = 90000;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
@@ -301,7 +303,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public void shutDown(@Nullable Runnable completeHandler) {
-        HavenoUtils.removeThreadId(THREAD_ID);
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
@@ -316,7 +317,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         int size = openOffers.size();
         log.info("Remove open offers at shutDown. Number of open offers: {}", size);
         if (offerBookService.isBootstrapped() && size > 0) {
-            HavenoUtils.submitToThread(() -> { // finish tasks
+            ThreadUtils.execute(() -> { // finish tasks
                 UserThread.execute(() -> {
                     openOffers.forEach(openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload()));
 
@@ -337,6 +338,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             if (completeHandler != null)
                 completeHandler.run();
         }
+
+        // shut down pool
+        ThreadUtils.shutDown(THREAD_ID, SHUTDOWN_TIMEOUT_MS);
     }
 
     public void removeAllOpenOffers(@Nullable Runnable completeHandler) {
@@ -400,7 +404,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         maybeUpdatePersistedOffers();
 
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
             
             // Wait for prices to be available
             priceFeedService.awaitExternalPrices();
@@ -506,7 +510,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         OpenOffer openOffer = new OpenOffer(offer, triggerPrice, reserveExactAmount);
 
         // schedule or post offer
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
             synchronized (processOffersLock) {
                 CountDownLatch latch = new CountDownLatch(1);
                 processUnpostedOffer(getOpenOffers(), openOffer, (transaction) -> {
@@ -807,7 +811,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void processScheduledOffers(TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
             synchronized (processOffersLock) {
                 List<String> errorMessages = new ArrayList<String>();
                 List<OpenOffer> openOffers = getOpenOffers();
@@ -1571,7 +1575,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         stopPeriodicRefreshOffersTimer();
 
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
             processListForRepublishOffers(getOpenOffers());
         }, THREAD_ID);
     }
@@ -1607,7 +1611,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void republishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
 
             // determine if offer is valid
             boolean isValid = true;

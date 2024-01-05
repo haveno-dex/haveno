@@ -17,6 +17,7 @@ e * This file is part of Haveno.
 
 package haveno.core.trade.protocol;
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.BuyerAsMakerTrade;
 import haveno.core.trade.Trade;
@@ -43,7 +44,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                                        NodeAddress peer,
                                        ErrorMessageHandler errorMessageHandler) {
         System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
-        new Thread(() -> {
+        ThreadUtils.execute(() -> {
             synchronized (trade) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
@@ -66,6 +67,6 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                         .executeTasks(true);
                 awaitTradeLatch();
             }
-        }).start();
+        }, trade.getId());
     }
 }

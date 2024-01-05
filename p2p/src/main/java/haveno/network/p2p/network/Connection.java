@@ -32,6 +32,7 @@ import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 
 import haveno.common.Proto;
+import haveno.common.ThreadUtils;
 import haveno.common.app.Capabilities;
 import haveno.common.app.HasCapabilities;
 import haveno.common.app.Version;
@@ -73,7 +74,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -109,7 +109,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
-    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(1); // one shared thread to handle messages sequentially
+    private static final String THREAD_ID = Connection.class.getSimpleName();
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -212,7 +212,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     reportInvalidRequest(RuleViolation.PEER_BANNED);
                 }
             }
-            EXECUTOR.execute(() -> connectionListener.onConnection(this));
+            ThreadUtils.execute(() -> connectionListener.onConnection(this), THREAD_ID);
         } catch (Throwable e) {
             handleException(e);
         }
@@ -266,8 +266,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             if (!stopped) {
                 protoOutputStream.writeEnvelope(networkEnvelope);
-                EXECUTOR.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)));
-                EXECUTOR.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize));
+                ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)), THREAD_ID);
+                ThreadUtils.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize), THREAD_ID);
             }
         } catch (Throwable t) {
             handleException(t);
@@ -396,7 +396,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         if (networkEnvelope instanceof BundleOfEnvelopes) {
             onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
         } else {
-            EXECUTOR.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)));
+            ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)), THREAD_ID);
         }
     }
 
@@ -432,8 +432,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope -> EXECUTOR.execute(() ->
-                messageListeners.forEach(listener -> listener.onMessage(envelope, connection))));
+        envelopesToProcess.forEach(envelope -> ThreadUtils.execute(() -> {
+                messageListeners.forEach(listener -> listener.onMessage(envelope, connection));
+        }, THREAD_ID));
     }
 
 
@@ -503,7 +504,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         t.printStackTrace();
                     } finally {
                         stopped = true;
-                        EXECUTOR.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
+                        ThreadUtils.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler), THREAD_ID);
                     }
                 }, "Connection:SendCloseConnectionMessage-" + this.uid).start();
             } else {
@@ -513,12 +514,12 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         } else {
             //TODO find out why we get called that
             log.debug("stopped was already at shutDown call");
-            EXECUTOR.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
+            ThreadUtils.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler), THREAD_ID);
         }
     }
 
     private void doShutDown(CloseConnectionReason closeConnectionReason, @Nullable Runnable shutDownCompleteHandler) {
-        EXECUTOR.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this));
+        ThreadUtils.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this), THREAD_ID);
         try {
             protoOutputStream.onConnectionShutdown();
             socket.close();
@@ -541,7 +542,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             log.debug("Connection shutdown complete {}", this);
             if (shutDownCompleteHandler != null)
-                EXECUTOR.execute(shutDownCompleteHandler);
+                ThreadUtils.execute(shutDownCompleteHandler, THREAD_ID);
         }
     }
 
@@ -844,8 +845,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
                         }
 
-                        EXECUTOR.execute(() -> onMessage(networkEnvelope, this));
-                        EXECUTOR.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size));
+                        ThreadUtils.execute(() -> onMessage(networkEnvelope, this), THREAD_ID);
+                        ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
                 } catch (InvalidClassException e) {
                     log.error(e.getMessage());
@@ -894,7 +895,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         capabilitiesListeners.forEach(weakListener -> {
             SupportedCapabilitiesListener supportedCapabilitiesListener = weakListener.get();
             if (supportedCapabilitiesListener != null) {
-                EXECUTOR.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities));
+                ThreadUtils.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities), THREAD_ID);
             }
         });
         return false;

@@ -44,18 +44,8 @@ import java.security.PrivateKey;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
@@ -79,9 +69,6 @@ public class HavenoUtils {
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-    private static final int POOL_SIZE = 10;
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
-    private static final Map<String, ExecutorService> POOLS = new HashMap<>();
 
     // TODO: better way to share references?
     public static ArbitrationManager arbitrationManager;
@@ -472,86 +459,6 @@ public class HavenoUtils {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static Future<?> submitToPool(Runnable task) {
-        return submitToPool(Arrays.asList(task)).get(0);
-    }
-
-    public static List<Future<?>> submitToPool(List<Runnable> tasks) {
-        List<Future<?>> futures = new ArrayList<>();
-        for (Runnable task : tasks) futures.add(POOL.submit(task));
-        return futures;
-    }
-
-    public static Future<?> submitToSharedThread(Runnable task) {
-        return submitToThread(task, HavenoUtils.class.getSimpleName());
-    }
-
-    public static Future<?> submitToThread(Runnable task, String threadId) {
-        synchronized (POOLS) {
-            if (!POOLS.containsKey(threadId)) POOLS.put(threadId, Executors.newFixedThreadPool(1));
-            return POOLS.get(threadId).submit(task);
-        }
-    }
-
-    public static Future<?> awaitThread(Runnable task, String threadId) {
-        Future<?> future = submitToThread(task, threadId);
-        try {
-            future.get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return future;
-    }
-
-    public static void removeThreadId(String threadId) {
-        synchronized (POOLS) {
-            if (POOLS.containsKey(threadId)) {
-                POOLS.get(threadId).shutdown();
-                POOLS.remove(threadId);
-            }
-        }
-    }
-
-    // TODO: these are unused; remove? use monero-java awaitTasks() when updated
-
-    public static Future<?> awaitTask(Runnable task) {
-        return awaitTasks(Arrays.asList(task)).get(0);
-    }
-
-    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks) {
-        return awaitTasks(tasks, tasks.size());
-    }
-
-    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency) {
-        return awaitTasks(tasks, maxConcurrency, null);
-    }
-
-    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
-        List<Future<?>> futures = new ArrayList<>();
-        if (tasks.isEmpty()) return futures;
-        ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
-        for (Runnable task : tasks) futures.add(pool.submit(task));
-        pool.shutdown();
-
-        // interrupt after timeout
-        if (timeoutSeconds != null) {
-            try {
-                if (!pool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) pool.shutdownNow();
-            } catch (InterruptedException e) {
-                pool.shutdownNow();
-                throw new RuntimeException(e);
-            }
-        }
-
-        // throw exception from any tasks
-        try {
-            for (Future<?> future : futures) future.get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return futures;
     }
 
     public static String toCamelCase(String underscore) {
