@@ -774,7 +774,9 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                         // If not found in connection we look up if we got the Capabilities set from any of the
                         // reported or persisted peers
                         Set<Peer> persistedAndReported = new HashSet<>(getPersistedPeers());
-                        persistedAndReported.addAll(getReportedPeers());
+                        synchronized (reportedPeers) {
+                            persistedAndReported.addAll(reportedPeers);
+                        }
                         Optional<Peer> candidate = persistedAndReported.stream()
                                 .filter(peer -> peer.getNodeAddress().equals(peersNodeAddress))
                                 .filter(peer -> !peer.getCapabilities().isEmpty())
