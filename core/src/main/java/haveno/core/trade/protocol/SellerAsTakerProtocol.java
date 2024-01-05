@@ -18,6 +18,7 @@
 package haveno.core.trade.protocol;
 
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.SellerAsTakerTrade;
 import haveno.core.trade.Trade;
@@ -48,7 +49,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     public void onTakeOffer(TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
       System.out.println(getClass().getSimpleName() + ".onTakeOffer()");
-      new Thread(() -> {
+      ThreadUtils.execute(() -> {
           synchronized (trade) {
               latchTrade();
               this.tradeResultHandler = tradeResultHandler;
@@ -72,6 +73,6 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                       .executeTasks(true);
               awaitTradeLatch();
           }
-      }).start();
+      }, trade.getId());
     }
 }

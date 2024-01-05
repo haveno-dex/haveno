@@ -1,5 +1,6 @@
 package haveno.core.api;
 
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
@@ -562,7 +563,7 @@ public final class XmrConnectionService {
         // notify listeners in parallel
         synchronized (listenerLock) {
             for (MoneroConnectionManagerListener listener : listeners) {
-                HavenoUtils.submitToPool(() -> listener.onConnectionChanged(currentConnection));
+                ThreadUtils.submitToPool(() -> listener.onConnectionChanged(currentConnection));
             }
         }
     }

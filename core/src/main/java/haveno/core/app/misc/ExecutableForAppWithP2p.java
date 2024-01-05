@@ -18,6 +18,8 @@
 package haveno.core.app.misc;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -33,7 +35,6 @@ import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.setup.WalletsSetup;
@@ -103,7 +104,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
                 try {
-                    HavenoUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
+                    ThreadUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

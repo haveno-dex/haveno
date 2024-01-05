@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 
 import common.utils.GenUtils;
 import haveno.common.ClockWatcher;
+import haveno.common.ThreadUtils;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -234,7 +235,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
         if (!(networkEnvelope instanceof TradeMessage)) return;
         String tradeId = ((TradeMessage) networkEnvelope).getTradeId();
-        HavenoUtils.submitToThread(() -> {
+        ThreadUtils.execute(() -> {
             if (networkEnvelope instanceof InitTradeRequest) {
                 handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
             } else if (networkEnvelope instanceof InitMultisigRequest) {
@@ -315,10 +316,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
         });
         try {
-            HavenoUtils.awaitTasks(tasks);
+            ThreadUtils.awaitTasks(tasks);
         } catch (Exception e) {
             log.warn("Error notifying trades that shut down started: {}", e.getMessage());
-            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -345,7 +346,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
         });
         try {
-            HavenoUtils.awaitTasks(tasks);
+            ThreadUtils.awaitTasks(tasks);
         } catch (Exception e) {
             log.warn("Error shutting down trades: {}", e.getMessage());
             e.printStackTrace();
@@ -413,7 +414,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     }
                 });
             };
-            HavenoUtils.awaitTasks(tasks, threadPoolSize);
+            ThreadUtils.awaitTasks(tasks, threadPoolSize);
             log.info("Done initializing persisted trades");
             if (isShutDownStarted) return;
 
@@ -422,7 +423,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // sync idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling()) HavenoUtils.submitToPool(() -> trade.syncAndPollWallet());
+                if (trade.isIdling()) ThreadUtils.submitToPool(() -> trade.syncAndPollWallet());
             }
     
             // process after all wallets initialized
@@ -1224,7 +1225,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // remove trade
             tradableList.remove(trade);
-            trade.onRemoved();
 
             // unregister and persist
             p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));

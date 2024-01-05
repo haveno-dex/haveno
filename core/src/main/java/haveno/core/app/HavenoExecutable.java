@@ -19,6 +19,8 @@ package haveno.core.app;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.AppModule;
 import haveno.common.config.Config;
@@ -41,7 +43,6 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.setup.CorePersistedDataHost;
 import haveno.core.setup.CoreSetup;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.setup.WalletsSetup;
@@ -340,7 +341,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
             tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
             try {
-                HavenoUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
+                ThreadUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
             } catch (Exception e) {
                 e.printStackTrace();
             }
