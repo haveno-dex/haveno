@@ -2,12 +2,16 @@
 
 These are the steps needed to build Haveno and test it on our test network or locally.
 
-## Install dependencies
+## Install dependencies (requires Java JDK 11)
 
 On Ubuntu:
 
   1. `sudo apt install make wget git openjdk-11-jdk`.
   2. If `echo $JAVA_HOME` does not print the path to JDK 11, then `export JAVA_HOME=/path/to/jdk` (e.g. `export JAVA_HOME=/usr/lib/jvm/java-11-openjdk`).
+
+On Mac:
+  1. Download and install [Java JDK 11](https://adoptium.net/temurin/archive/?version=11).
+  2. `export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home`
 
 On Windows:
 
