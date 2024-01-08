@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.funds.transactions;
 
+import haveno.common.UserThread;
 import haveno.core.trade.Tradable;
 import haveno.core.xmr.wallet.XmrWalletService;
 import monero.wallet.model.MoneroTxWallet;
@@ -42,9 +43,10 @@ class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem
 
     void update() {
         List<TransactionsListItem> transactionsListItems = getTransactionListItems();
-        // are sorted by getRecentTransactions
-        forEach(TransactionsListItem::cleanup);
-        setAll(transactionsListItems);
+        UserThread.execute(() -> {
+            forEach(TransactionsListItem::cleanup);
+            setAll(transactionsListItems);
+        });
     }
 
     private List<TransactionsListItem> getTransactionListItems() {

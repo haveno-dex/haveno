@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.funds.withdrawal;
 
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
@@ -68,8 +69,9 @@ class WithdrawalListItem {
 
     private void updateBalance() {
         balance = walletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
-        if (balance != null)
-            balanceLabel.setText(HavenoUtils.formatXmr(this.balance));
+        if (balance != null) {
+            UserThread.execute(() -> balanceLabel.setText(HavenoUtils.formatXmr(this.balance)));
+        }
     }
 
     public final String getLabel() {

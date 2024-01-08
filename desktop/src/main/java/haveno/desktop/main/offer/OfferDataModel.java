@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.offer;
 
+import haveno.common.UserThread;
 import haveno.core.offer.OfferUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -66,35 +67,44 @@ public abstract class OfferDataModel extends ActivatableDataModel {
 
     protected void updateBalance() {
         updateBalances();
-        missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
-        isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
-        if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-            showWalletFundedNotification.set(true);
-        }
+        UserThread.await(() -> {
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
+            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
+            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
+                showWalletFundedNotification.set(true);
+            }
+        });
     }
 
     protected void updateAvailableBalance() {
         updateBalances();
-        missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), availableBalance.get()));
-        isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
-        if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-            showWalletFundedNotification.set(true);
-        }
+        UserThread.await(() -> {
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), availableBalance.get()));
+            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
+            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
+                showWalletFundedNotification.set(true);
+            }
+        });
     }
 
     private void updateBalances() {
         BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         BigInteger tradeWalletAvailableBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
-        if (useSavingsWallet) {
-            totalBalance = xmrWalletService.getBalance();
-            totalAvailableBalance = xmrWalletService.getAvailableBalance();
-            if (totalToPay.get() != null) {
-                balance.set(totalToPay.get().min(totalBalance));
-                availableBalance.set(totalToPay.get().min(totalAvailableBalance));
+        BigInteger walletBalance = xmrWalletService.getBalance();
+        BigInteger walletAvailableBalance = xmrWalletService.getAvailableBalance();
+        UserThread.await(() -> {
+            if (useSavingsWallet) {
+                totalBalance = walletBalance;
+                totalAvailableBalance = walletAvailableBalance;
+                if (totalToPay.get() != null) {
+                    balance.set(totalToPay.get().min(totalBalance));
+                    availableBalance.set(totalToPay.get().min(totalAvailableBalance));
+                }
+            } else {
+                balance.set(tradeWalletBalance);
+                availableBalance.set(tradeWalletAvailableBalance);
             }
-        } else {
-            balance.set(tradeWalletBalance);
-            availableBalance.set(tradeWalletAvailableBalance);
-        }
+        });
+
     }
 }
