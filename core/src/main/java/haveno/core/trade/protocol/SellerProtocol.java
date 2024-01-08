@@ -50,6 +50,9 @@ public class SellerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
 
+        // done if shut down
+        if (trade.isShutDown()) return;
+
         // re-send payment received message if payout not published
         synchronized (trade) {
             if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
