@@ -26,7 +26,7 @@
         <string>public.app-category.finance</string>
 
         <key>NSHumanReadableCopyright</key>
-        <string>Copyright © 2023 - The Haveno developers</string>
+        <string>Copyright © 2024 - The Haveno developers</string>
 
          <!-- Only supported in older OSX versions.
               See: https://github.com/bitcoin/bitcoin/issues/11896#issuecomment-352148399-->
