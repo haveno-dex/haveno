@@ -59,6 +59,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
+import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
@@ -136,11 +137,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
         // try to initialize with wallet txs
         try {
 
-            // prefetch all incoming txs to avoid query per subaddress
+            // prefetch to avoid query per subaddress
             txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+            List<MoneroSubaddress> subaddresses = xmrWalletService.getWallet().getSubaddresses(0);
 
             // trigger creation of at least 1 address
-            xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs);
+            xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs, subaddresses);
         } catch (Exception e) {
             log.warn("Failed to get wallet txs to initialize DepositView");
             e.printStackTrace();
@@ -318,13 +320,14 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         // cache incoming txs
         txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
+        List<MoneroSubaddress> subaddresses = xmrWalletService.getWallet().getSubaddresses(0);
         
         // create deposit list items
         List<XmrAddressEntry> addressEntries = xmrWalletService.getAddressEntries();
         List<DepositListItem> items = new ArrayList<>();
         for (XmrAddressEntry addressEntry : addressEntries) {
             if (addressEntry.getContext().isReserved()) continue;
-            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs));
+            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs, subaddresses));
         }
 
         // update list
