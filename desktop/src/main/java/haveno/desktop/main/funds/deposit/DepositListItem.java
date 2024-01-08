@@ -20,11 +20,9 @@ package haveno.desktop.main.funds.deposit;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
-import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
@@ -46,7 +44,6 @@ class DepositListItem {
     private final XmrWalletService xmrWalletService;
     private BigInteger balanceAsBI;
     private String usage = "-";
-    private XmrBalanceListener balanceListener;
     private int numTxsWithOutputs = 0;
     private final Supplier<LazyFields> lazyFieldsSupplier;
 
@@ -62,18 +59,6 @@ class DepositListItem {
     DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter, List<MoneroTxWallet> cachedTxs) {
         this.xmrWalletService = xmrWalletService;
         this.addressEntry = addressEntry;
-
-        balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                UserThread.execute(() -> {
-                    DepositListItem.this.balanceAsBI = balance;
-                    DepositListItem.this.balance.set(HavenoUtils.formatXmr(balanceAsBI));
-                    updateUsage(addressEntry.getSubaddressIndex(), null);
-                });
-            }
-        };
-        xmrWalletService.addBalanceListener(balanceListener);
 
         balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         balance.set(HavenoUtils.formatXmr(balanceAsBI));
@@ -118,7 +103,6 @@ class DepositListItem {
     }
 
     public void cleanup() {
-        xmrWalletService.removeBalanceListener(balanceListener);
     }
 
     public TxConfidenceIndicator getTxConfidenceIndicator() {

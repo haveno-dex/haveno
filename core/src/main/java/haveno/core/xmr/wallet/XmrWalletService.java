@@ -1297,12 +1297,16 @@ public class XmrWalletService {
     }
 
     public void addWalletListener(MoneroWalletListenerI listener) {
-        walletListeners.add(listener);
+        synchronized (walletListeners) {
+            walletListeners.add(listener);
+        }
     }
 
     public void removeWalletListener(MoneroWalletListenerI listener) {
-        if (!walletListeners.contains(listener)) throw new RuntimeException("Listener is not registered with wallet");
-        walletListeners.remove(listener);
+        synchronized (walletListeners) {
+            if (!walletListeners.contains(listener)) throw new RuntimeException("Listener is not registered with wallet");
+            walletListeners.remove(listener);
+        }
     }
 
     // TODO (woodser): update balance and other listening

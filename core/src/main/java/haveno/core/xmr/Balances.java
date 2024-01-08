@@ -17,6 +17,7 @@
 
 package haveno.core.xmr;
 
+import haveno.common.UserThread;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.Dispute;
@@ -86,67 +87,47 @@ public class Balances {
     }
 
     private void updateBalances() {
-        if (!xmrWalletService.isWalletAvailable()) return;
-        try {
-            updateAvailableBalance();
-            updatePendingBalance();
-            updateReservedOfferBalance();
-            updateReservedTradeBalance();
-            updateReservedBalance();
-        } catch (Exception e) {
-            if (xmrWalletService.isWalletAvailable()) throw e; // ignore exception if wallet isn't ready
-        }
-    }
 
-    // TODO (woodser): converting to long should generally be avoided since can lose precision, but in practice these amounts are below max value
-
-    private void updateAvailableBalance() {
-        availableBalance.set(xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getUnlockedBalance(0));
-    }
-
-    private void updatePendingBalance() {
+        // get wallet balances
         BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getBalance(0);
         BigInteger unlockedBalance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getUnlockedBalance(0);
-        BigInteger pendingBalanceSum = balance.subtract(unlockedBalance);
 
-        // add frozen trade balances - reserved amounts
+        // calculate pending balance by adding frozen trade balances - reserved amounts
+        BigInteger pendingBalance = balance.subtract(unlockedBalance);
         List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : trades) {
             if (trade.getFrozenAmount().equals(new BigInteger("0"))) continue;
             BigInteger tradeFee = trade instanceof MakerTrade ? trade.getMakerFee() : trade.getTakerFee();
-            pendingBalanceSum = pendingBalanceSum.add(trade.getFrozenAmount()).subtract(trade.getReservedAmount()).subtract(tradeFee).subtract(trade.getSelf().getDepositTxFee());
+            pendingBalance = pendingBalance.add(trade.getFrozenAmount()).subtract(trade.getReservedAmount()).subtract(tradeFee).subtract(trade.getSelf().getDepositTxFee());
         }
 
-        // add frozen offer balances
-        pendingBalance.set(pendingBalanceSum);
-    }
-
-    private void updateReservedOfferBalance() {
-        BigInteger sum = BigInteger.ZERO;
+        // calculate reserved offer balance
+        BigInteger reservedOfferBalance = BigInteger.ZERO;
         if (xmrWalletService.getWallet() != null) {
             List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
-            for (MoneroOutputWallet frozenOutput : frozenOutputs) sum = sum.add(frozenOutput.getAmount());
+            for (MoneroOutputWallet frozenOutput : frozenOutputs) reservedOfferBalance = reservedOfferBalance.add(frozenOutput.getAmount());
         }
-
-        // subtract frozen trade balances
-        List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
         for (Trade trade : trades) {
-            sum = sum.subtract(trade.getFrozenAmount());
+            reservedOfferBalance = reservedOfferBalance.subtract(trade.getFrozenAmount()); // subtract frozen trade balances
         }
 
-        reservedOfferBalance.set(sum);
+        // calculate reserved trade balance
+        BigInteger reservedTradeBalance = BigInteger.ZERO;
+        for (Trade trade : trades) {
+            reservedTradeBalance = reservedTradeBalance.add(trade.getReservedAmount());
+        }
+
+        // set balances
+        setBalances(balance, unlockedBalance, pendingBalance, reservedOfferBalance, reservedTradeBalance);
     }
 
-    private void updateReservedTradeBalance() {
-        BigInteger sum = BigInteger.ZERO;
-        List<Trade> trades = tradeManager.getTradesStreamWithFundsLockedIn().collect(Collectors.toList());
-        for (Trade trade : trades) {
-            sum = sum.add(trade.getReservedAmount());
-        }
-        reservedTradeBalance.set(sum);
-    }
-
-    private void updateReservedBalance() {
-        reservedBalance.set(reservedOfferBalance.get().add(reservedTradeBalance.get()));
+    private void setBalances(BigInteger balance, BigInteger unlockedBalance, BigInteger pendingBalance, BigInteger reservedOfferBalance, BigInteger reservedTradeBalance) {
+        UserThread.execute(() -> {
+            this.availableBalance.set(unlockedBalance);
+            this.pendingBalance.set(pendingBalance);
+            this.reservedOfferBalance.set(reservedOfferBalance);
+            this.reservedTradeBalance.set(reservedTradeBalance);
+            this.reservedBalance.set(reservedOfferBalance.add(reservedTradeBalance));
+        });
     }
 }

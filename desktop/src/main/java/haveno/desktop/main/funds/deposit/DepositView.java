@@ -73,6 +73,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -214,10 +215,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
             } else {
                 XmrAddressEntry newSavingsAddressEntry = xmrWalletService.getNewAddressEntry();
                 updateList();
-                observableList.stream()
-                        .filter(depositListItem -> depositListItem.getAddressString().equals(newSavingsAddressEntry.getAddressString()))
-                        .findAny()
-                        .ifPresent(depositListItem -> tableView.getSelectionModel().select(depositListItem));
+                UserThread.execute(() -> {
+                    observableList.stream()
+                            .filter(depositListItem -> depositListItem.getAddressString().equals(newSavingsAddressEntry.getAddressString()))
+                            .findAny()
+                            .ifPresent(depositListItem -> tableView.getSelectionModel().select(depositListItem));
+                });
             }
         });
 
@@ -315,16 +318,23 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         // cache incoming txs
         txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
-
-        // clear existing items
-        observableList.forEach(DepositListItem::cleanup);
-        observableList.clear();
-
-        // add non-reserved address entries
-        for (XmrAddressEntry addressEntry : xmrWalletService.getAddressEntries()) {
+        
+        // create deposit list items
+        List<XmrAddressEntry> addressEntries = xmrWalletService.getAddressEntries();
+        List<DepositListItem> items = new ArrayList<>();
+        for (XmrAddressEntry addressEntry : addressEntries) {
             if (addressEntry.getContext().isReserved()) continue;
-            observableList.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs));
+            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs));
         }
+
+        // update list
+        UserThread.execute(() -> {
+            observableList.forEach(DepositListItem::cleanup);
+            observableList.clear();
+            for (DepositListItem item : items) {
+                observableList.add(item);
+            }
+        });
     }
 
     private Coin getAmount() {
