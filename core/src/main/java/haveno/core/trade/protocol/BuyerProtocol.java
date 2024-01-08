@@ -54,6 +54,9 @@ public class BuyerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
 
+        // done if shut down
+        if (trade.isShutDown()) return;
+
         // re-send payment sent message if not acked
         synchronized (trade) {
             if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
