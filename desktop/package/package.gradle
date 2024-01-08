@@ -227,7 +227,7 @@ task packageInstallers {
         }
 
         //String appDescription = 'A decentralized monero exchange network.'
-        String appCopyright = '© 2023 Haveno'
+        String appCopyright = '© 2024 Haveno'
         String appNameAndVendor = 'Haveno'
 
         String commonOpts = new String(
