@@ -32,6 +32,7 @@ import javafx.beans.property.StringProperty;
 import javafx.scene.control.Tooltip;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
@@ -56,14 +57,14 @@ class DepositListItem {
         return lazyFieldsSupplier.get();
     }
 
-    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter, List<MoneroTxWallet> cachedTxs) {
+    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter, List<MoneroTxWallet> cachedTxs, List<MoneroSubaddress> cachedSubaddresses) {
         this.xmrWalletService = xmrWalletService;
         this.addressEntry = addressEntry;
 
-        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex(), cachedSubaddresses);
         balance.set(HavenoUtils.formatXmr(balanceAsBI));
 
-        updateUsage(addressEntry.getSubaddressIndex(), cachedTxs);
+        updateUsage(addressEntry.getSubaddressIndex(), cachedTxs, cachedSubaddresses);
 
         // confidence
         lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
@@ -82,8 +83,8 @@ class DepositListItem {
         }});
     }
 
-    private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs) {
-        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs);
+    private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs, List<MoneroSubaddress> cachedSubaddresses) {
+        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs, cachedSubaddresses);
         switch (addressEntry.getContext()) {
             case BASE_ADDRESS:
                 usage = Res.get("funds.deposit.baseAddress");
