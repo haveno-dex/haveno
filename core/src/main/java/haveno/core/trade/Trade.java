@@ -1226,14 +1226,31 @@ public abstract class Trade implements Tradable, Model {
         isShutDownStarted = true;
         if (!isPayoutUnlocked()) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
 
-        // shut down thread pools with timeout
-        List<Runnable> tasks = new ArrayList<>();
-        tasks.add(() -> ThreadUtils.shutDown(getId(), SHUTDOWN_TIMEOUT_MS));
-        tasks.add(() -> ThreadUtils.shutDown(getConnectionChangedThreadId(), SHUTDOWN_TIMEOUT_MS));
+        // create task to shut down trade
+        Runnable shutDownTask = () -> {
+
+            // repeatedly acquire lock to clear tasks
+            for (int i = 0; i < 20; i++) {
+                synchronized (this) {
+                    GenUtils.waitFor(10);
+                }
+            }
+
+            // shut down trade threads
+            synchronized (this) {
+                List<Runnable> shutDownThreads = new ArrayList<>();
+                shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
+                shutDownThreads.add(() -> ThreadUtils.shutDown(getConnectionChangedThreadId()));
+                ThreadUtils.awaitTasks(shutDownThreads);
+            }
+        };
+
+        // shut down trade with timeout
         try {
-            ThreadUtils.awaitTasks(tasks);
+            ThreadUtils.awaitTask(shutDownTask, SHUTDOWN_TIMEOUT_MS);
         } catch (Exception e) {
-            log.warn("Timeout shutting down {} {}", getClass().getSimpleName(), getId());
+            log.warn("Error shutting down {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            e.printStackTrace();
 
             // force stop wallet
             if (wallet != null) {
@@ -1251,8 +1268,13 @@ public abstract class Trade implements Tradable, Model {
             idlePayoutSyncer = null;
         }
         if (wallet != null) {
-            xmrWalletService.saveWallet(wallet, false); // skip backup
-            stopWallet();
+            try {
+                xmrWalletService.saveWallet(wallet, false); // skip backup
+                stopWallet();
+            } catch (Exception e) {
+                // warning will be logged for main wallet, so skip logging here
+                //log.warn("Error closing monero-wallet-rpc subprocess for {} {}: {}. Was Haveno stopped manually with ctrl+c?", getClass().getSimpleName(), getId(), e.getMessage());
+            }
         }
         UserThread.execute(() -> {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
