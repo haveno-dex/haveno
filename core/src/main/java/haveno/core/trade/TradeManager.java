@@ -952,6 +952,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void updateTradePeriodState() {
+        if (isShutDownStarted) return;
         for (Trade trade : new ArrayList<Trade>(tradableList.getList())) {
             if (!trade.isPayoutPublished()) {
                 Date maxTradePeriodDate = trade.getMaxTradePeriodDate();

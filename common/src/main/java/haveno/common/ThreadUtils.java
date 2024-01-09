@@ -65,12 +65,17 @@ public class ThreadUtils {
         }
     }
 
-    public static void shutDown(String threadId, long timeoutMs) {
+    public static void shutDown(String threadId) {
+        shutDown(threadId, null);
+    }
+
+    public static void shutDown(String threadId, Long timeoutMs) {
+        if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
         ExecutorService pool = null;
         synchronized (EXECUTORS) {
-            if (!EXECUTORS.containsKey(threadId)) return; // thread not found
             pool = EXECUTORS.get(threadId);
         }
+        if (pool == null) return; // thread not found
         pool.shutdown();
         try {
             if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
@@ -101,10 +106,12 @@ public class ThreadUtils {
         return futures;
     }
 
-    // TODO: these are unused; remove? use monero-java awaitTasks() when updated
-
     public static Future<?> awaitTask(Runnable task) {
-        return awaitTasks(Arrays.asList(task)).get(0);
+        return awaitTask(task, null);
+    }
+
+    public static Future<?> awaitTask(Runnable task, Long timeoutMs) {
+        return awaitTasks(Arrays.asList(task), 1, timeoutMs).get(0);
     }
 
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks) {
@@ -115,30 +122,20 @@ public class ThreadUtils {
         return awaitTasks(tasks, maxConcurrency, null);
     }
 
-    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
-        List<Future<?>> futures = new ArrayList<>();
-        if (tasks.isEmpty()) return futures;
-        ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
-        for (Runnable task : tasks) futures.add(pool.submit(task));
-        pool.shutdown();
-
-        // interrupt after timeout
-        if (timeoutSeconds != null) {
-            try {
-                if (!pool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) pool.shutdownNow();
-            } catch (InterruptedException e) {
-                pool.shutdownNow();
-                throw new RuntimeException(e);
-            }
-        }
-
-        // throw exception from any tasks
+    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutMs) {
+        if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
+        if (tasks.isEmpty()) return new ArrayList<>();
+        ExecutorService executorService = Executors.newFixedThreadPool(tasks.size());
         try {
-            for (Future<?> future : futures) future.get();
+            List<Future<?>> futures = new ArrayList<>();
+            for (Runnable task : tasks) futures.add(executorService.submit(task, null));
+            for (Future<?> future : futures) future.get(timeoutMs, TimeUnit.MILLISECONDS);
+            return futures;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            executorService.shutdownNow();
         }
-        return futures;
     }
 
     private static boolean isCurrentThread(Thread thread, String threadId) {

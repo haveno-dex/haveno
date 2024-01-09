@@ -104,7 +104,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
                 try {
-                    ThreadUtils.awaitTasks(tasks, tasks.size(), 120l); // run in parallel with timeout
+                    ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
