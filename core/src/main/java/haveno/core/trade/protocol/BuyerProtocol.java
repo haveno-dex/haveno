@@ -123,7 +123,7 @@ public class BuyerProtocol extends DisputeProtocol {
                                     (errorMessage) -> {
                                         handleTaskRunnerFault(event, errorMessage);
                                     })))
-                            .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
+                            .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment sent: " + e.getMessage());

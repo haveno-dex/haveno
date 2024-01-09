@@ -150,7 +150,7 @@ public class BuyerStep2View extends TradeStepView {
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
                     switch (state) {
-                        case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT:
+                        case BUYER_CONFIRMED_PAYMENT_SENT:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.preparingConfirmation"));
                             break;
