@@ -74,7 +74,7 @@ monerod1-local:
 		--no-zmq \
 		--add-exclusive-node 127.0.0.1:28080 \
 		--rpc-access-control-origins http://localhost:8080 \
-		--fixed-difficulty 400
+		--fixed-difficulty  500
 
 monerod2-local:
 	./.localnet/monerod \
@@ -88,7 +88,7 @@ monerod2-local:
 		--confirm-external-bind \
 		--add-exclusive-node 127.0.0.1:48080 \
 		--rpc-access-control-origins http://localhost:8080 \
-		--fixed-difficulty 400
+		--fixed-difficulty  500
 
 funding-wallet-stagenet:
 	./.localnet/monero-wallet-rpc \
