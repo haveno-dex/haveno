@@ -119,7 +119,7 @@ public class SellerProtocol extends DisputeProtocol {
                             }, (errorMessage) -> {
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
-                            .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
+                            .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment received: " + e.getMessage());

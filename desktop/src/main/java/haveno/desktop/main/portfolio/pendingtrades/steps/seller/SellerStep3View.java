@@ -116,7 +116,7 @@ public class SellerStep3View extends TradeStepView {
                     busyAnimation.stop();
                     statusLabel.setText("");
                 } else switch (state) {
-                    case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+                    case SELLER_CONFIRMED_PAYMENT_RECEIPT:
                         busyAnimation.play();
                         statusLabel.setText(Res.get("shared.preparingConfirmation"));
                         break;

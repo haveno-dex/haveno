@@ -401,7 +401,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer step 3
-            case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT: // UI action
+            case BUYER_CONFIRMED_PAYMENT_SENT: // UI action
             case BUYER_SENT_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG sent
             case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
                 // We don't switch the UI before we got the feedback of the msg delivery
@@ -424,7 +424,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // seller step 3
-            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+            case SELLER_CONFIRMED_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
