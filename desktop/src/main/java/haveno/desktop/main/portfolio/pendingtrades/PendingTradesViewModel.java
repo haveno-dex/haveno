@@ -191,14 +191,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 });
                 messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
             }
-
         }
     }
 
     public void setMessageStateProperty(MessageState messageState) {
-        // ARRIVED is set internally after ACKNOWLEDGED, otherwise warn if subsequent states received
-        if ((messageStateProperty.get() == MessageState.ACKNOWLEDGED && messageState != MessageState.ARRIVED) || messageStateProperty.get() == MessageState.ARRIVED) {
-            log.warn("We have already an ACKNOWLEDGED/ARRIVED message received. " +
+        if (messageStateProperty.get() == MessageState.ACKNOWLEDGED) {
+            log.warn("We have already an ACKNOWLEDGED message received. " +
                     "We would not expect any other message after that. Received messageState={}", messageState);
             return;
         }

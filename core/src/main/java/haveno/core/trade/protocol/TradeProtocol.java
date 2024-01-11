@@ -770,7 +770,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
       trade.setMyNodeAddress(); // TODO: this is a hack to update my node address before verifying the message
       TradePeer peer = trade.getTradePeer(address);
       if (peer == null) {
-        log.warn("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator. Their address might have changed: " + peer);
+        log.warn("Cannot get peer's pub key ring because peer is not maker, taker, or arbitrator. Their address might have changed: " + address);
         return null;
       }
       return peer.getPubKeyRing();

@@ -32,6 +32,7 @@ import haveno.common.util.Utilities;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
+import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -691,6 +692,13 @@ public abstract class Trade implements Tradable, Model {
             if (this instanceof ArbitratorTrade) {
                 idlePayoutSyncer = new IdlePayoutSyncer();
                 xmrWalletService.addWalletListener(idlePayoutSyncer);
+            }
+
+            // TODO: trader's payment sent message state property can become unsynced (after improper shut down?)
+            MessageState expectedState = getPaymentSentMessageState();
+            if (!isArbitrator() && expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
+                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStateProperty().get());
+                processModel.getPaymentSentMessageStateProperty().set(expectedState);
             }
 
             // trade is initialized
@@ -1567,6 +1575,24 @@ public abstract class Trade implements Tradable, Model {
         if (isSeller()) return "Seller";
         if (isArbitrator()) return "Arbitrator";
         throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
+    }
+
+    public MessageState getPaymentSentMessageState() {
+        if (isPaymentReceived()) return MessageState.ACKNOWLEDGED;
+        if (processModel.getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
+        switch (state) {
+            case BUYER_SENT_PAYMENT_SENT_MSG:
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
+                return MessageState.SENT;
+            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
+                return MessageState.STORED_IN_MAILBOX;
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG:
+                return MessageState.ARRIVED;
+            case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
+                return MessageState.FAILED;
+            default:
+                return null;
+        }
     }
 
     public String getPeerRole(TradePeer peer) {
