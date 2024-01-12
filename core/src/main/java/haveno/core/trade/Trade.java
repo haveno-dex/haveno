@@ -694,11 +694,13 @@ public abstract class Trade implements Tradable, Model {
                 xmrWalletService.addWalletListener(idlePayoutSyncer);
             }
 
-            // TODO: trader's payment sent message state property can become unsynced (after improper shut down?)
-            MessageState expectedState = getPaymentSentMessageState();
-            if (!isArbitrator() && expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
-                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStateProperty().get());
-                processModel.getPaymentSentMessageStateProperty().set(expectedState);
+            // TODO: buyer's payment sent message state property can become unsynced (after improper shut down?)
+            if (isBuyer()) {
+                MessageState expectedState = getPaymentSentMessageState();
+                if (expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
+                    log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStateProperty().get());
+                    processModel.getPaymentSentMessageStateProperty().set(expectedState);
+                }
             }
 
             // trade is initialized
