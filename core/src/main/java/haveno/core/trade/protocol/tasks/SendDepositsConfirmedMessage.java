@@ -54,7 +54,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
             // skip if already acked by receiver
             if (ackedByReceiver()) {
-                complete();
+                if (!isCompleted()) complete();
                 return;
             }
 
