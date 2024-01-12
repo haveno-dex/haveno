@@ -480,8 +480,9 @@ public final class XmrConnectionService {
                 maybeStartLocalNode();
 
                 // update connection
-                if (connectionManager.getConnection() == null || connectionManager.getAutoSwitch()) {
-                    setConnection(getBestAvailableConnection());
+                if (!isFixedConnection() && (connectionManager.getConnection() == null || connectionManager.getAutoSwitch())) {
+                    MoneroRpcConnection bestConnection = getBestAvailableConnection();
+                    if (bestConnection != null) setConnection(bestConnection);
                 } else {
                     checkConnection();
                 }
@@ -503,12 +504,10 @@ public final class XmrConnectionService {
             // register connection listener
             connectionManager.addListener(this::onConnectionChanged);
 
-            // start polling for best connection after delay
-            if ("".equals(config.xmrNode)) {
-                UserThread.runAfter(() -> {
-                    if (!isShutDownStarted) connectionManager.startPolling(getRefreshPeriodMs() * 2);
-                }, getDefaultRefreshPeriodMs() * 2 / 1000);
-            }
+            // start polling after delay
+            UserThread.runAfter(() -> {
+                if (!isShutDownStarted) connectionManager.startPolling(getRefreshPeriodMs() * 2);
+            }, getDefaultRefreshPeriodMs() * 2 / 1000);
 
             isInitialized = true;
         }
@@ -666,7 +665,7 @@ public final class XmrConnectionService {
                 }
 
                 new Thread(() -> {
-                    if (connectionManager.getAutoSwitch()) {
+                    if (!isFixedConnection() && connectionManager.getAutoSwitch()) {
                         MoneroRpcConnection bestConnection = getBestAvailableConnection();
                         if (bestConnection != null) connectionManager.setConnection(bestConnection);
                     } else {
@@ -688,5 +687,9 @@ public final class XmrConnectionService {
         return daemon.getPeers().stream()
                 .filter(peer -> peer.isOnline())
                 .collect(Collectors.toList());
+    }
+
+    private boolean isFixedConnection() {
+        return !"".equals(config.xmrNode) || preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM;
     }
 }
