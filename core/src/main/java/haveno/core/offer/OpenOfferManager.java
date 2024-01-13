@@ -513,8 +513,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         ThreadUtils.execute(() -> {
             synchronized (processOffersLock) {
                 CountDownLatch latch = new CountDownLatch(1);
+                addOpenOffer(openOffer);
                 processUnpostedOffer(getOpenOffers(), openOffer, (transaction) -> {
-                    addOpenOffer(openOffer);
                     requestPersistence();
                     latch.countDown();
                     resultHandler.handleResult(transaction);
@@ -1660,8 +1660,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // repost offer
                 synchronized (processOffersLock) {
                     CountDownLatch latch = new CountDownLatch(1);
+                    addOpenOffer(updatedOpenOffer);
                     processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
-                        addOpenOffer(updatedOpenOffer);
                         requestPersistence();
                         latch.countDown();
                         if (completeHandler != null) completeHandler.run();

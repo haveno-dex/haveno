@@ -408,6 +408,18 @@ public class XmrWalletService {
     }
 
     /**
+     * Freeze the given outputs with a lock on the wallet.
+     * 
+     * @param keyImages the key images to freeze
+     */
+    public void freezeOutputs(Collection<String> keyImages) {
+        synchronized (walletLock) {
+            for (String keyImage : keyImages) wallet.freezeOutput(keyImage);
+        }
+        updateBalanceListeners(); // TODO (monero-java): balance listeners not notified on freeze/thaw output
+    }
+
+    /**
      * Thaw the given outputs with a lock on the wallet.
      *
      * @param keyImages the key images to thaw
@@ -416,6 +428,7 @@ public class XmrWalletService {
         synchronized (walletLock) {
             for (String keyImage : keyImages) wallet.thawOutput(keyImage);
         }
+        updateBalanceListeners(); // TODO (monero-java): balance listeners not notified on freeze/thaw output
     }
 
     private List<Integer> getSubaddressesWithExactInput(BigInteger amount) {
@@ -530,7 +543,9 @@ public class XmrWalletService {
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY)); // pay fee from security deposit
 
         // freeze inputs
-        for (MoneroOutput input : tradeTx.getInputs()) wallet.freezeOutput(input.getKeyImage().getHex());
+        List<String> keyImages = new ArrayList<String>();
+        for (MoneroOutput input : tradeTx.getInputs()) keyImages.add(input.getKeyImage().getHex());
+        freezeOutputs(keyImages);
         saveMainWallet();
         return tradeTx;
     }
