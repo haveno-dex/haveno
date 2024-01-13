@@ -669,7 +669,13 @@ public class FormBuilder {
                                                                   int columnIndex,
                                                                   String title,
                                                                   double top) {
-        DatePicker datePicker = new JFXDatePicker();
+        //DatePicker datePicker = new JFXDatePicker();
+        //
+        //Temporary solution to fix issue 527; a more
+        //permanant solution would require this issue to be solved: 
+        //(https://github.com/sshahine/JFoenix/issues/1245)
+        DatePicker datePicker = new DatePicker();
+        
         Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, columnIndex, title, datePicker, top);
         return new Tuple2<>(topLabelWithVBox.first, datePicker);
     }
