@@ -139,7 +139,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return;
         }
 
-        if (!isPubKeyValid(decryptedMessageWithPubKey, peer)) {
+        if (!isPubKeyValid(decryptedMessageWithPubKey)) {
             return;
         }
 
@@ -159,7 +159,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     @Override
     public void onMailboxMessageAdded(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress peer) {
-        if (!isPubKeyValid(decryptedMessageWithPubKey, peer)) return;
+        if (!isPubKeyValid(decryptedMessageWithPubKey)) return;
         handleMailboxCollectionSkipValidation(Collections.singletonList(decryptedMessageWithPubKey));
     }
 
@@ -777,12 +777,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private boolean isPubKeyValid(DecryptedMessageWithPubKey message) {
-        MailboxMessage mailboxMessage = (MailboxMessage) message.getNetworkEnvelope();
-        NodeAddress sender = mailboxMessage.getSenderNodeAddress();
-        return isPubKeyValid(message, sender);
-    }
-
-    private boolean isPubKeyValid(DecryptedMessageWithPubKey message, NodeAddress sender) {
         if (this instanceof ArbitratorProtocol) {
 
             // valid if traders unknown
@@ -806,7 +800,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
 
         // invalid
-        log.error("SignaturePubKey in message does not match the SignaturePubKey we have set for our arbitrator or trading peer.");
         return false;
     }
 
