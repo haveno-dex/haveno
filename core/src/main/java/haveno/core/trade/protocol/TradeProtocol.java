@@ -776,7 +776,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
       return peer.getPubKeyRing();
     }
 
-    private boolean isPubKeyValid(DecryptedMessageWithPubKey message) {
+    public boolean isPubKeyValid(DecryptedMessageWithPubKey message) {
         if (this instanceof ArbitratorProtocol) {
 
             // valid if traders unknown
