@@ -121,21 +121,21 @@ public class OfferBookService {
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                    protectedStorageEntries.forEach(protectedStorageEntry -> {
-                        synchronized (offerBookChangedListeners) {
-                            offerBookChangedListeners.forEach(listener -> {
-                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                                    maybeInitializeKeyImagePoller();
-                                    keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
-                                    Offer offer = new Offer(offerPayload);
-                                    offer.setPriceFeedService(priceFeedService);
-                                    setReservedFundsSpent(offer);
-                                    listener.onRemoved(offer);
-                                }
-                            });
-                        }
-                    });
+                protectedStorageEntries.forEach(protectedStorageEntry -> {
+                    synchronized (offerBookChangedListeners) {
+                        offerBookChangedListeners.forEach(listener -> {
+                            if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                                OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                maybeInitializeKeyImagePoller();
+                                keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                                Offer offer = new Offer(offerPayload);
+                                offer.setPriceFeedService(priceFeedService);
+                                setReservedFundsSpent(offer);
+                                listener.onRemoved(offer);
+                            }
+                        });
+                    }
+                });
             }
         });
 

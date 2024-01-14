@@ -74,6 +74,10 @@ public class HavenoUtils {
     public static ArbitrationManager arbitrationManager;
     public static HavenoSetup havenoSetup;
 
+    public static boolean isSeedNode() {
+        return havenoSetup == null;
+    }
+
     // ----------------------- CONVERSION UTILS -------------------------------
 
     public static BigInteger coinToAtomicUnits(Coin coin) {
