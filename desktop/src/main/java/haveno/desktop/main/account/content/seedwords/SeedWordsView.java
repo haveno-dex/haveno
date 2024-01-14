@@ -106,8 +106,6 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         displaySeedWordsTextArea.setEditable(false);
 
         datePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
-        //note: on MacOS this datePicker does not actually list a date...is it
-        //supposed to?
         datePicker.setMouseTransparent(true);
 
         addTitledGroupBg(root, ++gridRow, 3, Res.get("seed.restore.title"), Layout.GROUP_DISTANCE);
