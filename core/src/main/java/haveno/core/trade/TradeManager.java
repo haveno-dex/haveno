@@ -428,7 +428,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
     
             // process after all wallets initialized
-            if (HavenoUtils.havenoSetup != null) { // null for seednode
+            if (!HavenoUtils.isSeedNode()) {
 
                 // maybe remove trades on error
                 for (Trade trade : tradesToMaybeRemoveOnError) {

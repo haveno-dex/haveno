@@ -519,7 +519,7 @@ public final class XmrConnectionService {
     private void maybeStartLocalNode() {
 
         // skip if seed node
-        if (HavenoUtils.havenoSetup == null) return;
+        if (HavenoUtils.isSeedNode()) return;
 
         // start local node if offline and used as last connection
         if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored()) {
