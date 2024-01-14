@@ -690,11 +690,14 @@ public class FormBuilder {
                                                                         String title1,
                                                                         String title2,
                                                                         double top) {
-        DatePicker datePicker1 = new JFXDatePicker();
+
+        //DatePicker datePicker1 = new JFXDatePicker();
+        DatePicker datePicker1 = new DatePicker();
         Tuple2<Label, VBox> topLabelWithVBox1 = getTopLabelWithVBox(title1, datePicker1);
         VBox vBox1 = topLabelWithVBox1.second;
 
-        DatePicker datePicker2 = new JFXDatePicker();
+        //DatePicker datePicker2 = new JFXDatePicker();
+        DatePicker datePicker2 = new DatePicker();
         Tuple2<Label, VBox> topLabelWithVBox2 = getTopLabelWithVBox(title2, datePicker2);
         VBox vBox2 = topLabelWithVBox2.second;
 
