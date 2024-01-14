@@ -18,7 +18,7 @@
 package haveno.desktop.util;
 
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXDatePicker;
+//import com.jfoenix.controls.JFXDatePicker;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.controls.JFXToggleButton;
 import de.jensd.fx.fontawesome.AwesomeDude;
