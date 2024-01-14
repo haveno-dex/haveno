@@ -119,6 +119,7 @@ public abstract class Trade implements Tradable, Model {
 
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
     private static final long SHUTDOWN_TIMEOUT_MS = 90000;
+    private static final long DELETE_BACKUPS_AFTER_NUM_BLOCKS = 3600; // ~5 days
     private final Object walletLock = new Object();
     private final Object pollLock = new Object();
     private MoneroWallet wallet;
@@ -918,12 +919,9 @@ public abstract class Trade implements Tradable, Model {
                     log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
                     xmrWalletService.deleteWallet(getWalletName());
 
-                    // delete trade wallet backups unless deposits requested and payouts not unlocked
-                    if (isDepositRequested() && !isDepositFailed() && !isPayoutUnlocked()) {
-                        log.warn("Refusing to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
-                    } else {
-                        xmrWalletService.deleteWalletBackups(getWalletName());
-                    }
+                    // record delete height and schedule backup deletion
+                    processModel.setDeleteBackupsHeight(xmrConnectionService.getLastInfo().getHeight() + DELETE_BACKUPS_AFTER_NUM_BLOCKS);
+                    maybeScheduleDeleteBackups();
                 } catch (Exception e) {
                     log.warn(e.getMessage());
                     e.printStackTrace();
@@ -1201,6 +1199,9 @@ public abstract class Trade implements Tradable, Model {
 
     private void clearProcessData() {
 
+        // delete backup wallets after main wallet + blocks
+        maybeScheduleDeleteBackups();
+
         // delete trade wallet
         synchronized (walletLock) {
             if (!walletExists()) return; // done if already cleared
@@ -1212,6 +1213,27 @@ public abstract class Trade implements Tradable, Model {
         for (TradePeer peer : getPeers()) {
             peer.setUnsignedPayoutTxHex(null);
             peer.setUpdatedMultisigHex(null);
+        }
+    }
+
+    private void maybeScheduleDeleteBackups() {
+        if (processModel.getDeleteBackupsHeight() == 0) return;
+        if (xmrConnectionService.getLastInfo().getHeight() >= processModel.getDeleteBackupsHeight()) {
+            xmrWalletService.deleteWalletBackups(getWalletName());
+            processModel.setDeleteBackupsHeight(0); // reset delete height
+        } else {
+            MoneroWalletListener deleteBackupsListener = new MoneroWalletListener() {
+                @Override
+                public synchronized void onNewBlock(long height) { // prevent concurrent deletion
+                    if (processModel.getDeleteBackupsHeight() == 0) return;
+                    if (xmrConnectionService.getLastInfo().getHeight() >= processModel.getDeleteBackupsHeight()) {
+                        xmrWalletService.deleteWalletBackups(getWalletName());
+                        processModel.setDeleteBackupsHeight(0); // reset delete height
+                        xmrWalletService.removeWalletListener(this);
+                    }
+                }
+            };
+            xmrWalletService.addWalletListener(deleteBackupsListener);
         }
     }
 
