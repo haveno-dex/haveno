@@ -22,6 +22,7 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
+import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
@@ -157,7 +158,7 @@ public class BuyerStep2View extends TradeStepView {
                         case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
-                            model.setMessageStateProperty(trade.getPaymentSentMessageState());
+                            model.setMessageStatePropertyIfNotAcked(MessageState.SENT);
                             timeoutTimer = UserThread.runAfter(() -> {
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
@@ -166,18 +167,18 @@ public class BuyerStep2View extends TradeStepView {
                         case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
-                            model.setMessageStateProperty(trade.getPaymentSentMessageState());
+                            model.setMessageStatePropertyIfNotAcked(MessageState.STORED_IN_MAILBOX);
                             break;
                         case SELLER_RECEIVED_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
-                            model.setMessageStateProperty(trade.getPaymentSentMessageState());
+                            model.setMessageStatePropertyIfNotAcked(MessageState.ARRIVED);
                             break;
                         case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                             // We get a popup and the trade closed, so we dont need to show anything here
                             busyAnimation.stop();
                             statusLabel.setText("");
-                            model.setMessageStateProperty(trade.getPaymentSentMessageState());
+                            model.setMessageStatePropertyIfNotAcked(MessageState.FAILED);
                             break;
                         default:
                             log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
