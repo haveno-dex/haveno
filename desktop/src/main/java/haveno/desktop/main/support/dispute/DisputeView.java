@@ -1114,10 +1114,14 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         field.setMouseTransparent(false);
                                         field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                         field.setOnAction(event -> tradeDetailsWindow.show(tradeOptional.get()));
+                                        setGraphic(field);
+                                        setText("");
                                     } else {
                                         setText(item.getShortTradeId());
+                                        setGraphic(null);
+                                        if (field != null)
+                                            field.setOnAction(null);
                                     }
-                                    setGraphic(field);
                                 } else {
                                     setGraphic(null);
                                     setText("");
