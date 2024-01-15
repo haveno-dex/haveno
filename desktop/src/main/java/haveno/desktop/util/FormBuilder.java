@@ -18,7 +18,7 @@
 package haveno.desktop.util;
 
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXDatePicker;
+//import com.jfoenix.controls.JFXDatePicker;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.controls.JFXToggleButton;
 import de.jensd.fx.fontawesome.AwesomeDude;
@@ -669,7 +669,13 @@ public class FormBuilder {
                                                                   int columnIndex,
                                                                   String title,
                                                                   double top) {
-        DatePicker datePicker = new JFXDatePicker();
+        //DatePicker datePicker = new JFXDatePicker();
+        //
+        //Temporary solution to fix issue 527; a more
+        //permanant solution would require this issue to be solved: 
+        //(https://github.com/sshahine/JFoenix/issues/1245)
+        DatePicker datePicker = new DatePicker();
+        
         Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, columnIndex, title, datePicker, top);
         return new Tuple2<>(topLabelWithVBox.first, datePicker);
     }
@@ -684,11 +690,14 @@ public class FormBuilder {
                                                                         String title1,
                                                                         String title2,
                                                                         double top) {
-        DatePicker datePicker1 = new JFXDatePicker();
+
+        //DatePicker datePicker1 = new JFXDatePicker();
+        DatePicker datePicker1 = new DatePicker();
         Tuple2<Label, VBox> topLabelWithVBox1 = getTopLabelWithVBox(title1, datePicker1);
         VBox vBox1 = topLabelWithVBox1.second;
 
-        DatePicker datePicker2 = new JFXDatePicker();
+        //DatePicker datePicker2 = new JFXDatePicker();
+        DatePicker datePicker2 = new DatePicker();
         Tuple2<Label, VBox> topLabelWithVBox2 = getTopLabelWithVBox(title2, datePicker2);
         VBox vBox2 = topLabelWithVBox2.second;
 
