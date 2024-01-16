@@ -144,6 +144,8 @@ public class ProcessModel implements Model, PersistablePayload {
     // To enable that even after restart we persist the state.
     @Setter
     private ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Setter
+    private ObjectProperty<MessageState> paymentSentMessageStatePropertyArbitrator = new SimpleObjectProperty<>(MessageState.UNDEFINED);
 
     public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing) {
         this(offerId, accountId, pubKeyRing, new TradePeer(), new TradePeer(), new TradePeer());
@@ -181,6 +183,7 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setUseSavingsWallet(useSavingsWallet)
                 .setFundsNeededForTrade(fundsNeededForTrade)
                 .setPaymentSentMessageState(paymentSentMessageStateProperty.get().name())
+                .setPaymentSentMessageStateArbitrator(paymentSentMessageStatePropertyArbitrator.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
                 .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
                 .setDeleteBackupsHeight(deleteBackupsHeight);
@@ -218,6 +221,10 @@ public class ProcessModel implements Model, PersistablePayload {
         MessageState paymentSentMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateString);
         processModel.setPaymentSentMessageState(paymentSentMessageState);
 
+        String paymentSentMessageStateArbitratorString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageStateArbitrator());
+        MessageState paymentSentMessageStateArbitrator = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateArbitratorString);
+        processModel.setPaymentSentMessageStateArbitrator(paymentSentMessageStateArbitrator);
+
         return processModel;
     }
 
@@ -251,8 +258,22 @@ public class ProcessModel implements Model, PersistablePayload {
         setPaymentSentMessageState(messageState);
     }
 
+    void setPaymentSentAckMessageArbitrator(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.FAILED;
+        setPaymentSentMessageStateArbitrator(messageState);
+    }
+
     public void setPaymentSentMessageState(MessageState paymentSentMessageStateProperty) {
         this.paymentSentMessageStateProperty.set(paymentSentMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    public void setPaymentSentMessageStateArbitrator(MessageState paymentSentMessageStateProperty) {
+        this.paymentSentMessageStatePropertyArbitrator.set(paymentSentMessageStateProperty);
         if (tradeManager != null) {
             tradeManager.requestPersistence();
         }

@@ -663,6 +663,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
             if (trade.getTradePeer(sender) == trade.getSeller()) {
                 processModel.setPaymentSentAckMessage(ackMessage);
+            } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
+                processModel.setPaymentSentAckMessageArbitrator(ackMessage);
             } else if (!ackMessage.isSuccess()) {
                 String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
                 log.warn(err);
