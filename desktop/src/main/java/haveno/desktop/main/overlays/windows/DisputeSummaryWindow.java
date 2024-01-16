@@ -594,9 +594,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 // show confirmation
                 showPayoutTxConfirmation(contract,
                         payoutTx,
-                        () -> doClose(closeTicketButton));
+                        () -> doClose(closeTicketButton, cancelButton));
             } else {
-                doClose(closeTicketButton);
+                doClose(closeTicketButton, cancelButton);
             }
         });
 
@@ -653,7 +653,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
     }
 
-    private void doClose(Button closeTicketButton) {
+    private void doClose(Button closeTicketButton, Button cancelButton) {
+        cancelButton.setDisable(true);
+
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         if (disputeManager == null) {
             return;
