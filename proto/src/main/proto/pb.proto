@@ -1538,16 +1538,17 @@ message ProcessModel {
     bool use_savings_wallet = 5;
     int64 funds_needed_for_trade = 6;
     string payment_sent_message_state = 7;
-    bytes maker_signature = 8;
-    TradePeer maker = 9;
-    TradePeer taker = 10;
-    TradePeer arbitrator = 11;
-    NodeAddress temp_trade_peer_node_address = 12;
-    string multisig_address = 13;
-    bytes mediated_payout_tx_signature = 17; // placeholder if mediation used in future
-    int64 buyer_payout_amount_from_mediation = 18;
-    int64 seller_payout_amount_from_mediation = 19;
-    int64 delete_backups_height = 31;
+    string payment_sent_message_state_arbitrator = 8;
+    bytes maker_signature = 9;
+    TradePeer maker = 10;
+    TradePeer taker = 11;
+    TradePeer arbitrator = 12;
+    NodeAddress temp_trade_peer_node_address = 13;
+    string multisig_address = 14;
+    bytes mediated_payout_tx_signature = 15; // placeholder if mediation used in future
+    int64 buyer_payout_amount_from_mediation = 16;
+    int64 seller_payout_amount_from_mediation = 17;
+    int64 delete_backups_height = 18;
 }
 
 message TradePeer {

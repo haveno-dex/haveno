@@ -73,6 +73,13 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
     protected void run() {
         try {
             runInterceptHook();
+
+            // skip if already acked by receiver
+            if (isAckedByReceiver()) {
+                if (!isCompleted()) complete();
+                return;
+            }
+
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -153,7 +160,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
     private void tryToSendAgainLater() {
 
         // skip if already acked
-        if (trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) return;
+        if (isAckedByReceiver()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
@@ -185,4 +192,6 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             cleanup();
         }
     }
+
+    protected abstract boolean isAckedByReceiver();
 }

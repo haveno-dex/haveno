@@ -53,7 +53,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
             runInterceptHook();
 
             // skip if already acked by receiver
-            if (ackedByReceiver()) {
+            if (isAckedByReceiver()) {
                 if (!isCompleted()) complete();
                 return;
             }
@@ -126,7 +126,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     private void tryToSendAgainLater() {
 
         // skip if already acked or payout published
-        if (ackedByReceiver() || trade.isPayoutPublished()) return;
+        if (isAckedByReceiver() || trade.isPayoutPublished()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
@@ -151,7 +151,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         resendCounter++;
     }
 
-    private boolean ackedByReceiver() {
+    private boolean isAckedByReceiver() {
         TradePeer peer = trade.getTradePeer(getReceiverNodeAddress());
         return peer.isDepositsConfirmedMessageAcked();
     }

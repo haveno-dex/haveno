@@ -44,4 +44,9 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         complete();
     }
+
+    @Override
+    protected boolean isAckedByReceiver() {
+        return trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal();
+    }
 }
