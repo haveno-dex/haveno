@@ -286,7 +286,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 if (trade.isPayoutPublished()) {
                                     log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
                                 } else {
-                                    throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator: " + e.getMessage() + ". TradeId = " + tradeId);
+                                    if (e instanceof IllegalArgumentException) throw e;
+                                    else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator: " + e.getMessage() + ". TradeId = " + tradeId, e);
                                 }
                             }
                         }
@@ -318,7 +319,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     }
 
                     // schedule to reprocess message unless deleted
-                    if (trade.getArbitrator().getDisputeClosedMessage() != null) {
+                    if (trade.getArbitrator().getDisputeClosedMessage() != null && reprocessOnError) {
                         if (!reprocessDisputeClosedMessageCounts.containsKey(trade.getId())) reprocessDisputeClosedMessageCounts.put(trade.getId(), 0);
                         UserThread.runAfter(() -> {
                             reprocessDisputeClosedMessageCounts.put(trade.getId(), reprocessDisputeClosedMessageCounts.get(trade.getId()) + 1); // increment reprocess count
@@ -351,7 +352,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // gather trade info
         MoneroWallet multisigWallet = trade.getWallet();
         Optional<Dispute> disputeOptional = findDispute(trade.getId());
-        if (!disputeOptional.isPresent()) throw new RuntimeException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + trade.getId());
+        if (!disputeOptional.isPresent()) throw new IllegalArgumentException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + trade.getId());
         Dispute dispute = disputeOptional.get();
         Contract contract = dispute.getContract();
         DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
@@ -364,12 +365,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
         // parse arbitrator-signed payout tx
         MoneroTxSet disputeTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(unsignedPayoutTxHex));
-        if (disputeTxSet.getTxs() == null || disputeTxSet.getTxs().size() != 1) throw new RuntimeException("Bad arbitrator-signed payout tx");  // TODO (woodser): nack
+        if (disputeTxSet.getTxs() == null || disputeTxSet.getTxs().size() != 1) throw new IllegalArgumentException("Bad arbitrator-signed payout tx");  // TODO (woodser): nack
         MoneroTxWallet arbitratorSignedPayoutTx = disputeTxSet.getTxs().get(0);
 
         // verify payout tx has 1 or 2 destinations
         int numDestinations = arbitratorSignedPayoutTx.getOutgoingTransfer() == null || arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations() == null ? 0 : arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations().size();
-        if (numDestinations != 1 && numDestinations != 2) throw new RuntimeException("Buyer-signed payout tx does not have 1 or 2 destinations");
+        if (numDestinations != 1 && numDestinations != 2) throw new IllegalArgumentException("Buyer-signed payout tx does not have 1 or 2 destinations");
 
         // get buyer and seller destinations (order not preserved)
         List<MoneroDestination> destinations = arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations();
@@ -378,15 +379,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         MoneroDestination sellerPayoutDestination = buyerFirst ? (numDestinations == 2 ? destinations.get(1) : null) : destinations.get(0);
 
         // verify payout addresses
-        if (buyerPayoutDestination != null && !buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new RuntimeException("Buyer payout address does not match contract");
-        if (sellerPayoutDestination != null && !sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new RuntimeException("Seller payout address does not match contract");
+        if (buyerPayoutDestination != null && !buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new IllegalArgumentException("Buyer payout address does not match contract");
+        if (sellerPayoutDestination != null && !sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
 
         // verify change address is multisig's primary address
-        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO) && !arbitratorSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new RuntimeException("Change address is not multisig wallet's primary address");
+        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO) && !arbitratorSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
 
         // verify sum of outputs = destination amounts + change amount
         BigInteger destinationSum = (buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount()).add(sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount());
-        if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new RuntimeException("Sum of outputs != destination amounts + change amount");
+        if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
 
         // get actual payout amounts
         BigInteger actualBuyerAmount = buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount();
@@ -396,15 +397,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // cost = fee + lost dust change
         if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), trade.getId(), arbitratorSignedPayoutTx.getChangeAmount());
         if (trade.getWallet().getUnlockedBalance().subtract(actualBuyerAmount.add(actualSellerAmount).add(txCost)).compareTo(BigInteger.ZERO) > 0) {
-            throw new RuntimeException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualBuyerAmount.add(actualSellerAmount) + ", buyer payout=" + actualBuyerAmount + ", seller payout=" + actualSellerAmount);
+            throw new IllegalArgumentException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + trade.getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualBuyerAmount.add(actualSellerAmount) + ", buyer payout=" + actualBuyerAmount + ", seller payout=" + actualSellerAmount);
         }
 
         // verify payout amounts
         BigInteger[] buyerSellerPayoutTxCost = getBuyerSellerPayoutTxCost(disputeResult, txCost);
         BigInteger expectedBuyerAmount = disputeResult.getBuyerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[0]);
         BigInteger expectedSellerAmount = disputeResult.getSellerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[1]);
-        if (!expectedBuyerAmount.equals(actualBuyerAmount)) throw new RuntimeException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + actualBuyerAmount);
-        if (!expectedSellerAmount.equals(actualSellerAmount)) throw new RuntimeException("Unexpected seller payout: " + expectedSellerAmount + " vs " + actualSellerAmount);
+        if (!expectedBuyerAmount.equals(actualBuyerAmount)) throw new IllegalArgumentException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + actualBuyerAmount);
+        if (!expectedSellerAmount.equals(actualSellerAmount)) throw new IllegalArgumentException("Unexpected seller payout: " + expectedSellerAmount + " vs " + actualSellerAmount);
 
         // check wallet's daemon connection
         trade.checkAndVerifyDaemonConnection();
@@ -441,7 +442,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             if (feeEstimateTx != null) {
                 BigInteger feeEstimate = feeEstimateTx.getFee();
                 double feeDiff = arbitratorSignedPayoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
-                if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
+                if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
                 log.info("Payout tx fee {} is within tolerance, diff %={}", arbitratorSignedPayoutTx.getFee(), feeDiff);
             }
         }
