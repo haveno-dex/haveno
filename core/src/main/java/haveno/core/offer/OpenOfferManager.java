@@ -324,6 +324,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
                     // bundled messages sent out.
                     broadcaster.flush();
+                    shutDownThreadPool();
 
                     if (completeHandler != null) {
                         // For typical number of offers we are tolerant with delay to give enough time to broadcast.
@@ -335,12 +336,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }, THREAD_ID);
         } else {
             broadcaster.flush();
+            shutDownThreadPool();
             if (completeHandler != null)
                 completeHandler.run();
         }
+    }
 
-        // shut down pool
-        ThreadUtils.shutDown(THREAD_ID, SHUTDOWN_TIMEOUT_MS);
+    private void shutDownThreadPool() {
+        try {
+            ThreadUtils.shutDown(THREAD_ID, SHUTDOWN_TIMEOUT_MS);
+        } catch (Exception e) {
+            log.error("Error shutting down OpenOfferManager thread pool", e);
+        }
     }
 
     public void removeAllOpenOffers(@Nullable Runnable completeHandler) {
