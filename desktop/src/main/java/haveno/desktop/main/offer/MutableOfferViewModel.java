@@ -210,9 +210,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         paymentLabel = Res.get("createOffer.fundsBox.paymentLabel", dataModel.shortOfferId);
 
-        if (dataModel.getAddressEntry() != null) {
-            addressAsString = dataModel.getAddressEntry().getAddressString();
-        }
         createListeners();
     }
 
@@ -568,6 +565,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
         boolean result = dataModel.initWithData(direction, tradeCurrency);
+        if (dataModel.getAddressEntry() != null) {
+            addressAsString = dataModel.getAddressEntry().getAddressString();
+        }
         if (dataModel.paymentAccount != null)
             xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
         xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
