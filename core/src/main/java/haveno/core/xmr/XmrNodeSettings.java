@@ -50,7 +50,7 @@ public class XmrNodeSettings implements PersistableEnvelope {
     public protobuf.XmrNodeSettings toProtoMessage() {
         protobuf.XmrNodeSettings.Builder builder = protobuf.XmrNodeSettings.newBuilder();
         Optional.ofNullable(blockchainPath).ifPresent(e -> builder.setBlockchainPath(blockchainPath));
-        Optional.ofNullable(bootstrapUrl).ifPresent(e -> builder.setBlockchainPath(bootstrapUrl));
+        Optional.ofNullable(bootstrapUrl).ifPresent(e -> builder.setBootstrapUrl(bootstrapUrl));
         Optional.ofNullable(startupFlags).ifPresent(e -> builder.addAllStartupFlags(startupFlags));
         return builder.build();
     }
