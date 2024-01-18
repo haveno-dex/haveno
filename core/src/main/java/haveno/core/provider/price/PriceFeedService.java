@@ -143,7 +143,7 @@ public class PriceFeedService {
     public void awaitExternalPrices() {
         CountDownLatch latch = new CountDownLatch(1);
         ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { 
-            if (hasExternalPrices()) latch.countDown();
+            if (hasExternalPrices() && latch.getCount() != 0) latch.countDown();
         };
         updateCounter.addListener(listener);
         if (hasExternalPrices()) {
@@ -277,12 +277,14 @@ public class PriceFeedService {
 
     // returns true if provider selection loops back to beginning
     private boolean setNewPriceProvider() {
+        httpClient.cancelPendingRequest();
         boolean looped = providersRepository.selectNextProviderBaseUrl();
-        if (!providersRepository.getBaseUrl().isEmpty())
+        if (!providersRepository.getBaseUrl().isEmpty()) {
             priceProvider = new PriceProvider(httpClient, providersRepository.getBaseUrl());
-        else
+        } else {
             log.warn("We cannot create a new priceProvider because new base url is empty.");
-            return looped;
+        }
+        return looped;
     }
 
     @Nullable
@@ -293,7 +295,7 @@ public class PriceFeedService {
     }
 
     private void setHavenoMarketPrice(String currencyCode, Price price) {
-        UserThread.await(() -> {
+        UserThread.execute(() -> {
             synchronized (cache) {
                 if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
                     cache.put(currencyCode, new MarketPrice(currencyCode,
@@ -374,7 +376,7 @@ public class PriceFeedService {
      */
     public synchronized Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
         CountDownLatch latch = new CountDownLatch(1);
-        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { latch.countDown(); };
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { if (latch.getCount() != 0) latch.countDown(); };
         updateCounter.addListener(listener);
         requestAllPricesError = null;
         requestPrices();
@@ -442,7 +444,7 @@ public class PriceFeedService {
                 faultHandler.handleFault(errorMessage, new PriceRequestException(errorMessage));
         }
 
-        UserThread.await(() -> updateCounter.set(updateCounter.get() + 1));
+        UserThread.execute(() -> updateCounter.set(updateCounter.get() + 1));
 
         return result;
     }
