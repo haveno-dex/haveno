@@ -39,5 +39,7 @@ public interface HttpClient {
 
     boolean hasPendingRequest();
 
+    void cancelPendingRequest();
+
     void shutDown();
 }

@@ -135,6 +135,24 @@ public class HttpClientImpl implements HttpClient {
         }
     }
 
+    public void cancelPendingRequest() {
+        if (!hasPendingRequest) return;
+        try {
+            if (connection != null) {
+                connection.getInputStream().close();
+                connection.disconnect();
+                connection = null;
+            }
+            if (closeableHttpClient != null) {
+                closeableHttpClient.close();
+                closeableHttpClient = null;
+            }
+        } catch (IOException err) {
+            // igbnore
+        }
+        hasPendingRequest = false;
+    }
+
     private String requestWithoutProxy(String baseUrl,
                                        String param,
                                        HttpMethod httpMethod,
