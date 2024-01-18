@@ -95,7 +95,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private final CoinFormatter btcFormatter;
     private final Navigation navigation;
     private final String offerId;
-    private final XmrBalanceListener xmrBalanceListener;
     private final SetChangeListener<PaymentAccount> paymentAccountsChangeListener;
 
     protected OfferDirection direction;
@@ -128,6 +127,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected long triggerPrice;
     @Getter
     protected boolean reserveExactAmount;
+    private XmrBalanceListener xmrBalanceListener;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -163,19 +163,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
         offerId = OfferUtil.getRandomOfferId();
         shortOfferId = Utilities.getShortId(offerId);
-        addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
         reserveExactAmount = preferences.getSplitOfferOutput();
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
         buyerSecurityDepositPct.set(Restrictions.getMinBuyerSecurityDepositAsPercent());
-
-        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                updateBalance();
-            }
-        };
 
         paymentAccountsChangeListener = change -> fillPaymentAccounts();
     }
@@ -212,6 +204,14 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     // called before activate()
     public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
+        addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
+        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
+            @Override
+            public void onBalanceChanged(BigInteger balance) {
+                updateBalance();
+            }
+        };
+
         this.direction = direction;
         this.tradeCurrency = tradeCurrency;
 
