@@ -20,6 +20,7 @@ import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
+import haveno.core.user.User;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.model.XmrAddressEntryList;
@@ -60,6 +61,9 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.io.File;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -109,6 +113,7 @@ public class XmrWalletService {
     private static final boolean PRINT_STACK_TRACE = false;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
 
+    private final User user;
     private final Preferences preferences;
     private final CoreAccountService accountService;
     private final XmrConnectionService xmrConnectionService;
@@ -135,13 +140,15 @@ public class XmrWalletService {
     private TaskLooper syncLooper = null;
 
     @Inject
-    XmrWalletService(Preferences preferences,
+    XmrWalletService(User user,
+                     Preferences preferences,
                      CoreAccountService accountService,
                      XmrConnectionService xmrConnectionService,
                      WalletsSetup walletsSetup,
                      XmrAddressEntryList xmrAddressEntryList,
                      @Named(Config.WALLET_DIR) File walletDir,
                      @Named(Config.WALLET_RPC_BIND_PORT) int rpcBindPort) {
+        this.user = user;
         this.preferences = preferences;
         this.accountService = accountService;
         this.xmrConnectionService = xmrConnectionService;
@@ -201,6 +208,15 @@ public class XmrWalletService {
         State state = walletsSetup.getWalletConfig().state();
         checkState(state == State.STARTING || state == State.RUNNING, "Cannot call until startup is complete and running, but state is: " + state);
         return wallet;
+    }
+
+    /**
+     * Get the wallet creation date in seconds since epoch.
+     *
+     * @return the wallet creation date in seconds since epoch
+     */
+    public long getWalletCreationDate() {
+        return user.getWalletCreationDate();
     }
 
     public void saveMainWallet() {
@@ -787,6 +803,11 @@ public class XmrWalletService {
                     wallet = openWalletRpc(walletConfig, rpcBindPort, isProxyApplied(wasWalletSynced));
                 } else if (xmrConnectionService.getConnection() != null && Boolean.TRUE.equals(xmrConnectionService.getConnection().isConnected())) {
                     wallet = createWalletRpc(walletConfig, rpcBindPort);
+
+                    // set wallet creation date to yesterday to guarantee complete restore
+                    LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
+                    long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
+                    user.setWalletCreationDate(date);
                 }
             }
 

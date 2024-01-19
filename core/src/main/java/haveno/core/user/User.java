@@ -374,6 +374,11 @@ public class User implements PersistedDataHost {
         requestPersistence();
     }
 
+    public void setWalletCreationDate(long walletCreationDate) {
+        userPayload.setWalletCreationDate(walletCreationDate);
+        requestPersistence();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -520,5 +525,9 @@ public class User implements PersistedDataHost {
 
     public Cookie getCookie() {
         return userPayload.getCookie();
+    }
+
+    public long getWalletCreationDate() {
+        return userPayload.getWalletCreationDate();
     }
 }

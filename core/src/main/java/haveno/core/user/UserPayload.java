@@ -82,6 +82,7 @@ public class UserPayload implements PersistableEnvelope {
     // Generic map for persisting various UI states. We keep values un-typed as string to
     // provide sufficient flexibility.
     private Cookie cookie = new Cookie();
+    private long walletCreationDate;
 
     public UserPayload() {
     }
@@ -122,6 +123,7 @@ public class UserPayload implements PersistableEnvelope {
                 .ifPresent(e -> builder.addAllAcceptedRefundAgents(ProtoUtil.collectionToProto(acceptedRefundAgents,
                         message -> ((protobuf.StoragePayload) message).getRefundAgent())));
         Optional.ofNullable(cookie).ifPresent(e -> builder.putAllCookie(cookie.toProtoMessage()));
+        builder.setWalletCreationDate(walletCreationDate);
         return protobuf.PersistableEnvelope.newBuilder().setUserPayload(builder).build();
     }
 
@@ -153,7 +155,8 @@ public class UserPayload implements PersistableEnvelope {
                 proto.getAcceptedRefundAgentsList().isEmpty() ? new ArrayList<>() : new ArrayList<>(proto.getAcceptedRefundAgentsList().stream()
                         .map(RefundAgent::fromProto)
                         .collect(Collectors.toList())),
-                Cookie.fromProto(proto.getCookieMap())
+                Cookie.fromProto(proto.getCookieMap()),
+                proto.getWalletCreationDate()
         );
     }
 }

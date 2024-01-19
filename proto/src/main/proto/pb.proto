@@ -1756,6 +1756,7 @@ message UserPayload {
     repeated RefundAgent accepted_refund_agents = 14;
     RefundAgent registered_refund_agent = 15;
     map<string, string> cookie = 16;
+    int64 wallet_creation_date = 17;
 }
 
 message BlockChainExplorer {
