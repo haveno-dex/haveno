@@ -3,6 +3,7 @@ package haveno.core.api;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
@@ -611,7 +612,8 @@ public final class XmrConnectionService {
                     chainHeight.set(lastInfo.getHeight());
 
                     // update sync progress
-                    if (lastInfo.isSynchronized()) doneDownload();
+                    boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
+                    if (lastInfo.isSynchronized() || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because CI tests do not sync 3rd local node, see "Can manage Monero daemon connections"
                     else if (lastInfo.isBusySyncing()) {
                         long targetHeight = lastInfo.getTargetHeight();
                         long blocksLeft = targetHeight - lastInfo.getHeight();
