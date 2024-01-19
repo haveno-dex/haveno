@@ -48,15 +48,16 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.TimeZone;
 
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addPrimaryActionButtonAFterGroup;
+//import static haveno.desktop.util.FormBuilder.addPrimaryActionButtonAFterGroup;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
-import static javafx.beans.binding.Bindings.createBooleanBinding;
+//import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 @FxmlView
 public class SeedWordsView extends ActivatableView<GridPane, Void> {
@@ -108,14 +109,21 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         datePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
         datePicker.setMouseTransparent(true);
 
-        addTitledGroupBg(root, ++gridRow, 3, Res.get("seed.restore.title"), Layout.GROUP_DISTANCE);
-        seedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
-        seedWordsTextArea.getStyleClass().add("wallet-seed-words");
-        seedWordsTextArea.setPrefHeight(40);
-        seedWordsTextArea.setMaxHeight(40);
+        // TODO: to re-enable restore functionality:
+        // - uncomment code throughout this file
+        // - support getting wallet's restore height
+        // - support translating between date and restore height
+        // - clear XmrAddressEntries which are incompatible with new wallet and other tests
+        // - update mnemonic validation and restore calls
 
-        restoreDatePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
-        restoreButton = addPrimaryActionButtonAFterGroup(root, ++gridRow, Res.get("seed.restore"));
+        // addTitledGroupBg(root, ++gridRow, 3, Res.get("seed.restore.title"), Layout.GROUP_DISTANCE);
+        // seedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
+        // seedWordsTextArea.getStyleClass().add("wallet-seed-words");
+        // seedWordsTextArea.setPrefHeight(40);
+        // seedWordsTextArea.setMaxHeight(40);
+
+        // restoreDatePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
+        // restoreButton = addPrimaryActionButtonAFterGroup(root, ++gridRow, Res.get("seed.restore"));
 
         addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.information"), Layout.GROUP_DISTANCE);
         addMultilineLabel(root, gridRow, Res.get("account.seed.info"),
@@ -143,21 +151,21 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void activate() {
-        seedWordsValid.addListener(seedWordsValidChangeListener);
-        seedWordsTextArea.textProperty().addListener(seedWordsTextAreaChangeListener);
-        restoreButton.disableProperty().bind(createBooleanBinding(() -> !seedWordsValid.get() || !seedWordsEdited.get(),
-                seedWordsValid, seedWordsEdited));
+        // seedWordsValid.addListener(seedWordsValidChangeListener);
+        // seedWordsTextArea.textProperty().addListener(seedWordsTextAreaChangeListener);
+        // restoreButton.disableProperty().bind(createBooleanBinding(() -> !seedWordsValid.get() || !seedWordsEdited.get(),
+        //         seedWordsValid, seedWordsEdited));
 
-        restoreButton.setOnAction(e -> {
-            new Popup().information(Res.get("account.seed.restore.info"))
-                    .closeButtonText(Res.get("shared.cancel"))
-                    .actionButtonText(Res.get("account.seed.restore.ok"))
-                    .onAction(this::onRestore)
-                    .show();
-        });
+        // restoreButton.setOnAction(e -> {
+        //     new Popup().information(Res.get("account.seed.restore.info"))
+        //             .closeButtonText(Res.get("shared.cancel"))
+        //             .actionButtonText(Res.get("account.seed.restore.ok"))
+        //             .onAction(this::onRestore)
+        //             .show();
+        // });
 
-        seedWordsTextArea.getStyleClass().remove("validation-error");
-        restoreDatePicker.getStyleClass().remove("validation-error");
+        // seedWordsTextArea.getStyleClass().remove("validation-error");
+        // restoreDatePicker.getStyleClass().remove("validation-error");
 
         String key = "showBackupWarningAtSeedPhrase";
         if (DontShowAgainLookup.showAgain(key)) {
@@ -197,19 +205,20 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     @Override
     protected void deactivate() {
-        seedWordsValid.removeListener(seedWordsValidChangeListener);
-        seedWordsTextArea.textProperty().removeListener(seedWordsTextAreaChangeListener);
-        restoreButton.disableProperty().unbind();
-        restoreButton.setOnAction(null);
-
         displaySeedWordsTextArea.setText("");
-        seedWordsTextArea.setText("");
-
-        restoreDatePicker.setValue(null);
         datePicker.setValue(null);
 
-        seedWordsTextArea.getStyleClass().remove("validation-error");
-        restoreDatePicker.getStyleClass().remove("validation-error");
+        // seedWordsValid.removeListener(seedWordsValidChangeListener);
+        // seedWordsTextArea.textProperty().removeListener(seedWordsTextAreaChangeListener);
+        // restoreButton.disableProperty().unbind();
+        // restoreButton.setOnAction(null);
+
+        // seedWordsTextArea.setText("");
+
+        // restoreDatePicker.setValue(null);
+
+        // seedWordsTextArea.getStyleClass().remove("validation-error");
+        // restoreDatePicker.getStyleClass().remove("validation-error");
     }
 
     private void askForPassword() {
@@ -225,6 +234,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     private void showSeedScreen() {
         displaySeedWordsTextArea.setText(seedWordText);
+        walletCreationDate = Instant.ofEpochSecond(xmrWalletService.getWalletCreationDate()).atZone(ZoneId.systemDefault()).toLocalDate();
         datePicker.setValue(walletCreationDate);
     }
 
