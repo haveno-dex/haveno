@@ -48,14 +48,25 @@ public class ThreadUtils {
         }
     }
 
+    /**
+     * Awaits execution of the given command, but does not throw its exception.
+     * 
+     * @param command the command to execute
+     * @param threadId the thread id
+     */
     public static void await(Runnable command, String threadId) {
         if (isCurrentThread(Thread.currentThread(), threadId)) {
             command.run();
         } else {
             CountDownLatch latch = new CountDownLatch(1);
             execute(() -> {
-                command.run();
-                latch.countDown();
+                try {
+                    command.run();
+                } catch (Exception e) {
+                    throw e;
+                } finally {
+                    latch.countDown();
+                }
             }, threadId);
             try {
                 latch.await();
