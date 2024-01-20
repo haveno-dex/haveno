@@ -1275,6 +1275,17 @@ public abstract class Trade implements Tradable, Model {
                 shutDownThreads.add(() -> ThreadUtils.shutDown(getConnectionChangedThreadId()));
                 ThreadUtils.awaitTasks(shutDownThreads);
             }
+
+            // save wallet
+            if (wallet != null) {
+                try {
+                    xmrWalletService.saveWallet(wallet, false); // skip backup
+                    stopWallet();
+                } catch (Exception e) {
+                    // warning will be logged for main wallet, so skip logging here
+                    //log.warn("Error closing monero-wallet-rpc subprocess for {} {}: {}. Was Haveno stopped manually with ctrl+c?", getClass().getSimpleName(), getId(), e.getMessage());
+                }
+            }
         };
 
         // shut down trade with timeout
@@ -1298,15 +1309,6 @@ public abstract class Trade implements Tradable, Model {
         if (idlePayoutSyncer != null) {
             xmrWalletService.removeWalletListener(idlePayoutSyncer);
             idlePayoutSyncer = null;
-        }
-        if (wallet != null) {
-            try {
-                xmrWalletService.saveWallet(wallet, false); // skip backup
-                stopWallet();
-            } catch (Exception e) {
-                // warning will be logged for main wallet, so skip logging here
-                //log.warn("Error closing monero-wallet-rpc subprocess for {} {}: {}. Was Haveno stopped manually with ctrl+c?", getClass().getSimpleName(), getId(), e.getMessage());
-            }
         }
         UserThread.execute(() -> {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
