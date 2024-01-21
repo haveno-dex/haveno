@@ -836,7 +836,9 @@ public abstract class Trade implements Tradable, Model {
         // reset wallet refresh period after duration 
         new Thread(() -> {
             GenUtils.waitFor(syncNormalDuration);
-            if (!isShutDown && System.currentTimeMillis() >= syncNormalStartTimeMs + syncNormalDuration) {
+            Long syncNormalStartTimeMsCopy = syncNormalStartTimeMs; // copy to avoid race condition
+            if (syncNormalStartTimeMsCopy == null) return;
+            if (!isShutDown && System.currentTimeMillis() >= syncNormalStartTimeMsCopy + syncNormalDuration) {
                 syncNormalStartTimeMs = null;
                 updateWalletRefreshPeriod();
             }
