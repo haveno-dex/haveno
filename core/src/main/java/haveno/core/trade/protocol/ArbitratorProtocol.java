@@ -1,5 +1,6 @@
 package haveno.core.trade.protocol;
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Trade;
@@ -43,7 +44,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
 
   public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
       System.out.println("ArbitratorProtocol.handleInitTradeRequest()");
-      new Thread(() -> {
+      ThreadUtils.execute(() -> {
           synchronized (trade) {
               latchTrade();
               this.errorMessageHandler = errorMessageHandler;
@@ -68,7 +69,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                       .executeTasks(true);
               awaitTradeLatch();
           }
-      }).start();
+      }, trade.getId());
   }
   
   @Override
@@ -78,7 +79,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   
   public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
     System.out.println("ArbitratorProtocol.handleDepositRequest() " + trade.getId());
-    new Thread(() -> {
+    ThreadUtils.execute(() -> {
         synchronized (trade) {
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), request);
@@ -103,7 +104,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                 .executeTasks(true);
             awaitTradeLatch();
         }
-    }).start();
+    }, trade.getId());
   }
   
   @Override
