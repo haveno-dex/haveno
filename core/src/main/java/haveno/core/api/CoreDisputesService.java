@@ -1,6 +1,8 @@
 package haveno.core.api;
 
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.FaultHandler;
@@ -81,7 +83,8 @@ public class CoreDisputesService {
         Trade trade = tradeManager.getOpenTrade(tradeId).orElseThrow(() ->
                 new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
 
-        synchronized (trade) {
+        // open dispute on trade thread
+        ThreadUtils.execute(() -> {
             Offer offer = trade.getOffer();
             if (offer == null) throw new IllegalStateException(format("offer with tradeId '%s' is null", tradeId));
 
@@ -96,7 +99,7 @@ public class CoreDisputesService {
             // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
             disputeManager.sendDisputeOpenedMessage(dispute, false, trade.getSelf().getUpdatedMultisigHex(), resultHandler, faultHandler);
             tradeManager.requestPersistence();
-        }
+        }, trade.getId());
     }
 
     public Dispute createDisputeForTrade(Trade trade, Offer offer, PubKeyRing pubKey, boolean isMaker, boolean isSupportTicket) {
