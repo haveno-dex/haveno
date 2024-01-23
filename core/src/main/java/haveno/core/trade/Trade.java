@@ -1271,6 +1271,8 @@ public abstract class Trade implements Tradable, Model {
 
             // shut down trade threads
             synchronized (this) {
+                isInitialized = false;
+                isShutDown = true;
                 List<Runnable> shutDownThreads = new ArrayList<>();
                 shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
                 shutDownThreads.add(() -> ThreadUtils.shutDown(getConnectionChangedThreadId()));
@@ -1305,8 +1307,6 @@ public abstract class Trade implements Tradable, Model {
         }
 
         // de-initialize
-        isInitialized = false;
-        isShutDown = true;
         if (idlePayoutSyncer != null) {
             xmrWalletService.removeWalletListener(idlePayoutSyncer);
             idlePayoutSyncer = null;
