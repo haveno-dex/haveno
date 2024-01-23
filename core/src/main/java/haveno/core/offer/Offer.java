@@ -17,6 +17,7 @@
 
 package haveno.core.offer;
 
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
@@ -153,7 +154,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
                     log.error(errorMessage);
                     errorMessageHandler.handleErrorMessage(errorMessage);
                 });
-        availabilityProtocol.sendOfferAvailabilityRequest();
+        ThreadUtils.submitToPool((() -> {
+            availabilityProtocol.sendOfferAvailabilityRequest();
+        }));
     }
 
     public void cancelAvailabilityRequest() {
