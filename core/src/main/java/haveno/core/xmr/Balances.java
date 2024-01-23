@@ -17,6 +17,7 @@
 
 package haveno.core.xmr;
 
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -87,6 +88,10 @@ public class Balances {
     }
 
     private void updateBalances() {
+        ThreadUtils.submitToPool(() -> doUpdateBalances());
+    }
+
+    private void doUpdateBalances() {
 
         // get wallet balances
         BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getBalance(0);
