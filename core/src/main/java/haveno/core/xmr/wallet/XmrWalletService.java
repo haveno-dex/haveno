@@ -894,11 +894,12 @@ public class XmrWalletService {
     }
 
     private void updateSyncProgress() {
+        long height = wallet.getHeight();
         UserThread.await(() -> {
-            walletHeight.set(wallet.getHeight());
+            walletHeight.set(height);
 
             // new wallet reports height 1 before synced
-            if (wallet.getHeight() == 1) {
+            if (height == 1) {
                 downloadListener.progress(.0001, xmrConnectionService.getTargetHeight(), null); // >0% shows progress bar
                 return;
             }
