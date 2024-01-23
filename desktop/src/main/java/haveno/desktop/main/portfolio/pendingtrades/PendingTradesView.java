@@ -199,6 +199,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.openTrades"))));
         tableView.setMinHeight(100);
+        tableView.setMaxHeight(100);
 
         tradeIdColumn.setComparator(Comparator.comparing(o -> o.getTrade().getId()));
         dateColumn.setComparator(Comparator.comparing(o -> o.getTrade().getDate()));
