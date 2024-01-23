@@ -84,7 +84,6 @@ public class XmrLocalNode {
         // initialize connection manager to listen to local connection
         this.connectionManager = new MoneroConnectionManager().setConnection(daemon.getRpcConnection());
         this.connectionManager.setTimeout(REFRESH_PERIOD_LOCAL_MS);
-        this.connectionManager.checkConnection();
         this.connectionManager.addListener((connection) -> {
             for (var listener : listeners) listener.onConnectionChanged(connection); // notify of connection changes
         });
