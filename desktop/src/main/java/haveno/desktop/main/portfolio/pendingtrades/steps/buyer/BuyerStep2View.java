@@ -579,7 +579,7 @@ public class BuyerStep2View extends TradeStepView {
         model.dataModel.onPaymentSent(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
-            new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentSentPermitted());
             UserThread.execute(() -> statusLabel.setText("Error confirming payment sent."));
         });
