@@ -469,8 +469,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handle(DepositsConfirmedMessage response, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage)");
+        if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDown()) return;
                 latchTrade();
                 this.errorMessageHandler = null;
                 expect(new Condition(trade)
@@ -496,6 +498,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage)");
+        if (!trade.isInitialized() || trade.isShutDown()) return;
         if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
             log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
             return;
@@ -507,6 +510,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // TODO A better fix would be to add a listener for the wallet sync state and process
             // the mailbox msg once wallet is ready and trade state set.
             synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDown()) return;
                 if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
                     log.warn("Received another PaymentSentMessage which was already processed, ACKing");
                     handleTaskRunnerSuccess(peer, message);
@@ -548,12 +552,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage)");
+        if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
                 log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
                 return;
             }
             synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDown()) return;
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
                 processModel.setTradeMessage(message);
