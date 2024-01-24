@@ -45,6 +45,7 @@ public class CashAtAtmForm extends PaymentMethodForm {
 
         TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
+        textExtraInfo.setMaxHeight(95);
         textExtraInfo.setEditable(false);
         textExtraInfo.setText(cbm.getExtraInfo());
         return gridRow;

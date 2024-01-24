@@ -52,13 +52,15 @@ public class PayByMailForm extends PaymentMethodForm {
                 cbm.getHolderName(),
                 Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
 
-        TextArea textAddress = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.postal.address"), "").second;
+        TextArea textAddress = addCompactTopLabelTextArea(gridPane, ++gridRow, 0, Res.get("payment.postal.address"), "").second;
         textAddress.setMinHeight(70);
+        textAddress.setMaxHeight(95);
         textAddress.setEditable(false);
         textAddress.setText(cbm.getPostalAddress());
 
         TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
+        textExtraInfo.setMaxHeight(95);
         textExtraInfo.setEditable(false);
         textExtraInfo.setText(cbm.getExtraInfo());
         return gridRow;

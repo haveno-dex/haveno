@@ -85,7 +85,7 @@ public abstract class TradeSubView extends HBox {
         addContentPane();
 
         leftGridPane = new GridPane();
-        leftGridPane.setPrefWidth(340);
+        leftGridPane.setMaxWidth(255);
         leftGridPane.setHgap(Layout.GRID_GAP);
         leftGridPane.setVgap(Layout.GRID_GAP);
         //VBox.setMargin(leftGridPane, new Insets(0, 10, 10, 10));

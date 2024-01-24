@@ -61,6 +61,7 @@ public class TransferwiseUsdForm extends PaymentMethodForm {
         if (address.length() > 0) {
             TextArea textAddress = addCompactTopLabelTextArea(gridPane, gridRow, 0, Res.get("payment.account.address"), "").second;
             textAddress.setMinHeight(70);
+            textAddress.setMaxHeight(95);
             textAddress.setEditable(false);
             textAddress.setText(address);
         }
