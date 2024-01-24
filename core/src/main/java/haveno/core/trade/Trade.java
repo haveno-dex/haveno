@@ -903,26 +903,46 @@ public abstract class Trade implements Tradable, Model {
             if (walletExists()) {
                 try {
 
+                    // ensure wallet is initialized
+                    if (wallet == null) {
+                        log.warn("Wallet is not initialized for {} {}, opening", getClass().getSimpleName(), getId());
+                        getWallet();
+                        syncWallet(true);
+                    }
+
+                    // wallet must be synced
+                    if (!isSyncedWithinTolerance()) {
+                        log.warn("Wallet is not synced for {} {}, syncing", getClass().getSimpleName(), getId());
+                        syncWallet(true);
+                    }
+
                     // check if deposits published and payout not unlocked
                     if (isDepositsPublished() && !isPayoutUnlocked()) {
-                        throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
+                        throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
                     }
 
                     // check for balance
-                    if (wallet != null && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                        throw new RuntimeException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance");
+                    if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
+                        throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance");
                     }
 
                     // force stop wallet
-                    if (wallet != null) stopWallet();
+                    stopWallet();
 
                     // delete wallet
                     log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
                     xmrWalletService.deleteWallet(getWalletName());
 
-                    // record delete height and schedule backup deletion
-                    processModel.setDeleteBackupsHeight(xmrConnectionService.getLastInfo().getHeight() + DELETE_BACKUPS_AFTER_NUM_BLOCKS);
-                    maybeScheduleDeleteBackups();
+                    // delete trade wallet backups if empty and payout unlocked, else schedule
+                    if (isPayoutUnlocked() || !isDepositRequested() || isDepositFailed()) {
+                        xmrWalletService.deleteWalletBackups(getWalletName());
+                    } else {
+
+                        // schedule backup deletion by recording delete height
+                        log.warn("Scheduling to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
+                        processModel.setDeleteBackupsHeight(xmrConnectionService.getLastInfo().getHeight() + DELETE_BACKUPS_AFTER_NUM_BLOCKS);
+                        maybeScheduleDeleteBackups();
+                    }
                 } catch (Exception e) {
                     log.warn(e.getMessage());
                     e.printStackTrace();
@@ -1194,8 +1214,10 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void clearAndShutDown() {
-        ThreadUtils.execute(() -> clearProcessData(), getId());
-        ThreadUtils.submitToPool(() -> shutDown()); // run off trade thread
+        ThreadUtils.execute(() -> {
+            clearProcessData();
+            ThreadUtils.submitToPool(() -> shutDown()); // run off trade thread
+        }, getId());
     }
 
     private void clearProcessData() {
