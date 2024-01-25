@@ -118,7 +118,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class Trade implements Tradable, Model {
 
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
-    private static final long SHUTDOWN_TIMEOUT_MS = 90000;
+    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long DELETE_BACKUPS_AFTER_NUM_BLOCKS = 3600; // ~5 days
     private final Object walletLock = new Object();
     private final Object pollLock = new Object();
