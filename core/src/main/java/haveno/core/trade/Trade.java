@@ -875,7 +875,7 @@ public abstract class Trade implements Tradable, Model {
     public void saveWallet() {
         synchronized (walletLock) {
             if (wallet == null) throw new RuntimeException("Trade wallet is not open for trade " + getId());
-            xmrWalletService.saveWallet(wallet, true);
+            xmrWalletService.saveWallet(wallet, !isArbitrator()); // skip backup if arbitrator
         }
     }
 
