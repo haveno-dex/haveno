@@ -72,8 +72,13 @@ public class UserThread {
         } else {
             CountDownLatch latch = new CountDownLatch(1);
             execute(() -> {
-                command.run();
-                latch.countDown();
+                try {
+                    command.run();
+                } catch (Exception e) {
+                    throw e;
+                } finally {
+                    latch.countDown();
+                }
             });
             try {
                 latch.await();
