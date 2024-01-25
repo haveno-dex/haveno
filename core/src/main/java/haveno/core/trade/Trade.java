@@ -125,6 +125,7 @@ public abstract class Trade implements Tradable, Model {
     private MoneroWallet wallet;
     boolean wasWalletSynced;
     boolean pollInProgress;
+    boolean restartInProgress;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -897,6 +898,14 @@ public abstract class Trade implements Tradable, Model {
             wallet = null;
         }
     }
+    
+    public void forceStopWallet() {
+        if (wallet != null) {
+            log.warn("Force stopping wallet for {} {}", getClass().getSimpleName(), getId());
+            xmrWalletService.stopWallet(wallet, wallet.getPath(), true);
+            wallet = null;
+        }
+    }
 
     public void deleteWallet() {
         synchronized (walletLock) {
@@ -1321,11 +1330,7 @@ public abstract class Trade implements Tradable, Model {
             e.printStackTrace();
 
             // force stop wallet
-            if (wallet != null) {
-                log.warn("Force stopping wallet for {} {}", getClass().getSimpleName(), getId());
-                xmrWalletService.stopWallet(wallet, wallet.getPath(), true);
-                wallet = null;
-            }
+            forceStopWallet();
         }
 
         // de-initialize
@@ -2151,16 +2156,30 @@ public abstract class Trade implements Tradable, Model {
                     }
                 }
             } catch (Exception e) {
-                boolean isWalletConnected = isWalletConnectedToDaemon();
-                if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
-                if (!isShutDownStarted && wallet != null && isWalletConnected) {
-                    log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
-                    //e.printStackTrace();
+                boolean isConnectionRefused = e.getMessage() != null && e.getMessage().contains("Connection refused");
+                if (isConnectionRefused) forceRestartTradeWallet();
+                else {
+                    boolean isWalletConnected = isWalletConnectedToDaemon();
+                    if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
+                    if (!isShutDownStarted && wallet != null && isWalletConnected) {
+                        log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                        //e.printStackTrace();
+                    }
                 }
             } finally {
                 pollInProgress = false;
             }
         }
+    }
+
+    private void forceRestartTradeWallet() {
+        log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
+        if (isShutDownStarted || restartInProgress) return;
+        restartInProgress = true;
+        forceStopWallet();
+        if (!isShutDownStarted) wallet = getWallet();
+        restartInProgress = false;
+        if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitSyncing(), getId());
     }
 
     private long getWalletRefreshPeriod() {
