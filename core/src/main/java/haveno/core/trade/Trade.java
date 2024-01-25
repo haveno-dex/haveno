@@ -2154,8 +2154,8 @@ public abstract class Trade implements Tradable, Model {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
                 if (!isShutDownStarted && wallet != null && isWalletConnected) {
-                    e.printStackTrace();
                     log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                    //e.printStackTrace();
                 }
             } finally {
                 pollInProgress = false;
