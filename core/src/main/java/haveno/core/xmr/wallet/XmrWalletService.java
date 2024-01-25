@@ -107,7 +107,7 @@ public class XmrWalletService {
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
-    private static final int NUM_MAX_BACKUP_WALLETS = 1;
+    private static final int NUM_MAX_WALLET_BACKUPS = 1;
     private static final int MONERO_LOG_LEVEL = 0;
     private static final int MAX_SYNC_ATTEMPTS = 3;
     private static final boolean PRINT_STACK_TRACE = false;
@@ -361,9 +361,9 @@ public class XmrWalletService {
     }
 
     public void backupWallet(String walletName) {
-        FileUtil.rollingBackup(walletDir, walletName, NUM_MAX_BACKUP_WALLETS);
-        FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_MAX_BACKUP_WALLETS);
-        FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_MAX_BACKUP_WALLETS);
+        FileUtil.rollingBackup(walletDir, walletName, NUM_MAX_WALLET_BACKUPS);
+        FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_MAX_WALLET_BACKUPS);
+        FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_MAX_WALLET_BACKUPS);
     }
 
     public void deleteWalletBackups(String walletName) {

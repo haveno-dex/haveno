@@ -39,6 +39,7 @@ import java.util.List;
 @Slf4j
 public class FileUtil {
     public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
+        if (numMaxBackupFiles <= 0) return;
         if (dir.exists()) {
             File backupDir = new File(Paths.get(dir.getAbsolutePath(), "backup").toString());
             if (!backupDir.exists())
