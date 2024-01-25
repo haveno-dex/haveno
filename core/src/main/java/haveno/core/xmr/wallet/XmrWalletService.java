@@ -1206,8 +1206,10 @@ public class XmrWalletService {
     }
 
     public List<XmrAddressEntry> getFundedAvailableAddressEntries() {
-        List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
-        return getAvailableAddressEntries().stream().filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex(), subaddresses).compareTo(BigInteger.ZERO) > 0).collect(Collectors.toList());
+        synchronized (walletLock) {
+            List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
+            return getAvailableAddressEntries().stream().filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex(), subaddresses).compareTo(BigInteger.ZERO) > 0).collect(Collectors.toList());
+        }
     }
 
     public List<XmrAddressEntry> getAddressEntryListAsImmutableList() {
@@ -1225,7 +1227,9 @@ public class XmrWalletService {
     }
 
     public List<XmrAddressEntry> getUnusedAddressEntries() {
-        return getUnusedAddressEntries(getTxsWithIncomingOutputs(), wallet.getSubaddresses(0));
+        synchronized (walletLock) {
+            return getUnusedAddressEntries(getTxsWithIncomingOutputs(), wallet.getSubaddresses(0));
+        }
     }
 
     public List<XmrAddressEntry> getUnusedAddressEntries(List<MoneroTxWallet> cachedTxs, List<MoneroSubaddress> cachedSubaddresses) {
@@ -1338,12 +1342,14 @@ public class XmrWalletService {
     }
 
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
-        Stream<XmrAddressEntry> available = getFundedAvailableAddressEntries().stream();
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOfferById(entry.getOfferId()).isPresent()));
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutUnlocked()));
-        List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
-        return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex(), subaddresses).compareTo(BigInteger.ZERO) > 0);
+        synchronized (walletLock) {
+            Stream<XmrAddressEntry> available = getFundedAvailableAddressEntries().stream();
+            available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
+            available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOfferById(entry.getOfferId()).isPresent()));
+            available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutUnlocked()));
+            List<MoneroSubaddress> subaddresses = wallet.getSubaddresses(0);
+            return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex(), subaddresses).compareTo(BigInteger.ZERO) > 0);
+        }
     }
 
     public void addWalletListener(MoneroWalletListenerI listener) {
