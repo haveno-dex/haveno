@@ -151,7 +151,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     // poll key images of signed offers
     private XmrKeyImagePoller signedOfferKeyImagePoller;
-    private static final long SHUTDOWN_TIMEOUT_MS = 90000;
+    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
