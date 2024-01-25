@@ -754,7 +754,7 @@ public class XmrWalletService {
             }
         }
 
-        // shut down trade and main wallets at same time
+        // shut down main wallet
         walletListeners.clear();
         closeMainWallet(true);
         log.info("Done shutting down main wallet");
