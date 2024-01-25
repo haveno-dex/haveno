@@ -317,29 +317,34 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         int size = openOffers.size();
         log.info("Remove open offers at shutDown. Number of open offers: {}", size);
         if (offerBookService.isBootstrapped() && size > 0) {
-            ThreadUtils.execute(() -> { // finish tasks
-                UserThread.execute(() -> {
-                    openOffers.forEach(openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload()));
+            ThreadUtils.execute(() -> {
+                
+                // remove offers from offer book
+                synchronized (openOffers) {
+                    openOffers.forEach(openOffer -> {
+                        if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
+                            offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload());
+                        }
+                    });
+                }
 
-                    // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
-                    // bundled messages sent out.
-                    broadcaster.flush();
-                    shutDownThreadPool();
+                // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
+                // bundled messages sent out.
+                broadcaster.flush();
 
-                    if (completeHandler != null) {
-                        // For typical number of offers we are tolerant with delay to give enough time to broadcast.
-                        // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
-                        int delay = Math.min(3000, size * 200 + 500);
-                        UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
-                    }
-                });
+                if (completeHandler != null) {
+                    // For typical number of offers we are tolerant with delay to give enough time to broadcast.
+                    // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
+                    int delay = Math.min(3000, size * 200 + 500);
+                    UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
+                }
             }, THREAD_ID);
         } else {
             broadcaster.flush();
-            shutDownThreadPool();
             if (completeHandler != null)
                 completeHandler.run();
         }
+        shutDownThreadPool();
     }
 
     private void shutDownThreadPool() {
