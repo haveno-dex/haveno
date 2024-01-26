@@ -416,62 +416,67 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         maybeUpdatePersistedOffers();
 
-        ThreadUtils.execute(() -> {
-            
-            // Wait for prices to be available
+        // run off user thread so app is not blocked from starting
+        ThreadUtils.submitToPool(() -> {
+
+            // wait for prices to be available
             priceFeedService.awaitExternalPrices();
 
-            // Republish means we send the complete offer object
-            republishOffers();
-            startPeriodicRepublishOffersTimer();
-
-            // Refresh is started once we get a success from republish
-
-            // We republish after a bit as it might be that our connected node still has the offer in the data map
-            // but other peers have it already removed because of expired TTL.
-            // Those other not directly connected peers would not get the broadcast of the new offer, as the first
-            // connected peer (seed node) does not broadcast if it has the data in the map.
-            // To update quickly to the whole network we repeat the republishOffers call after a few seconds when we
-            // are better connected to the network. There is no guarantee that all peers will receive it but we also
-            // have our periodic timer, so after that longer interval the offer should be available to all peers.
-            if (retryRepublishOffersTimer == null)
-                retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
-                        REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
-
-            p2PService.getPeerManager().addListener(this);
-
-            // TODO: add to invalid offers on failure
-    //        openOffers.stream()
-    //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
-    //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
-
-            // process scheduled offers
-            processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                log.warn("Error processing unposted offers: " + errorMessage);
-            });
-
-            // register to process unposted offers when unlocked balance increases
-            if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
-            xmrWalletService.addWalletListener(new MoneroWalletListener() {
-                @Override
-                public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                    if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
-                        processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                            log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
-                        });
+            // process open offers on dedicated thread
+            ThreadUtils.execute(() -> {
+                
+                // Republish means we send the complete offer object
+                republishOffers();
+                startPeriodicRepublishOffersTimer();
+    
+                // Refresh is started once we get a success from republish
+    
+                // We republish after a bit as it might be that our connected node still has the offer in the data map
+                // but other peers have it already removed because of expired TTL.
+                // Those other not directly connected peers would not get the broadcast of the new offer, as the first
+                // connected peer (seed node) does not broadcast if it has the data in the map.
+                // To update quickly to the whole network we repeat the republishOffers call after a few seconds when we
+                // are better connected to the network. There is no guarantee that all peers will receive it but we also
+                // have our periodic timer, so after that longer interval the offer should be available to all peers.
+                if (retryRepublishOffersTimer == null)
+                    retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
+                            REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
+    
+                p2PService.getPeerManager().addListener(this);
+    
+                // TODO: add to invalid offers on failure
+        //        openOffers.stream()
+        //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
+        //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
+    
+                // process scheduled offers
+                processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                    log.warn("Error processing unposted offers: " + errorMessage);
+                });
+    
+                // register to process unposted offers when unlocked balance increases
+                if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+                xmrWalletService.addWalletListener(new MoneroWalletListener() {
+                    @Override
+                    public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+                        if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
+                            processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                                log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
+                            });
+                        }
+                        lastUnlockedBalance = newUnlockedBalance;
                     }
-                    lastUnlockedBalance = newUnlockedBalance;
+                });
+    
+                // initialize key image poller for signed offers
+                maybeInitializeKeyImagePoller();
+    
+                // poll spent status of key images
+                for (SignedOffer signedOffer : signedOffers.getList()) {
+                    signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
                 }
-            });
-
-            // initialize key image poller for signed offers
-            maybeInitializeKeyImagePoller();
-
-            // poll spent status of key images
-            for (SignedOffer signedOffer : signedOffers.getList()) {
-                signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
-            }
-        }, THREAD_ID);
+            }, THREAD_ID);
+        });
     }
 
 

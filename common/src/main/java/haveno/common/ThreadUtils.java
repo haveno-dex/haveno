@@ -35,7 +35,12 @@ public class ThreadUtils {
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-
+    /**
+     * Execute the given command in a thread with the given id.
+     * 
+     * @param command the command to execute
+     * @param threadId the thread id
+     */
     public static void execute(Runnable command, String threadId) {
         synchronized (EXECUTORS) {
             if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
@@ -106,6 +111,8 @@ public class ThreadUtils {
             THREADS.remove(threadId);
         }
     }
+
+    // TODO: consolidate and cleanup apis
 
     public static Future<?> submitToPool(Runnable task) {
         return submitToPool(Arrays.asList(task)).get(0);

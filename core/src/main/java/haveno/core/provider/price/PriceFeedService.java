@@ -116,6 +116,7 @@ public class PriceFeedService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void shutDown() {
+        log.info("Shutting down {}", getClass().getSimpleName());
         if (requestTimer != null) {
             requestTimer.stop();
             requestTimer = null;

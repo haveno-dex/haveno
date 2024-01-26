@@ -18,6 +18,8 @@
 package haveno.network.http;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+
+import haveno.common.ThreadUtils;
 import haveno.common.app.Version;
 import haveno.common.util.Utilities;
 import haveno.network.Socks5ProxyProvider;
@@ -65,6 +67,7 @@ public class HttpClientImpl implements HttpClient {
     private HttpURLConnection connection;
     @Nullable
     private CloseableHttpClient closeableHttpClient;
+    private static final long SHUTDOWN_TIMEOUT_MS = 5000l;
 
     @Getter
     @Setter
@@ -88,6 +91,18 @@ public class HttpClientImpl implements HttpClient {
 
     @Override
     public void shutDown() {
+        try {
+            ThreadUtils.awaitTask(() -> {
+                doShutDown(connection, closeableHttpClient);
+                connection = null;
+                closeableHttpClient = null;
+            }, SHUTDOWN_TIMEOUT_MS);
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    private void doShutDown(HttpURLConnection connection, CloseableHttpClient closeableHttpClient) {
         try {
             if (connection != null) {
                 connection.getInputStream().close();
@@ -137,19 +152,7 @@ public class HttpClientImpl implements HttpClient {
 
     public void cancelPendingRequest() {
         if (!hasPendingRequest) return;
-        try {
-            if (connection != null) {
-                connection.getInputStream().close();
-                connection.disconnect();
-                connection = null;
-            }
-            if (closeableHttpClient != null) {
-                closeableHttpClient.close();
-                closeableHttpClient = null;
-            }
-        } catch (IOException err) {
-            // igbnore
-        }
+        shutDown();
         hasPendingRequest = false;
     }
 
