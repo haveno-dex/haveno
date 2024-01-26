@@ -125,9 +125,9 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
 
                     // shut down p2p service
                     injector.getInstance(P2PService.class).shutDown(() -> {
-                        log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
                         // shut down monero wallets and connections
+                        log.info("Shutting down wallet and connection services");
                         injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
                             module.close(injector);
                             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {

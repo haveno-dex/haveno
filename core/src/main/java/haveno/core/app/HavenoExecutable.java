@@ -341,7 +341,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
             tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
             try {
-                ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
+                ThreadUtils.awaitTasks(tasks, tasks.size(), 90000l); // run in parallel with timeout
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -361,9 +361,9 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
                 // shut down p2p service
                 injector.getInstance(P2PService.class).shutDown(() -> {
-                    log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
                     // shut down monero wallets and connections
+                    log.info("Shutting down wallet and connection services");
                     injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
                         
                         // done shutting down
