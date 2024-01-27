@@ -49,7 +49,7 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '30.1.1-jre'
         guiceVersion = '5.1.0'
-        moneroJavaVersion = '0.8.9'
+        moneroJavaVersion = '0.8.10'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
@@ -419,7 +419,7 @@ configure(project(':core')) {
 
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
-        implementation("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
+        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
@@ -641,7 +641,7 @@ configure(project(':desktop')) {
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
         testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
 
-        implementation("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
+        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
@@ -805,7 +805,7 @@ configure(project(':daemon')) {
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
         testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
 
-        implementation("io.github.monero-ecosystem:monero-java:$moneroJavaVersion") {
+        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
