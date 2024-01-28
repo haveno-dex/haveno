@@ -47,14 +47,19 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.messages.DisputeClosedMessage;
+import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.Trade.Phase;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
+import haveno.core.trade.messages.DepositsConfirmedMessage;
 import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.PaymentReceivedMessage;
+import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.messages.TradeMessage;
@@ -80,6 +85,8 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.mailbox.MailboxMessage;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.network.TorNetworkNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.LongProperty;
@@ -100,6 +107,8 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -152,6 +161,31 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
+
+    // set comparator for processing mailbox messages
+    static {
+        MailboxMessageService.setMailboxMessageComparator(new MailboxMessageComparator());
+    }
+
+    /**
+     * Sort mailbox messages for processing.
+     */
+    public static class MailboxMessageComparator implements Comparator<MailboxMessage> {
+        private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
+            AckMessage.class,
+            DepositsConfirmedMessage.class,
+            PaymentSentMessage.class,
+            PaymentReceivedMessage.class,
+            DisputeOpenedMessage.class,
+            DisputeClosedMessage.class);
+
+        @Override
+        public int compare(MailboxMessage m1, MailboxMessage m2) {
+            int idx1 = messageOrder.indexOf(m1.getClass());
+            int idx2 = messageOrder.indexOf(m2.getClass());
+            return idx1 - idx2;
+        }
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
