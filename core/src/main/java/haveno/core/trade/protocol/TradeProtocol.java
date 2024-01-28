@@ -24,14 +24,13 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.Task;
-import haveno.core.support.dispute.messages.DisputeClosedMessage;
-import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.TradeManager.MailboxMessageComparator;
 import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
@@ -70,11 +69,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @Slf4j
@@ -92,11 +88,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected ErrorMessageHandler errorMessageHandler;
 
     private int reprocessPaymentReceivedMessageCount;
-
-    // set comparator for processing mailbox messages
-    static {
-        MailboxMessageService.setMailboxMessageComparator(new MailboxMessageComparator());
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -182,23 +173,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 .map(e -> (MailboxMessage) e)
                 .sorted(new MailboxMessageComparator())
                 .forEach(this::handleMailboxMessage);
-    }
-
-    public static class MailboxMessageComparator implements Comparator<MailboxMessage> {
-        private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
-            AckMessage.class,
-            DepositsConfirmedMessage.class,
-            PaymentSentMessage.class,
-            PaymentReceivedMessage.class,
-            DisputeOpenedMessage.class,
-            DisputeClosedMessage.class);
-
-        @Override
-        public int compare(MailboxMessage m1, MailboxMessage m2) {
-            int idx1 = messageOrder.indexOf(m1.getClass());
-            int idx2 = messageOrder.indexOf(m2.getClass());
-            return idx1 - idx2;
-        }
     }
 
     private void handleMailboxMessage(MailboxMessage mailboxMessage) {
