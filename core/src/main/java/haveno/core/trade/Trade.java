@@ -876,7 +876,19 @@ public abstract class Trade implements Tradable, Model {
     public void saveWallet() {
         synchronized (walletLock) {
             if (wallet == null) throw new RuntimeException("Trade wallet is not open for trade " + getId());
-            xmrWalletService.saveWallet(wallet, !isArbitrator()); // skip backup if arbitrator
+            xmrWalletService.saveWallet(wallet);
+            maybeBackupWallet();
+        }
+    }
+
+    private void maybeBackupWallet() {
+        boolean createBackup = !isArbitrator() && !(Utilities.isWindows() && isWalletOpen()); // create backup unless arbitrator or windows and wallet is open (cannot copy file while open on windows)
+        if (createBackup) xmrWalletService.backupWallet(getWalletName());
+    }
+
+    private boolean isWalletOpen() {
+        synchronized (walletLock) {
+            return wallet != null;
         }
     }
 
@@ -1313,7 +1325,7 @@ public abstract class Trade implements Tradable, Model {
             // save wallet
             if (wallet != null) {
                 try {
-                    xmrWalletService.saveWallet(wallet, false); // skip backup
+                    xmrWalletService.saveWallet(wallet);
                     stopWallet();
                 } catch (Exception e) {
                     // warning will be logged for main wallet, so skip logging here
@@ -1332,6 +1344,9 @@ public abstract class Trade implements Tradable, Model {
             // force stop wallet
             forceStopWallet();
         }
+
+        // backup trade wallet if applicable
+        maybeBackupWallet();
 
         // de-initialize
         if (idlePayoutSyncer != null) {
