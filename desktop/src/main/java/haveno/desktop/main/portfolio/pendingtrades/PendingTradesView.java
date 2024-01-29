@@ -80,6 +80,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -298,12 +299,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                 if (selectedItem.getTrade() != null) {
                     selectedSubView = model.dataModel.tradeManager.isBuyer(model.dataModel.getOffer()) ?
                             new BuyerSubView(model) : new SellerSubView(model);
+                    selectedSubView.setMinHeight(460);
                     subViewScroll = new ScrollPane();
                     subViewScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
                     subViewScroll.setContent(selectedSubView);
                     
-                    //selectedSubView.setMinHeight(460);
-                    //VBox.setVgrow(selectedSubView, Priority.ALWAYS);
+                    VBox.setVgrow(subViewScroll, Priority.ALWAYS);
                     if (root.getChildren().size() == 2)
                         root.getChildren().add(subViewScroll);
                     else if (root.getChildren().size() == 3)
