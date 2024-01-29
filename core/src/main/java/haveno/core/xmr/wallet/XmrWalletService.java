@@ -220,7 +220,7 @@ public class XmrWalletService {
     }
 
     public void saveMainWallet() {
-        saveMainWallet(true);
+        saveMainWallet(!(Utilities.isWindows() && wallet != null));
     }
 
     public void saveMainWallet(boolean backup) {
@@ -322,6 +322,10 @@ public class XmrWalletService {
 
     private MoneroSyncResult syncWallet() {
         return syncWallet(wallet);
+    }
+
+    public void saveWallet(MoneroWallet wallet) {
+        saveWallet(wallet, false);
     }
 
     public void saveWallet(MoneroWallet wallet, boolean backup) {
