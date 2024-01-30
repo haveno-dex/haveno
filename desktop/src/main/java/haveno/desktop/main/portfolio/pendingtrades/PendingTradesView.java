@@ -300,6 +300,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                     selectedSubView = model.dataModel.tradeManager.isBuyer(model.dataModel.getOffer()) ?
                             new BuyerSubView(model) : new SellerSubView(model);
                     selectedSubView.setMinHeight(460);
+                    selectedSubView.setMaxWidth(2375);
                     subViewScroll = new ScrollPane();
                     subViewScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
                     subViewScroll.setContent(selectedSubView);
