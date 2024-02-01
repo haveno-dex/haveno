@@ -194,18 +194,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         }
     }
 
-    public void setMessageStatePropertyIfNotAcked(MessageState messageState) {
-
-        // skip if already acked
-        if (messageStateProperty.get() == MessageState.ACKNOWLEDGED) {
-            return;
-        }
-
-        if (trade != null) {
-            trade.getProcessModel().setPaymentSentMessageState(messageState);
-        }
-    }
-
     private void onMessageStateChanged(MessageState messageState) {
         messageStateProperty.set(messageState);
     }
