@@ -77,20 +77,21 @@ public class DisputeValidation {
 
 
     public static void validateSenderNodeAddress(Dispute dispute,
-                                                 NodeAddress senderNodeAddress) throws NodeAddressException {
-        if (!senderNodeAddress.equals(dispute.getContract().getBuyerNodeAddress())
-                && !senderNodeAddress.equals(dispute.getContract().getSellerNodeAddress())
-                && !senderNodeAddress.equals(dispute.getContract().getArbitratorNodeAddress())) {
-            throw new NodeAddressException(dispute, "senderNodeAddress not matching any of the traders node addresses");
+                                                 NodeAddress senderNodeAddress,
+                                                 Config config) throws NodeAddressException {
+        if (config.useLocalhostForP2P) return;
+        if (!senderNodeAddress.getHostName().equals(dispute.getContract().getBuyerNodeAddress().getHostName())
+                && !senderNodeAddress.getHostName().equals(dispute.getContract().getSellerNodeAddress().getHostName())
+                && !senderNodeAddress.getHostName().equals(dispute.getContract().getArbitratorNodeAddress().getHostName())) {
+            throw new NodeAddressException(dispute, "senderNodeAddress not matching any of the trade node addresses");
         }
     }
 
     public static void validateNodeAddresses(Dispute dispute, Config config)
             throws NodeAddressException {
-        if (!config.useLocalhostForP2P) {
-            validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress());
-            validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress());
-        }
+        if (config.useLocalhostForP2P) return;  
+        validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress());
+        validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress());
     }
 
     private static void validateNodeAddress(Dispute dispute, NodeAddress nodeAddress) throws NodeAddressException {
