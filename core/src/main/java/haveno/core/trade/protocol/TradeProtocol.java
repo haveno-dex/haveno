@@ -486,7 +486,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             synchronized (trade) {
                 if (!trade.isInitialized() || trade.isShutDown()) return;
                 if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
-                    log.warn("Received another PaymentSentMessage which was already processed, ACKing");
+                    log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                     handleTaskRunnerSuccess(peer, message);
                     return;
                 }
