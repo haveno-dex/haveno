@@ -331,20 +331,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
                 // bundled messages sent out.
                 broadcaster.flush();
-
-                if (completeHandler != null) {
-                    // For typical number of offers we are tolerant with delay to give enough time to broadcast.
-                    // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
-                    int delay = Math.min(3000, size * 200 + 500);
-                    UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
-                }
+                // For typical number of offers we are tolerant with delay to give enough time to broadcast.
+                // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
+                long delayMs = Math.min(3000, size * 200 + 500);
+                GenUtils.waitFor(delayMs);;
             }, THREAD_ID);
         } else {
             broadcaster.flush();
-            if (completeHandler != null)
-                completeHandler.run();
         }
+
+        // shut down thread pool
         shutDownThreadPool();
+
+        // invoke completion handler
+        if (completeHandler != null) completeHandler.run();  
     }
 
     private void shutDownThreadPool() {
