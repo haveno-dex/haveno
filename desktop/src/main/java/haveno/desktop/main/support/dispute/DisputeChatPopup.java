@@ -149,6 +149,8 @@ public class DisputeChatPopup {
 
         // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
         // and after a short moment in the correct position
-        UserThread.execute(() -> chatPopupStage.setOpacity(1));
+        UserThread.execute(() -> {
+            if (chatPopupStage != null) chatPopupStage.setOpacity(1);
+        });
     }
 }
