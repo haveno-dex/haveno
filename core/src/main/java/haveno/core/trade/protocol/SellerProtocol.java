@@ -51,27 +51,30 @@ public class SellerProtocol extends DisputeProtocol {
         super.onInitialized();
 
         // re-send payment received message if payout not published
-        synchronized (trade) {
-            if (trade.isShutDownStarted()) return;
-            if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
-                latchTrade();
-                given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
-                    .with(SellerEvent.STARTUP))
-                    .setup(tasks(
-                            SellerSendPaymentReceivedMessageToBuyer.class,
-                            SellerSendPaymentReceivedMessageToArbitrator.class)
-                    .using(new TradeTaskRunner(trade,
-                            () -> {
-                                unlatchTrade();
-                            },
-                            (errorMessage) -> {
-                                log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
-                                unlatchTrade();
-                            })))
-                    .executeTasks();
-                awaitTradeLatch();
+        ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            synchronized (trade) {
+                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+                if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
+                    latchTrade();
+                    given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
+                        .with(SellerEvent.STARTUP))
+                        .setup(tasks(
+                                SellerSendPaymentReceivedMessageToBuyer.class,
+                                SellerSendPaymentReceivedMessageToArbitrator.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    unlatchTrade();
+                                },
+                                (errorMessage) -> {
+                                    log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
+                                    unlatchTrade();
+                                })))
+                        .executeTasks();
+                    awaitTradeLatch();
+                }
             }
-        }
+        }, trade.getId());
     }
 
     @Override
