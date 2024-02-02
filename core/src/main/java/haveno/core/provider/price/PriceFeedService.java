@@ -451,9 +451,16 @@ public class PriceFeedService {
     }
 
     private void requestAllPrices(PriceProvider provider, Runnable resultHandler, FaultHandler faultHandler) {
+
+        // ignore if we have pending request to same provider
         if (httpClient.hasPendingRequest()) {
-            log.warn("We have a pending request open. We ignore that request. httpClient {}", httpClient);
-            return;
+            if (httpClient.getBaseUrl().equals(provider.getBaseUrl())) {
+                log.warn("We have a pending request open. We ignore that request. httpClient {}", httpClient);
+                return;
+            } else {
+                log.warn("Canceling price request and resending to new provider {}", provider.getBaseUrl());
+                httpClient.cancelPendingRequest();
+            }
         }
 
         priceRequest = new PriceRequest();
