@@ -100,7 +100,7 @@ import java.util.Map;
 
 @FxmlView
 public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTradesViewModel> {
-    
+
     public interface ChatCallback {
         void onOpenChat(Trade trade);
     }
@@ -300,11 +300,15 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                     selectedSubView = model.dataModel.tradeManager.isBuyer(model.dataModel.getOffer()) ?
                             new BuyerSubView(model) : new SellerSubView(model);
                     selectedSubView.setMinHeight(460);
-                    selectedSubView.setMaxWidth(2375);
+                    selectedSubView.setMaxWidth(1168);
+                    //HBox.setHgrow(selectedSubView, Priority.ALWAYS);
+                    log.warn("testos");
+                    log.warn(String.valueOf(selectedSubView.getWidth()));
+
                     subViewScroll = new ScrollPane();
                     subViewScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
                     subViewScroll.setContent(selectedSubView);
-                    
+
                     VBox.setVgrow(subViewScroll, Priority.ALWAYS);
                     if (root.getChildren().size() == 2)
                         root.getChildren().add(subViewScroll);

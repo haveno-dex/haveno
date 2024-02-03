@@ -382,7 +382,7 @@ public abstract class TradeStepView extends AnchorPane {
                 1, Res.get("portfolio.pending.remainingTime"), "");
 
         timeLeftTextField = labelTextFieldVBoxTuple3.second;
-        timeLeftTextField.setMinWidth(400);
+        //timeLeftTextField.setMaxWidth(4);
 
         timeLeftProgressBar = new JFXProgressBar(0);
         timeLeftProgressBar.setOpacity(0.7);
