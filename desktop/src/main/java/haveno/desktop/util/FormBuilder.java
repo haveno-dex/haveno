@@ -645,7 +645,7 @@ public class FormBuilder {
         TextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setWrapText(true);
-
+        textArea.setPrefHeight(100);
         final Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, textArea, top);
         GridPane.setColumnIndex(topLabelWithVBox.second, colIndex);
 
@@ -672,10 +672,10 @@ public class FormBuilder {
         //DatePicker datePicker = new JFXDatePicker();
         //
         //Temporary solution to fix issue 527; a more
-        //permanant solution would require this issue to be solved: 
+        //permanant solution would require this issue to be solved:
         //(https://github.com/sshahine/JFoenix/issues/1245)
         DatePicker datePicker = new DatePicker();
-        
+
         Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, columnIndex, title, datePicker, top);
         return new Tuple2<>(topLabelWithVBox.first, datePicker);
     }

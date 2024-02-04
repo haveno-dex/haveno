@@ -100,8 +100,10 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -217,6 +219,7 @@ public class BuyerStep2View extends TradeStepView {
 
         addTradeInfoBlock();
 
+
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "<missing payment account payload>";
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 4,
@@ -227,6 +230,14 @@ public class BuyerStep2View extends TradeStepView {
                 model.getFiatVolume(),
                 Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
         field.setCopyWithoutCurrencyPostFix(true);
+
+        //preland: this fixes a textarea layout glitch
+        TextArea uiHack = new TextArea();
+        uiHack.setMaxHeight(1);
+        GridPane.setRowIndex(uiHack, 1);
+        GridPane.setMargin(uiHack, new Insets(0, 0, 0, 0));
+        uiHack.setVisible(false);
+        gridPane.getChildren().add(uiHack);
 
         switch (paymentMethodId) {
             case PaymentMethod.UPHOLD_ID:
