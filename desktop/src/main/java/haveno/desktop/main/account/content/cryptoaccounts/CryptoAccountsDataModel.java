@@ -121,6 +121,7 @@ class CryptoAccountsDataModel extends ActivatableDataModel {
 
         if (paymentAccount.getAccountName() == null) throw new IllegalStateException("Account name cannot be null");
         user.addPaymentAccount(paymentAccount);
+        paymentAccount.onPersistChanges();
 
         if (!(paymentAccount instanceof AssetAccount))
             accountAgeWitnessService.publishMyAccountAgeWitness(paymentAccount.getPaymentAccountPayload());
