@@ -116,7 +116,7 @@ public class ProvidersRepository {
                 providers = List.of(
                     "http://localhost:8078/",
                     "https://price.haveno.network/",
-                    "http://173.230.142.36:8080/");
+                    "http://173.230.142.36:8078/");
             } else {
                 providers = DEFAULT_NODES;
             }
