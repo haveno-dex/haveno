@@ -44,10 +44,6 @@ public final class XmrAddressEntry implements PersistablePayload {
         AVAILABLE,
         OFFER_FUNDING,
         TRADE_PAYOUT;
-
-        public boolean isReserved() {
-            return this == Context.OFFER_FUNDING || this == Context.TRADE_PAYOUT;
-        }
     }
 
     // keyPair can be null in case the object is created from deserialization as it is transient.
