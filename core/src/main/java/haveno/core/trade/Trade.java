@@ -1210,19 +1210,23 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
-        if (!chatMessages.contains(chatMessage)) {
-            chatMessages.add(chatMessage);
-        } else {
-            log.error("Trade ChatMessage already exists");
+        synchronized (chatMessages) {
+            if (!chatMessages.contains(chatMessage)) {
+                chatMessages.add(chatMessage);
+            } else {
+                log.error("Trade ChatMessage already exists");
+            }
         }
     }
 
     public boolean removeAllChatMessages() {
-        if (chatMessages.size() > 0) {
-            chatMessages.clear();
-            return true;
+        synchronized (chatMessages) {
+            if (chatMessages.size() > 0) {
+                chatMessages.clear();
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     public boolean mediationResultAppliedPenaltyToSeller() {
@@ -1644,6 +1648,12 @@ public abstract class Trade implements Tradable, Model {
         if (isSeller()) return "Seller";
         if (isArbitrator()) return "Arbitrator";
         throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
+    }
+
+    public ObservableList<ChatMessage> getChatMessages() {
+        synchronized (chatMessages) {
+            return FXCollections.observableArrayList(chatMessages);
+        }
     }
 
     public MessageState getPaymentSentMessageState() {
@@ -2296,7 +2306,7 @@ public abstract class Trade implements Tradable, Model {
                 .setPayoutState(Trade.PayoutState.toProtoMessage(payoutState))
                 .setDisputeState(Trade.DisputeState.toProtoMessage(disputeState))
                 .setPeriodState(Trade.TradePeriodState.toProtoMessage(periodState))
-                .addAllChatMessage(chatMessages.stream()
+                .addAllChatMessage(getChatMessages().stream()
                         .map(msg -> msg.toProtoNetworkEnvelope().getChatMessage())
                         .collect(Collectors.toList()))
                 .setLockTime(lockTime)
