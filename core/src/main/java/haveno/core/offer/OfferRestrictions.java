@@ -37,7 +37,7 @@ public class OfferRestrictions {
         return new Date().after(REQUIRE_TOR_NODE_ADDRESS_V3_DATE) && Config.baseCurrencyNetwork().isMainnet();
     }
 
-    public static BigInteger TOLERATED_SMALL_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(2.5);
+    public static BigInteger TOLERATED_SMALL_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(3);
 
     static boolean hasOfferMandatoryCapability(Offer offer, Capability mandatoryCapability) {
         Map<String, String> extraDataMap = offer.getExtraDataMap();
