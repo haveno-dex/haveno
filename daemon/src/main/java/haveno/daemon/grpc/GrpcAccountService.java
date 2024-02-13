@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
+
 package haveno.daemon.grpc;
 
 import com.google.common.annotations.VisibleForTesting;
