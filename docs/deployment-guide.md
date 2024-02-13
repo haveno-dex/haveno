@@ -78,6 +78,16 @@ Keypairs with alert privileges are able to send alerts, e.g. to update the appli
 
 Set the XMR address to collect trade fees in `getTradeFeeAddress()` in HavenoUtils.java.
 
+## Set the network's release date
+
+Optionally set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.
+
+This will prevent posting sell offers which no buyers can take before any buyer accounts are signed and aged, while the network bootstraps.
+
+After a period (default 60 days), the limit is lifted and sellers can post offers exceeding unsigned buy limits, but they will receive an informational warning for an additional period (default 6 months after release).
+
+The defaults can be adjusted with the related constants in HavenoUtils.java.
+
 ## Create and register arbitrators
 
 Before running the arbitrator, remember that at least one seednode should already be deployed and its address listed in `core/src/main/resources/xmr_<network>.seednodes`.

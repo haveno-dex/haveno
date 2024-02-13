@@ -81,6 +81,9 @@ import org.bitcoinj.core.Coin;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import static javafx.beans.binding.Bindings.createStringBinding;
@@ -692,11 +695,32 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 } else {
                     amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
                     boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
-                    new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                                    HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
-                                    Res.get("offerbook.warning.newVersionAnnouncement")))
-                            .width(900)
-                            .show();
+                    boolean isSellerWithinReleaseWindow = !isBuy && HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
+                    if (isSellerWithinReleaseWindow) {
+                        
+                        // format release date plus days
+                        Date releaseDate = HavenoUtils.getReleaseDate();
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(releaseDate);
+                        c.add(Calendar.DATE, HavenoUtils.RELEASE_LIMIT_DAYS);
+                        Date releaseDatePlusDays = c.getTime();
+                        SimpleDateFormat formatter = new SimpleDateFormat("MMMM d, yyyy");
+                        String releaseDatePlusDaysAsString = formatter.format(releaseDatePlusDays);
+
+                        // popup temporary restriction
+                        new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller.releaseLimit",
+                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
+                                releaseDatePlusDaysAsString,
+                                Res.get("offerbook.warning.newVersionAnnouncement")))
+                        .width(900)
+                        .show();
+                    } else {
+                        new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
+                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
+                                Res.get("offerbook.warning.newVersionAnnouncement")))
+                        .width(900)
+                        .show();
+                    }
                 }
             }
             // We want to trigger a recalculation of the volume
