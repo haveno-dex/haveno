@@ -433,10 +433,12 @@ public class AccountAgeWitnessService {
             limit = BigInteger.valueOf(MathUtils.roundDoubleToLong(maxTradeLimit.longValueExact() * factor));
         }
 
-        log.debug("limit={}, factor={}, accountAgeWitnessHash={}",
-                limit,
-                factor,
-                Utilities.bytesAsHexString(accountAgeWitness.getHash()));
+        if (accountAgeWitness != null) {
+            log.debug("limit={}, factor={}, accountAgeWitnessHash={}",
+            limit,
+            factor,
+            Utilities.bytesAsHexString(accountAgeWitness.getHash()));
+        }
         return limit;
     }
 
@@ -516,6 +518,15 @@ public class AccountAgeWitnessService {
                 accountAgeCategory,
                 direction,
                 paymentAccount.getPaymentMethod()).longValueExact();
+    }
+
+    public long getUnsignedTradeLimit(PaymentMethod paymentMethod, String currencyCode, OfferDirection direction) {
+        return getTradeLimit(paymentMethod.getMaxTradeLimit(currencyCode),
+                currencyCode,
+                null,
+                AccountAge.UNVERIFIED,
+                direction,
+                paymentMethod).longValueExact();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

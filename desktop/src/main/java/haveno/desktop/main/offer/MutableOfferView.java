@@ -1012,7 +1012,24 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         nextButton.setOnAction(e -> {
             if (model.isPriceInRange()) {
-                onShowPayFundsScreen();
+
+                // warn if sell offer exceeds unsigned buy limit within release window
+                boolean isSellOffer = model.getDataModel().isSellOffer();
+                boolean exceedsUnsignedBuyLimit = model.getDataModel().getAmount().get().compareTo(model.getDataModel().getMaxUnsignedBuyLimit()) > 0;
+                String key = "popup.warning.tradeLimitDueAccountAgeRestriction.seller.exceedsUnsignedBuyLimit";
+                if (isSellOffer && exceedsUnsignedBuyLimit && DontShowAgainLookup.showAgain(key) && HavenoUtils.isReleasedWithinDays(HavenoUtils.WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS)) {
+                    new Popup().information(Res.get(key,
+                                    HavenoUtils.formatXmr(model.getDataModel().getMaxUnsignedBuyLimit(), true),
+                                    Res.get("offerbook.warning.newVersionAnnouncement")))
+                            .closeButtonText(Res.get("shared.cancel"))
+                            .actionButtonText(Res.get("shared.ok"))
+                            .onAction(this::onShowPayFundsScreen)
+                            .width(900)
+                            .dontShowAgainId(key)
+                            .show();
+                } else {
+                    onShowPayFundsScreen();
+                }
             }
         });
     }

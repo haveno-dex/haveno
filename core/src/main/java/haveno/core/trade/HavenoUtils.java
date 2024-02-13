@@ -44,6 +44,8 @@ import java.security.PrivateKey;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import javax.annotation.Nullable;
@@ -60,8 +62,13 @@ import org.bitcoinj.core.Coin;
 @Slf4j
 public class HavenoUtils {
 
-    // Use the US locale as a base for all DecimalFormats (commas should be omitted from number strings).
-    public static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
+    // configurable
+    private static final String RELEASE_DATE = "01-03-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "01-03-2024 00:00:00"
+    public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
+    public static final int WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS = 182; // number of days to warn if sell offer exceeds unsigned buy limit
+
+    // non-configurable
+    public static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US); // use the US locale as a base for all DecimalFormats (commas should be omitted from number strings)
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
@@ -70,12 +77,32 @@ public class HavenoUtils {
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
-    // TODO: better way to share references?
-    public static ArbitrationManager arbitrationManager;
+    public static ArbitrationManager arbitrationManager; // TODO: better way to share references?
     public static HavenoSetup havenoSetup;
 
     public static boolean isSeedNode() {
         return havenoSetup == null;
+    }
+
+    @SuppressWarnings("unused")
+    public static Date getReleaseDate() {
+        if (RELEASE_DATE == null) return null;
+        try {
+            return DATE_FORMAT.parse(RELEASE_DATE);
+        } catch (Exception e) {
+            log.error("Failed to parse release date: " + RELEASE_DATE, e);
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public static boolean isReleasedWithinDays(int days) {
+        Date releaseDate = getReleaseDate();
+        if (releaseDate == null) return false;
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(releaseDate);
+        calendar.add(Calendar.DATE, days);
+        Date releaseDatePlusDays = calendar.getTime();
+        return new Date().before(releaseDatePlusDays);
     }
 
     // ----------------------- CONVERSION UTILS -------------------------------

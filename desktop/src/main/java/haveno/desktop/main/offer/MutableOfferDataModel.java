@@ -455,6 +455,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     long getMaxTradeLimit() {
+
+        // disallow offers which no buyer can take due to trade limits on release
+        if (HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS)) {
+            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), OfferDirection.BUY);
+        }
+
         if (paymentAccount != null) {
             return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), direction);
         } else {
@@ -585,6 +591,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public BigInteger getMaxUnsignedBuyLimit() {
+        return BigInteger.valueOf(accountAgeWitnessService.getUnsignedTradeLimit(paymentAccount.getPaymentMethod(), tradeCurrencyCode.get(), OfferDirection.BUY));
+    }
 
     protected ReadOnlyObjectProperty<BigInteger> getAmount() {
         return amount;

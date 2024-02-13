@@ -380,7 +380,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         // if no warning popup has been shown yet, prompt user if they really intend to shut down
         String key = "popup.info.shutDownQuery";
         if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-            new Popup().headLine(Res.get("popup.info.shutDownQuery"))
+            new Popup().headLine(Res.get(key))
                     .actionButtonText(Res.get("shared.yes"))
                     .onAction(() -> resp.complete(true))
                     .closeButtonText(Res.get("shared.no"))
