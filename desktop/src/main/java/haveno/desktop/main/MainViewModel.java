@@ -45,6 +45,7 @@ import haveno.core.presentation.SupportTicketsPresentation;
 import haveno.core.presentation.TradePresentation;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
@@ -273,12 +274,23 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // show welcome message if not mainnet
+        // show welcome message 
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET) {
-            String key = "welcome.test";
+            String key = "welcome.stagenet";
             if (DontShowAgainLookup.showAgain(key)) {
                 UserThread.runAfter(() -> {
-                    new Popup().attention(Res.get("popup.attention.welcome.test")).
+                    new Popup().attention(Res.get("popup.attention.welcome.stagenet")).
+                            dontShowAgainId(key)
+                            .closeButtonText(Res.get("shared.iUnderstand"))
+                            .show();
+                }, 1);
+            }
+        } else if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
+            String key = "welcome.mainnet";
+            boolean isReleaseLimited = HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
+            if (DontShowAgainLookup.showAgain(key)) {
+                UserThread.runAfter(() -> {
+                    new Popup().attention(Res.get(isReleaseLimited ? "popup.attention.welcome.mainnet.test" : "popup.attention.welcome.mainnet")).
                             dontShowAgainId(key)
                             .closeButtonText(Res.get("shared.iUnderstand"))
                             .show();
