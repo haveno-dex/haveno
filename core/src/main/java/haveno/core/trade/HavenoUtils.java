@@ -249,7 +249,7 @@ public class HavenoUtils {
     }
 
     private static BigInteger getMakerFeePerXmr() {
-        return HavenoUtils.xmrToAtomicUnits(0.001);
+        return HavenoUtils.xmrToAtomicUnits(0.0015);
     }
 
     public static BigInteger getMinMakerFee() {
@@ -257,7 +257,7 @@ public class HavenoUtils {
     }
 
     private static BigInteger getTakerFeePerXmr() {
-        return HavenoUtils.xmrToAtomicUnits(0.003);
+        return HavenoUtils.xmrToAtomicUnits(0.0075);
     }
 
     public static BigInteger getMinTakerFee() {
