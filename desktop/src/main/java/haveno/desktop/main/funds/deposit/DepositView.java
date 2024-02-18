@@ -76,9 +76,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
-import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
@@ -127,7 +125,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private Subscription amountTextFieldSubscription;
     private ChangeListener<DepositListItem> tableViewSelectionListener;
     private int gridRow = 0;
-    List<MoneroTxWallet> txsWithIncomingOutputs;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -151,15 +148,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
         confirmationsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations")));
         usageColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.usage")));
 
-        // try to initialize with wallet txs
+        // trigger creation of at least 1 address
         try {
-
-            // prefetch to avoid query per subaddress
-            txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
-            List<MoneroSubaddress> subaddresses = xmrWalletService.getWallet().getSubaddresses(0);
-
-            // trigger creation of at least 1 address
-            xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs, subaddresses);
+            xmrWalletService.getFreshAddressEntry();
         } catch (Exception e) {
             log.warn("Failed to get wallet txs to initialize DepositView");
             e.printStackTrace();
@@ -181,7 +172,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
-        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(txsWithIncomingOutputs)));
+        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
         usageColumn.setComparator(Comparator.comparing(DepositListItem::getUsage));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);
@@ -334,17 +325,13 @@ public class DepositView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateList() {
-
-        // cache incoming txs
-        txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
-        List<MoneroSubaddress> subaddresses = xmrWalletService.getWallet().getSubaddresses(0);
         
         // create deposit list items
         List<XmrAddressEntry> addressEntries = xmrWalletService.getAddressEntries();
         List<DepositListItem> items = new ArrayList<>();
         for (XmrAddressEntry addressEntry : addressEntries) {
             if (addressEntry.isTrade()) continue; // skip reserved for trade
-            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs, subaddresses));
+            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter));
         }
 
         // update list
