@@ -32,7 +32,6 @@ import javafx.beans.property.StringProperty;
 import javafx.scene.control.Tooltip;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
@@ -57,14 +56,14 @@ class DepositListItem {
         return lazyFieldsSupplier.get();
     }
 
-    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter, List<MoneroTxWallet> cachedTxs, List<MoneroSubaddress> cachedSubaddresses) {
+    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter) {
         this.xmrWalletService = xmrWalletService;
         this.addressEntry = addressEntry;
 
-        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex(), cachedSubaddresses);
+        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         balance.set(HavenoUtils.formatXmr(balanceAsBI));
 
-        updateUsage(addressEntry.getSubaddressIndex(), cachedTxs, cachedSubaddresses);
+        updateUsage(addressEntry.getSubaddressIndex());
 
         // confidence
         lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
@@ -73,7 +72,7 @@ class DepositListItem {
             tooltip = new Tooltip(Res.get("shared.notUsedYet"));
             txConfidenceIndicator.setProgress(0);
             txConfidenceIndicator.setTooltip(tooltip);
-            MoneroTx tx = getTxWithFewestConfirmations(cachedTxs);
+            MoneroTx tx = getTxWithFewestConfirmations();
             if (tx == null) {
                 txConfidenceIndicator.setVisible(false);
             } else {
@@ -83,8 +82,8 @@ class DepositListItem {
         }});
     }
 
-    private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs, List<MoneroSubaddress> cachedSubaddresses) {
-        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs, cachedSubaddresses);
+    private void updateUsage(int subaddressIndex) {
+        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex());
         switch (addressEntry.getContext()) {
             case BASE_ADDRESS:
                 usage = Res.get("funds.deposit.baseAddress");
@@ -138,15 +137,15 @@ class DepositListItem {
         return numTxsWithOutputs;
     }
 
-    public long getNumConfirmationsSinceFirstUsed(List<MoneroTxWallet> incomingTxs) {
-        MoneroTx tx = getTxWithFewestConfirmations(incomingTxs);
+    public long getNumConfirmationsSinceFirstUsed() {
+        MoneroTx tx = getTxWithFewestConfirmations();
         return tx == null ? 0 : tx.getNumConfirmations();
     }
 
-    private MoneroTxWallet getTxWithFewestConfirmations(List<MoneroTxWallet> allIncomingTxs) {
+    private MoneroTxWallet getTxWithFewestConfirmations() {
 
         // get txs with incoming outputs to subaddress index
-        List<MoneroTxWallet> txs = xmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), allIncomingTxs);
+        List<MoneroTxWallet> txs = xmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex());
         
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;

@@ -375,6 +375,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         advancedOptionsBox.setVisible(false);
         advancedOptionsBox.setManaged(false);
 
+        updateQrCode();
+
         model.onShowPayFundsScreen(() -> {
             if (!DevEnv.isDevMode()) {
                 String key = "createOfferFundWalletInfo";
@@ -755,14 +757,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         missingCoinListener = (observable, oldValue, newValue) -> {
             if (!newValue.toString().equals("")) {
-                final byte[] imageBytes = QRCode
-                        .from(getMoneroURI())
-                        .withSize(300, 300)
-                        .to(ImageType.PNG)
-                        .stream()
-                        .toByteArray();
-                Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
-                qrCodeImageView.setImage(qrImage);
+                //updateQrCode(); // disabled to avoid wallet requests on key strokes
             }
         };
 
@@ -808,6 +803,17 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 buyerSecurityDepositInputTextField.setDisable(false);
             }
         });
+    }
+
+    private void updateQrCode() {
+        final byte[] imageBytes = QRCode
+                .from(getMoneroURI())
+                .withSize(300, 300)
+                .to(ImageType.PNG)
+                .stream()
+                .toByteArray();
+        Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
+        qrCodeImageView.setImage(qrImage);
     }
 
     private void closeAndGoToOpenOffers() {
