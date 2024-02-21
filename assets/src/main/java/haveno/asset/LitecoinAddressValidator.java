@@ -27,6 +27,6 @@ public class LitecoinAddressValidator extends RegexAddressValidator {
     }
 
     public LitecoinAddressValidator(String errorMessageI18nKey) {
-        super("^^(?:(?:litecoin|Litecoin|LITECOIN):)?([LM3]{1}[a-km-zA-HJ-NP-Z1-9]{26,33}|ltc1[a-z0-9]{39,59})(?:\?time=\d+(?:&exp=\d+)?)?$", errorMessageI18nKey);
+        super("^(?:(?:litecoin|Litecoin|LITECOIN):)?([LM3]{1}[a-km-zA-HJ-NP-Z1-9]{26,33}|ltc1[a-z0-9]{39,59})(?:\?time=\d+(?:&exp=\d+)?)?$", errorMessageI18nKey);
     }
 }
