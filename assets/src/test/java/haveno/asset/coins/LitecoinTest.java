@@ -38,12 +38,8 @@ public class LitecoinTest extends AbstractAssetTest {
         assertValidAddress("ltc1q2a0laq2jg2gntzhfs43qptajd325kkx7hrq9cs");
         assertValidAddress("ltc1qd6d54mt8xxcg0xg3l0vh6fymdfvd2tv0vnwyrv");
         assertValidAddress("ltc1gmay6ht028aurcm680f8e8wxdup07y2tq46f6z2d4v8rutewqmmcqk29jtm");
-        assertValidAddress("litecoin:ltc1q8tk47lvgqu55h4pfast39r3t9360gmll5z9m6z?time=1708476604&exp=600");
-        assertValidAddress("litecoin:ltc1q026xyextkwhmveh7rpf6v6mp5p88vwc25aynxr?time=1708476626");
         assertValidAddress("Litecoin:LaRoRBC6utQtY3U2FbHwhmhhDPyxodDeKA");
         assertValidAddress("LITECOIN:MDMFP9Dx84tyaxiYksjvkG1jymBdqCuHGA");
-        assertValidAddress("LITECOIN:ltc1qftddy5ghtxur954h3znmt3cx7feegux2twem2kadkx9xqp0s50yqetxp0e?time=1708476729&exp=86400");
-        assertValidAddress("MADpfTtabZ6pDjms4pMd3ZmnrgyhTCo4N8?time=1708476729&exp=86400");
         assertValidAddress("3MSvaVbVFFLML86rt5eqgA9SvW23upaXdY");
     }
 
@@ -58,5 +54,8 @@ public class LitecoinTest extends AbstractAssetTest {
         assertInvalidAddress("MArsfeyS7P0HzsqLpAFGC9pFdhuqHgdL2R"); // contains number 0
         assertInvalidAddress("ltc1qr6quwn3v2gxpadd0cu040r9385gayk5vdcyl5"); // too short
         assertInvalidAddress("ltc1q5det08ke2gpet06wczcdfs2v3hgfqllxw28uln8vxxx82qlue6uswceljma"); // too long
+        assertValidAddress("MADpfTtabZ6pDjms4pMd3ZmnrgyhTCo4N8?time=1708476729&exp=86400"); // additional information
+        assertValidAddress("litecoin:ltc1q8tk47lvgqu55h4pfast39r3t9360gmll5z9m6z?time=1708476604&exp=600"); // additional information
+        assertValidAddress("litecoin:ltc1q026xyextkwhmveh7rpf6v6mp5p88vwc25aynxr?time=1708476626"); // additional information
     }
 }
