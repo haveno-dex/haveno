@@ -54,8 +54,8 @@ public class LitecoinTest extends AbstractAssetTest {
         assertInvalidAddress("MArsfeyS7P0HzsqLpAFGC9pFdhuqHgdL2R"); // contains number 0
         assertInvalidAddress("ltc1qr6quwn3v2gxpadd0cu040r9385gayk5vdcyl5"); // too short
         assertInvalidAddress("ltc1q5det08ke2gpet06wczcdfs2v3hgfqllxw28uln8vxxx82qlue6uswceljma"); // too long
-        assertValidAddress("MADpfTtabZ6pDjms4pMd3ZmnrgyhTCo4N8?time=1708476729&exp=86400"); // additional information
-        assertValidAddress("litecoin:ltc1q8tk47lvgqu55h4pfast39r3t9360gmll5z9m6z?time=1708476604&exp=600"); // additional information
-        assertValidAddress("litecoin:ltc1q026xyextkwhmveh7rpf6v6mp5p88vwc25aynxr?time=1708476626"); // additional information
+        assertInvalidAddress("MADpfTtabZ6pDjms4pMd3ZmnrgyhTCo4N8?time=1708476729&exp=86400"); // additional information
+        assertInvalidAddress("litecoin:ltc1q8tk47lvgqu55h4pfast39r3t9360gmll5z9m6z?time=1708476604&exp=600"); // additional information
+        assertInvalidAddress("litecoin:ltc1q026xyextkwhmveh7rpf6v6mp5p88vwc25aynxr?time=1708476626"); // additional information
     }
 }
