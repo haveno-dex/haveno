@@ -1311,13 +1311,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             if (trade instanceof MakerTrade && openOffer.isPresent()) {
                 openOfferManager.unreserveOpenOffer(openOffer.get());
             }
-
-            // remove trade from list
-            removeTrade(trade);
         }
 
         // clear and shut down trade
         trade.clearAndShutDown();
+
+        // remove trade from list
+        removeTrade(trade);
     }
 
     private void listenForCleanup(Trade trade) {
