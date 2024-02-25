@@ -949,7 +949,7 @@ public abstract class Trade implements Tradable, Model {
                     }
 
                     // wallet must be synced
-                    if (!isSyncedWithinTolerance()) {
+                    if (isDepositRequested() && !isSyncedWithinTolerance()) {
                         log.warn("Wallet is not synced for {} {}, syncing", getClass().getSimpleName(), getId());
                         syncWallet(true);
                     }
