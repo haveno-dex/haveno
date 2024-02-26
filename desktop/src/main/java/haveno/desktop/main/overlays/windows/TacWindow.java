@@ -76,7 +76,7 @@ public class TacWindow extends Overlay<TacWindow> {
                 "    - If the bank of the fiat sender charges fees, the fiat sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
                 "    - If either trader opens a dispute, the arbitrator can settle the dispute and pay out trade funds accordingly.\n" +
                 "    - In case of arbitration, you must cooperate with the arbitrator and respond to each message within 48 hours.\n" +
-                "    - The arbitrator may charge a small fee (max. the traders security deposit) as compensation for their work.\n";
+                "    - The arbitrator may penalize offer makers and traders for breaching Haveno rules and the principle of acting in good faith within the network, up to the value of the security deposit.\n";
         message(text);
         showScrollPane();
         actionButtonText(Res.get("tacWindow.agree"));
