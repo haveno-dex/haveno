@@ -795,7 +795,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private String getWalletName() {
-        return MONERO_TRADE_WALLET_PREFIX + getId();
+        return MONERO_TRADE_WALLET_PREFIX + getShortId() + "_" + getShortUid();
     }
 
     public void checkAndVerifyDaemonConnection() {
@@ -1892,6 +1892,10 @@ public abstract class Trade implements Tradable, Model {
     @Override
     public String getShortId() {
         return offer.getShortId();
+    }
+
+    public String getShortUid() {
+        return Utilities.getShortId(getUid());
     }
 
     public BigInteger getFrozenAmount() {
