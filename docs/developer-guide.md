@@ -39,7 +39,7 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 ## Release portable Monero binaries for each platform
 
 1. Update the release-v0.18 branch on Haveno's [monero repo](https://github.com/haveno-dex/monero) to the latest release from upstream + any customizations (e.g. a commit to speed up testnet hardforks for local development).
-2. `git tag <tag> && git push haveno-monero <tag>`
+2. `git tag <tag> && git push origin <tag>`
 3. Follow instructions to [build portable binaries for each platform](#build-portable-monero-binaries-for-each-platform).
 4. Publish a new release at https://github.com/haveno-dex/monero/releases with the updated binaries and hashes.
 5. Update the paths and hashes in build.gradle and PR.
