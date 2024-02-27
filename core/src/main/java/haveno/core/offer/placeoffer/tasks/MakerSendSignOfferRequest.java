@@ -143,7 +143,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     return;
                 }
 
-                // send request to alrernative arbitrator
+                // send request to alternative arbitrator
                 log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
                 model.getProtocol().startTimeoutTimer(); // reset timeout
                 sendSignOfferRequests(request, altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
