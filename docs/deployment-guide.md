@@ -62,17 +62,17 @@ Keypairs with developer privileges are able to set the network's filter object, 
 1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate public/private keypairs for developer privileges.
 2. Set developer public keys in the constructor of FilterManager.java.
 
-## Register keypairs with alert privileges
+## Register keypair with alert privileges
 
-Keypairs with alert privileges are able to send alerts, e.g. to update the application.
+A keypair with alert privileges is able to send alerts, e.g. to update the application.
 
-1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate public/private keypairs for alert privileges.
+1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate a public/private keypair for alert privileges.
 2. Set alert public keys in the constructor of AlertManager.java.
 
 ## Register keypairs with private notification privileges
 
 1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate public/private keypairs for private notification privileges.
-2. Set public keys in the constructor of PrivateNotification.java.
+2. Set public keys in the constructor of PrivateNotificationManager.java.
 
 ## Set XMR address to collect trade fees
 
