@@ -770,7 +770,7 @@ public abstract class Trade implements Tradable, Model {
 
     public boolean walletExists() {
         synchronized (walletLock) {
-            return xmrWalletService.walletExists(MONERO_TRADE_WALLET_PREFIX + getId());
+            return xmrWalletService.walletExists(getWalletName());
         }
     }
 
