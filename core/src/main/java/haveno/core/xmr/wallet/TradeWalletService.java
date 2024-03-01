@@ -17,7 +17,10 @@
 
 package haveno.core.xmr.wallet;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.core.user.Preferences;
@@ -29,6 +32,10 @@ import haveno.core.xmr.model.PreparedDepositTxAndMakerInputs;
 import haveno.core.xmr.model.RawTransactionInput;
 import haveno.core.xmr.setup.WalletConfig;
 import haveno.core.xmr.setup.WalletsSetup;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
@@ -54,15 +61,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 
 

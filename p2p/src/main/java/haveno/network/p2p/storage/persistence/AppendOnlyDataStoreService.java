@@ -18,21 +18,18 @@
 package haveno.network.p2p.storage.persistence;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Used for PersistableNetworkPayload data which gets appended to a map storage.

@@ -18,14 +18,13 @@
 package haveno.desktop.main.account.register.mediator;
 
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.mediation.mediator.Mediator;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.account.register.AgentRegistrationView;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 
 @FxmlView
 public class MediatorRegistrationView extends AgentRegistrationView<Mediator, MediatorRegistrationViewModel> {

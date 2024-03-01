@@ -18,6 +18,8 @@
 package haveno.core.alert;
 
 import com.google.common.base.Charsets;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -26,21 +28,17 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import java.math.BigInteger;
+import java.security.SignatureException;
+import java.util.Collection;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
+import static org.bitcoinj.core.Utils.HEX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.security.SignatureException;
-import java.util.Collection;
-
-import static org.bitcoinj.core.Utils.HEX;
 
 public class AlertManager {
     private static final Logger log = LoggerFactory.getLogger(AlertManager.class);

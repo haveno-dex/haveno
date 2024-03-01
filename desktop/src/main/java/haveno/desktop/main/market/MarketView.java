@@ -18,6 +18,8 @@
 package haveno.desktop.main.market;
 
 import com.google.common.base.Joiner;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.util.Utilities;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -43,6 +45,8 @@ import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -53,11 +57,6 @@ import javafx.scene.control.TabPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.apache.commons.lang3.StringUtils;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @FxmlView
 public class MarketView extends ActivatableView<TabPane, Void> {

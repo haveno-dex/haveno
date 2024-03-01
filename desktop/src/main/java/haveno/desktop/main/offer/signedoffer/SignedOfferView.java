@@ -17,38 +17,7 @@
 
 package haveno.desktop.main.offer.signedoffer;
 
-import javax.inject.Inject;
-
-import javafx.fxml.FXML;
-
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TableView;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-
-import javafx.util.Callback;
-import javafx.util.Duration;
-
-import java.util.Comparator;
-import java.util.Date;
-
-
-
+import com.google.inject.Inject;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.offer.SignedOffer;
@@ -65,6 +34,27 @@ import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import java.util.Comparator;
+import java.util.Date;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.util.Callback;
+import javafx.util.Duration;
 
 @FxmlView
 public class SignedOfferView extends ActivatableViewAndModel<VBox, SignedOffersViewModel> {

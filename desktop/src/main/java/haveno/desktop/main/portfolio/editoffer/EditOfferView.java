@@ -18,6 +18,7 @@
 package haveno.desktop.main.portfolio.editoffer;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -34,6 +35,7 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
 import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -43,10 +45,6 @@ import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javax.inject.Named;
-
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
 
 @FxmlView
 public class EditOfferView extends MutableOfferView<EditOfferViewModel> {

@@ -17,9 +17,9 @@
 
 package haveno.desktop.main;
 
+import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXProgressBar;
 import haveno.common.HavenoException;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -55,6 +55,10 @@ import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Transitions;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.Locale;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -81,6 +85,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
+import static javafx.scene.layout.AnchorPane.setBottomAnchor;
+import static javafx.scene.layout.AnchorPane.setLeftAnchor;
+import static javafx.scene.layout.AnchorPane.setRightAnchor;
+import static javafx.scene.layout.AnchorPane.setTopAnchor;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -92,17 +100,6 @@ import javafx.util.Duration;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Date;
-import java.util.Locale;
-
-import static javafx.scene.layout.AnchorPane.setBottomAnchor;
-import static javafx.scene.layout.AnchorPane.setLeftAnchor;
-import static javafx.scene.layout.AnchorPane.setRightAnchor;
-import static javafx.scene.layout.AnchorPane.setTopAnchor;
 
 @FxmlView
 @Slf4j
@@ -521,7 +518,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         };
         model.getWalletServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
-        xmrSyncIndicator = new JFXProgressBar();
+        xmrSyncIndicator = new ProgressBar();
         xmrSyncIndicator.setPrefWidth(305);
         xmrSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
@@ -770,14 +767,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                p2PNetworkIcon.setOpacity(1);
-                p2pNetworkProgressBar.setProgress(0);
-            });
-        });
+        model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
+            p2PNetworkIcon.setOpacity(1);
+            p2pNetworkProgressBar.setProgress(0);
+        }));
 
-        p2pNetworkProgressBar = new JFXProgressBar(-1);
+        p2pNetworkProgressBar = new ProgressBar(-1);
         p2pNetworkProgressBar.setMaxHeight(2);
         p2pNetworkProgressBar.prefWidthProperty().bind(p2PNetworkLabel.widthProperty());
 
@@ -797,12 +792,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private void setupBadge(JFXBadge buttonWithBadge, StringProperty badgeNumber, BooleanProperty badgeEnabled) {
         buttonWithBadge.textProperty().bind(badgeNumber);
         buttonWithBadge.setEnabled(badgeEnabled.get());
-        badgeEnabled.addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                buttonWithBadge.setEnabled(newValue);
-                buttonWithBadge.refreshBadge();
-            });
-        });
+        badgeEnabled.addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
+            buttonWithBadge.setEnabled(newValue);
+            buttonWithBadge.refreshBadge();
+        }));
 
         buttonWithBadge.setPosition(Pos.TOP_RIGHT);
         buttonWithBadge.setMinHeight(34);

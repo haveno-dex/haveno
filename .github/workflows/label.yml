@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Bounty explanation
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v3
         if: github.event.label.name == '💰bounty'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

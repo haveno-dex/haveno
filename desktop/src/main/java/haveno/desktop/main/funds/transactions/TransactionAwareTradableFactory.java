@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.funds.transactions;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.offer.OpenOffer;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -24,9 +26,6 @@ import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import haveno.core.xmr.wallet.XmrWalletService;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 
 @Singleton

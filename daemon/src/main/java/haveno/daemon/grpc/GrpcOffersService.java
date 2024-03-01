@@ -17,6 +17,7 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.OfferInfo;
@@ -24,6 +25,7 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.CancelOfferReply;
 import haveno.proto.grpc.CancelOfferRequest;
 import haveno.proto.grpc.GetMyOfferReply;
@@ -34,20 +36,6 @@ import haveno.proto.grpc.GetOfferReply;
 import haveno.proto.grpc.GetOfferRequest;
 import haveno.proto.grpc.GetOffersReply;
 import haveno.proto.grpc.GetOffersRequest;
-import haveno.proto.grpc.PostOfferReply;
-import haveno.proto.grpc.PostOfferRequest;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.OffersGrpc.OffersImplBase;
 import static haveno.proto.grpc.OffersGrpc.getCancelOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetMyOfferMethod;
@@ -55,8 +43,18 @@ import static haveno.proto.grpc.OffersGrpc.getGetMyOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getPostOfferMethod;
+import haveno.proto.grpc.PostOfferReply;
+import haveno.proto.grpc.PostOfferRequest;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class GrpcOffersService extends OffersImplBase {

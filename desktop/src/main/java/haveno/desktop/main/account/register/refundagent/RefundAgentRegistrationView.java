@@ -18,14 +18,13 @@
 package haveno.desktop.main.account.register.refundagent;
 
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.account.register.AgentRegistrationView;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 
 @FxmlView
 public class RefundAgentRegistrationView extends AgentRegistrationView<RefundAgent, RefundAgentRegistrationViewModel> {

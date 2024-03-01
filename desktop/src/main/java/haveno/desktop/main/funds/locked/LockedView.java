@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.funds.locked;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.core.locale.Res;
@@ -39,6 +41,11 @@ import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.util.GUIUtil;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -59,14 +66,6 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @FxmlView
 public class LockedView extends ActivatableView<VBox, Void> {

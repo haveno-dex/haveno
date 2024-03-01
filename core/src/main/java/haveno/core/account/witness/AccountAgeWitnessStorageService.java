@@ -17,15 +17,14 @@
 
 package haveno.core.account.witness;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.HistoricalDataStoreService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AccountAgeWitnessStorageService extends HistoricalDataStoreService<AccountAgeWitnessStore> {

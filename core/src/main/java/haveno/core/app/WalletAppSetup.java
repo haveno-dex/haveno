@@ -34,6 +34,8 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
@@ -49,12 +51,15 @@ import haveno.core.xmr.exceptions.RejectedTxException;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
@@ -63,12 +68,6 @@ import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.ChainFileLockedException;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 @Slf4j
 @Singleton
@@ -135,7 +134,7 @@ public class WalletAppSetup {
                 (numConnectionUpdates, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
                     String result;
                     if (exception == null && errorMsg == null) {
-                        
+
                         // update wallet sync progress
                         double walletDownloadPercentageD = (double) walletDownloadPercentage;
                         xmrWalletSyncProgress.set(walletDownloadPercentageD);

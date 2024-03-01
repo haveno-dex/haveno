@@ -17,10 +17,9 @@
 
 package haveno.desktop.main.funds.transactions;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.xmr.wallet.XmrWalletService;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class DisplayedTransactionsFactory {

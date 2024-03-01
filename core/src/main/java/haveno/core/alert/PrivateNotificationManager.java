@@ -22,6 +22,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -37,25 +39,21 @@ import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.math.BigInteger;
 import java.security.SignatureException;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Consumer;
-
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javax.annotation.Nullable;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import static org.bitcoinj.core.Utils.HEX;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PrivateNotificationManager implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(PrivateNotificationManager.class);

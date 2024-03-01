@@ -17,34 +17,32 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.GetXmrNodeSettingsReply;
 import haveno.proto.grpc.GetXmrNodeSettingsRequest;
 import haveno.proto.grpc.IsXmrNodeOnlineReply;
 import haveno.proto.grpc.IsXmrNodeOnlineRequest;
-import haveno.proto.grpc.XmrNodeGrpc.XmrNodeImplBase;
 import haveno.proto.grpc.StartXmrNodeReply;
 import haveno.proto.grpc.StartXmrNodeRequest;
 import haveno.proto.grpc.StopXmrNodeReply;
 import haveno.proto.grpc.StopXmrNodeRequest;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
-
-import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.Optional;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import haveno.proto.grpc.XmrNodeGrpc.XmrNodeImplBase;
 import static haveno.proto.grpc.XmrNodeGrpc.getGetXmrNodeSettingsMethod;
 import static haveno.proto.grpc.XmrNodeGrpc.getIsXmrNodeOnlineMethod;
 import static haveno.proto.grpc.XmrNodeGrpc.getStartXmrNodeMethod;
 import static haveno.proto.grpc.XmrNodeGrpc.getStopXmrNodeMethod;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import java.util.HashMap;
+import java.util.Optional;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
 
 @Slf4j
 public class GrpcXmrNodeService extends XmrNodeImplBase {

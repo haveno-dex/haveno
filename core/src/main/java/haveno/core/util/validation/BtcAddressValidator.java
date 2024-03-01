@@ -17,12 +17,11 @@
 
 package haveno.core.util.validation;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.core.locale.Res;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
-
-import javax.inject.Inject;
 
 public final class BtcAddressValidator extends InputValidator {
 

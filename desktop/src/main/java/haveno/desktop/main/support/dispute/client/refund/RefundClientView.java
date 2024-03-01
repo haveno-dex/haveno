@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.support.dispute.client.refund;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -38,9 +40,6 @@ import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.support.dispute.client.DisputeClientView;
 import haveno.network.p2p.NodeAddress;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 
 @FxmlView
 public class RefundClientView extends DisputeClientView {

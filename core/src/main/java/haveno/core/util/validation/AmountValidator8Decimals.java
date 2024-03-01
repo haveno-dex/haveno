@@ -17,7 +17,7 @@
 
 package haveno.core.util.validation;
 
-import javax.inject.Inject;
+import com.google.inject.Inject;
 
 public class AmountValidator8Decimals extends MonetaryValidator {
     @Override

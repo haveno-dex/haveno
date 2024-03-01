@@ -17,6 +17,8 @@
 
 package haveno.desktop.util;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.core.user.Preferences;
 import javafx.animation.FadeTransition;
@@ -31,9 +33,6 @@ import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.Pane;
 import javafx.util.Duration;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class Transitions {

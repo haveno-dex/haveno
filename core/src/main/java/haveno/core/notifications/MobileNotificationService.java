@@ -17,6 +17,8 @@
 
 package haveno.core.notifications;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -25,25 +27,21 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.user.Preferences;
 import haveno.network.http.HttpClient;
+import java.util.UUID;
+import java.util.function.Consumer;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Named;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @Singleton

@@ -17,6 +17,7 @@
 
 package haveno.core.app.misc;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
@@ -31,12 +32,10 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.P2PDataStorage;
+import java.util.ArrayList;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
 
 @Slf4j
 public class AppSetupWithP2P extends AppSetup {

@@ -17,6 +17,8 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -28,9 +30,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * We often need to wait until network and wallet is ready or other combination of startup states.

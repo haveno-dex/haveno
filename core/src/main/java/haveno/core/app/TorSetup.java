@@ -17,20 +17,18 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.handlers.ErrorMessageHandler;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
+import static haveno.common.util.Preconditions.checkDir;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-
-import static haveno.common.util.Preconditions.checkDir;
+import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

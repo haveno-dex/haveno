@@ -17,13 +17,12 @@
 
 package haveno.desktop.main.presentation;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.user.Preferences;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.MapChangeListener;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 
 @Singleton

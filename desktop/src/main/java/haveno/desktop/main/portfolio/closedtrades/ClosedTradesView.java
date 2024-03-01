@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.portfolio.closedtrades;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.config.Config;
@@ -43,8 +45,11 @@ import haveno.desktop.main.overlays.windows.ClosedTradesSummaryWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
+import java.util.Comparator;
+import java.util.function.Function;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -69,13 +74,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.Comparator;
-import java.util.function.Function;
-
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 @FxmlView
 public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTradesViewModel> {

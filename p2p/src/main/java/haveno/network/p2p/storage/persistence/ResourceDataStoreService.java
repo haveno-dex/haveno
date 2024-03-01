@@ -18,13 +18,12 @@
 package haveno.network.p2p.storage.persistence;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
 import haveno.common.proto.persistable.PersistableEnvelope;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Used for handling data from resource files.

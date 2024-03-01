@@ -17,7 +17,9 @@
 
 package haveno.desktop.main.portfolio.openoffer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.locale.CurrencyUtil;
@@ -36,10 +38,6 @@ import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import javafx.collections.ObservableList;
-
-import javax.inject.Named;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> implements ViewModel {
     private final P2PService p2PService;

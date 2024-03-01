@@ -17,6 +17,8 @@
 
 package haveno.core.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -28,18 +30,15 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import javafx.collections.SetChangeListener;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javafx.collections.SetChangeListener;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 @Singleton

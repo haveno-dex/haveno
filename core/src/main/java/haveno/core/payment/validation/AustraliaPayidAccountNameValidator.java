@@ -18,10 +18,9 @@
 
 package haveno.core.payment.validation;
 
+import com.google.inject.Inject;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.RegexValidator;
-
-import javax.inject.Inject;
 
 public final class AustraliaPayidAccountNameValidator extends InputValidator {
     @Override

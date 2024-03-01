@@ -17,18 +17,16 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.portfolio.closedtrades.ClosedTradesViewModel;
-import haveno.desktop.util.Layout;
-import javafx.geometry.Insets;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.Map;
-
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import haveno.desktop.util.Layout;
+import java.math.BigInteger;
+import java.util.Map;
+import javafx.geometry.Insets;
 
 public class ClosedTradesSummaryWindow extends Overlay<ClosedTradesSummaryWindow> {
     private final ClosedTradesViewModel model;

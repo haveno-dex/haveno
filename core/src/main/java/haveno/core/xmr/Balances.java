@@ -34,6 +34,7 @@
 
 package haveno.core.xmr;
 
+import com.google.inject.Inject;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.offer.OpenOffer;
@@ -47,6 +48,9 @@ import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.wallet.XmrWalletService;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
@@ -54,11 +58,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class Balances {

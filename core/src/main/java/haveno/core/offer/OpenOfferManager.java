@@ -34,6 +34,8 @@
 
 package haveno.core.offer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import common.utils.GenUtils;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
@@ -90,24 +92,6 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import lombok.Getter;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
-import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroIncomingTransfer;
-import monero.wallet.model.MoneroOutputQuery;
-import monero.wallet.model.MoneroTransferQuery;
-import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxQuery;
-import monero.wallet.model.MoneroTxWallet;
-import monero.wallet.model.MoneroWalletListener;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -121,8 +105,22 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
+import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroIncomingTransfer;
+import monero.wallet.model.MoneroOutputQuery;
+import monero.wallet.model.MoneroTransferQuery;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxQuery;
+import monero.wallet.model.MoneroTxWallet;
+import monero.wallet.model.MoneroWalletListener;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMessageListener, PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(OpenOfferManager.class);
@@ -335,7 +333,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Remove open offers at shutDown. Number of open offers: {}", size);
         if (offerBookService.isBootstrapped() && size > 0) {
             ThreadUtils.execute(() -> {
-                
+
                 // remove offers from offer book
                 synchronized (openOffers) {
                     openOffers.forEach(openOffer -> {
@@ -360,9 +358,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // shut down thread pool off main thread
         ThreadUtils.submitToPool(() -> {
             shutDownThreadPool();
-    
+
             // invoke completion handler
-            if (completeHandler != null) completeHandler.run();  
+            if (completeHandler != null) completeHandler.run();
         });
     }
 
@@ -443,13 +441,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // process open offers on dedicated thread
             ThreadUtils.execute(() -> {
-                
+
                 // Republish means we send the complete offer object
                 republishOffers();
                 startPeriodicRepublishOffersTimer();
-    
+
                 // Refresh is started once we get a success from republish
-    
+
                 // We republish after a bit as it might be that our connected node still has the offer in the data map
                 // but other peers have it already removed because of expired TTL.
                 // Those other not directly connected peers would not get the broadcast of the new offer, as the first
@@ -460,19 +458,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 if (retryRepublishOffersTimer == null)
                     retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
                             REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
-    
+
                 p2PService.getPeerManager().addListener(this);
-    
+
                 // TODO: add to invalid offers on failure
         //        openOffers.stream()
         //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
         //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
-    
+
                 // process scheduled offers
                 processScheduledOffers((transaction) -> {}, (errorMessage) -> {
                     log.warn("Error processing unposted offers: " + errorMessage);
                 });
-    
+
                 // register to process unposted offers when unlocked balance increases
                 if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
                 xmrWalletService.addWalletListener(new MoneroWalletListener() {
@@ -486,10 +484,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         lastUnlockedBalance = newUnlockedBalance;
                     }
                 });
-    
+
                 // initialize key image poller for signed offers
                 maybeInitializeKeyImagePoller();
-    
+
                 // poll spent status of key images
                 for (SignedOffer signedOffer : signedOffers.getList()) {
                     signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
@@ -883,7 +881,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // get offer reserve amount
                 BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
-                
+
                 // handle split output offer
                 if (openOffer.isReserveExactAmount()) {
 
@@ -1025,7 +1023,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
-        
+
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
         if (sufficientAvailableBalance) {

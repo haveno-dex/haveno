@@ -17,18 +17,16 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 import static io.grpc.Status.INVALID_ARGUMENT;
 import static io.grpc.Status.UNKNOWN;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import org.slf4j.Logger;
 
 /**
  * The singleton instance of this class handles any expected core api Throwable by

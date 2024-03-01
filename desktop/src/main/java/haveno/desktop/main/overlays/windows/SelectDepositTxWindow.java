@@ -17,9 +17,14 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.FormBuilder;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.ComboBox;
@@ -27,13 +32,6 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.util.StringConverter;
 import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 //TODO might be removed, but leave it for now until sure we will not use it anymore.
 public class SelectDepositTxWindow extends Overlay<SelectDepositTxWindow> {
