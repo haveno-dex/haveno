@@ -2,6 +2,7 @@
 
 This guide describes how to deploy a Haveno network:
 
+- Manage services on a VPS
 - Build Haveno
 - Start a Monero node
 - Build and start price nodes
@@ -10,8 +11,17 @@ This guide describes how to deploy a Haveno network:
 - Create and register arbitrators
 - Set a network filter
 - Build Haveno installers for distribution
-- Manage services on a VPS (WIP)
 - Send alerts to update the application
+
+## Manage services on a VPS
+
+Haveno's services should be run on a VPS for reliable uptime.
+
+The seed node, price node, and Monero node can be run as system services. Scripts are available for reference in [scripts/deployment](scripts/deployment) to customize and run system services.
+
+Arbitrators can be started in a Screen session and then detached to run in the background.
+
+Some good hints about how to secure a VPS are in [Monero's meta repository](https://github.com/monero-project/meta/blob/master/SERVER_SETUP_HARDENING.md).
 
 ## Build Haveno
 
@@ -26,29 +36,35 @@ See [installing.md](installing.md) for more detail.
 
 ## Start a Monero node
 
-Seed nodes and arbitrators should use a local, trusted Monero node.
+Seed nodes and arbitrators should use a local, trusted Monero node for performance and function.
 
 Arbitrators require a trusted node in order to submit and flush transactions from the pool.
 
-Start a Monero node by running `make monerod` for mainnet or `make monerod-stagenet` for stagenet.
+Customize and deploy private-stagenet.service and private-stagenet.conf to run a private Monero node as a system service for the seed node and arbitrator to use locally.
+
+Optionally customize and deploy monero-stagenet.service and monero-stagenet.conf to run a public Monero node as a system service for Haveno clients to use.
+
+You can also start the Monero node in your current terminal session by running `make monerod` for mainnet or `make monerod-stagenet` for stagenet.
 
 ## Build and start price nodes
 
-The price node is separated from Haveno and is to be run as a standalone service. To deploy a pricenode on both Tor and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode
+The price node is separated from Haveno and is to be run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode
 
-After a price node is deployed, add the price node to `DEFAULT_NODES` in ProvidersRepository.java.
+After the price node is built and deployed, add the price node to `DEFAULT_NODES` in ProvidersRepository.java.
+
+Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as a system service.
 
 ## Create and register seed nodes
 
 From the root of the repository, run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
 
-The node will print its onion address to the console.
+The node will print its onion address to the console. Record the onion address in `core/src/main/resources/xmr_<network>.seednodes` and remove unused seed nodes from `xmr_<network>.seednodes`. Be careful to record full addresses correctly.
 
-If you are building a network from scratch: for each seednode, record the onion address in `core/src/main/resources/xmr_<network>.seednodes` and remove unused seed nodes from `xmr_<network>.seednodes`. Be careful to record full addresses correctly.
-
-Rebuild the seed nodes any time the list of registered seed nodes changes.
+Customize and deploy haveno-seednode.service to run a seed node as a system service.
 
 Each seed node requires a locally running Monero node. You can use the default port or configure it manually with `--xmrNode`, `--xmrNodeUsername`, and `--xmrNodePassword`.
+
+Rebuild all seed nodes any time the list of registered seed nodes changes.
 
 ## Register keypairs with arbitrator privileges
 
@@ -129,18 +145,6 @@ Test trades among the users and arbitrator.
 For mainnet, first modify [package.gradle](https://github.com/haveno-dex/haveno/blob/aeb0822f9fc72bd5a0e23d0c42c2a8f5f87625bb/desktop/package/package.gradle#L252) to remove the line with ` --arguments --baseCurrencyNetwork=XMR_STAGENET` (also remove the `+` on the preceding line).
 
 Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md.
-
-## Deploy to a VPS
-
-Haveno's services should be deployed to a VPS for reliable uptime.
-
-Seednodes can be installed as a system service.
-
-Arbitrators can be started in a Screen session and then detached to run in the background.
-
-Some good hints about how to secure a VPS are in [Monero's meta repository](https://github.com/monero-project/meta/blob/master/SERVER_SETUP_HARDENING.md).
-
-To run Monero and Haveno binaries as system services, scripts are available for reference in [scripts/deployment](scripts/deployment).
 
 ## Send alerts to update the application
 
