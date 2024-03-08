@@ -284,7 +284,7 @@ task packageInstallers {
                             " --win-shortcut"
             )
 
-            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --win-console --type exe")
+            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --verbose > desktop/build/output.txt --type exe")
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
             // See https://docs.oracle.com/en/java/javase/14/jpackage/override-jpackage-resources.html
             // for details of "--resource-dir"
