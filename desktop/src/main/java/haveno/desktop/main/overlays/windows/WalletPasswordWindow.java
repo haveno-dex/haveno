@@ -17,7 +17,10 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Splitter;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.util.Tuple2;
@@ -32,7 +35,18 @@ import haveno.desktop.components.PasswordTextField;
 import haveno.desktop.main.SharedPresentation;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.addPasswordTextField;
+import static haveno.desktop.util.FormBuilder.addPrimaryActionButton;
+import static haveno.desktop.util.FormBuilder.addTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
 import haveno.desktop.util.Layout;
+import java.io.File;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import static javafx.beans.binding.Bindings.createBooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -53,22 +67,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.crypto.MnemonicCode;
 import org.bitcoinj.crypto.MnemonicException;
 import org.bitcoinj.wallet.DeterministicSeed;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.io.File;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static haveno.desktop.util.FormBuilder.addPasswordTextField;
-import static haveno.desktop.util.FormBuilder.addPrimaryActionButton;
-import static haveno.desktop.util.FormBuilder.addTextArea;
-import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
-import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 @Slf4j
 public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {

@@ -37,6 +37,9 @@ package haveno.core.api;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.core.api.model.AddressBalanceInfo;
@@ -46,13 +49,22 @@ import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.app.AppStartupState;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
+import static haveno.core.util.ParsingUtils.parseToCoin;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.Balances;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
+import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
+import static java.lang.String.format;
+import java.util.List;
+import java.util.Optional;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
@@ -63,20 +75,6 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static haveno.core.util.ParsingUtils.parseToCoin;
-import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
-import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Singleton
 @Slf4j

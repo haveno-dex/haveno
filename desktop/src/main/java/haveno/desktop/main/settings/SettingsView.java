@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.settings;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
@@ -35,8 +36,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-
-import javax.inject.Inject;
 
 @FxmlView
 public class SettingsView extends ActivatableView<TabPane, Void> {

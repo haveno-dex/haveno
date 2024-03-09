@@ -18,6 +18,7 @@
 package haveno.desktop.main.offer.createoffer;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.OfferUtil;
 import haveno.core.payment.validation.FiatVolumeValidator;
@@ -27,13 +28,11 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.AmountValidator4Decimals;
+import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.main.offer.MutableOfferViewModel;
-
-import javax.inject.Named;
 
 class CreateOfferViewModel extends MutableOfferViewModel<CreateOfferDataModel> implements ViewModel {
 

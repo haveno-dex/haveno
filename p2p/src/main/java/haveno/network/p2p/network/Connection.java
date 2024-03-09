@@ -34,6 +34,22 @@
 
 package haveno.network.p2p.network;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.google.inject.Inject;
+import com.google.protobuf.InvalidProtocolBufferException;
+import haveno.common.Proto;
+import haveno.common.ThreadUtils;
+import haveno.common.app.Capabilities;
+import haveno.common.app.HasCapabilities;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.proto.ProtobufferException;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.util.SingleThreadExecutorUtils;
+import haveno.common.util.Utilities;
 import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.CloseConnectionMessage;
 import haveno.network.p2p.ExtendedDataSizePermission;
@@ -47,39 +63,16 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import haveno.common.Proto;
-import haveno.common.ThreadUtils;
-import haveno.common.app.Capabilities;
-import haveno.common.app.HasCapabilities;
-import haveno.common.app.Version;
-import haveno.common.config.Config;
-import haveno.common.proto.ProtobufferException;
-import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.proto.network.NetworkProtoResolver;
-import haveno.common.util.SingleThreadExecutorUtils;
-import haveno.common.util.Utilities;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-
-import javax.inject.Inject;
-
-import com.google.common.util.concurrent.Uninterruptibles;
-
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InvalidClassException;
 import java.io.OptionalDataException;
 import java.io.StreamCorruptedException;
-
+import java.lang.ref.WeakReference;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,16 +87,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import java.lang.ref.WeakReference;
-
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.jetbrains.annotations.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Connection is created by the server thread or by sendMessage from NetworkNode.

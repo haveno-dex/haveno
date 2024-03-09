@@ -17,7 +17,9 @@
 
 package haveno.core.proto.persistable;
 
+import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.NavigationPath;
@@ -46,9 +48,6 @@ import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsMap;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j

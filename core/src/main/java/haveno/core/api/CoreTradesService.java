@@ -34,6 +34,8 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.offer.Offer;
@@ -55,20 +57,16 @@ import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.BtcAddressValidator;
 import haveno.core.xmr.model.AddressEntry;
+import static haveno.core.xmr.model.AddressEntry.Context.TRADE_PAYOUT;
 import haveno.core.xmr.wallet.BtcWalletService;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static java.lang.String.format;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-
-import static haveno.core.xmr.model.AddressEntry.Context.TRADE_PAYOUT;
-import static java.lang.String.format;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 @Singleton
 @Slf4j

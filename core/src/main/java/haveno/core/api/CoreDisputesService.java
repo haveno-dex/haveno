@@ -17,6 +17,9 @@
 
 package haveno.core.api;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
 import haveno.common.ThreadUtils;
@@ -43,18 +46,13 @@ import haveno.core.trade.TradeManager;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static java.lang.String.format;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.String.format;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Singleton

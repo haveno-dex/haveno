@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.market.trades;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.jfoenix.controls.JFXTabPane;
 import haveno.common.UserThread;
@@ -41,11 +43,20 @@ import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.AutoTooltipToggleButton;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
+import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
 import haveno.desktop.main.market.trades.charts.price.CandleStickChart;
 import haveno.desktop.main.market.trades.charts.volume.VolumeChart;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
+import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
+import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import haveno.desktop.util.GUIUtil;
+import java.text.DecimalFormat;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -83,19 +94,6 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.text.DecimalFormat;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
-import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 
 @FxmlView
 public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesChartsViewModel> {

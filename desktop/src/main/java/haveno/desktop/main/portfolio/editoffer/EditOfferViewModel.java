@@ -18,6 +18,7 @@
 package haveno.desktop.main.portfolio.editoffer;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -31,12 +32,10 @@ import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.AmountValidator4Decimals;
+import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferViewModel;
-
-import javax.inject.Named;
 
 class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
 

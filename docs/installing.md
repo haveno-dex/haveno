@@ -6,8 +6,8 @@ These are the steps needed to build Haveno and test it on our test network or lo
 
 On Ubuntu:
 
-  1. `sudo apt install make wget git openjdk-11-jdk`.
-  2. If `echo $JAVA_HOME` does not print the path to JDK 11, then `export JAVA_HOME=/path/to/jdk` (e.g. `export JAVA_HOME=/usr/lib/jvm/java-11-openjdk`).
+  1. `sudo apt install make wget git openjdk-17-jdk`.
+  2. If `echo $JAVA_HOME` does not print the path to JDK 17, then `export JAVA_HOME=/path/to/jdk` (e.g. `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk`).
 
 On Mac:
   1. Download and install [Java JDK 11](https://adoptium.net/temurin/archive/?version=11).
@@ -15,7 +15,7 @@ On Mac:
 
 On Windows:
 
-  1. Download [Java JDK 11](https://adoptium.net/temurin/archive/?version=11). During installation, enable the option to set the $JAVA_HOME environment variable.
+  1. Download [Java JDK 17](https://adoptium.net/temurin/archive/?version=17). During installation, enable the option to set the $JAVA_HOME environment variable.
   2. Install [MSYS2](https://www.msys2.org/).
   3. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
   4. Update pacman: `pacman -Syy`

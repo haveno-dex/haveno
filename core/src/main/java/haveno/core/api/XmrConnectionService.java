@@ -17,6 +17,8 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -26,13 +28,16 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.nodes.XmrNodes;
-import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.nodes.XmrNodes.XmrNode;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -52,12 +57,6 @@ import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
 import monero.daemon.model.MoneroPeer;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -387,7 +386,7 @@ public final class XmrConnectionService {
                     public void onNodeStopped() {
                         log.info("Local monero node stopped");
                     }
-                    
+
                     @Override
                     public void onConnectionChanged(MoneroRpcConnection connection) {
                         log.info("Local monerod connection changed: " + connection);
@@ -395,7 +394,7 @@ public final class XmrConnectionService {
                         // skip if ignored
                         if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen() ||
                             !connectionManager.hasConnection(connection.getUri()) || xmrLocalNode.shouldBeIgnored()) return;
-                        
+
                         // check connection
                         boolean isConnected = false;
                         if (xmrLocalNode.isConnected()) {
@@ -646,7 +645,7 @@ public final class XmrConnectionService {
 
                 // skip if shut down or connected
                 if (isShutDownStarted || Boolean.TRUE.equals(isConnected())) return;
-                
+
                 // log error message periodically
                 if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > MIN_ERROR_LOG_PERIOD_MS)) {
                     lastErrorTimestamp = System.currentTimeMillis();

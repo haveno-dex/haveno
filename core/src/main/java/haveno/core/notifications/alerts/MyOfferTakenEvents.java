@@ -17,18 +17,17 @@
 
 package haveno.core.notifications.alerts;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.locale.Res;
 import haveno.core.notifications.MobileMessage;
 import haveno.core.notifications.MobileMessageType;
 import haveno.core.notifications.MobileNotificationService;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
+import java.util.UUID;
 import javafx.collections.ListChangeListener;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.UUID;
 
 @Slf4j
 @Singleton

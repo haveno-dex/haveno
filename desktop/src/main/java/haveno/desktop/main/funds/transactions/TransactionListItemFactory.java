@@ -17,16 +17,15 @@
 
 package haveno.desktop.main.funds.transactions;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
-import monero.wallet.model.MoneroTxWallet;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
+import monero.wallet.model.MoneroTxWallet;
 
 
 @Singleton

@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.account.content.notifications;
 
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -47,8 +48,16 @@ import haveno.desktop.components.InfoInputTextField;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
+import static haveno.desktop.util.FormBuilder.addButton;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelButton;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.SetChangeListener;
@@ -63,17 +72,6 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.util.StringConverter;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static haveno.desktop.util.FormBuilder.addButton;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelButton;
 
 @FxmlView
 public class MobileNotificationsView extends ActivatableView<GridPane, Void> {

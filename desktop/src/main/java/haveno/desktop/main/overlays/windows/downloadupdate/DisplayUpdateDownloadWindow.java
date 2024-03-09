@@ -18,7 +18,7 @@
 package haveno.desktop.main.overlays.windows.downloadupdate;
 
 import com.google.common.base.Joiner;
-import com.jfoenix.controls.JFXProgressBar;
+import static com.google.common.base.Preconditions.checkNotNull;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.alert.Alert;
@@ -28,6 +28,18 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -42,21 +54,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Scanner;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.util.FormBuilder.addLabel;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 @Slf4j
 public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWindow> {
@@ -134,7 +131,7 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
         downloadingFileLabel.setOpacity(0.2);
         GridPane.setHalignment(downloadingFileLabel, HPos.LEFT);
 
-        progressBar = new JFXProgressBar(0L);
+        progressBar = new ProgressBar(0L);
         progressBar.setMaxHeight(4);
         progressBar.managedProperty().bind(progressBar.visibleProperty());
 

@@ -17,30 +17,28 @@
 
 package haveno.core.offer.takeoffer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import haveno.common.taskrunner.Model;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
+import static haveno.core.offer.OfferDirection.SELL;
 import haveno.core.offer.OfferUtil;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
+import static haveno.core.xmr.model.XmrAddressEntry.Context.OFFER_FUNDING;
 import haveno.core.xmr.wallet.XmrWalletService;
+import java.math.BigInteger;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.Objects;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.core.offer.OfferDirection.SELL;
-import static haveno.core.xmr.model.XmrAddressEntry.Context.OFFER_FUNDING;
 
 @Slf4j
 public class TakeOfferModel implements Model {

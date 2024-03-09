@@ -20,23 +20,25 @@ package haveno.daemon.grpc;
 import com.google.common.annotations.VisibleForTesting;
 
 import haveno.common.config.Config;
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
+import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
 import haveno.proto.grpc.GetVersionReply;
 import haveno.proto.grpc.GetVersionRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Optional;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import lombok.extern.slf4j.Slf4j;
 
 @VisibleForTesting
 @Slf4j

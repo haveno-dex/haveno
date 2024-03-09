@@ -18,6 +18,7 @@
 package haveno.desktop.main.offer.offerbook;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreApi;
 import haveno.core.locale.CryptoCurrency;
@@ -42,13 +43,11 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import javax.inject.Named;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class XmrOfferBookViewModel extends OfferBookViewModel {
 

@@ -17,13 +17,18 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.asset.Asset;
 import haveno.asset.AssetRegistry;
+import static haveno.common.config.Config.baseCurrencyNetwork;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
+import static haveno.core.locale.CurrencyUtil.findAsset;
+import static haveno.core.locale.CurrencyUtil.getCryptoCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.AssetAccount;
 import haveno.core.payment.CryptoCurrencyAccount;
@@ -32,21 +37,14 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.user.User;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.File;
+import static java.lang.String.format;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static haveno.common.config.Config.baseCurrencyNetwork;
-import static haveno.core.locale.CurrencyUtil.findAsset;
-import static haveno.core.locale.CurrencyUtil.getCryptoCurrency;
-import static java.lang.String.format;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j

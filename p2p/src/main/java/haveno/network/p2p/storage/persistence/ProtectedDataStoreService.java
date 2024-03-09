@@ -18,18 +18,17 @@
 package haveno.network.p2p.storage.persistence;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Used for data which can be added and removed. ProtectedStorageEntry is used for verifying ownership.

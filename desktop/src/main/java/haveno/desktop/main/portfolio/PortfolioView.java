@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.portfolio;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
@@ -34,15 +35,13 @@ import haveno.desktop.main.portfolio.editoffer.EditOfferView;
 import haveno.desktop.main.portfolio.failedtrades.FailedTradesView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
+import java.util.List;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.List;
 
 @FxmlView
 public class PortfolioView extends ActivatableView<TabPane, Void> {

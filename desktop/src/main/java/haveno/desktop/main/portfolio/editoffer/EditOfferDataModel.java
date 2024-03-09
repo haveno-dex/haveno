@@ -19,6 +19,7 @@ package haveno.desktop.main.portfolio.editoffer;
 
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -45,8 +46,6 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
-
-import javax.inject.Named;
 import java.util.Optional;
 import java.util.Set;
 

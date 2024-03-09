@@ -17,12 +17,11 @@
 
 package haveno.core.provider;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.http.HttpClientImpl;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class PriceHttpClient extends HttpClientImpl {

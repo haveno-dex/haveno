@@ -17,6 +17,7 @@
 
 package haveno.core.presentation;
 
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.Balances;
@@ -24,8 +25,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 
 @Slf4j
 public class BalancePresentation {

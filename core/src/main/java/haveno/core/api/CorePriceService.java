@@ -35,6 +35,8 @@
 package haveno.core.api;
 
 import com.google.common.math.LongMath;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.api.model.MarketDepthInfo;
 import haveno.core.api.model.MarketPriceInfo;
 import haveno.core.locale.CurrencyUtil;
@@ -44,16 +46,13 @@ import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Singleton

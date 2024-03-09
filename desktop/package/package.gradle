@@ -55,9 +55,6 @@ task getJavaBinariesDownloadURLs {
         binariesFolderPath.mkdirs()
         ext.binariesFolderPath = binariesFolderPath
 
-        // TODO Extend script logic to alternatively allow a local (separate, v14+) JDK for jpackage
-        // TODO Another option is to use the local JDK for everything: build jars and use jpackage (but then it has to be v14+)
-
         // Define the download URLs (and associated binary hashes) for the JDK used to package the installers
         // These JDKs are independent of what is installed on the building system
         //
@@ -71,28 +68,46 @@ task getJavaBinariesDownloadURLs {
         // -- linux   ( -> use the tar.gz JDK link)
         // -- macOS   ( -> use the tar.gz JDK link)
         // -- windows ( -> use the .zip JDK link)
-        Map jdk15Binaries = [
-                'linux'         : 'https://github.com/AdoptOpenJDK/openjdk15-binaries/releases/download/jdk-15.0.2%2B7/OpenJDK15U-jdk_x64_linux_hotspot_15.0.2_7.tar.gz',
-                'linux-sha256'  : '94f20ca8ea97773571492e622563883b8869438a015d02df6028180dd9acc24d',
-                'mac'           : 'https://github.com/AdoptOpenJDK/openjdk15-binaries/releases/download/jdk-15.0.2%2B7/OpenJDK15U-jdk_x64_mac_hotspot_15.0.2_7.tar.gz',
-                'mac-sha256'    : 'd358a7ff03905282348c6c80562a4da2e04eb377b60ad2152be4c90f8d580b7f',
-                'windows'       : 'https://github.com/AdoptOpenJDK/openjdk15-binaries/releases/download/jdk-15.0.2%2B7/OpenJDK15U-jdk_x64_windows_hotspot_15.0.2_7.zip',
-                'windows-sha256': 'b80dde2b7f8374eff0f1726c1cbdb48fb095fdde21489046d92f7144baff5741'
-
-                // TODO For some reason, using "--runtime-image jdk-11" does NOT work with a v15 jpackage, but works with v14
+        Map jdk21Binaries = [
+                'linux'                 : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-linux-amd64-full.tar.gz',
+                'linux-sha256'          : '7eda80851fba1da023e03446c77100f19e7c770491b0d5bc9f893044e1b2b69b',
+                'linux-aarch64'         : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-linux-aarch64-full.tar.gz',
+                'linux-aarch64-sha256'  : 'a477fc72085f30b03bf71fbed47923cea3b6f33b5b6a5a74718623b772a3a043',
+                'mac'                   : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-macos-amd64-full.tar.gz',
+                'mac-sha256'            : '42b528206595e559803b6f9f6bdbbf236ec6d10684058f46bc5261f5498d345c',
+                'mac-aarch64'           : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-macos-aarch64-full.tar.gz',
+                'mac-aarch64-sha256'    : 'eba73a9bff7234220dc9a1da7f44b3d7ed2a562663eadc1c53bd74b355839a55',
+                'windows'               : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-windows-amd64-full.zip',
+                'windows-sha256'        : 'f823eff0234af5bef095e53e5431191dbee8c2e42ca321eda23148a15cbf8d5b',
+                'windows-aarch64'       : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-windows-aarch64-full.zip',
+                'windows-aarch64-sha256': 'a2e9edecaf9637f83ef1cddab3a74f39ac55f8e1a479f10f3584ad939dfadd0a'
         ]
 
         String osKey
+        String architecture = System.getProperty("os.arch").toLowerCase()
+
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-            osKey = 'windows'
+            if (architecture.contains("aarch64") || architecture.contains("arm")) {
+                osKey = "windows-aarch64"
+            } else {
+                osKey = "windows"
+            }
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
-            osKey = 'mac'
+            if (architecture.contains("aarch64") || architecture.contains("arm")) {
+                osKey = "mac-aarch64"
+            } else {
+                osKey = "mac"
+            }
         } else {
-            osKey = 'linux'
+            if (architecture.contains("aarch64") || architecture.contains("arm")) {
+                osKey = "linux-aarch64"
+            } else {
+                osKey = "linux"
+            }
         }
 
-        ext.jdk15Binary_DownloadURL = jdk15Binaries[osKey]
-        ext.jdk15Binary_SHA256Hash = jdk15Binaries[osKey + '-sha256']
+        ext.jdk21Binary_DownloadURL = jdk21Binaries[osKey]
+        ext.jdk21Binary_SHA256Hash = jdk21Binaries[osKey + '-sha256']
     }
 }
 
@@ -108,8 +123,8 @@ task retrieveAndExtractJavaBinaries {
         File jdkForJpackageDir = new File(tempRootDir, jdkForJpackageDirName)
         jdkForJpackageDir.mkdirs()
 
-        String jdkForJpackageArchiveURL = getJavaBinariesDownloadURLs.property('jdk15Binary_DownloadURL')
-        String jdkForJpackageArchiveHash = getJavaBinariesDownloadURLs.property('jdk15Binary_SHA256Hash')
+        String jdkForJpackageArchiveURL = getJavaBinariesDownloadURLs.property('jdk21Binary_DownloadURL')
+        String jdkForJpackageArchiveHash = getJavaBinariesDownloadURLs.property('jdk21Binary_SHA256Hash')
         String jdkForJpackageArchiveFileName = jdkForJpackageArchiveURL.tokenize('/').last()
         File jdkForJpackageFile = new File(jdkForJpackageDir, jdkForJpackageArchiveFileName)
 
@@ -248,6 +263,10 @@ task packageInstallers {
                         " --main-class haveno.desktop.app.HavenoAppMain" +
                         " --java-options -Xss1280k" +
                         " --java-options -XX:MaxRAM=4g" +
+                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED" +
+                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED" +
+                        " --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED" +
+                        " --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED" +
                         " --java-options -Djava.net.preferIPv4Stack=true" +
                         " --arguments --baseCurrencyNetwork=XMR_STAGENET"
                 // Warning: this will cause guice reflection exceptions and lead to issues with the guice internal cache
@@ -265,7 +284,7 @@ task packageInstallers {
                             " --win-shortcut"
             )
 
-            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --type exe")
+            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --win-console --type exe")
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
             // See https://docs.oracle.com/en/java/javase/14/jpackage/override-jpackage-resources.html
             // for details of "--resource-dir"

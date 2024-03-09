@@ -17,10 +17,12 @@
 
 package haveno.core.support.traderchat;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
-import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportManager;
 import haveno.core.support.SupportType;
@@ -32,14 +34,11 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import java.util.List;
+import java.util.Optional;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Singleton

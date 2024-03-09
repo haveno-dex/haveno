@@ -17,7 +17,9 @@
 
 package haveno.desktop.main.offer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
@@ -50,6 +52,16 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.Comparator;
+import static java.util.Comparator.comparing;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -67,20 +79,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Comparator.comparing;
 
 public abstract class MutableOfferDataModel extends OfferDataModel {
     private final CreateOfferService createOfferService;

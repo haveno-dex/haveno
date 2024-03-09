@@ -17,16 +17,15 @@
 
 package haveno.core.network.p2p.inventory;
 
+import com.google.inject.Inject;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.network.p2p.inventory.model.InventoryItem;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.NetworkNode;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GetInventoryRequestManager {

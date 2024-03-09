@@ -17,8 +17,10 @@
 
 package haveno.desktop.main.account.content.cryptoaccounts;
 
-import haveno.asset.CryptoAccountDisclaimer;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.asset.Asset;
+import haveno.asset.CryptoAccountDisclaimer;
 import haveno.asset.coins.Monero;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -39,11 +41,17 @@ import haveno.core.util.validation.InputValidator;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.paymentmethods.AssetsForm;
+import static haveno.desktop.components.paymentmethods.AssetsForm.INSTANT_TRADE_NEWS;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
 import haveno.desktop.main.account.content.PaymentAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 import haveno.desktop.util.Layout;
+import java.util.Optional;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -51,16 +59,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.Optional;
-
-import static haveno.desktop.components.paymentmethods.AssetsForm.INSTANT_TRADE_NEWS;
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAccountsViewModel> {

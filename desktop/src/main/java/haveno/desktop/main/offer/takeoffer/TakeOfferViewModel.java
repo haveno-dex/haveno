@@ -17,6 +17,9 @@
 
 package haveno.desktop.main.offer.takeoffer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
@@ -50,6 +53,8 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
+import java.math.BigInteger;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -62,14 +67,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> implements ViewModel {
     final TakeOfferDataModel dataModel;

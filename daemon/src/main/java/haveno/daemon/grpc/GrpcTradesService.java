@@ -34,12 +34,15 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.TradeInfo;
+import static haveno.core.api.model.TradeInfo.toTradeInfo;
 import haveno.core.trade.Trade;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.CompleteTradeReply;
 import haveno.proto.grpc.CompleteTradeRequest;
 import haveno.proto.grpc.ConfirmPaymentReceivedReply;
@@ -57,18 +60,6 @@ import haveno.proto.grpc.SendChatMessageRequest;
 import haveno.proto.grpc.TakeOfferReply;
 import haveno.proto.grpc.TakeOfferRequest;
 import haveno.proto.grpc.TradesGrpc.TradesImplBase;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static haveno.core.api.model.TradeInfo.toTradeInfo;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.TradesGrpc.getCompleteTradeMethod;
 import static haveno.proto.grpc.TradesGrpc.getConfirmPaymentReceivedMethod;
 import static haveno.proto.grpc.TradesGrpc.getConfirmPaymentSentMethod;
@@ -78,8 +69,15 @@ import static haveno.proto.grpc.TradesGrpc.getGetTradesMethod;
 import static haveno.proto.grpc.TradesGrpc.getSendChatMessageMethod;
 import static haveno.proto.grpc.TradesGrpc.getTakeOfferMethod;
 import static haveno.proto.grpc.TradesGrpc.getWithdrawFundsMethod;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class GrpcTradesService extends TradesImplBase {

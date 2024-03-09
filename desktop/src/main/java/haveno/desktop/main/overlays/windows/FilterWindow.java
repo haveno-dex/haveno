@@ -18,6 +18,7 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -29,6 +30,14 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -41,17 +50,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import org.apache.commons.lang3.StringUtils;
-
-import javax.inject.Named;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 
 public class FilterWindow extends Overlay<FilterWindow> {
     private final FilterManager filterManager;

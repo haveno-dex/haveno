@@ -17,7 +17,11 @@
 
 package haveno.core.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.util.MathUtils;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
@@ -26,20 +30,14 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
-import javafx.collections.ListChangeListener;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import static haveno.common.util.MathUtils.roundDoubleToLong;
-import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
+import javafx.collections.ListChangeListener;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton

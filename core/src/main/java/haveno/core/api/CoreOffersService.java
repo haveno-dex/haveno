@@ -34,8 +34,13 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
+import static haveno.common.util.MathUtils.exactMultiply;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
@@ -44,37 +49,30 @@ import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
+import static haveno.core.offer.OfferDirection.BUY;
 import haveno.core.offer.OfferFilterService;
 import haveno.core.offer.OfferFilterService.Result;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
+import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static java.lang.String.format;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import static java.util.Comparator.comparing;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static haveno.common.util.MathUtils.exactMultiply;
-import static haveno.common.util.MathUtils.roundDoubleToLong;
-import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.offer.OfferDirection.BUY;
-import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
-import static java.lang.String.format;
-import static java.util.Comparator.comparing;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Transaction;
 
 @Singleton
 @Slf4j

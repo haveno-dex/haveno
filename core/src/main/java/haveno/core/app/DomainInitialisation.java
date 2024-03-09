@@ -17,6 +17,7 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.account.sign.SignedWitnessService;
@@ -50,8 +51,6 @@ import haveno.core.user.User;
 import haveno.core.xmr.Balances;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.mailbox.MailboxMessageService;
-
-import javax.inject.Inject;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;

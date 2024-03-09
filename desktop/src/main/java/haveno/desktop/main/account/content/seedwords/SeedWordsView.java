@@ -35,6 +35,8 @@
 package haveno.desktop.main.account.content.seedwords;
 
 import com.google.common.base.Splitter;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
@@ -46,7 +48,19 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.SharedPresentation;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import haveno.desktop.util.Layout;
+import java.io.File;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.TimeZone;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -57,23 +71,6 @@ import javafx.scene.layout.GridPane;
 import org.bitcoinj.crypto.MnemonicCode;
 import org.bitcoinj.crypto.MnemonicException;
 import org.bitcoinj.wallet.DeterministicSeed;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.io.File;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.TimeZone;
-
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-//import static haveno.desktop.util.FormBuilder.addPrimaryActionButtonAFterGroup;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 //import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 @FxmlView

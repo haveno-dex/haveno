@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.offer.offerbook;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -29,9 +31,6 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import javafx.scene.layout.GridPane;
-
-import javax.inject.Inject;
-import javax.inject.Named;
 
 @FxmlView
 public class XmrOfferBookView extends OfferBookView<GridPane, XmrOfferBookViewModel> {
