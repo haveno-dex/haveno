@@ -394,7 +394,6 @@ public abstract class Trade implements Tradable, Model {
     @Setter
     @Nullable
     private String counterCurrencyTxId;
-    @Getter
     private final ObservableList<ChatMessage> chatMessages = FXCollections.observableArrayList();
 
     // Transient
