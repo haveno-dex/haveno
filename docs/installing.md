@@ -2,28 +2,27 @@
 
 These are the steps needed to build Haveno and test it on our test network or locally.
 
-## Install dependencies (requires Java JDK 11)
+## Install dependencies
 
-On Ubuntu:
+On Linux and macOS, install Java JDK 21:
 
-  1. `sudo apt install make wget git openjdk-17-jdk`.
-  2. If `echo $JAVA_HOME` does not print the path to JDK 17, then `export JAVA_HOME=/path/to/jdk` (e.g. `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk`).
+```
+curl -s "https://get.sdkman.io" | bash
+sdk install java 21.0.2.fx-librca
+```
 
-On Mac:
-  1. Download and install [Java JDK 11](https://adoptium.net/temurin/archive/?version=11).
-  2. `export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home`
+On Windows, install MSYS2 and Java JDK 21:
 
-On Windows:
-
-  1. Download [Java JDK 17](https://adoptium.net/temurin/archive/?version=17). During installation, enable the option to set the $JAVA_HOME environment variable.
-  2. Install [MSYS2](https://www.msys2.org/).
-  3. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+  1. Install [MSYS2](https://www.msys2.org/).
+  2. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
   4. Update pacman: `pacman -Syy`
   5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
 
       64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
 
       32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+  6. `curl -s "https://get.sdkman.io" | bash`
+  7. `sdk install java 21.0.2.fx-librca`
 
 ## Build Haveno
 

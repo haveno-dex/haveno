@@ -40,9 +40,9 @@ Haveno data folder on Mac: `/Users/<username>/Library/Application Support/Haveno
     6. Click "OK" to save the changes and exit the dialog box.
     7. Windows will download and install the required files and components to enable the .NET Framework 3.5. This may take several minutes, depending on your internet connection speed and system configuration.
     8. Once the installation is complete, you will need to restart your computer to apply the changes.
-2. Install Wix Toolset 3: https://github.com/wixtoolset/wix3/releases/tag/wix3112rtm
+2. Install Wix Toolset 3: https://github.com/wixtoolset/wix3/releases/tag/wix314rtm
 3. Open MSYS2 for the following commands.
-4. `export PATH=$PATH:$JAVA_HOME/bin:"C:\Program Files (x86)\WiX Toolset v3.11\bin"`
+4. `export PATH=$PATH:$JAVA_HOME/bin:"C:\Program Files (x86)\WiX Toolset v3.14\bin"`
 5. `./gradlew packageInstallers`
 6. Confirm prompts.
 7. Path to installer printed at end. Execute to install.
