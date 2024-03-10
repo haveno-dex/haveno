@@ -17,14 +17,12 @@
 
 package haveno.network.p2p.network;
 
+import java.io.File;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.berndpruenster.netlayer.tor.ExternalTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
 
 /**
  * This class creates a brand new instance of the Tor onion router.
@@ -39,15 +37,21 @@ import java.util.Date;
 @Slf4j
 public class RunningTor extends TorMode {
 
+    private final String controlHost;
     private final int controlPort;
     private final String password;
     private final File cookieFile;
     private final boolean useSafeCookieAuthentication;
 
 
-    public RunningTor(final File torDir, final int controlPort, final String password, final File cookieFile,
-            final boolean useSafeCookieAuthentication) {
+    public RunningTor(final File torDir,
+                      final String controlHost,
+                      final int controlPort,
+                      final String password,
+                      final File cookieFile,
+                      final boolean useSafeCookieAuthentication) {
         super(torDir);
+        this.controlHost = controlHost;
         this.controlPort = controlPort;
         this.password = password;
         this.cookieFile = cookieFile;
@@ -55,18 +59,18 @@ public class RunningTor extends TorMode {
     }
 
     @Override
-    public Tor getTor() throws IOException, TorCtlException {
+    public Tor getTor() throws TorCtlException {
         long ts1 = new Date().getTime();
 
         log.info("Connecting to running tor");
 
         Tor result;
         if (!password.isEmpty())
-            result = new ExternalTor(controlPort, password);
+            result = new ExternalTor(controlHost, controlPort, password);
         else if (cookieFile != null && cookieFile.exists())
-            result = new ExternalTor(controlPort, cookieFile, useSafeCookieAuthentication);
+            result = new ExternalTor(controlHost, controlPort, cookieFile, useSafeCookieAuthentication);
         else
-            result = new ExternalTor(controlPort);
+            result = new ExternalTor(controlHost, controlPort);
 
         log.info(
                 "\n################################################################\n"
