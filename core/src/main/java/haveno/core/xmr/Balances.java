@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.xmr;
 
+import com.google.inject.Inject;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -29,6 +48,9 @@ import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.wallet.XmrWalletService;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
@@ -36,11 +58,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class Balances {
@@ -87,6 +104,10 @@ public class Balances {
     }
 
     private void updateBalances() {
+        ThreadUtils.submitToPool(() -> doUpdateBalances());
+    }
+
+    private void doUpdateBalances() {
 
         // get wallet balances
         BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getWallet().getBalance(0);

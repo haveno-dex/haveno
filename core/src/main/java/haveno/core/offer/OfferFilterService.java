@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -28,18 +30,15 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
-import javafx.collections.SetChangeListener;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javafx.collections.SetChangeListener;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Coin;
 
 @Slf4j
 @Singleton

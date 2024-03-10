@@ -1,6 +1,28 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package haveno.core.api;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.FaultHandler;
@@ -24,18 +46,13 @@ import haveno.core.trade.TradeManager;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static java.lang.String.format;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.String.format;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Singleton
@@ -81,7 +98,8 @@ public class CoreDisputesService {
         Trade trade = tradeManager.getOpenTrade(tradeId).orElseThrow(() ->
                 new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
 
-        synchronized (trade) {
+        // open dispute on trade thread
+        ThreadUtils.execute(() -> {
             Offer offer = trade.getOffer();
             if (offer == null) throw new IllegalStateException(format("offer with tradeId '%s' is null", tradeId));
 
@@ -96,7 +114,7 @@ public class CoreDisputesService {
             // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
             disputeManager.sendDisputeOpenedMessage(dispute, false, trade.getSelf().getUpdatedMultisigHex(), resultHandler, faultHandler);
             tradeManager.requestPersistence();
-        }
+        }, trade.getId());
     }
 
     public Dispute createDisputeForTrade(Trade trade, Offer offer, PubKeyRing pubKey, boolean isMaker, boolean isSupportTicket) {

@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,7 @@
 
 package haveno.desktop.main.funds.withdrawal;
 
+import com.google.inject.Inject;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
@@ -35,8 +53,15 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TxDetails;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import haveno.desktop.util.FormBuilder;
+import static haveno.desktop.util.FormBuilder.addButton;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -49,16 +74,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static haveno.desktop.util.FormBuilder.addButton;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 
 @FxmlView
 public class WithdrawalView extends ActivatableView<VBox, Void> {

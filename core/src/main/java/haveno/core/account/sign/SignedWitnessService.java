@@ -1,24 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.account.sign;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
@@ -34,11 +35,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.SignatureException;
@@ -56,6 +52,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 
 @Slf4j
 public class SignedWitnessService {

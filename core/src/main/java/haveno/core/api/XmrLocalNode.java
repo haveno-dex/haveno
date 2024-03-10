@@ -16,6 +16,8 @@
  */
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
@@ -23,16 +25,15 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroConnectionManager;
-import monero.common.MoneroUtils;
-import monero.daemon.MoneroDaemonRpc;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroConnectionManager;
+import monero.common.MoneroUtils;
+import monero.daemon.MoneroDaemonRpc;
+
 
 /**
  * Start and stop or connect to a local Monero node.
@@ -80,11 +81,10 @@ public class XmrLocalNode {
         this.config = config;
         this.preferences = preferences;
         this.daemon = new MoneroDaemonRpc("http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort);
-        
+
         // initialize connection manager to listen to local connection
         this.connectionManager = new MoneroConnectionManager().setConnection(daemon.getRpcConnection());
         this.connectionManager.setTimeout(REFRESH_PERIOD_LOCAL_MS);
-        this.connectionManager.checkConnection();
         this.connectionManager.addListener((connection) -> {
             for (var listener : listeners) listener.onConnectionChanged(connection); // notify of connection changes
         });

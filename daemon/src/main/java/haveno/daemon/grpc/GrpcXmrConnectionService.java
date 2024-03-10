@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,9 +34,11 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.AddConnectionReply;
 import haveno.proto.grpc.AddConnectionRequest;
 import haveno.proto.grpc.CheckConnectionReply;
@@ -43,20 +62,6 @@ import haveno.proto.grpc.StartCheckingConnectionsRequest;
 import haveno.proto.grpc.StopCheckingConnectionsReply;
 import haveno.proto.grpc.StopCheckingConnectionsRequest;
 import haveno.proto.grpc.UrlConnection;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
-
-import javax.inject.Inject;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.XmrConnectionsGrpc.XmrConnectionsImplBase;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getAddConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionMethod;
@@ -69,7 +74,17 @@ import static haveno.proto.grpc.XmrConnectionsGrpc.getSetAutoSwitchMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getSetConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getStartCheckingConnectionsMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getStopCheckingConnectionsMethod;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 
 @Slf4j
 class GrpcXmrConnectionService extends XmrConnectionsImplBase {

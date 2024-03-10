@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.user;
@@ -82,6 +82,7 @@ public class UserPayload implements PersistableEnvelope {
     // Generic map for persisting various UI states. We keep values un-typed as string to
     // provide sufficient flexibility.
     private Cookie cookie = new Cookie();
+    private long walletCreationDate;
 
     public UserPayload() {
     }
@@ -122,6 +123,7 @@ public class UserPayload implements PersistableEnvelope {
                 .ifPresent(e -> builder.addAllAcceptedRefundAgents(ProtoUtil.collectionToProto(acceptedRefundAgents,
                         message -> ((protobuf.StoragePayload) message).getRefundAgent())));
         Optional.ofNullable(cookie).ifPresent(e -> builder.putAllCookie(cookie.toProtoMessage()));
+        builder.setWalletCreationDate(walletCreationDate);
         return protobuf.PersistableEnvelope.newBuilder().setUserPayload(builder).build();
     }
 
@@ -153,7 +155,8 @@ public class UserPayload implements PersistableEnvelope {
                 proto.getAcceptedRefundAgentsList().isEmpty() ? new ArrayList<>() : new ArrayList<>(proto.getAcceptedRefundAgentsList().stream()
                         .map(RefundAgent::fromProto)
                         .collect(Collectors.toList())),
-                Cookie.fromProto(proto.getCookieMap())
+                Cookie.fromProto(proto.getCookieMap()),
+                proto.getWalletCreationDate()
         );
     }
 }

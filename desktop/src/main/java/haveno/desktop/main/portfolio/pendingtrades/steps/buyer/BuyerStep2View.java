@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
@@ -22,7 +22,6 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
-import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
@@ -158,7 +157,6 @@ public class BuyerStep2View extends TradeStepView {
                         case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
-                            model.setMessageStatePropertyIfNotAcked(MessageState.SENT);
                             timeoutTimer = UserThread.runAfter(() -> {
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
@@ -167,18 +165,15 @@ public class BuyerStep2View extends TradeStepView {
                         case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
-                            model.setMessageStatePropertyIfNotAcked(MessageState.STORED_IN_MAILBOX);
                             break;
                         case SELLER_RECEIVED_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
-                            model.setMessageStatePropertyIfNotAcked(MessageState.ARRIVED);
                             break;
                         case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                             // We get a popup and the trade closed, so we dont need to show anything here
                             busyAnimation.stop();
                             statusLabel.setText("");
-                            model.setMessageStatePropertyIfNotAcked(MessageState.FAILED);
                             break;
                         default:
                             log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
@@ -579,7 +574,7 @@ public class BuyerStep2View extends TradeStepView {
         model.dataModel.onPaymentSent(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
-            new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentSentPermitted());
             UserThread.execute(() -> statusLabel.setText("Error confirming payment sent."));
         });

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.daemon.grpc;
@@ -20,23 +20,25 @@ package haveno.daemon.grpc;
 import com.google.common.annotations.VisibleForTesting;
 
 import haveno.common.config.Config;
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
+import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import haveno.proto.grpc.GetVersionGrpc.GetVersionImplBase;
 import haveno.proto.grpc.GetVersionReply;
 import haveno.proto.grpc.GetVersionRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Optional;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.GetVersionGrpc.getGetVersionMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import lombok.extern.slf4j.Slf4j;
 
 @VisibleForTesting
 @Slf4j

@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,8 +34,10 @@
 
 package haveno.core.trade;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
-
+import com.google.inject.Inject;
 import common.utils.GenUtils;
 import haveno.common.ClockWatcher;
 import haveno.common.ThreadUtils;
@@ -47,14 +66,19 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
+import haveno.core.support.dispute.messages.DisputeClosedMessage;
+import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.Trade.Phase;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
+import haveno.core.trade.messages.DepositsConfirmedMessage;
 import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.PaymentReceivedMessage;
+import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.messages.TradeMessage;
@@ -80,26 +104,13 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.mailbox.MailboxMessage;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.network.TorNetworkNode;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleLongProperty;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import lombok.Getter;
-import monero.daemon.model.MoneroTx;
-import org.bitcoinj.core.Coin;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -111,9 +122,21 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleLongProperty;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import monero.daemon.model.MoneroTx;
+import org.bitcoinj.core.Coin;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
@@ -152,6 +175,31 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
+
+    // set comparator for processing mailbox messages
+    static {
+        MailboxMessageService.setMailboxMessageComparator(new MailboxMessageComparator());
+    }
+
+    /**
+     * Sort mailbox messages for processing.
+     */
+    public static class MailboxMessageComparator implements Comparator<MailboxMessage> {
+        private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
+            AckMessage.class,
+            DepositsConfirmedMessage.class,
+            PaymentSentMessage.class,
+            PaymentReceivedMessage.class,
+            DisputeOpenedMessage.class,
+            DisputeClosedMessage.class);
+
+        @Override
+        public int compare(MailboxMessage m1, MailboxMessage m2) {
+            int idx1 = messageOrder.indexOf(m1.getClass());
+            int idx2 = messageOrder.indexOf(m2.getClass());
+            return idx1 - idx2;
+        }
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -391,7 +439,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             for (Trade trade : trades) {
                 tasks.add(() -> {
                     try {
-                        
+
                         // check for duplicate uid
                         if (!uids.add(trade.getUid())) {
                             log.warn("Found trade with duplicate uid, skipping. That should never happen. {} {}, uid={}", trade.getClass().getSimpleName(), trade.getId(), trade.getUid());
@@ -426,7 +474,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             for (Trade trade : trades) {
                 if (trade.isIdling()) ThreadUtils.submitToPool(() -> trade.syncAndPollWallet());
             }
-    
+
             // process after all wallets initialized
             if (!HavenoUtils.isSeedNode()) {
 
@@ -1089,7 +1137,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void sendAckMessage(NodeAddress peer, PubKeyRing peersPubKeyRing, TradeMessage message, boolean result, @Nullable String errorMessage) {
-        
+
         // create ack message
         String tradeId = message.getTradeId();
         String sourceUid = message.getUid();
@@ -1201,7 +1249,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public Optional<Trade> getClosedTrade(String tradeId) {
         return closedTradableManager.getClosedTrades().stream().filter(e -> e.getId().equals(tradeId)).findFirst();
     }
-    
+
     public Optional<Trade> getFailedTrade(String tradeId) {
         return failedTradesManager.getTradeById(tradeId);
     }
@@ -1260,13 +1308,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             if (trade instanceof MakerTrade && openOffer.isPresent()) {
                 openOfferManager.unreserveOpenOffer(openOffer.get());
             }
-
-            // remove trade from list
-            removeTrade(trade);
         }
 
         // clear and shut down trade
         trade.clearAndShutDown();
+
+        // remove trade from list
+        removeTrade(trade);
     }
 
     private void listenForCleanup(Trade trade) {

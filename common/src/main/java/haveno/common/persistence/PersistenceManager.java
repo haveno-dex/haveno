@@ -1,23 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common.persistence;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -30,13 +32,9 @@ import haveno.common.file.FileUtil;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
-import haveno.common.util.SingleThreadExecutorUtils;
 import haveno.common.util.GcUtil;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Named;
+import static haveno.common.util.Preconditions.checkDir;
+import haveno.common.util.SingleThreadExecutorUtils;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,9 +49,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.common.util.Preconditions.checkDir;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Responsible for reading persisted data and writing it on disk. We read usually only at start-up and keep data in RAM.

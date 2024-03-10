@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.MathUtils;
@@ -47,8 +49,8 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.AmountValidator4Decimals;
+import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
 import haveno.core.xmr.wallet.Restrictions;
@@ -62,6 +64,12 @@ import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -77,13 +85,6 @@ import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
-
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @Slf4j
 public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> extends ActivatableWithDataModel<M> {
@@ -692,11 +693,32 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 } else {
                     amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
                     boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
-                    new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                                    HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
-                                    Res.get("offerbook.warning.newVersionAnnouncement")))
-                            .width(900)
-                            .show();
+                    boolean isSellerWithinReleaseWindow = !isBuy && HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
+                    if (isSellerWithinReleaseWindow) {
+
+                        // format release date plus days
+                        Date releaseDate = HavenoUtils.getReleaseDate();
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(releaseDate);
+                        c.add(Calendar.DATE, HavenoUtils.RELEASE_LIMIT_DAYS);
+                        Date releaseDatePlusDays = c.getTime();
+                        SimpleDateFormat formatter = new SimpleDateFormat("MMMM d, yyyy");
+                        String releaseDatePlusDaysAsString = formatter.format(releaseDatePlusDays);
+
+                        // popup temporary restriction
+                        new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller.releaseLimit",
+                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
+                                releaseDatePlusDaysAsString,
+                                Res.get("offerbook.warning.newVersionAnnouncement")))
+                        .width(900)
+                        .show();
+                    } else {
+                        new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
+                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
+                                Res.get("offerbook.warning.newVersionAnnouncement")))
+                        .width(900)
+                        .show();
+                    }
                 }
             }
             // We want to trigger a recalculation of the volume

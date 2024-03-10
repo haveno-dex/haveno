@@ -1,34 +1,32 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.overlays.windows;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.portfolio.closedtrades.ClosedTradesViewModel;
-import haveno.desktop.util.Layout;
-import javafx.geometry.Insets;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.Map;
-
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import haveno.desktop.util.Layout;
+import java.math.BigInteger;
+import java.util.Map;
+import javafx.geometry.Insets;
 
 public class ClosedTradesSummaryWindow extends Overlay<ClosedTradesSummaryWindow> {
     private final ClosedTradesViewModel model;

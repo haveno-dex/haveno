@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -468,7 +485,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     try {
                         DisputeValidation.validateDisputeData(dispute);
                         DisputeValidation.validateNodeAddresses(dispute, config);
-                        DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress());
+                        DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress(), config);
                         //DisputeValidation.testIfDisputeTriesReplay(dispute, disputeList.getList());
                     } catch (DisputeValidation.ValidationException e) {
                         e.printStackTrace();
@@ -477,9 +494,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     }
 
                     // try to validate payment account
-                    // TODO: add field to dispute details: valid, invalid, missing
                     try {
-                        DisputeValidation.validatePaymentAccountPayload(dispute);
+                        DisputeValidation.validatePaymentAccountPayload(dispute); // TODO: add field to dispute details: valid, invalid, missing
                     } catch (Exception e) {
                         e.printStackTrace();
                         log.warn(e.getMessage());
@@ -490,6 +506,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
                     TradePeer sender = trade.getTradePeer(senderPubKeyRing);
                     if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
+
+                    // update sender node address
+                    sender.setNodeAddress(message.getSenderNodeAddress());
 
                     // message to trader is expected from arbitrator
                     if (!trade.isArbitrator() && sender != trade.getArbitrator()) {

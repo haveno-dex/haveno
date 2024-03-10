@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common;
@@ -35,7 +35,12 @@ public class ThreadUtils {
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-
+    /**
+     * Execute the given command in a thread with the given id.
+     * 
+     * @param command the command to execute
+     * @param threadId the thread id
+     */
     public static void execute(Runnable command, String threadId) {
         synchronized (EXECUTORS) {
             if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
@@ -48,14 +53,25 @@ public class ThreadUtils {
         }
     }
 
+    /**
+     * Awaits execution of the given command, but does not throw its exception.
+     * 
+     * @param command the command to execute
+     * @param threadId the thread id
+     */
     public static void await(Runnable command, String threadId) {
         if (isCurrentThread(Thread.currentThread(), threadId)) {
             command.run();
         } else {
             CountDownLatch latch = new CountDownLatch(1);
             execute(() -> {
-                command.run();
-                latch.countDown();
+                try {
+                    command.run();
+                } catch (Exception e) {
+                    throw e;
+                } finally {
+                    latch.countDown();
+                }
             }, threadId);
             try {
                 latch.await();
@@ -95,6 +111,8 @@ public class ThreadUtils {
             THREADS.remove(threadId);
         }
     }
+
+    // TODO: consolidate and cleanup apis
 
     public static Future<?> submitToPool(Runnable task) {
         return submitToPool(Arrays.asList(task)).get(0);

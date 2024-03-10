@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -24,14 +41,13 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.Task;
-import haveno.core.support.dispute.messages.DisputeClosedMessage;
-import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.TradeManager.MailboxMessageComparator;
 import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
@@ -70,11 +86,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @Slf4j
@@ -92,11 +105,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected ErrorMessageHandler errorMessageHandler;
 
     private int reprocessPaymentReceivedMessageCount;
-
-    // set comparator for processing mailbox messages
-    static {
-        MailboxMessageService.setMailboxMessageComparator(new MailboxMessageComparator());
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -182,23 +190,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 .map(e -> (MailboxMessage) e)
                 .sorted(new MailboxMessageComparator())
                 .forEach(this::handleMailboxMessage);
-    }
-
-    public static class MailboxMessageComparator implements Comparator<MailboxMessage> {
-        private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
-            AckMessage.class,
-            DepositsConfirmedMessage.class,
-            PaymentSentMessage.class,
-            PaymentReceivedMessage.class,
-            DisputeOpenedMessage.class,
-            DisputeClosedMessage.class);
-
-        @Override
-        public int compare(MailboxMessage m1, MailboxMessage m2) {
-            int idx1 = messageOrder.indexOf(m1.getClass());
-            int idx2 = messageOrder.indexOf(m2.getClass());
-            return idx1 - idx2;
-        }
     }
 
     private void handleMailboxMessage(MailboxMessage mailboxMessage) {
@@ -469,8 +460,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handle(DepositsConfirmedMessage response, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage)");
+        if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDown()) return;
                 latchTrade();
                 this.errorMessageHandler = null;
                 expect(new Condition(trade)
@@ -496,6 +489,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage)");
+        if (!trade.isInitialized() || trade.isShutDown()) return;
         if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
             log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
             return;
@@ -507,8 +501,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // TODO A better fix would be to add a listener for the wallet sync state and process
             // the mailbox msg once wallet is ready and trade state set.
             synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDown()) return;
                 if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
-                    log.warn("Received another PaymentSentMessage which was already processed, ACKing");
+                    log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                     handleTaskRunnerSuccess(peer, message);
                     return;
                 }
@@ -548,12 +543,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage)");
+        if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
                 log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
                 return;
             }
             synchronized (trade) {
+                if (!trade.isInitialized() || trade.isShutDown()) return;
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
                 processModel.setTradeMessage(message);
@@ -663,6 +660,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
             if (trade.getTradePeer(sender) == trade.getSeller()) {
                 processModel.setPaymentSentAckMessage(ackMessage);
+                trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+                processModel.getTradeManager().requestPersistence();
             } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
                 processModel.setPaymentSentAckMessageArbitrator(ackMessage);
             } else if (!ackMessage.isSuccess()) {

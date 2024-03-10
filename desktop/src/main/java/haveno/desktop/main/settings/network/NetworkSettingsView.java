@@ -1,22 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.settings.network;
 
+import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
@@ -42,6 +43,10 @@ import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.Statistic;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -60,13 +65,6 @@ import javafx.scene.layout.GridPane;
 import monero.daemon.model.MoneroPeer;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.inject.Inject;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @FxmlView
 public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
@@ -213,7 +211,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         p2pPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
         p2pPeersTableView.getSortOrder().add(creationDateColumn);
         creationDateColumn.setSortType(TableColumn.SortType.ASCENDING);
-        
+
         // use tor for xmr radio buttons
 
         useTorForXmrToggleGroup = new ToggleGroup();
@@ -236,7 +234,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 onUseTorForXmrToggleSelected(true);
             }
         };
-        
+
         // monero nodes radio buttons
 
         moneroPeersToggleGroup = new ToggleGroup();
@@ -374,7 +372,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
        return filterManager.getFilter() != null &&
                filterManager.getFilter().isPreventPublicXmrNetwork();
     }
-    
+
     private void selectUseTorForXmrToggle() {
         switch (selectedUseTorForXmr) {
             case OFF:
@@ -412,7 +410,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .useShutDownButton()
                 .show();
     }
-    
+
     private void onUseTorForXmrToggleSelected(boolean calledFromUser) {
         Preferences.UseTorForXmr currentUseTorForXmr = Preferences.UseTorForXmr.values()[preferences.getUseTorForXmrOrdinal()];
         if (currentUseTorForXmr != selectedUseTorForXmr) {

@@ -1,17 +1,16 @@
 package haveno.core.api;
 
+import com.google.inject.Singleton;
 import haveno.core.api.model.TradeInfo;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationMessage.NotificationType;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Singleton;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j

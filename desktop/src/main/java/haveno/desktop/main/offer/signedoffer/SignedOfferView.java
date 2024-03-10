@@ -1,54 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer.signedoffer;
 
-import javax.inject.Inject;
-
-import javafx.fxml.FXML;
-
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TableView;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
-
-import javafx.geometry.Insets;
-
-import javafx.beans.property.ReadOnlyObjectWrapper;
-
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-
-import javafx.util.Callback;
-import javafx.util.Duration;
-
-import java.util.Comparator;
-import java.util.Date;
-
-
-
+import com.google.inject.Inject;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.offer.SignedOffer;
@@ -65,6 +34,27 @@ import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import java.util.Comparator;
+import java.util.Date;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.util.Callback;
+import javafx.util.Duration;
 
 @FxmlView
 public class SignedOfferView extends ActivatableViewAndModel<VBox, SignedOffersViewModel> {

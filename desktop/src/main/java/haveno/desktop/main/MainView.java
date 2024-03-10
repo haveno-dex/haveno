@@ -1,25 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main;
 
+import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXProgressBar;
 import haveno.common.HavenoException;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -55,6 +55,10 @@ import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Transitions;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.Locale;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -81,6 +85,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
+import static javafx.scene.layout.AnchorPane.setBottomAnchor;
+import static javafx.scene.layout.AnchorPane.setLeftAnchor;
+import static javafx.scene.layout.AnchorPane.setRightAnchor;
+import static javafx.scene.layout.AnchorPane.setTopAnchor;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -92,17 +100,6 @@ import javafx.util.Duration;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Date;
-import java.util.Locale;
-
-import static javafx.scene.layout.AnchorPane.setBottomAnchor;
-import static javafx.scene.layout.AnchorPane.setLeftAnchor;
-import static javafx.scene.layout.AnchorPane.setRightAnchor;
-import static javafx.scene.layout.AnchorPane.setTopAnchor;
 
 @FxmlView
 @Slf4j
@@ -521,7 +518,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         };
         model.getWalletServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
-        xmrSyncIndicator = new JFXProgressBar();
+        xmrSyncIndicator = new ProgressBar();
         xmrSyncIndicator.setPrefWidth(305);
         xmrSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
@@ -770,14 +767,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                p2PNetworkIcon.setOpacity(1);
-                p2pNetworkProgressBar.setProgress(0);
-            });
-        });
+        model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
+            p2PNetworkIcon.setOpacity(1);
+            p2pNetworkProgressBar.setProgress(0);
+        }));
 
-        p2pNetworkProgressBar = new JFXProgressBar(-1);
+        p2pNetworkProgressBar = new ProgressBar(-1);
         p2pNetworkProgressBar.setMaxHeight(2);
         p2pNetworkProgressBar.prefWidthProperty().bind(p2PNetworkLabel.widthProperty());
 
@@ -797,12 +792,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private void setupBadge(JFXBadge buttonWithBadge, StringProperty badgeNumber, BooleanProperty badgeEnabled) {
         buttonWithBadge.textProperty().bind(badgeNumber);
         buttonWithBadge.setEnabled(badgeEnabled.get());
-        badgeEnabled.addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                buttonWithBadge.setEnabled(newValue);
-                buttonWithBadge.refreshBadge();
-            });
-        });
+        badgeEnabled.addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
+            buttonWithBadge.setEnabled(newValue);
+            buttonWithBadge.refreshBadge();
+        }));
 
         buttonWithBadge.setPosition(Pos.TOP_RIGHT);
         buttonWithBadge.setMinHeight(34);

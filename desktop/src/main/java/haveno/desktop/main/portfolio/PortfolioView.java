@@ -1,22 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
@@ -34,15 +35,13 @@ import haveno.desktop.main.portfolio.editoffer.EditOfferView;
 import haveno.desktop.main.portfolio.failedtrades.FailedTradesView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
+import java.util.List;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.List;
 
 @FxmlView
 public class PortfolioView extends ActivatableView<TabPane, Void> {

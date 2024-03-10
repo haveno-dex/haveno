@@ -1,5 +1,24 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -9,13 +28,16 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.nodes.XmrNodes;
-import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.nodes.XmrNodes.XmrNode;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -35,12 +57,6 @@ import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
 import monero.daemon.model.MoneroPeer;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -125,15 +141,12 @@ public final class XmrConnectionService {
     public void onShutDownStarted() {
         log.info("{}.onShutDownStarted()", getClass().getSimpleName());
         isShutDownStarted = true;
-        synchronized (lock) {
-            // ensures request not in progress
-        }
     }
 
     public void shutDown() {
-        log.info("Shutting down started for {}", getClass().getSimpleName());
+        log.info("Shutting down {}", getClass().getSimpleName());
+        isInitialized = false;
         synchronized (lock) {
-            isInitialized = false;
             if (daemonPollLooper != null) daemonPollLooper.stop();
             connectionManager.stopPolling();
             daemon = null;
@@ -162,94 +175,70 @@ public final class XmrConnectionService {
     }
 
     public void addConnection(MoneroRpcConnection connection) {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            if (coreContext.isApiUser()) connectionList.addConnection(connection);
-            connectionManager.addConnection(connection);
-        }
+        accountService.checkAccountOpen();
+        if (coreContext.isApiUser()) connectionList.addConnection(connection);
+        connectionManager.addConnection(connection);
     }
 
     public void removeConnection(String uri) {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionList.removeConnection(uri);
-            connectionManager.removeConnection(uri);
-        }
+        accountService.checkAccountOpen();
+        connectionList.removeConnection(uri);
+        connectionManager.removeConnection(uri);
     }
 
     public MoneroRpcConnection getConnection() {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            return connectionManager.getConnection();
-        }
+        accountService.checkAccountOpen();
+        return connectionManager.getConnection();
     }
 
     public List<MoneroRpcConnection> getConnections() {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            return connectionManager.getConnections();
-        }
+        accountService.checkAccountOpen();
+        return connectionManager.getConnections();
     }
 
     public void setConnection(String connectionUri) {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionManager.setConnection(connectionUri); // listener will update connection list
-        }
+        accountService.checkAccountOpen();
+        connectionManager.setConnection(connectionUri); // listener will update connection list
     }
 
     public void setConnection(MoneroRpcConnection connection) {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionManager.setConnection(connection); // listener will update connection list
-        }
+        accountService.checkAccountOpen();
+        connectionManager.setConnection(connection); // listener will update connection list
     }
 
     public MoneroRpcConnection checkConnection() {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionManager.checkConnection();
-            return getConnection();
-        }
+        accountService.checkAccountOpen();
+        connectionManager.checkConnection();
+        return getConnection();
     }
 
     public List<MoneroRpcConnection> checkConnections() {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionManager.checkConnections();
-            return getConnections();
-        }
+        accountService.checkAccountOpen();
+        connectionManager.checkConnections();
+        return getConnections();
     }
 
     public void startCheckingConnection(Long refreshPeriod) {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionList.setRefreshPeriod(refreshPeriod);
-            updatePolling();
-        }
+        accountService.checkAccountOpen();
+        connectionList.setRefreshPeriod(refreshPeriod);
+        updatePolling();
     }
 
     public void stopCheckingConnection() {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionManager.stopPolling();
-            connectionList.setRefreshPeriod(-1L);
-        }
+        accountService.checkAccountOpen();
+        connectionManager.stopPolling();
+        connectionList.setRefreshPeriod(-1L);
     }
 
     public MoneroRpcConnection getBestAvailableConnection() {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            return connectionManager.getBestAvailableConnection();
-        }
+        accountService.checkAccountOpen();
+        return connectionManager.getBestAvailableConnection();
     }
 
     public void setAutoSwitch(boolean autoSwitch) {
-        synchronized (lock) {
-            accountService.checkAccountOpen();
-            connectionManager.setAutoSwitch(autoSwitch);
-            connectionList.setAutoSwitch(autoSwitch);
-        }
+        accountService.checkAccountOpen();
+        connectionManager.setAutoSwitch(autoSwitch);
+        connectionList.setAutoSwitch(autoSwitch);
     }
 
     public boolean isConnectionLocal() {
@@ -397,7 +386,7 @@ public final class XmrConnectionService {
                     public void onNodeStopped() {
                         log.info("Local monero node stopped");
                     }
-                    
+
                     @Override
                     public void onConnectionChanged(MoneroRpcConnection connection) {
                         log.info("Local monerod connection changed: " + connection);
@@ -405,7 +394,7 @@ public final class XmrConnectionService {
                         // skip if ignored
                         if (isShutDownStarted || !connectionManager.getAutoSwitch() || !accountService.isAccountOpen() ||
                             !connectionManager.hasConnection(connection.getUri()) || xmrLocalNode.shouldBeIgnored()) return;
-                        
+
                         // check connection
                         boolean isConnected = false;
                         if (xmrLocalNode.isConnected()) {
@@ -656,7 +645,7 @@ public final class XmrConnectionService {
 
                 // skip if shut down or connected
                 if (isShutDownStarted || Boolean.TRUE.equals(isConnected())) return;
-                
+
                 // log error message periodically
                 if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > MIN_ERROR_LOG_PERIOD_MS)) {
                     lastErrorTimestamp = System.currentTimeMillis();
@@ -665,6 +654,7 @@ public final class XmrConnectionService {
                 }
 
                 new Thread(() -> {
+                    if (isShutDownStarted) return;
                     if (!isFixedConnection() && connectionManager.getAutoSwitch()) {
                         MoneroRpcConnection bestConnection = getBestAvailableConnection();
                         if (bestConnection != null) connectionManager.setConnection(bestConnection);

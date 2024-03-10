@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.account.content.traditionalaccounts;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -27,17 +29,17 @@ import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.CashAtAtmAccount;
-import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.CashDepositAccount;
-import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.MoneyGramAccount;
+import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.WesternUnionAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.AdvancedCashValidator;
 import haveno.core.payment.validation.AliPayValidator;
@@ -74,11 +76,9 @@ import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
-import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
-import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
@@ -93,6 +93,7 @@ import haveno.desktop.components.paymentmethods.NationalBankForm;
 import haveno.desktop.components.paymentmethods.NeftForm;
 import haveno.desktop.components.paymentmethods.NequiForm;
 import haveno.desktop.components.paymentmethods.PaxumForm;
+import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
 import haveno.desktop.components.paymentmethods.PayseraForm;
 import haveno.desktop.components.paymentmethods.PaytmForm;
@@ -119,11 +120,19 @@ import haveno.desktop.components.paymentmethods.UpiForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
+import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.main.account.content.PaymentAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
@@ -134,17 +143,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class TraditionalAccountsView extends PaymentAccountsView<GridPane, TraditionalAccountsViewModel> {

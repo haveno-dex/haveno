@@ -1,23 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
-import com.jfoenix.controls.JFXProgressBar;
+import static com.google.common.base.Preconditions.checkNotNull;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.ClockWatcher;
@@ -39,12 +39,22 @@ import haveno.core.user.Preferences;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.TxIdTextField;
+import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
 import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -63,19 +73,6 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 
 public abstract class TradeStepView extends AnchorPane {
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -384,7 +381,7 @@ public abstract class TradeStepView extends AnchorPane {
         timeLeftTextField = labelTextFieldVBoxTuple3.second;
         //timeLeftTextField.setMaxWidth(4);
 
-        timeLeftProgressBar = new JFXProgressBar(0);
+        timeLeftProgressBar = new ProgressBar(0);
         timeLeftProgressBar.setOpacity(0.7);
         timeLeftProgressBar.setMinHeight(9);
         timeLeftProgressBar.setMaxHeight(9);

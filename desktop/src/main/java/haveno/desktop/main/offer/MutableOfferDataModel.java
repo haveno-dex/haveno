@@ -1,23 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
@@ -50,6 +52,16 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.Comparator;
+import static java.util.Comparator.comparing;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -67,20 +79,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Comparator.comparing;
 
 public abstract class MutableOfferDataModel extends OfferDataModel {
     private final CreateOfferService createOfferService;
@@ -455,6 +453,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     long getMaxTradeLimit() {
+
+        // disallow offers which no buyer can take due to trade limits on release
+        if (HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS)) {
+            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), OfferDirection.BUY);
+        }
+
         if (paymentAccount != null) {
             return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), direction);
         } else {
@@ -585,6 +589,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public BigInteger getMaxUnsignedBuyLimit() {
+        return BigInteger.valueOf(accountAgeWitnessService.getUnsignedTradeLimit(paymentAccount.getPaymentMethod(), tradeCurrencyCode.get(), OfferDirection.BUY));
+    }
 
     protected ReadOnlyObjectProperty<BigInteger> getAmount() {
         return amount;

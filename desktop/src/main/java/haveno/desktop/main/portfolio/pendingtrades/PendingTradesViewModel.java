@@ -1,23 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -40,26 +42,22 @@ import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
+import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.annotation.Nullable;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
 
 public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTradesDataModel> implements ViewModel {
 
@@ -148,12 +146,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 tradeStateSubscription.unsubscribe();
                 tradeStateSubscription = null;
             }
-    
+
             if (payoutStateSubscription != null) {
                 payoutStateSubscription.unsubscribe();
                 payoutStateSubscription = null;
             }
-    
+
             if (messageStateSubscription != null) {
                 messageStateSubscription.unsubscribe();
                 messageStateSubscription = null;
@@ -169,18 +167,18 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 sellerState.set(SellerState.UNDEFINED);
                 buyerState.set(BuyerState.UNDEFINED);
             }
-    
+
             if (payoutStateSubscription != null) {
                 payoutStateSubscription.unsubscribe();
                 sellerState.set(SellerState.UNDEFINED);
                 buyerState.set(BuyerState.UNDEFINED);
             }
-    
+
             if (messageStateSubscription != null) {
                 messageStateSubscription.unsubscribe();
                 messageStateProperty.set(MessageState.UNDEFINED);
             }
-    
+
             if (selectedItem != null) {
                 this.trade = selectedItem.getTrade();
                 tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
@@ -191,18 +189,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 });
                 messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
             }
-        }
-    }
-
-    public void setMessageStatePropertyIfNotAcked(MessageState messageState) {
-
-        // skip if already acked
-        if (messageStateProperty.get() == MessageState.ACKNOWLEDGED) {
-            return;
-        }
-
-        if (trade != null) {
-            trade.getProcessModel().setPaymentSentMessageState(messageState);
         }
     }
 

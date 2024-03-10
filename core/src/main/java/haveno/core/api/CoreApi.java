@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
@@ -45,15 +64,6 @@ import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.proto.grpc.NotificationMessage;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -63,6 +73,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Transaction;
 
 /**
  * Provides high level interface to functionality of core Haveno features.

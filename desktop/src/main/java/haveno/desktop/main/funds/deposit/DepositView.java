@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.desktop.main.funds.deposit;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple3;
@@ -38,8 +57,18 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
+import static haveno.desktop.util.FormBuilder.addAddressTextField;
+import static haveno.desktop.util.FormBuilder.addButtonCheckBoxWithBox;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -59,9 +88,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
-import monero.wallet.model.MoneroSubaddress;
 import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
@@ -69,20 +96,6 @@ import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.io.ByteArrayInputStream;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static haveno.desktop.util.FormBuilder.addAddressTextField;
-import static haveno.desktop.util.FormBuilder.addButtonCheckBoxWithBox;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class DepositView extends ActivatableView<VBox, Void> {
@@ -110,7 +123,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private Subscription amountTextFieldSubscription;
     private ChangeListener<DepositListItem> tableViewSelectionListener;
     private int gridRow = 0;
-    List<MoneroTxWallet> txsWithIncomingOutputs;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -134,15 +146,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
         confirmationsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations")));
         usageColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.usage")));
 
-        // try to initialize with wallet txs
+        // trigger creation of at least 1 address
         try {
-
-            // prefetch to avoid query per subaddress
-            txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
-            List<MoneroSubaddress> subaddresses = xmrWalletService.getWallet().getSubaddresses(0);
-
-            // trigger creation of at least 1 address
-            xmrWalletService.getFreshAddressEntry(txsWithIncomingOutputs, subaddresses);
+            xmrWalletService.getFreshAddressEntry();
         } catch (Exception e) {
             log.warn("Failed to get wallet txs to initialize DepositView");
             e.printStackTrace();
@@ -164,7 +170,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
         addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
         balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
-        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed(txsWithIncomingOutputs)));
+        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
         usageColumn.setComparator(Comparator.comparing(DepositListItem::getUsage));
         tableView.getSortOrder().add(usageColumn);
         tableView.setItems(sortedList);
@@ -318,16 +324,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     private void updateList() {
 
-        // cache incoming txs
-        txsWithIncomingOutputs = xmrWalletService.getTxsWithIncomingOutputs();
-        List<MoneroSubaddress> subaddresses = xmrWalletService.getWallet().getSubaddresses(0);
-        
         // create deposit list items
         List<XmrAddressEntry> addressEntries = xmrWalletService.getAddressEntries();
         List<DepositListItem> items = new ArrayList<>();
         for (XmrAddressEntry addressEntry : addressEntries) {
-            if (addressEntry.getContext().isReserved()) continue;
-            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter, txsWithIncomingOutputs, subaddresses));
+            if (addressEntry.isTrade()) continue; // skip reserved for trade
+            items.add(new DepositListItem(addressEntry, xmrWalletService, formatter));
         }
 
         // update list

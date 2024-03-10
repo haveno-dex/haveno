@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import common.utils.GenUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -34,13 +53,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -48,13 +60,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 /**
  * Handles storage and retrieval of offers.
  * Uses an invalidation flag to only request the full offer map in case there was a change (anyone has added or removed an offer).
  */
 public class OfferBookService {
-    private static final Logger log = LoggerFactory.getLogger(OfferBookService.class);
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;

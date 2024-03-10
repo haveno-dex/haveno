@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.offer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import common.utils.GenUtils;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
@@ -73,24 +92,6 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import lombok.Getter;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
-import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroIncomingTransfer;
-import monero.wallet.model.MoneroOutputQuery;
-import monero.wallet.model.MoneroTransferQuery;
-import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxQuery;
-import monero.wallet.model.MoneroTxWallet;
-import monero.wallet.model.MoneroWalletListener;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,8 +105,22 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
+import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroIncomingTransfer;
+import monero.wallet.model.MoneroOutputQuery;
+import monero.wallet.model.MoneroTransferQuery;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxQuery;
+import monero.wallet.model.MoneroTxWallet;
+import monero.wallet.model.MoneroWalletListener;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMessageListener, PersistedDataHost {
     private static final Logger log = LoggerFactory.getLogger(OpenOfferManager.class);
@@ -151,7 +166,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     // poll key images of signed offers
     private XmrKeyImagePoller signedOfferKeyImagePoller;
-    private static final long SHUTDOWN_TIMEOUT_MS = 90000;
+    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
@@ -317,29 +332,36 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         int size = openOffers.size();
         log.info("Remove open offers at shutDown. Number of open offers: {}", size);
         if (offerBookService.isBootstrapped() && size > 0) {
-            ThreadUtils.execute(() -> { // finish tasks
-                UserThread.execute(() -> {
-                    openOffers.forEach(openOffer -> offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload()));
+            ThreadUtils.execute(() -> {
 
-                    // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
-                    // bundled messages sent out.
-                    broadcaster.flush();
-                    shutDownThreadPool();
+                // remove offers from offer book
+                synchronized (openOffers) {
+                    openOffers.forEach(openOffer -> {
+                        if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
+                            offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload());
+                        }
+                    });
+                }
 
-                    if (completeHandler != null) {
-                        // For typical number of offers we are tolerant with delay to give enough time to broadcast.
-                        // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
-                        int delay = Math.min(3000, size * 200 + 500);
-                        UserThread.runAfter(completeHandler, delay, TimeUnit.MILLISECONDS);
-                    }
-                });
+                // Force broadcaster to send out immediately, otherwise we could have a 2 sec delay until the
+                // bundled messages sent out.
+                broadcaster.flush();
+                // For typical number of offers we are tolerant with delay to give enough time to broadcast.
+                // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
+                long delayMs = Math.min(3000, size * 200 + 500);
+                GenUtils.waitFor(delayMs);
             }, THREAD_ID);
         } else {
             broadcaster.flush();
-            shutDownThreadPool();
-            if (completeHandler != null)
-                completeHandler.run();
         }
+
+        // shut down thread pool off main thread
+        ThreadUtils.submitToPool(() -> {
+            shutDownThreadPool();
+
+            // invoke completion handler
+            if (completeHandler != null) completeHandler.run();
+        });
     }
 
     private void shutDownThreadPool() {
@@ -411,62 +433,67 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         maybeUpdatePersistedOffers();
 
-        ThreadUtils.execute(() -> {
-            
-            // Wait for prices to be available
+        // run off user thread so app is not blocked from starting
+        ThreadUtils.submitToPool(() -> {
+
+            // wait for prices to be available
             priceFeedService.awaitExternalPrices();
 
-            // Republish means we send the complete offer object
-            republishOffers();
-            startPeriodicRepublishOffersTimer();
+            // process open offers on dedicated thread
+            ThreadUtils.execute(() -> {
 
-            // Refresh is started once we get a success from republish
+                // Republish means we send the complete offer object
+                republishOffers();
+                startPeriodicRepublishOffersTimer();
 
-            // We republish after a bit as it might be that our connected node still has the offer in the data map
-            // but other peers have it already removed because of expired TTL.
-            // Those other not directly connected peers would not get the broadcast of the new offer, as the first
-            // connected peer (seed node) does not broadcast if it has the data in the map.
-            // To update quickly to the whole network we repeat the republishOffers call after a few seconds when we
-            // are better connected to the network. There is no guarantee that all peers will receive it but we also
-            // have our periodic timer, so after that longer interval the offer should be available to all peers.
-            if (retryRepublishOffersTimer == null)
-                retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
-                        REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
+                // Refresh is started once we get a success from republish
 
-            p2PService.getPeerManager().addListener(this);
+                // We republish after a bit as it might be that our connected node still has the offer in the data map
+                // but other peers have it already removed because of expired TTL.
+                // Those other not directly connected peers would not get the broadcast of the new offer, as the first
+                // connected peer (seed node) does not broadcast if it has the data in the map.
+                // To update quickly to the whole network we repeat the republishOffers call after a few seconds when we
+                // are better connected to the network. There is no guarantee that all peers will receive it but we also
+                // have our periodic timer, so after that longer interval the offer should be available to all peers.
+                if (retryRepublishOffersTimer == null)
+                    retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
+                            REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC);
 
-            // TODO: add to invalid offers on failure
-    //        openOffers.stream()
-    //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
-    //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
+                p2PService.getPeerManager().addListener(this);
 
-            // process scheduled offers
-            processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                log.warn("Error processing unposted offers: " + errorMessage);
-            });
+                // TODO: add to invalid offers on failure
+        //        openOffers.stream()
+        //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
+        //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
-            // register to process unposted offers when unlocked balance increases
-            if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
-            xmrWalletService.addWalletListener(new MoneroWalletListener() {
-                @Override
-                public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                    if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
-                        processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                            log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
-                        });
+                // process scheduled offers
+                processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                    log.warn("Error processing unposted offers: " + errorMessage);
+                });
+
+                // register to process unposted offers when unlocked balance increases
+                if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+                xmrWalletService.addWalletListener(new MoneroWalletListener() {
+                    @Override
+                    public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
+                        if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
+                            processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                                log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
+                            });
+                        }
+                        lastUnlockedBalance = newUnlockedBalance;
                     }
-                    lastUnlockedBalance = newUnlockedBalance;
+                });
+
+                // initialize key image poller for signed offers
+                maybeInitializeKeyImagePoller();
+
+                // poll spent status of key images
+                for (SignedOffer signedOffer : signedOffers.getList()) {
+                    signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
                 }
-            });
-
-            // initialize key image poller for signed offers
-            maybeInitializeKeyImagePoller();
-
-            // poll spent status of key images
-            for (SignedOffer signedOffer : signedOffers.getList()) {
-                signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
-            }
-        }, THREAD_ID);
+            }, THREAD_ID);
+        });
     }
 
 
@@ -854,7 +881,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // get offer reserve amount
                 BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
-                
+
                 // handle split output offer
                 if (openOffer.isReserveExactAmount()) {
 
@@ -996,7 +1023,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
-        
+
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
         if (sufficientAvailableBalance) {

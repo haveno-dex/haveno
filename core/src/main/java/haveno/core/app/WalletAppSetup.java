@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
@@ -32,12 +51,15 @@ import haveno.core.xmr.exceptions.RejectedTxException;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
@@ -46,12 +68,6 @@ import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.ChainFileLockedException;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 @Slf4j
 @Singleton
@@ -118,7 +134,7 @@ public class WalletAppSetup {
                 (numConnectionUpdates, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
                     String result;
                     if (exception == null && errorMsg == null) {
-                        
+
                         // update wallet sync progress
                         double walletDownloadPercentageD = (double) walletDownloadPercentage;
                         xmrWalletSyncProgress.set(walletDownloadPercentageD);

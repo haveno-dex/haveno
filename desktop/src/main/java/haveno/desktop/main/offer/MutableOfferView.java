@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer;
@@ -374,6 +374,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         advancedOptionsBox.setVisible(false);
         advancedOptionsBox.setManaged(false);
+
+        updateQrCode();
 
         model.onShowPayFundsScreen(() -> {
             if (!DevEnv.isDevMode()) {
@@ -755,14 +757,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         missingCoinListener = (observable, oldValue, newValue) -> {
             if (!newValue.toString().equals("")) {
-                final byte[] imageBytes = QRCode
-                        .from(getMoneroURI())
-                        .withSize(300, 300)
-                        .to(ImageType.PNG)
-                        .stream()
-                        .toByteArray();
-                Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
-                qrCodeImageView.setImage(qrImage);
+                //updateQrCode(); // disabled to avoid wallet requests on key strokes
             }
         };
 
@@ -808,6 +803,17 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 buyerSecurityDepositInputTextField.setDisable(false);
             }
         });
+    }
+
+    private void updateQrCode() {
+        final byte[] imageBytes = QRCode
+                .from(getMoneroURI())
+                .withSize(300, 300)
+                .to(ImageType.PNG)
+                .stream()
+                .toByteArray();
+        Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
+        qrCodeImageView.setImage(qrImage);
     }
 
     private void closeAndGoToOpenOffers() {
@@ -1012,7 +1018,24 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         nextButton.setOnAction(e -> {
             if (model.isPriceInRange()) {
-                onShowPayFundsScreen();
+
+                // warn if sell offer exceeds unsigned buy limit within release window
+                boolean isSellOffer = model.getDataModel().isSellOffer();
+                boolean exceedsUnsignedBuyLimit = model.getDataModel().getAmount().get().compareTo(model.getDataModel().getMaxUnsignedBuyLimit()) > 0;
+                String key = "popup.warning.tradeLimitDueAccountAgeRestriction.seller.exceedsUnsignedBuyLimit";
+                if (isSellOffer && exceedsUnsignedBuyLimit && DontShowAgainLookup.showAgain(key) && HavenoUtils.isReleasedWithinDays(HavenoUtils.WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS)) {
+                    new Popup().information(Res.get(key,
+                                    HavenoUtils.formatXmr(model.getDataModel().getMaxUnsignedBuyLimit(), true),
+                                    Res.get("offerbook.warning.newVersionAnnouncement")))
+                            .closeButtonText(Res.get("shared.cancel"))
+                            .actionButtonText(Res.get("shared.ok"))
+                            .onAction(this::onShowPayFundsScreen)
+                            .width(900)
+                            .dontShowAgainId(key)
+                            .show();
+                } else {
+                    onShowPayFundsScreen();
+                }
             }
         });
     }

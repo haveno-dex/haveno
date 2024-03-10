@@ -1,29 +1,34 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.asset.Asset;
 import haveno.asset.AssetRegistry;
+import static haveno.common.config.Config.baseCurrencyNetwork;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
+import static haveno.core.locale.CurrencyUtil.findAsset;
+import static haveno.core.locale.CurrencyUtil.getCryptoCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.AssetAccount;
 import haveno.core.payment.CryptoCurrencyAccount;
@@ -32,21 +37,14 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.user.User;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.File;
+import static java.lang.String.format;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static haveno.common.config.Config.baseCurrencyNetwork;
-import static haveno.core.locale.CurrencyUtil.findAsset;
-import static haveno.core.locale.CurrencyUtil.getCryptoCurrency;
-import static java.lang.String.format;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j

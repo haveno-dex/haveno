@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -54,30 +71,31 @@ public class BuyerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
 
-        // done if shut down
-        if (trade.isShutDown()) return;
-
         // re-send payment sent message if not acked
-        synchronized (trade) {
-            if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
-                latchTrade();
-                given(anyPhase(Trade.Phase.PAYMENT_SENT)
-                    .with(BuyerEvent.STARTUP))
-                    .setup(tasks(
-                            BuyerSendPaymentSentMessageToSeller.class,
-                            BuyerSendPaymentSentMessageToArbitrator.class)
-                    .using(new TradeTaskRunner(trade,
-                            () -> {
-                                unlatchTrade();
-                            },
-                            (errorMessage) -> {
-                                log.warn("Error sending PaymentSentMessage on startup: " + errorMessage);
-                                unlatchTrade();
-                            })))
-                    .executeTasks();
-                awaitTradeLatch();
+        ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            synchronized (trade) {
+                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+                if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
+                    latchTrade();
+                    given(anyPhase(Trade.Phase.PAYMENT_SENT)
+                        .with(BuyerEvent.STARTUP))
+                        .setup(tasks(
+                                BuyerSendPaymentSentMessageToSeller.class,
+                                BuyerSendPaymentSentMessageToArbitrator.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    unlatchTrade();
+                                },
+                                (errorMessage) -> {
+                                    log.warn("Error sending PaymentSentMessage on startup: " + errorMessage);
+                                    unlatchTrade();
+                                })))
+                        .executeTasks();
+                    awaitTradeLatch();
+                }
             }
-        }
+        }, trade.getId());
     }
 
     @Override
