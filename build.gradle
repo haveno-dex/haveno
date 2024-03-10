@@ -9,7 +9,7 @@ buildscript {
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.17'
         classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
         classpath 'com.github.johnrengelman:shadow:8.1.1'
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.6.3'
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.3'
         classpath 'com.gradle:gradle-enterprise-gradle-plugin:3.16.1' // added for windows build verification-metadata.xml error
     }
 }
@@ -169,7 +169,7 @@ configure([project(':cli'),
 
             def unixScriptFile = file("${rootProject.projectDir}/haveno-$applicationName")
             unixScriptFile.text = unixScriptFile.text.replace(
-                'APP_HOME=$( cd "${APP_HOME:-./}.." && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" && pwd -P ) || exit')
+                'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
 
             if (applicationName == 'desktop') {
                 def script = file("${rootProject.projectDir}/haveno-$applicationName")
