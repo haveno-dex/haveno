@@ -7,22 +7,21 @@ echo "[*] Haveno Seednode installation script"
 
 ROOT_USER=root
 ROOT_GROUP=root
-ROOT_PKG="build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 git vim screen ufw"
+ROOT_PKG="build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 git vim screen ufw openjdk-21-jdk"
 ROOT_HOME=/root
 
 SYSTEMD_SERVICE_HOME=/etc/systemd/system
 SYSTEMD_ENV_HOME=/etc/default
 
-HAVENO_REPO_URL=https://github.com/bisq-network/bisq
+HAVENO_REPO_URL=https://github.com/haveno-dex/haveno
 HAVENO_REPO_NAME=haveno
 HAVENO_REPO_TAG=master
-HAVENO_LATEST_RELEASE=$(curl -s https://api.github.com/repos/bisq-network/bisq/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
+HAVENO_LATEST_RELEASE=$(curl -s https://api.github.com/repos/haveno-dex/haveno/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
 HAVENO_HOME=/haveno
 HAVENO_USER=haveno
 
-# by default, this script will build and setup bitcoin fullnode
-# if you want to use an existing bitcoin fullnode, see next section
-BITCOIN_INSTALL=true
+# by default, this script will not build and setup bitcoin full-node
+BITCOIN_INSTALL=false
 BITCOIN_REPO_URL=https://github.com/bitcoin/bitcoin
 BITCOIN_REPO_NAME=bitcoin
 BITCOIN_REPO_TAG=$(curl -s https://api.github.com/repos/bitcoin/bitcoin/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
@@ -60,19 +59,13 @@ sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get upgrade -qq 
 echo "[*] Installing base packages"
 sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ${ROOT_PKG}
 
-echo "[*] Installing Git LFS"
-sudo -H -i -u "${ROOT_USER}" apt-get install git-lfs
-sudo -H -i -u "${ROOT_USER}" git lfs install
-
 echo "[*] Cloning Haveno repo"
 sudo -H -i -u "${ROOT_USER}" git config --global advice.detachedHead false
 sudo -H -i -u "${ROOT_USER}" git clone --branch "${HAVENO_REPO_TAG}" "${HAVENO_REPO_URL}" "${ROOT_HOME}/${HAVENO_REPO_NAME}"
 
 echo "[*] Installing Tor"
-sudo -H -i -u "${ROOT_USER}" wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gp
-g --dearmor | tee /usr/share/keyrings/tor-archive-keyring.gpg >/dev/null
-sudo -H -i -u "${ROOT_USER}" echo "deb [arch=amd64 signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.o
-rg/torproject.org focal main" > /etc/apt/sources.list.d/tor.list
+sudo -H -i -u "${ROOT_USER}" wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/tor-archive-keyring.gpg >/dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.org/torproject.org focal main" | sudo -H -i -u "${ROOT_USER}" tee /etc/apt/sources.list.d/tor.list
 sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get update -q
 sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ${TOR_PKG}
 
@@ -128,17 +121,14 @@ echo "[*] Moving Haveno repo"
 sudo -H -i -u "${ROOT_USER}" mv "${ROOT_HOME}/${HAVENO_REPO_NAME}" "${HAVENO_HOME}/${HAVENO_REPO_NAME}"
 sudo -H -i -u "${ROOT_USER}" chown -R "${HAVENO_USER}:${HAVENO_GROUP}" "${HAVENO_HOME}/${HAVENO_REPO_NAME}"
 
-echo "[*] Installing OpenJDK 10.0.2 from Haveno repo"
-sudo -H -i -u "${ROOT_USER}" "${HAVENO_HOME}/${HAVENO_REPO_NAME}/scripts/install_java.sh"
-
 echo "[*] Installing Haveno init script"
-sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${HAVENO_HOME}/${HAVENO_REPO_NAME}/seednode/haveno.service" "${SYSTEMD_SERVICE_HOME}/haveno.service"
+sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${HAVENO_HOME}/${HAVENO_REPO_NAME}/seednode/haveno-seednode.service" "${SYSTEMD_SERVICE_HOME}/haveno-seednode.service"
 if [ "${BITCOIN_INSTALL}" = true ];then
-	sudo sed -i -e "s/#Requires=bitcoin.service/Requires=bitcoin.service/" "${SYSTEMD_SERVICE_HOME}/haveno.service"
-	sudo sed -i -e "s/#BindsTo=bitcoin.service/BindsTo=bitcoin.service/" "${SYSTEMD_SERVICE_HOME}/haveno.service"
+	sudo sed -i -e "s/#Requires=bitcoin.service/Requires=bitcoin.service/" "${SYSTEMD_SERVICE_HOME}/haveno-seednode.service"
+	sudo sed -i -e "s/#BindsTo=bitcoin.service/BindsTo=bitcoin.service/" "${SYSTEMD_SERVICE_HOME}/haveno-seednode.service"
 fi
-sudo sed -i -e "s/__HAVENO_REPO_NAME__/${HAVENO_REPO_NAME}/" "${SYSTEMD_SERVICE_HOME}/haveno.service"
-sudo sed -i -e "s!__HAVENO_HOME__!${HAVENO_HOME}!" "${SYSTEMD_SERVICE_HOME}/haveno.service"
+sudo sed -i -e "s/__HAVENO_REPO_NAME__/${HAVENO_REPO_NAME}/" "${SYSTEMD_SERVICE_HOME}/haveno-seednode.service"
+sudo sed -i -e "s!__HAVENO_HOME__!${HAVENO_HOME}!" "${SYSTEMD_SERVICE_HOME}/haveno-seednode.service"
 
 echo "[*] Installing Haveno environment file with Bitcoin RPC credentials"
 sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${HAVENO_HOME}/${HAVENO_REPO_NAME}/seednode/haveno.env" "${SYSTEMD_ENV_HOME}/haveno.env"
@@ -154,16 +144,13 @@ sudo sed -i -e "s!__HAVENO_HOME__!${HAVENO_HOME}!" "${SYSTEMD_ENV_HOME}/haveno.e
 echo "[*] Checking out Haveno ${HAVENO_LATEST_RELEASE}"
 sudo -H -i -u "${HAVENO_USER}" sh -c "cd ${HAVENO_HOME}/${HAVENO_REPO_NAME} && git checkout ${HAVENO_LATEST_RELEASE}"
 
-echo "[*] Performing Git LFS pull"
-sudo -H -i -u "${HAVENO_USER}" sh -c "cd ${HAVENO_HOME}/${HAVENO_REPO_NAME} && git lfs pull"
-
 echo "[*] Building Haveno from source"
 sudo -H -i -u "${HAVENO_USER}" sh -c "cd ${HAVENO_HOME}/${HAVENO_REPO_NAME} && ./gradlew build -x test < /dev/null" # redirect from /dev/null is necessary to workaround gradlew non-interactive shell hanging issue
 
 echo "[*] Updating systemd daemon configuration"
 sudo -H -i -u "${ROOT_USER}" systemctl daemon-reload
 sudo -H -i -u "${ROOT_USER}" systemctl enable tor.service
-sudo -H -i -u "${ROOT_USER}" systemctl enable haveno.service
+sudo -H -i -u "${ROOT_USER}" systemctl enable haveno-seednode.service
 if [ "${BITCOIN_INSTALL}" = true ];then
 	sudo -H -i -u "${ROOT_USER}" systemctl enable bitcoin.service
 fi
@@ -185,13 +172,13 @@ fi
 echo "[*] Adding notes to motd"
 sudo -H -i -u "${ROOT_USER}" sh -c 'echo " " >> /etc/motd'
 sudo -H -i -u "${ROOT_USER}" sh -c 'echo "Haveno Seednode instructions:" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "https://github.com/bisq-network/bisq/tree/master/seednode" >> /etc/motd'
+sudo -H -i -u "${ROOT_USER}" sh -c 'echo "https://github.com/haveno-dex/haveno/tree/master/seednode" >> /etc/motd'
 sudo -H -i -u "${ROOT_USER}" sh -c 'echo " " >> /etc/motd'
 sudo -H -i -u "${ROOT_USER}" sh -c 'echo "How to check logs for Haveno-Seednode service:" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "sudo journalctl --no-pager --unit haveno" >> /etc/motd'
+sudo -H -i -u "${ROOT_USER}" sh -c 'echo "sudo journalctl --no-pager --unit haveno-seednode" >> /etc/motd'
 sudo -H -i -u "${ROOT_USER}" sh -c 'echo " " >> /etc/motd'
 sudo -H -i -u "${ROOT_USER}" sh -c 'echo "How to restart Haveno-Seednode service:" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "sudo service haveno restart" >> /etc/motd'
+sudo -H -i -u "${ROOT_USER}" sh -c 'echo "sudo service haveno-seednode restart" >> /etc/motd'
 
 echo '[*] Done!'
 
