@@ -17,19 +17,20 @@
 
 package haveno.asset.coins;
 
-import haveno.asset.Base58AddressValidator;
+import haveno.asset.BitcoinAddressValidator;
 import haveno.asset.Coin;
 import haveno.asset.NetworkParametersAdapter;
 
 public class Litecoin extends Coin {
     public Litecoin() {
-        super("Litecoin", "LTC", new Base58AddressValidator(new LitecoinMainNetParams()), Network.MAINNET);
+        super("Litecoin", "LTC", new BitcoinAddressValidator(new LitecoinMainNetParams()), Network.MAINNET);
     }
 
     public static class LitecoinMainNetParams extends NetworkParametersAdapter {
         public LitecoinMainNetParams() {
             this.addressHeader = 48;
-            this.p2shHeader = 5;
+            this.p2shHeader = 50;
+            this.segwitAddressHrp = "ltc";
         }
     }
 }

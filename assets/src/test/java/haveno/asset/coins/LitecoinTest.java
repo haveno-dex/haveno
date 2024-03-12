@@ -31,6 +31,17 @@ public class LitecoinTest extends AbstractAssetTest {
         assertValidAddress("Lg3PX8wRWmApFCoCMAsPF5P9dPHYQHEWKW");
         assertValidAddress("LTuoeY6RBHV3n3cfhXVVTbJbxzxnXs9ofm");
         assertValidAddress("LgfapHEPhZbRF9pMd5WPT35hFXcZS1USrW");
+        assertValidAddress("M8T1B2Z97gVdvmfkQcAtYbEepune1tzGua");
+        assertValidAddress("ltc1qr07zu594qf63xm7l7x6pu3a2v39m2z6hh5pp4t");
+        assertValidAddress("ltc1qzvcgmntglcuv4smv3lzj6k8szcvsrmvk0phrr9wfq8w493r096ssm2fgsw");
+        assertValidAddress("MESruSiB2uC9i7tMU6VMUVom91ohM7Rnbd");
+        assertValidAddress("ltc1q2a0laq2jg2gntzhfs43qptajd325kkx7hrq9cs");
+        assertValidAddress("ltc1qd6d54mt8xxcg0xg3l0vh6fymdfvd2tv0vnwyrv");
+        assertValidAddress("ltc1gmay6ht028aurcm680f8e8wxdup07y2tq46f6z2d4v8rutewqmmcqk29jtm");
+        assertValidAddress("MTf4tP1TCNBn8dNkyxeBVoPrFCcVzxJvvh");
+        assertValidAddress("LaRoRBC6utQtY3U2FbHwhmhhDPyxodDeKA");
+        assertValidAddress("MDMFP9Dx84tyaxiYksjvkG1jymBdqCuHGA");
+        //assertValidAddress("3MSvaVbVFFLML86rt5eqgA9SvW23upaXdY"); // deprecated
     }
 
     @Test
@@ -38,5 +49,14 @@ public class LitecoinTest extends AbstractAssetTest {
         assertInvalidAddress("1LgfapHEPhZbRF9pMd5WPT35hFXcZS1USrW");
         assertInvalidAddress("LgfapHEPhZbdRF9pMd5WPT35hFXcZS1USrW");
         assertInvalidAddress("LgfapHEPhZbRF9pMd5WPT35hFXcZS1USrW#");
+        assertInvalidAddress("3MSvaVbVFFLML86rt5eqgl9SvW23upaXdY"); // contains lowercase l
+        assertInvalidAddress("LURw7hYhREXjWHyiXhQNsKInWtPezwNe98"); // contains uppercase I
+        assertInvalidAddress("LM4ch8ZtAowdiGLSnf92MrMOC9dVmve2hr"); // contains uppercase O
+        assertInvalidAddress("MArsfeyS7P0HzsqLpAFGC9pFdhuqHgdL2R"); // contains number 0
+        assertInvalidAddress("ltc1qr6quwn3v2gxpadd0cu040r9385gayk5vdcyl5"); // too short
+        assertInvalidAddress("ltc1q5det08ke2gpet06wczcdfs2v3hgfqllxw28uln8vxxx82qlue6uswceljma"); // too long
+        assertInvalidAddress("MADpfTtabZ6pDjms4pMd3ZmnrgyhTCo4N8?time=1708476729&exp=86400"); // additional information
+        assertInvalidAddress("ltc1q8tk47lvgqu55h4pfast39r3t9360gmll5z9m6z?time=1708476604&exp=600"); // additional information
+        assertInvalidAddress("ltc1q026xyextkwhmveh7rpf6v6mp5p88vwc25aynxr?time=1708476626"); // additional information
     }
 }
