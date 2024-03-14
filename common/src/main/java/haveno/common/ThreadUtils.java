@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -41,10 +40,10 @@ public class ThreadUtils {
      * @param command the command to execute
      * @param threadId the thread id
      */
-    public static void execute(Runnable command, String threadId) {
+    public static Future<?> execute(Runnable command, String threadId) {
         synchronized (EXECUTORS) {
             if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
-            EXECUTORS.get(threadId).execute(() -> {
+            return EXECUTORS.get(threadId).submit(() -> {
                 synchronized (THREADS) {
                     THREADS.put(threadId, Thread.currentThread());
                 }
@@ -60,24 +59,10 @@ public class ThreadUtils {
      * @param threadId the thread id
      */
     public static void await(Runnable command, String threadId) {
-        if (isCurrentThread(Thread.currentThread(), threadId)) {
-            command.run();
-        } else {
-            CountDownLatch latch = new CountDownLatch(1);
-            execute(() -> {
-                try {
-                    command.run();
-                } catch (Exception e) {
-                    throw e;
-                } finally {
-                    latch.countDown();
-                }
-            }, threadId);
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        try {
+            execute(command, threadId).get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

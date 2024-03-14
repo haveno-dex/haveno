@@ -19,6 +19,7 @@ package haveno.core.presentation;
 
 import com.google.inject.Inject;
 import haveno.common.UserThread;
+import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.Balances;
 import javafx.beans.property.SimpleStringProperty;
@@ -38,14 +39,13 @@ public class BalancePresentation {
 
     @Inject
     public BalancePresentation(Balances balances) {
-        balances.getAvailableBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> availableBalance.set(HavenoUtils.formatXmr(newValue, true)));
-        });
-        balances.getPendingBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> pendingBalance.set(HavenoUtils.formatXmr(newValue, true)));
-        });
-        balances.getReservedBalance().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> reservedBalance.set(HavenoUtils.formatXmr(newValue, true)));
+        balances.getUpdateCounter().addListener((observable, oldValue, newValue) -> {
+            XmrBalanceInfo info = balances.getBalances();
+            UserThread.execute(() -> {
+                availableBalance.set(HavenoUtils.formatXmr(info.getAvailableBalance(), true));
+                pendingBalance.set(HavenoUtils.formatXmr(info.getPendingBalance(), true));
+                reservedBalance.set(HavenoUtils.formatXmr(info.getReservedBalance(), true));
+            });
         });
     }
 }
