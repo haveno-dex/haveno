@@ -1,10 +1,10 @@
 package haveno.core.api.model;
 
+import java.math.BigInteger;
+
 import com.google.common.annotations.VisibleForTesting;
 import haveno.common.Payload;
-import lombok.Getter;
 
-@Getter
 public class XmrBalanceInfo implements Payload {
 
     public static final XmrBalanceInfo EMPTY = new XmrBalanceInfo(-1,
@@ -19,17 +19,19 @@ public class XmrBalanceInfo implements Payload {
     private final long pendingBalance;
     private final long reservedOfferBalance;
     private final long reservedTradeBalance;
+    private final long reservedBalance;
 
     public XmrBalanceInfo(long balance,
                           long unlockedBalance,
-                          long lockedBalance,
+                          long pendingBalance,
                           long reservedOfferBalance,
                           long reservedTradeBalance) {
         this.balance = balance;
         this.availableBalance = unlockedBalance;
-        this.pendingBalance = lockedBalance;
+        this.pendingBalance = pendingBalance;
         this.reservedOfferBalance = reservedOfferBalance;
         this.reservedTradeBalance = reservedTradeBalance;
+        this.reservedBalance = reservedOfferBalance + reservedTradeBalance;
     }
 
     @VisibleForTesting
@@ -43,6 +45,30 @@ public class XmrBalanceInfo implements Payload {
                 pendingBalance,
                 reservedOfferBalance,
                 reservedTradeBalance);
+    }
+
+    public BigInteger getBalance() {
+        return BigInteger.valueOf(balance);
+    }
+
+    public BigInteger getAvailableBalance() {
+        return BigInteger.valueOf(availableBalance);
+    }
+
+    public BigInteger getPendingBalance() {
+        return BigInteger.valueOf(pendingBalance);
+    }
+
+    public BigInteger getReservedOfferBalance() {
+        return BigInteger.valueOf(reservedOfferBalance);
+    }
+
+    public BigInteger getReservedTradeBalance() {
+        return BigInteger.valueOf(reservedTradeBalance);
+    }
+
+    public BigInteger getReservedBalance() {
+        return BigInteger.valueOf(reservedBalance);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

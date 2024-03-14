@@ -133,7 +133,6 @@ class CoreWalletsService {
         verifyWalletCurrencyCodeIsValid(currencyCode);
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
-        if (balances.getAvailableBalance().get() == null) throw new IllegalStateException("balance is not yet available");
 
         switch (currencyCode.trim().toUpperCase()) {
             case "":
@@ -418,28 +417,8 @@ class CoreWalletsService {
     private XmrBalanceInfo getXmrBalances() {
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
-
-        var availableBalance = balances.getAvailableBalance().get();
-        if (availableBalance == null)
-            throw new IllegalStateException("available balance is not yet available");
-
-        var pendingBalance = balances.getPendingBalance().get();
-        if (pendingBalance == null)
-            throw new IllegalStateException("locked balance is not yet available");
-
-        var reservedOfferBalance = balances.getReservedOfferBalance().get();
-        if (reservedOfferBalance == null)
-            throw new IllegalStateException("reserved offer balance is not yet available");
-
-        var reservedTradeBalance = balances.getReservedTradeBalance().get();
-        if (reservedTradeBalance == null)
-            throw new IllegalStateException("reserved trade balance is not yet available");
-
-        return new XmrBalanceInfo(availableBalance.longValue() + pendingBalance.longValue(),
-                availableBalance.longValue(),
-                pendingBalance.longValue(),
-                reservedOfferBalance.longValue(),
-                reservedTradeBalance.longValue());
+        if (balances.getAvailableBalance() == null) throw new IllegalStateException("Balances are not yet available");
+        return balances.getBalances();
     }
 
     // Returns a Coin for the transfer amount string, or a RuntimeException if invalid.
