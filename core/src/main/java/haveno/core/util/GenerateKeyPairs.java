@@ -12,29 +12,29 @@ import org.bitcoinj.core.Utils;
 import haveno.common.crypto.Encryption;
 
 /**
- * This utility generates and prints public/private keypairs
+ * This utility generates and prints public/private key-pairs
  * which can be used to register arbitrators on the network.
  */
-public class GenerateKeypairs {
-    
+public class GenerateKeyPairs {
+
     public static void main(String[] args) {
-        
-        // generate public/private keypairs
-        List<SecretKey> secretKeys = new ArrayList<SecretKey>();
+
+        // generate public/private key-pairs
+        List<SecretKey> secretKeys = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
             secretKeys.add(Encryption.generateSecretKey(256));
         }
 
-        // print keypairs
+        // print key-pairs
         System.out.println("Private keys:");
         for (SecretKey sk : secretKeys) {
-            String privKey = Utils.HEX.encode(sk.getEncoded());
-            System.out.println(privKey);
+            String privateKey = Utils.HEX.encode(sk.getEncoded());
+            System.out.println(privateKey);
         }
         System.out.println("Corresponding public keys:");
         for (SecretKey sk : secretKeys) {
-            String privKey = Utils.HEX.encode(sk.getEncoded());
-            ECKey ecKey = ECKey.fromPrivate(new BigInteger(1, Utils.HEX.decode(privKey)));
+            String privateKey = Utils.HEX.encode(sk.getEncoded());
+            ECKey ecKey = ECKey.fromPrivate(new BigInteger(1, Utils.HEX.decode(privateKey)));
             String pubKey = Utils.HEX.encode(ecKey.getPubKey());
             System.out.println(pubKey);
         }

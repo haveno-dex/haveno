@@ -436,6 +436,11 @@ configure(project(':core')) {
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
 
+    task generateKeypairs(type: JavaExec) {
+        mainClass = 'haveno.core.util.GenerateKeyPairs'
+        classpath = sourceSets.main.runtimeClasspath
+    }
+
     task havenoDeps {
         doLast {
             // get monero binaries download url
