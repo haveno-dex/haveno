@@ -333,7 +333,9 @@ public class XmrWalletService {
         Callable<MoneroSyncResult> task = () -> wallet.sync();
         Future<MoneroSyncResult> future = syncWalletThreadPool.submit(task);
         try {
-            return future.get();
+            MoneroSyncResult result = future.get();
+            wallet.getTxs(); // TODO: this is necessary to sync from pool, otherwise balance can be incorrect
+            return result;
         } catch (Exception e) {
             throw new MoneroError(e.getMessage());
         }
@@ -893,7 +895,7 @@ public class XmrWalletService {
                 }
 
                 // register internal listener to notify external listeners
-                wallet.addListener(new XmrWalletListener());
+                wallet.addListener(new XmrWalletListener()); // TODO: initial snapshot calls getTxs() which updates balance after returning but will not announce change
             }
         }
     }
