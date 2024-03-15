@@ -620,9 +620,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
             if (openOffer.isDeactivated()) {
                 onCancelled(openOffer);
+                resultHandler.handleResult();
             } else {
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
-                        () -> onCancelled(openOffer),
+                        () -> {
+                            onCancelled(openOffer);
+                            resultHandler.handleResult();
+                        },
                         errorMessageHandler);
             }
         } else {

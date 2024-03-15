@@ -38,6 +38,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
@@ -236,14 +237,9 @@ public class CoreOffersService {
                 paymentAccount);
     }
 
-    void cancelOffer(String id) {
+    void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Offer offer = getMyOffer(id).getOffer();
-        openOfferManager.removeOffer(offer,
-                () -> {
-                },
-                errorMessage -> {
-                    throw new IllegalStateException(errorMessage);
-                });
+        openOfferManager.removeOffer(offer, resultHandler, errorMessageHandler);
     }
 
     // -------------------------- PRIVATE HELPERS -----------------------------
