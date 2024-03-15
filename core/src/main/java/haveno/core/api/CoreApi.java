@@ -458,8 +458,8 @@ public class CoreApi {
                 paymentAccount);
     }
 
-    public void cancelOffer(String id) {
-        coreOffersService.cancelOffer(id);
+    public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        coreOffersService.cancelOffer(id, resultHandler, errorMessageHandler);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

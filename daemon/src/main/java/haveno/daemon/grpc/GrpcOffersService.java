@@ -140,11 +140,7 @@ class GrpcOffersService extends OffersImplBase {
     @Override
     public void postOffer(PostOfferRequest req,
                             StreamObserver<PostOfferReply> responseObserver) {
-        GrpcErrorMessageHandler errorMessageHandler =
-                new GrpcErrorMessageHandler(getPostOfferMethod().getFullMethodName(),
-                        responseObserver,
-                        exceptionHandler,
-                        log);
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getPostOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
             coreApi.postOffer(
                     req.getCurrencyCode(),
@@ -170,8 +166,7 @@ class GrpcOffersService extends OffersImplBase {
                         responseObserver.onCompleted();
                     },
                     errorMessage -> {
-                        if (!errorMessageHandler.isErrorHandled())
-                            errorMessageHandler.handleErrorMessage(errorMessage);
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
@@ -181,11 +176,15 @@ class GrpcOffersService extends OffersImplBase {
     @Override
     public void cancelOffer(CancelOfferRequest req,
                             StreamObserver<CancelOfferReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getCancelOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            coreApi.cancelOffer(req.getId());
-            var reply = CancelOfferReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            coreApi.cancelOffer(req.getId(), () -> {
+                var reply = CancelOfferReply.newBuilder().build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            }, errorMessage -> {
+                if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+            });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
