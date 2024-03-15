@@ -48,7 +48,7 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 
 Based on these instructions: https://github.com/monero-project/monero#cross-compiling
 
-1. Install Ubuntu 20.04.
+1. Install Ubuntu 20.04 on x86_64.
 2. `sudo apt-get update && sudo apt-get upgrade`
 3. Install monero dependencies: `sudo apt update && sudo apt install build-essential cmake pkg-config libssl-dev libzmq3-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev libpgm-dev qttools5-dev-tools libhidapi-dev libusb-1.0-0-dev libprotobuf-dev protobuf-compiler libudev-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-locale-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev libboost-system-dev libboost-thread-dev python3 ccache`
 4. `sudo apt install cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev libtinfo5 autoconf libtool libtool-bin gperf git curl`
