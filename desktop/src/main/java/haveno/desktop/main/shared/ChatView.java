@@ -407,7 +407,7 @@ public class ChatView extends AnchorPane {
                             attachmentsBox.getChildren().clear();
                             if (allowAttachments &&
                                     message.getAttachments() != null &&
-                                    message.getAttachments().size() > 0) {
+                                    !message.getAttachments().isEmpty()) {
                                 AnchorPane.setBottomAnchor(messageLabel, bottomBorder + attachmentsBoxHeight + 10);
                                 attachmentsBox.getChildren().add(new AutoTooltipLabel(Res.get("support.attachments") + " ") {{
                                     setPadding(new Insets(0, 0, 3, 0));
@@ -662,8 +662,12 @@ public class ChatView extends AnchorPane {
     }
 
     public void scrollToBottom() {
-        if (messageListView != null)
-            UserThread.execute(() -> messageListView.scrollTo(Integer.MAX_VALUE));
+        UserThread.execute(() -> {
+            if (messageListView != null && !messageListView.getItems().isEmpty()) {
+                int lastIndex = messageListView.getItems().size();
+                messageListView.scrollTo(lastIndex);
+            }
+        });
     }
 
     public void setInputBoxVisible(boolean visible) {
@@ -695,7 +699,7 @@ public class ChatView extends AnchorPane {
     private void removeListenersOnSessionChange() {
         if (chatMessages != null) {
             if (disputeDirectMessageListListener != null) chatMessages.removeListener(disputeDirectMessageListListener);
-            chatMessages.forEach(msg -> msg.removeChangeListener());
+            chatMessages.forEach(ChatMessage::removeChangeListener);
         }
 
         if (chatMessage != null) {
