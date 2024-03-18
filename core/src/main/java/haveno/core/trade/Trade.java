@@ -394,6 +394,7 @@ public abstract class Trade implements Tradable, Model {
     @Setter
     @Nullable
     private String counterCurrencyTxId;
+    @Getter
     private final ObservableList<ChatMessage> chatMessages = FXCollections.observableArrayList();
 
     // Transient
@@ -1664,12 +1665,6 @@ public abstract class Trade implements Tradable, Model {
         if (isSeller()) return "Seller";
         if (isArbitrator()) return "Arbitrator";
         throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
-    }
-
-    public ObservableList<ChatMessage> getChatMessages() {
-        synchronized (chatMessages) {
-            return FXCollections.observableArrayList(chatMessages);
-        }
     }
 
     public MessageState getPaymentSentMessageState() {
