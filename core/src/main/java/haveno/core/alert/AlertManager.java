@@ -95,7 +95,7 @@ public class AlertManager {
         }
         pubKeyAsHex = useDevPrivilegeKeys ?
                 DevEnv.DEV_PRIVILEGE_PUB_KEY :
-                "036d8a1dfcb406886037d2381da006358722823e1940acc2598c844bbc0fd1026f";
+                "034abe92abe380d7873a8e9babf77e1cd3425cae26899f2940b572777bb482aa38";
     }
 
 
