@@ -416,11 +416,13 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private void updateNewChatMessagesByTradeMap() {
         model.dataModel.list.forEach(t -> {
             Trade trade = t.getTrade();
-            newChatMessagesByTradeMap.put(trade.getId(),
-                    trade.getChatMessages().stream()
-                            .filter(m -> !m.isWasDisplayed())
-                            .filter(m -> !m.isSystemMessage())
-                            .count());
+            synchronized (trade.getChatMessages()) {
+                newChatMessagesByTradeMap.put(trade.getId(),
+                        trade.getChatMessages().stream()
+                                .filter(m -> !m.isWasDisplayed())
+                                .filter(m -> !m.isSystemMessage())
+                                .count());
+            }
         });
     }
 

@@ -439,7 +439,7 @@ public class ChatView extends AnchorPane {
                             copyIcon.getStyleClass().addAll("icon", "copy-icon-disputes");
 
                             // TODO There are still some cell rendering issues on updates
-                            setGraphic(messageAnchorPane);
+                            UserThread.execute(() -> setGraphic(messageAnchorPane));
                         } else {
                             if (sendMsgBusyAnimation != null && sendMsgBusyAnimationListener != null)
                                 sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
@@ -448,7 +448,7 @@ public class ChatView extends AnchorPane {
 
                             copyIcon.setOnMouseClicked(null);
                             messageLabel.setOnMouseClicked(null);
-                            setGraphic(null);
+                            UserThread.execute(() -> setGraphic(null));
                         }
                     }
 
