@@ -445,12 +445,14 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux'         : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux.tar.gz',
-                'linux-sha256'  : '3537fe2006997a1065748d27e9513ac3e0c942ab56a97a6e43065ddfd1820394',
-                'mac'           : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'    : 'c7cafe1000a5839f02d02ed2edce5b1df3a06b5c77f4d91eaba106d948347730',
-                'windows'       : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-windows.zip',
-                'windows-sha256': '9b900faefa75f354870646989484978d1fb11add392ffd05eb5abe7e514e395a'
+                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux.tar.gz',
+                'linux-x86_64-sha256'  : '3537fe2006997a1065748d27e9513ac3e0c942ab56a97a6e43065ddfd1820394',
+                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux-aarch64.tar.gz',
+                'linux-aarch64-sha256' : '6ff81c61780fe08defbd6576bd93c6711cf5ad3e79be0e3bc2184ff11cc6a472',
+                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'           : 'c7cafe1000a5839f02d02ed2edce5b1df3a06b5c77f4d91eaba106d948347730',
+                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-windows.zip',
+                'windows-sha256'       : '9b900faefa75f354870646989484978d1fb11add392ffd05eb5abe7e514e395a'
             ]
 
             String osKey
@@ -459,7 +461,12 @@ configure(project(':core')) {
             } else if (Os.isFamily(Os.FAMILY_MAC)) {
                 osKey = 'mac'
             } else {
-                osKey = 'linux'
+                String architecture = System.getProperty("os.arch").toLowerCase()
+                if (architecture.contains('aarch64') || architecture.contains('arm')) {
+                    osKey = 'linux-aarch64'
+                } else {
+                    osKey = 'linux-x86_64'
+                }
             }
 
             String moneroDownloadUrl = moneroBinaries[osKey]
