@@ -1,2 +1,2 @@
-# nodeaddress.onion:port [(@owner,@backup)]
+# nodeaddress.onion:port [(@owner,@backup)] (add mainnet seed addresses)
 placeholder.onion:8000 (@placeholder)

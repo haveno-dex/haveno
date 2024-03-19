@@ -95,7 +95,7 @@ public class PrivateNotificationManager implements MessageListener {
         }
         pubKeyAsHex = useDevPrivilegeKeys ?
                 DevEnv.DEV_PRIVILEGE_PUB_KEY :
-                "02ba7c5de295adfe57b60029f3637a2c6b1d0e969a8aaefb9e0ddc3a7963f26925";
+                "02ba7c5de295adfe57b60029f3637a2c6b1d0e969a8aaefb9e0ddc3a7963f26925"; // TODO: replace with mainnet dev pub key for private messages
     }
 
     private void handleMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress senderNodeAddress) {

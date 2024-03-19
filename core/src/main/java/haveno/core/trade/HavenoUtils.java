@@ -63,6 +63,7 @@ import org.bitcoinj.core.Coin;
 public class HavenoUtils {
 
     // configurable
+    // TODO: adjust for mainnet release
     private static final String RELEASE_DATE = "01-03-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "01-03-2024 00:00:00"
     public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
     public static final int WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS = 182; // number of days to warn if sell offer exceeds unsigned buy limit
@@ -453,7 +454,7 @@ public class HavenoUtils {
         case XMR_STAGENET:
             return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
         case XMR_MAINNET:
-            throw new RuntimeException("Mainnet fee address not implemented");
+            throw new RuntimeException("Mainnet fee address not implemented"); // TODO: replace with mainnet trade fee address
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }
