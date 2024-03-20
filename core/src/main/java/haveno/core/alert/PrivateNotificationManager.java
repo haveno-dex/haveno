@@ -191,7 +191,7 @@ public class PrivateNotificationManager implements MessageListener {
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
-                String errorMessage = "Sending ping to " + peersNodeAddress.getHostNameForDisplay() +
+                String errorMessage = "Sending ping to " + peersNodeAddress.getAddressForDisplay() +
                         " failed. That is expected if the peer is offline.\n\tping=" + ping +
                         ".\n\tException=" + throwable.getMessage();
                 log.info(errorMessage);
