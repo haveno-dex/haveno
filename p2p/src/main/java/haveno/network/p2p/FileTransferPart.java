@@ -96,7 +96,7 @@ public class FileTransferPart extends NetworkEnvelope implements ExtendedDataSiz
     @Override
     public String toString() {
         return "FileTransferPart{" +
-                "\n     senderNodeAddress='" + senderNodeAddress.getHostNameForDisplay() + '\'' +
+                "\n     senderNodeAddress='" + senderNodeAddress.getAddressForDisplay() + '\'' +
                 ",\n     uid='" + uid + '\'' +
                 ",\n     tradeId='" + tradeId + '\'' +
                 ",\n     traderId='" + traderId + '\'' +

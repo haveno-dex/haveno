@@ -1233,7 +1233,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 long accountAge = accountAgeWitnessService.getAccountAge(item.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
                 String postFix = CurrencyUtil.isTraditionalCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
-                return buyerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
+                return buyerNodeAddress.getAddressForDisplay() + " (" + nrOfDisputes + postFix + ")";
             } else
                 return Res.get("shared.na");
         } else {
@@ -1250,7 +1250,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 long accountAge = accountAgeWitnessService.getAccountAge(item.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
                 String postFix = CurrencyUtil.isTraditionalCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
-                return sellerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
+                return sellerNodeAddress.getAddressForDisplay() + " (" + nrOfDisputes + postFix + ")";
             } else
                 return Res.get("shared.na");
         } else {
@@ -1470,7 +1470,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     private PeerInfoIconDispute createAvatar(Integer tableRowId, Dispute dispute, boolean isBuyer) {
         NodeAddress nodeAddress = isBuyer ? dispute.getContract().getBuyerNodeAddress() : dispute.getContract().getSellerNodeAddress();
-        String key = tableRowId + nodeAddress.getHostNameWithoutPostFix() + (isBuyer ? "BUYER" : "SELLER");
+        String key = tableRowId + nodeAddress.getAddressForDisplay() + (isBuyer ? "BUYER" : "SELLER");
         Long accountAge = isBuyer ?
                 accountAgeWitnessService.getAccountAge(dispute.getBuyerPaymentAccountPayload(), dispute.getContract().getBuyerPubKeyRing()) :
                 accountAgeWitnessService.getAccountAge(dispute.getSellerPaymentAccountPayload(), dispute.getContract().getSellerPubKeyRing());
