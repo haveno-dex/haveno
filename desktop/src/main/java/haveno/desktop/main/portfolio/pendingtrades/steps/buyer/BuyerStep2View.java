@@ -162,7 +162,7 @@ public class BuyerStep2View extends TradeStepView {
                             timeoutTimer = UserThread.runAfter(() -> {
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            }, 10);
+                            }, 30);
                             break;
                         case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
