@@ -36,3 +36,4 @@ deploy
 .localnet
 .vscode
 .vim/*
+*/.factorypath
