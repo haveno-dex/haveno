@@ -61,7 +61,7 @@ public abstract class TradeSubView extends HBox {
 
     public TradeSubView(PendingTradesViewModel model) {
         this.model = model;
-
+        HBox.setHgrow(this, Priority.ALWAYS);
         setSpacing(Layout.PADDING_WINDOW);
         buildViews();
     }

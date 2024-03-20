@@ -75,6 +75,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -84,7 +85,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -117,6 +117,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @FXML
     TableColumn<PendingTradesListItem, PendingTradesListItem> priceColumn, volumeColumn, amountColumn, avatarColumn,
             marketColumn, roleColumn, paymentMethodColumn, tradeIdColumn, dateColumn, chatColumn, moveTradeToFailedColumn;
+    @FXML
+    ScrollPane scrollView;
     private FilteredList<PendingTradesListItem> filteredList;
     private SortedList<PendingTradesListItem> sortedList;
     private TradeSubView selectedSubView;
@@ -275,6 +277,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         sortedList = new SortedList<>(filteredList);
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
+        tableView.setPrefHeight(100);
+        tableView.setMaxHeight(200);
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.activate();
@@ -295,13 +299,13 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                     selectedSubView = model.dataModel.tradeManager.isBuyer(model.dataModel.getOffer()) ?
                             new BuyerSubView(model) : new SellerSubView(model);
 
-                    selectedSubView.setMinHeight(460);
-                    VBox.setVgrow(selectedSubView, Priority.ALWAYS);
+                    //selectedSubView.setMinHeight(460);
+                    //VBox.setVgrow(selectedSubView, Priority.SOMETIMES);
                     if (root.getChildren().size() == 2)
-                        root.getChildren().add(selectedSubView);
+                        root.getChildren().add(scrollView);
                     else if (root.getChildren().size() == 3)
-                        root.getChildren().set(2, selectedSubView);
-
+                        root.getChildren().set(2, scrollView);
+                    scrollView.setContent(selectedSubView);
                     // create and register a callback so we can be notified when the subview
                     // wants to open the chat window
                     ChatCallback chatCallback = this::openChat;
