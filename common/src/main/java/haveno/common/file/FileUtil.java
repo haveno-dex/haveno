@@ -26,6 +26,7 @@ import org.apache.commons.io.IOUtils;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,6 +36,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Scanner;
 
 @Slf4j
 public class FileUtil {
@@ -239,5 +241,15 @@ public class FileUtil {
         if (storageFile.exists()) {
             renameFile(storageFile, corruptedFile);
         }
+    }
+
+    public static boolean doesFileContainKeyword(File file, String keyword) throws FileNotFoundException {
+        Scanner s = new Scanner(file);
+        while (s.hasNextLine()) {
+            if (s.nextLine().contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

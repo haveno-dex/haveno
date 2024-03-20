@@ -443,7 +443,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         model.dataModel.getTradeManager().requestPersistence();
         tradeIdOfOpenChat = trade.getId();
 
-        ChatView chatView = new ChatView(traderChatManager, formatter, Res.get("offerbook.trader"));
+        ChatView chatView = new ChatView(traderChatManager, Res.get("offerbook.trader"));
         chatView.setAllowAttachments(false);
         chatView.setDisplayHeader(false);
         chatView.initialize();

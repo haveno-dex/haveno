@@ -940,7 +940,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         return new Tuple2<>(peerNodeAddress, receiverPubKeyRing);
     }
 
-    private boolean isAgent(Dispute dispute) {
+    public boolean isAgent(Dispute dispute) {
         return keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing());
     }
 
@@ -1035,6 +1035,20 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         chatMessage.setSystemMessage(false);
         dispute.addAndPersistChatMessage(chatMessage);
         this.sendChatMessage(chatMessage);
+        requestPersistence();
+    }
+
+    protected void addMediationLogsReceivedMessage(Dispute dispute, String logsIdentifier) {
+        String logsReceivedMessage = Res.get("support.mediatorReceivedLogs", logsIdentifier);
+        ChatMessage chatMessage = new ChatMessage(
+                getSupportType(),
+                dispute.getTradeId(),
+                keyRing.hashCode(),
+                false,
+                logsReceivedMessage,
+                p2PService.getAddress());
+        chatMessage.setSystemMessage(true);
+        dispute.addAndPersistChatMessage(chatMessage);
         requestPersistence();
     }
 

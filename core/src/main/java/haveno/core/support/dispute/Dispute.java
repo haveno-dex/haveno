@@ -30,8 +30,13 @@ import haveno.core.locale.Res;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.SupportType;
+import haveno.core.support.dispute.mediation.FileTransferReceiver;
+import haveno.core.support.dispute.mediation.FileTransferSender;
+import haveno.core.support.dispute.mediation.FileTransferSession;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Contract;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.NetworkNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -49,6 +54,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -150,6 +157,25 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
 
     private transient final BooleanProperty isClosedProperty = new SimpleBooleanProperty();
     private transient final IntegerProperty badgeCountProperty = new SimpleIntegerProperty();
+
+    private transient FileTransferReceiver fileTransferSession = null;
+
+    public FileTransferReceiver createOrGetFileTransferReceiver(NetworkNode networkNode,
+                                                                NodeAddress peerNodeAddress,
+                                                                FileTransferSession.FtpCallback callback) throws IOException {
+        // the receiver stores its state temporarily here in the dispute
+        // this method gets called to retrieve the session each time a part of the log files is received
+        if (fileTransferSession == null) {
+            fileTransferSession = new FileTransferReceiver(networkNode, peerNodeAddress, this.tradeId, this.traderId, this.getRoleStringForLogFile(), callback);
+        }
+        return fileTransferSession;
+    }
+
+    public FileTransferSender createFileTransferSender(NetworkNode networkNode,
+                                                       NodeAddress peerNodeAddress,
+                                                       FileTransferSession.FtpCallback callback) {
+        return new FileTransferSender(networkNode, peerNodeAddress, this.tradeId, this.traderId, this.getRoleStringForLogFile(), false, callback);
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -476,6 +502,11 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
             else
                 return Res.get(isOpener() ? "support.sellerTaker" : "support.buyerMaker");
         }
+    }
+
+    public String getRoleStringForLogFile() {
+        return (disputeOpenerIsBuyer ? "BUYER" : "SELLER") + "_"
+                + (disputeOpenerIsMaker ? "MAKER" : "TAKER");
     }
 
     @Nullable
