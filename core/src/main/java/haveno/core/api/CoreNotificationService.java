@@ -60,7 +60,7 @@ public class CoreNotificationService {
         sendNotification(NotificationMessage.newBuilder()
                 .setType(NotificationType.CHAT_MESSAGE)
                 .setTimestamp(System.currentTimeMillis())
-                .setChatMessage(chatMessage.toProtoChatMessageBuilder())
+                .setChatMessage(chatMessage.toProtoNetworkEnvelope().getChatMessage())
                 .build());
     }
 

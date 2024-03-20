@@ -43,6 +43,7 @@ import haveno.common.UserThread;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
+import haveno.common.proto.network.NetworkEnvelope;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
@@ -55,6 +56,9 @@ import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeResult.Winner;
 import haveno.core.support.dispute.DisputeSummaryVerification;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.mediation.FileTransferReceiver;
+import haveno.core.support.dispute.mediation.FileTransferSender;
+import haveno.core.support.dispute.mediation.FileTransferSession;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
@@ -67,8 +71,11 @@ import haveno.core.trade.TradeManager;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.FileTransferPart;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.MessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroDestination;
@@ -76,6 +83,7 @@ import monero.wallet.model.MoneroMultisigSignResult;
 import monero.wallet.model.MoneroTxSet;
 import monero.wallet.model.MoneroTxWallet;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,7 +96,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @Singleton
-public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeList> {
+public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeList> implements MessageListener, FileTransferSession.FtpCallback {
 
     private final ArbitratorManager arbitratorManager;
 
@@ -116,6 +124,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
         this.arbitratorManager = arbitratorManager;
         HavenoUtils.arbitrationManager = this; // TODO: storing static reference, better way?
+        p2PService.getNetworkNode().addMessageListener(this);   // listening for FileTransferPart message
     }
 
 
@@ -496,5 +505,61 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     throw new RuntimeException("Unsupported subtract fee from: " + disputeResult.getSubtractFeeFrom());
             }
         }
+    }
+
+    public FileTransferSender initLogUpload(FileTransferSession.FtpCallback callback,
+                                            String tradeId,
+                                            int traderId) throws IOException {
+        Dispute dispute = findDispute(tradeId, traderId)
+                .orElseThrow(() -> new IOException("could not locate Dispute for tradeId/traderId"));
+        return dispute.createFileTransferSender(p2PService.getNetworkNode(),
+                dispute.getContract().getArbitratorNodeAddress(), callback);
+    }
+
+    private void processFilePartReceived(FileTransferPart ftp) {
+        if (!ftp.isInitialRequest()) {
+            return; // existing sessions are processed by FileTransferSession object directly
+        }
+        // we create a new session which is related to an open dispute from our list
+        Optional<Dispute> dispute = findDispute(ftp.getTradeId(), ftp.getTraderId());
+        if (dispute.isEmpty()) {
+            log.error("Received log upload request for unknown TradeId/TraderId {}/{}", ftp.getTradeId(), ftp.getTraderId());
+            return;
+        }
+        if (dispute.get().isClosed()) {
+            log.error("Received a file transfer request for closed dispute {}", ftp.getTradeId());
+            return;
+        }
+        try {
+            FileTransferReceiver session = dispute.get().createOrGetFileTransferReceiver(
+                    p2PService.getNetworkNode(), ftp.getSenderNodeAddress(), this);
+            session.processFilePartReceived(ftp);
+        } catch (IOException e) {
+            log.error("Unable to process a received file message" + e);
+        }
+    }
+
+    @Override
+    public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
+        if (networkEnvelope instanceof FileTransferPart) {              // mediator receiving log file data
+            FileTransferPart ftp = (FileTransferPart) networkEnvelope;
+            processFilePartReceived(ftp);
+        }
+    }
+
+    @Override
+    public void onFtpProgress(double progressPct) {
+        log.trace("ftp progress: {}", progressPct);
+    }
+
+    @Override
+    public void onFtpComplete(FileTransferSession session) {
+        Optional<Dispute> dispute = findDispute(session.getFullTradeId(), session.getTraderId());
+        dispute.ifPresent(d -> addMediationLogsReceivedMessage(d, session.getZipId()));
+    }
+
+    @Override
+    public void onFtpTimeout(String statusMsg, FileTransferSession session) {
+        session.resetSession();
     }
 }

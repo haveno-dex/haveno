@@ -64,6 +64,8 @@ message NetworkEnvelope {
 
         MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 37;
         MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 38;
+
+        FileTransferPart file_transfer_part = 39;
     }
 }
 
@@ -98,6 +100,15 @@ message GetUpdatedDataRequest {
     int32 nonce = 2;
     repeated bytes excluded_keys = 3;
     string version = 4;
+}
+
+message FileTransferPart {
+    NodeAddress sender_node_address = 1;
+    string uid = 2;
+    string trade_id = 3;
+    int32 trader_id = 4;
+    int64 seq_num_or_file_length = 5;
+    bytes message_data = 6;
 }
 
 message GetPeersRequest {

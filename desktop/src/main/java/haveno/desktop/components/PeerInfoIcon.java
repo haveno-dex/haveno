@@ -17,40 +17,46 @@
 
 package haveno.desktop.components;
 
-import com.google.common.base.Charsets;
+import haveno.desktop.main.overlays.editor.PeerInfoWithTagEditor;
+import haveno.desktop.util.DisplayUtils;
+
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
-import haveno.desktop.main.overlays.editor.PeerInfoWithTagEditor;
-import haveno.desktop.util.DisplayUtils;
+
 import haveno.network.p2p.NodeAddress;
-import javafx.geometry.Point2D;
+
+import com.google.common.base.Charsets;
+
 import javafx.scene.Group;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import lombok.Setter;
+
+import javafx.geometry.Point2D;
+
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
 
 @Slf4j
 public class PeerInfoIcon extends Group {
-    public interface notify {
-        void avatarTagUpdated();
-    }
 
-    @Setter
-    private notify callback;
     protected Preferences preferences;
     protected final String fullAddress;
     protected String tooltipText;
@@ -59,10 +65,12 @@ public class PeerInfoIcon extends Group {
     protected Pane tagPane;
     protected Pane numTradesPane;
     protected int numTrades = 0;
+    private final StringProperty tag;
 
     public PeerInfoIcon(NodeAddress nodeAddress, Preferences preferences) {
         this.preferences = preferences;
         this.fullAddress = nodeAddress != null ? nodeAddress.getFullAddress() : "";
+        this.tag = new SimpleStringProperty("");
     }
 
     protected void createAvatar(Color ringColor) {
@@ -162,23 +170,24 @@ public class PeerInfoIcon extends Group {
                         Res.get("peerInfo.unknownAge") :
                 null;
 
-        setOnMouseClicked(e -> new PeerInfoWithTagEditor(privateNotificationManager, trade, offer, preferences, useDevPrivilegeKeys)
-                .fullAddress(fullAddress)
-                .numTrades(numTrades)
-                .accountAge(accountAgeFormatted)
-                .signAge(signAgeFormatted)
-                .accountAgeInfo(peersAccountAgeInfo)
-                .signAgeInfo(peersSignAgeInfo)
-                .accountSigningState(accountSigningState)
-                .position(localToScene(new Point2D(0, 0)))
-                .onSave(newTag -> {
-                    preferences.setTagForPeer(fullAddress, newTag);
-                    updatePeerInfoIcon();
-                    if (callback != null) {
-                        callback.avatarTagUpdated();
-                    }
-                })
-                .show());
+        setOnMouseClicked(e -> {
+            if (e.getButton().equals(MouseButton.PRIMARY)) {
+                new PeerInfoWithTagEditor(privateNotificationManager, trade, offer, preferences, useDevPrivilegeKeys)
+                        .fullAddress(fullAddress)
+                        .numTrades(numTrades)
+                        .accountAge(accountAgeFormatted)
+                        .signAge(signAgeFormatted)
+                        .accountAgeInfo(peersAccountAgeInfo)
+                        .signAgeInfo(peersSignAgeInfo)
+                        .accountSigningState(accountSigningState)
+                        .position(localToScene(new Point2D(0, 0)))
+                        .onSave(newTag -> {
+                            preferences.setTagForPeer(fullAddress, newTag);
+                            tag.set(newTag);
+                        })
+                        .show();
+            }
+        });
     }
 
     protected double getScaleFactor() {
@@ -192,20 +201,6 @@ public class PeerInfoIcon extends Group {
     }
 
     protected void updatePeerInfoIcon() {
-        String tag;
-        Map<String, String> peerTagMap = preferences.getPeerTagMap();
-        if (peerTagMap.containsKey(fullAddress)) {
-            tag = peerTagMap.get(fullAddress);
-            final String text = !tag.isEmpty() ? Res.get("peerInfoIcon.tooltip", tooltipText, tag) : tooltipText;
-            Tooltip.install(this, new Tooltip(text));
-        } else {
-            tag = "";
-            Tooltip.install(this, new Tooltip(tooltipText));
-        }
-
-        if (!tag.isEmpty())
-            tagLabel.setText(tag.substring(0, 1));
-
         if (numTrades > 0) {
             numTradesLabel.setText(numTrades > 99 ? "*" : String.valueOf(numTrades));
 
@@ -216,9 +211,27 @@ public class PeerInfoIcon extends Group {
                 numTradesLabel.relocate(scaleFactor * 5, scaleFactor * 1);
             }
         }
-
         numTradesPane.setVisible(numTrades > 0);
 
-        tagPane.setVisible(!tag.isEmpty());
+        refreshTag();
+    }
+
+    protected void refreshTag() {
+        Map<String, String> peerTagMap = preferences.getPeerTagMap();
+        if (peerTagMap.containsKey(fullAddress)) {
+            tag.set(peerTagMap.get(fullAddress));
+        }
+
+        Tooltip.install(this, new Tooltip(!tag.get().isEmpty() ?
+                Res.get("peerInfoIcon.tooltip", tooltipText, tag.get()) : tooltipText));
+
+        if (!tag.get().isEmpty()) {
+            tagLabel.setText(tag.get().substring(0, 1));
+        }
+        tagPane.setVisible(!tag.get().isEmpty());
+    }
+
+    protected StringProperty tagProperty() {
+        return tag;
     }
 }
