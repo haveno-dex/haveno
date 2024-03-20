@@ -127,7 +127,7 @@ public class SellerStep3View extends TradeStepView {
                         timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                        }, 10);
+                        }, 30);
                         break;
                     case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
                         busyAnimation.stop();
