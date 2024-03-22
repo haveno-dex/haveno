@@ -849,9 +849,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // import multisig hex
         trade.importMultisigHex();
 
-        // sync and save wallet
+        // sync and poll
         trade.syncAndPollWallet();
-        trade.saveWallet();
 
         // create unsigned dispute payout tx if not already published
         if (!trade.isPayoutPublished()) {

@@ -64,9 +64,6 @@ public class ProcessPaymentSentMessage extends TradeTask {
             // import multisig hex
             trade.importMultisigHex();
 
-            // save wallet
-            trade.saveWallet();
-
             // update state
             trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             trade.requestPersistence();

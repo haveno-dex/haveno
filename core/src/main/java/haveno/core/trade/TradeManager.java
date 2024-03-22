@@ -1299,7 +1299,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // unreserve taker key images
             if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
                 xmrWalletService.thawOutputs(trade.getSelf().getReserveTxKeyImages());
-                xmrWalletService.saveMainWallet();
                 trade.getSelf().setReserveTxKeyImages(null);
             }
 
