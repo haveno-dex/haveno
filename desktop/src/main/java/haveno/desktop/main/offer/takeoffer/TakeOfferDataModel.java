@@ -233,18 +233,19 @@ class TakeOfferDataModel extends OfferDataModel {
         if (isBuyOffer())
             fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
 
+        String errorMsg = null;
         if (filterManager.isCurrencyBanned(offer.getCurrencyCode())) {
-            new Popup().warning(Res.get("offerbook.warning.currencyBanned")).show();
+            errorMsg = Res.get("offerbook.warning.currencyBanned");
         } else if (filterManager.isPaymentMethodBanned(offer.getPaymentMethod())) {
-            new Popup().warning(Res.get("offerbook.warning.paymentMethodBanned")).show();
+            errorMsg = Res.get("offerbook.warning.paymentMethodBanned");
         } else if (filterManager.isOfferIdBanned(offer.getId())) {
-            new Popup().warning(Res.get("offerbook.warning.offerBlocked")).show();
+            errorMsg = Res.get("offerbook.warning.offerBlocked");
         } else if (filterManager.isNodeAddressBanned(offer.getMakerNodeAddress())) {
-            new Popup().warning(Res.get("offerbook.warning.nodeBlocked")).show();
+            errorMsg = Res.get("offerbook.warning.nodeBlocked");
         } else if (filterManager.requireUpdateToNewVersionForTrading()) {
-            new Popup().warning(Res.get("offerbook.warning.requireUpdateToNewVersion")).show();
+            errorMsg = Res.get("offerbook.warning.requireUpdateToNewVersion");
         } else if (tradeManager.wasOfferAlreadyUsedInTrade(offer.getId())) {
-            new Popup().warning(Res.get("offerbook.warning.offerWasAlreadyUsedInTrade")).show();
+            errorMsg = Res.get("offerbook.warning.offerWasAlreadyUsedInTrade");
         } else {
             tradeManager.onTakeOffer(amount.get(),
                     getTakerFee(),
@@ -259,6 +260,12 @@ class TakeOfferDataModel extends OfferDataModel {
                         errorMessageHandler.handleErrorMessage(errorMessage);
                     }
             );
+        }
+
+        // handle error
+        if (errorMsg != null) {
+            new Popup().warning(errorMsg).show();
+            errorMessageHandler.handleErrorMessage(errorMsg);
         }
     }
 
