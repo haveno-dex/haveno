@@ -133,7 +133,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             // if unavailable, try alternative arbitrator
             @Override
             public void onFault(String errorMessage) {
-                log.warn("Arbitrator unavailable: address={}: {}", arbitratorNodeAddress, errorMessage);
+                log.warn("Arbitrator unavailable: address={}, error={}", arbitratorNodeAddress, errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
 
                 // get alternative arbitrator

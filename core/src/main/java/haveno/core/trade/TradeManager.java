@@ -1217,6 +1217,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    public boolean hasOpenTrade(Trade trade) {
+        synchronized (tradableList) {
+            return tradableList.contains(trade);
+        }
+    }
+
     public Optional<Trade> getOpenTradeByUid(String tradeUid) {
         synchronized (tradableList) {
             return tradableList.stream().filter(e -> e.getUid().equals(tradeUid)).findFirst();

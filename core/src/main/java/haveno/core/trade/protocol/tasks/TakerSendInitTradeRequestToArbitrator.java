@@ -70,14 +70,27 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
             @Override
             public void onArrived() {
                 log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
+
+                // check if trade still exists
+                if (!processModel.getTradeManager().hasOpenTrade(trade)) {
+                    errorMessageHandler.handleErrorMessage("Trade protocol no longer exists, tradeId=" + trade.getId());
+                    return;
+                }
                 resultHandler.handleResult();
             }
 
             // if unavailable, try alternative arbitrator
             @Override
             public void onFault(String errorMessage) {
-                log.warn("Arbitrator {} unavailable: {}", arbitratorNodeAddress, errorMessage);
+                log.warn("Arbitrator unavailable: address={}, error={}", arbitratorNodeAddress, errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
+
+                // check if trade still exists
+                if (!processModel.getTradeManager().hasOpenTrade(trade)) {
+                    errorMessageHandler.handleErrorMessage("Trade protocol no longer exists, tradeId=" + trade.getId());
+                    return;
+                }
+
                 Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager(), excludedArbitrators);
                 if (altArbitrator == null) {
                     errorMessageHandler.handleErrorMessage("Cannot take offer because no arbitrators are available");

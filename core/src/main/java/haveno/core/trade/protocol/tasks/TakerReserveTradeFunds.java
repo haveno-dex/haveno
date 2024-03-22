@@ -51,10 +51,9 @@ public class TakerReserveTradeFunds extends TradeTask {
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
 
-            // check for error in case creating reserve tx exceeded timeout
-            // TODO: better way?
-            if (!model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).isPresent()) {
-                throw new RuntimeException("An error has occurred taking trade " + trade.getId() + " causing its subaddress entry to be deleted");
+            // check if trade still exists
+            if (!processModel.getTradeManager().hasOpenTrade(trade)) {
+                throw new RuntimeException("Trade protocol no longer exists after creating reserve tx, tradeId=" + trade.getId());
             }
 
             // reset protocol timeout
