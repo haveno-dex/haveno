@@ -382,12 +382,16 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     // DirectMessages
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO OfferAvailabilityResponse is called twice!
     public void sendEncryptedDirectMessage(NodeAddress peerNodeAddress, PubKeyRing pubKeyRing, NetworkEnvelope message,
                                            SendDirectMessageListener sendDirectMessageListener) {
+        sendEncryptedDirectMessage(peerNodeAddress, pubKeyRing, message, sendDirectMessageListener, null);
+    }
+
+    public void sendEncryptedDirectMessage(NodeAddress peerNodeAddress, PubKeyRing pubKeyRing, NetworkEnvelope message,
+                                           SendDirectMessageListener sendDirectMessageListener, Integer timeoutSeconds) {
         checkNotNull(peerNodeAddress, "PeerAddress must not be null (sendEncryptedDirectMessage)");
         if (isBootstrapped()) {
-            doSendEncryptedDirectMessage(peerNodeAddress, pubKeyRing, message, sendDirectMessageListener);
+            doSendEncryptedDirectMessage(peerNodeAddress, pubKeyRing, message, sendDirectMessageListener, timeoutSeconds);
         } else {
             throw new NetworkNotReadyException();
         }
@@ -396,7 +400,8 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     private void doSendEncryptedDirectMessage(@NotNull NodeAddress peersNodeAddress,
                                               PubKeyRing pubKeyRing,
                                               NetworkEnvelope message,
-                                              SendDirectMessageListener sendDirectMessageListener) {
+                                              SendDirectMessageListener sendDirectMessageListener,
+                                              Integer timeoutSeconds) {
         log.debug("Send encrypted direct message {} to peer {}",
                 message.getClass().getSimpleName(), peersNodeAddress);
 
@@ -417,7 +422,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
                     networkNode.getNodeAddress(),
                     encryptionService.encryptAndSign(pubKeyRing, message));
 
-            SettableFuture<Connection> future = networkNode.sendMessage(peersNodeAddress, sealedMsg);
+            SettableFuture<Connection> future = networkNode.sendMessage(peersNodeAddress, sealedMsg, timeoutSeconds);
             Futures.addCallback(future, new FutureCallback<>() {
                 @Override
                 public void onSuccess(@Nullable Connection connection) {

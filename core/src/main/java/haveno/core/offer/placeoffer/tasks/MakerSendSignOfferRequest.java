@@ -28,6 +28,7 @@ import haveno.core.offer.availability.DisputeAgentSelection;
 import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.DecryptedDirectMessageListener;
@@ -164,7 +165,8 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                 arbitratorNodeAddress,
                 arbitrator.getPubKeyRing(),
                 request,
-                listener
+                listener,
+                HavenoUtils.ARBITRATOR_ACK_TIMEOUT_SECONDS
         );
     }
 }
