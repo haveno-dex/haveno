@@ -1184,7 +1184,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                     setGraphic(peerInfoIconDispute);
                                 } else {
                                     setText("");
-                                    setText(null);
+                                    setGraphic(null);
                                 }
                             }
                         };
