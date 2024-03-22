@@ -377,7 +377,14 @@ public class HavenoUtils {
         String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
 
         // verify maker signature
-        return isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
+        boolean isSignatureValid = isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
+        if (!isSignatureValid) {
+            log.warn("Invalid maker signature for trade request: " + request.getTradeId() + " from " + request.getSenderNodeAddress().getAddressForDisplay());
+            log.warn("Trade request as json: " + tradeRequestAsJson);
+            log.warn("Maker pub key ring: " + (makerPubKeyRing == null ? null : "..."));
+            log.warn("Maker signature: " + (signature == null ? null : Utilities.bytesAsHexString(signature)));
+        }
+        return isSignatureValid;
     }
 
     /**
