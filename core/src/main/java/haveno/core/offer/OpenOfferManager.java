@@ -708,7 +708,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         Offer offer = openOffer.getOffer();
         if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
             xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
-            xmrWalletService.saveMainWallet();
         }
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);

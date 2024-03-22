@@ -135,7 +135,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
         // update wallet
         trade.importMultisigHex();
         trade.syncAndPollWallet();
-        trade.saveWallet();
 
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {

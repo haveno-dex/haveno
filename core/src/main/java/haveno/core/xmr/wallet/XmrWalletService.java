@@ -246,6 +246,10 @@ public class XmrWalletService {
         saveWallet(getWallet(), backup);
     }
 
+    public void requestSaveMainWallet() {
+        ThreadUtils.submitToPool(() -> saveMainWallet()); // save wallet off main thread
+    }
+
     public boolean isWalletAvailable() {
         try {
             return getWallet() != null;
@@ -402,6 +406,7 @@ public class XmrWalletService {
             try {
                 MoneroTxWallet tx = wallet.createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
                 //printTxs("XmrWalletService.createTx", tx);
+                requestSaveMainWallet();
                 return tx;
             } catch (Exception e) {
                 throw e;
@@ -455,7 +460,7 @@ public class XmrWalletService {
     public void freezeOutputs(Collection<String> keyImages) {
         synchronized (walletLock) {
             for (String keyImage : keyImages) wallet.freezeOutput(keyImage);
-            saveMainWallet();
+            requestSaveMainWallet();
             cacheWalletState();
         }
         updateBalanceListeners(); // TODO (monero-java): balance listeners not notified on freeze/thaw output
@@ -469,7 +474,7 @@ public class XmrWalletService {
     public void thawOutputs(Collection<String> keyImages) {
         synchronized (walletLock) {
             for (String keyImage : keyImages) wallet.thawOutput(keyImage);
-            saveMainWallet();
+            requestSaveMainWallet();
             cacheWalletState();
         }
         updateBalanceListeners(); // TODO (monero-java): balance listeners not notified on freeze/thaw output
@@ -590,7 +595,6 @@ public class XmrWalletService {
         List<String> keyImages = new ArrayList<String>();
         for (MoneroOutput input : tradeTx.getInputs()) keyImages.add(input.getKeyImage().getHex());
         freezeOutputs(keyImages);
-        saveMainWallet();
         return tradeTx;
     }
 

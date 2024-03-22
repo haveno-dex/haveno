@@ -880,6 +880,7 @@ public abstract class Trade implements Tradable, Model {
                 getWallet().importMultisigHex(multisigHexes.toArray(new String[0]));
                 log.info("Done importing multisig hex for {} {}", getClass().getSimpleName(), getId());
             }
+            requestSaveWallet();
         }
     }
 
@@ -888,6 +889,10 @@ public abstract class Trade implements Tradable, Model {
             getWallet().changePassword(oldPassword, newPassword);
             saveWallet();
         }
+    }
+
+    public void requestSaveWallet() {
+        ThreadUtils.submitToPool(() -> saveWallet()); // save wallet off main thread
     }
 
     public void saveWallet() {
@@ -1064,6 +1069,7 @@ public abstract class Trade implements Tradable, Model {
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
 
         // update state
+        saveWallet();
         BigInteger payoutTxFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
         getBuyer().setPayoutTxFee(payoutTxFeeSplit);
         getBuyer().setPayoutAmount(HavenoUtils.getDestination(buyerPayoutAddress, payoutTx).getAmount());
