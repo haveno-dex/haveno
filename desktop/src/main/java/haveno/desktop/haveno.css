@@ -262,7 +262,6 @@
 .table-view .table-cell:selected {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
-    -fx-border-color: -fx-selection-bar;
 }
 
 .number-column.table-cell {
