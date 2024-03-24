@@ -58,8 +58,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
             MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress, model.getOpenOffer().isReserveExactAmount(), preferredSubaddressIndex);
 
-            // check for error in case creating reserve tx exceeded timeout
-            // TODO: better way?
+            // check for error in case creating reserve tx exceeded timeout // TODO: better way?
             if (!model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).isPresent()) {
                 throw new RuntimeException("An error has occurred posting offer " + offer.getId() + " causing its subaddress entry to be deleted");
             }

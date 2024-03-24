@@ -47,14 +47,14 @@ public class TakerReserveTradeFunds extends TradeTask {
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, sendAmount, securityDeposit, returnAddress, false, null);
 
+            // check if trade still exists
+            if (!processModel.getTradeManager().hasOpenTrade(trade)) {
+                throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getId());
+            }
+
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-
-            // check if trade still exists
-            if (!processModel.getTradeManager().hasOpenTrade(trade)) {
-                throw new RuntimeException("Trade protocol no longer exists after creating reserve tx, tradeId=" + trade.getId());
-            }
 
             // reset protocol timeout
             trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT);
