@@ -1,39 +1,35 @@
 Follow these instructions to create installers for the Haveno Java desktop application on each platform.
 
-## Build Haveno binaries
-
-`./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
-
-## Create installer and install on each platform
-
 > **Note**
 > These steps will delete the previously built Haveno binaries, so they'll need rebuilt after.
 
-#### Linux
+### Linux
 
 From x86_64 machine:
 
-1. `./gradlew packageInstallers`
-2. Confirm prompts.
-3. Path to installer printed at end. Execute to install: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
+1. `./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
+2. `./gradlew packageInstallers`
+3. Confirm prompts.
+4. Path to installer is printed at the end. Execute to install: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
 
 Haveno data folder on Linux: `/home/<username>/.local/share/Haveno/`
 
-#### macOS
+### macOS
 
 From x86_64 machine:
 
-1. `./gradlew packageInstallers`
-2. Confirm prompts.
-3. Path to installer printed at end.
-4. `open <path>`
-5. Open installer and drag Haveno.app to Applications.
-6. `sudo xattr -rd com.apple.quarantine /Applications/Haveno.app`
-7. Right click /Applications/Haveno.app > Open. Repeat again if necessary, despite being "damaged".
+1. `./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
+2. `./gradlew packageInstallers`
+3. Confirm prompts.
+4. Path to installer printed at end.
+5. `open <path>`
+6. Open installer and drag Haveno.app to Applications.
+7. `sudo xattr -rd com.apple.quarantine /Applications/Haveno.app`
+8. Right click /Applications/Haveno.app > Open. Repeat again if necessary, despite being "damaged".
 
 Haveno data folder on Mac: `/Users/<username>/Library/Application Support/Haveno/`
 
-#### Windows
+### Windows
 
 1. Enable .NET Framework 3.5:
     1. Open the Control Panel on your Windows system.
@@ -47,9 +43,10 @@ Haveno data folder on Mac: `/Users/<username>/Library/Application Support/Haveno
 2. Install Wix Toolset 3: https://github.com/wixtoolset/wix3/releases/tag/wix314rtm
 3. Open MSYS2 for the following commands.
 4. `export PATH=$PATH:$JAVA_HOME/bin:"C:\Program Files (x86)\WiX Toolset v3.14\bin"`
-5. `./gradlew packageInstallers`
-6. Confirm prompts.
-7. Path to installer printed at end. Execute to install.
+5. `./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
+6. `./gradlew packageInstallers`
+7. Confirm prompts.
+8. Path to installer is printed at the end. Execute to install.
 
 Haveno data folder on Windows: `~\AppData\Roaming\Haveno\`
 
