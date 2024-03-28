@@ -172,13 +172,19 @@ configure([project(':cli'),
                 'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
 
             if (applicationName == 'desktop') {
-                def script = file("${rootProject.projectDir}/haveno-$applicationName")
-                script.text = script.text.replace(
-                'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
-                    '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                    '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                    '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                    '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"')
+                windowsScriptFile.text = windowsScriptFile.text.replace(
+                    'DEFAULT_JVM_OPTS=', 'DEFAULT_JVM_OPTS=-XX:MaxRAM=4g ' +
+                        '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
+                        '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
+                        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
+                        '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED')
+
+                unixScriptFile.text = unixScriptFile.text.replace(
+                    'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
+                        '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
+                        '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
+                        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
+                        '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"')
             }
 
             if (applicationName == 'apitest') {
