@@ -142,7 +142,7 @@ Test trades among the users and arbitrator.
 
 ## Build Haveno installers for distribution
 
-For mainnet, first modify [package.gradle](https://github.com/haveno-dex/haveno/blob/aeb0822f9fc72bd5a0e23d0c42c2a8f5f87625bb/desktop/package/package.gradle#L252) to remove the line with ` --arguments --baseCurrencyNetwork=XMR_STAGENET` (also remove the `+` on the preceding line).
+For mainnet, first modify [package.gradle](https://github.com/haveno-dex/haveno/blob/aeb0822f9fc72bd5a0e23d0c42c2a8f5f87625bb/desktop/package/package.gradle#L252) to `--arguments --baseCurrencyNetwork=XMR_MAINNET`.
 
 Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md.
 
