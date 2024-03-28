@@ -54,25 +54,27 @@ public class ClockWatcher {
         if (timer == null) {
             lastSecondTick = System.currentTimeMillis();
             timer = UserThread.runPeriodically(() -> {
-                listeners.forEach(Listener::onSecondTick);
-                counter++;
-                if (counter >= 60) {
-                    counter = 0;
-                    listeners.forEach(Listener::onMinuteTick);
-                }
-
-                long currentTimeMillis = System.currentTimeMillis();
-                long diff = currentTimeMillis - lastSecondTick;
-                if (diff > 1000) {
-                    long missedMs = diff - 1000;
-                    listeners.forEach(listener -> listener.onMissedSecondTick(missedMs));
-
-                    if (missedMs > ClockWatcher.IDLE_TOLERANCE_MS) {
-                        log.info("We have been in standby mode for {} sec", missedMs / 1000);
-                        listeners.forEach(listener -> listener.onAwakeFromStandby(missedMs));
+                synchronized (listeners) {
+                    listeners.forEach(Listener::onSecondTick);
+                    counter++;
+                    if (counter >= 60) {
+                        counter = 0;
+                        listeners.forEach(Listener::onMinuteTick);
                     }
+    
+                    long currentTimeMillis = System.currentTimeMillis();
+                    long diff = currentTimeMillis - lastSecondTick;
+                    if (diff > 1000) {
+                        long missedMs = diff - 1000;
+                        listeners.forEach(listener -> listener.onMissedSecondTick(missedMs));
+    
+                        if (missedMs > ClockWatcher.IDLE_TOLERANCE_MS) {
+                            log.info("We have been in standby mode for {} sec", missedMs / 1000);
+                            listeners.forEach(listener -> listener.onAwakeFromStandby(missedMs));
+                        }
+                    }
+                    lastSecondTick = currentTimeMillis;
                 }
-                lastSecondTick = currentTimeMillis;
             }, 1, TimeUnit.SECONDS);
         }
     }
@@ -84,10 +86,14 @@ public class ClockWatcher {
     }
 
     public void addListener(Listener listener) {
-        listeners.add(listener);
+        synchronized (listeners) {
+            listeners.add(listener);
+        }
     }
 
     public void removeListener(Listener listener) {
-        listeners.remove(listener);
+        synchronized (listeners) {
+            listeners.remove(listener);
+        }
     }
 }
