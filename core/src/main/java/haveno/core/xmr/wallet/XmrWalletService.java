@@ -85,6 +85,7 @@ import monero.daemon.model.MoneroOutput;
 import monero.daemon.model.MoneroSubmitTxResult;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
+import monero.wallet.MoneroWalletFull;
 import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroCheckTx;
 import monero.wallet.model.MoneroDestination;
@@ -108,11 +109,20 @@ import org.slf4j.LoggerFactory;
 public class XmrWalletService {
     private static final Logger log = LoggerFactory.getLogger(XmrWalletService.class);
 
-    // Monero configuration
+    // monero configuration
     public static final int NUM_BLOCKS_UNLOCK = 10;
-    public static final String MONERO_WALLET_RPC_DIR = Config.baseCurrencyNetwork().isTestnet() ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero-wallet-rpc and wallet files
+    public static final String MONERO_BINS_DIR = Config.baseCurrencyNetwork().isTestnet() ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero binaries and wallet files
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
-    public static final String MONERO_WALLET_RPC_PATH = MONERO_WALLET_RPC_DIR + File.separator + MONERO_WALLET_RPC_NAME;
+    public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
+    public static final String NATIVE_LIB_EXTENSION = Utilities.isWindows() ? ".dll" : Utilities.isOSX() ? ".dylib" : ".so";
+    public static final String MONERO_CPP_NAME = "libmonero-cpp" + NATIVE_LIB_EXTENSION;
+    public static final String MONERO_CPP_PATH = MONERO_BINS_DIR + File.separator + MONERO_CPP_NAME;
+    public static final String MONERO_JAVA_NAME = "libmonero-java" + NATIVE_LIB_EXTENSION;
+    public static final String MONERO_JAVA_PATH = MONERO_BINS_DIR + File.separator + MONERO_JAVA_NAME;
+    public static final String MONERO_CPP_WIN_STATIC_NAME = Utilities.isWindows() ? MONERO_CPP_NAME + ".a" : null;
+    public static final String MONERO_CPP_WIN_STATIC_PATH = Utilities.isWindows() ? MONERO_BINS_DIR + File.separator + MONERO_CPP_WIN_STATIC_NAME : null;
+    public static final String MONERO_JAVA_WIN_STATIC_NAME = Utilities.isWindows() ? MONERO_JAVA_NAME + ".a" : null;
+    public static final String MONERO_JAVA_WIN_STATIC_PATH = Utilities.isWindows() ? MONERO_BINS_DIR + File.separator + MONERO_JAVA_WIN_STATIC_NAME : null;
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
     public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.ELEVATED;
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
@@ -140,12 +150,13 @@ public class XmrWalletService {
     private final File walletDir;
     private final File xmrWalletFile;
     private final int rpcBindPort;
+    private final boolean useNativeXmrWallet;
     protected final CopyOnWriteArraySet<XmrBalanceListener> balanceListeners = new CopyOnWriteArraySet<>();
     protected final CopyOnWriteArraySet<MoneroWalletListenerI> walletListeners = new CopyOnWriteArraySet<>();
 
     private ChangeListener<? super Number> walletInitListener;
     private TradeManager tradeManager;
-    private MoneroWalletRpc wallet;
+    private MoneroWallet wallet;
     private Object walletLock = new Object();
     private boolean wasWalletSynced = false;
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
@@ -166,7 +177,8 @@ public class XmrWalletService {
                      WalletsSetup walletsSetup,
                      XmrAddressEntryList xmrAddressEntryList,
                      @Named(Config.WALLET_DIR) File walletDir,
-                     @Named(Config.WALLET_RPC_BIND_PORT) int rpcBindPort) {
+                     @Named(Config.WALLET_RPC_BIND_PORT) int rpcBindPort,
+                     @Named(Config.USE_NATIVE_XMR_WALLET) boolean useNativeXmrWallet) {
         this.user = user;
         this.preferences = preferences;
         this.accountService = accountService;
@@ -175,6 +187,7 @@ public class XmrWalletService {
         this.xmrAddressEntryList = xmrAddressEntryList;
         this.walletDir = walletDir;
         this.rpcBindPort = rpcBindPort;
+        this.useNativeXmrWallet = useNativeXmrWallet;
         this.xmrWalletFile = new File(walletDir, MONERO_WALLET_NAME);
 
         // set monero logging
@@ -311,23 +324,37 @@ public class XmrWalletService {
         return new File(path + KEYS_FILE_POSTFIX).exists();
     }
 
-    public MoneroWalletRpc createWallet(String walletName) {
-        log.info("{}.createWallet({})", getClass().getSimpleName(), walletName);
-        if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
-        return createWalletRpc(new MoneroWalletConfig()
-                .setPath(walletName)
-                .setPassword(getWalletPassword()),
-                null);
+    public MoneroWallet createWallet(String walletName) {
+        return createWallet(walletName, null);
     }
 
-    public MoneroWalletRpc openWallet(String walletName, boolean applyProxyUri) {
+    public MoneroWallet createWallet(String walletName, Integer walletRpcPort) {
+        log.info("{}.createWallet({})", getClass().getSimpleName(), walletName);
+        if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
+        MoneroWalletConfig config = getWalletConfig(walletName);
+        return isNativeLibraryApplied() ? createWalletFull(config) : createWalletRpc(config, walletRpcPort);
+    }
+
+    public MoneroWallet openWallet(String walletName, boolean applyProxyUri) {
+        return openWallet(walletName, null, applyProxyUri);
+    }
+
+    public MoneroWallet openWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri) {
         log.info("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
-        return openWalletRpc(new MoneroWalletConfig()
-                .setPath(walletName)
-                .setPassword(getWalletPassword()),
-            null,
-            applyProxyUri);
+        MoneroWalletConfig config = getWalletConfig(walletName);
+        return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri);
+    }
+
+    private MoneroWalletConfig getWalletConfig(String walletName) {
+        String walletConfigPath = (isNativeLibraryApplied() ? walletDir.getPath() + File.separator : "") + walletName;
+        MoneroWalletConfig config = new MoneroWalletConfig().setPath(walletConfigPath).setPassword(getWalletPassword());
+        if (isNativeLibraryApplied()) config.setNetworkType(getMoneroNetworkType());
+        return config;
+    }
+
+    private boolean isNativeLibraryApplied() {
+        return useNativeXmrWallet && MoneroUtils.isNativeLibraryLoaded();
     }
 
     /**
@@ -377,7 +404,11 @@ public class XmrWalletService {
     }
 
     public void stopWallet(MoneroWallet wallet, String path, boolean force) {
-        MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, force);
+
+        // only wallet rpc process needs stopped
+        if (wallet instanceof MoneroWalletRpc) {
+            MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, force);
+        }
     }
 
     public void deleteWallet(String walletName) {
@@ -805,6 +836,18 @@ public class XmrWalletService {
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
         xmrConnectionService.downloadPercentageProperty().addListener(walletInitListener);
         initMainWalletIfConnected();
+        
+        // try to load native monero library
+        if (useNativeXmrWallet && !MoneroUtils.isNativeLibraryLoaded()) {
+            try {
+                System.load(MONERO_JAVA_PATH);
+            } catch (UnsatisfiedLinkError e) {
+                log.warn("Failed to load Monero native libraries: " + e.getMessage());
+            }
+        }
+        String appliedMsg = "Monero native libraries applied: " + isNativeLibraryApplied();
+        if (useNativeXmrWallet && !isNativeLibraryApplied()) log.warn(appliedMsg);
+        else log.info(appliedMsg);
     }
 
     private void initMainWalletIfConnected() {
@@ -823,6 +866,7 @@ public class XmrWalletService {
     }
 
     private void maybeInitMainWallet(boolean sync, int numAttempts) {
+
         synchronized (walletLock) {
             if (isShutDownStarted) return;
 
@@ -830,11 +874,10 @@ public class XmrWalletService {
             if (wallet == null) {
                 MoneroDaemonRpc daemon = xmrConnectionService.getDaemon();
                 log.info("Initializing main wallet with monerod=" + (daemon == null ? "null" : daemon.getRpcConnection().getUri()));
-                MoneroWalletConfig walletConfig = new MoneroWalletConfig().setPath(MONERO_WALLET_NAME).setPassword(getWalletPassword());
                 if (MoneroUtils.walletExists(xmrWalletFile.getPath())) {
-                    wallet = openWalletRpc(walletConfig, rpcBindPort, isProxyApplied(wasWalletSynced));
+                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(wasWalletSynced));
                 } else if (xmrConnectionService.getConnection() != null && Boolean.TRUE.equals(xmrConnectionService.getConnection().isConnected())) {
-                    wallet = createWalletRpc(walletConfig, rpcBindPort);
+                    wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort);
 
                     // set wallet creation date to yesterday to guarantee complete restore
                     LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
@@ -845,7 +888,7 @@ public class XmrWalletService {
 
             // sync wallet and register listener
             if (wallet != null && !isShutDownStarted) {
-                log.info("Monero wallet uri={}, path={}", wallet.getRpcConnection().getUri(), wallet.getPath());
+                log.info("Monero wallet path={}", wallet.getPath());
 
                 // sync main wallet if applicable
                 if (sync && numAttempts > 0) {
@@ -946,6 +989,53 @@ public class XmrWalletService {
         });
     }
 
+    private MoneroWalletFull createWalletFull(MoneroWalletConfig config) {
+
+        // must be connected to daemon
+        MoneroRpcConnection connection = xmrConnectionService.getConnection();
+        if (connection == null || !Boolean.TRUE.equals(connection.isConnected())) throw new RuntimeException("Must be connected to daemon before creating wallet");
+
+        // create wallet
+        MoneroWalletFull walletFull = null;
+        try {
+
+            // create wallet
+            log.info("Creating full wallet " + config.getPath() + " connected to daemon " + connection.getUri());
+            long time = System.currentTimeMillis();
+            config.setServer(connection);
+            walletFull = MoneroWalletFull.createWallet(config);
+            walletFull.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
+            log.info("Done creating full wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
+            return walletFull;
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (walletFull != null) stopWallet(walletFull, config.getPath());
+            throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'");
+        }
+    }
+
+    private MoneroWalletFull openWalletFull(MoneroWalletConfig config, boolean applyProxyUri) {
+        MoneroWalletFull walletFull = null;
+        try {
+
+            // configure connection
+            MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
+            if (!applyProxyUri) connection.setProxyUri(null);
+
+            // open wallet
+            config.setNetworkType(getMoneroNetworkType());
+            config.setServer(connection);
+            walletFull = MoneroWalletFull.openWallet(config);
+            if (walletFull.getDaemonConnection() != null) walletFull.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
+            log.info("Done opening full wallet " + config.getPath());
+            return walletFull;
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (walletFull != null) stopWallet(walletFull, config.getPath());
+            throw new IllegalStateException("Could not open full wallet '" + config.getPath() + "'");
+        }
+    }
+
     private MoneroWalletRpc createWalletRpc(MoneroWalletConfig config, Integer port) {
 
         // must be connected to daemon
@@ -964,11 +1054,12 @@ public class XmrWalletService {
             walletRpc.stopSyncing();
 
             // create wallet
-            log.info("Creating wallet " + config.getPath() + " connected to daemon " + connection.getUri());
+            log.info("Creating RPC wallet " + config.getPath() + " connected to daemon " + connection.getUri());
             long time = System.currentTimeMillis();
-            walletRpc.createWallet(config.setServer(connection));
+            config.setServer(connection);
+            walletRpc.createWallet(config);
             walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-            log.info("Done creating wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
+            log.info("Done creating RPC wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -993,9 +1084,11 @@ public class XmrWalletService {
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // open wallet
-            walletRpc.openWallet(config.setServer(connection));
+            log.info("Opening RPC wallet " + config.getPath() + " connected to daemon " + connection.getUri());
+            config.setServer(connection);
+            walletRpc.openWallet(config);
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_STACK_TRACE);
-            log.info("Done opening wallet " + config.getPath());
+            log.info("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
@@ -1060,6 +1153,7 @@ public class XmrWalletService {
                 maybeInitMainWallet(false);
             } else {
                 wallet.setDaemonConnection(connection);
+                wallet.setProxyUri(connection.getProxyUri());
             }
 
             // sync wallet on new thread

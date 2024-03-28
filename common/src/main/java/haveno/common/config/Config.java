@@ -100,6 +100,7 @@ public class Config {
     public static final String XMR_NODE_USERNAME = "xmrNodeUsername";
     public static final String XMR_NODE_PASSWORD = "xmrNodePassword";
     public static final String XMR_NODES = "xmrNodes";
+    public static final String USE_NATIVE_XMR_WALLET = "useNativeXmrWallet";
     public static final String SOCKS5_DISCOVER_MODE = "socks5DiscoverMode";
     public static final String USE_ALL_PROVIDED_NODES = "useAllProvidedNodes";
     public static final String USER_AGENT = "userAgent";
@@ -188,6 +189,7 @@ public class Config {
     public final String xmrNodeUsername;
     public final String xmrNodePassword;
     public final String xmrNodes;
+    public final boolean useNativeXmrWallet;
     public final UseTorForXmr useTorForXmr;
     public final boolean useTorForXmrOptionSetExplicitly;
     public final String socks5DiscoverMode;
@@ -532,6 +534,12 @@ public class Config {
                         .describedAs("ip[,...]")
                         .defaultsTo("");
 
+        ArgumentAcceptingOptionSpec<Boolean> useNativeXmrWalletOpt =
+                parser.accepts(USE_NATIVE_XMR_WALLET, "Use native wallet libraries instead of monero-wallet-rpc server")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
+
         //noinspection rawtypes
         ArgumentAcceptingOptionSpec<Enum> useTorForXmrOpt =
                 parser.accepts(USE_TOR_FOR_XMR, "Configure TOR for Monero connections, one of: after_sync, off, or on.")
@@ -702,6 +710,7 @@ public class Config {
             this.xmrNodeUsername = options.valueOf(xmrNodeUsernameOpt);
             this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
             this.xmrNodes = options.valueOf(xmrNodesOpt);
+            this.useNativeXmrWallet = options.valueOf(useNativeXmrWalletOpt);
             this.useTorForXmr = (UseTorForXmr) options.valueOf(useTorForXmrOpt);
             this.useTorForXmrOptionSetExplicitly = options.has(useTorForXmrOpt);
             this.socks5DiscoverMode = options.valueOf(socks5DiscoverModeOpt);

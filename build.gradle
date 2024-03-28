@@ -49,7 +49,7 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '32.1.1-jre'
         guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.11'
+        moneroJavaVersion = '0.8.13'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
@@ -443,65 +443,108 @@ configure(project(':core')) {
 
     task havenoDeps {
         doLast {
-            // get monero binaries download url
+
             Map moneroBinaries = [
-                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux.tar.gz',
-                'linux-x86_64-sha256'  : '3537fe2006997a1065748d27e9513ac3e0c942ab56a97a6e43065ddfd1820394',
-                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux-aarch64.tar.gz',
-                'linux-aarch64-sha256' : '6ff81c61780fe08defbd6576bd93c6711cf5ad3e79be0e3bc2184ff11cc6a472',
-                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'           : 'c7cafe1000a5839f02d02ed2edce5b1df3a06b5c77f4d91eaba106d948347730',
-                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-windows.zip',
-                'windows-sha256'       : '9b900faefa75f354870646989484978d1fb11add392ffd05eb5abe7e514e395a'
+                'linux-x86_64'        : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-linux-x86_64.tar.gz',
+                'linux-x86_64-sha256' : 'c1557ee618afebc84041b9c96f15dbfbecadf4a9108d47736837b7cbb17385ef',
+                'linux-arm64'         : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-linux-arm64.tar.gz',
+                'linux-arm64-sha256'  : '29b450e56d8d18a4f3f28634e83e96a220fe18e9f1a4f1c6713997fd925443b9',
+                'mac-x86_64'          : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-mac-x86_64.tar.gz',
+                'mac-x86_64-sha256'   : 'b494b96957f084372dc56c8f223c233c80f35d4d36a5990cbc4705711273d268',
+                'mac-arm64'           : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-mac-arm64.tar.gz',
+                'mac-arm64-sha256'    : '053f2cf0815f2269ee920b8a18a7acfa9dd856b349c6db3bd1b1496473dbb414',
+                'windows'             : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-windows-x86_64.zip',
+                'windows-sha256'      : 'd1f548be0b1e8272d3ef029fe05f53b2039a4c1f1462ab2537ddc5e5a913abb1'
             ]
 
             String osKey
             if (Os.isFamily(Os.FAMILY_WINDOWS)) {
                 osKey = 'windows'
-            } else if (Os.isFamily(Os.FAMILY_MAC)) {
-                osKey = 'mac'
             } else {
                 String architecture = System.getProperty("os.arch").toLowerCase()
                 if (architecture.contains('aarch64') || architecture.contains('arm')) {
-                    osKey = 'linux-aarch64'
+                    if (Os.isFamily(Os.FAMILY_MAC)) {
+                        osKey = 'mac-arm64'
+                    } else {
+                        osKey = 'linux-arm64'
+                    }
                 } else {
-                    osKey = 'linux-x86_64'
+                    if (Os.isFamily(Os.FAMILY_MAC)) {
+                        osKey = 'mac-x86_64'
+                    } else {
+                        osKey = 'linux-x86_64'
+                    }
                 }
             }
 
-            String moneroDownloadUrl = moneroBinaries[osKey]
-            String moneroSHA256Hash = moneroBinaries[osKey + '-sha256']
-            String moneroArchiveFileName = moneroDownloadUrl.tokenize('/').last()
+            // create local directory for dependencies
             String localnetDirName = '.localnet'
             File localnetDir = new File(project.rootDir, localnetDirName)
             localnetDir.mkdirs()
+
+            // download and verify monero binaries
+            String moneroDownloadUrl = moneroBinaries[osKey]
+            String moneroSHA256Hash = moneroBinaries[osKey + '-sha256']
+            String moneroArchiveFileName = moneroDownloadUrl.tokenize('/').last()
             File moneroArchiveFile = new File(localnetDir, moneroArchiveFileName)
             ext.downloadAndVerifyDependencies(moneroDownloadUrl, moneroSHA256Hash, moneroArchiveFile)
 
-            // extract if dependencies are missing or if archive was updated
+
+            // collect binary file names
             File monerodFile
-            File moneroRpcFile
+            File moneroWalletRpcFile
             if (Os.isFamily(Os.FAMILY_WINDOWS)) {
                 monerodFile = new File(localnetDir, 'monerod.exe')
-                moneroRpcFile = new File(localnetDir, 'monero-wallet-rpc.exe')
+                moneroWalletRpcFile = new File(localnetDir, 'monero-wallet-rpc.exe')
             } else {
                 monerodFile = new File(localnetDir, 'monerod')
-                moneroRpcFile = new File(localnetDir, 'monero-wallet-rpc')
+                moneroWalletRpcFile = new File(localnetDir, 'monero-wallet-rpc')
             }
-            if (ext.dependencyDownloadedAndVerified || !monerodFile.exists() || !moneroRpcFile.exists()) {
+            String sharedLibExtension = Os.isFamily(Os.FAMILY_WINDOWS) ? 'dll' : Os.isFamily(Os.FAMILY_MAC) ? 'dylib' : 'so'
+            File moneroCppFile = new File(localnetDir, "libmonero-cpp.${sharedLibExtension}")
+            File moneroJavaFile = new File(localnetDir, "libmonero-java.${sharedLibExtension}")
+            File moneroCppStaticFile
+            File moneroJavaStaticFile
+            if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+                moneroCppStaticFile = new File(localnetDir, "libmonero-cpp.dll.a")
+                moneroJavaStaticFile = new File(localnetDir, "libmonero-java.dll.a")
+            }
+
+            // extract if archive updated or dependencies missing
+            if (ext.dependencyDownloadedAndVerified || !monerodFile.exists() || !moneroWalletRpcFile.exists()) {
                 if (Os.isFamily(Os.FAMILY_WINDOWS)) {
                     ext.extractArchiveZip(moneroArchiveFile, localnetDir)
                 } else {
                     ext.extractArchiveTarGz(moneroArchiveFile, localnetDir)
                 }
 
-                // add the current platform's monero dependencies into the resources folder for installation
+                // copy monero binaries to resources folder for installation
                 copy {
                     from "${monerodFile}"
                     into "${project(':core').projectDir}/src/main/resources/bin"
                 }
                 copy {
-                    from "${moneroRpcFile}"
+                    from "${moneroWalletRpcFile}"
+                    into "${project(':core').projectDir}/src/main/resources/bin"
+                }
+
+                // copy monero native libraries to resources folder for installation
+                copy {
+                    from "${moneroCppFile}"
+                    into "${project(':core').projectDir}/src/main/resources/bin"
+                }
+                copy {
+                    from "${moneroJavaFile}"
+                    into "${project(':core').projectDir}/src/main/resources/bin"
+                }
+
+                // copy monero native static libraries for Windows to resources folder for installation
+                copy {
+                    from "${moneroCppStaticFile}"
+                    into "${project(':core').projectDir}/src/main/resources/bin"
+                }
+                copy {
+                    from "${moneroJavaStaticFile}"
                     into "${project(':core').projectDir}/src/main/resources/bin"
                 }
             }
