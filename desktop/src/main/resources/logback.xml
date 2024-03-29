@@ -5,14 +5,15 @@
 
     <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%hl2(%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{30}: %msg %xEx%n)</pattern>
+            <pattern>%hl2(%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40}: %msg %xEx%n)</pattern>
         </encoder>
     </appender>
 
+    <!-- <logger name="org.bitcoinj" level="WARN"/>-->
+    <logger name="org.apache" level="WARN" />
+    <logger name="org.berndpruenster.netlayer.tor.Tor" level="WARN"/>
     <root level="TRACE">
         <appender-ref ref="CONSOLE_APPENDER"/>
     </root>
-
-    <logger name="org.apache" level="WARN" />
 
 </configuration>
