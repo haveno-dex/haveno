@@ -92,6 +92,7 @@ public class XmrModule extends AppModule {
         bindConstant().annotatedWith(named(Config.XMR_NODE_USERNAME)).to(config.xmrNodeUsername);
         bindConstant().annotatedWith(named(Config.XMR_NODE_PASSWORD)).to(config.xmrNodePassword);
         bindConstant().annotatedWith(named(Config.XMR_NODES)).to(config.xmrNodes);
+        bindConstant().annotatedWith(named(Config.USE_NATIVE_XMR_WALLET)).to(config.useNativeXmrWallet);
         bindConstant().annotatedWith(named(Config.USER_AGENT)).to(config.userAgent);
         bindConstant().annotatedWith(named(Config.NUM_CONNECTIONS_FOR_BTC)).to(config.numConnectionsForBtc);
         bindConstant().annotatedWith(named(Config.USE_ALL_PROVIDED_NODES)).to(config.useAllProvidedNodes);

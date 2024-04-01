@@ -25,6 +25,8 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.wallet.XmrWalletService;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,10 +46,9 @@ public class XmrLocalNode {
 
     // constants
     public static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period for local node
-    public static final String MONEROD_DIR = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath();
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
-    public static final String MONEROD_PATH = MONEROD_DIR + File.separator + MONEROD_NAME;
-    private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? MONEROD_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
+    public static final String MONEROD_PATH = XmrWalletService.MONERO_BINS_DIR + File.separator + MONEROD_NAME;
+    private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? XmrWalletService.MONERO_BINS_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
 
     // instance fields
     private MoneroDaemonRpc daemon;
