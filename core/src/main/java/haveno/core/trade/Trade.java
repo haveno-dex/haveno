@@ -924,19 +924,10 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
-    private void stopWallet() {
-        synchronized (walletLock) {
-            if (wallet == null) throw new RuntimeException("Trade wallet to close is not open for trade " + getId());
-            stopPolling();
-            xmrWalletService.stopWallet(wallet, wallet.getPath(), true);
-            wallet = null;
-        }
-    }
-    
-    public void forceStopWallet() {
+    private void forceCloseWallet() {
         if (wallet != null) {
-            log.warn("Force stopping wallet for {} {}", getClass().getSimpleName(), getId());
-            xmrWalletService.stopWallet(wallet, wallet.getPath(), true);
+            log.warn("Force closing wallet for {} {}", getClass().getSimpleName(), getId());
+            xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
             wallet = null;
         }
     }
@@ -969,8 +960,8 @@ public abstract class Trade implements Tradable, Model {
                         throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance");
                     }
 
-                    // force stop wallet
-                    stopWallet();
+                    // force close wallet
+                    forceCloseWallet();
 
                     // delete wallet
                     log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
@@ -1349,11 +1340,10 @@ public abstract class Trade implements Tradable, Model {
                 ThreadUtils.awaitTasks(shutDownThreads);
             }
 
-            // save wallet
+            // save and close
             if (wallet != null) {
                 try {
-                    xmrWalletService.saveWallet(wallet);
-                    stopWallet();
+                    closeWallet();
                 } catch (Exception e) {
                     // warning will be logged for main wallet, so skip logging here
                     //log.warn("Error closing monero-wallet-rpc subprocess for {} {}: {}. Was Haveno stopped manually with ctrl+c?", getClass().getSimpleName(), getId(), e.getMessage());
@@ -1368,8 +1358,8 @@ public abstract class Trade implements Tradable, Model {
             log.warn("Error shutting down {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
             e.printStackTrace();
 
-            // force stop wallet
-            forceStopWallet();
+            // force close wallet
+            forceCloseWallet();
         }
 
         // backup trade wallet if applicable
@@ -2222,7 +2212,7 @@ public abstract class Trade implements Tradable, Model {
         log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
         if (isShutDownStarted || restartInProgress) return;
         restartInProgress = true;
-        forceStopWallet();
+        forceCloseWallet();
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
         if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitSyncing(), getId());
