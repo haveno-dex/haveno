@@ -339,10 +339,17 @@ public class XmrWalletService {
     }
 
     private MoneroWalletConfig getWalletConfig(String walletName) {
-        String walletConfigPath = (isNativeLibraryApplied() ? walletDir.getPath() + File.separator : "") + walletName;
-        MoneroWalletConfig config = new MoneroWalletConfig().setPath(walletConfigPath).setPassword(getWalletPassword());
+        MoneroWalletConfig config = new MoneroWalletConfig().setPath(getWalletPath(walletName)).setPassword(getWalletPassword());
         if (isNativeLibraryApplied()) config.setNetworkType(getMoneroNetworkType());
         return config;
+    }
+
+    private String getWalletPath(String walletName) {
+        return (isNativeLibraryApplied() ? walletDir.getPath() + File.separator : "") + walletName;
+    }
+
+    private static String getWalletName(String walletPath) {
+        return walletPath.substring(walletPath.lastIndexOf(File.separator) + 1);
     }
 
     private boolean isNativeLibraryApplied() {
@@ -374,7 +381,7 @@ public class XmrWalletService {
 
     public void saveWallet(MoneroWallet wallet, boolean backup) {
         wallet.save();
-        if (backup) backupWallet(wallet.getPath());
+        if (backup) backupWallet(getWalletName(wallet.getPath()));
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
@@ -383,27 +390,26 @@ public class XmrWalletService {
         String path = wallet.getPath();
         try {
             wallet.close(save);
-            if (save) backupWallet(path);
+            if (save) backupWallet(getWalletName(path));
         } catch (MoneroError e) {
             err = e;
         }
-        stopWallet(wallet, path);
+
+        // stop wallet rpc instance if applicable
+        if (wallet instanceof MoneroWalletRpc) MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, false);
         if (err != null) throw err;
     }
 
-    public void stopWallet(MoneroWallet wallet, String path) {
-        stopWallet(wallet, path, false);
-    }
-
-    public void stopWallet(MoneroWallet wallet, String path, boolean force) {
-
-        // only wallet rpc process needs stopped
+    public void forceCloseWallet(MoneroWallet wallet, String path) {
         if (wallet instanceof MoneroWalletRpc) {
-            MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, force);
+            MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, true);
+        } else {
+            wallet.close(false);
         }
     }
 
     public void deleteWallet(String walletName) {
+        assertNotPath(walletName);
         log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
         if (!walletExists(walletName)) throw new Error("Wallet does not exist at path: " + walletName);
         String path = walletDir.toString() + File.separator + walletName;
@@ -413,15 +419,21 @@ public class XmrWalletService {
     }
 
     public void backupWallet(String walletName) {
+        assertNotPath(walletName);
         FileUtil.rollingBackup(walletDir, walletName, NUM_MAX_WALLET_BACKUPS);
         FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_MAX_WALLET_BACKUPS);
         FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_MAX_WALLET_BACKUPS);
     }
 
     public void deleteWalletBackups(String walletName) {
+        assertNotPath(walletName);
         FileUtil.deleteRollingBackup(walletDir, walletName);
         FileUtil.deleteRollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX);
         FileUtil.deleteRollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX);
+    }
+
+    private static void assertNotPath(String name) {
+        if (name.contains(File.separator)) throw new IllegalArgumentException("Path not expected: " + name);
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
@@ -1001,7 +1013,7 @@ public class XmrWalletService {
             return walletFull;
         } catch (Exception e) {
             e.printStackTrace();
-            if (walletFull != null) stopWallet(walletFull, config.getPath());
+            if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
             throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'");
         }
     }
@@ -1023,7 +1035,7 @@ public class XmrWalletService {
             return walletFull;
         } catch (Exception e) {
             e.printStackTrace();
-            if (walletFull != null) stopWallet(walletFull, config.getPath());
+            if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
             throw new IllegalStateException("Could not open full wallet '" + config.getPath() + "'");
         }
     }
@@ -1055,7 +1067,7 @@ public class XmrWalletService {
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
-            if (walletRpc != null) stopWallet(walletRpc, config.getPath());
+            if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
             throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
         }
     }
@@ -1084,7 +1096,7 @@ public class XmrWalletService {
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
-            if (walletRpc != null) stopWallet(walletRpc, config.getPath());
+            if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
             throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
         }
     }
@@ -1203,7 +1215,7 @@ public class XmrWalletService {
                     wallet = null;
                 }
             } catch (Exception e) {
-                log.warn("Error closing main monero-wallet-rpc subprocess: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
+                log.warn("Error closing main wallet: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
             }
         }
     }
