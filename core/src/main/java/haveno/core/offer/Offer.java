@@ -265,7 +265,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setState(Offer.State state) {
-        UserThread.await(() ->  stateProperty().set(state));
+        stateProperty.set(state);
     }
 
     public ObjectProperty<Offer.State> stateProperty() {

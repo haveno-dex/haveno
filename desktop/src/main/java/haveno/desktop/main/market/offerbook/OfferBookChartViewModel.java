@@ -147,16 +147,18 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void fillTradeCurrencies() {
         // Don't use a set as we need all entries
-        List<TradeCurrency> tradeCurrencyList = offerBookListItems.stream()
-                .map(e -> {
-                    String currencyCode = e.getOffer().getCurrencyCode();
-                    Optional<TradeCurrency> tradeCurrencyOptional = CurrencyUtil.getTradeCurrency(currencyCode);
-                    return tradeCurrencyOptional.orElse(null);
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        synchronized (offerBookListItems) {
+            List<TradeCurrency> tradeCurrencyList = offerBookListItems.stream()
+                    .map(e -> {
+                        String currencyCode = e.getOffer().getCurrencyCode();
+                        Optional<TradeCurrency> tradeCurrencyOptional = CurrencyUtil.getTradeCurrency(currencyCode);
+                        return tradeCurrencyOptional.orElse(null);
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
-        currencyListItems.updateWithCurrencies(tradeCurrencyList, null);
+            currencyListItems.updateWithCurrencies(tradeCurrencyList, null);
+        }
     }
 
     @Override
