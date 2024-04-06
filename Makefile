@@ -69,7 +69,6 @@ monerod1-local:
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node1 \
 		--p2p-bind-ip 127.0.0.1 \
-		--no-zmq \
 		--log-level 0 \
 		--add-exclusive-node 127.0.0.1:48080 \
 		--add-exclusive-node 127.0.0.1:58080 \
