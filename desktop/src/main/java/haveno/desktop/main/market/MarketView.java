@@ -200,22 +200,24 @@ public class MarketView extends ActivatableView<TabPane, Void> {
     }
 
     private String getAllOffersWithReferralId() {
-        List<String> list = offerBook.getOfferBookListItems().stream()
-                .map(OfferBookListItem::getOffer)
-                .filter(offer -> offer.getExtraDataMap() != null)
-                .filter(offer -> offer.getExtraDataMap().get(OfferPayload.REFERRAL_ID) != null)
-                .map(offer -> {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Offer ID: ").append(offer.getId()).append("\n")
-                            .append("Type: ").append(offer.getDirection().name()).append("\n")
-                            .append("Market: ").append(CurrencyUtil.getCurrencyPair(offer.getCurrencyCode())).append("\n")
-                            .append("Price: ").append(FormattingUtils.formatPrice(offer.getPrice())).append("\n")
-                            .append("Amount: ").append(DisplayUtils.formatAmount(offer, formatter)).append(" BTC\n")
-                            .append("Payment method: ").append(Res.get(offer.getPaymentMethod().getId())).append("\n")
-                            .append("ReferralID: ").append(offer.getExtraDataMap().get(OfferPayload.REFERRAL_ID));
-                    return sb.toString();
-                })
-                .collect(Collectors.toList());
-        return Joiner.on("\n\n").join(list);
+        synchronized (offerBook.getOfferBookListItems()) {
+            List<String> list = offerBook.getOfferBookListItems().stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(offer -> offer.getExtraDataMap() != null)
+                    .filter(offer -> offer.getExtraDataMap().get(OfferPayload.REFERRAL_ID) != null)
+                    .map(offer -> {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("Offer ID: ").append(offer.getId()).append("\n")
+                                .append("Type: ").append(offer.getDirection().name()).append("\n")
+                                .append("Market: ").append(CurrencyUtil.getCurrencyPair(offer.getCurrencyCode())).append("\n")
+                                .append("Price: ").append(FormattingUtils.formatPrice(offer.getPrice())).append("\n")
+                                .append("Amount: ").append(DisplayUtils.formatAmount(offer, formatter)).append(" BTC\n")
+                                .append("Payment method: ").append(Res.get(offer.getPaymentMethod().getId())).append("\n")
+                                .append("ReferralID: ").append(offer.getExtraDataMap().get(OfferPayload.REFERRAL_ID));
+                        return sb.toString();
+                    })
+                    .collect(Collectors.toList());
+            return Joiner.on("\n\n").join(list);
+        }
     }
 }

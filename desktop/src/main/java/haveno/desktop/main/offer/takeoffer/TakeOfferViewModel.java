@@ -350,50 +350,52 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void applyOfferState(Offer.State state) {
-        offerWarning.set(null);
+        UserThread.execute(() -> {
+            offerWarning.set(null);
 
-        // We have 2 situations handled here:
-        // 1. when clicking take offer in the offerbook screen, we do the availability check
-        // 2. Before actually taking the offer in the take offer screen, we check again the availability as some time might have passed in the meantime
-        // So we use the takeOfferRequested flag to display different network_messages depending on the context.
-        switch (state) {
-            case UNKNOWN:
-                break;
-            case OFFER_FEE_RESERVED:
-                // irrelevant for taker
-                break;
-            case AVAILABLE:
-                isOfferAvailable.set(true);
-                updateButtonDisableState();
-                break;
-            case NOT_AVAILABLE:
-                if (takeOfferRequested)
-                    offerWarning.set(Res.get("takeOffer.failed.offerNotAvailable"));
-                else
-                    offerWarning.set(Res.get("takeOffer.failed.offerTaken"));
-                takeOfferRequested = false;
-                break;
-            case REMOVED:
-                if (!takeOfferRequested)
-                    offerWarning.set(Res.get("takeOffer.failed.offerRemoved"));
-
-                takeOfferRequested = false;
-                break;
-            case MAKER_OFFLINE:
-                if (takeOfferRequested)
-                    offerWarning.set(Res.get("takeOffer.failed.offererNotOnline"));
-                else
-                    offerWarning.set(Res.get("takeOffer.failed.offererOffline"));
-                takeOfferRequested = false;
-                break;
-            default:
-                log.error("Unhandled offer state: " + state);
-                break;
-        }
-
-        updateSpinnerInfo();
-
-        updateButtonDisableState();
+            // We have 2 situations handled here:
+            // 1. when clicking take offer in the offerbook screen, we do the availability check
+            // 2. Before actually taking the offer in the take offer screen, we check again the availability as some time might have passed in the meantime
+            // So we use the takeOfferRequested flag to display different network_messages depending on the context.
+            switch (state) {
+                case UNKNOWN:
+                    break;
+                case OFFER_FEE_RESERVED:
+                    // irrelevant for taker
+                    break;
+                case AVAILABLE:
+                    isOfferAvailable.set(true);
+                    updateButtonDisableState();
+                    break;
+                case NOT_AVAILABLE:
+                    if (takeOfferRequested)
+                        offerWarning.set(Res.get("takeOffer.failed.offerNotAvailable"));
+                    else
+                        offerWarning.set(Res.get("takeOffer.failed.offerTaken"));
+                    takeOfferRequested = false;
+                    break;
+                case REMOVED:
+                    if (!takeOfferRequested)
+                        offerWarning.set(Res.get("takeOffer.failed.offerRemoved"));
+    
+                    takeOfferRequested = false;
+                    break;
+                case MAKER_OFFLINE:
+                    if (takeOfferRequested)
+                        offerWarning.set(Res.get("takeOffer.failed.offererNotOnline"));
+                    else
+                        offerWarning.set(Res.get("takeOffer.failed.offererOffline"));
+                    takeOfferRequested = false;
+                    break;
+                default:
+                    log.error("Unhandled offer state: " + state);
+                    break;
+            }
+    
+            updateSpinnerInfo();
+    
+            updateButtonDisableState();
+        });
     }
 
     private void applyTradeErrorMessage(@Nullable String errorMessage) {
