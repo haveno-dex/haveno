@@ -963,6 +963,20 @@ public class XmrWalletService {
     }
 
     private void syncWalletWithProgress() {
+
+        // update sync progress in realtime with native wallet
+        if (wallet instanceof MoneroWalletFull) {
+            wallet.sync(new MoneroWalletListener() {
+                @Override
+                public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
+                    updateSyncProgress();
+                }
+            });
+            wasWalletSynced = true;
+            return;
+        }
+
+        // poll wallet for progress
         updateSyncProgress();
         wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
         CountDownLatch latch = new CountDownLatch(1);
@@ -1547,6 +1561,7 @@ public class XmrWalletService {
 
         @Override
         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
+            ThreadUtils.submitToPool(() -> updateSyncProgress());
             for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onSyncProgress(height, startHeight, endHeight, percentDone, message));
         }
 
