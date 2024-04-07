@@ -121,12 +121,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
-        log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+        log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
         ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
-        log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getTradeId(), message.getUid());
+        log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
         ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
     }
 
@@ -156,7 +156,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
             // notify trade listeners
             // TODO (woodser): better way to register message notifications for trade?
-            if (((TradeMessage) networkEnvelope).getTradeId().equals(processModel.getOfferId())) {
+            if (((TradeMessage) networkEnvelope).getOfferId().equals(processModel.getOfferId())) {
               trade.onVerifiedTradeMessage((TradeMessage) networkEnvelope, peer);
             }
         } else if (networkEnvelope instanceof AckMessage) {
@@ -862,7 +862,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private boolean isMyMessage(NetworkEnvelope message) {
         if (message instanceof TradeMessage) {
             TradeMessage tradeMessage = (TradeMessage) message;
-            return tradeMessage.getTradeId().equals(trade.getId());
+            return tradeMessage.getOfferId().equals(trade.getId());
         } else if (message instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) message;
             return ackMessage.getSourceType() == AckMessageSourceType.TRADE_MESSAGE && ackMessage.getSourceId().equals(trade.getId());

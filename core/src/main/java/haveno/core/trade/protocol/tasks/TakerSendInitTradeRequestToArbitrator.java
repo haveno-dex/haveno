@@ -117,12 +117,11 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
         // create request to arbitrator
         InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // taker's InitTradeRequest to maker
         InitTradeRequest arbitratorRequest = new InitTradeRequest(
-                makerRequest.getTradeId(),
+                makerRequest.getOfferId(),
                 makerRequest.getSenderNodeAddress(),
                 makerRequest.getPubKeyRing(),
                 makerRequest.getTradeAmount(),
                 makerRequest.getTradePrice(),
-                makerRequest.getTradeFee(),
                 makerRequest.getAccountId(),
                 makerRequest.getPaymentAccountId(),
                 makerRequest.getPaymentMethodId(),
@@ -140,7 +139,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
                 processModel.getMakerSignature());
 
         // send request to arbitrator
-        log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
+        log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getOfferId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
         processModel.getP2PService().sendEncryptedDirectMessage(
                 arbitratorNodeAddress,
                 arbitrator.getPubKeyRing(),

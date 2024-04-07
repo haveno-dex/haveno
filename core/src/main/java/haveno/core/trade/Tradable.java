@@ -65,7 +65,7 @@ public interface Tradable extends PersistablePayload {
     }
 
     default Optional<BigInteger> getOptionalMakerFee() {
-        return asTradeModel().map(Trade::getOffer).map(Offer::getMakerFee).or(() -> Optional.ofNullable(getOffer().getMakerFee()));
+        return asTradeModel().map(Trade::getMakerFee);
     }
 
     default Optional<NodeAddress> getOptionalTradePeerNodeAddress() {

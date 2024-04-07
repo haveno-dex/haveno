@@ -31,11 +31,26 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class CoinUtilTest {
 
     @Test
-    public void testGetFeePerBtc() {
-        assertEquals(HavenoUtils.xmrToAtomicUnits(1), HavenoUtils.getFeePerXmr(HavenoUtils.xmrToAtomicUnits(1), HavenoUtils.xmrToAtomicUnits(1)));
-        assertEquals(HavenoUtils.xmrToAtomicUnits(0.1), HavenoUtils.getFeePerXmr(HavenoUtils.xmrToAtomicUnits(0.1), HavenoUtils.xmrToAtomicUnits(1)));
-        assertEquals(HavenoUtils.xmrToAtomicUnits(0.01), HavenoUtils.getFeePerXmr(HavenoUtils.xmrToAtomicUnits(0.1), HavenoUtils.xmrToAtomicUnits(0.1)));
-        assertEquals(HavenoUtils.xmrToAtomicUnits(0.015), HavenoUtils.getFeePerXmr(HavenoUtils.xmrToAtomicUnits(0.3), HavenoUtils.xmrToAtomicUnits(0.05)));
+    public void testGetPercentOfAmount() {
+        BigInteger bi = new BigInteger("703100000000");
+        assertEquals(new BigInteger("105465000000"), HavenoUtils.multiply(bi, .15));
+    }
+
+    @Test
+    public void testGetFeePerXmr() {
+        assertEquals(HavenoUtils.xmrToAtomicUnits(1), HavenoUtils.multiply(HavenoUtils.xmrToAtomicUnits(1), 1.0));
+        assertEquals(HavenoUtils.xmrToAtomicUnits(0.1), HavenoUtils.multiply(HavenoUtils.xmrToAtomicUnits(0.1), 1.0));
+        assertEquals(HavenoUtils.xmrToAtomicUnits(0.01), HavenoUtils.multiply(HavenoUtils.xmrToAtomicUnits(0.1), 0.1));
+        assertEquals(HavenoUtils.xmrToAtomicUnits(0.015), HavenoUtils.multiply(HavenoUtils.xmrToAtomicUnits(0.3), 0.05));
+    }
+
+    @Test
+    public void testParseXmr() {
+        String xmrStr = "0.266394780889";
+        BigInteger au = HavenoUtils.parseXmr(xmrStr);
+        assertEquals(new BigInteger("266394780889"), au);
+        assertEquals(xmrStr, "" + HavenoUtils.atomicUnitsToXmr(au));
+        assertEquals(xmrStr, HavenoUtils.formatXmr(au, false));
     }
 
     @Test

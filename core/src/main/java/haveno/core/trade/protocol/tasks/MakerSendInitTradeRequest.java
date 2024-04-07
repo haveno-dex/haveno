@@ -57,7 +57,6 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     processModel.getPubKeyRing(),
                     trade.getAmount().longValueExact(),
                     trade.getPrice().getValue(),
-                    offer.getMakerFee().longValueExact(),
                     trade.getProcessModel().getAccountId(),
                     offer.getMakerPaymentAccountId(),
                     offer.getOfferPayload().getPaymentMethodId(),
@@ -75,7 +74,7 @@ public class MakerSendInitTradeRequest extends TradeTask {
                     null);
 
             // send request to arbitrator
-            log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
+            log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getOfferId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
             processModel.getP2PService().sendEncryptedDirectMessage(
                     trade.getArbitrator().getNodeAddress(),
                     trade.getArbitrator().getPubKeyRing(),

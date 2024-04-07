@@ -59,7 +59,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.InitMultisigRequest.Builder builder = protobuf.InitMultisigRequest.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid);
 
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));

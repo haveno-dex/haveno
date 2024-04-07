@@ -58,7 +58,7 @@ public final class SignContractResponse extends TradeMessage implements DirectMe
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.SignContractResponse.Builder builder = protobuf.SignContractResponse.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid);
 
         Optional.ofNullable(contractAsJson).ifPresent(e -> builder.setContractAsJson(contractAsJson));

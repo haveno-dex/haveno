@@ -63,7 +63,7 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
         return getNetworkEnvelopeBuilder()
                 .setMediatedPayoutTxSignatureMessage(protobuf.MediatedPayoutTxSignatureMessage.newBuilder()
                         .setTxSignature(ByteString.copyFrom(txSignature))
-                        .setTradeId(tradeId)
+                        .setTradeId(offerId)
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                         .setUid(uid))
                 .build();
@@ -79,8 +79,8 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
     }
 
     @Override
-    public String getTradeId() {
-        return tradeId;
+    public String getOfferId() {
+        return offerId;
     }
 
 
@@ -88,7 +88,7 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
     public String toString() {
         return "MediatedPayoutSignatureMessage{" +
                 "\n     txSignature=" + Utilities.bytesAsHexString(txSignature) +
-                ",\n     tradeId='" + tradeId + '\'' +
+                ",\n     tradeId='" + offerId + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 "\n} " + super.toString();
     }

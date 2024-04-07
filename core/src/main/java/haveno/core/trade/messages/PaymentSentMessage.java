@@ -101,7 +101,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         final protobuf.PaymentSentMessage.Builder builder = protobuf.PaymentSentMessage.newBuilder();
-        builder.setTradeId(tradeId)
+        builder.setTradeId(offerId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid);
 
@@ -141,7 +141,7 @@ public final class PaymentSentMessage extends TradeMailboxMessage {
     @Override
     public String toString() {
         return "PaymentSentMessage{" +
-                ",\n     tradeId=" + tradeId +
+                ",\n     tradeId=" + offerId +
                 ",\n     uid='" + uid + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     counterCurrencyTxId=" + counterCurrencyTxId +

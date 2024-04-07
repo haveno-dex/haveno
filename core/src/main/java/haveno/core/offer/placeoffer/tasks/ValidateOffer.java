@@ -44,11 +44,12 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             // Coins
             checkBINotNullOrZero(offer.getAmount(), "Amount");
             checkBINotNullOrZero(offer.getMinAmount(), "MinAmount");
-            checkBINotNullOrZero(offer.getMakerFee(), "MakerFee");
             //checkCoinNotNullOrZero(offer.getTxFee(), "txFee"); // TODO: remove from data model
             checkBINotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
-            if (offer.getBuyerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Buyer security deposit must be positive but was " + offer.getBuyerSecurityDepositPct());
-            if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit must be positive but was " + offer.getSellerSecurityDepositPct());
+            if (offer.getMakerFeePct() < 0) throw new IllegalArgumentException("Maker fee must be >= 0% but was " + offer.getMakerFeePct());
+            if (offer.getTakerFeePct() < 0) throw new IllegalArgumentException("Taker fee must be >= 0% but was " + offer.getTakerFeePct());
+            if (offer.getBuyerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Buyer security deposit percent must be positive but was " + offer.getBuyerSecurityDepositPct());
+            if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit percent must be positive but was " + offer.getSellerSecurityDepositPct());
 
             // We remove those checks to be more flexible with future changes.
             /*checkArgument(offer.getMakerFee().value >= FeeService.getMinMakerFee(offer.isCurrencyForMakerFeeBtc()).value,
@@ -84,7 +85,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             checkNotNull(offer.getPubKeyRing(), "pubKeyRing is null");
             checkNotNull(offer.getMinAmount(), "MinAmount is null");
             checkNotNull(offer.getPrice(), "Price is null");
-            checkNotNull(offer.getMakerFee(), "MakerFee is null");
             checkNotNull(offer.getVersionNr(), "VersionNr is null");
             checkArgument(offer.getMaxTradePeriod() > 0,
                     "maxTradePeriod must be positive. maxTradePeriod=" + offer.getMaxTradePeriod());
@@ -136,6 +136,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
     }
 
     public static void checkTradeId(String tradeId, TradeMessage tradeMessage) {
-        checkArgument(tradeId.equals(tradeMessage.getTradeId()));
+        checkArgument(tradeId.equals(tradeMessage.getOfferId()));
     }
 }

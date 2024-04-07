@@ -271,7 +271,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             Offer offer = trade.getOffer();
             if (isMaker()) {
                 if (offer != null) {
-                    return offer.getMakerFee();
+                    return trade.getMakerFee();
                 } else {
                     log.error("offer is null");
                     return BigInteger.ZERO;

@@ -64,11 +64,12 @@ public class TradeInfo implements Payload {
     private final String shortId;
     private final long date;
     private final String role;
-    private final long takerFee;
     private final String makerDepositTxId;
     private final String takerDepositTxId;
     private final String payoutTxId;
     private final long amount;
+    private final long makerFee;
+    private final long takerFee;
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
     private final long buyerDepositTxFee;
@@ -104,11 +105,12 @@ public class TradeInfo implements Payload {
         this.shortId = builder.getShortId();
         this.date = builder.getDate();
         this.role = builder.getRole();
-        this.takerFee = builder.getTakerFee();
         this.makerDepositTxId = builder.getMakerDepositTxId();
         this.takerDepositTxId = builder.getTakerDepositTxId();
         this.payoutTxId = builder.getPayoutTxId();
         this.amount = builder.getAmount();
+        this.makerFee = builder.getMakerFee();
+        this.takerFee = builder.getTakerFee();
         this.buyerSecurityDeposit = builder.getBuyerSecurityDeposit();
         this.sellerSecurityDeposit = builder.getSellerSecurityDeposit();
         this.buyerDepositTxFee = builder.getBuyerDepositTxFee();
@@ -166,11 +168,12 @@ public class TradeInfo implements Payload {
                 .withShortId(trade.getShortId())
                 .withDate(trade.getDate().getTime())
                 .withRole(role == null ? "" : role)
-                .withTakerFee(trade.getTakerFee().longValueExact())
                 .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
                 .withPayoutTxId(trade.getPayoutTxId())
                 .withAmount(trade.getAmount().longValueExact())
+                .withMakerFee(trade.getMakerFee().longValueExact())
+                .withTakerFee(trade.getTakerFee().longValueExact())
                 .withBuyerSecurityDeposit(trade.getBuyer().getSecurityDeposit() == null ? -1 : trade.getBuyer().getSecurityDeposit().longValueExact())
                 .withSellerSecurityDeposit(trade.getSeller().getSecurityDeposit() == null ? -1 : trade.getSeller().getSecurityDeposit().longValueExact())
                 .withBuyerDepositTxFee(trade.getBuyer().getDepositTxFee() == null ? -1 : trade.getBuyer().getDepositTxFee().longValueExact())
@@ -216,11 +219,12 @@ public class TradeInfo implements Payload {
                 .setShortId(shortId)
                 .setDate(date)
                 .setRole(role)
-                .setTakerFee(takerFee)
                 .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
                 .setPayoutTxId(payoutTxId == null ? "" : payoutTxId)
                 .setAmount(amount)
+                .setMakerFee(makerFee)
+                .setTakerFee(takerFee)
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setBuyerDepositTxFee(buyerDepositTxFee)
@@ -259,11 +263,12 @@ public class TradeInfo implements Payload {
                 .withShortId(proto.getShortId())
                 .withDate(proto.getDate())
                 .withRole(proto.getRole())
-                .withTakerFee(proto.getTakerFee())
                 .withMakerDepositTxId(proto.getMakerDepositTxId())
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
                 .withPayoutTxId(proto.getPayoutTxId())
                 .withAmount(proto.getAmount())
+                .withMakerFee(proto.getMakerFee())
+                .withTakerFee(proto.getTakerFee())
                 .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
                 .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
                 .withBuyerDepositTxFee(proto.getBuyerDepositTxFee())
@@ -302,11 +307,12 @@ public class TradeInfo implements Payload {
                 ", shortId='" + shortId + '\'' + "\n" +
                 ", date='" + date + '\'' + "\n" +
                 ", role='" + role + '\'' + "\n" +
-                ", takerFee='" + takerFee + '\'' + "\n" +
                 ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
                 ", payoutTxId='" + payoutTxId + '\'' + "\n" +
                 ", amount='" + amount + '\'' + "\n" +
+                ", makerFee='" + makerFee + '\'' + "\n" +
+                ", takerFee='" + takerFee + '\'' + "\n" +
                 ", buyerSecurityDeposit='" + buyerSecurityDeposit + '\'' + "\n" +
                 ", sellerSecurityDeposit='" + sellerSecurityDeposit + '\'' + "\n" +
                 ", buyerDepositTxFee='" + buyerDepositTxFee + '\'' + "\n" +

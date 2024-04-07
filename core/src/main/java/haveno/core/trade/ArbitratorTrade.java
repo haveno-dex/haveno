@@ -36,7 +36,6 @@ public class ArbitratorTrade extends Trade {
 
   public ArbitratorTrade(Offer offer,
           BigInteger tradeAmount,
-          BigInteger takerFee,
           long tradePrice,
           XmrWalletService xmrWalletService,
           ProcessModel processModel,
@@ -44,7 +43,7 @@ public class ArbitratorTrade extends Trade {
           NodeAddress makerNodeAddress,
           NodeAddress takerNodeAddress,
           NodeAddress arbitratorNodeAddress) {
-    super(offer, tradeAmount, takerFee, tradePrice, xmrWalletService, processModel, uid, makerNodeAddress, takerNodeAddress, arbitratorNodeAddress);
+    super(offer, tradeAmount, tradePrice, xmrWalletService, processModel, uid, makerNodeAddress, takerNodeAddress, arbitratorNodeAddress);
   }
 
   @Override
@@ -76,7 +75,6 @@ public class ArbitratorTrade extends Trade {
       return fromProto(new ArbitratorTrade(
                       Offer.fromProto(proto.getOffer()),
                       BigInteger.valueOf(proto.getAmount()),
-                      BigInteger.valueOf(proto.getTakerFee()),
                       proto.getPrice(),
                       xmrWalletService,
                       processModel,

@@ -38,7 +38,6 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
 
     public SellerAsMakerTrade(Offer offer,
                               BigInteger tradeAmount,
-                              BigInteger takerFee,
                               long tradePrice,
                               XmrWalletService xmrWalletService,
                               ProcessModel processModel,
@@ -48,7 +47,6 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
                               @Nullable NodeAddress arbitratorNodeAddress) {
         super(offer,
                 tradeAmount,
-                takerFee,
                 tradePrice,
                 xmrWalletService,
                 processModel,
@@ -83,7 +81,6 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
         SellerAsMakerTrade trade = new SellerAsMakerTrade(
                 Offer.fromProto(proto.getOffer()),
                 BigInteger.valueOf(proto.getAmount()),
-                BigInteger.valueOf(proto.getTakerFee()),
                 proto.getPrice(),
                 xmrWalletService,
                 processModel,

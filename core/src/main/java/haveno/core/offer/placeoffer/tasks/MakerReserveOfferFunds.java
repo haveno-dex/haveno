@@ -22,6 +22,7 @@ import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.model.XmrAddressEntry;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroOutput;
@@ -50,13 +51,14 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             model.getXmrWalletService().getConnectionService().verifyConnection();
 
             // create reserve tx
-            BigInteger makerFee = offer.getMakerFee();
+            BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), offer.getPenaltyFeePct());
+            BigInteger makerFee = offer.getMaxMakerFee();
             BigInteger sendAmount = offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
             XmrAddressEntry fundingEntry = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).orElse(null);
             Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(makerFee, sendAmount, securityDeposit, returnAddress, model.getOpenOffer().isReserveExactAmount(), preferredSubaddressIndex);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, model.getOpenOffer().isReserveExactAmount(), preferredSubaddressIndex);
 
             // check for error in case creating reserve tx exceeded timeout // TODO: better way?
             if (!model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).isPresent()) {

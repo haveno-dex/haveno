@@ -103,30 +103,19 @@ public class GUIUtilTest {
     }
 
     @Test
-    public void percentageOfTradeAmount_higherFeeAsMin() {
+    public void percentageOfTradeAmount1() {
 
         BigInteger fee = BigInteger.valueOf(200000000L);
-        BigInteger min = BigInteger.valueOf(100000000L);
 
-        assertEquals(" (0.02% of trade amount)", GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), min));
+        assertEquals(" (0.02% of trade amount)", GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0)));
     }
 
     @Test
-    public void percentageOfTradeAmount_minFee() {
-
-        BigInteger fee = BigInteger.valueOf(100000000L);
-        BigInteger min = BigInteger.valueOf(100000000L);
-
-        assertEquals(" (required minimum)",
-                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), min));
-    }
-
-    @Test
-    public void percentageOfTradeAmount_minFeeZERO() {
+    public void percentageOfTradeAmount2() {
 
         BigInteger fee = BigInteger.valueOf(100000000L);
 
         assertEquals(" (0.01% of trade amount)",
-                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0), BigInteger.ZERO));
+                GUIUtil.getPercentageOfTradeAmount(fee, HavenoUtils.xmrToAtomicUnits(1.0)));
     }
 }

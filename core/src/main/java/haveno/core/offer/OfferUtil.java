@@ -211,9 +211,7 @@ public class OfferUtil {
 
     public void validateOfferData(double buyerSecurityDeposit,
                                   PaymentAccount paymentAccount,
-                                  String currencyCode,
-                                  BigInteger makerFee) {
-        checkNotNull(makerFee, "makerFee must not be null");
+                                  String currencyCode) {
         checkNotNull(p2PService.getAddress(), "Address must not be null");
         checkArgument(buyerSecurityDeposit <= getMaxBuyerSecurityDepositAsPercent(),
                 "securityDeposit must not exceed " +

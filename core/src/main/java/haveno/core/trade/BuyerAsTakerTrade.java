@@ -38,7 +38,6 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
 
     public BuyerAsTakerTrade(Offer offer,
                              BigInteger tradeAmount,
-                             BigInteger takerFee,
                              long tradePrice,
                              XmrWalletService xmrWalletService,
                              ProcessModel processModel,
@@ -48,7 +47,6 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
                              @Nullable NodeAddress arbitratorNodeAddress) {
         super(offer,
                 tradeAmount,
-                takerFee,
                 tradePrice,
                 xmrWalletService,
                 processModel,
@@ -83,7 +81,6 @@ public final class BuyerAsTakerTrade extends BuyerTrade implements TakerTrade {
         return fromProto(new BuyerAsTakerTrade(
                         Offer.fromProto(proto.getOffer()),
                         BigInteger.valueOf(proto.getAmount()),
-                        BigInteger.valueOf(proto.getTakerFee()),
                         proto.getPrice(),
                         xmrWalletService,
                         processModel,

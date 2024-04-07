@@ -150,7 +150,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             sendInitMultisigRequest(peer1Address, peer1PubKeyRing, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer1Address, request.getTradeId(), request.getUid());
+                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer1Address, request.getOfferId(), request.getUid());
                 ack1 = true;
                 if (ack1 && ack2) completeAux();
               }
@@ -166,7 +166,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             sendInitMultisigRequest(peer2Address, peer2PubKeyRing, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer2Address, request.getTradeId(), request.getUid());
+                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer2Address, request.getOfferId(), request.getUid());
                 ack2 = true;
                 if (ack1 && ack2) completeAux();
               }
@@ -212,7 +212,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
                 trade.getSelf().getMadeMultisigHex(),
                 trade.getSelf().getExchangedMultisigHex());
 
-        log.info("Send {} with offerId {} and uid {} to peer {}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), recipient);
+        log.info("Send {} with offerId {} and uid {} to peer {}", request.getClass().getSimpleName(), request.getOfferId(), request.getUid(), recipient);
         processModel.getP2PService().sendEncryptedDirectMessage(recipient, pubKeyRing, request, listener);
     }
 

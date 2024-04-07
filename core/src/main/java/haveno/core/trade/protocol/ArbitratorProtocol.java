@@ -109,7 +109,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   
   @Override
   public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-      log.warn("Arbitrator ignoring DepositResponse for trade " + response.getTradeId());
+      log.warn("Arbitrator ignoring DepositResponse for trade " + response.getOfferId());
   }
 
   @SuppressWarnings("unchecked")

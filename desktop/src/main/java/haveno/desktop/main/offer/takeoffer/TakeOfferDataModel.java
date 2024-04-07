@@ -248,7 +248,6 @@ class TakeOfferDataModel extends OfferDataModel {
             errorMsg = Res.get("offerbook.warning.offerWasAlreadyUsedInTrade");
         } else {
             tradeManager.onTakeOffer(amount.get(),
-                    getTakerFee(),
                     fundsNeededForTrade,
                     offer,
                     paymentAccount.getId(),
@@ -404,7 +403,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @Nullable
     BigInteger getTakerFee() {
-        return HavenoUtils.getTakerFee(this.amount.get());
+        return HavenoUtils.multiply(this.amount.get(), offer.getTakerFeePct());
     }
 
     public void swapTradeToSavings() {

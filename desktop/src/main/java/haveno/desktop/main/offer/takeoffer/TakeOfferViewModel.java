@@ -38,7 +38,6 @@ import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.InputValidator;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
@@ -656,9 +655,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                 dataModel.getSecurityDeposit(),
                 dataModel.getAmount().get(),
-                xmrFormatter,
-                Restrictions.getMinBuyerSecurityDeposit()
-        );
+                xmrFormatter);
     }
 
     public String getSecurityDepositWithCode() {
@@ -669,8 +666,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                     dataModel.getTakerFee(),
                     dataModel.getAmount().get(),
-                    xmrFormatter,
-                    HavenoUtils.getMinMakerFee());
+                    xmrFormatter);
     }
 
     public String getTakerFeePercentage() {

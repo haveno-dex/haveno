@@ -60,9 +60,11 @@ public class OfferMaker {
     public static final Property<Offer, PubKeyRing> pubKeyRing = newProperty();
     public static final Property<Offer, Long> blockHeight = newProperty();
     public static final Property<Offer, Long> txFee = newProperty();
-    public static final Property<Offer, Long> makerFee = newProperty();
-    public static final Property<Offer, Long> buyerSecurityDeposit = newProperty();
-    public static final Property<Offer, Long> sellerSecurityDeposit = newProperty();
+    public static final Property<Offer, Double> makerFeePct = newProperty();
+    public static final Property<Offer, Double> takerFeePct = newProperty();
+    public static final Property<Offer, Double> penaltyFeePct = newProperty();
+    public static final Property<Offer, Double> buyerSecurityDepositPct = newProperty();
+    public static final Property<Offer, Double> sellerSecurityDepositPct = newProperty();
     public static final Property<Offer, Long> tradeLimit = newProperty();
     public static final Property<Offer, Long> maxTradePeriod = newProperty();
     public static final Property<Offer, Long> lowerClosePrice = newProperty();
@@ -80,6 +82,11 @@ public class OfferMaker {
                     lookup.valueOf(useMarketBasedPrice, false),
                     lookup.valueOf(amount, 100000L),
                     lookup.valueOf(minAmount, 100000L),
+                    lookup.valueOf(makerFeePct, .0015),
+                    lookup.valueOf(takerFeePct, .0075),
+                    lookup.valueOf(penaltyFeePct, 0.03),
+                    lookup.valueOf(buyerSecurityDepositPct, .15),
+                    lookup.valueOf(sellerSecurityDepositPct, .15),
                     lookup.valueOf(baseCurrencyCode, "XMR"),
                     lookup.valueOf(counterCurrencyCode, "USD"),
                     lookup.valueOf(paymentMethodId, "SEPA"),
@@ -92,9 +99,6 @@ public class OfferMaker {
                     null,
                     "2",
                     lookup.valueOf(blockHeight, 700000L),
-                    lookup.valueOf(makerFee, 1000L),
-                    lookup.valueOf(buyerSecurityDeposit, 10000L),
-                    lookup.valueOf(sellerSecurityDeposit, 10000L),
                     lookup.valueOf(tradeLimit, 0L),
                     lookup.valueOf(maxTradePeriod, 0L),
                     false,

@@ -345,7 +345,6 @@ public abstract class Trade implements Tradable, Model {
     private final ProcessModel processModel;
     @Getter
     private final Offer offer;
-    private final long takerFee;
 
     // Added in 1.5.1
     @Getter
@@ -490,7 +489,6 @@ public abstract class Trade implements Tradable, Model {
     // maker
     protected Trade(Offer offer,
                     BigInteger tradeAmount,
-                    BigInteger takerFee,
                     long tradePrice,
                     XmrWalletService xmrWalletService,
                     ProcessModel processModel,
@@ -500,7 +498,6 @@ public abstract class Trade implements Tradable, Model {
                     @Nullable NodeAddress arbitratorNodeAddress) {
         this.offer = offer;
         this.amount = tradeAmount.longValueExact();
-        this.takerFee = takerFee.longValueExact();
         this.price = tradePrice;
         this.xmrWalletService = xmrWalletService;
         this.xmrConnectionService = xmrWalletService.getConnectionService();
@@ -523,7 +520,6 @@ public abstract class Trade implements Tradable, Model {
     protected Trade(Offer offer,
                     BigInteger tradeAmount,
                     BigInteger txFee,
-                    BigInteger takerFee,
                     long tradePrice,
                     @Nullable NodeAddress mediatorNodeAddress, // TODO (woodser): remove mediator, refund agent from trade
                     @Nullable NodeAddress refundAgentNodeAddress,
@@ -536,7 +532,6 @@ public abstract class Trade implements Tradable, Model {
 
         this(offer,
                 tradeAmount,
-                takerFee,
                 tradePrice,
                 xmrWalletService,
                 processModel,
@@ -552,7 +547,6 @@ public abstract class Trade implements Tradable, Model {
     protected Trade(Offer offer,
                     BigInteger tradeAmount,
                     Coin txFee,
-                    BigInteger takerFee,
                     long tradePrice,
                     NodeAddress makerNodeAddress,
                     NodeAddress takerNodeAddress,
@@ -563,7 +557,6 @@ public abstract class Trade implements Tradable, Model {
 
       this(offer,
               tradeAmount,
-              takerFee,
               tradePrice,
               xmrWalletService,
               processModel,
@@ -926,7 +919,6 @@ public abstract class Trade implements Tradable, Model {
 
     private void forceCloseWallet() {
         if (wallet != null) {
-            log.warn("Force closing wallet for {} {}", getClass().getSimpleName(), getId());
             xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
             wallet = null;
         }
@@ -960,7 +952,7 @@ public abstract class Trade implements Tradable, Model {
                         throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance");
                     }
 
-                    // force close wallet
+                    // force close wallet without warning
                     forceCloseWallet();
 
                     // delete wallet
@@ -1138,7 +1130,7 @@ public abstract class Trade implements Tradable, Model {
 
             // verify fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
-            MoneroTxWallet feeEstimateTx = createPayoutTx();;
+            MoneroTxWallet feeEstimateTx = createPayoutTx();
             BigInteger feeEstimate = feeEstimateTx.getFee();
             double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
             if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + payoutTx.getFee());
@@ -1912,11 +1904,11 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public BigInteger getMakerFee() {
-        return offer.getMakerFee();
+        return offer.getMakerFee(getAmount());
     }
 
     public BigInteger getTakerFee() {
-        return BigInteger.valueOf(takerFee);
+        return offer.getTakerFee(getAmount());
     }
 
     public BigInteger getBuyerSecurityDepositBeforeMiningFee() {
@@ -2308,7 +2300,6 @@ public abstract class Trade implements Tradable, Model {
     public Message toProtoMessage() {
         protobuf.Trade.Builder builder = protobuf.Trade.newBuilder()
                 .setOffer(offer.toProtoMessage())
-                .setTakerFee(takerFee)
                 .setTakeOfferDate(takeOfferDate)
                 .setProcessModel(processModel.toProtoMessage())
                 .setAmount(amount)
@@ -2371,7 +2362,6 @@ public abstract class Trade implements Tradable, Model {
     public String toString() {
         return "Trade{" +
                 "\n     offer=" + offer +
-                ",\n     takerFee=" + takerFee +
                 ",\n     totalTxFee=" + getTotalTxFee() +
                 ",\n     takeOfferDate=" + takeOfferDate +
                 ",\n     processModel=" + processModel +
@@ -2389,7 +2379,6 @@ public abstract class Trade implements Tradable, Model {
                 ",\n     counterCurrencyTxId='" + counterCurrencyTxId + '\'' +
                 ",\n     counterCurrencyExtraData='" + counterCurrencyExtraData + '\'' +
                 ",\n     chatMessages=" + chatMessages +
-                ",\n     takerFee=" + takerFee +
                 ",\n     xmrWalletService=" + xmrWalletService +
                 ",\n     stateProperty=" + stateProperty +
                 ",\n     statePhaseProperty=" + phaseProperty +

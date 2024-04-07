@@ -491,7 +491,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         tradeFeeCurrencyCode.set(Res.getBaseCurrencyCode());
         tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionXMROnly"));
 
-        BigInteger makerFee = dataModel.getMakerFee();
+        BigInteger makerFee = dataModel.getMaxMakerFee();
         if (makerFee == null) {
             return;
         }
@@ -499,7 +499,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         isTradeFeeVisible.setValue(true);
         tradeFee.set(HavenoUtils.formatXmr(makerFee));
         tradeFeeInXmrWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
-                dataModel.getMakerFee(),
+                dataModel.getMaxMakerFee(),
                 btcFormatter));
     }
 
@@ -1004,8 +1004,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                 dataModel.getSecurityDeposit(),
                 dataModel.getAmount().get(),
-                btcFormatter,
-                Restrictions.getMinBuyerSecurityDeposit()
+                btcFormatter
         );
     }
 
@@ -1016,14 +1015,13 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public String getTradeFee() {
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
-                dataModel.getMakerFee(),
+                dataModel.getMaxMakerFee(),
                 dataModel.getAmount().get(),
-                btcFormatter,
-                HavenoUtils.getMinMakerFee());
+                btcFormatter);
     }
 
     public String getMakerFeePercentage() {
-        final BigInteger makerFee = dataModel.getMakerFee();
+        final BigInteger makerFee = dataModel.getMaxMakerFee();
         return GUIUtil.getPercentage(makerFee, dataModel.getAmount().get());
     }
 

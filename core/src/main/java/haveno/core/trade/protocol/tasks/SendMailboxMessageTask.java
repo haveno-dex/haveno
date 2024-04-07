@@ -69,20 +69,20 @@ public abstract class SendMailboxMessageTask extends TradeTask {
                     new SendMailboxMessageListener() {
                         @Override
                         public void onArrived() {
-                            log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+                            log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
                             setStateArrived();
                             if (!task.isCompleted()) complete();
                         }
 
                         @Override
                         public void onStoredInMailbox() {
-                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
                             SendMailboxMessageTask.this.onStoredInMailbox();
                         }
 
                         @Override
                         public void onFault(String errorMessage) {
-                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}", message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
+                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid(), errorMessage);
                             SendMailboxMessageTask.this.onFault(errorMessage, message);
                         }
                     }

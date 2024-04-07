@@ -71,7 +71,6 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     p2PService.getKeyRing().getPubKeyRing(),
                     model.getTradeAmount().longValueExact(),
                     price.getValue(),
-                    HavenoUtils.getTakerFee(model.getTradeAmount()).longValueExact(),
                     user.getAccountId(),
                     paymentAccountId,
                     paymentMethodId,

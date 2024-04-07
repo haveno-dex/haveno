@@ -19,6 +19,7 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.OfferDirection;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
@@ -41,11 +42,12 @@ public class TakerReserveTradeFunds extends TradeTask {
             runInterceptHook();
 
             // create reserve tx
+            BigInteger penaltyFee = HavenoUtils.multiply(trade.getAmount(), trade.getOffer().getPenaltyFeePct());
             BigInteger takerFee = trade.getTakerFee();
             BigInteger sendAmount = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getAmount() : BigInteger.ZERO;
             BigInteger securityDeposit = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getSellerSecurityDepositBeforeMiningFee() : trade.getBuyerSecurityDepositBeforeMiningFee();
             String returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
-            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(takerFee, sendAmount, securityDeposit, returnAddress, false, null);
+            MoneroTxWallet reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
 
             // check if trade still exists
             if (!processModel.getTradeManager().hasOpenTrade(trade)) {

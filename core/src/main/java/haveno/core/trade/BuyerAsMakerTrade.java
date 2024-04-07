@@ -37,7 +37,6 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
 
     public BuyerAsMakerTrade(Offer offer,
                              BigInteger tradeAmount,
-                             BigInteger takeOfferFee,
                              long tradePrice,
                              XmrWalletService xmrWalletService,
                              ProcessModel processModel,
@@ -47,7 +46,6 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                              NodeAddress arbitratorNodeAddress) {
         super(offer,
                 tradeAmount,
-                takeOfferFee,
                 tradePrice,
                 xmrWalletService,
                 processModel,
@@ -81,7 +79,6 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
         BuyerAsMakerTrade trade = new BuyerAsMakerTrade(
                 Offer.fromProto(proto.getOffer()),
                 BigInteger.valueOf(proto.getAmount()),
-                BigInteger.valueOf(proto.getTakerFee()),
                 proto.getPrice(),
                 xmrWalletService,
                 processModel,

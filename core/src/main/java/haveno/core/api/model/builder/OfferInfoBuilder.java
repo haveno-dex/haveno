@@ -38,7 +38,9 @@ public final class OfferInfoBuilder {
     private long minAmount;
     private String volume;
     private String minVolume;
-    private long makerFee;
+    private double makerFeePct;
+    private double takerFeePct;
+    private double penaltyFeePct;
     private double buyerSecurityDepositPct;
     private double sellerSecurityDepositPct;
     private String triggerPrice;
@@ -97,18 +99,18 @@ public final class OfferInfoBuilder {
         return this;
     }
 
-    public OfferInfoBuilder withVolume(String volume) {
-        this.volume = volume;
+    public OfferInfoBuilder withMakerFeePct(double makerFeePct) {
+        this.makerFeePct = makerFeePct;
         return this;
     }
 
-    public OfferInfoBuilder withMinVolume(String minVolume) {
-        this.minVolume = minVolume;
+    public OfferInfoBuilder withTakerFeePct(double takerFeePct) {
+        this.takerFeePct = takerFeePct;
         return this;
     }
 
-    public OfferInfoBuilder withMakerFee(long makerFee) {
-        this.makerFee = makerFee;
+    public OfferInfoBuilder withPenaltyFeePct(double penaltyFeePct) {
+        this.penaltyFeePct = penaltyFeePct;
         return this;
     }
 
@@ -119,6 +121,16 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withSellerSecurityDepositPct(double sellerSecurityDepositPct) {
         this.sellerSecurityDepositPct = sellerSecurityDepositPct;
+        return this;
+    }
+
+    public OfferInfoBuilder withVolume(String volume) {
+        this.volume = volume;
+        return this;
+    }
+
+    public OfferInfoBuilder withMinVolume(String minVolume) {
+        this.minVolume = minVolume;
         return this;
     }
 

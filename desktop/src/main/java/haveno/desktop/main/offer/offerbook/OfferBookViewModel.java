@@ -618,10 +618,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return true;
     }
 
-    public String getMakerFeeAsString(Offer offer) {
-        return HavenoUtils.formatXmr(offer.getMakerFee(), true);
-    }
-
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
