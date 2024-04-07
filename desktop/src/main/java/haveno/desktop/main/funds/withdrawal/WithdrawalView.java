@@ -48,38 +48,48 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TxDetails;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import haveno.desktop.util.FormBuilder;
-import static haveno.desktop.util.FormBuilder.addButton;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.Button;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import javafx.beans.value.ChangeListener;
-import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Toggle;
-import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
-import monero.wallet.model.MoneroTxConfig;
-import monero.wallet.model.MoneroTxWallet;
+
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
+import static haveno.desktop.util.FormBuilder.addButton;
 
 @FxmlView
 public class WithdrawalView extends ActivatableView<VBox, Void> {
 
     @FXML
-    GridPane gridPane;
+    private GridPane gridPane;
+
+    private BusyAnimation spinningWheel;
+
+
+    private StackPane overlayPane;
 
     private Label amountLabel;
     private TextField amountTextField, withdrawToTextField, withdrawMemoTextField;
@@ -118,6 +128,15 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     @Override
     public void initialize() {
 
+        spinningWheel = new BusyAnimation();
+        overlayPane = new StackPane();
+        overlayPane.setStyle("-fx-background-color: transparent;"); // Adjust opacity as needed
+        overlayPane.setVisible(false);
+        overlayPane.getChildren().add(spinningWheel);
+
+        // Add overlay pane to root VBox
+        root.getChildren().add(overlayPane);
+
         final TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, rowIndex, 4, Res.get("funds.deposit.withdrawFromWallet"));
         titledGroupBg.getStyleClass().add("last");
 
@@ -144,7 +163,19 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
         final Button withdrawButton = addButton(gridPane, ++rowIndex, Res.get("funds.withdrawal.withdrawButton"), 15);
 
-        withdrawButton.setOnAction(event -> onWithdraw());
+        withdrawButton.setOnAction(event -> {
+            // Show the spinning wheel (progress indicator)
+            showLoadingIndicator();
+
+            // Execute onWithdraw() method on a separate thread
+            new Thread(() -> {
+                // Call the method that performs the withdrawal
+                onWithdraw();
+
+                // Hide the spinning wheel (progress indicator) after withdrawal is complete
+                Platform.runLater(() -> hideLoadingIndicator());
+            }).start();
+        });
 
         balanceListener = new XmrBalanceListener() {
             @Override
@@ -180,6 +211,19 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         };
     }
 
+
+    private void showLoadingIndicator() {
+        overlayPane.setVisible(true);
+        spinningWheel.play();
+        root.setDisable(true);
+    }
+
+    private void hideLoadingIndicator() {
+        overlayPane.setVisible(false);
+        spinningWheel.stop();
+        root.setDisable(false);
+    }
+
     @Override
     protected void activate() {
         reset();
@@ -196,6 +240,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void deactivate() {
+        spinningWheel.stop();
         xmrWalletService.removeBalanceListener(balanceListener);
         amountTextField.textProperty().removeListener(amountListener);
         amountTextField.focusedProperty().removeListener(amountFocusListener);
