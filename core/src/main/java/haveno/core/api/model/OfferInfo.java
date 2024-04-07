@@ -52,8 +52,9 @@ public class OfferInfo implements Payload {
     private final long minAmount;
     private final String volume;
     private final String minVolume;
-    private final long makerFee;
-    @Nullable
+    private final double makerFeePct;
+    private final double takerFeePct;
+    private final double penaltyFeePct;
     private final double buyerSecurityDepositPct;
     private final double sellerSecurityDepositPct;
     private final String triggerPrice;
@@ -86,11 +87,13 @@ public class OfferInfo implements Payload {
         this.marketPriceMarginPct = builder.getMarketPriceMarginPct();
         this.amount = builder.getAmount();
         this.minAmount = builder.getMinAmount();
-        this.volume = builder.getVolume();
-        this.minVolume = builder.getMinVolume();
-        this.makerFee = builder.getMakerFee();
+        this.makerFeePct = builder.getMakerFeePct();
+        this.takerFeePct = builder.getTakerFeePct();
+        this.penaltyFeePct = builder.getPenaltyFeePct();
         this.buyerSecurityDepositPct = builder.getBuyerSecurityDepositPct();
         this.sellerSecurityDepositPct = builder.getSellerSecurityDepositPct();
+        this.volume = builder.getVolume();
+        this.minVolume = builder.getMinVolume();
         this.triggerPrice = builder.getTriggerPrice();
         this.paymentAccountId = builder.getPaymentAccountId();
         this.paymentMethodId = builder.getPaymentMethodId();
@@ -155,11 +158,14 @@ public class OfferInfo implements Payload {
                 .withMarketPriceMarginPct(marketPriceMarginAsPctLiteral)
                 .withAmount(offer.getAmount().longValueExact())
                 .withMinAmount(offer.getMinAmount().longValueExact())
-                .withVolume(roundedVolume)
-                .withMinVolume(roundedMinVolume)
-                .withMakerFee(offer.getMakerFee().longValueExact())
+                .withMakerFeePct(offer.getMakerFeePct())
+                .withTakerFeePct(offer.getTakerFeePct())
+                .withPenaltyFeePct(offer.getPenaltyFeePct())
+                .withSellerSecurityDepositPct(offer.getSellerSecurityDepositPct())
                 .withBuyerSecurityDepositPct(offer.getBuyerSecurityDepositPct())
                 .withSellerSecurityDepositPct(offer.getSellerSecurityDepositPct())
+                .withVolume(roundedVolume)
+                .withMinVolume(roundedMinVolume)
                 .withPaymentAccountId(offer.getMakerPaymentAccountId())
                 .withPaymentMethodId(offer.getPaymentMethod().getId())
                 .withPaymentMethodShortName(offer.getPaymentMethod().getShortName())
@@ -190,7 +196,9 @@ public class OfferInfo implements Payload {
                 .setMinAmount(minAmount)
                 .setVolume(volume)
                 .setMinVolume(minVolume)
-                .setMakerFee(makerFee)
+                .setMakerFeePct(makerFeePct)
+                .setTakerFeePct(takerFeePct)
+                .setPenaltyFeePct(penaltyFeePct)
                 .setBuyerSecurityDepositPct(buyerSecurityDepositPct)
                 .setSellerSecurityDepositPct(sellerSecurityDepositPct)
                 .setTriggerPrice(triggerPrice == null ? "0" : triggerPrice)
@@ -225,7 +233,9 @@ public class OfferInfo implements Payload {
                 .withMinAmount(proto.getMinAmount())
                 .withVolume(proto.getVolume())
                 .withMinVolume(proto.getMinVolume())
-                .withMakerFee(proto.getMakerFee())
+                .withMakerFeePct(proto.getMakerFeePct())
+                .withTakerFeePct(proto.getTakerFeePct())
+                .withPenaltyFeePct(proto.getPenaltyFeePct())
                 .withBuyerSecurityDepositPct(proto.getBuyerSecurityDepositPct())
                 .withSellerSecurityDepositPct(proto.getSellerSecurityDepositPct())
                 .withTriggerPrice(proto.getTriggerPrice())

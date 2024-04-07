@@ -89,6 +89,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             try {
                 txResult = trade.getXmrWalletService().verifyTradeTx(
                     offer.getId(),
+                    null,
                     tradeFee,
                     sendAmount,
                     securityDeposit,

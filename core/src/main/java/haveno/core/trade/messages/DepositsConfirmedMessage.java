@@ -61,7 +61,7 @@ public final class DepositsConfirmedMessage extends TradeMailboxMessage {
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositsConfirmedMessage.Builder builder = protobuf.DepositsConfirmedMessage.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);

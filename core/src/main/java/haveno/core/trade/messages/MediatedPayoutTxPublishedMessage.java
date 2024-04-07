@@ -61,7 +61,7 @@ public final class MediatedPayoutTxPublishedMessage extends TradeMailboxMessage 
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         return getNetworkEnvelopeBuilder()
                 .setMediatedPayoutTxPublishedMessage(protobuf.MediatedPayoutTxPublishedMessage.newBuilder()
-                        .setTradeId(tradeId)
+                        .setTradeId(offerId)
                         .setPayoutTx(ByteString.copyFrom(payoutTx))
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                         .setUid(uid))

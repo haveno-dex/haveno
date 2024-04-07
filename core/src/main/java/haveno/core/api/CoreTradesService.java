@@ -143,18 +143,15 @@ class CoreTradesService {
             }
 
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
-            BigInteger takerFee;
             BigInteger fundsNeededForTrade;
             synchronized (takeOfferModel) {
                 takeOfferModel.initModel(offer, paymentAccount, amount, useSavingsWallet);
-                takerFee = takeOfferModel.getTakerFee();
                 fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
                 log.debug("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
             }
 
             // take offer
             tradeManager.onTakeOffer(amount,
-                    takerFee,
                     fundsNeededForTrade,
                     offer,
                     paymentAccountId,

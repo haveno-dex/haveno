@@ -44,18 +44,10 @@ public class OfferViewModelUtil {
     public static String getTradeFeeWithFiatEquivalentAndPercentage(OfferUtil offerUtil,
                                                                     BigInteger tradeFee,
                                                                     BigInteger tradeAmount,
-                                                                    CoinFormatter formatter,
-                                                                    BigInteger minTradeFee) {
+                                                                    CoinFormatter formatter) {
         String feeAsXmr = HavenoUtils.formatXmr(tradeFee, true);
         String percentage;
-        if (tradeFee.compareTo(minTradeFee) <= 0) {
-            percentage = Res.get("guiUtil.requiredMinimum")
-                    .replace("(", "")
-                    .replace(")", "");
-        } else {
-            percentage = GUIUtil.getPercentage(tradeFee, tradeAmount) +
-                    " " + Res.get("guiUtil.ofTradeAmount");
-        }
+        percentage = GUIUtil.getPercentage(tradeFee, tradeAmount) + " " + Res.get("guiUtil.ofTradeAmount");
         return offerUtil.getFeeInUserFiatCurrency(tradeFee,
                 formatter)
                 .map(VolumeUtil::formatAverageVolumeWithCode)

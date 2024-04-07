@@ -105,7 +105,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.PaymentReceivedMessage.Builder builder = protobuf.PaymentReceivedMessage.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid)
                 .setDeferPublishPayout(deferPublishPayout);

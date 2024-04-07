@@ -106,7 +106,7 @@ public class CleanupMailboxMessages {
     }
 
     private boolean isMyMessage(TradeMessage message, Trade trade) {
-        return message.getTradeId().equals(trade.getId());
+        return message.getOfferId().equals(trade.getId());
     }
 
     private boolean isMyMessage(AckMessage ackMessage, Trade trade) {

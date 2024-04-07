@@ -545,7 +545,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         // Maker does not pay the mining fee for the trade txs because the mining fee might be different when maker
         // created the offer and reserved his funds, so that would not work well with dynamic fees.
         // The mining fee for the createOfferFee tx is deducted from the createOfferFee and not visible to the trader
-        final BigInteger makerFee = getMakerFee();
+        final BigInteger makerFee = getMaxMakerFee();
         if (direction != null && amount.get() != null && makerFee != null) {
             BigInteger feeAndSecDeposit = getSecurityDeposit().add(makerFee);
             BigInteger total = isBuyOffer() ? feeAndSecDeposit : feeAndSecDeposit.add(amount.get());
@@ -677,8 +677,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.marketPriceAvailable = marketPriceAvailable;
     }
 
-    public BigInteger getMakerFee() {
-        return HavenoUtils.getMakerFee(amount.get());
+    public BigInteger getMaxMakerFee() {
+        return HavenoUtils.multiply(amount.get(), HavenoUtils.MAKER_FEE_PCT);
     }
 
     boolean canPlaceOffer() {

@@ -623,13 +623,9 @@ public class GUIUtil {
         }
     }
 
-    public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount, BigInteger minFee) {
+    public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount) {
         String result = " (" + getPercentage(fee, tradeAmount) +
                 " " + Res.get("guiUtil.ofTradeAmount") + ")";
-
-        if (fee.compareTo(minFee) <= 0) {
-            result = " " + Res.get("guiUtil.requiredMinimum");
-        }
 
         return result;
     }

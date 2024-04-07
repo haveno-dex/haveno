@@ -34,11 +34,9 @@ import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
-import haveno.core.util.ParsingUtils;
 import haveno.network.p2p.NodeAddress;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.text.DecimalFormat;
@@ -48,7 +46,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
-import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import monero.wallet.model.MoneroDestination;
@@ -62,11 +59,16 @@ import org.bitcoinj.core.Coin;
 @Slf4j
 public class HavenoUtils {
 
-    // configurable
+    // configure release date
     private static final String RELEASE_DATE = "01-03-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "01-03-2024 00:00:00"
     public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
     public static final int WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS = 182; // number of days to warn if sell offer exceeds unsigned buy limit
     public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 15;
+
+    // configure fees
+    public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
+    public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
+    public static final double PENALTY_FEE_PCT = 0.02; // 2%
 
     // non-configurable
     public static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US); // use the US locale as a base for all DecimalFormats (commas should be omitted from number strings)
@@ -125,7 +127,7 @@ public class HavenoUtils {
     }
 
     public static long atomicUnitsToCentineros(long atomicUnits) {
-        return atomicUnits / CENTINEROS_AU_MULTIPLIER;
+        return atomicUnitsToCentineros(BigInteger.valueOf(atomicUnits));
     }
 
     public static long atomicUnitsToCentineros(BigInteger atomicUnits) {
@@ -149,7 +151,7 @@ public class HavenoUtils {
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return BigDecimal.valueOf(xmr).setScale(8, RoundingMode.DOWN).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+        return new BigDecimal(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
     }
 
     public static long xmrToCentineros(double xmr) {
@@ -161,7 +163,11 @@ public class HavenoUtils {
     }
 
     public static double divide(BigInteger auDividend, BigInteger auDivisor) {
-        return (double) atomicUnitsToCentineros(auDividend) / (double) atomicUnitsToCentineros(auDivisor);
+        return atomicUnitsToXmr(auDividend) / atomicUnitsToXmr(auDivisor);
+    }
+
+    public static BigInteger multiply(BigInteger amount1, double amount2) {
+        return amount1 == null ? null : new BigDecimal(amount1).multiply(BigDecimal.valueOf(amount2)).toBigInteger();
     }
 
     // ------------------------- FORMAT UTILS ---------------------------------
@@ -221,54 +227,10 @@ public class HavenoUtils {
     public static BigInteger parseXmr(String input) {
         if (input == null || input.length() == 0) return BigInteger.ZERO;
         try {
-            return xmrToAtomicUnits(new BigDecimal(ParsingUtils.parseNumberStringToDouble(input)).doubleValue());
+            return new BigDecimal(input).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
         } catch (Exception e) {
             return BigInteger.ZERO;
         }
-    }
-
-    // ------------------------------ FEE UTILS -------------------------------
-
-    @Nullable
-    public static BigInteger getMakerFee(@Nullable BigInteger amount) {
-        if (amount != null) {
-            BigInteger feePerXmr = getFeePerXmr(HavenoUtils.getMakerFeePerXmr(), amount);
-            return feePerXmr.max(HavenoUtils.getMinMakerFee());
-        } else {
-            return null;
-        }
-    }
-
-    @Nullable
-    public static BigInteger getTakerFee(@Nullable BigInteger amount) {
-        if (amount != null) {
-            BigInteger feePerXmr = HavenoUtils.getFeePerXmr(HavenoUtils.getTakerFeePerXmr(), amount);
-            return feePerXmr.max(HavenoUtils.getMinTakerFee());
-        } else {
-            return null;
-        }
-    }
-
-    private static BigInteger getMakerFeePerXmr() {
-        return HavenoUtils.xmrToAtomicUnits(0.0015);
-    }
-
-    public static BigInteger getMinMakerFee() {
-        return HavenoUtils.xmrToAtomicUnits(0.00005);
-    }
-
-    private static BigInteger getTakerFeePerXmr() {
-        return HavenoUtils.xmrToAtomicUnits(0.0075);
-    }
-
-    public static BigInteger getMinTakerFee() {
-        return HavenoUtils.xmrToAtomicUnits(0.00005);
-    }
-
-    public static BigInteger getFeePerXmr(BigInteger feePerXmr, BigInteger amount) {
-        BigDecimal feePerXmrAsDecimal = feePerXmr == null ? BigDecimal.valueOf(0) : new BigDecimal(feePerXmr);
-        BigDecimal amountMultiplier = BigDecimal.valueOf(divide(amount == null ? BigInteger.ZERO : amount, HavenoUtils.xmrToAtomicUnits(1.0)));
-        return feePerXmrAsDecimal.multiply(amountMultiplier).toBigInteger();
     }
 
     // ------------------------ SIGNING AND VERIFYING -------------------------
@@ -351,12 +313,11 @@ public class HavenoUtils {
 
         // re-create trade request with signed fields
         InitTradeRequest signedRequest = new InitTradeRequest(
-                request.getTradeId(),
+                request.getOfferId(),
                 request.getSenderNodeAddress(),
                 request.getPubKeyRing(),
                 request.getTradeAmount(),
                 request.getTradePrice(),
-                request.getTradeFee(),
                 request.getAccountId(),
                 request.getPaymentAccountId(),
                 request.getPaymentMethodId(),
@@ -380,7 +341,7 @@ public class HavenoUtils {
         // verify maker signature
         boolean isSignatureValid = isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
         if (!isSignatureValid) {
-            log.warn("Invalid maker signature for trade request: " + request.getTradeId() + " from " + request.getSenderNodeAddress().getAddressForDisplay());
+            log.warn("Invalid maker signature for trade request: " + request.getOfferId() + " from " + request.getSenderNodeAddress().getAddressForDisplay());
             log.warn("Trade request as json: " + tradeRequestAsJson);
             log.warn("Maker pub key ring: " + (makerPubKeyRing == null ? null : "..."));
             log.warn("Maker signature: " + (signature == null ? null : Utilities.bytesAsHexString(signature)));
@@ -413,7 +374,7 @@ public class HavenoUtils {
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getOfferId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getOfferId());
     }
 
     /**
@@ -441,7 +402,7 @@ public class HavenoUtils {
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getOfferId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getOfferId());
 
         // verify buyer signature of payment sent message
         if (message.getPaymentSentMessage() != null) verifyPaymentSentMessage(trade, message.getPaymentSentMessage());

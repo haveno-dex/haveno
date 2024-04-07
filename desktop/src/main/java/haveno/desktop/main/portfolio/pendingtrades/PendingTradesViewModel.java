@@ -38,7 +38,6 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.BtcAddressValidator;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
@@ -272,12 +271,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             BigInteger tradeFeeInXmr = dataModel.getTradeFee();
 
-            BigInteger minTradeFee = dataModel.isMaker() ?
-                    HavenoUtils.getMinMakerFee() :
-                    HavenoUtils.getMinTakerFee();
-
-            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInXmr, trade.getAmount(),
-                    minTradeFee);
+            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInXmr, trade.getAmount());
             return HavenoUtils.formatXmr(tradeFeeInXmr, true) + percentage;
         } else {
             return "";
@@ -292,13 +286,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                     offer.getMaxBuyerSecurityDeposit()
                     : offer.getMaxSellerSecurityDeposit();
 
-            BigInteger minSecurityDeposit = dataModel.isBuyer() ?
-                    Restrictions.getMinBuyerSecurityDeposit() :
-                    Restrictions.getMinSellerSecurityDeposit();
-
-            String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit,
-                    trade.getAmount(),
-                    minSecurityDeposit);
+            String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit, trade.getAmount());
             return HavenoUtils.formatXmr(securityDeposit, true) + percentage;
         } else {
             return "";

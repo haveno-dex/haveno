@@ -27,7 +27,6 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
@@ -153,11 +152,6 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
 
     boolean isBootstrappedOrShowPopup() {
         return GUIUtil.isBootstrappedOrShowPopup(p2PService);
-    }
-
-    public String getMakerFeeAsString(OpenOffer openOffer) {
-        Offer offer = openOffer.getOffer();
-        return HavenoUtils.formatXmr(offer.getMakerFee(), true);
     }
 
     String getTriggerPrice(OpenOfferListItem item) {

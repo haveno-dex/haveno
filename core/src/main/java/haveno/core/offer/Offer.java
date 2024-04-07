@@ -39,6 +39,7 @@ import haveno.core.offer.availability.OfferAvailabilityProtocol;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ObjectProperty;
@@ -285,12 +286,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     public BigInteger getReserveAmount() {
         BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getMaxBuyerSecurityDeposit() : getMaxSellerSecurityDeposit();
         if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
-        reserveAmount = reserveAmount.add(getMakerFee());
+        reserveAmount = reserveAmount.add(getMaxMakerFee());
         return reserveAmount;
     }
 
-    public BigInteger getMakerFee() {
-        return BigInteger.valueOf(offerPayload.getMakerFee());
+    public BigInteger getMaxMakerFee() {
+        return offerPayload.getMaxMakerFee();
     }
 
     public BigInteger getMaxBuyerSecurityDeposit() {
@@ -299,6 +300,26 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public BigInteger getMaxSellerSecurityDeposit() {
         return offerPayload.getMaxSellerSecurityDeposit();
+    }
+
+    public double getMakerFeePct() {
+        return offerPayload.getMakerFeePct();
+    }
+
+    public double getTakerFeePct() {
+        return offerPayload.getTakerFeePct();
+    }
+
+    public double getPenaltyFeePct() {
+        return offerPayload.getPenaltyFeePct();
+    }
+
+    public BigInteger getMakerFee(BigInteger tradeAmount) {
+        return HavenoUtils.multiply(tradeAmount, getMakerFeePct());
+    }
+
+    public BigInteger getTakerFee(BigInteger tradeAmount) {
+        return HavenoUtils.multiply(tradeAmount, getTakerFeePct());
     }
 
     public double getBuyerSecurityDepositPct() {

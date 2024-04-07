@@ -160,7 +160,6 @@ public class CreateOfferService {
         List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
-        BigInteger makerFee = HavenoUtils.getMakerFee(amount);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
 
         // reserved for future use cases
@@ -178,8 +177,7 @@ public class CreateOfferService {
         offerUtil.validateOfferData(
                 securityDepositAsDouble,
                 paymentAccount,
-                currencyCode,
-                makerFee);
+                currencyCode);
 
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
@@ -191,6 +189,11 @@ public class CreateOfferService {
                 useMarketBasedPriceValue,
                 amountAsLong,
                 minAmountAsLong,
+                HavenoUtils.MAKER_FEE_PCT,
+                HavenoUtils.TAKER_FEE_PCT,
+                HavenoUtils.PENALTY_FEE_PCT,
+                securityDepositAsDouble,
+                securityDepositAsDouble,
                 baseCurrencyCode,
                 counterCurrencyCode,
                 paymentAccount.getPaymentMethod().getId(),
@@ -201,9 +204,6 @@ public class CreateOfferService {
                 acceptedBanks,
                 Version.VERSION,
                 xmrWalletService.getWallet().getHeight(),
-                makerFee.longValueExact(),
-                securityDepositAsDouble,
-                securityDepositAsDouble,
                 maxTradeLimit,
                 maxTradePeriod,
                 useAutoClose,

@@ -53,8 +53,8 @@ public class SendMediatedPayoutSignatureMessage extends TradeTask {
                     trade.getId(),
                     p2PService.getAddress(),
                     UUID.randomUUID().toString());
-            log.info("Send {} to peer {}. tradeId={}, uid={}",
-                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+            log.info("Send {} to peer {}. offerId={}, uid={}",
+                    message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
 
             trade.setMediationResultState(MediationResultState.SIG_MSG_SENT);
             processModel.getTradeManager().requestPersistence();
@@ -64,8 +64,8 @@ public class SendMediatedPayoutSignatureMessage extends TradeTask {
                     new SendMailboxMessageListener() {
                         @Override
                         public void onArrived() {
-                            log.info("{} arrived at peer {}. tradeId={}, uid={}",
-                                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+                            log.info("{} arrived at peer {}. offerId={}, uid={}",
+                                    message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
 
                             trade.setMediationResultState(MediationResultState.SIG_MSG_ARRIVED);
                             processModel.getTradeManager().requestPersistence();
@@ -74,8 +74,8 @@ public class SendMediatedPayoutSignatureMessage extends TradeTask {
 
                         @Override
                         public void onStoredInMailbox() {
-                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}",
-                                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid());
+                            log.info("{} stored in mailbox for peer {}. offerId={}, uid={}",
+                                    message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
 
                             trade.setMediationResultState(MediationResultState.SIG_MSG_IN_MAILBOX);
                             processModel.getTradeManager().requestPersistence();
@@ -84,8 +84,8 @@ public class SendMediatedPayoutSignatureMessage extends TradeTask {
 
                         @Override
                         public void onFault(String errorMessage) {
-                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}",
-                                    message.getClass().getSimpleName(), peersNodeAddress, message.getTradeId(), message.getUid(), errorMessage);
+                            log.error("{} failed: Peer {}. offerId={}, uid={}, errorMessage={}",
+                                    message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid(), errorMessage);
                             trade.setMediationResultState(MediationResultState.SIG_MSG_SEND_FAILED);
                             appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
                             processModel.getTradeManager().requestPersistence();

@@ -62,7 +62,7 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositRequest.Builder builder = protobuf.DepositRequest.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid)
                 .setDepositTxHex(depositTxHex)
                 .setDepositTxKey(depositTxKey);

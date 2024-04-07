@@ -21,6 +21,7 @@ import haveno.common.taskrunner.TaskRunner;
 import haveno.common.util.Tuple2;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.TradePeer;
@@ -54,13 +55,15 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             // TODO (woodser): if signer online, should never be called by maker
 
             // process reserve tx with expected values
-            BigInteger tradeFee = isFromMaker ? trade.getMakerFee() : trade.getTakerFee();
+            BigInteger penaltyFee = HavenoUtils.multiply(isFromMaker ? offer.getAmount() : trade.getAmount(), offer.getPenaltyFeePct());
+            BigInteger tradeFee = isFromMaker ? offer.getMaxMakerFee() : trade.getTakerFee();
             BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
             BigInteger securityDeposit = isFromMaker ? isFromBuyer ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit() : isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             Tuple2<MoneroTx, BigInteger> txResult;
             try {
                 txResult = trade.getXmrWalletService().verifyTradeTx(
                     offer.getId(),
+                    penaltyFee,
                     tradeFee,
                     sendAmount,
                     securityDeposit,

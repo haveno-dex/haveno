@@ -36,7 +36,6 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     private final NodeAddress senderNodeAddress;
     private final long tradeAmount;
     private final long tradePrice;
-    private final long tradeFee;
     private final String accountId;
     private final String paymentAccountId;
     private final String paymentMethodId;
@@ -63,12 +62,11 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     @Nullable
     private final byte[] makerSignature;
 
-    public InitTradeRequest(String tradeId,
+    public InitTradeRequest(String offerId,
                                      NodeAddress senderNodeAddress,
                                      PubKeyRing pubKeyRing,
                                      long tradeAmount,
                                      long tradePrice,
-                                     long tradeFee,
                                      String accountId,
                                      String paymentAccountId,
                                      String paymentMethodId,
@@ -84,12 +82,11 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                                      @Nullable String reserveTxKey,
                                      @Nullable String payoutAddress,
                                      @Nullable byte[] makerSignature) {
-        super(messageVersion, tradeId, uid);
+        super(messageVersion, offerId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.pubKeyRing = pubKeyRing;
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
-        this.tradeFee = tradeFee;
         this.accountId = accountId;
         this.paymentAccountId = paymentAccountId;
         this.paymentMethodId = paymentMethodId;
@@ -113,13 +110,12 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.InitTradeRequest.Builder builder = protobuf.InitTradeRequest.newBuilder()
-                .setTradeId(tradeId)
+                .setOfferId(offerId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setTakerNodeAddress(takerNodeAddress.toProtoMessage())
                 .setMakerNodeAddress(makerNodeAddress.toProtoMessage())
                 .setTradeAmount(tradeAmount)
                 .setTradePrice(tradePrice)
-                .setTradeFee(tradeFee)
                 .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setPaymentAccountId(paymentAccountId)
                 .setPaymentMethodId(paymentMethodId)
@@ -141,12 +137,11 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     public static InitTradeRequest fromProto(protobuf.InitTradeRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
-        return new InitTradeRequest(proto.getTradeId(),
+        return new InitTradeRequest(proto.getOfferId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getTradeAmount(),
                 proto.getTradePrice(),
-                proto.getTradeFee(),
                 proto.getAccountId(),
                 proto.getPaymentAccountId(),
                 proto.getPaymentMethodId(),
@@ -168,9 +163,9 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     public String toString() {
         return "InitTradeRequest{" +
                 "\n     senderNodeAddress=" + senderNodeAddress +
+                ",\n     offerId=" + offerId +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     tradePrice=" + tradePrice +
-                ",\n     tradeFee=" + tradeFee +
                 ",\n     pubKeyRing=" + pubKeyRing +
                 ",\n     accountId='" + accountId + '\'' +
                 ",\n     paymentAccountId=" + paymentAccountId +

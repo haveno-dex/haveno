@@ -189,7 +189,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     protected final Function<TradeInfo, Long> toTradeFeeBtc = (t) -> {
         var isMyOffer = t.getOffer().getIsMyOffer();
         if (isMyOffer) {
-            return t.getOffer().getMakerFee();
+            return t.getMakerFee();
         } else {
             return t.getTakerFee();
         }
@@ -198,7 +198,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     protected final Function<TradeInfo, Long> toMyMakerOrTakerFee = (t) -> {
         return isTaker.test(t)
                 ? t.getTakerFee()
-                : t.getOffer().getMakerFee();
+                : t.getMakerFee();
     };
 
     protected final Function<TradeInfo, String> toOfferType = (t) -> {

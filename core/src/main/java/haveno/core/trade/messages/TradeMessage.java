@@ -27,12 +27,12 @@ import lombok.ToString;
 @Getter
 @ToString
 public abstract class TradeMessage extends NetworkEnvelope implements UidMessage {
-    protected final String tradeId;
+    protected final String offerId;
     protected final String uid;
 
-    protected TradeMessage(String messageVersion, String tradeId, String uid) {
+    protected TradeMessage(String messageVersion, String offerId, String uid) {
         super(messageVersion);
-        this.tradeId = tradeId;
+        this.offerId = offerId;
         this.uid = uid;
     }
 }

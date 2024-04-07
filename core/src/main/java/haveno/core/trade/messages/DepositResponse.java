@@ -55,7 +55,7 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositResponse.Builder builder = protobuf.DepositResponse.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid);
         builder.setCurrentDate(currentDate);
         builder.setBuyerSecurityDeposit(buyerSecurityDeposit);

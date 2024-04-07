@@ -30,7 +30,6 @@ import java.math.BigInteger;
 public abstract class SellerTrade extends Trade {
     SellerTrade(Offer offer,
                 BigInteger tradeAmount,
-                BigInteger takerFee,
                 long tradePrice,
                 XmrWalletService xmrWalletService,
                 ProcessModel processModel,
@@ -40,7 +39,6 @@ public abstract class SellerTrade extends Trade {
                 @Nullable NodeAddress arbitratorNodeAddress) {
         super(offer,
                 tradeAmount,
-                takerFee,
                 tradePrice,
                 xmrWalletService,
                 processModel,

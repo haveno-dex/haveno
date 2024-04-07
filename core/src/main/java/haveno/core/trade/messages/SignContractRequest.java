@@ -64,7 +64,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.SignContractRequest.Builder builder = protobuf.SignContractRequest.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid)
                 .setAccountId(accountId)
                 .setPaymentAccountPayloadHash(ByteString.copyFrom(paymentAccountPayloadHash))

@@ -237,7 +237,7 @@ public class FluentProtocol {
                 boolean isTradeIdValid = message == null || isTradeIdValid(trade.getId(), message);
                 if (!isTradeIdValid) {
                     String info = MessageFormat.format("TradeId does not match tradeId in message, TradeId={0}, tradeId in message={1}",
-                            trade.getId(), message.getTradeId());
+                            trade.getId(), message.getOfferId());
                     result = Result.INVALID_TRADE_ID.info(info);
                     return result;
                 }

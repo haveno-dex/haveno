@@ -38,6 +38,7 @@ public final class TradeInfoV1Builder {
     private String role;
     private boolean isCurrencyForTakerFeeBtc;
     private long totalTxFee;
+    private long makerFee;
     private long takerFee;
     private long buyerSecurityDeposit;
     private long sellerSecurityDeposit;
@@ -105,6 +106,11 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withTotalTxFee(long totalTxFee) {
         this.totalTxFee = totalTxFee;
+        return this;
+    }
+
+    public TradeInfoV1Builder withMakerFee(long makerFee) {
+        this.makerFee = makerFee;
         return this;
     }
 

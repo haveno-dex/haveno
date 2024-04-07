@@ -32,7 +32,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class BuyerTrade extends Trade {
     BuyerTrade(Offer offer,
                BigInteger tradeAmount,
-               BigInteger takerFee,
                long tradePrice,
                XmrWalletService xmrWalletService,
                ProcessModel processModel,
@@ -42,7 +41,6 @@ public abstract class BuyerTrade extends Trade {
                @Nullable NodeAddress arbitratorNodeAddress) {
         super(offer,
                 tradeAmount,
-                takerFee,
                 tradePrice,
                 xmrWalletService,
                 processModel,

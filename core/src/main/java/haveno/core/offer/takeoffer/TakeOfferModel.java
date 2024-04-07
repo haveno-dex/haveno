@@ -100,7 +100,7 @@ public class TakeOfferModel implements Model {
         this.securityDeposit = offer.getDirection() == SELL
                 ? offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(amount)
                 : offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(amount);
-        this.takerFee = HavenoUtils.getTakerFee(amount);
+        this.takerFee = HavenoUtils.multiply(amount, offer.getTakerFeePct());
 
         calculateVolume();
         calculateTotalToPay();

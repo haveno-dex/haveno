@@ -538,7 +538,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            boolean reserveExactAmount,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
-        checkNotNull(offer.getMakerFee(), "makerFee must not be null");
 
         // create open offer
         OpenOffer openOffer = new OpenOffer(offer, triggerPrice, reserveExactAmount);
@@ -1199,9 +1198,24 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // verify maker's trade fee
             Offer offer = new Offer(request.getOfferPayload());
-            BigInteger tradeFee = HavenoUtils.getMakerFee(offer.getAmount());
-            if (!tradeFee.equals(offer.getMakerFee())) {
-                errorMessage = "Wrong trade fee for offer " + request.offerId;
+            if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
+                errorMessage = "Wrong maker fee for offer " + request.offerId;
+                log.info(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify taker's trade fee
+            if (offer.getTakerFeePct() != HavenoUtils.TAKER_FEE_PCT) {
+                errorMessage = "Wrong taker fee for offer " + request.offerId;
+                log.info(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify penalty fee
+            if (offer.getPenaltyFeePct() != HavenoUtils.PENALTY_FEE_PCT) {
+                errorMessage = "Wrong penalty fee for offer " + request.offerId;
                 log.info(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
@@ -1216,11 +1230,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
+            BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.PENALTY_FEE_PCT);
+            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.MAKER_FEE_PCT);
             BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
             Tuple2<MoneroTx, BigInteger> txResult = xmrWalletService.verifyTradeTx(
                     offer.getId(),
-                    tradeFee,
+                    penaltyFee,
+                    maxTradeFee,
                     sendAmount,
                     securityDeposit,
                     request.getPayoutAddress(),
@@ -1240,7 +1257,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     signedOfferPayload.getPubKeyRing().hashCode(), // trader id
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
-                    tradeFee.longValueExact(),
+                    maxTradeFee.longValueExact(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),
@@ -1549,6 +1566,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),
                         originalOfferPayload.getMinAmount(),
+                        originalOfferPayload.getMakerFeePct(),
+                        originalOfferPayload.getTakerFeePct(),
+                        originalOfferPayload.getPenaltyFeePct(),
+                        originalOfferPayload.getBuyerSecurityDepositPct(),
+                        originalOfferPayload.getSellerSecurityDepositPct(),
                         originalOfferPayload.getBaseCurrencyCode(),
                         originalOfferPayload.getCounterCurrencyCode(),
                         originalOfferPayload.getPaymentMethodId(),
@@ -1559,9 +1581,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getAcceptedBankIds(),
                         originalOfferPayload.getVersionNr(),
                         originalOfferPayload.getBlockHeightAtOfferCreation(),
-                        originalOfferPayload.getMakerFee(),
-                        originalOfferPayload.getBuyerSecurityDepositPct(),
-                        originalOfferPayload.getSellerSecurityDepositPct(),
                         originalOfferPayload.getMaxTradeLimit(),
                         originalOfferPayload.getMaxTradePeriod(),
                         originalOfferPayload.isUseAutoClose(),
