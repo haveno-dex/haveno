@@ -31,6 +31,7 @@ import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import java.math.BigInteger;
 import java.security.SignatureException;
 import java.util.Collection;
+import java.util.List;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -47,9 +48,8 @@ public class AlertManager {
     private final KeyRing keyRing;
     private final User user;
     private final ObjectProperty<Alert> alertMessageProperty = new SimpleObjectProperty<>();
+    private final boolean useDevPrivilegeKeys;
 
-    // Pub key for developer global alert message
-    private final String pubKeyAsHex;
     private ECKey alertSigningKey;
 
 
@@ -66,6 +66,7 @@ public class AlertManager {
         this.p2PService = p2PService;
         this.keyRing = keyRing;
         this.user = user;
+        this.useDevPrivilegeKeys = useDevPrivilegeKeys;
 
         if (!ignoreDevMsg) {
             p2PService.addHashSetChangedListener(new HashMapChangedListener() {
@@ -93,9 +94,25 @@ public class AlertManager {
                 }
             });
         }
-        pubKeyAsHex = useDevPrivilegeKeys ?
-                DevEnv.DEV_PRIVILEGE_PUB_KEY :
-                "036d8a1dfcb406886037d2381da006358722823e1940acc2598c844bbc0fd1026f";
+    }
+
+    protected List<String> getPubKeyList() {
+        if (useDevPrivilegeKeys) return List.of(DevEnv.DEV_PRIVILEGE_PUB_KEY);
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return List.of(
+                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
+                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492");
+        case XMR_STAGENET:
+            return List.of(
+                    "036d8a1dfcb406886037d2381da006358722823e1940acc2598c844bbc0fd1026f",
+                    "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
+                    "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
+        case XMR_MAINNET:
+            return List.of();
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
     }
 
 
@@ -141,7 +158,7 @@ public class AlertManager {
     private boolean isKeyValid(String privKeyString) {
         try {
             alertSigningKey = ECKey.fromPrivate(new BigInteger(1, HEX.decode(privKeyString)));
-            return pubKeyAsHex.equals(Utils.HEX.encode(alertSigningKey.getPubKey()));
+            return getPubKeyList().contains(Utils.HEX.encode(alertSigningKey.getPubKey()));
         } catch (Throwable t) {
             return false;
         }
@@ -155,12 +172,15 @@ public class AlertManager {
 
     private boolean verifySignature(Alert alert) {
         String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
-        try {
-            ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
-            return true;
-        } catch (SignatureException e) {
-            log.warn("verifySignature failed");
-            return false;
+        for (String pubKeyAsHex : getPubKeyList()) {
+            try {
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
+                return true;
+            } catch (SignatureException e) {
+                // ignore
+            }
         }
+        log.warn("verifySignature failed");
+        return false;
     }
 }

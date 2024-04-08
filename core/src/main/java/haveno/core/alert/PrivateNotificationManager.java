@@ -41,6 +41,7 @@ import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
 import java.math.BigInteger;
 import java.security.SignatureException;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -62,9 +63,7 @@ public class PrivateNotificationManager implements MessageListener {
     private final MailboxMessageService mailboxMessageService;
     private final KeyRing keyRing;
     private final ObjectProperty<PrivateNotificationPayload> privateNotificationMessageProperty = new SimpleObjectProperty<>();
-
-    // Pub key for developer global privateNotification message
-    private final String pubKeyAsHex;
+    private final boolean useDevPrivilegeKeys;
 
     private ECKey privateNotificationSigningKey;
     @Nullable
@@ -88,14 +87,31 @@ public class PrivateNotificationManager implements MessageListener {
         this.networkNode = networkNode;
         this.mailboxMessageService = mailboxMessageService;
         this.keyRing = keyRing;
+        this.useDevPrivilegeKeys = useDevPrivilegeKeys;
 
         if (!ignoreDevMsg) {
             this.p2PService.addDecryptedDirectMessageListener(this::handleMessage);
             this.mailboxMessageService.addDecryptedMailboxListener(this::handleMessage);
         }
-        pubKeyAsHex = useDevPrivilegeKeys ?
-                DevEnv.DEV_PRIVILEGE_PUB_KEY :
-                "02ba7c5de295adfe57b60029f3637a2c6b1d0e969a8aaefb9e0ddc3a7963f26925";
+    }
+
+    protected List<String> getPubKeyList() {
+        if (useDevPrivilegeKeys) return List.of(DevEnv.DEV_PRIVILEGE_PUB_KEY);
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return List.of(
+                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
+                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492");
+        case XMR_STAGENET:
+            return List.of(
+                    "02ba7c5de295adfe57b60029f3637a2c6b1d0e969a8aaefb9e0ddc3a7963f26925",
+                    "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
+                    "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
+        case XMR_MAINNET:
+            return List.of();
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
     }
 
     private void handleMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress senderNodeAddress) {
@@ -155,7 +171,7 @@ public class PrivateNotificationManager implements MessageListener {
     private boolean isKeyValid(String privKeyString) {
         try {
             privateNotificationSigningKey = ECKey.fromPrivate(new BigInteger(1, HEX.decode(privKeyString)));
-            return pubKeyAsHex.equals(Utils.HEX.encode(privateNotificationSigningKey.getPubKey()));
+            return getPubKeyList().contains(Utils.HEX.encode(privateNotificationSigningKey.getPubKey()));
         } catch (Throwable t) {
             return false;
         }
@@ -169,13 +185,16 @@ public class PrivateNotificationManager implements MessageListener {
 
     private boolean verifySignature(PrivateNotificationPayload privateNotification) {
         String privateNotificationMessageAsHex = Utils.HEX.encode(privateNotification.getMessage().getBytes(Charsets.UTF_8));
-        try {
-            ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(privateNotificationMessageAsHex, privateNotification.getSignatureAsBase64());
-            return true;
-        } catch (SignatureException e) {
-            log.warn("verifySignature failed");
-            return false;
+        for (String pubKeyAsHex : getPubKeyList()) {
+            try {
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(privateNotificationMessageAsHex, privateNotification.getSignatureAsBase64());
+                return true;
+            } catch (SignatureException e) {
+                // ignore
+            }
         }
+        log.warn("verifySignature failed");
+        return false;
     }
 
     public void sendPing(NodeAddress peersNodeAddress, Consumer<String> resultHandler) {
