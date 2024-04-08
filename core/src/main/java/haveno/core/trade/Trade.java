@@ -2106,8 +2106,9 @@ public abstract class Trade implements Tradable, Model {
                 // log warning if wallet is too far behind daemon
                 MoneroDaemonInfo lastInfo = xmrConnectionService.getLastInfo();
                 long walletHeight = wallet.getHeight();
-                if (wasWalletSynced && isDepositsPublished() && !isIdling() && lastInfo != null && walletHeight < lastInfo.getHeight() - 3 && !Config.baseCurrencyNetwork().isTestnet()) {
-                    log.warn("Wallet is more than 3 blocks behind monerod for {} {}, wallet height={}, monerod height={},", getClass().getSimpleName(), getShortId(), walletHeight, lastInfo.getHeight());
+                int maxBlocksBehindWarning = 10;
+                if (wasWalletSynced && isDepositsPublished() && !isIdling() && lastInfo != null && walletHeight < lastInfo.getHeight() - maxBlocksBehindWarning && !Config.baseCurrencyNetwork().isTestnet()) {
+                    log.warn("Wallet is more than {} blocks behind monerod for {} {}, wallet height={}, monerod height={},", maxBlocksBehindWarning, getClass().getSimpleName(), getShortId(), walletHeight, lastInfo.getHeight());
                 }
 
                 // skip if either deposit tx id is unknown
