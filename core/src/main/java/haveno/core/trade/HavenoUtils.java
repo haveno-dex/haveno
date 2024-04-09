@@ -66,8 +66,8 @@ public class HavenoUtils {
     public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 15;
 
     // configure fees
-    public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
-    public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
+    public static final double MAKER_FEE_PCT = 0.009; // All fee borne by maker, at 0.9%
+    public static final double TAKER_FEE_PCT = 0; // Taker pays no fee
     public static final double PENALTY_FEE_PCT = 0.02; // 2%
 
     // non-configurable
@@ -422,7 +422,7 @@ public class HavenoUtils {
         case XMR_STAGENET:
             return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
         case XMR_MAINNET:
-            throw new RuntimeException("Mainnet fee address not implemented");
+            return "85xU9fj3sNkU7UGWxZUL1y3jEBBq2yxTbamqRmS26YpP8FwK4WEYPBEM9boZJ7DYU3VC14LWYPA5X1MWXs4aUb827cTR5Qo";
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }

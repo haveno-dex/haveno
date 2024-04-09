@@ -49,7 +49,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ProvidersRepository {
     private static final List<String> DEFAULT_NODES = Arrays.asList(
             "http://elaxlgigphpicy5q7pi5wkz2ko2vgjbq4576vic7febmx4xcxvk6deqd.onion/", // Haveno
-            "http://a66ulzwhhudtqy6k2efnhodj2n6wnc5mnzjs3ocqtf47lwtcuo4wxyqd.onion/" // Cake
+            "http://a66ulzwhhudtqy6k2efnhodj2n6wnc5mnzjs3ocqtf47lwtcuo4wxyqd.onion/", // Cake
+            "http://vljpp4lb5h3lb7prgqn6dudh6obtpjbqsbpwhd3nidszc5c2grej6xqd.onion/", // Haveno.io
+            "http://iooxh4lxwjkrfed2vgdan2h5kpp4qj5yto5hbvgaki5l44s6jvd6shyd.onion/", // H4veno.com
+            "http://uquxavb6dqd5l3luligqtsdo2gupb7x2fy5rx6g6cfxck4pexrhlooyd.onion/" // noncebynonce.xyz
     );
 
     private final Config config;
@@ -131,7 +134,11 @@ public class ProvidersRepository {
                 providers = List.of(
                     "http://localhost:8078/",
                     "https://price.haveno.network/",
-                    "http://173.230.142.36:8078/");
+                    "http://173.230.142.36:8078/",
+                    "https://pricenode.haveno.io/",
+                    "https://pricenode.h4veno.com/",
+                    "https://pricenode.noncebynonce.xyz/"
+                    );
             } else {
                 providers = DEFAULT_NODES;
             }
