@@ -888,18 +888,17 @@ message TradeInfo {
 message ContractInfo {
     string buyer_node_address = 1;
     string seller_node_address = 2;
-    reserved 3; // was mediator_node_address
-    reserved 4; // was refund_agent_node_address
-    bool is_buyer_maker_and_seller_taker = 5;
-    string maker_account_id = 6;
-    string taker_account_id = 7;
-    PaymentAccountPayload maker_payment_account_payload = 8;
-    PaymentAccountPayload taker_payment_account_payload = 9;
-    string maker_payout_address_string = 10;
-    string taker_payout_address_string = 11;
-    uint64 lock_time = 12;
-
-    string arbitrator_node_address = 100;
+    string arbitrator_node_address = 3;
+    reserved 4; // was mediator_node_address
+    reserved 5; // was refund_agent_node_address
+    bool is_buyer_maker_and_seller_taker = 6;
+    string maker_account_id = 7;
+    string taker_account_id = 8;
+    PaymentAccountPayload maker_payment_account_payload = 9;
+    PaymentAccountPayload taker_payment_account_payload = 10;
+    string maker_payout_address_string = 11;
+    string taker_payout_address_string = 12;
+    uint64 lock_time = 13;
 }
 
 
