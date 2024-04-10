@@ -647,10 +647,9 @@ message OfferPayload {
     string hash_of_challenge = 33;
     map<string, string> extra_data = 34;
     int32 protocol_version = 35;
-
-    NodeAddress arbitrator_signer = 1001;
-    bytes arbitrator_signature = 1002;
-    repeated string reserve_tx_key_images = 1003;
+    NodeAddress arbitrator_signer = 36;
+    bytes arbitrator_signature = 37;
+    repeated string reserve_tx_key_images = 38;
 }
 
 enum OfferDirection {
@@ -1248,9 +1247,9 @@ message PersistableEnvelope {
         IgnoredMailboxMap ignored_mailbox_map = 16;
         RemovedPayloadsMap removed_payloads_map = 17;
 
-        XmrAddressEntryList xmr_address_entry_list = 1001;
-        SignedOfferList signed_offer_list = 1002;
-        EncryptedConnectionList encrypted_connection_list = 1003;
+        XmrAddressEntryList xmr_address_entry_list = 18;
+        SignedOfferList signed_offer_list = 19;
+        EncryptedConnectionList encrypted_connection_list = 20;
     }
 }
 
@@ -1407,13 +1406,12 @@ message OpenOffer {
 message Tradable {
     oneof message {
         OpenOffer open_offer = 1;
-        BuyerAsMakerTrade buyer_as_maker_trade = 2;
-        BuyerAsTakerTrade buyer_as_taker_trade = 3;
-        SellerAsMakerTrade seller_as_maker_trade = 4;
-        SellerAsTakerTrade seller_as_taker_trade = 5;
-        ArbitratorTrade arbitrator_trade = 6;
-
-        SignedOffer signed_offer = 1001;
+        SignedOffer signed_offer = 2;
+        BuyerAsMakerTrade buyer_as_maker_trade = 3;
+        BuyerAsTakerTrade buyer_as_taker_trade = 4;
+        SellerAsMakerTrade seller_as_maker_trade = 5;
+        SellerAsTakerTrade seller_as_taker_trade = 6;
+        ArbitratorTrade arbitrator_trade = 7;
     }
 }
 
