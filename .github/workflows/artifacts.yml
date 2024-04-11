@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '11'
+          java-version: '21'
 
       - name: Install dependencies
         run: |
@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '11'
+          java-version: '21'
 
       - name: Build Haveno Installer for macOS
         run: |
@@ -65,13 +65,12 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '11'
+          java-version: '21'
 
       - name: Install WiX Toolset
         run: |
           Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
           .\wix314.exe /quiet /norestart
-          del wix314.exe
         shell: powershell
 
       - name: Build Haveno Installer for Windows
