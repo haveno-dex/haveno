@@ -29,9 +29,18 @@ jobs:
           ./gradlew packageInstallers
         working-directory: .
 
-      - name: Copy Installer
+      - name: Move Release Files
         run: |
-          cp installer.deb ${{ github.workspace }}/HavenoInstaller.deb
+          mkdir ${{ github.workspace }}/release
+          mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
+          mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
+          mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: HavenoInstaller-linux
+          path: ${{ github.workspace }}/release
+
 
   build-macos:
     runs-on: macos-latest
@@ -51,9 +60,16 @@ jobs:
           ./gradlew packageInstallers
         working-directory: .
 
-      - name: Copy Installer
+      - name: Move Release Files
         run: |
-          cp installer.dmg ${{ github.workspace }}/HavenoInstaller.dmg
+          mkdir ${{ github.workspace }}/release
+          mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
+          mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: HavenoInstaller-macos
+          path: ${{ github.workspace }}/release
 
   build-windows:
     runs-on: windows-latest
@@ -79,20 +95,15 @@ jobs:
           ./gradlew packageInstallers
         working-directory: .
 
-      - name: Copy Installer
+      - name: Move Release Files
         run: |
-          cp installer.exe ${{ github.workspace }}/HavenoInstaller.exe
-
-  copy-artifacts:
-    runs-on: ubuntu-latest
-    needs: [build-linux, build-macos, build-windows]
-    steps:
-      - name: Copy Installers
-        run: |
-          cp ${{ github.workspace }}/HavenoInstaller.* /path/to/your/safe/location/
-        shell: bash
-
-      - name: Rebuild Haveno Binaries
-        run: |
-          make clean && make
-        working-directory: .
+          mkdir ${{ github.workspace }}/release
+          $source = Get-ChildItem -Path ${{ github.workspace }}\desktop\build -Recurse -File
+          $destination = ${{ github.workspace }}\release
+          Move-Item -Path $source -Destination $destination
+        shell: powershell
+        
+      - uses: actions/upload-artifact@v2
+        with:
+          name: HavenoInstaller-windows
+          path: ${{ github.workspace }}/release
