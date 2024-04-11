@@ -464,6 +464,28 @@ arbitrator-desktop:
 		--xmrNode=http://127.0.0.1:18081 \
 		--useNativeXmrWallet=false \
 
+haveno-daemon-mainnet:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=Haveno \
+		--apiPassword=apitest \
+		--apiPort=1201 \
+		--useNativeXmrWallet=false \
+
+haveno-desktop-mainnet:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=Haveno \
+		--apiPassword=apitest \
+		--apiPort=1201 \
+		--useNativeXmrWallet=false \
+
 user1-daemon:
 	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
@@ -472,7 +494,7 @@ user1-daemon:
 		--nodePort=9999 \
 		--appName=haveno-XMR_MAINNET_user1 \
 		--apiPassword=apitest \
-		--apiPort=1201 \
+		--apiPort=1202 \
 		--passwordRequired=false \
 		--useNativeXmrWallet=false \
 
@@ -484,7 +506,7 @@ user1-desktop:
 		--nodePort=9999 \
 		--appName=haveno-XMR_MAINNET_user1 \
 		--apiPassword=apitest \
-		--apiPort=1201 \
+		--apiPort=1202 \
 		--useNativeXmrWallet=false \
 
 user2-daemon:
@@ -495,7 +517,7 @@ user2-daemon:
 		--nodePort=9999 \
 		--appName=haveno-XMR_MAINNET_user2 \
 		--apiPassword=apitest \
-		--apiPort=1202 \
+		--apiPort=1203 \
 		--passwordRequired=false \
 		--useNativeXmrWallet=false \
 
@@ -507,7 +529,7 @@ user2-desktop:
 		--nodePort=9999 \
 		--appName=haveno-XMR_MAINNET_user2 \
 		--apiPassword=apitest \
-		--apiPort=1202 \
+		--apiPort=1203 \
 		--useNativeXmrWallet=false \
 
 user3-desktop:
@@ -518,5 +540,5 @@ user3-desktop:
 		--nodePort=9999 \
 		--appName=haveno-XMR_MAINNET_user3 \
 		--apiPassword=apitest \
-		--apiPort=1203 \
+		--apiPort=1204 \
 		--useNativeXmrWallet=false \
