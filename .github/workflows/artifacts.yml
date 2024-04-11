@@ -1,0 +1,99 @@
+name: Build Haveno Installers
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y rpm
+
+      - name: Build Haveno Installer for Linux
+        run: |
+          ./gradlew clean build --refresh-keys --refresh-dependencies
+          ./gradlew packageInstallers
+        working-directory: .
+
+      - name: Copy Installer
+        run: |
+          cp installer.deb ${{ github.workspace }}/HavenoInstaller.deb
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Build Haveno Installer for macOS
+        run: |
+          ./gradlew clean build --refresh-keys --refresh-dependencies
+          ./gradlew packageInstallers
+        working-directory: .
+
+      - name: Copy Installer
+        run: |
+          cp installer.dmg ${{ github.workspace }}/HavenoInstaller.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Install WiX Toolset
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
+          .\wix314.exe /quiet /norestart
+          del wix314.exe
+        shell: powershell
+
+      - name: Build Haveno Installer for Windows
+        run: |
+          ./gradlew clean build --refresh-keys --refresh-dependencies
+          ./gradlew packageInstallers
+        working-directory: .
+
+      - name: Copy Installer
+        run: |
+          cp installer.exe ${{ github.workspace }}/HavenoInstaller.exe
+
+  copy-artifacts:
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-macos, build-windows]
+    steps:
+      - name: Copy Installers
+        run: |
+          cp ${{ github.workspace }}/HavenoInstaller.* /path/to/your/safe/location/
+        shell: bash
+
+      - name: Rebuild Haveno Binaries
+        run: |
+          make clean && make
+        working-directory: .
