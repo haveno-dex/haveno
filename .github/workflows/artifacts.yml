@@ -98,11 +98,10 @@ jobs:
       - name: Move Release Files
         run: |
           mkdir ${{ github.workspace }}/release
-          $source = Get-ChildItem -Path "${{ github.workspace }}\desktop\build" -Recurse -File
-          $destination = "${{ github.workspace }}\release"
-          Move-Item -Path $source -Destination $destination
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
         shell: powershell
-        
+
       - uses: actions/upload-artifact@v2
         with:
           name: HavenoInstaller-windows
