@@ -98,8 +98,8 @@ jobs:
       - name: Move Release Files
         run: |
           mkdir ${{ github.workspace }}/release
-          $source = Get-ChildItem -Path ${{ github.workspace }}\desktop\build -Recurse -File
-          $destination = ${{ github.workspace }}\release
+          $source = Get-ChildItem -Path "${{ github.workspace }}\desktop\build" -Recurse -File
+          $destination = "${{ github.workspace }}\release"
           Move-Item -Path $source -Destination $destination
         shell: powershell
         
