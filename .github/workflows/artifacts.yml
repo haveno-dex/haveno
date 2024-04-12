@@ -42,19 +42,26 @@ jobs:
           ./gradlew packageInstallers
         working-directory: .
 
-      - name: Move Release Files
+      - name: Move Release Files on Unix
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
-          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
           else
-            Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
           fi
           mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
         shell: bash
+
+      - name: Move Release Files on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          mkdir ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
+        shell: powershell
 
       - uses: actions/upload-artifact@v2
         with:
