@@ -7,6 +7,7 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'haveno-dex/haveno'
     name: Publish coverage
     runs-on: ubuntu-latest
     steps:
