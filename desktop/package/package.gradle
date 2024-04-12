@@ -6,33 +6,40 @@ task jpackageSanityChecks {
     description 'Interactive sanity checks on the version of the code that will be packaged'
 
     doLast {
-        executeCmd("git --no-pager log -5 --oneline")
-        ant.input(message: "Above you see the current HEAD and its recent history.\n" +
-                "Is this the right commit for packaging? (y=continue, n=abort)",
-                addproperty: "sanity-check-1",
-                validargs: "y,n")
-        if (ant.properties['sanity-check-1'] == 'n') {
-            ant.fail('Aborting')
-        }
+        if (!System.getenv("CI")) {
+            executeCmd("git --no-pager log -5 --oneline")
+            ant.input(message: "Above you see the current HEAD and its recent history.\n" +
+                    "Is this the right commit for packaging? (y=continue, n=abort)",
+                    addproperty: "sanity-check-1",
+                    validargs: "y,n")
+            if (ant.properties['sanity-check-1'] == 'n') {
+                ant.fail('Aborting')
+            }
 
-        executeCmd("git status --short --branch")
-        ant.input(message: "Above you see any local changes that are not in the remote branch.\n" +
-                "If you have any local changes, please abort, get them merged, get the latest branch and try again.\n" +
-                "Continue with packaging? (y=continue, n=abort)",
-                addproperty: "sanity-check-2",
-                validargs: "y,n")
-        if (ant.properties['sanity-check-2'] == 'n') {
-            ant.fail('Aborting')
-        }
+            executeCmd("git status --short --branch")
+            ant.input(message: "Above you see any local changes that are not in the remote branch.\n" +
+                    "If you have any local changes, please abort, get them merged, get the latest branch and try again.\n" +
+                    "Continue with packaging? (y=continue, n=abort)",
+                    addproperty: "sanity-check-2",
+                    validargs: "y,n")
+            if (ant.properties['sanity-check-2'] == 'n') {
+                ant.fail('Aborting')
+            }
 
-        // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
-        executeCmd("java --version")
-        ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
-                "Is this java version ok for that? (y=continue, n=abort)",
-                addproperty: "sanity-check-3",
-                validargs: "y,n")
-        if (ant.properties['sanity-check-3'] == 'n') {
-            ant.fail('Aborting')
+            // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
+            executeCmd("java --version")
+            ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
+                    "Is this java version ok for that? (y=continue, n=abort)",
+                    addproperty: "sanity-check-3",
+                    validargs: "y,n")
+            if (ant.properties['sanity-check-3'] == 'n') {
+                ant.fail('Aborting')
+            }
+        } else {
+            println "CI environment detected, skipping interactive sanity checks"
+            executeCmd("git --no-pager log -5 --oneline")
+            executeCmd("git status --short --branch")
+            executeCmd("java --version")
         }
     }
 }
