@@ -9,6 +9,7 @@ jobs:
 
   build-installers:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
@@ -53,6 +54,7 @@ jobs:
             Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
           fi
           mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+        shell: bash
 
       - uses: actions/upload-artifact@v2
         with:
