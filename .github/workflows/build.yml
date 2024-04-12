@@ -31,3 +31,42 @@ jobs:
         with:
           name: cached-localnet
           path: .localnet
+      - name: Install dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt update
+          sudo apt install -y rpm
+      - name: Install WiX Toolset
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
+          .\wix314.exe /quiet /norestart
+        shell: powershell
+      - name: Build Haveno Installer
+        run: |
+          ./gradlew clean build --refresh-keys --refresh-dependencies
+          ./gradlew packageInstallers
+        working-directory: .
+      - name: Move Release Files on Unix
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
+        run: |
+          mkdir ${{ github.workspace }}/release
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
+          else
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
+          fi
+          mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+        shell: bash
+      - name: Move Release Files on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          mkdir ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
+        shell: powershell
+      - uses: actions/upload-artifact@v2
+        with:
+          name: HavenoInstaller-${{ matrix.os }}
+          path: ${{ github.workspace }}/release
