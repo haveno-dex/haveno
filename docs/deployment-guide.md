@@ -54,6 +54,10 @@ After the price node is built and deployed, add the price node to `DEFAULT_NODES
 
 Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as a system service.
 
+## Register Monero nodes for clients
+
+Optionally register new or different Monero nodes for clients to connect to in `getAllXmrNodes()` within XmrNodes.java.
+
 ## Create and register seed nodes
 
 From the root of the repository, run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
