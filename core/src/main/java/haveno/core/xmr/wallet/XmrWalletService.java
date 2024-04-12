@@ -128,6 +128,7 @@ public class XmrWalletService {
     private static final int MAX_SYNC_ATTEMPTS = 3;
     private static final boolean PRINT_STACK_TRACE = false;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
+    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
 
     private final User user;
     private final Preferences preferences;
@@ -822,20 +823,48 @@ public class XmrWalletService {
     public void shutDown() {
         log.info("Shutting down {}", getClass().getSimpleName());
 
-        // remove listeners which stops polling wallet
-        // TODO monero-java: wallet.stopPolling()?
-        synchronized (walletLock) {
+        // create task to shut down
+        Runnable shutDownTask = () -> {
+
+            // remove listeners
+            synchronized (walletLock) {
+                if (wallet != null) {
+                    for (MoneroWalletListenerI listener : new HashSet<>(wallet.getListeners())) {
+                        wallet.removeListener(listener);
+                    }
+                }
+                walletListeners.clear();
+            }
+
+            // shut down threads
+            synchronized (this) {
+                List<Runnable> shutDownThreads = new ArrayList<>();
+                shutDownThreads.add(() -> ThreadUtils.shutDown(THREAD_ID));
+                ThreadUtils.awaitTasks(shutDownThreads);
+            }
+
+            // shut down main wallet
             if (wallet != null) {
-                for (MoneroWalletListenerI listener : new HashSet<>(wallet.getListeners())) {
-                    wallet.removeListener(listener);
+                try {
+                    closeMainWallet(true);
+                } catch (Exception e) {
+                    log.warn("Error closing main wallet: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
                 }
             }
+        };
+
+        // shut down with timeout
+        try {
+            ThreadUtils.awaitTask(shutDownTask, SHUTDOWN_TIMEOUT_MS);
+        } catch (Exception e) {
+            log.warn("Error shutting down {}: {}", getClass().getSimpleName(), e.getMessage());
+            e.printStackTrace();
+
+            // force close wallet
+            forceCloseWallet(wallet, getWalletPath(MONERO_WALLET_NAME));
         }
 
-        // shut down main wallet
-        walletListeners.clear();
-        closeMainWallet(true);
-        log.info("Done shutting down main wallet");
+        log.info("Done shutting down {}", getClass().getSimpleName());
     }
 
     // ------------------------------ PRIVATE HELPERS -------------------------
