@@ -999,7 +999,10 @@ public class XmrWalletService {
 
     private void syncWalletWithProgress() {
 
-        // update sync progress in realtime with native wallet
+        // show sync progress
+        updateSyncProgress();
+
+        // get sync notifications from native wallet
         if (wallet instanceof MoneroWalletFull) {
             wallet.sync(new MoneroWalletListener() {
                 @Override
@@ -1011,8 +1014,7 @@ public class XmrWalletService {
             return;
         }
 
-        // poll wallet for progress
-        updateSyncProgress();
+        // poll monero-wallet-rpc for progress
         wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
         CountDownLatch latch = new CountDownLatch(1);
         syncLooper = new TaskLooper(() -> {
