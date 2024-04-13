@@ -59,7 +59,7 @@ public class TakerReserveTradeFunds extends TradeTask {
             for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
 
             // reset protocol timeout
-            trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT);
+            trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT_SECONDS);
 
             // save process state
             processModel.setReserveTx(reserveTx);

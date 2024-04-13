@@ -79,13 +79,13 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                               TakerSendInitTradeRequestToArbitrator.class)
                       .using(new TradeTaskRunner(trade,
                               () -> {
-                                  startTimeout(TRADE_TIMEOUT);
+                                  startTimeout(TRADE_TIMEOUT_SECONDS);
                                   unlatchTrade();
                               },
                               errorMessage -> {
                                   handleError(errorMessage);
                               }))
-                      .withTimeout(TRADE_TIMEOUT))
+                      .withTimeout(TRADE_TIMEOUT_SECONDS))
                       .executeTasks(true);
               awaitTradeLatch();
           }

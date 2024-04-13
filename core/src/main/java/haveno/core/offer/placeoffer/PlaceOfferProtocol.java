@@ -133,7 +133,7 @@ public class PlaceOfferProtocol {
         stopTimeoutTimer();
         timeoutTimer = UserThread.runAfter(() -> {
             handleError(Res.get("createOffer.timeoutAtPublishing"));
-        }, TradeProtocol.TRADE_TIMEOUT);
+        }, TradeProtocol.TRADE_TIMEOUT_SECONDS);
     }
 
     private void stopTimeoutTimer() {
