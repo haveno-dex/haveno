@@ -66,6 +66,8 @@ import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -113,6 +115,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     @Getter
     private final PubKeyRingProvider pubKeyRingProvider;
     private final CoreDisputesService disputesService;
+
+    private final Set<Trade> hiddenTrades = new HashSet<Trade>();
+    private final ChangeListener<Trade.State> hiddenStateChangeListener = (observable, oldValue, newValue) -> {
+        onListChanged();
+    };
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
@@ -168,6 +175,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
     @Override
     protected void deactivate() {
+        for (Trade trade : hiddenTrades) trade.stateProperty().removeListener(hiddenStateChangeListener);
         tradeManager.getObservableList().removeListener(tradesListChangeListener);
         notificationCenter.setSelectedTradeId(null);
         activated = false;
@@ -306,15 +314,39 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onListChanged() {
-        list.clear();
-        list.addAll(tradeManager.getObservableList().stream()
-                .map(trade -> new PendingTradesListItem(trade, btcFormatter))
-                .collect(Collectors.toList()));
+        synchronized (tradeManager.getObservableList()) {
+
+            // add or remove listener for hidden trades
+            for (Trade trade : tradeManager.getObservableList()) {
+                if (isTradeShown(trade)) {
+                    if (hiddenTrades.contains(trade)) {
+                        trade.stateProperty().removeListener(hiddenStateChangeListener);
+                        hiddenTrades.remove(trade);
+                    }
+                } else {
+                    if (!hiddenTrades.contains(trade)) {
+                        trade.stateProperty().addListener(hiddenStateChangeListener);
+                        hiddenTrades.add(trade);
+                    }
+                }
+            }
+    
+            // add shown trades to list
+            list.clear();
+            list.addAll(tradeManager.getObservableList().stream()
+                    .filter(trade -> isTradeShown(trade))
+                    .map(trade -> new PendingTradesListItem(trade, btcFormatter))
+                    .collect(Collectors.toList()));
+        }
 
         // we sort by date, earliest first
         list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
 
         selectBestItem();
+    }
+
+    private boolean isTradeShown(Trade trade) {
+        return trade.isDepositsPublished();
     }
 
     private void selectBestItem() {
