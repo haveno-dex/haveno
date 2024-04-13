@@ -906,7 +906,13 @@ public class XmrWalletService {
     }
 
     private void maybeInitMainWallet(boolean sync) {
-        maybeInitMainWallet(sync, MAX_SYNC_ATTEMPTS);
+        try {
+            maybeInitMainWallet(sync, MAX_SYNC_ATTEMPTS);
+        } catch (Exception e) {
+            log.warn("Error initializing main wallet: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     private void maybeInitMainWallet(boolean sync, int numAttempts) {
