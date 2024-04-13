@@ -839,6 +839,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();
         if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
+        errorMessageHandler = null;
         unlatchTrade();
     }
 
