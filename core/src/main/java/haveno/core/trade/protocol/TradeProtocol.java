@@ -93,7 +93,7 @@ import java.util.concurrent.CountDownLatch;
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
 
-    public static final int TRADE_TIMEOUT = 60;
+    public static final int TRADE_TIMEOUT_SECONDS = 120;
     private static final String TIMEOUT_REACHED = "Timeout reached.";
 
     protected final ProcessModel processModel;
@@ -316,13 +316,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                 MaybeSendSignContractRequest.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
-                                startTimeout(TRADE_TIMEOUT);
+                                startTimeout(TRADE_TIMEOUT_SECONDS);
                                 handleTaskRunnerSuccess(sender, request);
                             },
                             errorMessage -> {
                                 handleTaskRunnerFault(sender, request, errorMessage);
                             }))
-                        .withTimeout(TRADE_TIMEOUT))
+                        .withTimeout(TRADE_TIMEOUT_SECONDS))
                         .executeTasks(true);
                 awaitTradeLatch();
             }
@@ -354,13 +354,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     ProcessSignContractRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout(TRADE_TIMEOUT);
+                                        startTimeout(TRADE_TIMEOUT_SECONDS);
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
                                         handleTaskRunnerFault(sender, message, errorMessage);
                                     }))
-                            .withTimeout(TRADE_TIMEOUT)) // extend timeout
+                            .withTimeout(TRADE_TIMEOUT_SECONDS)) // extend timeout
                             .executeTasks(true);
                     awaitTradeLatch();
                 } else {
@@ -399,13 +399,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     ProcessSignContractResponse.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout(TRADE_TIMEOUT);
+                                        startTimeout(TRADE_TIMEOUT_SECONDS);
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
                                         handleTaskRunnerFault(sender, message, errorMessage);
                                     }))
-                            .withTimeout(TRADE_TIMEOUT)) // extend timeout
+                            .withTimeout(TRADE_TIMEOUT_SECONDS)) // extend timeout
                             .executeTasks(true);
                     awaitTradeLatch();
                 } else {
@@ -451,7 +451,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             errorMessage -> {
                                 handleTaskRunnerFault(sender, response, errorMessage);
                             }))
-                        .withTimeout(TRADE_TIMEOUT))
+                        .withTimeout(TRADE_TIMEOUT_SECONDS))
                         .executeTasks(true);
                 awaitTradeLatch();
             }

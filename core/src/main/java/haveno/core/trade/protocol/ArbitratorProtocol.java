@@ -59,13 +59,13 @@ public class ArbitratorProtocol extends DisputeProtocol {
                               ArbitratorSendInitTradeOrMultisigRequests.class)
                       .using(new TradeTaskRunner(trade,
                               () -> {
-                                  startTimeout(TRADE_TIMEOUT);
+                                  startTimeout(TRADE_TIMEOUT_SECONDS);
                                   handleTaskRunnerSuccess(peer, message);
                               },
                               errorMessage -> {
                                   handleTaskRunnerFault(peer, message, errorMessage);
                               }))
-                      .withTimeout(TRADE_TIMEOUT))
+                      .withTimeout(TRADE_TIMEOUT_SECONDS))
                       .executeTasks(true);
               awaitTradeLatch();
           }
@@ -100,7 +100,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                         errorMessage -> {
                             handleTaskRunnerFault(sender, request, errorMessage);
                         }))
-                .withTimeout(TRADE_TIMEOUT))
+                .withTimeout(TRADE_TIMEOUT_SECONDS))
                 .executeTasks(true);
             awaitTradeLatch();
         }

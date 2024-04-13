@@ -92,7 +92,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
             }
 
             // reset protocol timeout
-            trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT);
+            trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT_SECONDS);
 
             // collect reserved key images
             List<String> reservedKeyImages = new ArrayList<String>();
