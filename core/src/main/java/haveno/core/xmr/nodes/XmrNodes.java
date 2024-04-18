@@ -88,7 +88,11 @@ public class XmrNodes {
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-usa-east.cakewallet.com", 18081, 2, "@cakewallet"),
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-uk.cakewallet.com", 18081, 2, "@cakewallet"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.community.rino.io", 18081, 2, "@RINOwallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 3, "@sethforprivacy")
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "rucknium.me", 18081, 2, "@Rucknium"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.monerodevs.org", 18089, 2, "@monerodevs.org"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node3.monerodevs.org", 18089, 2, "@monerodevs.org"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodex.monerujo.io", 18081, 2, "@monerujo.io"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy")
                 );
             default:
                 throw new IllegalStateException("Unexpected base currency network: " + Config.baseCurrencyNetwork());
