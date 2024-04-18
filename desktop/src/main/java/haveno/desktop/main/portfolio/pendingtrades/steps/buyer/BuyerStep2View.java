@@ -156,7 +156,6 @@ public class BuyerStep2View extends TradeStepView {
                             statusLabel.setText(Res.get("shared.preparingConfirmation"));
                             break;
                         case BUYER_SENT_PAYMENT_SENT_MSG:
-                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
                             timeoutTimer = UserThread.runAfter(() -> {
@@ -168,6 +167,7 @@ public class BuyerStep2View extends TradeStepView {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
                             break;
+                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                         case SELLER_RECEIVED_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
@@ -442,7 +442,8 @@ public class BuyerStep2View extends TradeStepView {
 
     private boolean confirmPaymentSentPermitted() {
         if (!trade.confirmPermitted()) return false;
-        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal();
+        if (trade.getState() == Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG) return false;
+        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

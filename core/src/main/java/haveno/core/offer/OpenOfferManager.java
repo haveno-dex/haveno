@@ -971,8 +971,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // return if awaiting scheduled tx
         if (openOffer.getScheduledTxHashes() != null) return null;
 
-        // cache all transactions including from pool
-        List<MoneroTxWallet> allTxs = xmrWalletService.getWallet().getTxs(new MoneroTxQuery().setIncludeOutputs(true));
+        // get all transactions including from pool
+        List<MoneroTxWallet> allTxs = xmrWalletService.getTransactions(false);
 
         if (preferredSubaddressIndex != null) {
 

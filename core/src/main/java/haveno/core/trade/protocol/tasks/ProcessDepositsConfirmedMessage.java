@@ -61,13 +61,17 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
                 log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
                 trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
             }
-            processModel.getTradeManager().requestPersistence(); // in case importing multisig hex fails
 
-            // import multisig hex
-            trade.importMultisigHex();
-
-            // persist and complete
+            // persist
             processModel.getTradeManager().requestPersistence();
+
+            // try to import multisig hex (retry later)
+            try {
+                trade.importMultisigHex();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             complete();
           } catch (Throwable t) {
               failed(t);

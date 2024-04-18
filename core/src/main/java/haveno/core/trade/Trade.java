@@ -413,7 +413,7 @@ public abstract class Trade implements Tradable, Model {
     transient private Subscription tradeStateSubscription;
     transient private Subscription tradePhaseSubscription;
     transient private Subscription payoutStateSubscription;
-    transient private TaskLooper txPollLooper;
+    transient private TaskLooper pollLooper;
     transient private Long walletRefreshPeriodMs;
     transient private Long syncNormalStartTimeMs;
 
@@ -890,6 +890,10 @@ public abstract class Trade implements Tradable, Model {
 
     public void saveWallet() {
         synchronized (walletLock) {
+            if (!walletExists()) {
+                log.warn("Cannot save wallet for {} {} because it does not exist", getClass().getSimpleName(), getId());
+                return;
+            }
             if (wallet == null) throw new RuntimeException("Trade wallet is not open for trade " + getId());
             xmrWalletService.saveWallet(wallet);
             maybeBackupWallet();
@@ -1195,7 +1199,7 @@ public abstract class Trade implements Tradable, Model {
             return trader.getDepositTx();
         } catch (MoneroError e) {
             log.error("Error getting {} deposit tx {}: {}", getPeerRole(trader), depositId, e.getMessage()); // TODO: peer.getRole()
-            return null;
+            throw e;
         }
     }
 
@@ -1264,9 +1268,12 @@ public abstract class Trade implements Tradable, Model {
 
         // TODO: clear other process data
         setPayoutTxHex(null);
-        for (TradePeer peer : getPeers()) {
+        for (TradePeer peer : getAllTradeParties()) {
             peer.setUnsignedPayoutTxHex(null);
             peer.setUpdatedMultisigHex(null);
+            peer.setDisputeClosedMessage(null);
+            peer.setPaymentSentMessage(null);
+            peer.setPaymentReceivedMessage(null);
         }
     }
 
@@ -1597,11 +1604,16 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private List<TradePeer> getPeers() {
+        List<TradePeer> peers = getAllTradeParties();
+        if (!peers.remove(getSelf())) throw new IllegalStateException("Failed to remove self from list of peers");
+        return peers;
+    }
+
+    private List<TradePeer> getAllTradeParties() {
         List<TradePeer> peers = new ArrayList<TradePeer>();
         peers.add(getMaker());
         peers.add(getTaker());
         peers.add(getArbitrator());
-        if (!peers.remove(getSelf())) throw new IllegalStateException("Failed to remove self from list of peers");
         return peers;
     }
 
@@ -1801,6 +1813,12 @@ public abstract class Trade implements Tradable, Model {
         return (isSeller() ? getBuyer() : getSeller()).getPaymentReceivedMessage() != null; // seller stores message to buyer and arbitrator, peers store message from seller
     }
 
+    public boolean hasDisputeClosedMessage() {
+
+        // arbitrator stores message to buyer and seller, peers store message from arbitrator
+        return isArbitrator() ? getBuyer().getDisputeClosedMessage() != null || getSeller().getDisputeClosedMessage() != null : getArbitrator().getDisputeClosedMessage() != null;
+    }
+
     public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
@@ -1883,7 +1901,7 @@ public abstract class Trade implements Tradable, Model {
     public BigInteger getFrozenAmount() {
         BigInteger sum = BigInteger.ZERO;
         for (String keyImage : getSelf().getReserveTxKeyImages()) {
-            List<MoneroOutputWallet> outputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage))); // TODO: will this check tx pool? avoid
+            List<MoneroOutputWallet> outputs = xmrWalletService.getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage)));
             if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
         }
         return sum;
@@ -2077,23 +2095,23 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             if (isShutDownStarted || isPollInProgress()) return;
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
-            txPollLooper = new TaskLooper(() -> pollWallet());
-            txPollLooper.start(walletRefreshPeriodMs);
+            pollLooper = new TaskLooper(() -> pollWallet());
+            pollLooper.start(walletRefreshPeriodMs);
         }
     }
 
     private void stopPolling() {
         synchronized (walletLock) {
             if (isPollInProgress()) {
-                txPollLooper.stop();
-                txPollLooper = null;
+                pollLooper.stop();
+                pollLooper = null;
             }
         }
     }
     
     private boolean isPollInProgress() {
         synchronized (walletLock) {
-            return txPollLooper != null;
+            return pollLooper != null;
         }
     }
 
@@ -2117,8 +2135,14 @@ public abstract class Trade implements Tradable, Model {
                 // skip if payout unlocked
                 if (isPayoutUnlocked()) return;
 
-                // rescan spent outputs to detect payout tx after deposits unlocked
-                if (isDepositsUnlocked() && !isPayoutPublished()) wallet.rescanSpent();
+                // rescan spent outputs to detect unconfirmed payout tx after payment received message
+                if (!isPayoutPublished() && (hasPaymentReceivedMessage() || hasDisputeClosedMessage())) {
+                    try {
+                        wallet.rescanSpent();
+                    } catch (Exception e) {
+                        log.warn("Error rescanning spent outputs to detect payout tx for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                    }
+                }
 
                 // get txs from trade wallet
                 boolean payoutExpected = isPaymentReceived() || getSeller().getPaymentReceivedMessage() != null || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal() || getArbitrator().getDisputeClosedMessage() != null;
@@ -2129,7 +2153,7 @@ public abstract class Trade implements Tradable, Model {
 
                 // warn on double spend // TODO: other handling?
                 for (MoneroTxWallet tx : txs) {
-                    if (Boolean.TRUE.equals(tx.isDoubleSpendSeen())) log.warn("Double spend seen for tx {} for {} {}", tx.getHash(), getClass().getSimpleName(), getId());
+                    if (Boolean.TRUE.equals(tx.isDoubleSpendSeen())) log.warn("Double spend seen for tx {} for {} {}", tx.getHash(), getClass().getSimpleName(), getShortId());
                 }
 
                 // check deposit txs
@@ -2189,9 +2213,8 @@ public abstract class Trade implements Tradable, Model {
                 if (isConnectionRefused) forceRestartTradeWallet();
                 else {
                     boolean isWalletConnected = isWalletConnectedToDaemon();
-                    if (!isWalletConnected) xmrConnectionService.checkConnection(); // check connection if wallet is not connected
                     if (!isShutDownStarted && wallet != null && isWalletConnected) {
-                        log.warn("Error polling trade wallet for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
                         //e.printStackTrace();
                     }
                 }

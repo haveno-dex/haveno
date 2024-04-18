@@ -95,7 +95,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
             trade.requestPersistence();
 
-
             // process payout tx unless already unlocked
             if (!trade.isPayoutUnlocked()) processPayoutTx(message);
 

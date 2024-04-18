@@ -33,7 +33,6 @@ import haveno.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import haveno.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import haveno.core.trade.protocol.tasks.RemoveOffer;
 import haveno.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
-import haveno.core.trade.protocol.tasks.SellerPublishDepositTx;
 import haveno.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import haveno.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
@@ -87,7 +86,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         VerifyPeersAccountAgeWitness.class,
 
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishDepositTx.class,
                         SellerPublishTradeStatistics.class,
 
                         ProcessPaymentSentMessage.class,
@@ -140,7 +138,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         RemoveOffer.class,
 
                         //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishDepositTx.class,
                         SellerPublishTradeStatistics.class,
 
                         ProcessPaymentSentMessage.class,

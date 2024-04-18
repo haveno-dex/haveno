@@ -140,7 +140,7 @@ public class Balances {
             // calculate reserved offer balance
             reservedOfferBalance = BigInteger.ZERO;
             if (xmrWalletService.getWallet() != null) {
-                List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getWallet().getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
+                List<MoneroOutputWallet> frozenOutputs = xmrWalletService.getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false));
                 for (MoneroOutputWallet frozenOutput : frozenOutputs) reservedOfferBalance = reservedOfferBalance.add(frozenOutput.getAmount());
             }
             for (Trade trade : trades) {

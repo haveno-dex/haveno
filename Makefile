@@ -112,16 +112,6 @@ monerod3-local:
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
 
-funding-wallet-stagenet:
-	./.localnet/monero-wallet-rpc \
-		--stagenet \
-		--rpc-bind-port 18084 \
-		--rpc-login rpc_user:abc123 \
-		--rpc-access-control-origins http://localhost:8080 \
-		--wallet-dir ./.localnet \
-		--daemon-ssl-allow-any-cert \
-		--daemon-address http://127.0.0.1:38081 \
-
 #--proxy 127.0.0.1:49775 \
 
 funding-wallet-local:
@@ -129,6 +119,23 @@ funding-wallet-local:
 		--testnet \
 		--daemon-address http://localhost:28081 \
 		--rpc-bind-port 28084 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \
+
+funding-wallet-stagenet:
+	./.localnet/monero-wallet-rpc \
+		--stagenet \
+		--rpc-bind-port 38084 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \
+		--daemon-ssl-allow-any-cert \
+		--daemon-address http://127.0.0.1:38081 \
+
+funding-wallet-mainnet:
+	./.localnet/monero-wallet-rpc \
+		--rpc-bind-port 18084 \
 		--rpc-login rpc_user:abc123 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--wallet-dir ./.localnet \

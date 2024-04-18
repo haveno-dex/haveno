@@ -116,18 +116,16 @@ public class OfferBookService {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
-                        synchronized (offerBookChangedListeners) {
-                            offerBookChangedListeners.forEach(listener -> {
-                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                                    maybeInitializeKeyImagePoller();
-                                    keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
-                                    Offer offer = new Offer(offerPayload);
-                                    offer.setPriceFeedService(priceFeedService);
-                                    setReservedFundsSpent(offer);
-                                    listener.onAdded(offer);
-                                }
-                            });
+                        if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                            maybeInitializeKeyImagePoller();
+                            keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
+                            Offer offer = new Offer(offerPayload);
+                            offer.setPriceFeedService(priceFeedService);
+                            setReservedFundsSpent(offer);
+                            synchronized (offerBookChangedListeners) {
+                                offerBookChangedListeners.forEach(listener -> listener.onAdded(offer));
+                            }
                         }
                     });
             }
@@ -135,18 +133,16 @@ public class OfferBookService {
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
                 protectedStorageEntries.forEach(protectedStorageEntry -> {
-                    synchronized (offerBookChangedListeners) {
-                        offerBookChangedListeners.forEach(listener -> {
-                            if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                                maybeInitializeKeyImagePoller();
-                                keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
-                                Offer offer = new Offer(offerPayload);
-                                offer.setPriceFeedService(priceFeedService);
-                                setReservedFundsSpent(offer);
-                                listener.onRemoved(offer);
-                            }
-                        });
+                    if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                        maybeInitializeKeyImagePoller();
+                        keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                        Offer offer = new Offer(offerPayload);
+                        offer.setPriceFeedService(priceFeedService);
+                        setReservedFundsSpent(offer);
+                        synchronized (offerBookChangedListeners) {
+                            offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
+                        }
                     }
                 });
             }

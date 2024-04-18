@@ -134,14 +134,16 @@ public class BuyerProtocol extends DisputeProtocol {
                                     BuyerSendPaymentSentMessageToArbitrator.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
+                                        stopTimeout();
                                         this.errorMessageHandler = null;
                                         resultHandler.handleResult();
                                         handleTaskRunnerSuccess(event);
                                     },
                                     (errorMessage) -> {
                                         handleTaskRunnerFault(event, errorMessage);
-                                    })))
-                            .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT))
+                                    }))
+                            .withTimeout(TradeProtocol.TRADE_TIMEOUT_SECONDS))
+                            .run(() -> trade.advanceState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment sent: " + e.getMessage());
