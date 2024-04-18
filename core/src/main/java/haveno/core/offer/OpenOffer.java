@@ -34,8 +34,6 @@
 
 package haveno.core.offer;
 
-import haveno.common.Timer;
-import haveno.common.UserThread;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.trade.Tradable;
 import javafx.beans.property.ObjectProperty;
@@ -55,9 +53,6 @@ import java.util.Optional;
 @EqualsAndHashCode
 @Slf4j
 public final class OpenOffer implements Tradable {
-    // Timeout for offer reservation during takeoffer process. If deposit tx is not completed in that time we reset the offer to AVAILABLE state.
-    private static final long TIMEOUT = 60;
-    transient private Timer timeoutTimer;
 
     public enum State {
         SCHEDULED,
@@ -227,13 +222,6 @@ public final class OpenOffer implements Tradable {
     public void setState(State state) {
         this.state = state;
         stateProperty.set(state);
-
-        // We keep it reserved for a limited time, if trade preparation fails we revert to available state
-        if (this.state == State.RESERVED) { // TODO (woodser): remove this?
-            startTimeout();
-        } else {
-            stopTimeout();
-        }
     }
 
     public ReadOnlyObjectProperty<State> stateProperty() {
@@ -251,26 +239,6 @@ public final class OpenOffer implements Tradable {
     public boolean isDeactivated() {
         return state == State.DEACTIVATED;
     }
-
-    private void startTimeout() {
-        stopTimeout();
-
-        timeoutTimer = UserThread.runAfter(() -> {
-            log.debug("Timeout for resetting State.RESERVED reached");
-            if (state == State.RESERVED) {
-                // we do not need to persist that as at startup any RESERVED state would be reset to AVAILABLE anyway
-                setState(State.AVAILABLE);
-            }
-        }, TIMEOUT);
-    }
-
-    private void stopTimeout() {
-        if (timeoutTimer != null) {
-            timeoutTimer.stop();
-            timeoutTimer = null;
-        }
-    }
-
 
     @Override
     public String toString() {

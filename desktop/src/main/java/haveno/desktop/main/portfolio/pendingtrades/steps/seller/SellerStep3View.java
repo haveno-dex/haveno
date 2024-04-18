@@ -123,19 +123,18 @@ public class SellerStep3View extends TradeStepView {
                     case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                         busyAnimation.play();
                         statusLabel.setText(Res.get("shared.sendingConfirmation"));
-
                         timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                         }, 30);
                         break;
-                    case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-                        busyAnimation.stop();
-                        statusLabel.setText(Res.get("shared.messageArrived"));
-                        break;
                     case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
                         busyAnimation.stop();
                         statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
+                        break;
+                    case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageArrived"));
                         break;
                     case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
                         // We get a popup and the trade closed, so we dont need to show anything here
@@ -290,7 +289,8 @@ public class SellerStep3View extends TradeStepView {
 
     private boolean confirmPaymentReceivedPermitted() {
         if (!trade.confirmPermitted()) return false;
-        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal();
+        if (trade.getState() == Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG) return false;
+        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() <= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

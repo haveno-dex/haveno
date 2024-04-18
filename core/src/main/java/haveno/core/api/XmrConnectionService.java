@@ -607,7 +607,7 @@ public final class XmrConnectionService {
                         long targetHeight = lastInfo.getTargetHeight();
                         long blocksLeft = targetHeight - lastInfo.getHeight();
                         if (syncStartHeight == null) syncStartHeight = lastInfo.getHeight();
-                        double percent = targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, lastInfo.getHeight() - syncStartHeight) / (double) (targetHeight - syncStartHeight)) * 100d; // grant at least 1 block to show progress
+                        double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, lastInfo.getHeight() - syncStartHeight) / (double) (targetHeight - syncStartHeight))); // grant at least 1 block to show progress
                         downloadListener.progress(percent, blocksLeft, null);
                     }
 

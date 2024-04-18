@@ -766,6 +766,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     trade.getSelf().getUpdatedMultisigHex(),
                     receiver.getUnsignedPayoutTxHex(), // include dispute payout tx if arbitrator has their updated multisig info
                     deferPublishPayout); // instruct trader to defer publishing payout tx because peer is expected to publish imminently
+            receiverPeer.setDisputeClosedMessage(disputeClosedMessage);
 
             // send dispute closed message
             log.info("Send {} to trader {}. tradeId={}, {}.uid={}, chatMessage.uid={}",

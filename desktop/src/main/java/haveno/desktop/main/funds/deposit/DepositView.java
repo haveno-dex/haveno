@@ -36,6 +36,8 @@ package haveno.desktop.main.funds.deposit;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple3;
@@ -78,6 +80,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -111,6 +114,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private Button generateNewAddressButton;
     private TitledGroupBg titledGroupBg;
     private InputTextField amountTextField;
+    private static final String THREAD_ID = DepositView.class.getName();
 
     private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
@@ -146,142 +150,155 @@ public class DepositView extends ActivatableView<VBox, Void> {
         confirmationsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations")));
         usageColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.usage")));
 
-        // trigger creation of at least 1 address
-        try {
-            xmrWalletService.getFreshAddressEntry();
-        } catch (Exception e) {
-            log.warn("Failed to get wallet txs to initialize DepositView");
-            e.printStackTrace();
-        }
+        // set loading placeholder
+        Label placeholderLabel = new Label("Loading...");
+        tableView.setPlaceholder(placeholderLabel);
 
-        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.deposit.noAddresses")));
-        tableViewSelectionListener = (observableValue, oldValue, newValue) -> {
-            if (newValue != null) {
-                fillForm(newValue.getAddressString());
-                GUIUtil.requestFocus(amountTextField);
+        ThreadUtils.execute(() -> {
+
+            // trigger creation of at least 1 address
+            try {
+                xmrWalletService.getFreshAddressEntry();
+            } catch (Exception e) {
+                log.warn("Failed to create fresh address entry to initialize DepositView");
+                e.printStackTrace();
             }
-        };
 
-        setAddressColumnCellFactory();
-        setBalanceColumnCellFactory();
-        setUsageColumnCellFactory();
-        setConfidenceColumnCellFactory();
-
-        addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
-        balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
-        confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
-        usageColumn.setComparator(Comparator.comparing(DepositListItem::getUsage));
-        tableView.getSortOrder().add(usageColumn);
-        tableView.setItems(sortedList);
-
-        titledGroupBg = addTitledGroupBg(gridPane, gridRow, 4, Res.get("funds.deposit.fundWallet"));
-        titledGroupBg.getStyleClass().add("last");
-
-        qrCodeImageView = new ImageView();
-        qrCodeImageView.setFitHeight(150);
-        qrCodeImageView.setFitWidth(150);
-        qrCodeImageView.getStyleClass().add("qr-code");
-        Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-        qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
-                        () -> new QRCodeWindow(getPaymentUri()).show(),
-                        200, TimeUnit.MILLISECONDS));
-        GridPane.setRowIndex(qrCodeImageView, gridRow);
-        GridPane.setRowSpan(qrCodeImageView, 4);
-        GridPane.setColumnIndex(qrCodeImageView, 1);
-        GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 10));
-        gridPane.getChildren().add(qrCodeImageView);
-
-        addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.address"), Layout.FIRST_ROW_DISTANCE);
-        addressTextField.setPaymentLabel(paymentLabelString);
-
-
-        amountTextField = addInputTextField(gridPane, ++gridRow, Res.get("funds.deposit.amount"));
-        amountTextField.setMaxWidth(380);
-        if (DevEnv.isDevMode())
-            amountTextField.setText("10");
-
-        titledGroupBg.setVisible(false);
-        titledGroupBg.setManaged(false);
-        qrCodeImageView.setVisible(false);
-        qrCodeImageView.setManaged(false);
-        addressTextField.setVisible(false);
-        addressTextField.setManaged(false);
-        amountTextField.setManaged(false);
-
-        Tuple3<Button, CheckBox, HBox> buttonCheckBoxHBox = addButtonCheckBoxWithBox(gridPane, ++gridRow,
-                Res.get("funds.deposit.generateAddress"),
-                null,
-                15);
-        buttonCheckBoxHBox.third.setSpacing(25);
-        generateNewAddressButton = buttonCheckBoxHBox.first;
-
-        generateNewAddressButton.setOnAction(event -> {
-            boolean hasUnusedAddress = !xmrWalletService.getUnusedAddressEntries().isEmpty();
-            if (hasUnusedAddress) {
-                new Popup().warning(Res.get("funds.deposit.selectUnused")).show();
-            } else {
-                XmrAddressEntry newSavingsAddressEntry = xmrWalletService.getNewAddressEntry();
-                updateList();
-                UserThread.execute(() -> {
-                    observableList.stream()
-                            .filter(depositListItem -> depositListItem.getAddressString().equals(newSavingsAddressEntry.getAddressString()))
-                            .findAny()
-                            .ifPresent(depositListItem -> tableView.getSelectionModel().select(depositListItem));
+            UserThread.execute(() -> {
+                tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+                tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.deposit.noAddresses")));
+                tableViewSelectionListener = (observableValue, oldValue, newValue) -> {
+                    if (newValue != null) {
+                        fillForm(newValue.getAddressString());
+                        GUIUtil.requestFocus(amountTextField);
+                    }
+                };
+        
+                setAddressColumnCellFactory();
+                setBalanceColumnCellFactory();
+                setUsageColumnCellFactory();
+                setConfidenceColumnCellFactory();
+        
+                addressColumn.setComparator(Comparator.comparing(DepositListItem::getAddressString));
+                balanceColumn.setComparator(Comparator.comparing(DepositListItem::getBalanceAsBI));
+                confirmationsColumn.setComparator(Comparator.comparingLong(o -> o.getNumConfirmationsSinceFirstUsed()));
+                usageColumn.setComparator(Comparator.comparing(DepositListItem::getUsage));
+                tableView.getSortOrder().add(usageColumn);
+                tableView.setItems(sortedList);
+        
+                titledGroupBg = addTitledGroupBg(gridPane, gridRow, 4, Res.get("funds.deposit.fundWallet"));
+                titledGroupBg.getStyleClass().add("last");
+        
+                qrCodeImageView = new ImageView();
+                qrCodeImageView.setFitHeight(150);
+                qrCodeImageView.setFitWidth(150);
+                qrCodeImageView.getStyleClass().add("qr-code");
+                Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
+                qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
+                                () -> new QRCodeWindow(getPaymentUri()).show(),
+                                200, TimeUnit.MILLISECONDS));
+                GridPane.setRowIndex(qrCodeImageView, gridRow);
+                GridPane.setRowSpan(qrCodeImageView, 4);
+                GridPane.setColumnIndex(qrCodeImageView, 1);
+                GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 10));
+                gridPane.getChildren().add(qrCodeImageView);
+        
+                addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.address"), Layout.FIRST_ROW_DISTANCE);
+                addressTextField.setPaymentLabel(paymentLabelString);
+                amountTextField = addInputTextField(gridPane, ++gridRow, Res.get("funds.deposit.amount"));
+                amountTextField.setMaxWidth(380);
+                if (DevEnv.isDevMode())
+                    amountTextField.setText("10");
+        
+                titledGroupBg.setVisible(false);
+                titledGroupBg.setManaged(false);
+                qrCodeImageView.setVisible(false);
+                qrCodeImageView.setManaged(false);
+                addressTextField.setVisible(false);
+                addressTextField.setManaged(false);
+                amountTextField.setManaged(false);
+        
+                Tuple3<Button, CheckBox, HBox> buttonCheckBoxHBox = addButtonCheckBoxWithBox(gridPane, ++gridRow,
+                        Res.get("funds.deposit.generateAddress"),
+                        null,
+                        15);
+                buttonCheckBoxHBox.third.setSpacing(25);
+                generateNewAddressButton = buttonCheckBoxHBox.first;
+        
+                generateNewAddressButton.setOnAction(event -> {
+                    boolean hasUnusedAddress = !xmrWalletService.getUnusedAddressEntries().isEmpty();
+                    if (hasUnusedAddress) {
+                        new Popup().warning(Res.get("funds.deposit.selectUnused")).show();
+                    } else {
+                        XmrAddressEntry newSavingsAddressEntry = xmrWalletService.getNewAddressEntry();
+                        updateList();
+                        UserThread.execute(() -> {
+                            observableList.stream()
+                                    .filter(depositListItem -> depositListItem.getAddressString().equals(newSavingsAddressEntry.getAddressString()))
+                                    .findAny()
+                                    .ifPresent(depositListItem -> tableView.getSelectionModel().select(depositListItem));
+                        });
+                    }
                 });
-            }
-        });
-
-        balanceListener = new XmrBalanceListener() {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                updateList();
-            }
-        };
-
-        walletListener = new MoneroWalletListener() {
-            @Override
-            public void onNewBlock(long height) {
-                updateList();
-            }
-        };
-
-        GUIUtil.focusWhenAddedToScene(amountTextField);
+        
+                balanceListener = new XmrBalanceListener() {
+                    @Override
+                    public void onBalanceChanged(BigInteger balance) {
+                        updateList();
+                    }
+                };
+        
+                walletListener = new MoneroWalletListener() {
+                    @Override
+                    public void onNewBlock(long height) {
+                        updateList();
+                    }
+                };
+        
+                GUIUtil.focusWhenAddedToScene(amountTextField);
+            });
+        }, THREAD_ID);
     }
 
     @Override
     protected void activate() {
-        tableView.getSelectionModel().selectedItemProperty().addListener(tableViewSelectionListener);
-        sortedList.comparatorProperty().bind(tableView.comparatorProperty());
-
-        // try to update deposits list
-        try {
-            updateList();
-        } catch (Exception e) {
-            log.warn("Could not update deposits list");
-            e.printStackTrace();
-        }
-
-        xmrWalletService.addBalanceListener(balanceListener);
-        xmrWalletService.addWalletListener(walletListener);
-
-        amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
-            addressTextField.setAmount(HavenoUtils.parseXmr(t));
-            updateQRCode();
-        });
-
-        if (tableView.getSelectionModel().getSelectedItem() == null && !sortedList.isEmpty())
-            tableView.getSelectionModel().select(0);
+        ThreadUtils.execute(() -> {
+            UserThread.execute(() -> {
+                tableView.getSelectionModel().selectedItemProperty().addListener(tableViewSelectionListener);
+                sortedList.comparatorProperty().bind(tableView.comparatorProperty());
+        
+                // try to update deposits list
+                try {
+                    updateList();
+                } catch (Exception e) {
+                    log.warn("Could not update deposits list");
+                    e.printStackTrace();
+                }
+        
+                xmrWalletService.addBalanceListener(balanceListener);
+                xmrWalletService.addWalletListener(walletListener);
+        
+                amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
+                    addressTextField.setAmount(HavenoUtils.parseXmr(t));
+                    updateQRCode();
+                });
+        
+                if (tableView.getSelectionModel().getSelectedItem() == null && !sortedList.isEmpty())
+                    tableView.getSelectionModel().select(0);
+            });
+        }, THREAD_ID);
     }
 
     @Override
     protected void deactivate() {
-        tableView.getSelectionModel().selectedItemProperty().removeListener(tableViewSelectionListener);
-        sortedList.comparatorProperty().unbind();
-        observableList.forEach(DepositListItem::cleanup);
-        xmrWalletService.removeBalanceListener(balanceListener);
-        xmrWalletService.removeWalletListener(walletListener);
-        amountTextFieldSubscription.unsubscribe();
+        ThreadUtils.execute(() -> {
+            tableView.getSelectionModel().selectedItemProperty().removeListener(tableViewSelectionListener);
+            sortedList.comparatorProperty().unbind();
+            observableList.forEach(DepositListItem::cleanup);
+            xmrWalletService.removeBalanceListener(balanceListener);
+            xmrWalletService.removeWalletListener(walletListener);
+            amountTextFieldSubscription.unsubscribe();
+        }, THREAD_ID);
     }
 
 

@@ -1287,7 +1287,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void removeTradeOnError(Trade trade) {
-        log.warn("TradeManager.removeTradeOnError() tradeId={}, state={}", trade.getId(), trade.getState());
+        log.warn("TradeManager.removeTradeOnError() trade={}, tradeId={}, state={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getState());
         synchronized (tradableList) {
 
             // unreserve taker key images
