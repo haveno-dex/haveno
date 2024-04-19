@@ -140,9 +140,10 @@ public class BuyerProtocol extends DisputeProtocol {
                                         handleTaskRunnerSuccess(event);
                                     },
                                     (errorMessage) -> {
+                                        log.warn("Error confirming payment sent, reverting state to {}, error={}", Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN, errorMessage);
+                                        trade.setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
                                         handleTaskRunnerFault(event, errorMessage);
-                                    }))
-                            .withTimeout(TradeProtocol.TRADE_TIMEOUT_SECONDS))
+                                    })))
                             .run(() -> trade.advanceState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT))
                             .executeTasks(true);
                 } catch (Exception e) {
