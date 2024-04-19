@@ -947,14 +947,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // return split output tx if already assigned
         if (openOffer != null && openOffer.getSplitOutputTxHash() != null) {
-            return xmrWalletService.getWallet().getTx(openOffer.getSplitOutputTxHash());
+            return xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
         }
 
         // return earliest tx with exact amount to offer's subaddress if available
         if (preferredSubaddressIndex != null) {
 
             // get txs with exact output amount
-            fundingTxs = xmrWalletService.getWallet().getTxs(new MoneroTxQuery()
+            fundingTxs = xmrWalletService.getTxs(new MoneroTxQuery()
                     .setIsConfirmed(true)
                     .setOutputQuery(new MoneroOutputQuery()
                             .setAccountIndex(0)
@@ -972,7 +972,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (openOffer.getScheduledTxHashes() != null) return null;
 
         // get all transactions including from pool
-        List<MoneroTxWallet> allTxs = xmrWalletService.getTransactions(false);
+        List<MoneroTxWallet> allTxs = xmrWalletService.getTxs(false);
 
         if (preferredSubaddressIndex != null) {
 
@@ -1067,7 +1067,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         // get locked txs
-        List<MoneroTxWallet> lockedTxs = xmrWalletService.getWallet().getTxs(new MoneroTxQuery().setIsLocked(true));
+        List<MoneroTxWallet> lockedTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsLocked(true));
 
         // get earliest unscheduled txs with sufficient incoming amount
         List<String> scheduledTxHashes = new ArrayList<String>();

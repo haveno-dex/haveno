@@ -50,7 +50,7 @@ class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem
     }
 
     private List<TransactionsListItem> getTransactionListItems() {
-        List<MoneroTxWallet> transactions = xmrWalletService.getTransactions(false);
+        List<MoneroTxWallet> transactions = xmrWalletService.getTxs(false);
         return transactions.stream()
                 .map(this::convertTransactionToListItem)
                 .collect(Collectors.toList());

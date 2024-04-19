@@ -1215,7 +1215,7 @@ public abstract class Trade implements Tradable, Model {
         }
 
         // then check daemon
-        if (tx == null) tx = getXmrWalletService().getTxWithCache(txId);
+        if (tx == null) tx = xmrWalletService.getDaemonTxWithCache(txId);
         return tx;
     }
 
@@ -1541,7 +1541,7 @@ public abstract class Trade implements Tradable, Model {
     @Nullable
     public MoneroTx getPayoutTx() {
         if (payoutTx == null) {
-            payoutTx = payoutTxId == null ? null : (this instanceof ArbitratorTrade) ? xmrWalletService.getTxWithCache(payoutTxId) : xmrWalletService.getWallet().getTx(payoutTxId);
+            payoutTx = payoutTxId == null ? null : (this instanceof ArbitratorTrade) ? xmrWalletService.getDaemonTxWithCache(payoutTxId) : xmrWalletService.getTx(payoutTxId);
         }
         return payoutTx;
     }

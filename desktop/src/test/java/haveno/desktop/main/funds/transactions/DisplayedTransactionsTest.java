@@ -40,7 +40,7 @@ public class DisplayedTransactionsTest {
         List<MoneroTxWallet> transactions = Lists.newArrayList(mock(MoneroTxWallet.class), mock(MoneroTxWallet.class));
 
         XmrWalletService walletService = mock(XmrWalletService.class);
-        when(walletService.getTransactions(false)).thenReturn(transactions);
+        when(walletService.getTxs(false)).thenReturn(transactions);
 
         TransactionListItemFactory transactionListItemFactory = mock(TransactionListItemFactory.class,
                 RETURNS_DEEP_STUBS);
@@ -60,7 +60,7 @@ public class DisplayedTransactionsTest {
     @Test
     public void testUpdateWhenRepositoryIsEmpty() {
         XmrWalletService walletService = mock(XmrWalletService.class);
-        when(walletService.getTransactions(false))
+        when(walletService.getTxs(false))
                 .thenReturn(Collections.singletonList(mock(MoneroTxWallet.class)));
 
         TradableRepository tradableRepository = mock(TradableRepository.class);
