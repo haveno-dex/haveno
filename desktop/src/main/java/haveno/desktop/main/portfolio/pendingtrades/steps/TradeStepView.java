@@ -171,7 +171,7 @@ public abstract class TradeStepView extends AnchorPane {
         List<String> txIds = new ArrayList<String>();
         if (!model.dataModel.makerTxId.isEmpty().get()) txIds.add(model.dataModel.makerTxId.get());
         if (!model.dataModel.takerTxId.isEmpty().get()) txIds.add(model.dataModel.takerTxId.get());
-        new Thread(() -> trade.getXmrWalletService().getTxsWithCache(txIds)).start();
+        new Thread(() -> trade.getXmrWalletService().getDaemonTxsWithCache(txIds)).start();
     }
 
     public void activate() {

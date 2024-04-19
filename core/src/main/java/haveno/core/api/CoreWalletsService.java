@@ -158,7 +158,7 @@ class CoreWalletsService {
 
     List<MoneroTxWallet> getXmrTxs() {
         accountService.checkAccountOpen();
-        return xmrWalletService.getWallet().getTxs();
+        return xmrWalletService.getTxs();
     }
 
     MoneroTxWallet createXmrTx(List<MoneroDestination> destinations) {

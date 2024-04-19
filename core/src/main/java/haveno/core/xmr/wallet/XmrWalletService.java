@@ -779,12 +779,12 @@ public class XmrWalletService {
         return feeEstimate;
     }
 
-    public MoneroTx getTx(String txHash) {
-        List<MoneroTx> txs = getTxs(Arrays.asList(txHash));
+    public MoneroTx getDaemonTx(String txHash) {
+        List<MoneroTx> txs = getDaemonTxs(Arrays.asList(txHash));
         return txs.isEmpty() ? null : txs.get(0);
     }
 
-    public List<MoneroTx> getTxs(List<String> txHashes) {
+    public List<MoneroTx> getDaemonTxs(List<String> txHashes) {
         synchronized (txCache) {
 
             // fetch txs
@@ -804,12 +804,12 @@ public class XmrWalletService {
         }
     }
 
-    public MoneroTx getTxWithCache(String txHash) {
-        List<MoneroTx> cachedTxs = getTxsWithCache(Arrays.asList(txHash));
+    public MoneroTx getDaemonTxWithCache(String txHash) {
+        List<MoneroTx> cachedTxs = getDaemonTxsWithCache(Arrays.asList(txHash));
         return cachedTxs.isEmpty() ? null : cachedTxs.get(0);
     }
 
-    public List<MoneroTx> getTxsWithCache(List<String> txHashes) {
+    public List<MoneroTx> getDaemonTxsWithCache(List<String> txHashes) {
         synchronized (txCache) {
             try {
                 // get cached txs
@@ -821,7 +821,7 @@ public class XmrWalletService {
                 }
 
                 // return txs from cache if available, otherwise fetch
-                return uncachedTxHashes.isEmpty() ? cachedTxs : getTxs(txHashes);
+                return uncachedTxHashes.isEmpty() ? cachedTxs : getDaemonTxs(txHashes);
             } catch (Exception e) {
                 if (!isShutDownStarted) throw e;
                 return null;
@@ -1136,13 +1136,27 @@ public class XmrWalletService {
         xmrAddressEntryList.requestPersistence();
     }
 
-    public List<MoneroTxWallet> getTransactions(boolean includeFailed) {
+    public List<MoneroTxWallet> getTxs(boolean includeFailed) {
+        List<MoneroTxWallet> txs = getTxs();
+        if (includeFailed) return txs;
+        return txs.stream().filter(tx -> !tx.isFailed()).collect(Collectors.toList());
+    }
+
+    public List<MoneroTxWallet> getTxs() {
+        return getTxs(new MoneroTxQuery());
+    }
+
+    public List<MoneroTxWallet> getTxs(MoneroTxQuery query) {
         if (cachedTxs == null) {
             log.warn("Transactions not cached, fetching from wallet");
             cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); // fetches from pool
         }
-        if (includeFailed) return cachedTxs;
-        return cachedTxs.stream().filter(tx -> !tx.isFailed()).collect(Collectors.toList());
+        return cachedTxs.stream().filter(tx -> query.meetsCriteria(tx)).collect(Collectors.toList());
+    }
+
+    public MoneroTxWallet getTx(String txId) {
+        List<MoneroTxWallet> txs = getTxs(new MoneroTxQuery().setHash(txId));
+        return txs.isEmpty() ? null : txs.get(0);
     }
 
     public BigInteger getBalance() {
