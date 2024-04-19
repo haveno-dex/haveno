@@ -49,15 +49,15 @@ public class XmrNodesSetupPreferences {
                     log.warn("Custom nodes is set but no valid nodes are provided. " +
                             "We fall back to provided nodes option.");
                     preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
-                    result = nodes.getAllXmrNodes();
+                    result = nodes.getProvidedXmrNodes();
                 }
                 break;
             case PUBLIC:
-                result = nodes.getPublicXmrNodes();
+                result = nodes.getAllXmrNodes(); // public entails provided nodes
                 break;
             case PROVIDED:
             default:
-                result = nodes.getAllXmrNodes();
+                result = nodes.getProvidedXmrNodes();
                 break;
         }
 
