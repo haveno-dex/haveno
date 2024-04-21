@@ -325,8 +325,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         selectedTableItemSubscription = EasyBind.subscribe(tableView.getSelectionModel().selectedItemProperty(),
                 selectedItem -> {
-                    if (selectedItem != null && !selectedItem.equals(model.dataModel.selectedItemProperty.get()))
+                    if (selectedItem != null && !selectedItem.equals(model.dataModel.selectedItemProperty.get())) {
+                        if (selectedSubView != null) selectedSubView.deactivate();
                         model.dataModel.onSelectItem(selectedItem);
+                    }
                 });
 
         updateTableSelection();

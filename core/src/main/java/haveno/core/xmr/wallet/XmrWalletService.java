@@ -1775,7 +1775,7 @@ public class XmrWalletService {
                 if (wallet.getHeight() < xmrConnectionService.getTargetHeight()) wallet.sync();
 
                 // fetch transactions from pool and store to cache
-                // TODO: ideally wallet should sync every poll and then avoid checking pool on fetching txs
+                // TODO: ideally wallet should sync every poll and then avoid updating from pool on fetching txs
                 if (updateTxs) {
                     try {
                         cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); 
