@@ -289,8 +289,8 @@ public class SellerStep3View extends TradeStepView {
 
     private boolean confirmPaymentReceivedPermitted() {
         if (!trade.confirmPermitted()) return false;
-        if (trade.getState() == Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG) return false;
-        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() <= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal();
+        if (trade.getState() == Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG) return true;
+        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
