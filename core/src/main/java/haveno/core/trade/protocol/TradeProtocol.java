@@ -458,8 +458,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void handle(DepositsConfirmedMessage response, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage)");
+    public void handle(DepositsConfirmedMessage message, NodeAddress sender) {
+        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender);
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade) {
@@ -467,7 +467,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 latchTrade();
                 this.errorMessageHandler = null;
                 expect(new Condition(trade)
-                        .with(response)
+                        .with(message)
                         .from(sender))
                         .setup(tasks(
                             ProcessDepositsConfirmedMessage.class,
@@ -475,10 +475,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             MaybeResendDisputeClosedMessageWithPayout.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    handleTaskRunnerSuccess(sender, response);
+                                    handleTaskRunnerSuccess(sender, message);
                                 },
                                 errorMessage -> {
-                                    handleTaskRunnerFault(sender, response, errorMessage);
+                                    handleTaskRunnerFault(sender, message, errorMessage);
                                 })))
                         .executeTasks();
                 awaitTradeLatch();
