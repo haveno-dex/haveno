@@ -442,7 +442,7 @@ public class SellerStep3View extends TradeStepView {
     private void confirmPaymentReceived() {
         log.info("User pressed the [Confirm payment receipt] button for Trade {}", trade.getShortId());
         busyAnimation.play();
-        statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        statusLabel.setText(Res.get("shared.preparingConfirmation"));
         confirmButton.setDisable(true);
 
         model.dataModel.onPaymentReceived(() -> {
