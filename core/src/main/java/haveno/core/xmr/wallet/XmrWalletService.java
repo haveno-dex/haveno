@@ -381,16 +381,10 @@ public class XmrWalletService {
         Callable<MoneroSyncResult> task = () -> wallet.sync();
         Future<MoneroSyncResult> future = syncWalletThreadPool.submit(task);
         try {
-            MoneroSyncResult result = future.get();
-            wallet.getTxs(); // TODO: this is necessary to sync from pool, otherwise balance can be incorrect
-            return result;
+            return future.get();
         } catch (Exception e) {
             throw new MoneroError(e.getMessage());
         }
-    }
-
-    private MoneroSyncResult syncWallet() {
-        return syncWallet(wallet);
     }
 
     public void saveWallet(MoneroWallet wallet) {
@@ -1426,7 +1420,7 @@ public class XmrWalletService {
             else {
                 syncWithProgressLooper.stop();
                 try {
-                    syncWallet(); // ensure finished syncing
+                    doPollWallet(true);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1751,11 +1745,11 @@ public class XmrWalletService {
     }
 
     private void pollWallet() {
+        if (pollInProgress) return;
         doPollWallet(true);
     }
 
     private void doPollWallet(boolean updateTxs) {
-        if (pollInProgress) return;
         synchronized (pollLock) {
             pollInProgress = true;
             try {
@@ -1775,7 +1769,7 @@ public class XmrWalletService {
                 if (wallet.getHeight() < xmrConnectionService.getTargetHeight()) wallet.sync();
 
                 // fetch transactions from pool and store to cache
-                // TODO: ideally wallet should sync every poll and then avoid updating from pool on fetching txs
+                // TODO: ideally wallet should sync every poll and then avoid updating from pool on fetching txs?
                 if (updateTxs) {
                     try {
                         cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); 
