@@ -61,12 +61,14 @@ public class ProcessPaymentSentMessage extends TradeTask {
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
             trade.requestPersistence();
             
-            // try to import multisig hex (retry later)
-            try {
-                trade.importMultisigHex();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            // try to import multisig hex off main thread (retry later)
+            new Thread(() -> {
+                try {
+                    trade.importMultisigHex();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
 
             // update state
             trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
