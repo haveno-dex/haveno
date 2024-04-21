@@ -580,7 +580,7 @@ public class BuyerStep2View extends TradeStepView {
 
     private void confirmPaymentSent() {
         busyAnimation.play();
-        statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        statusLabel.setText(Res.get("shared.preparingConfirmation"));
         confirmButton.setDisable(true);
 
         model.dataModel.onPaymentSent(() -> {
