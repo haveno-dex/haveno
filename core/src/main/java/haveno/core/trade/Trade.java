@@ -73,11 +73,13 @@ import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -408,6 +410,8 @@ public abstract class Trade implements Tradable, Model {
     transient final private ObjectProperty<PayoutState> payoutStateProperty = new SimpleObjectProperty<>(payoutState);
     transient final private ObjectProperty<DisputeState> disputeStateProperty = new SimpleObjectProperty<>(disputeState);
     transient final private ObjectProperty<TradePeriodState> tradePeriodStateProperty = new SimpleObjectProperty<>(periodState);
+    @Getter
+    transient public final IntegerProperty depositTxsUpdateCounter = new SimpleIntegerProperty(0);
     transient final private StringProperty errorMessageProperty = new SimpleStringProperty();
     transient private Subscription tradeStateSubscription;
     transient private Subscription tradePhaseSubscription;
@@ -2028,7 +2032,7 @@ public abstract class Trade implements Tradable, Model {
     }
     
     private void tryInitPollingAux() {
-        if (!wasWalletSynced) trySyncWallet(false);
+        if (!wasWalletSynced) trySyncWallet(true);
         updatePollPeriod();
         
         // reprocess pending payout messages
@@ -2135,9 +2139,12 @@ public abstract class Trade implements Tradable, Model {
                     syncWalletIfBehind();
 
                     // get txs from trade wallet
-                    List<MoneroTxWallet> txs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true).setInTxPool(false)); // TODO (monero-wallet-rpc): cannot get pool txs without re-refetching from pool
+                    MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+                    Boolean updatePool = !isDepositsConfirmed() && (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null);
+                    if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
+                    List<MoneroTxWallet> txs = wallet.getTxs(query);
                     setDepositTxs(txs);
-                    if (txs.size() != 2) return; // skip if either tx not seen
+                    if (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null) return; // skip if either deposit tx not seen
                     setStateDepositsSeen();
 
                     // set actual security deposits
@@ -2176,9 +2183,9 @@ public abstract class Trade implements Tradable, Model {
                     }
 
                     // get txs from trade wallet
-                    boolean checkPool = isPayoutExpected && !isPayoutConfirmed();
                     MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-                    if (!checkPool) query.setInTxPool(false); // avoid pool check if possible
+                    boolean updatePool = isPayoutExpected && !isPayoutConfirmed();
+                    if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
                     List<MoneroTxWallet> txs = wallet.getTxs(query);
                     setDepositTxs(txs);
 
@@ -2224,6 +2231,7 @@ public abstract class Trade implements Tradable, Model {
             if (tx.getHash().equals(getMaker().getDepositTxHash())) getMaker().setDepositTx(tx);
             if (tx.getHash().equals(getTaker().getDepositTxHash())) getTaker().setDepositTx(tx);
         }
+        if (!txs.isEmpty()) depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
     }
 
     private void forceRestartTradeWallet() {

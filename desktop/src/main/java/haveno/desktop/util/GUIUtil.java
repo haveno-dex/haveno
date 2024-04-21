@@ -528,18 +528,20 @@ public class GUIUtil {
     public static void updateConfidence(MoneroTx tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
-        if (tx != null && (tx.getNumConfirmations() == null || !tx.isRelayed())) {
+        if (tx == null || tx.getNumConfirmations() == null || !tx.isRelayed()) {
             tooltip.setText(Res.get("confidence.unknown"));
-            txConfidenceIndicator.setProgress(0);
-        } else if (tx != null && tx.isFailed()) {
-            tooltip.setText(Res.get("confidence.invalid"));
-            txConfidenceIndicator.setProgress(0);
-        } else if (tx != null && tx.isConfirmed()) {
-            tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
-            txConfidenceIndicator.setProgress((double) tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK);
+            txConfidenceIndicator.setProgress(-1);
         } else {
-            tooltip.setText(Res.get("confidence.seen", 0)); // TODO: replace with numBroadcastPeers
-            txConfidenceIndicator.setProgress(-1.0);
+            if (tx.isFailed()) {
+                tooltip.setText(Res.get("confidence.invalid"));
+                txConfidenceIndicator.setProgress(0);
+            } else if (tx.isConfirmed()) {
+                tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
+                txConfidenceIndicator.setProgress((double) tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK);
+            } else {
+                tooltip.setText(Res.get("confidence.seen", 0));
+                txConfidenceIndicator.setProgress(-1);
+            }
         }
 
         txConfidenceIndicator.setPrefSize(24, 24);

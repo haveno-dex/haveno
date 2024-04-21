@@ -23,11 +23,13 @@ import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
+import haveno.core.trade.Trade;
 import haveno.core.user.BlockChainExplorer;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -51,7 +53,9 @@ public class TxIdTextField extends AnchorPane {
     private final TxConfidenceIndicator txConfidenceIndicator;
     private final Label copyIcon, blockExplorerIcon, missingTxWarningIcon;
 
-    private MoneroWalletListener txUpdater;
+    private MoneroWalletListener walletListener;
+    private ChangeListener<Number> tradeListener;
+    private Trade trade;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -108,9 +112,18 @@ public class TxIdTextField extends AnchorPane {
     }
 
     public void setup(@Nullable String txId) {
-        if (txUpdater != null) {
-            xmrWalletService.removeWalletListener(txUpdater);
-            txUpdater = null;
+        setup(txId, null);
+    }
+
+    public void setup(@Nullable String txId, Trade trade) {
+        this.trade = trade;
+        if (walletListener != null) {
+            xmrWalletService.removeWalletListener(walletListener);
+            walletListener = null;
+        }
+        if (tradeListener != null) {
+            trade.getDepositTxsUpdateCounter().removeListener(tradeListener);
+            tradeListener = null;
         }
 
         if (txId == null) {
@@ -126,15 +139,21 @@ public class TxIdTextField extends AnchorPane {
             return;
         }
 
-        // listen for tx updates
-        // TODO: this only listens for new blocks, listen for double spend
-        txUpdater = new MoneroWalletListener() {
-            @Override
-            public void onNewBlock(long lastBlockHeight) {
-                updateConfidence(txId, false, lastBlockHeight);
-            }
-        };
-        xmrWalletService.addWalletListener(txUpdater);
+        // subscribe for tx updates
+        if (trade == null) {
+            walletListener = new MoneroWalletListener() {
+                @Override
+                public void onNewBlock(long height) {
+                    updateConfidence(txId, trade, false, height);
+                }
+            };
+            xmrWalletService.addWalletListener(walletListener); // TODO: this only listens for new blocks, listen for double spend
+        } else {
+            tradeListener = (observable, oldValue, newValue) -> {
+                updateConfidence(txId, trade, null, null);
+            };
+            trade.getDepositTxsUpdateCounter().addListener(tradeListener);
+        }
 
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
@@ -143,14 +162,19 @@ public class TxIdTextField extends AnchorPane {
         txConfidenceIndicator.setVisible(true);
 
         // update off main thread
-        new Thread(() -> updateConfidence(txId, true, null)).start();
+        new Thread(() -> updateConfidence(txId, trade, true, null)).start();
     }
 
     public void cleanup() {
-        if (xmrWalletService != null && txUpdater != null) {
-            xmrWalletService.removeWalletListener(txUpdater);
-            txUpdater = null;
+        if (xmrWalletService != null && walletListener != null) {
+            xmrWalletService.removeWalletListener(walletListener);
+            walletListener = null;
         }
+        if (tradeListener != null) {
+            trade.getDepositTxsUpdateCounter().removeListener(tradeListener);
+            tradeListener = null;
+        }
+        trade = null;
         textField.setOnMouseClicked(null);
         blockExplorerIcon.setOnMouseClicked(null);
         copyIcon.setOnMouseClicked(null);
@@ -168,11 +192,16 @@ public class TxIdTextField extends AnchorPane {
         }
     }
 
-    private synchronized void updateConfidence(String txId, boolean useCache, Long height) {
+    private synchronized void updateConfidence(String txId, Trade trade, Boolean useCache, Long height) {
         MoneroTx tx = null;
         try {
-            tx = useCache ? xmrWalletService.getDaemonTxWithCache(txId) : xmrWalletService.getDaemonTx(txId);
-            tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+            if (trade == null) {
+                tx = useCache ? xmrWalletService.getDaemonTxWithCache(txId) : xmrWalletService.getDaemonTx(txId);
+                tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+            } else {
+                if (txId.equals(trade.getMaker().getDepositTxHash())) tx = trade.getMaker().getDepositTx();
+                else if (txId.equals(trade.getTaker().getDepositTxHash())) tx = trade.getTaker().getDepositTx();
+            }
         } catch (Exception e) {
             // do nothing
         }
@@ -185,9 +214,9 @@ public class TxIdTextField extends AnchorPane {
             if (txConfidenceIndicator.getProgress() != 0) {
                 AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
             }
-            if (txConfidenceIndicator.getProgress() >= 1.0 && txUpdater != null) {
-                xmrWalletService.removeWalletListener(txUpdater); // unregister listener
-                txUpdater = null;
+            if (txConfidenceIndicator.getProgress() >= 1.0 && walletListener != null) {
+                xmrWalletService.removeWalletListener(walletListener); // unregister listener
+                walletListener = null;
             }
         });
     }

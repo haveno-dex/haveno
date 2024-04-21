@@ -52,8 +52,6 @@ import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -110,8 +108,6 @@ public abstract class TradeStepView extends AnchorPane {
         trade = model.dataModel.getTrade();
         checkNotNull(trade, "Trade must not be null at TradeStepView");
 
-        startCachingTxs();
-
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
@@ -167,13 +163,6 @@ public abstract class TradeStepView extends AnchorPane {
 //        };
     }
 
-    private void startCachingTxs() {
-        List<String> txIds = new ArrayList<String>();
-        if (!model.dataModel.makerTxId.isEmpty().get()) txIds.add(model.dataModel.makerTxId.get());
-        if (!model.dataModel.takerTxId.isEmpty().get()) txIds.add(model.dataModel.takerTxId.get());
-        new Thread(() -> trade.getXmrWalletService().getDaemonTxsWithCache(txIds)).start();
-    }
-
     public void activate() {
         if (selfTxIdTextField != null) {
             if (selfTxIdSubscription != null)
@@ -181,8 +170,7 @@ public abstract class TradeStepView extends AnchorPane {
 
             selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.makerTxId : model.dataModel.takerTxId, id -> {
                 if (!id.isEmpty()) {
-                    startCachingTxs();
-                    selfTxIdTextField.setup(id);
+                    selfTxIdTextField.setup(id, trade);
                 } else {
                     selfTxIdTextField.cleanup();
                 }
@@ -194,8 +182,7 @@ public abstract class TradeStepView extends AnchorPane {
 
             peerTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
                 if (!id.isEmpty()) {
-                    startCachingTxs();
-                    peerTxIdTextField.setup(id);
+                    peerTxIdTextField.setup(id, trade);
                 } else {
                     peerTxIdTextField.cleanup();
                 }
@@ -350,7 +337,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         String selfTxId = model.dataModel.isMaker() ? model.dataModel.makerTxId.get() : model.dataModel.takerTxId.get();
         if (!selfTxId.isEmpty())
-            selfTxIdTextField.setup(selfTxId);
+            selfTxIdTextField.setup(selfTxId, trade);
         else
             selfTxIdTextField.cleanup();
 
@@ -364,7 +351,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         String peerTxId = model.dataModel.isMaker() ? model.dataModel.takerTxId.get() : model.dataModel.makerTxId.get();
         if (!peerTxId.isEmpty())
-            peerTxIdTextField.setup(peerTxId);
+            peerTxIdTextField.setup(peerTxId, trade);
         else
             peerTxIdTextField.cleanup();
 
