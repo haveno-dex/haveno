@@ -33,6 +33,8 @@ import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
@@ -544,6 +546,40 @@ public class XmrWalletService {
         TreeSet<Integer> subaddressIndices = new TreeSet<Integer>();
         for (MoneroOutputWallet output : exactOutputs) subaddressIndices.add(output.getSubaddressIndex());
         return new ArrayList<Integer>(subaddressIndices);
+    }
+
+    /**
+     * Create a reserve tx for an open offer and freeze its inputs.
+     * 
+     * @param openOffer is the open offer to create a reserve tx for
+     */
+    public MoneroTxWallet createReserveTx(OpenOffer openOffer) {
+        synchronized (walletLock) {
+
+            // collect offer data
+            Offer offer = openOffer.getOffer();
+            BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), offer.getPenaltyFeePct());
+            BigInteger makerFee = offer.getMaxMakerFee();
+            BigInteger sendAmount = offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
+            BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
+            String returnAddress = getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            XmrAddressEntry fundingEntry = getAddressEntry(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).orElse(null);
+            Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
+
+            // create reserve tx
+            MoneroTxWallet reserveTx = createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
+
+            // collect reserved key images
+            List<String> reservedKeyImages = new ArrayList<String>();
+            for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+
+            // save offer state
+            openOffer.setReserveTxHash(reserveTx.getHash());
+            openOffer.setReserveTxHex(reserveTx.getFullHex());
+            openOffer.setReserveTxKey(reserveTx.getKey());
+            offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
+            return reserveTx;
+        }
     }
 
     /**
