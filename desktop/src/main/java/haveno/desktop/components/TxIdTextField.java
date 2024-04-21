@@ -131,7 +131,7 @@ public class TxIdTextField extends AnchorPane {
         txUpdater = new MoneroWalletListener() {
             @Override
             public void onNewBlock(long lastBlockHeight) {
-                updateConfidence(txId, false, lastBlockHeight + 1);
+                updateConfidence(txId, false, lastBlockHeight);
             }
         };
         xmrWalletService.addWalletListener(txUpdater);

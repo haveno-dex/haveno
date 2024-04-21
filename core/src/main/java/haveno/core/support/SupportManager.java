@@ -195,7 +195,7 @@ public abstract class SupportManager {
                     for (Dispute dispute : trade.getDisputes()) {
                         for (ChatMessage chatMessage : dispute.getChatMessages()) {
                             if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                if (dispute.isClosed()) trade.syncWalletNormallyForMs(30000); // sync to check for payout
+                                if (dispute.isClosed()) trade.pollWalletNormallyForMs(30000); // sync to check for payout
                                 else trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                             }
                         }

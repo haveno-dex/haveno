@@ -268,7 +268,7 @@ public final class XmrConnectionService {
     }
 
     public Long getTargetHeight() {
-        if (daemon == null || lastInfo == null) return null;
+        if (lastInfo == null) return null;
         return lastInfo.getTargetHeight() == 0 ? chainHeight.get() : lastInfo.getTargetHeight(); // monerod sync_info's target_height returns 0 when node is fully synced
     }
 
