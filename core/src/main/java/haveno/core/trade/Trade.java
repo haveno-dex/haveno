@@ -1033,10 +1033,10 @@ public abstract class Trade implements Tradable, Model {
         checkAndVerifyDaemonConnection();
 
         // check multisig import
-        if (getWallet().isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+        MoneroWallet multisigWallet = getWallet();
+        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
 
         // gather info
-        MoneroWallet multisigWallet = getWallet();
         String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
         String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
         Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");

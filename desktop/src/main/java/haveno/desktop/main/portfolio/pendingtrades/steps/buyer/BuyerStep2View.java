@@ -442,8 +442,8 @@ public class BuyerStep2View extends TradeStepView {
 
     private boolean confirmPaymentSentPermitted() {
         if (!trade.confirmPermitted()) return false;
-        if (trade.getState() == Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG) return false;
-        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal();
+        if (trade.getState() == Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG) return true;
+        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
