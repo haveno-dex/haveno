@@ -88,7 +88,6 @@ import javafx.collections.ObservableList;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemon;
@@ -1181,43 +1180,12 @@ public abstract class Trade implements Tradable, Model {
 
     @Nullable
     public MoneroTx getTakerDepositTx() {
-        return getDepositTx(getTaker());
+        return getTaker().getDepositTx();
     }
 
     @Nullable
     public MoneroTx getMakerDepositTx() {
-        return getDepositTx(getMaker());
-    }
-
-    private MoneroTx getDepositTx(TradePeer trader) {
-        String depositId = trader.getDepositTxHash();
-        if (depositId == null) return null;
-        try {
-            if (trader.getDepositTx() == null || !trader.getDepositTx().isConfirmed()) {
-                MoneroTx depositTx = getDepositTxFromWalletOrDaemon(depositId);
-                if (depositTx != null) trader.setDepositTx(depositTx);
-            }
-            return trader.getDepositTx();
-        } catch (MoneroError e) {
-            log.error("Error getting {} deposit tx {}: {}", getPeerRole(trader), depositId, e.getMessage()); // TODO: peer.getRole()
-            throw e;
-        }
-    }
-
-    private MoneroTx getDepositTxFromWalletOrDaemon(String txId) {
-        MoneroTx tx = null;
-
-        // first check wallet
-        if (getWallet() != null) {
-            List<MoneroTxWallet> filteredTxs = getWallet().getTxs(new MoneroTxQuery()
-                    .setHash(txId)
-                    .setIsConfirmed(isDepositsConfirmed() ? true : null)); // avoid checking pool if confirmed
-            if (filteredTxs.size() == 1) tx = filteredTxs.get(0);
-        }
-
-        // then check daemon
-        if (tx == null) tx = xmrWalletService.getDaemonTxWithCache(txId);
-        return tx;
+        return getMaker().getDepositTx();
     }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
@@ -2231,7 +2199,7 @@ public abstract class Trade implements Tradable, Model {
             if (tx.getHash().equals(getMaker().getDepositTxHash())) getMaker().setDepositTx(tx);
             if (tx.getHash().equals(getTaker().getDepositTxHash())) getTaker().setDepositTx(tx);
         }
-        if (!txs.isEmpty()) depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
+        depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
     }
 
     private void forceRestartTradeWallet() {
