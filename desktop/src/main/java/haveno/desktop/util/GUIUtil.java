@@ -48,6 +48,7 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountList;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.Trade;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -528,9 +529,21 @@ public class GUIUtil {
     public static void updateConfidence(MoneroTx tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
+        updateConfidence(tx, null, tooltip, txConfidenceIndicator);
+    }
+
+    public static void updateConfidence(MoneroTx tx,
+                                        Trade trade,
+                                        Tooltip tooltip,
+                                        TxConfidenceIndicator txConfidenceIndicator) {
         if (tx == null || tx.getNumConfirmations() == null || !tx.isRelayed()) {
-            tooltip.setText(Res.get("confidence.unknown"));
-            txConfidenceIndicator.setProgress(-1);
+            if (trade != null && trade.isDepositsUnlocked()) {
+                tooltip.setText(Res.get("confidence.confirmed", ">=10"));
+                txConfidenceIndicator.setProgress(1.0);
+            } else {
+                tooltip.setText(Res.get("confidence.unknown"));
+                txConfidenceIndicator.setProgress(-1);
+            }
         } else {
             if (tx.isFailed()) {
                 tooltip.setText(Res.get("confidence.invalid"));

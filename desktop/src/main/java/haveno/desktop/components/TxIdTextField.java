@@ -199,18 +199,18 @@ public class TxIdTextField extends AnchorPane {
                 tx = useCache ? xmrWalletService.getDaemonTxWithCache(txId) : xmrWalletService.getDaemonTx(txId);
                 tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
             } else {
-                if (txId.equals(trade.getMaker().getDepositTxHash())) tx = trade.getMaker().getDepositTx();
-                else if (txId.equals(trade.getTaker().getDepositTxHash())) tx = trade.getTaker().getDepositTx();
+                if (txId.equals(trade.getMaker().getDepositTxHash())) tx = trade.getMakerDepositTx();
+                else if (txId.equals(trade.getTaker().getDepositTxHash())) tx = trade.getTakerDepositTx();
             }
         } catch (Exception e) {
             // do nothing
         }
-        updateConfidence(tx);
+        updateConfidence(tx, trade);
     }
 
-    private void updateConfidence(MoneroTx tx) {
+    private void updateConfidence(MoneroTx tx, Trade trade) {
         UserThread.execute(() -> {
-            GUIUtil.updateConfidence(tx, progressIndicatorTooltip, txConfidenceIndicator);
+            GUIUtil.updateConfidence(tx, trade, progressIndicatorTooltip, txConfidenceIndicator);
             if (txConfidenceIndicator.getProgress() != 0) {
                 AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
             }
