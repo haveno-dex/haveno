@@ -539,7 +539,7 @@ public class GUIUtil {
                 tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
                 txConfidenceIndicator.setProgress((double) tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK);
             } else {
-                tooltip.setText(Res.get("confidence.seen", 0));
+                tooltip.setText(Res.get("confidence.confirmed", 0));
                 txConfidenceIndicator.setProgress(-1);
             }
         }
