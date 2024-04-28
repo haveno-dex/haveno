@@ -82,6 +82,7 @@ import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
 import monero.daemon.model.MoneroFeeEstimate;
+import monero.daemon.model.MoneroKeyImage;
 import monero.daemon.model.MoneroNetworkType;
 import monero.daemon.model.MoneroOutput;
 import monero.daemon.model.MoneroSubmitTxResult;
@@ -196,6 +197,7 @@ public class XmrWalletService {
         this.rpcBindPort = rpcBindPort;
         this.useNativeXmrWallet = useNativeXmrWallet;
         this.xmrWalletFile = new File(walletDir, MONERO_WALLET_NAME);
+        HavenoUtils.xmrWalletService = this;
 
         // set monero logging
         if (MONERO_LOG_LEVEL >= 0) MoneroUtils.setLogLevel(MONERO_LOG_LEVEL);
@@ -533,6 +535,15 @@ public class XmrWalletService {
             cacheWalletInfo();
             requestSaveMainWallet();
         }
+    }
+
+    public BigInteger getOutputsAmount(Collection<String> keyImages) {
+        BigInteger sum = BigInteger.ZERO;
+        for (String keyImage : keyImages) {
+            List<MoneroOutputWallet> outputs = getOutputs(new MoneroOutputQuery().setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage)));
+            if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
+        }
+        return sum;
     }
 
     private List<Integer> getSubaddressesWithExactInput(BigInteger amount) {
