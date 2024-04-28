@@ -879,8 +879,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     return;
                 }
 
-                // get offer reserve amount
-                BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
+                // get amount needed to reserve offer
+                BigInteger amountNeeded = openOffer.getOffer().getAmountNeeded();
 
                 // handle split output offer
                 if (openOffer.isReserveExactAmount()) {
@@ -889,13 +889,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     MoneroTxWallet splitOutputTx = findSplitOutputFundingTx(openOffers, openOffer);
                     if (splitOutputTx != null && openOffer.getScheduledTxHashes() == null) {
                         openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
-                        openOffer.setScheduledAmount(offerReserveAmount.toString());
+                        openOffer.setScheduledAmount(amountNeeded.toString());
                         openOffer.setState(OpenOffer.State.SCHEDULED);
                     }
 
                     // if not found, create tx to split exact output
                     if (splitOutputTx == null) {
-                        splitOrSchedule(openOffers, openOffer, offerReserveAmount);
+                        splitOrSchedule(openOffers, openOffer, amountNeeded);
                     } else if (!splitOutputTx.isLocked()) {
 
                         // otherwise sign and post offer if split output available
@@ -905,7 +905,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             if (openOffer.getSplitOutputTxHash() == null) {
                                 int offerSubaddress = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).getSubaddressIndex();
                                 log.warn("Splitting new output because spending scheduled output(s) failed for offer {}. Offer funding subadress={}", openOffer.getId(), offerSubaddress);
-                                splitOrSchedule(openOffers, openOffer, offerReserveAmount);
+                                splitOrSchedule(openOffers, openOffer, amountNeeded);
                                 resultHandler.handleResult(null);
                             } else {
                                 errorMessageHandler.handleErrorMessage(errMsg);
@@ -916,7 +916,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 } else {
 
                     // handle sufficient balance
-                    boolean hasSufficientBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
+                    boolean hasSufficientBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(amountNeeded) >= 0;
                     if (hasSufficientBalance) {
                         signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
                         return;
@@ -936,7 +936,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private MoneroTxWallet findSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer) {
         XmrAddressEntry addressEntry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-        return findSplitOutputFundingTx(openOffers, openOffer, openOffer.getOffer().getReserveAmount(), addressEntry.getSubaddressIndex());
+        return findSplitOutputFundingTx(openOffers, openOffer, openOffer.getOffer().getAmountNeeded(), addressEntry.getSubaddressIndex());
     }
 
     private MoneroTxWallet findSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger reserveAmount, Integer preferredSubaddressIndex) {
@@ -1035,7 +1035,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private MoneroTxWallet splitAndSchedule(OpenOffer openOffer) {
-        BigInteger reserveAmount = openOffer.getOffer().getReserveAmount();
+        BigInteger reserveAmount = openOffer.getOffer().getAmountNeeded();
         xmrWalletService.swapAddressEntryToAvailable(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output(s)
         MoneroTxWallet splitOutputTx = null;
         synchronized (XmrWalletService.WALLET_LOCK) {
@@ -1064,7 +1064,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
         openOffer.setSplitOutputTxFee(splitOutputTx.getFee().longValueExact());
         openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
-        openOffer.setScheduledAmount(openOffer.getOffer().getReserveAmount().toString());
+        openOffer.setScheduledAmount(openOffer.getOffer().getAmountNeeded().toString());
         openOffer.setState(OpenOffer.State.SCHEDULED);
         return splitOutputTx;
     }
@@ -1072,7 +1072,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void scheduleWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
 
         // check for sufficient balance - scheduled offers amount
-        BigInteger offerReserveAmount = openOffer.getOffer().getReserveAmount();
+        BigInteger offerReserveAmount = openOffer.getOffer().getAmountNeeded();
         if (xmrWalletService.getWallet().getBalance(0).subtract(getScheduledAmount(openOffers)).compareTo(offerReserveAmount) < 0) {
             throw new RuntimeException("Not enough money in Haveno wallet");
         }
@@ -1135,7 +1135,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // create model
         PlaceOfferModel model = new PlaceOfferModel(openOffer,
-                openOffer.getOffer().getReserveAmount(),
+                openOffer.getOffer().getAmountNeeded(),
                 useSavingsWallet,
                 p2PService,
                 btcWalletService,

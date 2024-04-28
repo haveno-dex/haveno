@@ -36,6 +36,7 @@ import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -93,8 +94,9 @@ public class HavenoUtils {
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
-    public static ArbitrationManager arbitrationManager; // TODO: better way to share references?
     public static HavenoSetup havenoSetup;
+    public static ArbitrationManager arbitrationManager; // TODO: better way to share references?
+    public static XmrWalletService xmrWalletService;
 
     public static boolean isSeedNode() {
         return havenoSetup == null;

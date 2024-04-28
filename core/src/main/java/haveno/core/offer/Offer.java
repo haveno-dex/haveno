@@ -282,12 +282,18 @@ public class Offer implements NetworkPayload, PersistablePayload {
     // Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // get the amount needed for the maker to reserve the offer
-    public BigInteger getReserveAmount() {
-        BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getMaxBuyerSecurityDeposit() : getMaxSellerSecurityDeposit();
-        if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
-        reserveAmount = reserveAmount.add(getMaxMakerFee());
-        return reserveAmount;
+    // amount needed for the maker to reserve the offer
+    public BigInteger getAmountNeeded() {
+        BigInteger amountNeeded = getDirection() == OfferDirection.BUY ? getMaxBuyerSecurityDeposit() : getMaxSellerSecurityDeposit();
+        if (getDirection() == OfferDirection.SELL) amountNeeded = amountNeeded.add(getAmount());
+        amountNeeded = amountNeeded.add(getMaxMakerFee());
+        return amountNeeded;
+    }
+
+    // amount reserved for offer
+    public BigInteger getReservedAmount() {
+        if (offerPayload.getReserveTxKeyImages() == null) return null;
+        return HavenoUtils.xmrWalletService.getOutputsAmount(offerPayload.getReserveTxKeyImages());
     }
 
     public BigInteger getMaxMakerFee() {
