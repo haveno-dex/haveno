@@ -96,7 +96,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public static final int TRADE_STEP_TIMEOUT_SECONDS = Config.baseCurrencyNetwork().isTestnet() ? 45 : 180;
     private static final String TIMEOUT_REACHED = "Timeout reached.";
-    public static final int MAX_ATTEMPTS = 3;
+    public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other wallet functions
     public static final long REPROCESS_DELAY_MS = 5000;
 
     protected final ProcessModel processModel;
