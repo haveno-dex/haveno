@@ -28,6 +28,7 @@ import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroOutput;
@@ -78,37 +79,70 @@ public class MaybeSendSignContractRequest extends TradeTask {
             trade.addInitProgressStep();
 
             // create deposit tx and freeze inputs
-            Integer subaddressIndex = null;
-            boolean reserveExactAmount = false;
-            if (trade instanceof MakerTrade) {
-                reserveExactAmount = processModel.getOpenOfferManager().getOpenOfferById(trade.getId()).get().isReserveExactAmount();
-                if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+            MoneroTxWallet depositTx = null;
+            synchronized (XmrWalletService.WALLET_LOCK) {
+
+                // check for timeout
+                if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
+
+                // collect relevant info
+                Integer subaddressIndex = null;
+                boolean reserveExactAmount = false;
+                if (trade instanceof MakerTrade) {
+                    reserveExactAmount = processModel.getOpenOfferManager().getOpenOfferById(trade.getId()).get().isReserveExactAmount();
+                    if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+                }
+
+                // thaw reserved outputs
+                if (trade.getSelf().getReserveTxKeyImages() != null) {
+                    trade.getXmrWalletService().thawOutputs(trade.getSelf().getReserveTxKeyImages());
+                }
+
+                // attempt creating deposit tx
+                try {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                            try {
+                                depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
+                            } catch (Exception e) {
+                                log.warn("Error creating deposit tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
+                                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                            }
+            
+                            // check for timeout
+                            if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
+                            if (depositTx != null) break;
+                        }
+                    }
+                } catch (Exception e) {
+
+                    // re-freeze reserved outputs
+                    if (trade.getSelf().getReserveTxKeyImages() != null) {
+                        trade.getXmrWalletService().freezeOutputs(trade.getSelf().getReserveTxKeyImages());
+                    }
+
+                    throw e;
+                }
+                
+
+                // reset protocol timeout
+                trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+
+                // collect reserved key images
+                List<String> reservedKeyImages = new ArrayList<String>();
+                for (MoneroOutput input : depositTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+
+                // update trade state
+                BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+                trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
+                trade.getSelf().setDepositTx(depositTx);
+                trade.getSelf().setDepositTxHash(depositTx.getHash());
+                trade.getSelf().setDepositTxFee(depositTx.getFee());
+                trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
+                trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
+                trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
             }
-            MoneroTxWallet depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
-
-            // check if trade still exists
-            if (!processModel.getTradeManager().hasOpenTrade(trade)) {
-                throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getId());
-            }
-
-            // reset protocol timeout
-            trade.getProtocol().startTimeout(TradeProtocol.TRADE_TIMEOUT_SECONDS);
-
-            // collect reserved key images
-            List<String> reservedKeyImages = new ArrayList<String>();
-            for (MoneroOutput input : depositTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-
-            // save process state
-            trade.getSelf().setDepositTx(depositTx);
-            trade.getSelf().setDepositTxHash(depositTx.getHash());
-            trade.getSelf().setDepositTxFee(depositTx.getFee());
-            trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
-            trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(processModel.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
-            trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
-
-            // TODO: security deposit should be based on trade amount, not max offer amount
-            BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
-            trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
 
             // maker signs deposit hash nonce to avoid challenge protocol
             byte[] sig = null;
@@ -169,5 +203,9 @@ public class MaybeSendSignContractRequest extends TradeTask {
         trade.addInitProgressStep();
         processModel.getTradeManager().requestPersistence();
         complete();
+    }
+
+    private boolean isTimedOut() {
+        return !processModel.getTradeManager().hasOpenTrade(trade);
     }
 }

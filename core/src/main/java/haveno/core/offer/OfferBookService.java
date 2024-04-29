@@ -36,7 +36,6 @@ package haveno.core.offer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import common.utils.GenUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
@@ -46,6 +45,7 @@ import haveno.core.api.XmrConnectionService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.XmrKeyImageListener;
 import haveno.core.xmr.wallet.XmrKeyImagePoller;
@@ -287,7 +287,7 @@ public class OfferBookService {
         // first poll after 20s
         // TODO: remove?
         new Thread(() -> {
-            GenUtils.waitFor(20000);
+            HavenoUtils.waitFor(20000);
             keyImagePoller.poll();
         }).start();
     }

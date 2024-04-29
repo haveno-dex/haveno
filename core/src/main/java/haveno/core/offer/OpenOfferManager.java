@@ -36,7 +36,6 @@ package haveno.core.offer;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
-import common.utils.GenUtils;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -71,6 +70,7 @@ import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.handlers.TransactionResultHandler;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -278,7 +278,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // first poll in 5s
         // TODO: remove?
         new Thread(() -> {
-            GenUtils.waitFor(5000);
+            HavenoUtils.waitFor(5000);
             signedOfferKeyImagePoller.poll();
         }).start();
     }
@@ -349,7 +349,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // For typical number of offers we are tolerant with delay to give enough time to broadcast.
                 // If number of offers is very high we limit to 3 sec. to not delay other shutdown routines.
                 long delayMs = Math.min(3000, size * 200 + 500);
-                GenUtils.waitFor(delayMs);
+                HavenoUtils.waitFor(delayMs);
             }, THREAD_ID);
         } else {
             broadcaster.flush();
@@ -705,9 +705,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // remove open offer which thaws its key images
     private void onCancelled(@NotNull OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
-        if (offer.getOfferPayload().getReserveTxKeyImages() != null) {
-            xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
-        }
+        xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
         removeOpenOffer(openOffer);
@@ -1029,6 +1027,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
         if (sufficientAvailableBalance) {
+            log.info("Splitting and scheduling outputs for offer {} at subaddress {}", openOffer.getShortId());
             splitAndSchedule(openOffer);
         } else if (openOffer.getScheduledTxHashes() == null) {
             scheduleWithEarliestTxs(openOffers, openOffer);
@@ -1038,16 +1037,28 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private MoneroTxWallet splitAndSchedule(OpenOffer openOffer) {
         BigInteger reserveAmount = openOffer.getOffer().getReserveAmount();
         xmrWalletService.swapAddressEntryToAvailable(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output(s)
-        XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-        log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getId(), entry.getSubaddressIndex());
-        long startTime = System.currentTimeMillis();
-        MoneroTxWallet splitOutputTx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
-                .setAccountIndex(0)
-                .setAddress(entry.getAddressString())
-                .setAmount(reserveAmount)
-                .setRelay(true)
-                .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
-        log.info("Done creating split output tx to fund offer {} in {} ms", openOffer.getId(), System.currentTimeMillis() - startTime);
+        MoneroTxWallet splitOutputTx = null;
+        synchronized (XmrWalletService.WALLET_LOCK) {
+            XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
+            log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getShortId(), entry.getSubaddressIndex());
+            long startTime = System.currentTimeMillis();
+            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                try {
+                    splitOutputTx = xmrWalletService.createTx(new MoneroTxConfig()
+                            .setAccountIndex(0)
+                            .setAddress(entry.getAddressString())
+                            .setAmount(reserveAmount)
+                            .setRelay(true)
+                            .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
+                    break;
+                } catch (Exception e) {
+                    log.warn("Error creating split output tx to fund offer {} at subaddress {}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                    if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                }
+            }
+            log.info("Done creating split output tx to fund offer {} in {} ms", openOffer.getId(), System.currentTimeMillis() - startTime);
+        }
 
         // schedule txs
         openOffer.setSplitOutputTxHash(splitOutputTx.getHash());

@@ -64,7 +64,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
 
             // skip if payout tx already created
             if (trade.getPayoutTxHex() != null) {
-              log.warn("Skipping preparation of payment sent message because payout tx is already created for {} {}", trade.getClass().getSimpleName(), trade.getId());
+              log.warn("Skipping preparation of payment sent message because payout tx is already created for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
               complete();
               return;
             }
@@ -83,7 +83,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                 trade.importMultisigHex();
 
                 // create payout tx
-                log.info("Buyer creating unsigned payout tx");
+                log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.setPayoutTx(payoutTx);
                 trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());

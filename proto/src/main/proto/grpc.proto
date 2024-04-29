@@ -315,9 +315,9 @@ service XmrConnections {
     }
     rpc CheckConnections(CheckConnectionsRequest) returns (CheckConnectionsReply) {
     }
-    rpc StartCheckingConnections(StartCheckingConnectionsRequest) returns (StartCheckingConnectionsReply) {
+    rpc StartCheckingConnection(StartCheckingConnectionRequest) returns (StartCheckingConnectionReply) {
     }
-    rpc StopCheckingConnections(StopCheckingConnectionsRequest) returns (StopCheckingConnectionsReply) {
+    rpc StopCheckingConnection(StopCheckingConnectionRequest) returns (StopCheckingConnectionReply) {
     }
     rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
     }
@@ -388,15 +388,15 @@ message CheckConnectionsReply {
     repeated UrlConnection connections = 1;
 }
 
-message StartCheckingConnectionsRequest {
+message StartCheckingConnectionRequest {
     int32 refresh_period = 1; // milliseconds
 }
 
-message StartCheckingConnectionsReply {}
+message StartCheckingConnectionReply {}
 
-message StopCheckingConnectionsRequest {}
+message StopCheckingConnectionRequest {}
 
-message StopCheckingConnectionsReply {}
+message StopCheckingConnectionReply {}
 
 message GetBestAvailableConnectionRequest {}
 

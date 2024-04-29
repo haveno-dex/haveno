@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
+import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
@@ -101,6 +102,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     @Getter
     private final ObjectProperty<MessageState> messageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     private Subscription tradeStateSubscription;
+    private Subscription paymentAccountDecryptedSubscription;
     private Subscription payoutStateSubscription;
     private Subscription messageStateSubscription;
     @Getter
@@ -146,6 +148,11 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 tradeStateSubscription = null;
             }
 
+            if (paymentAccountDecryptedSubscription != null) {
+                paymentAccountDecryptedSubscription.unsubscribe();
+                paymentAccountDecryptedSubscription = null;
+            }
+
             if (payoutStateSubscription != null) {
                 payoutStateSubscription.unsubscribe();
                 payoutStateSubscription = null;
@@ -167,6 +174,10 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.UNDEFINED);
             }
 
+            if (paymentAccountDecryptedSubscription != null) {
+                paymentAccountDecryptedSubscription.unsubscribe();
+            }
+
             if (payoutStateSubscription != null) {
                 payoutStateSubscription.unsubscribe();
                 sellerState.set(SellerState.UNDEFINED);
@@ -183,12 +194,23 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
                     onTradeStateChanged(state);
                 });
+                paymentAccountDecryptedSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentAccountDecryptedProperty(), decrypted -> {
+                    refresh();
+                });
                 payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                     onPayoutStateChanged(state);
                 });
                 messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
             }
         }
+    }
+
+    private void refresh() {
+        UserThread.execute(() -> {
+            sellerState.set(UNDEFINED);
+            buyerState.set(BuyerState.UNDEFINED);
+            onTradeStateChanged(trade.getState());
+        });
     }
 
     private void onMessageStateChanged(MessageState messageState) {

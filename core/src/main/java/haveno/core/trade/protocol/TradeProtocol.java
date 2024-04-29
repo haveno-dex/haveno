@@ -37,6 +37,7 @@ package haveno.core.trade.protocol;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.config.Config;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
@@ -67,7 +68,7 @@ import haveno.core.trade.protocol.tasks.ProcessInitMultisigRequest;
 import haveno.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import haveno.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import haveno.core.trade.protocol.tasks.ProcessSignContractRequest;
-import haveno.core.trade.protocol.tasks.ProcessSignContractResponse;
+import haveno.core.trade.protocol.tasks.SendDepositRequest;
 import haveno.core.trade.protocol.tasks.RemoveOffer;
 import haveno.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import haveno.core.trade.protocol.tasks.MaybeResendDisputeClosedMessageWithPayout;
@@ -93,8 +94,10 @@ import java.util.concurrent.CountDownLatch;
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
 
-    public static final int TRADE_TIMEOUT_SECONDS = 120;
+    public static final int TRADE_STEP_TIMEOUT_SECONDS = Config.baseCurrencyNetwork().isTestnet() ? 45 : 180;
     private static final String TIMEOUT_REACHED = "Timeout reached.";
+    public static final int MAX_ATTEMPTS = 3;
+    public static final long REPROCESS_DELAY_MS = 5000;
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -104,6 +107,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected TradeResultHandler tradeResultHandler;
     protected ErrorMessageHandler errorMessageHandler;
 
+    private boolean depositsConfirmedTasksCalled;
     private int reprocessPaymentReceivedMessageCount;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -251,14 +255,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
 
         // send deposits confirmed message if applicable
-        maybeSendDepositsConfirmedMessages();
         EasyBind.subscribe(trade.stateProperty(), state -> maybeSendDepositsConfirmedMessages());
     }
 
     public void maybeSendDepositsConfirmedMessages() {
         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
-            if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished()) return;
+            if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished() || depositsConfirmedTasksCalled) return;
+            depositsConfirmedTasksCalled = true;
             synchronized (trade) {
                 if (!trade.isInitialized() || trade.isShutDownStarted()) return; // skip if shutting down
                 latchTrade();
@@ -316,13 +320,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                 MaybeSendSignContractRequest.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
-                                startTimeout(TRADE_TIMEOUT_SECONDS);
+                                startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
                                 handleTaskRunnerSuccess(sender, request);
                             },
                             errorMessage -> {
                                 handleTaskRunnerFault(sender, request, errorMessage);
                             }))
-                        .withTimeout(TRADE_TIMEOUT_SECONDS))
+                        .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
                         .executeTasks(true);
                 awaitTradeLatch();
             }
@@ -354,13 +358,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     ProcessSignContractRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout(TRADE_TIMEOUT_SECONDS);
+                                        startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
                                         handleTaskRunnerFault(sender, message, errorMessage);
                                     }))
-                            .withTimeout(TRADE_TIMEOUT_SECONDS)) // extend timeout
+                            .withTimeout(TRADE_STEP_TIMEOUT_SECONDS)) // extend timeout
                             .executeTasks(true);
                     awaitTradeLatch();
                 } else {
@@ -396,16 +400,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             .from(sender))
                             .setup(tasks(
                                     // TODO (woodser): validate request
-                                    ProcessSignContractResponse.class)
+                                    SendDepositRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout(TRADE_TIMEOUT_SECONDS);
+                                        startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
                                         handleTaskRunnerFault(sender, message, errorMessage);
                                     }))
-                            .withTimeout(TRADE_TIMEOUT_SECONDS)) // extend timeout
+                            .withTimeout(TRADE_STEP_TIMEOUT_SECONDS)) // extend timeout
                             .executeTasks(true);
                     awaitTradeLatch();
                 } else {
@@ -451,7 +455,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             errorMessage -> {
                                 handleTaskRunnerFault(sender, response, errorMessage);
                             }))
-                        .withTimeout(TRADE_TIMEOUT_SECONDS))
+                        .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
                         .executeTasks(true);
                 awaitTradeLatch();
             }

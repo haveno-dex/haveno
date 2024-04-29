@@ -38,7 +38,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import common.utils.GenUtils;
 import haveno.common.ClockWatcher;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
@@ -512,7 +511,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }).start();
 
         // allow execution to start
-        GenUtils.waitFor(100);
+        HavenoUtils.waitFor(100);
     }
 
     private void initPersistedTrade(Trade trade) {
@@ -1249,27 +1248,20 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void addTrade(Trade trade) {
-        UserThread.execute(() -> {
-            synchronized (tradableList) {
-                if (tradableList.add(trade)) {
-                    requestPersistence();
-                }
+        synchronized (tradableList) {
+            if (tradableList.add(trade)) {
+                requestPersistence();
             }
-        });
+        }
     }
 
     private void removeTrade(Trade trade) {
         log.info("TradeManager.removeTrade() " + trade.getId());
-        synchronized (tradableList) {
-            if (!tradableList.contains(trade)) return;
-        }
-
+        
         // remove trade
-        UserThread.execute(() -> {
-            synchronized (tradableList) {
-                tradableList.remove(trade);
-            }
-        });
+        synchronized (tradableList) {
+            if (!tradableList.remove(trade)) return;
+        }
 
         // unregister and persist
         p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
@@ -1277,30 +1269,26 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void maybeRemoveTradeOnError(Trade trade) {
-        synchronized (tradableList) {
-            if (trade.isDepositRequested() && !trade.isDepositFailed()) {
-                listenForCleanup(trade);
-            } else {
-                removeTradeOnError(trade);
-            }
+        if (trade.isDepositRequested() && !trade.isDepositFailed()) {
+            listenForCleanup(trade);
+        } else {
+            removeTradeOnError(trade);
         }
     }
 
     private void removeTradeOnError(Trade trade) {
         log.warn("TradeManager.removeTradeOnError() trade={}, tradeId={}, state={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getState());
-        synchronized (tradableList) {
 
-            // unreserve taker key images
-            if (trade instanceof TakerTrade && trade.getSelf().getReserveTxKeyImages() != null) {
-                xmrWalletService.thawOutputs(trade.getSelf().getReserveTxKeyImages());
-                trade.getSelf().setReserveTxKeyImages(null);
-            }
+        // unreserve taker key images
+        if (trade instanceof TakerTrade) {
+            xmrWalletService.thawOutputs(trade.getSelf().getReserveTxKeyImages());
+            trade.getSelf().setReserveTxKeyImages(null);
+        }
 
-            // unreserve open offer
-            Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(trade.getId());
-            if (trade instanceof MakerTrade && openOffer.isPresent()) {
-                openOfferManager.unreserveOpenOffer(openOffer.get());
-            }
+        // unreserve open offer
+        Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(trade.getId());
+        if (trade instanceof MakerTrade && openOffer.isPresent()) {
+            openOfferManager.unreserveOpenOffer(openOffer.get());
         }
 
         // clear and shut down trade
@@ -1358,7 +1346,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     new Thread(() -> {
 
                         // wait minimum time
-                        GenUtils.waitFor(Math.max(0, REMOVE_AFTER_MS - (System.currentTimeMillis() - startTime)));
+                        HavenoUtils.waitFor(Math.max(0, REMOVE_AFTER_MS - (System.currentTimeMillis() - startTime)));
 
                         // get trade's deposit txs from daemon
                         MoneroTx makerDepositTx = trade.getMaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getMaker().getDepositTxHash());
