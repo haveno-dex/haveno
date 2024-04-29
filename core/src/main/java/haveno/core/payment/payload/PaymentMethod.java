@@ -563,9 +563,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static boolean hasChargebackRisk(String id, String currencyCode) {
-        if (CurrencyUtil.getMatureMarketCurrencies().stream()
-                .noneMatch(c -> c.getCode().equals(currencyCode)))
-            return false;
+
+        // TODO: bisq indicates no chargeback risk for non-"mature" currencies, but they have chargeback risk too, so we disable
+        // if (CurrencyUtil.getMatureMarketCurrencies().stream()
+        //         .noneMatch(c -> c.getCode().equals(currencyCode)))
+        //     return false;
 
         return id.equals(PaymentMethod.SEPA_ID) ||
                 id.equals(PaymentMethod.SEPA_INSTANT_ID) ||
