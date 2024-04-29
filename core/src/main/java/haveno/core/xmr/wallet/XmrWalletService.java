@@ -383,16 +383,16 @@ public class XmrWalletService {
      * Sync the given wallet in a thread pool with other wallets.
      */
     public MoneroSyncResult syncWallet(MoneroWallet wallet) {
-        Callable<MoneroSyncResult> task = () -> {
-            synchronized (HavenoUtils.getDaemonLock()) {
+        synchronized (HavenoUtils.getDaemonLock()) { // TODO: lock defeats purpose of thread pool
+            Callable<MoneroSyncResult> task = () -> {
                 return wallet.sync();
+            };
+            Future<MoneroSyncResult> future = syncWalletThreadPool.submit(task);
+            try {
+                return future.get();
+            } catch (Exception e) {
+                throw new MoneroError(e.getMessage());
             }
-        };
-        Future<MoneroSyncResult> future = syncWalletThreadPool.submit(task);
-        try {
-            return future.get();
-        } catch (Exception e) {
-            throw new MoneroError(e.getMessage());
         }
     }
 
