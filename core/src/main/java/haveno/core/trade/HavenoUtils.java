@@ -19,6 +19,8 @@ package haveno.core.trade;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
+
+import common.utils.GenUtils;
 import haveno.common.config.Config;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
@@ -70,6 +72,17 @@ public class HavenoUtils {
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
     public static final double PENALTY_FEE_PCT = 0.02; // 2%
 
+    // synchronize requests to the daemon
+    private static boolean SYNC_DAEMON_REQUESTS = true; // sync long requests to daemon (e.g. refresh, update pool)
+    private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create tx, import multisig hex)
+    private static Object DAEMON_LOCK = new Object();
+    public static Object getDaemonLock() {
+        return SYNC_DAEMON_REQUESTS ? DAEMON_LOCK : new Object();
+    }
+    public static Object getWalletFunctionLock() {
+        return SYNC_WALLET_REQUESTS ? getDaemonLock() : new Object();
+    }
+
     // non-configurable
     public static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US); // use the US locale as a base for all DecimalFormats (commas should be omitted from number strings)
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
@@ -106,6 +119,10 @@ public class HavenoUtils {
         calendar.add(Calendar.DATE, days);
         Date releaseDatePlusDays = calendar.getTime();
         return new Date().before(releaseDatePlusDays);
+    }
+
+    public static void waitFor(long waitMs) {
+        GenUtils.waitFor(waitMs);
     }
 
     // ----------------------- CONVERSION UTILS -------------------------------

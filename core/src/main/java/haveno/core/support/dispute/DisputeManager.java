@@ -524,7 +524,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                     // update multisig hex
                     if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
-                    if (trade.walletExists()) trade.importMultisigHex();
 
                     // add chat message with price info
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
@@ -896,17 +895,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 }
 
                 // create dispute payout tx
-                MoneroTxWallet payoutTx = null;
-                try {
-                    payoutTx = trade.getWallet().createTx(txConfig);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    throw new RuntimeException("Loser payout is too small to cover the mining fee");
-                }
+                MoneroTxWallet payoutTx = trade.createDisputePayoutTx(txConfig);
 
                 // update trade state
                 if (updateState) {
                     trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
+                    trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
                     trade.setPayoutTx(payoutTx);
                     trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                     if (trade.getBuyer().getUpdatedMultisigHex() != null && trade.getBuyer().getUnsignedPayoutTxHex() == null) trade.getBuyer().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());

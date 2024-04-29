@@ -46,6 +46,7 @@ import haveno.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
 import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToArbitrator;
 import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToSeller;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
+import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToSeller;
 import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
@@ -158,6 +159,6 @@ public class BuyerProtocol extends DisputeProtocol {
     @SuppressWarnings("unchecked")
     @Override
     public Class<? extends TradeTask>[] getDepositsConfirmedTasks() {
-        return new Class[] { SendDepositsConfirmedMessageToArbitrator.class };
+        return new Class[] { SendDepositsConfirmedMessageToSeller.class, SendDepositsConfirmedMessageToArbitrator.class };
     }
 }

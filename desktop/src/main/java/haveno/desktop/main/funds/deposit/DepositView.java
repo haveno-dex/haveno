@@ -91,6 +91,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
+import monero.common.MoneroUtils;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroWalletListener;
 import net.glxn.qrgen.QRCode;
@@ -365,7 +366,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     @NotNull
     private String getPaymentUri() {
-        return xmrWalletService.getWallet().getPaymentUri(new MoneroTxConfig()
+        return MoneroUtils.getPaymentUri(new MoneroTxConfig()
                 .setAddress(addressTextField.getAddress())
                 .setAmount(HavenoUtils.coinToAtomicUnits(getAmount()))
                 .setNote(paymentLabelString));

@@ -163,6 +163,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     @Setter
     private ObjectProperty<MessageState> paymentSentMessageStatePropertyArbitrator = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    private ObjectProperty<Boolean> paymentAccountDecryptedProperty = new SimpleObjectProperty<>(false);
 
     public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing) {
         this(offerId, accountId, pubKeyRing, new TradePeer(), new TradePeer(), new TradePeer());

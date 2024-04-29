@@ -29,14 +29,16 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-public class ProcessSignContractResponse extends TradeTask {
+public class SendDepositRequest extends TradeTask {
 
     @SuppressWarnings({"unused"})
-    public ProcessSignContractResponse(TaskRunner taskHandler, Trade trade) {
+    public SendDepositRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -107,7 +109,11 @@ public class ProcessSignContractResponse extends TradeTask {
                     }
                 });
             } else {
-                log.info("Waiting for another contract signature to send deposit request");
+                List<String> awaitingSignaturesFrom = new ArrayList<>();
+                if (processModel.getArbitrator().getContractSignature() == null) awaitingSignaturesFrom.add("arbitrator");
+                if (processModel.getMaker().getContractSignature() == null) awaitingSignaturesFrom.add("maker");
+                if (processModel.getTaker().getContractSignature() == null) awaitingSignaturesFrom.add("taker");
+                log.info("Waiting for contract signature from {} to send deposit request", awaitingSignaturesFrom);
                 complete(); // does not yet have needed signatures
             }
         } catch (Throwable t) {

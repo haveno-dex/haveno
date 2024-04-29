@@ -36,7 +36,6 @@ package haveno.core.support.dispute.arbitration;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import common.utils.GenUtils;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -68,6 +67,7 @@ import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
@@ -290,7 +290,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                             for (int i = 0; i < 5; i++) {
                                 if (trade.isPayoutPublished()) break;
-                                GenUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
+                                HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
                             }
                             if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
                         }
@@ -310,7 +310,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                     log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
                                 } else {
                                     if (e instanceof IllegalArgumentException) throw e;
-                                    else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator: " + e.getMessage() + ". TradeId = " + tradeId, e);
+                                    else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator for " + trade.getClass().getSimpleName() + " " + tradeId + ": " + e.getMessage(), e);
                                 }
                             }
                         }
@@ -430,8 +430,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         if (!expectedBuyerAmount.equals(actualBuyerAmount)) throw new IllegalArgumentException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + actualBuyerAmount);
         if (!expectedSellerAmount.equals(actualSellerAmount)) throw new IllegalArgumentException("Unexpected seller payout: " + expectedSellerAmount + " vs " + actualSellerAmount);
 
-        // check wallet's daemon connection
-        trade.checkAndVerifyDaemonConnection();
+        // check daemon connection
+        trade.verifyDaemonConnection();
 
         // determine if we already signed dispute payout tx
         // TODO: better way, such as by saving signed dispute payout tx hex in designated field instead of shared payoutTxHex field?
@@ -471,8 +471,17 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }
 
         // submit fully signed payout tx to the network
-        List<String> txHashes = multisigWallet.submitMultisigTxHex(disputeTxSet.getMultisigTxHex());
-        disputeTxSet.getTxs().get(0).setHash(txHashes.get(0)); // manually update hash which is known after signed
+        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+            try {
+                List<String> txHashes = multisigWallet.submitMultisigTxHex(disputeTxSet.getMultisigTxHex());
+                disputeTxSet.getTxs().get(0).setHash(txHashes.get(0)); // manually update hash which is known after signed
+                break;
+            } catch (Exception e) {
+                log.warn("Failed to submit dispute payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
+                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+            }
+        }
 
         // update state
         trade.setPayoutTx(disputeTxSet.getTxs().get(0)); // TODO (woodser): is trade.payoutTx() mutually exclusive from dispute payout tx?

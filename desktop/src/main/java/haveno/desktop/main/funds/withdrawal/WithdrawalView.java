@@ -261,7 +261,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
                 // create tx
                 if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
-                MoneroTxWallet tx = xmrWalletService.getWallet().createTx(new MoneroTxConfig()
+                MoneroTxWallet tx = xmrWalletService.createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
                         .setAmount(amount)
                         .setAddress(withdrawToAddress)

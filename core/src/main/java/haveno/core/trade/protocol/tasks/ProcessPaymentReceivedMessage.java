@@ -34,7 +34,6 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import common.utils.GenUtils;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.support.dispute.Dispute;
@@ -145,7 +144,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 for (int i = 0; i < 5; i++) {
                     if (trade.isPayoutPublished()) break;
-                    GenUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
+                    HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
                 }
                 if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
             }

@@ -199,15 +199,15 @@ public class CoreApi {
     // Monero Connections
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void addMoneroConnection(MoneroRpcConnection connection) {
+    public void addXmrConnection(MoneroRpcConnection connection) {
         xmrConnectionService.addConnection(connection);
     }
 
-    public void removeMoneroConnection(String connectionUri) {
+    public void removeXmrConnection(String connectionUri) {
         xmrConnectionService.removeConnection(connectionUri);
     }
 
-    public MoneroRpcConnection getMoneroConnection() {
+    public MoneroRpcConnection getXmrConnection() {
         return xmrConnectionService.getConnection();
     }
 
@@ -215,15 +215,15 @@ public class CoreApi {
         return xmrConnectionService.getConnections();
     }
 
-    public void setMoneroConnection(String connectionUri) {
+    public void setXmrConnection(String connectionUri) {
         xmrConnectionService.setConnection(connectionUri);
     }
 
-    public void setMoneroConnection(MoneroRpcConnection connection) {
+    public void setXmrConnection(MoneroRpcConnection connection) {
         xmrConnectionService.setConnection(connection);
     }
 
-    public MoneroRpcConnection checkMoneroConnection() {
+    public MoneroRpcConnection checkXmrConnection() {
         return xmrConnectionService.checkConnection();
     }
 
@@ -231,19 +231,19 @@ public class CoreApi {
         return xmrConnectionService.checkConnections();
     }
 
-    public void startCheckingMoneroConnection(Long refreshPeriod) {
+    public void startCheckingXmrConnection(Long refreshPeriod) {
         xmrConnectionService.startCheckingConnection(refreshPeriod);
     }
 
-    public void stopCheckingMoneroConnection() {
+    public void stopCheckingXmrConnection() {
         xmrConnectionService.stopCheckingConnection();
     }
 
-    public MoneroRpcConnection getBestAvailableMoneroConnection() {
+    public MoneroRpcConnection getBestAvailableXmrConnection() {
         return xmrConnectionService.getBestAvailableConnection();
     }
 
-    public void setMoneroConnectionAutoSwitch(boolean autoSwitch) {
+    public void setXmrConnectionAutoSwitch(boolean autoSwitch) {
         xmrConnectionService.setAutoSwitch(autoSwitch);
     }
 
