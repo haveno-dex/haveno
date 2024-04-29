@@ -129,6 +129,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             @Override
             public void onArrived() {
                 log.info("{} arrived at arbitrator: offerId={}", request.getClass().getSimpleName(), model.getOpenOffer().getId());
+                model.getProtocol().startTimeoutTimer(); // reset timeout
             }
 
             // if unavailable, try alternative arbitrator
