@@ -757,7 +757,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
             // create dispute closed message
             TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-            boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && (trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG || trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
+            boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && (trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG || trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal());
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
