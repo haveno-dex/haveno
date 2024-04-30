@@ -35,7 +35,6 @@
 package haveno.core.xmr;
 
 import com.google.inject.Inject;
-import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.offer.OpenOffer;
