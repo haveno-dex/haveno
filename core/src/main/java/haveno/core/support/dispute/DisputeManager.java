@@ -739,12 +739,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             boolean exists = disputeResult.getChatMessage() != null && disputeResult.getChatMessage().getMessage() != null && !disputeResult.getChatMessage().getMessage().isEmpty();
             if (!exists) {
                 ChatMessage chatMessage = new ChatMessage(
-                    getSupportType(),
-                    dispute.getTradeId(),
-                    dispute.getTraderPubKeyRing().hashCode(),
-                    false,
-                    summaryText,
-                    p2PService.getAddress());
+                        getSupportType(),
+                        dispute.getTradeId(),
+                        dispute.getTraderPubKeyRing().hashCode(),
+                        false,
+                        summaryText,
+                        p2PService.getAddress());
                 disputeResult.setChatMessage(chatMessage);
                 dispute.addAndPersistChatMessage(chatMessage);
             }
@@ -757,8 +757,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
             // create dispute closed message
             TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-            boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal();
-            log.info("deferPublishPayout = {} = {} && {} && {} && {}", deferPublishPayout, !exists, receiver.getUnsignedPayoutTxHex() != null, receiverPeer.getUpdatedMultisigHex() != null, trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal());
+            boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && (trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG || trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
