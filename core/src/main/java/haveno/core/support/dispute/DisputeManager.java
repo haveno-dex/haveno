@@ -758,6 +758,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             // create dispute closed message
             TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
             boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal();
+            log.info("deferPublishPayout = {} = {} && {} && {} && {}", deferPublishPayout, !exists, receiver.getUnsignedPayoutTxHex() != null, receiverPeer.getUpdatedMultisigHex() != null, trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal());
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
@@ -856,7 +857,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         if (!trade.isPayoutPublished()) {
 
             // create unsigned dispute payout tx
-            log.info("Creating unsigned dispute payout tx for trade {}", trade.getId());
+            if (updateState) log.info("Creating unsigned dispute payout tx for trade {}", trade.getId());
             try {
 
                 // trade wallet must be synced

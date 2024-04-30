@@ -641,7 +641,7 @@ public abstract class Trade implements Tradable, Model {
         // handle trade phase events
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
-            ThreadUtils.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
                 if (isDepositsPublished() && !isPayoutUnlocked()) updatePollPeriod();
                 if (isPaymentReceived()) {
@@ -652,13 +652,13 @@ public abstract class Trade implements Tradable, Model {
                         }
                     });
                 }
-            }, getId());
+            });
         });
 
         // handle payout events
         payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
-            ThreadUtils.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
                 if (isPayoutPublished()) updatePollPeriod();
 
                 // handle when payout published
@@ -666,11 +666,13 @@ public abstract class Trade implements Tradable, Model {
                     log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
 
                     // sync main wallet to update pending balance
-                    new Thread(() -> {
-                        HavenoUtils.waitFor(1000);
-                        if (isShutDownStarted) return;
-                        if (xmrConnectionService.isConnected()) xmrWalletService.syncWallet();
-                    }).start();
+                    if (!isPayoutConfirmed()) {
+                        new Thread(() -> {
+                            HavenoUtils.waitFor(1000);
+                            if (isShutDownStarted) return;
+                            if (xmrConnectionService.isConnected()) syncAndPollWallet();
+                        }).start();
+                    }
 
                     // complete disputed trade
                     if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) {
@@ -691,7 +693,7 @@ public abstract class Trade implements Tradable, Model {
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
                     clearAndShutDown();
                 }
-            }, getId());
+            });
         });
 
         // arbitrator syncs idle wallet when payout unlock expected
