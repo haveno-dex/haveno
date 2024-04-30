@@ -118,10 +118,6 @@ public class Balances {
     }
 
     private void updateBalances() {
-        ThreadUtils.submitToPool(() -> doUpdateBalances());
-    }
-
-    private void doUpdateBalances() {
         synchronized (this) {
             
             // get wallet balances
