@@ -472,7 +472,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 });
 
                 // register to process unposted offers when unlocked balance increases
-                if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getWallet().getUnlockedBalance(0);
+                if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getAvailableBalance();
                 xmrWalletService.addWalletListener(new MoneroWalletListener() {
                     @Override
                     public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
@@ -916,7 +916,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 } else {
 
                     // handle sufficient balance
-                    boolean hasSufficientBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(amountNeeded) >= 0;
+                    boolean hasSufficientBalance = xmrWalletService.getAvailableBalance().compareTo(amountNeeded) >= 0;
                     if (hasSufficientBalance) {
                         signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
                         return;
@@ -1025,7 +1025,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
 
         // handle sufficient available balance to split output
-        boolean sufficientAvailableBalance = xmrWalletService.getWallet().getUnlockedBalance(0).compareTo(offerReserveAmount) >= 0;
+        boolean sufficientAvailableBalance = xmrWalletService.getAvailableBalance().compareTo(offerReserveAmount) >= 0;
         if (sufficientAvailableBalance) {
             log.info("Splitting and scheduling outputs for offer {} at subaddress {}", openOffer.getShortId());
             splitAndSchedule(openOffer);
@@ -1073,7 +1073,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // check for sufficient balance - scheduled offers amount
         BigInteger offerReserveAmount = openOffer.getOffer().getAmountNeeded();
-        if (xmrWalletService.getWallet().getBalance(0).subtract(getScheduledAmount(openOffers)).compareTo(offerReserveAmount) < 0) {
+        if (xmrWalletService.getBalance().subtract(getScheduledAmount(openOffers)).compareTo(offerReserveAmount) < 0) {
             throw new RuntimeException("Not enough money in Haveno wallet");
         }
 
@@ -1105,7 +1105,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         for (OpenOffer openOffer : openOffers) {
             if (openOffer.getState() != OpenOffer.State.SCHEDULED) continue;
             if (openOffer.getScheduledTxHashes() == null) continue;
-            List<MoneroTxWallet> fundingTxs = xmrWalletService.getWallet().getTxs(openOffer.getScheduledTxHashes());
+            List<MoneroTxWallet> fundingTxs = xmrWalletService.getTxs(openOffer.getScheduledTxHashes());
             for (MoneroTxWallet fundingTx : fundingTxs) {
                 if (fundingTx.getIncomingTransfers() != null) {
                     for (MoneroIncomingTransfer transfer : fundingTx.getIncomingTransfers()) {

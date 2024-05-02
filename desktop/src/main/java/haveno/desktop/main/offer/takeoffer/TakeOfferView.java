@@ -950,8 +950,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         return GUIUtil.getMoneroURI(
                 model.dataModel.getAddressEntry().getAddressString(),
                 model.dataModel.getMissingCoin().get(),
-                model.getPaymentLabel(),
-                model.dataModel.getXmrWalletService().getWallet());
+                model.getPaymentLabel());
     }
 
     private void addAmountPriceFields() {

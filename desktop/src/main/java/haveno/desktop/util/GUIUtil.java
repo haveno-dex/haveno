@@ -95,7 +95,6 @@ import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
@@ -686,7 +685,7 @@ public class GUIUtil {
                 .show();
     }
 
-    public static String getMoneroURI(String address, BigInteger amount, String label, MoneroWallet wallet) {
+    public static String getMoneroURI(String address, BigInteger amount, String label) {
         return MoneroUtils.getPaymentUri(new MoneroTxConfig()
                 .setAddress(address)
                 .setAmount(amount)

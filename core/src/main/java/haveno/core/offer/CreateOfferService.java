@@ -203,7 +203,7 @@ public class CreateOfferService {
                 bankId,
                 acceptedBanks,
                 Version.VERSION,
-                xmrWalletService.getWallet().getHeight(),
+                xmrWalletService.getHeight(),
                 maxTradeLimit,
                 maxTradePeriod,
                 useAutoClose,

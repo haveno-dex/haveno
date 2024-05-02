@@ -1214,8 +1214,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         return GUIUtil.getMoneroURI(
                 addressTextField.getAddress(),
                 model.getDataModel().getMissingCoin().get(),
-                model.getPaymentLabel(),
-                model.dataModel.getXmrWalletService().getWallet());
+                model.getPaymentLabel());
     }
 
     private void addAmountPriceFields() {
