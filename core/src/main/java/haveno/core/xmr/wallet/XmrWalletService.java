@@ -1140,6 +1140,10 @@ public class XmrWalletService {
         xmrAddressEntryList.requestPersistence();
     }
 
+    public long getHeight() {
+        return walletHeight.get();
+    }
+
     public List<MoneroTxWallet> getTxs(boolean includeFailed) {
         List<MoneroTxWallet> txs = getTxs();
         if (includeFailed) return txs;
@@ -1156,6 +1160,10 @@ public class XmrWalletService {
             cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); // fetches from pool
         }
         return cachedTxs.stream().filter(tx -> query.meetsCriteria(tx)).collect(Collectors.toList());
+    }
+
+    public List<MoneroTxWallet> getTxs(List<String> txIds) {
+        return getTxs(new MoneroTxQuery().setHashes(txIds));
     }
 
     public MoneroTxWallet getTx(String txId) {

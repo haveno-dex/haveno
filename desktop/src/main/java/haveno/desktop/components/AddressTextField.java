@@ -22,7 +22,6 @@ import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
-import haveno.core.trade.HavenoUtils;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import javafx.beans.property.ObjectProperty;
@@ -158,7 +157,6 @@ public class AddressTextField extends AnchorPane {
         return GUIUtil.getMoneroURI(
                 address.get(),
                 amount.get(),
-                paymentLabel.get(),
-                HavenoUtils.havenoSetup.getXmrWalletService().getWallet());
+                paymentLabel.get());
 }
 }
