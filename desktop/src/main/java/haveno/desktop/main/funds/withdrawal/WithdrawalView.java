@@ -327,6 +327,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                             }));
         } catch (Exception e) {
             e.printStackTrace();
+            new Popup().warning(e.getMessage()).show();
         }
     }
 
