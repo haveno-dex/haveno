@@ -1243,13 +1243,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.PENALTY_FEE_PCT);
             BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.MAKER_FEE_PCT);
-            BigInteger sendAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
+            BigInteger sendTradeAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
-            Tuple2<MoneroTx, BigInteger> txResult = xmrWalletService.verifyTradeTx(
+            MoneroTx verifiedTx = xmrWalletService.verifyReserveTx(
                     offer.getId(),
                     penaltyFee,
                     maxTradeFee,
-                    sendAmount,
+                    sendTradeAmount,
                     securityDeposit,
                     request.getPayoutAddress(),
                     request.getReserveTxHash(),
@@ -1272,7 +1272,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),
-                    txResult.first.getFee().longValueExact(),
+                    verifiedTx.getFee().longValueExact(),
                     signature); // TODO (woodser): no need for signature to be part of SignedOffer?
             addSignedOffer(signedOffer);
             requestPersistence();

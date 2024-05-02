@@ -22,7 +22,6 @@ import common.utils.JsonUtils;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
-import haveno.common.util.Tuple2;
 import haveno.core.offer.Offer;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -80,31 +79,31 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             boolean isFromTaker = trader == trade.getTaker();
             boolean isFromBuyer = trader == trade.getBuyer();
             BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
-            BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : trade.getAmount();
+            BigInteger sendTradeAmount =  isFromBuyer ? BigInteger.ZERO : trade.getAmount();
             BigInteger securityDeposit = isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
             String depositAddress = processModel.getMultisigAddress();
 
             // verify deposit tx
-            Tuple2<MoneroTx, BigInteger> txResult;
+            MoneroTx verifiedTx;
             try {
-                txResult = trade.getXmrWalletService().verifyTradeTx(
-                    offer.getId(),
-                    null,
-                    tradeFee,
-                    sendAmount,
-                    securityDeposit,
-                    depositAddress,
-                    trader.getDepositTxHash(),
-                    request.getDepositTxHex(),
-                    request.getDepositTxKey(),
-                    null);
+                verifiedTx = trade.getXmrWalletService().verifyDepositTx(
+                        offer.getId(),
+                        tradeFee,
+                        trade.getProcessModel().getTradeFeeAddress(),
+                        sendTradeAmount,
+                        securityDeposit,
+                        depositAddress,
+                        trader.getDepositTxHash(),
+                        request.getDepositTxHex(),
+                        request.getDepositTxKey(),
+                        null);
             } catch (Exception e) {
                 throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + trader.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 
             // set deposit info
-            trader.setSecurityDeposit(txResult.second);
-            trader.setDepositTxFee(txResult.first.getFee());
+            trader.setSecurityDeposit(securityDeposit.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+            trader.setDepositTxFee(verifiedTx.getFee());
             trader.setDepositTxHex(request.getDepositTxHex());
             trader.setDepositTxKey(request.getDepositTxKey());
             if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());

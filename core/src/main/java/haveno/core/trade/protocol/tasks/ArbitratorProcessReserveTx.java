@@ -18,7 +18,6 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
-import haveno.common.util.Tuple2;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.HavenoUtils;
@@ -59,9 +58,9 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             BigInteger tradeFee = isFromMaker ? offer.getMaxMakerFee() : trade.getTakerFee();
             BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
             BigInteger securityDeposit = isFromMaker ? isFromBuyer ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit() : isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
-            Tuple2<MoneroTx, BigInteger> txResult;
+            MoneroTx verifiedTx;
             try {
-                txResult = trade.getXmrWalletService().verifyTradeTx(
+                verifiedTx = trade.getXmrWalletService().verifyReserveTx(
                     offer.getId(),
                     penaltyFee,
                     tradeFee,
@@ -79,10 +78,10 @@ public class ArbitratorProcessReserveTx extends TradeTask {
 
             // save reserve tx to model
             TradePeer trader = isFromMaker ? processModel.getMaker() : processModel.getTaker();
+            trader.setSecurityDeposit(securityDeposit.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
             trader.setReserveTxHash(request.getReserveTxHash());
             trader.setReserveTxHex(request.getReserveTxHex());
             trader.setReserveTxKey(request.getReserveTxKey());
-            trader.setSecurityDeposit(txResult.second);
 
             // persist trade
             processModel.getTradeManager().requestPersistence();

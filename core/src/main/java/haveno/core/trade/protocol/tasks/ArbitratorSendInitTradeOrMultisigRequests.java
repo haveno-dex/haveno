@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.app.Version;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
@@ -124,6 +125,11 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
         String preparedHex = multisigWallet.prepareMultisig();
         trade.getSelf().setPreparedMultisigHex(preparedHex);
 
+        // set trade fee address
+        if (trade.getProcessModel().getTradeFeeAddress() == null) {
+            trade.getProcessModel().setTradeFeeAddress(HavenoUtils.getTradeFeeAddress());
+        }
+
         // create message to initialize multisig
         InitMultisigRequest initMultisigRequest = new InitMultisigRequest(
                 processModel.getOffer().getId(),
@@ -132,7 +138,8 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                 new Date().getTime(),
                 preparedHex,
                 null,
-                null);
+                null,
+                trade.getProcessModel().getTradeFeeAddress());
 
         // send request to maker
         log.info("Send {} with offerId {} and uid {} to maker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getOfferId(), initMultisigRequest.getUid(), trade.getMaker().getNodeAddress());

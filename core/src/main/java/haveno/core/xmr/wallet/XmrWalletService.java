@@ -27,7 +27,6 @@ import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
-import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
@@ -567,19 +566,20 @@ public class XmrWalletService {
      *
      * @param penaltyFee penalty fee for breaking protocol
      * @param tradeFee trade fee
-     * @param sendAmount amount to send peer
+     * @param sendTradeAmount trade amount to send peer
      * @param securityDeposit security deposit amount
      * @param returnAddress return address for reserved funds
      * @param reserveExactAmount specifies to reserve the exact input amount
      * @param preferredSubaddressIndex preferred source subaddress to spend from (optional)
      * @return the reserve tx
      */
-    public MoneroTxWallet createReserveTx(BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String returnAddress, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
+    public MoneroTxWallet createReserveTx(BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendTradeAmount, BigInteger securityDeposit, String returnAddress, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
         synchronized (WALLET_LOCK) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 log.info("Creating reserve tx with preferred subaddress index={}, return address={}", preferredSubaddressIndex, returnAddress);
                 long time = System.currentTimeMillis();
-                MoneroTxWallet reserveTx = createTradeTx(penaltyFee, tradeFee, sendAmount, securityDeposit, returnAddress, reserveExactAmount, preferredSubaddressIndex);
+                BigInteger sendAmount = sendTradeAmount.add(securityDeposit).add(tradeFee).subtract(penaltyFee);
+                MoneroTxWallet reserveTx = createTradeTx(penaltyFee, HavenoUtils.getBurnAddress(), sendAmount, returnAddress, reserveExactAmount, preferredSubaddressIndex);
                 log.info("Done creating reserve tx in {} ms", System.currentTimeMillis() - time);
                 return reserveTx;
             }
@@ -597,27 +597,29 @@ public class XmrWalletService {
     public MoneroTxWallet createDepositTx(Trade trade, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
         synchronized (WALLET_LOCK) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
-                String multisigAddress = trade.getProcessModel().getMultisigAddress();
-                BigInteger tradeFee = trade instanceof MakerTrade ? trade.getMakerFee() : trade.getTakerFee();
-                BigInteger sendAmount = trade instanceof BuyerTrade ? BigInteger.ZERO : trade.getAmount();
+                BigInteger feeAmount = trade instanceof MakerTrade ? trade.getMakerFee() : trade.getTakerFee();
+                String feeAddress = trade.getProcessModel().getTradeFeeAddress();
+                BigInteger sendTradeAmount = trade instanceof BuyerTrade ? BigInteger.ZERO : trade.getAmount();
                 BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+                BigInteger sendAmount = sendTradeAmount.add(securityDeposit);
+                String multisigAddress = trade.getProcessModel().getMultisigAddress();
                 long time = System.currentTimeMillis();
                 log.info("Creating deposit tx for trade {} {} with multisig address={}", trade.getClass().getSimpleName(), trade.getShortId(), multisigAddress);
-                MoneroTxWallet depositTx = createTradeTx(null, tradeFee, sendAmount, securityDeposit, multisigAddress, reserveExactAmount, preferredSubaddressIndex);
+                MoneroTxWallet depositTx = createTradeTx(feeAmount, feeAddress, sendAmount, multisigAddress, reserveExactAmount, preferredSubaddressIndex);
                 log.info("Done creating deposit tx for trade {} {} in {} ms", trade.getClass().getSimpleName(), trade.getShortId(), System.currentTimeMillis() - time);
                 return depositTx;
             }
         }
     }
 
-    private MoneroTxWallet createTradeTx(BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
+    private MoneroTxWallet createTradeTx(BigInteger feeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
         synchronized (WALLET_LOCK) {
             MoneroWallet wallet = getWallet();
 
             // create a list of subaddresses to attempt spending from in preferred order
             List<Integer> subaddressIndices = new ArrayList<Integer>();
             if (reserveExactAmount) {
-                BigInteger exactInputAmount = tradeFee.add(sendAmount).add(securityDeposit);
+                BigInteger exactInputAmount = feeAmount.add(sendAmount);
                 List<Integer> subaddressIndicesWithExactInput = getSubaddressesWithExactInput(exactInputAmount);
                 if (preferredSubaddressIndex != null) subaddressIndicesWithExactInput.remove(preferredSubaddressIndex);
                 Collections.sort(subaddressIndicesWithExactInput);
@@ -635,30 +637,27 @@ public class XmrWalletService {
             // first try preferred subaddressess
             for (int i = 0; i < subaddressIndices.size(); i++) {
                 try {
-                    return createTradeTxFromSubaddress(penaltyFee, tradeFee, sendAmount, securityDeposit, address, reserveExactAmount, subaddressIndices.get(i));
+                    return createTradeTxFromSubaddress(feeAmount, feeAddress, sendAmount, sendAddress, subaddressIndices.get(i));
                 } catch (Exception e) {
                     if (i == subaddressIndices.size() - 1 && reserveExactAmount) throw e; // throw if no subaddress with exact output
                 }
             }
 
             // try any subaddress
-            return createTradeTxFromSubaddress(penaltyFee, tradeFee, sendAmount, securityDeposit, address, reserveExactAmount, null);
+            return createTradeTxFromSubaddress(feeAmount, feeAddress, sendAmount, sendAddress, null);
         }
     }
 
-    private MoneroTxWallet createTradeTxFromSubaddress(BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, boolean reserveExactAmount, Integer subaddressIndex) {
+    private MoneroTxWallet createTradeTxFromSubaddress(BigInteger feeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, Integer subaddressIndex) {
 
         // create tx
-        boolean isDepositTx = penaltyFee == null;
-        BigInteger feeAmount = isDepositTx ? tradeFee : penaltyFee;
-        BigInteger transferAmount = isDepositTx ? sendAmount.add(securityDeposit) : sendAmount.add(securityDeposit).add(tradeFee).subtract(penaltyFee);
         MoneroTxConfig txConfig = new MoneroTxConfig()
                 .setAccountIndex(0)
                 .setSubaddressIndices(subaddressIndex)
-                .addDestination(address, transferAmount)
-                .setSubtractFeeFrom(0) // pay fee from transfer amount
+                .addDestination(sendAddress, sendAmount)
+                .setSubtractFeeFrom(0) // pay mining fee from send amount
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
-        if (!BigInteger.valueOf(0).equals(feeAmount)) txConfig.addDestination(HavenoUtils.getTradeFeeAddress(), feeAmount);
+        if (!BigInteger.valueOf(0).equals(feeAmount)) txConfig.addDestination(feeAddress, feeAmount);
         MoneroTxWallet tradeTx = createTx(txConfig);
 
         // freeze inputs
@@ -668,29 +667,37 @@ public class XmrWalletService {
         return tradeTx;
     }
 
+    public MoneroTx verifyReserveTx(String offerId, BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendTradeAmount, BigInteger securityDeposit, String returnAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
+        BigInteger sendAmount = sendTradeAmount.add(securityDeposit).add(tradeFee).subtract(penaltyFee);
+        return verifyTradeTx(offerId, penaltyFee, HavenoUtils.getBurnAddress(), sendAmount, returnAddress, txHash, txHex, txKey, keyImages);
+    }
+
+    public MoneroTx verifyDepositTx(String offerId, BigInteger feeAmount, String feeAddress, BigInteger sendTradeAmount, BigInteger securityDeposit, String multisigAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
+        BigInteger sendAmount = sendTradeAmount.add(securityDeposit);
+        return verifyTradeTx(offerId, feeAmount, feeAddress, sendAmount, multisigAddress, txHash, txHex, txKey, keyImages);
+    }
+
     /**
      * Verify a reserve or deposit transaction.
      * Checks double spends, trade fee, deposit amount and destination, and miner fee.
      * The transaction is submitted to the pool then flushed without relaying.
      *
      * @param offerId id of offer to verify trade tx
-     * @param penaltyFee penalty fee for breaking protocol
-     * @param tradeFee trade fee
-     * @param sendAmount amount to give peer
-     * @param securityDeposit security deposit amount
-     * @param address expected destination address for the deposit amount
+     * @param feeAmount amount sent to fee address
+     * @param feeAddress fee address
+     * @param sendAmount amount sent to transfer address
+     * @param sendAddress transfer address
      * @param txHash transaction hash
      * @param txHex transaction hex
      * @param txKey transaction key
      * @param keyImages expected key images of inputs, ignored if null
-     * @return tuple with the verified tx and the actual security deposit
+     * @return the verified tx
      */
-    public Tuple2<MoneroTx, BigInteger> verifyTradeTx(String offerId, BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendAmount, BigInteger securityDeposit, String address, String txHash, String txHex, String txKey, List<String> keyImages) {
+    public MoneroTx verifyTradeTx(String offerId, BigInteger feeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
         if (txHash == null) throw new IllegalArgumentException("Cannot verify trade tx with null id");
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         MoneroTx tx = null;
-        BigInteger actualSecurityDeposit = null;
         synchronized (daemon) {
             try {
 
@@ -723,39 +730,25 @@ public class XmrWalletService {
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), minerFeeDiff);
 
                 // verify proof to fee address
-                MoneroCheckTx feeCheck = wallet.checkTxKey(txHash, txKey, HavenoUtils.getTradeFeeAddress());
-                if (!feeCheck.isGood()) throw new RuntimeException("Invalid proof to trade fee address");
-
-                // verify proof to transfer address
-                MoneroCheckTx transferCheck = wallet.checkTxKey(txHash, txKey, address);
-                if (!transferCheck.isGood()) throw new RuntimeException("Invalid proof to transfer address");
-
-                // verify fee and transfer amounts
-                BigInteger actualFee = feeCheck.getReceivedAmount();
-                BigInteger actualTransferAmount = transferCheck.getReceivedAmount();
-                boolean isDepositTx = penaltyFee == null;
-                if (isDepositTx) {
-
-                    // verify trade fee
-                    if (!actualFee.equals(tradeFee)) throw new RuntimeException("Invalid trade fee amount, expected " + tradeFee + " but was " + actualFee);
-
-                    // verify multisig deposit amount
-                    BigInteger expectedTransferAmount = sendAmount.add(securityDeposit).subtract(tx.getFee());
-                    if (!actualTransferAmount.equals(expectedTransferAmount)) throw new RuntimeException("Invalid multisig deposit amount, expected " + expectedTransferAmount + " but was " + actualTransferAmount);
-                    actualSecurityDeposit = actualTransferAmount.subtract(sendAmount);
-                } else {
-                    
-                    // verify penalty fee
-                    if (!actualFee.equals(penaltyFee)) throw new RuntimeException("Invalid penalty fee amount, expected " + penaltyFee + " but was " + actualFee);
-
-                    // verify return amount
-                    BigInteger expectedTransferAmount = sendAmount.add(securityDeposit).add(tradeFee).subtract(penaltyFee).subtract(tx.getFee());
-                    if (!actualTransferAmount.equals(expectedTransferAmount)) throw new RuntimeException("Invalid return amount, expected " + expectedTransferAmount + " but was " + actualTransferAmount);
-                    actualSecurityDeposit = actualTransferAmount.subtract(sendAmount).subtract(tradeFee);
+                BigInteger actualFee = BigInteger.ZERO;
+                if (feeAmount.compareTo(BigInteger.ZERO) > 0) {
+                    MoneroCheckTx feeCheck = wallet.checkTxKey(txHash, txKey, feeAddress);
+                    if (!feeCheck.isGood()) throw new RuntimeException("Invalid proof to trade fee address");
+                    actualFee = feeCheck.getReceivedAmount();
                 }
 
-                // return the result
-                return new Tuple2<>(tx, actualSecurityDeposit);
+                // verify proof to transfer address
+                MoneroCheckTx transferCheck = wallet.checkTxKey(txHash, txKey, sendAddress);
+                if (!transferCheck.isGood()) throw new RuntimeException("Invalid proof to transfer address");
+                BigInteger actualSendAmount = transferCheck.getReceivedAmount();
+
+                // verify fee amount
+                if (!actualFee.equals(feeAmount)) throw new RuntimeException("Invalid fee amount, expected " + feeAmount + " but was " + actualFee);
+
+                // verify send amount
+                BigInteger expectedSendAmount = sendAmount.subtract(tx.getFee());
+                if (!actualSendAmount.equals(expectedSendAmount)) throw new RuntimeException("Invalid send amount, expected " + expectedSendAmount + " but was " + actualSendAmount + " with tx fee " + tx.getFee());
+                return tx;
             } catch (Exception e) {
                 log.warn("Error verifying trade tx with offer id=" + offerId + (tx == null ? "" : ", tx=" + tx) + ": " + e.getMessage());
                 throw e;
@@ -943,14 +936,6 @@ public class XmrWalletService {
         else return getNewAddressEntry(offerId, context);
     }
 
-    public synchronized XmrAddressEntry getArbitratorAddressEntry() {
-        XmrAddressEntry.Context context = XmrAddressEntry.Context.ARBITRATOR;
-        Optional<XmrAddressEntry> addressEntry = getAddressEntryListAsImmutableList().stream()
-                .filter(e -> context == e.getContext())
-                .findAny();
-        return addressEntry.isPresent() ? addressEntry.get() : getNewAddressEntryAux(null, context);
-    }
-
     public synchronized Optional<XmrAddressEntry> getAddressEntry(String offerId, XmrAddressEntry.Context context) {
         List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).collect(Collectors.toList());
         if (entries.size() > 1) throw new RuntimeException("Multiple address entries exist with offer ID " + offerId + " and context " + context + ". That should never happen.");
@@ -1006,6 +991,10 @@ public class XmrWalletService {
 
     public List<XmrAddressEntry> getAddressEntries(XmrAddressEntry.Context context) {
         return getAddressEntryListAsImmutableList().stream().filter(addressEntry -> context == addressEntry.getContext()).collect(Collectors.toList());
+    }
+
+    public XmrAddressEntry getBaseAddressEntry() {
+        return getAddressEntryListAsImmutableList().stream().filter(e -> e.getContext() == XmrAddressEntry.Context.BASE_ADDRESS).findAny().orElse(null);
     }
 
     public List<XmrAddressEntry> getFundedAvailableAddressEntries() {
