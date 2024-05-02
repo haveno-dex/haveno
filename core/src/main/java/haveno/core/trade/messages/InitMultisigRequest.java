@@ -36,6 +36,8 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
     private final String madeMultisigHex;
     @Nullable
     private final String exchangedMultisigHex;
+    @Nullable
+    private final String tradeFeeAddress;
 
     public InitMultisigRequest(String tradeId,
                                      String uid,
@@ -43,12 +45,14 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                                      long currentDate,
                                      String preparedMultisigHex,
                                      String madeMultisigHex,
-                                     String exchangedMultisigHex) {
+                                     String exchangedMultisigHex,
+                                     String tradeFeeAddress) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
         this.preparedMultisigHex = preparedMultisigHex;
         this.madeMultisigHex = madeMultisigHex;
         this.exchangedMultisigHex = exchangedMultisigHex;
+        this.tradeFeeAddress = tradeFeeAddress;
     }
 
 
@@ -65,6 +69,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(exchangedMultisigHex).ifPresent(e -> builder.setExchangedMultisigHex(exchangedMultisigHex));
+        Optional.ofNullable(tradeFeeAddress).ifPresent(e -> builder.setTradeFeeAddress(tradeFeeAddress));
 
         builder.setCurrentDate(currentDate);
 
@@ -80,16 +85,18 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                 proto.getCurrentDate(),
                 ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()),
-                ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
+                ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getTradeFeeAddress()));
     }
 
     @Override
     public String toString() {
         return "InitMultisigRequest {" +
                 ",\n     currentDate=" + currentDate +
-                ",\n     preparedMultisigHex='" + preparedMultisigHex +
-                ",\n     madeMultisigHex='" + madeMultisigHex +
-                ",\n     exchangedMultisigHex='" + exchangedMultisigHex +
+                ",\n     preparedMultisigHex=" + preparedMultisigHex +
+                ",\n     madeMultisigHex=" + madeMultisigHex +
+                ",\n     exchangedMultisigHex=" + exchangedMultisigHex +
+                ",\n     tradeFeeAddress=" + tradeFeeAddress +
                 "\n} " + super.toString();
     }
 }

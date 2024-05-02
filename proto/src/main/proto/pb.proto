@@ -254,6 +254,7 @@ message InitMultisigRequest {
     string prepared_multisig_hex = 4;
     string made_multisig_hex = 5;
     string exchanged_multisig_hex = 6;
+    string trade_fee_address = 7;
 }
 
 message SignContractRequest {
@@ -1558,6 +1559,7 @@ message ProcessModel {
     int64 buyer_payout_amount_from_mediation = 16;
     int64 seller_payout_amount_from_mediation = 17;
     int64 delete_backups_height = 18;
+    string trade_fee_address = 19;
 }
 
 message TradePeer {

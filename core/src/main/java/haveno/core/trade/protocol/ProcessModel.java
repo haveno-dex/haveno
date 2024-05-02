@@ -151,6 +151,9 @@ public class ProcessModel implements Model, PersistablePayload {
     @Nullable
     @Getter
     @Setter
+    private String tradeFeeAddress;
+    @Getter
+    @Setter
     private String multisigAddress;
     @Getter
     @Setter
@@ -212,6 +215,7 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(tempTradePeerNodeAddress).ifPresent(e -> builder.setTempTradePeerNodeAddress(tempTradePeerNodeAddress.toProtoMessage()));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(tradeFeeAddress).ifPresent(e -> builder.setTradeFeeAddress(tradeFeeAddress));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
         return builder.build();
     }
@@ -233,6 +237,7 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setTempTradePeerNodeAddress(proto.hasTempTradePeerNodeAddress() ? NodeAddress.fromProto(proto.getTempTradePeerNodeAddress()) : null);
         processModel.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
         processModel.setMakerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMakerSignature()));
+        processModel.setTradeFeeAddress(ProtoUtil.stringOrNullFromProto(proto.getTradeFeeAddress()));
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
 
         String paymentSentMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageState());
