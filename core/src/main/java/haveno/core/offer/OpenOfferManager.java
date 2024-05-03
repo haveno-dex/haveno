@@ -1027,7 +1027,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getAvailableBalance().compareTo(offerReserveAmount) >= 0;
         if (sufficientAvailableBalance) {
-            log.info("Splitting and scheduling outputs for offer {} at subaddress {}", openOffer.getShortId());
+            log.info("Splitting and scheduling outputs for offer {}", openOffer.getShortId());
             splitAndSchedule(openOffer);
         } else if (openOffer.getScheduledTxHashes() == null) {
             scheduleWithEarliestTxs(openOffers, openOffer);
@@ -1040,10 +1040,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         MoneroTxWallet splitOutputTx = null;
         synchronized (XmrWalletService.WALLET_LOCK) {
             XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-            log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getShortId(), entry.getSubaddressIndex());
             long startTime = System.currentTimeMillis();
             for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                 try {
+                    log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getShortId(), entry.getSubaddressIndex());
                     splitOutputTx = xmrWalletService.createTx(new MoneroTxConfig()
                             .setAccountIndex(0)
                             .setAddress(entry.getAddressString())
