@@ -261,11 +261,14 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
                 // create tx
                 if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
+                log.info("Creating withdraw tx");
+                long startTime = System.currentTimeMillis();
                 MoneroTxWallet tx = xmrWalletService.createTx(new MoneroTxConfig()
                         .setAccountIndex(0)
                         .setAmount(amount)
                         .setAddress(withdrawToAddress)
                         .setSubtractFeeFrom(feeExcluded ? null : Arrays.asList(0)));
+                log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
 
                 // create confirmation message
                 BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
