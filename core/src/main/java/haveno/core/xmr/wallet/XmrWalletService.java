@@ -459,34 +459,71 @@ public class XmrWalletService {
     public MoneroTxWallet createTx(MoneroTxConfig txConfig) {
         synchronized (WALLET_LOCK) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
-                return wallet.createTx(txConfig);
+                MoneroTxWallet tx = wallet.createTx(txConfig);
+                if (Boolean.TRUE.equals(txConfig.getRelay())) {
+                    cachedTxs.addFirst(tx);
+                    cacheWalletInfo();
+                    requestSaveMainWallet();
+                }
+                return tx;
             }
         }
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
-        MoneroTxWallet tx = createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));;
+        MoneroTxWallet tx = createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
         //printTxs("XmrWalletService.createTx", tx);
-        requestSaveMainWallet();
         return tx;
     }
 
     /**
-     * Thaw all outputs not reserved for a trade.
+     * Freeze reserved outputs and thaw unreserved outputs.
      */
-    public void thawUnreservedOutputs() {
+    public void fixReservedOutputs() {
         synchronized (WALLET_LOCK) {
 
             // collect reserved outputs
             Set<String> reservedKeyImages = new HashSet<String>();
-            for (Trade trade : tradeManager.getObservableList()) {
+            for (Trade trade : tradeManager.getOpenTrades()) {
                 if (trade.getSelf().getReserveTxKeyImages() == null) continue;
                 reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
             }
-            for (OpenOffer openOffer : tradeManager.getOpenOfferManager().getObservableList()) {
+            for (OpenOffer openOffer : tradeManager.getOpenOfferManager().getOpenOffers()) {
                 if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
                 reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
             }
+
+            freezeReservedOutputs(reservedKeyImages);
+            thawUnreservedOutputs(reservedKeyImages);
+        }
+    }
+
+    private void freezeReservedOutputs(Set<String> reservedKeyImages) {
+        synchronized (WALLET_LOCK) {
+
+            // ensure wallet is open
+            if (wallet == null) {
+                log.warn("Cannot freeze reserved outputs because wallet not open");
+                return;
+            }
+
+            // freeze reserved outputs
+            Set<String> reservedUnfrozenKeyImages = getOutputs(new MoneroOutputQuery()
+                    .setIsFrozen(false)
+                    .setIsSpent(false))
+                    .stream()
+                    .map(output -> output.getKeyImage().getHex())
+                    .collect(Collectors.toSet());
+            reservedUnfrozenKeyImages.retainAll(reservedKeyImages);
+            if (!reservedUnfrozenKeyImages.isEmpty()) {
+                log.warn("Freezing unfrozen outputs which are reserved for offer or trade: " + reservedUnfrozenKeyImages);
+                freezeOutputs(reservedUnfrozenKeyImages);
+            }
+        }
+    }
+
+    private void thawUnreservedOutputs(Set<String> reservedKeyImages) {
+        synchronized (WALLET_LOCK) {
 
             // ensure wallet is open
             if (wallet == null) {
@@ -503,7 +540,7 @@ public class XmrWalletService {
                     .collect(Collectors.toSet());
             unreservedFrozenKeyImages.removeAll(reservedKeyImages);
             if (!unreservedFrozenKeyImages.isEmpty()) {
-                log.warn("Thawing outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
+                log.warn("Thawing frozen outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
                 thawOutputs(unreservedFrozenKeyImages);
             }
         }

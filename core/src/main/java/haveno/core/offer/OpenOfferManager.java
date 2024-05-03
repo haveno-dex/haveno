@@ -895,6 +895,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // if not found, create tx to split exact output
                     if (splitOutputTx == null) {
+                        if (openOffer.getSplitOutputTxHash() != null) {
+                            log.warn("Split output tx not found for offer {}", openOffer.getId());
+                        }
                         splitOrSchedule(openOffers, openOffer, amountNeeded);
                     } else if (!splitOutputTx.isLocked()) {
 
@@ -1026,7 +1029,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getAvailableBalance().compareTo(offerReserveAmount) >= 0;
-        if (sufficientAvailableBalance) {
+        if (sufficientAvailableBalance && openOffer.getSplitOutputTxHash() == null) {
             log.info("Splitting and scheduling outputs for offer {}", openOffer.getShortId());
             splitAndSchedule(openOffer);
         } else if (openOffer.getScheduledTxHashes() == null) {
@@ -1053,7 +1056,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     break;
                 } catch (Exception e) {
                     log.warn("Error creating split output tx to fund offer {} at subaddress {}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                    if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                    if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                     HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                 }
             }
