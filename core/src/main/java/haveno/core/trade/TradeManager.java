@@ -482,8 +482,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     maybeRemoveTradeOnError(trade);
                 }
 
-                // thaw unreserved outputs
-                xmrWalletService.thawUnreservedOutputs();
+                // freeze or thaw outputs
+                xmrWalletService.fixReservedOutputs();
 
                 // reset any available funded address entries
                 if (isShutDownStarted) return;
