@@ -132,7 +132,7 @@ public class SignedWitnessService {
         } else {
             p2PService.addP2PServiceListener(new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     onBootstrapComplete();
                 }
             });

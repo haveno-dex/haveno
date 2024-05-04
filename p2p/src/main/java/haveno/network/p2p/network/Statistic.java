@@ -70,7 +70,7 @@ public class Statistic {
             totalReceivedBytesPerSec.set(((double) totalReceivedBytes.get()) / passed);
         }, 1);
 
-        // We log statistics every 5 minutes
+        // We log statistics every 60 minutes
         UserThread.runPeriodically(() -> {
             String ls = System.lineSeparator();
             log.info("Accumulated network statistics:" + ls +
@@ -79,14 +79,14 @@ public class Statistic {
                             "Number of sent messages per sec: {};" + ls +
                             "Bytes received: {}" + ls +
                             "Number of received messages/Received messages: {} / {};" + ls +
-                            "Number of received messages per sec: {};" + ls,
+                            "Number of received messages per sec: {}" + ls,
                     Utilities.readableFileSize(totalSentBytes.get()),
                     numTotalSentMessages.get(), totalSentMessages,
                     numTotalSentMessagesPerSec.get(),
                     Utilities.readableFileSize(totalReceivedBytes.get()),
                     numTotalReceivedMessages.get(), totalReceivedMessages,
                     numTotalReceivedMessagesPerSec.get());
-        }, TimeUnit.MINUTES.toSeconds(5));
+        }, TimeUnit.MINUTES.toSeconds(60));
     }
 
     public static LongProperty totalSentBytesProperty() {
@@ -234,6 +234,30 @@ public class Statistic {
 
     public IntegerProperty roundTripTimeProperty() {
         return roundTripTime;
+    }
+
+    public static long getTotalSentBytes() {
+        return totalSentBytes.get();
+    }
+
+    public static double getTotalSentBytesPerSec() {
+        return totalSentBytesPerSec.get();
+    }
+
+    public static long getTotalReceivedBytes() {
+        return totalReceivedBytes.get();
+    }
+
+    public static double getTotalReceivedBytesPerSec() {
+        return totalReceivedBytesPerSec.get();
+    }
+
+    public static double numTotalReceivedMessagesPerSec() {
+        return numTotalReceivedMessagesPerSec.get();
+    }
+
+    public static double getNumTotalSentMessagesPerSec() {
+        return numTotalSentMessagesPerSec.get();
     }
 
     @Override

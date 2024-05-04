@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Sig;
+import haveno.common.proto.network.GetDataResponsePriority;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.proto.persistable.PersistablePayload;
@@ -139,6 +140,10 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
     public boolean isExpired(Clock clock) {
         return protectedStoragePayload instanceof ExpirablePayload &&
                 (clock.millis() - creationTimeStamp) > ((ExpirablePayload) protectedStoragePayload).getTTL();
+    }
+
+    public GetDataResponsePriority getGetDataResponsePriority() {
+        return protectedStoragePayload.getGetDataResponsePriority();
     }
 
     /*

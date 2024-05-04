@@ -36,7 +36,6 @@ import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -51,9 +50,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 public class P2PDataStorageBuildGetDataResponseTest {
+    @ExtendWith(MockitoExtension.class)
+    @MockitoSettings(strictness = Strictness.LENIENT) // there are unused stubs in TestState & elsewhere
     abstract static class P2PDataStorageBuildGetDataResponseTestBase {
         // GIVEN null & non-null supportedCapabilities
         private TestState testState;
@@ -67,7 +82,6 @@ public class P2PDataStorageBuildGetDataResponseTest {
 
         @BeforeEach
         public void setUp() {
-            MockitoAnnotations.initMocks(this);
             this.testState = new TestState();
 
             this.localNodeAddress = new NodeAddress("localhost", 8080);

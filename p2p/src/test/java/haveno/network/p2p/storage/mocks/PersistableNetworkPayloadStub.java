@@ -21,6 +21,8 @@ import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 
 import static org.mockito.Mockito.mock;
 
+import static org.mockito.Mockito.mock;
+
 /**
  * Stub implementation of a PersistableNetworkPayload that can be used in tests
  * to provide canned answers to calls. Useful if the tests don't care about the implementation
