@@ -444,7 +444,7 @@ seednode2:
 		--appName=haveno-XMR_MAINNET_Seed_1003 \
 		--xmrNode=http://127.0.0.1:18081 \
 
-arbitrator-daemon:
+arbitrator-daemon-mainnet:
 	# Arbitrator needs to be registered before making trades
 	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
@@ -458,8 +458,7 @@ arbitrator-daemon:
 		--xmrNode=http://127.0.0.1:18081 \
 		--useNativeXmrWallet=false \
 
-# Arbitrator needs to be registered before making trades
-arbitrator-desktop:
+arbitrator-desktop-mainnet:
 	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
@@ -493,7 +492,7 @@ haveno-desktop-mainnet:
 		--apiPort=1201 \
 		--useNativeXmrWallet=false \
 
-user1-daemon:
+user1-daemon-mainnet:
 	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
@@ -505,7 +504,7 @@ user1-daemon:
 		--passwordRequired=false \
 		--useNativeXmrWallet=false \
 
-user1-desktop:
+user1-desktop-mainnet:
 	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
@@ -516,7 +515,7 @@ user1-desktop:
 		--apiPort=1202 \
 		--useNativeXmrWallet=false \
 
-user2-daemon:
+user2-daemon-mainnet:
 	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
@@ -528,7 +527,7 @@ user2-daemon:
 		--passwordRequired=false \
 		--useNativeXmrWallet=false \
 
-user2-desktop:
+user2-desktop-mainnet:
 	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
@@ -539,7 +538,7 @@ user2-desktop:
 		--apiPort=1203 \
 		--useNativeXmrWallet=false \
 
-user3-desktop:
+user3-desktop-mainnet:
 	./haveno-desktop$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
