@@ -549,11 +549,20 @@ public class XmrWalletService {
     /**
      * Freeze the given outputs with a lock on the wallet.
      *
-     * @param keyImages the key images to freeze
+     * @param keyImages the key images to freeze (ignored if null or empty)
      */
     public void freezeOutputs(Collection<String> keyImages) {
+        if (keyImages == null || keyImages.isEmpty()) return;
         synchronized (WALLET_LOCK) {
-            for (String keyImage : keyImages) wallet.freezeOutput(keyImage);
+
+            // collect outputs to freeze
+            List<String> unfrozenKeyImages = getOutputs(new MoneroOutputQuery().setIsFrozen(false).setIsSpent(false)).stream()
+                    .map(output -> output.getKeyImage().getHex())
+                    .collect(Collectors.toList());
+            unfrozenKeyImages.retainAll(keyImages);
+
+            // freeze outputs
+            for (String keyImage : unfrozenKeyImages) wallet.freezeOutput(keyImage);
             cacheWalletInfo();
             requestSaveMainWallet();
         }
@@ -567,7 +576,15 @@ public class XmrWalletService {
     public void thawOutputs(Collection<String> keyImages) {
         if (keyImages == null || keyImages.isEmpty()) return;
         synchronized (WALLET_LOCK) {
-            for (String keyImage : keyImages) wallet.thawOutput(keyImage);
+
+            // collect outputs to thaw
+            List<String> frozenKeyImages = getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false)).stream()
+                    .map(output -> output.getKeyImage().getHex())
+                    .collect(Collectors.toList());
+            frozenKeyImages.retainAll(keyImages);
+
+            // thaw outputs
+            for (String keyImage : frozenKeyImages) wallet.thawOutput(keyImage);
             cacheWalletInfo();
             requestSaveMainWallet();
         }

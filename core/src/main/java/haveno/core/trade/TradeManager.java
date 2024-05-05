@@ -133,7 +133,6 @@ import monero.daemon.model.MoneroTx;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -434,7 +433,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             Set<Runnable> tasks = new HashSet<Runnable>();
             Set<String> uids = new HashSet<String>();
             Set<Trade> tradesToSkip = new HashSet<Trade>();
-            Set<Trade> tradesToMaybeRemoveOnError = new HashSet<Trade>();
+            Set<Trade> uninitializedTrades = new HashSet<Trade>();
             for (Trade trade : trades) {
                 tasks.add(() -> {
                     try {
@@ -451,7 +450,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                         // remove trade if protocol didn't initialize
                         if (getOpenTradeByUid(trade.getUid()).isPresent() && !trade.isDepositsPublished()) {
-                            tradesToMaybeRemoveOnError.add(trade);
+                            uninitializedTrades.add(trade);
                         }
                     } catch (Exception e) {
                         if (!isShutDownStarted) {
@@ -477,9 +476,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // process after all wallets initialized
             if (!HavenoUtils.isSeedNode()) {
 
-                // maybe remove trades on error
-                for (Trade trade : tradesToMaybeRemoveOnError) {
-                    maybeRemoveTradeOnError(trade);
+                // handle uninitialized trades
+                for (Trade trade : uninitializedTrades) {
+                    trade.onProtocolError();
                 }
 
                 // freeze or thaw outputs
@@ -623,7 +622,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           // process with protocol
           ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-              maybeRemoveTradeOnError(trade);
+              trade.onProtocolError();
           });
 
           requestPersistence();
@@ -704,7 +703,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
           // process with protocol
           ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
               log.warn("Maker error during trade initialization: " + errorMessage);
-              maybeRemoveTradeOnError(trade);
+              trade.onProtocolError();
           });
       }
     }
@@ -797,8 +796,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         Optional<Trade> tradeOptional = getOpenTrade(response.getOfferId());
         if (!tradeOptional.isPresent()) {
-            log.warn("No trade with id " + response.getOfferId());
-            return;
+            tradeOptional = getFailedTrade(response.getOfferId());
+            if (!tradeOptional.isPresent()) {
+                log.warn("No trade with id " + response.getOfferId());
+                return;
+            }
         }
         Trade trade = tradeOptional.get();
         ((TraderProtocol) getTradeProtocol(trade)).handleDepositResponse(response, peer);
@@ -885,8 +887,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             requestPersistence();
                         }, errorMessage -> {
                             log.warn("Taker error during trade initialization: " + errorMessage);
-                            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId());
-                            maybeRemoveTradeOnError(trade);
+                            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move to maybe remove on error
+                            trade.onProtocolError();
                             errorMessageHandler.handleErrorMessage(errorMessage);
                         });
                         requestPersistence();
@@ -945,10 +947,29 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
         closedTradableManager.add(trade);
         trade.setCompleted(true);
-        removeTrade(trade);
+        removeTrade(trade, true);
 
         // TODO The address entry should have been removed already. Check and if its the case remove that.
         xmrWalletService.resetAddressEntriesForTrade(trade.getId());
+        requestPersistence();
+    }
+
+    public void unregisterTrade(Trade trade) {
+        removeTrade(trade, true);
+        removeFailedTrade(trade);
+        requestPersistence();
+    }
+
+    public void removeTrade(Trade trade, boolean removeDirectMessageListener) {
+        log.info("TradeManager.removeTrade() " + trade.getId());
+        
+        // remove trade
+        synchronized (tradableList) {
+            if (!tradableList.remove(trade)) return;
+        }
+
+        // unregister message listener and persist
+        if (removeDirectMessageListener) p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
         requestPersistence();
     }
 
@@ -1014,8 +1035,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
     // we move the trade to FailedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
-        removeTrade(trade);
         failedTradesManager.add(trade);
+        removeTrade(trade, false);
+    }
+
+    public void onMoveFailedTradeToPendingTrades(Trade trade) {
+        addFailedTradeToPendingTrades(trade);
+        failedTradesManager.removeTrade(trade);
+    }
+
+    public void removeFailedTrade(Trade trade) {
+        failedTradesManager.removeTrade(trade);
     }
 
     public void addFailedTradeToPendingTrades(Trade trade) {
@@ -1252,132 +1282,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             if (tradableList.add(trade)) {
                 requestPersistence();
             }
-        }
-    }
-
-    private void removeTrade(Trade trade) {
-        log.info("TradeManager.removeTrade() " + trade.getId());
-        
-        // remove trade
-        synchronized (tradableList) {
-            if (!tradableList.remove(trade)) return;
-        }
-
-        // unregister and persist
-        p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
-        requestPersistence();
-    }
-
-    private void maybeRemoveTradeOnError(Trade trade) {
-        if (trade.isDepositRequested() && !trade.isDepositFailed()) {
-            listenForCleanup(trade);
-        } else {
-            removeTradeOnError(trade);
-        }
-    }
-
-    private void removeTradeOnError(Trade trade) {
-        log.warn("TradeManager.removeTradeOnError() trade={}, tradeId={}, state={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getState());
-
-        // unreserve taker key images
-        if (trade instanceof TakerTrade) {
-            xmrWalletService.thawOutputs(trade.getSelf().getReserveTxKeyImages());
-            trade.getSelf().setReserveTxKeyImages(null);
-        }
-
-        // unreserve open offer
-        Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(trade.getId());
-        if (trade instanceof MakerTrade && openOffer.isPresent()) {
-            openOfferManager.unreserveOpenOffer(openOffer.get());
-        }
-
-        // clear and shut down trade
-        trade.clearAndShutDown();
-
-        // remove trade from list
-        removeTrade(trade);
-    }
-
-    private void listenForCleanup(Trade trade) {
-        if (getOpenTrade(trade.getId()).isPresent() && trade.isDepositRequested()) {
-            if (trade.isDepositsPublished()) {
-                cleanupPublishedTrade(trade);
-            } else {
-                log.warn("Scheduling to delete open trade if unfunded for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                new TradeCleanupListener(trade); // TODO: better way than creating listener?
-            }
-        }
-    }
-
-    private void cleanupPublishedTrade(Trade trade) {
-        if (trade instanceof MakerTrade && openOfferManager.getOpenOfferById(trade.getId()).isPresent()) {
-            log.warn("Closing open offer as cleanup step");
-            openOfferManager.closeOpenOffer(checkNotNull(trade.getOffer()));
-        }
-    }
-
-    private class TradeCleanupListener {
-
-        private static final long REMOVE_AFTER_MS = 60000;
-        private static final int REMOVE_AFTER_NUM_CONFIRMATIONS = 1;
-        private Long startHeight;
-        private Subscription stateSubscription;
-        private Subscription heightSubscription;
-
-        public TradeCleanupListener(Trade trade) {
-
-            // listen for deposits published to close open offer
-            stateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
-                if (trade.isDepositsPublished()) {
-                    cleanupPublishedTrade(trade);
-                    if (stateSubscription != null) {
-                        stateSubscription.unsubscribe();
-                        stateSubscription = null;
-                    }
-                }
-            });
-
-            // listen for block confirmation to remove trade
-            long startTime = System.currentTimeMillis();
-            heightSubscription = EasyBind.subscribe(xmrWalletService.getConnectionService().chainHeightProperty(), lastBlockHeight -> {
-                if (isShutDown) return;
-                if (startHeight == null) startHeight = lastBlockHeight.longValue();
-                if (lastBlockHeight.longValue() >= startHeight + REMOVE_AFTER_NUM_CONFIRMATIONS) {
-                    new Thread(() -> {
-
-                        // wait minimum time
-                        HavenoUtils.waitFor(Math.max(0, REMOVE_AFTER_MS - (System.currentTimeMillis() - startTime)));
-
-                        // get trade's deposit txs from daemon
-                        MoneroTx makerDepositTx = trade.getMaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getMaker().getDepositTxHash());
-                        MoneroTx takerDepositTx = trade.getTaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(trade.getTaker().getDepositTxHash());
-
-                        // remove trade and wallet if neither deposit tx published
-                        if (makerDepositTx == null && takerDepositTx == null) {
-                            log.warn("Deleting {} {} after protocol error", trade.getClass().getSimpleName(), trade.getId());
-                            if (trade instanceof ArbitratorTrade && (trade.getMaker().getReserveTxHash() != null || trade.getTaker().getReserveTxHash() != null)) {
-                                onMoveInvalidTradeToFailedTrades(trade); // arbitrator retains trades with reserved funds for analysis and penalty
-                            } else {
-                                removeTradeOnError(trade);
-                                failedTradesManager.removeTrade(trade);
-                            }
-                        } else if (!trade.isPayoutPublished()) {
-
-                            // set error that wallet may be partially funded
-                            String errorMessage = "Refusing to delete " + trade.getClass().getSimpleName() + " " + trade.getId() + " after protocol timeout because its wallet might be funded";
-                            trade.prependErrorMessage(errorMessage);
-                            log.warn(errorMessage);
-                        }
-
-                        // unsubscribe
-                        if (heightSubscription != null) {
-                            heightSubscription.unsubscribe();
-                            heightSubscription = null;
-                        }
-
-                    }).start();
-                }
-            });
         }
     }
 

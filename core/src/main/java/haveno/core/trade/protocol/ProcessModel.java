@@ -157,7 +157,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private String multisigAddress;
     @Getter
     @Setter
-    private long deleteBackupsHeight;
+    private long tradeProtocolErrorHeight;
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
@@ -207,7 +207,7 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setPaymentSentMessageStateArbitrator(paymentSentMessageStatePropertyArbitrator.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
                 .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
-                .setDeleteBackupsHeight(deleteBackupsHeight);
+                .setTradeProtocolErrorHeight(tradeProtocolErrorHeight);
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
@@ -230,7 +230,7 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setFundsNeededForTrade(proto.getFundsNeededForTrade());
         processModel.setBuyerPayoutAmountFromMediation(proto.getBuyerPayoutAmountFromMediation());
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
-        processModel.setDeleteBackupsHeight(proto.getDeleteBackupsHeight());
+        processModel.setTradeProtocolErrorHeight(proto.getTradeProtocolErrorHeight());
 
         // nullable
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));

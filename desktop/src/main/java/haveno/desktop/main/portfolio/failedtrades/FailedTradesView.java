@@ -556,7 +556,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             @Override
                             public void updateItem(FailedTradesListItem newItem, boolean empty) {
                                 super.updateItem(newItem, empty);
-                                if (!empty && newItem != null) {
+                                if (!empty && newItem != null && newItem.getTrade().isDepositsPublished()) {
                                     Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
                                     JFXButton iconButton = new JFXButton("", icon);
                                     iconButton.setStyle("-fx-cursor: hand;");

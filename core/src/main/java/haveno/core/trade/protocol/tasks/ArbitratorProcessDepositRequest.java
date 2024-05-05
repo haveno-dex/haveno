@@ -28,6 +28,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
@@ -101,6 +102,10 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + trader.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 
+            // extend timeout
+            if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while verifying deposit tx for {} {}" + trade.getClass().getSimpleName() + " " + trade.getShortId());
+            trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+
             // set deposit info
             trader.setSecurityDeposit(securityDeposit.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
             trader.setDepositTxFee(verifiedTx.getFee());
@@ -109,7 +114,6 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
 
             // relay deposit txs when both available
-            // TODO (woodser): add small delay so tx has head start against double spend attempts?
             if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
 
                 // update trade state
@@ -147,8 +151,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
             }
 
-            complete();
             processModel.getTradeManager().requestPersistence();
+            complete();
         } catch (Throwable t) {
 
             // handle error before deposits relayed
@@ -191,5 +195,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 failed();
             }
         });
+    }
+
+    private boolean isTimedOut() {
+        return !processModel.getTradeManager().hasOpenTrade(trade);
     }
 }
