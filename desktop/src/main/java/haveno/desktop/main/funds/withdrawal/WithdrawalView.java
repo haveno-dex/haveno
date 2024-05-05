@@ -38,12 +38,11 @@ import com.google.inject.Inject;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.util.validation.BtcAddressValidator;
 import haveno.core.xmr.listeners.XmrBalanceListener;
-import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
@@ -72,9 +71,7 @@ import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
@@ -107,6 +104,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private ToggleGroup feeToggleGroup;
     private boolean feeExcluded;
     private int rowIndex = 0;
+    private final static int MAX_ATTEMPTS = 3;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -259,44 +257,31 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // get withdraw address
                 final String withdrawToAddress = withdrawToTextField.getText();
 
-                // create tx
+                // check sufficient available balance
                 if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
-                log.info("Creating withdraw tx");
-                long startTime = System.currentTimeMillis();
-                MoneroTxWallet tx = xmrWalletService.createTx(new MoneroTxConfig()
-                        .setAccountIndex(0)
-                        .setAmount(amount)
-                        .setAddress(withdrawToAddress)
-                        .setSubtractFeeFrom(feeExcluded ? null : Arrays.asList(0)));
-                log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
 
-                // create confirmation message
-                BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
-                BigInteger fee = tx.getFee();
-                String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                        HavenoUtils.formatXmr(amount, true),
-                        withdrawToAddress,
-                        HavenoUtils.formatXmr(fee, true),
-                        HavenoUtils.formatXmr(receiverAmount, true));
+                // create tx
+                MoneroTxWallet tx = null;
+                for (int i = 0; i < MAX_ATTEMPTS; i++) {
+                    try {
+                        log.info("Creating withdraw tx");
+                        long startTime = System.currentTimeMillis();
+                        tx = xmrWalletService.createTx(new MoneroTxConfig()
+                                .setAccountIndex(0)
+                                .setAmount(amount)
+                                .setAddress(withdrawToAddress)
+                                .setSubtractFeeFrom(feeExcluded ? null : Arrays.asList(0)));
+                        log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
+                        break;
+                    } catch (Exception e) {
+                        log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, MAX_ATTEMPTS, e.getMessage());
+                        if (i == MAX_ATTEMPTS - 1) throw e;
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    }
+                }
 
                 // popup confirmation message
-                Popup popup = new Popup();
-                popup.headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
-                        .confirmation(messageText)
-                        .actionButtonText(Res.get("shared.yes"))
-                        .onAction(() -> {
-                            if (xmrWalletService.isWalletEncrypted()) {
-                                walletPasswordWindow.headLine(Res.get("walletPasswordWindow.headline")).onSuccess(() -> {
-                                    relayTx(tx, withdrawToAddress, amount, fee);
-                                }).onClose(() -> {
-                                    popup.hide();
-                                }).hideForgotPasswordButton().show();
-                            } else {
-                                relayTx(tx, withdrawToAddress, amount, fee);
-                            }
-                        })
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .show();
+                popupConfirmationMessage(tx);
             } catch (Throwable e) {
                 if (e.getMessage().contains("enough")) new Popup().warning(Res.get("funds.withdrawal.warn.amountExceeds")).show();
                 else {
@@ -305,6 +290,38 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 }
             }
         }
+    }
+
+    private void popupConfirmationMessage(MoneroTxWallet tx) {
+
+        // create confirmation message
+        String withdrawToAddress = tx.getOutgoingTransfer().getDestinations().get(0).getAddress();
+        BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
+        BigInteger fee = tx.getFee();
+        String messageText = Res.get("shared.sendFundsDetailsWithFee",
+                HavenoUtils.formatXmr(amount, true),
+                withdrawToAddress,
+                HavenoUtils.formatXmr(fee, true),
+                HavenoUtils.formatXmr(receiverAmount, true));
+
+        // popup confirmation message
+        Popup popup = new Popup();
+        popup.headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
+                .confirmation(messageText)
+                .actionButtonText(Res.get("shared.yes"))
+                .onAction(() -> {
+                    if (xmrWalletService.isWalletEncrypted()) {
+                        walletPasswordWindow.headLine(Res.get("walletPasswordWindow.headline")).onSuccess(() -> {
+                            relayTx(tx, withdrawToAddress, receiverAmount, fee);
+                        }).onClose(() -> {
+                            popup.hide();
+                        }).hideForgotPasswordButton().show();
+                    } else {
+                        relayTx(tx, withdrawToAddress, receiverAmount, fee);
+                    }
+                })
+                .closeButtonText(Res.get("shared.cancel"))
+                .show();
     }
 
     private void relayTx(MoneroTxWallet tx, String withdrawToAddress, BigInteger receiverAmount, BigInteger fee) {
@@ -318,16 +335,6 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         .show();
             }
             log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
-
-            // TODO: remove this?
-            List<Trade> trades = new ArrayList<>(tradeManager.getObservableList());
-            trades.stream()
-                    .filter(Trade::isPayoutPublished)
-                    .forEach(trade -> xmrWalletService.getAddressEntry(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT)
-                            .ifPresent(addressEntry -> {
-                                if (xmrWalletService.getBalanceForAddress(addressEntry.getAddressString()).compareTo(BigInteger.ZERO) == 0)
-                                    tradeManager.onTradeCompleted(trade);
-                            }));
         } catch (Exception e) {
             e.printStackTrace();
             new Popup().warning(e.getMessage()).show();
