@@ -79,7 +79,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                                 MakerSendInitTradeRequest.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
+                                    startTimeout();
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 errorMessage -> {

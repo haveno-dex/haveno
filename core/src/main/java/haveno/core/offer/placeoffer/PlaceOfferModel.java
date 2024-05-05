@@ -23,6 +23,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
@@ -61,6 +62,8 @@ public class PlaceOfferModel implements Model {
     private final FilterManager filterManager;
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
+    @Getter
+    private final OpenOfferManager openOfferManager;
 
     // Mutable
     @Setter
@@ -89,7 +92,8 @@ public class PlaceOfferModel implements Model {
                            User user,
                            KeyRing keyRing,
                            FilterManager filterManager,
-                           AccountAgeWitnessService accountAgeWitnessService) {
+                           AccountAgeWitnessService accountAgeWitnessService,
+                           OpenOfferManager openOfferManager) {
         this.openOffer = openOffer;
         this.reservedFundsForOffer = reservedFundsForOffer;
         this.useSavingsWallet = useSavingsWallet;
@@ -105,6 +109,7 @@ public class PlaceOfferModel implements Model {
         this.keyRing = keyRing;
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
+        this.openOfferManager = openOfferManager;
     }
 
     @Override

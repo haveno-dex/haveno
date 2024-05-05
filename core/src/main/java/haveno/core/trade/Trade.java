@@ -359,7 +359,7 @@ public abstract class Trade implements Tradable, Model {
     private long takeOfferDate;
 
     // Initialization
-    private static final int TOTAL_INIT_STEPS = 15; // total estimated steps
+    private static final int TOTAL_INIT_STEPS = 23; // total estimated steps
     private int initStep = 0;
     @Getter
     private double initProgress = 0;
@@ -1537,8 +1537,13 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void addInitProgressStep() {
+        startProtocolTimeout();
         initProgress = Math.min(1.0, (double) ++initStep / TOTAL_INIT_STEPS);
         UserThread.execute(() -> initProgressProperty.set(initProgress));
+    }
+
+    public void startProtocolTimeout() {
+        getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
     }
 
     public void setState(State state) {

@@ -28,7 +28,6 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.protocol.TradePeer;
-import haveno.core.trade.protocol.TradeProtocol;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
@@ -104,7 +103,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
             // extend timeout
             if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while verifying deposit tx for {} {}" + trade.getClass().getSimpleName() + " " + trade.getShortId());
-            trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+            trade.startProtocolTimeout();
 
             // set deposit info
             trader.setSecurityDeposit(securityDeposit.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit

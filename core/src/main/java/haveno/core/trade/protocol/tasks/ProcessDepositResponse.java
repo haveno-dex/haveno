@@ -23,7 +23,6 @@ import java.math.BigInteger;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositResponse;
-import haveno.core.trade.protocol.TradeProtocol;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -47,16 +46,12 @@ public class ProcessDepositResponse extends TradeTask {
             throw new RuntimeException(message.getErrorMessage());
           }
 
-          // reset protocol timeout
-          trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
-
           // record security deposits
           trade.getBuyer().setSecurityDeposit(BigInteger.valueOf(message.getBuyerSecurityDeposit()));
           trade.getSeller().setSecurityDeposit(BigInteger.valueOf(message.getSellerSecurityDeposit()));
 
           // set success state
           trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
-          trade.addInitProgressStep();
           processModel.getTradeManager().requestPersistence();
 
           // update balances

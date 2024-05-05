@@ -81,7 +81,6 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // prepare multisig if applicable
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
-            trade.addInitProgressStep();
             log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
             multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());

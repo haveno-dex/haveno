@@ -74,7 +74,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                                 MakerSendInitTradeRequest.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
-                                    startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
+                                    startTimeout();
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 errorMessage -> {

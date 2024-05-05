@@ -89,7 +89,6 @@ public class SendDepositRequest extends TradeTask {
                 // update trade state
                 trade.setState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST);
                 processModel.getTradeManager().requestPersistence();
-                trade.addInitProgressStep();
 
                 // send request to arbitrator
                 log.info("Sending {} to arbitrator {}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), request.getUid());
@@ -99,6 +98,7 @@ public class SendDepositRequest extends TradeTask {
                         log.info("{} arrived: arbitrator={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getArbitrator().getNodeAddress(), trade.getId(), request.getUid());
                         trade.setStateIfValidTransitionTo(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
                         processModel.getTradeManager().requestPersistence();
+                        trade.addInitProgressStep();
                         complete();
                     }
                     @Override
