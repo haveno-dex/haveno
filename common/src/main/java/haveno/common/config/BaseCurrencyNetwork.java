@@ -76,7 +76,7 @@ public enum BaseCurrencyNetwork {
         }
     }
 
-    private static class XmrStageNetParams extends RegTestParams {
+    private static class XmrStageNetParams extends MainNetParams {
         @Override
         public MonetaryFormat getMonetaryFormat() {
             return XMR_MONETARY_FORMAT;
