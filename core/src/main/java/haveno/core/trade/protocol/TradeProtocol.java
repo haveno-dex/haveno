@@ -427,15 +427,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         System.out.println(getClass().getSimpleName() + ".handleDepositResponse()");
         ThreadUtils.execute(() -> {
             synchronized (trade) {
-
-                // check trade
-                if (trade.hasFailed()) {
-                    log.warn("{} {} ignoring {} from {} because trade failed with previous error: {}", trade.getClass().getSimpleName(), trade.getId(), response.getClass().getSimpleName(), sender, trade.getErrorMessage());
-                    return;
-                }
                 Validator.checkTradeId(processModel.getOfferId(), response);
-
-                // process message
                 latchTrade();
                 processModel.setTradeMessage(response);
                 expect(anyState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK)

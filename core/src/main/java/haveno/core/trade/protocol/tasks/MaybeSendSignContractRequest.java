@@ -124,7 +124,6 @@ public class MaybeSendSignContractRequest extends TradeTask {
 
                     throw e;
                 }
-                
 
                 // reset protocol timeout
                 trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);

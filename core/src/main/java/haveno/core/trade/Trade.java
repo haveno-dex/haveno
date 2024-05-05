@@ -50,6 +50,7 @@ import haveno.core.monetary.Volume;
 import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OpenOffer;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
@@ -73,12 +74,14 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -133,14 +136,18 @@ public abstract class Trade implements Tradable, Model {
 
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
-    private static final long DELETE_BACKUPS_AFTER_NUM_BLOCKS = 3600; // ~5 days
     private static final long SYNC_EVERY_NUM_BLOCKS = 360; // ~1/2 day
+    private static final long DELETE_AFTER_NUM_BLOCKS = 1; // if deposit requested but not published
+    private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private final Object walletLock = new Object();
     private final Object pollLock = new Object();
+    private final LongProperty walletHeight = new SimpleLongProperty(0);
     private MoneroWallet wallet;
     boolean wasWalletSynced;
     boolean pollInProgress;
     boolean restartInProgress;
+    private Subscription protocolErrorStateSubscription;
+    private Subscription protocolErrorHeightSubscription;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -643,6 +650,7 @@ public abstract class Trade implements Tradable, Model {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
+                if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
                 if (isDepositsPublished() && !isPayoutUnlocked()) updatePollPeriod();
                 if (isPaymentReceived()) {
                     UserThread.execute(() -> {
@@ -785,6 +793,10 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
+    public long getHeight() {
+        return walletHeight.get();
+    }
+
     private String getWalletName() {
         return MONERO_TRADE_WALLET_PREFIX + getShortId() + "_" + getShortUid();
     }
@@ -814,7 +826,7 @@ public abstract class Trade implements Tradable, Model {
             if (!xmrConnectionService.isSyncedWithinTolerance()) return false;
             Long targetHeight = xmrConnectionService.getTargetHeight();
             if (targetHeight == null) return false;
-            if (targetHeight - wallet.getHeight() <= 3) return true; // synced if within 3 blocks of target height
+            if (targetHeight - walletHeight.get() <= 3) return true; // synced if within 3 blocks of target height
             return false;
         }
     }
@@ -941,7 +953,7 @@ public abstract class Trade implements Tradable, Model {
                     }
 
                     // wallet must be synced
-                    if (isDepositRequested() && !isSyncedWithinTolerance()) {
+                    if (isDepositRequested() && isWalletBehind()) {
                         log.warn("Wallet is not synced for {} {}, syncing", getClass().getSimpleName(), getId());
                         syncWallet(true);
                     }
@@ -966,19 +978,9 @@ public abstract class Trade implements Tradable, Model {
                     forceCloseWallet();
 
                     // delete wallet
-                    log.info("Deleting wallet for {} {}", getClass().getSimpleName(), getId());
+                    log.info("Deleting wallet and backups for {} {}", getClass().getSimpleName(), getId());
                     xmrWalletService.deleteWallet(getWalletName());
-
-                    // delete trade wallet backups if empty and payout unlocked, else schedule
-                    if (isPayoutUnlocked() || !isDepositRequested() || isDepositFailed()) {
-                        xmrWalletService.deleteWalletBackups(getWalletName());
-                    } else {
-
-                        // schedule backup deletion by recording delete height
-                        log.warn("Scheduling to delete backup wallet for " + getClass().getSimpleName() + " " + getId() + " in the small chance it becomes funded");
-                        processModel.setDeleteBackupsHeight(xmrConnectionService.getLastInfo().getHeight() + DELETE_BACKUPS_AFTER_NUM_BLOCKS);
-                        maybeScheduleDeleteBackups();
-                    }
+                    xmrWalletService.deleteWalletBackups(getWalletName());
                 } catch (Exception e) {
                     log.warn(e.getMessage());
                     e.printStackTrace();
@@ -1290,9 +1292,6 @@ public abstract class Trade implements Tradable, Model {
 
     private void clearProcessData() {
 
-        // delete backup wallets after main wallet + blocks
-        maybeScheduleDeleteBackups();
-
         // delete trade wallet
         synchronized (walletLock) {
             if (!walletExists()) return; // done if already cleared
@@ -1307,27 +1306,6 @@ public abstract class Trade implements Tradable, Model {
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setPaymentReceivedMessage(null);
-        }
-    }
-
-    private void maybeScheduleDeleteBackups() {
-        if (processModel.getDeleteBackupsHeight() == 0) return;
-        if (xmrConnectionService.getLastInfo().getHeight() >= processModel.getDeleteBackupsHeight()) {
-            xmrWalletService.deleteWalletBackups(getWalletName());
-            processModel.setDeleteBackupsHeight(0); // reset delete height
-        } else {
-            MoneroWalletListener deleteBackupsListener = new MoneroWalletListener() {
-                @Override
-                public synchronized void onNewBlock(long height) { // prevent concurrent deletion
-                    if (processModel.getDeleteBackupsHeight() == 0) return;
-                    if (xmrConnectionService.getLastInfo().getHeight() >= processModel.getDeleteBackupsHeight()) {
-                        xmrWalletService.deleteWalletBackups(getWalletName());
-                        processModel.setDeleteBackupsHeight(0); // reset delete height
-                        xmrWalletService.removeWalletListener(this);
-                    }
-                }
-            };
-            xmrWalletService.addWalletListener(deleteBackupsListener);
         }
     }
 
@@ -1407,6 +1385,127 @@ public abstract class Trade implements Tradable, Model {
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
         });
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Trade error cleanup
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public void onProtocolError() {
+
+        // check if deposit published
+        if (isDepositsPublished()) {
+            restorePublishedTrade();
+            return;
+        }
+
+        // unreserve taker key images
+        if (this instanceof TakerTrade) {
+            ThreadUtils.submitToPool(() -> {
+                xmrWalletService.thawOutputs(getSelf().getReserveTxKeyImages());
+            });
+        }
+
+        // unreserve open offer
+        Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOfferById(this.getId());
+        if (this instanceof MakerTrade && openOffer.isPresent()) {
+            processModel.getOpenOfferManager().unreserveOpenOffer(openOffer.get());
+        }
+
+        // remove if deposit not requested or is failed
+        if (!isDepositRequested() || isDepositFailed()) {
+            removeTradeOnError();
+            return;
+        }
+
+        // done if wallet already deleted
+        if (!walletExists()) return;
+
+        // move to failed trades
+        processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this);
+
+        // set error height
+        if (processModel.getTradeProtocolErrorHeight() == 0) {
+            log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getLastInfo().getHeight());
+            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getLastInfo().getHeight());
+        }
+
+        // listen for deposits published to restore trade
+        protocolErrorStateSubscription = EasyBind.subscribe(stateProperty(), state -> {
+            if (isDepositsPublished()) {
+                restorePublishedTrade();
+                if (protocolErrorStateSubscription != null) {    // unsubscribe
+                    protocolErrorStateSubscription.unsubscribe();
+                    protocolErrorStateSubscription = null;
+                }
+            }
+        });
+
+        // listen for block confirmations to remove trade
+        long startTime = System.currentTimeMillis();
+        protocolErrorHeightSubscription = EasyBind.subscribe(walletHeight, lastWalletHeight -> {
+            if (isShutDown || isDepositsPublished()) return;
+            if (lastWalletHeight.longValue() < processModel.getTradeProtocolErrorHeight() + DELETE_AFTER_NUM_BLOCKS) return;
+            if (System.currentTimeMillis() - startTime < DELETE_AFTER_MS) return;
+
+            // remove trade off thread
+            ThreadUtils.submitToPool(() -> {
+
+                // get trade's deposit txs from daemon
+                MoneroTx makerDepositTx = getMaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(getMaker().getDepositTxHash());
+                MoneroTx takerDepositTx = getTaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(getTaker().getDepositTxHash());
+
+                // remove trade and wallet if neither deposit tx published
+                if (makerDepositTx == null && takerDepositTx == null) {
+                    log.warn("Deleting {} {} after protocol error", getClass().getSimpleName(), getId());
+                    if (this instanceof ArbitratorTrade && (getMaker().getReserveTxHash() != null || getTaker().getReserveTxHash() != null)) {
+                        processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this); // arbitrator retains trades with reserved funds for analysis and penalty
+                        deleteWallet();
+                        onShutDownStarted();
+                        ThreadUtils.submitToPool(() -> shutDown()); // run off thread
+                    } else {
+                        removeTradeOnError();
+                    }
+                } else if (!isPayoutPublished()) {
+
+                    // set error if wallet may be partially funded
+                    String errorMessage = "Refusing to delete " + getClass().getSimpleName() + " " + getId() + " after protocol error because its wallet might be funded";
+                    prependErrorMessage(errorMessage);
+                    log.warn(errorMessage);
+                }
+
+                // unsubscribe
+                if (protocolErrorHeightSubscription != null) {
+                    protocolErrorHeightSubscription.unsubscribe();
+                    protocolErrorHeightSubscription = null;
+                }
+            });
+        });
+    }
+
+    private void restorePublishedTrade() {
+
+        // close open offer
+        if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOfferById(getId()).isPresent()) {
+            log.info("Closing open offer because {} {} was restored after protocol error", getClass().getSimpleName(), getShortId());
+            processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(getOffer()));
+        }
+
+        // re-freeze outputs
+        xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
+
+        // restore trade from failed trades
+        processModel.getTradeManager().onMoveFailedTradeToPendingTrades(this);
+    }
+
+    private void removeTradeOnError() {
+        log.warn("removeTradeOnError() trade={}, tradeId={}, state={}", getClass().getSimpleName(), getShortId(), getState());
+
+        // clear and shut down trade
+        clearAndShutDown();
+
+        // unregister trade
+        processModel.getTradeManager().unregisterTrade(this);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1815,6 +1914,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public boolean isDepositsPublished() {
+        if (isDepositFailed()) return false;
         return getState().getPhase().ordinal() >= Phase.DEPOSITS_PUBLISHED.ordinal() && getMaker().getDepositTxHash() != null && getTaker().getDepositTxHash() != null;
     }
 
@@ -1935,9 +2035,11 @@ public abstract class Trade implements Tradable, Model {
 
     public BigInteger getFrozenAmount() {
         BigInteger sum = BigInteger.ZERO;
-        for (String keyImage : getSelf().getReserveTxKeyImages()) {
-            List<MoneroOutputWallet> outputs = xmrWalletService.getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage)));
-            if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
+        if (getSelf().getReserveTxKeyImages() != null) {
+            for (String keyImage : getSelf().getReserveTxKeyImages()) {
+                List<MoneroOutputWallet> outputs = xmrWalletService.getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage)));
+                if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
+            }
         }
         return sum;
     }
@@ -2169,12 +2271,12 @@ public abstract class Trade implements Tradable, Model {
                 // skip if payout unlocked
                 if (isPayoutUnlocked()) return;
 
-                // skip if either deposit tx id is unknown
-                if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) return;
+                // skip if deposit txs unknown or not requested
+                if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null || !isDepositRequested()) return;
 
                 // sync if wallet too far behind daemon
                 if (xmrConnectionService.getTargetHeight() == null) return;
-                if (wallet.getHeight() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
+                if (walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
 
                 // update deposit txs
                 if (!isDepositsUnlocked()) {
@@ -2286,12 +2388,13 @@ public abstract class Trade implements Tradable, Model {
         if (isWalletBehind()) {
             synchronized (walletLock) {
                 xmrWalletService.syncWallet(wallet);
+                walletHeight.set(wallet.getHeight());
             }
         }
     }
 
     private boolean isWalletBehind() {
-        return wallet.getHeight() < xmrConnectionService.getTargetHeight();
+        return walletHeight.get() < xmrConnectionService.getTargetHeight();
     }
 
     private void setDepositTxs(List<? extends MoneroTx> txs) {

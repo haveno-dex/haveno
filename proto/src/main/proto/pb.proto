@@ -1558,7 +1558,7 @@ message ProcessModel {
     bytes mediated_payout_tx_signature = 15; // placeholder if mediation used in future
     int64 buyer_payout_amount_from_mediation = 16;
     int64 seller_payout_amount_from_mediation = 17;
-    int64 delete_backups_height = 18;
+    int64 trade_protocol_error_height = 18;
     string trade_fee_address = 19;
 }
 
