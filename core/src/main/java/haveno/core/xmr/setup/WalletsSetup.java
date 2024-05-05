@@ -226,7 +226,7 @@ public class WalletsSetup {
             walletConfig.connectToLocalHost();
         } else {
             try {
-                //configPeerNodes(socks5Proxy);
+                configPeerNodes(socks5Proxy);
             } catch (IllegalArgumentException e) {
                 timeoutTimer.stop();
                 walletsSetupFailed.set(true);
