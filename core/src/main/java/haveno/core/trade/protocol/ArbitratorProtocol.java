@@ -59,7 +59,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                               ArbitratorSendInitTradeOrMultisigRequests.class)
                       .using(new TradeTaskRunner(trade,
                               () -> {
-                                  startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
+                                  startTimeout();
                                   handleTaskRunnerSuccess(peer, message);
                               },
                               errorMessage -> {

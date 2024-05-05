@@ -372,12 +372,6 @@ public class XmrWalletService {
         return useNativeXmrWallet && MoneroUtils.isNativeLibraryLoaded();
     }
 
-    public MoneroSyncResult syncWallet() {
-        MoneroSyncResult result = syncWallet(wallet);
-        walletHeight.set(wallet.getHeight());
-        return result;
-    }
-
     /**
      * Sync the given wallet in a thread pool with other wallets.
      */
@@ -1799,7 +1793,7 @@ public class XmrWalletService {
                 // sync wallet if behind daemon
                 if (walletHeight.get() < xmrConnectionService.getTargetHeight()) {
                     synchronized (WALLET_LOCK) {  // avoid long sync from blocking other operations
-                        syncWallet();
+                        syncMainWallet();
                     }
                 }
 
@@ -1830,6 +1824,14 @@ public class XmrWalletService {
             } finally {
                 pollInProgress = false;
             }
+        }
+    }
+
+    private MoneroSyncResult syncMainWallet() {
+        synchronized (WALLET_LOCK) {
+            MoneroSyncResult result = syncWallet(wallet);
+            walletHeight.set(wallet.getHeight());
+            return result;
         }
     }
 

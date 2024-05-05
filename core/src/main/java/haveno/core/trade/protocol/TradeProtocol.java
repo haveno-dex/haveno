@@ -299,6 +299,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest()");
+        trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 
@@ -320,7 +321,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                 MaybeSendSignContractRequest.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
-                                startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
+                                startTimeout();
                                 handleTaskRunnerSuccess(sender, request);
                             },
                             errorMessage -> {
@@ -335,6 +336,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() " + trade.getId());
+        trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 
@@ -358,7 +360,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     ProcessSignContractRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
+                                        startTimeout();
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
@@ -380,6 +382,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() " + trade.getId());
+        trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 
@@ -403,7 +406,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     SendDepositRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout(TRADE_STEP_TIMEOUT_SECONDS);
+                                        startTimeout();
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
@@ -425,6 +428,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleDepositResponse()");
+        trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
                 Validator.checkTradeId(processModel.getOfferId(), response);
@@ -715,6 +719,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Timeout
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public synchronized void startTimeout() {
+        startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+    }
 
     public synchronized void startTimeout(long timeoutSec) {
         synchronized (timeoutTimerLock) {

@@ -83,7 +83,8 @@ public class MaybeSendSignContractRequest extends TradeTask {
             synchronized (XmrWalletService.WALLET_LOCK) {
 
                 // check for timeout
-                if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
+                if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while getting lock to create deposit tx, tradeId=" + trade.getShortId());
+                trade.startProtocolTimeout();
 
                 // collect relevant info
                 Integer subaddressIndex = null;
@@ -126,7 +127,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 }
 
                 // reset protocol timeout
-                trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+                trade.addInitProgressStep();
 
                 // collect reserved key images
                 List<String> reservedKeyImages = new ArrayList<String>();

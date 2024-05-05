@@ -1151,7 +1151,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 user,
                 keyRing,
                 filterManager,
-                accountAgeWitnessService);
+                accountAgeWitnessService,
+                this);
 
         // create protocol
         PlaceOfferProtocol placeOfferProtocol = new PlaceOfferProtocol(model,

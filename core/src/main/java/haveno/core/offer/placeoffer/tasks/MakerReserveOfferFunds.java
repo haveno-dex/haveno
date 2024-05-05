@@ -58,6 +58,10 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             MoneroTxWallet reserveTx = null;
             synchronized (XmrWalletService.WALLET_LOCK) {
 
+                // reset protocol timeout
+                verifyOpen();
+                model.getProtocol().startTimeoutTimer();
+
                 // collect relevant info
                 BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), offer.getPenaltyFeePct());
                 BigInteger makerFee = offer.getMaxMakerFee();
@@ -71,6 +75,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 synchronized (HavenoUtils.getWalletFunctionLock()) {
                     for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                         try {
+                            //if (true) throw new RuntimeException("Pretend error");
                             reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
                         } catch (Exception e) {
                             log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
@@ -78,10 +83,8 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                         }
     
-                        // check for error in case creating reserve tx exceeded timeout // TODO: better way?
-                        if (!model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).isPresent()) {
-                            throw new RuntimeException("An error has occurred posting offer " + offer.getId() + " causing its subaddress entry to be deleted");
-                        }
+                        // verify still open
+                        verifyOpen();
                         if (reserveTx != null) break;
                     }
                 }
@@ -107,5 +110,13 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 + t.getMessage());
             failed(t);
         }
+    }
+
+    public void verifyOpen() {
+        if (!isOpen()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is no longer open");
+    }
+
+    public boolean isOpen() {
+        return model.getOpenOfferManager().getOpenOfferById(model.getOpenOffer().getId()).isPresent();
     }
 }

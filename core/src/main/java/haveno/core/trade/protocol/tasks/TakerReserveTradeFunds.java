@@ -49,7 +49,8 @@ public class TakerReserveTradeFunds extends TradeTask {
             synchronized (XmrWalletService.WALLET_LOCK) {
 
                 // check for timeout
-                if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getShortId());
+                if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while getting lock to create reserve tx, tradeId=" + trade.getShortId());
+                trade.startProtocolTimeout();
 
                 // collect relevant info
                 BigInteger penaltyFee = HavenoUtils.multiply(trade.getAmount(), trade.getOffer().getPenaltyFeePct());
@@ -76,7 +77,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                 }
 
                 // reset protocol timeout
-                trade.getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+                trade.startProtocolTimeout();
 
                 // collect reserved key images
                 List<String> reservedKeyImages = new ArrayList<String>();
