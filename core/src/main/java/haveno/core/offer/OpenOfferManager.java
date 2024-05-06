@@ -618,13 +618,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 ErrorMessageHandler errorMessageHandler) {
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
             if (openOffer.isDeactivated()) {
-                onCancelled(openOffer);
-                resultHandler.handleResult();
+                ThreadUtils.execute(() -> {
+                    onCancelled(openOffer);
+                    resultHandler.handleResult();
+                }, THREAD_ID);
             } else {
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                         () -> {
-                            onCancelled(openOffer);
-                            resultHandler.handleResult();
+                            ThreadUtils.execute(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
+                                onCancelled(openOffer);
+                                resultHandler.handleResult();
+                            }, THREAD_ID);
                         },
                         errorMessageHandler);
             }
@@ -705,14 +709,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // remove open offer which thaws its key images
     private void onCancelled(@NotNull OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
-        xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
-        removeOpenOffer(openOffer);
+        removeOpenOffer(openOffer); 
         closedTradableManager.add(openOffer);
         xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
-        log.info("onRemoved offerId={}", offer.getId());
         requestPersistence();
+        xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
     }
 
     // close open offer after key images spent
@@ -793,19 +796,21 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void addOpenOffer(OpenOffer openOffer) {
+        log.info("Adding open offer {}", openOffer.getId());
         synchronized (openOffers) {
             openOffers.add(openOffer);
         }
     }
 
     private void removeOpenOffer(OpenOffer openOffer) {
+        log.info("Removing open offer {}", openOffer.getId());
         synchronized (openOffers) {
             openOffers.remove(openOffer);
         }
     }
 
     private void addSignedOffer(SignedOffer signedOffer) {
-        log.info("Adding SignedOffer offer for offer {}", signedOffer.getOfferId());
+        log.info("Adding SignedOffer for offer {}", signedOffer.getOfferId());
         synchronized (signedOffers) {
 
             // remove signed offers with common key images
