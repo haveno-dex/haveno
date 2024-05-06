@@ -843,7 +843,7 @@ public abstract class Trade implements Tradable, Model {
 
     public void importMultisigHex() {
         synchronized (walletLock) {
-            synchronized (HavenoUtils.getDaemonLock()) { // TODO: lock on daemon because wallet2's import_multisig calls refresh: https://github.com/monero-project/monero/issues/9312
+            synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     try {
                         doImportMultisigHex();
