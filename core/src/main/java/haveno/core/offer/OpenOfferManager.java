@@ -912,7 +912,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             // on error, create split output tx if not already created
                             if (openOffer.getSplitOutputTxHash() == null) {
                                 int offerSubaddress = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING).getSubaddressIndex();
-                                log.warn("Splitting new output because spending scheduled output(s) failed for offer {}. Offer funding subadress={}", openOffer.getId(), offerSubaddress);
+                                BigInteger balance = xmrWalletService.getBalanceForSubaddress(offerSubaddress);
+                                log.warn("Splitting new output because spending scheduled output(s) failed, offerId={}, offerSubaddress={}, hasBalance={}", openOffer.getId(), offerSubaddress, balance.compareTo(BigInteger.ZERO) > 0);
                                 splitOrSchedule(openOffers, openOffer, amountNeeded);
                                 resultHandler.handleResult(null);
                             } else {
