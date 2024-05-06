@@ -143,9 +143,9 @@ public abstract class Trade implements Tradable, Model {
     private final Object pollLock = new Object();
     private final LongProperty walletHeight = new SimpleLongProperty(0);
     private MoneroWallet wallet;
-    boolean wasWalletSynced;
-    boolean pollInProgress;
-    boolean restartInProgress;
+    private boolean wasWalletSynced;
+    private boolean pollInProgress;
+    private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
     private Subscription protocolErrorHeightSubscription;
 
@@ -1127,89 +1127,87 @@ public abstract class Trade implements Tradable, Model {
      * @param publish publishes the signed payout tx if true
      */
     public void processPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
-        synchronized (walletLock) {
-            log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
+        log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
 
-            // gather relevant info
-            MoneroWallet wallet = getWallet();
-            Contract contract = getContract();
-            BigInteger sellerDepositAmount = wallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
-            BigInteger buyerDepositAmount = wallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
-            BigInteger tradeAmount = getAmount();
-    
-            // describe payout tx
-            MoneroTxSet describedTxSet = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
-            if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new IllegalArgumentException("Bad payout tx"); // TODO (woodser): test nack
-            MoneroTxWallet payoutTx = describedTxSet.getTxs().get(0);
-    
-            // verify payout tx has exactly 2 destinations
-            if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new IllegalArgumentException("Payout tx does not have exactly two destinations");
-    
-            // get buyer and seller destinations (order not preserved)
-            boolean buyerFirst = payoutTx.getOutgoingTransfer().getDestinations().get(0).getAddress().equals(contract.getBuyerPayoutAddressString());
-            MoneroDestination buyerPayoutDestination = payoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 0 : 1);
-            MoneroDestination sellerPayoutDestination = payoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 1 : 0);
-    
-            // verify payout addresses
-            if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new IllegalArgumentException("Buyer payout address does not match contract");
-            if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
-    
-            // verify change address is multisig's primary address
-            if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), payoutTx.getChangeAmount());
-            if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO) && !payoutTx.getChangeAddress().equals(wallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
-    
-            // verify sum of outputs = destination amounts + change amount
-            if (!payoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(payoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
-    
-            // verify buyer destination amount is deposit amount + this amount - 1/2 tx costs
-            BigInteger txCost = payoutTx.getFee().add(payoutTx.getChangeAmount());
-            BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
-            BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCostSplit);
-            if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new IllegalArgumentException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
-    
-            // verify seller destination amount is deposit amount - this amount - 1/2 tx costs
-            BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCostSplit);
-            if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
-    
-            // check connection
-            if (sign || publish) verifyDaemonConnection();
-    
-            // handle tx signing
-            if (sign) {
-    
-                // sign tx
-                MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-                if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
-                payoutTxHex = result.getSignedMultisigTxHex();
-    
-                // describe result
-                describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
-                payoutTx = describedTxSet.getTxs().get(0);
-    
-                // verify fee is within tolerance by recreating payout tx
-                // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
-                MoneroTxWallet feeEstimateTx = createPayoutTx();
-                BigInteger feeEstimate = feeEstimateTx.getFee();
-                double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
-                if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + payoutTx.getFee());
-                log.info("Payout tx fee {} is within tolerance, diff %={}", payoutTx.getFee(), feeDiff);
-            }
-    
-            // update trade state
-            setPayoutTx(payoutTx);
-            setPayoutTxHex(payoutTxHex);
-    
-            // submit payout tx
-            if (publish) {
-                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                    try {
-                        wallet.submitMultisigTxHex(payoutTxHex);
-                        break;
-                    } catch (Exception e) {
-                        log.warn("Failed to submit payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
-                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                    }
+        // gather relevant info
+        MoneroWallet wallet = getWallet();
+        Contract contract = getContract();
+        BigInteger sellerDepositAmount = wallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
+        BigInteger buyerDepositAmount = wallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
+        BigInteger tradeAmount = getAmount();
+
+        // describe payout tx
+        MoneroTxSet describedTxSet = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
+        if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new IllegalArgumentException("Bad payout tx"); // TODO (woodser): test nack
+        MoneroTxWallet payoutTx = describedTxSet.getTxs().get(0);
+
+        // verify payout tx has exactly 2 destinations
+        if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new IllegalArgumentException("Payout tx does not have exactly two destinations");
+
+        // get buyer and seller destinations (order not preserved)
+        boolean buyerFirst = payoutTx.getOutgoingTransfer().getDestinations().get(0).getAddress().equals(contract.getBuyerPayoutAddressString());
+        MoneroDestination buyerPayoutDestination = payoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 0 : 1);
+        MoneroDestination sellerPayoutDestination = payoutTx.getOutgoingTransfer().getDestinations().get(buyerFirst ? 1 : 0);
+
+        // verify payout addresses
+        if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new IllegalArgumentException("Buyer payout address does not match contract");
+        if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
+
+        // verify change address is multisig's primary address
+        if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), payoutTx.getChangeAmount());
+        if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO) && !payoutTx.getChangeAddress().equals(wallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
+
+        // verify sum of outputs = destination amounts + change amount
+        if (!payoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(payoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
+
+        // verify buyer destination amount is deposit amount + this amount - 1/2 tx costs
+        BigInteger txCost = payoutTx.getFee().add(payoutTx.getChangeAmount());
+        BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
+        BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCostSplit);
+        if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new IllegalArgumentException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
+
+        // verify seller destination amount is deposit amount - this amount - 1/2 tx costs
+        BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCostSplit);
+        if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
+
+        // check connection
+        if (sign || publish) verifyDaemonConnection();
+
+        // handle tx signing
+        if (sign) {
+
+            // sign tx
+            MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
+            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            payoutTxHex = result.getSignedMultisigTxHex();
+
+            // describe result
+            describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
+            payoutTx = describedTxSet.getTxs().get(0);
+
+            // verify fee is within tolerance by recreating payout tx
+            // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
+            MoneroTxWallet feeEstimateTx = createPayoutTx();
+            BigInteger feeEstimate = feeEstimateTx.getFee();
+            double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
+            if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + payoutTx.getFee());
+            log.info("Payout tx fee {} is within tolerance, diff %={}", payoutTx.getFee(), feeDiff);
+        }
+
+        // update trade state
+        setPayoutTx(payoutTx);
+        setPayoutTxHex(payoutTxHex);
+
+        // submit payout tx
+        if (publish) {
+            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                try {
+                    wallet.submitMultisigTxHex(payoutTxHex);
+                    break;
+                } catch (Exception e) {
+                    log.warn("Failed to submit payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                    if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                 }
             }
         }
