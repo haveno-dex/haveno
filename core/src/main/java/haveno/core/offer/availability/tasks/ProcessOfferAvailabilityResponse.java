@@ -54,7 +54,7 @@ public class ProcessOfferAvailabilityResponse extends Task<OfferAvailabilityMode
             
             // verify maker signature for trade request
             if (!HavenoUtils.isMakerSignatureValid(model.getTradeRequest(), offerAvailabilityResponse.getMakerSignature(), offer.getPubKeyRing())) {
-                offer.setState(Offer.State.NOT_AVAILABLE);
+                offer.setState(Offer.State.UNKNOWN); // TODO: using as invalid state
                 failed("Take offer attempt failed because maker signature is invalid");
                 return;
             }

@@ -147,7 +147,10 @@ class TakeOfferDataModel extends OfferDataModel {
                     this.amount.get(),
                     () -> {
                     },
-                    errorMessage -> new Popup().warning(errorMessage).show());
+                    errorMessage -> {
+                        log.warn(errorMessage);
+                        if (offer.getState() != Offer.State.NOT_AVAILABLE) new Popup().warning(errorMessage).show(); // expected and handled elsewhere in UI
+                    });
         }
     }
 
