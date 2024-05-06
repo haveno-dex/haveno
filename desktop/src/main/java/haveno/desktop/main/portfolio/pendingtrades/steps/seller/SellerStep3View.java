@@ -109,6 +109,8 @@ public class SellerStep3View extends TradeStepView {
                 timeoutTimer.stop();
 
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
+                busyAnimation.stop();
+                statusLabel.setText("");
                 showPopup();
             } else if (trade.isPaymentReceived()) {
                 if (trade.isCompleted()) {
