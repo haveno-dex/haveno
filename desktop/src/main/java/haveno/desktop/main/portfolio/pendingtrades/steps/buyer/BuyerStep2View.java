@@ -148,6 +148,8 @@ public class BuyerStep2View extends TradeStepView {
                     timeoutTimer.stop();
 
                 if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
+                    busyAnimation.stop();
+                    statusLabel.setText("");
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
                     switch (state) {
