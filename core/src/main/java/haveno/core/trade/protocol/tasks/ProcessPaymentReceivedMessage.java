@@ -94,8 +94,8 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
             trade.requestPersistence();
 
-            // process payout tx unless already unlocked
-            if (!trade.isPayoutUnlocked()) processPayoutTx(message);
+            // process payout tx unless already published
+            if (!trade.isPayoutPublished()) processPayoutTx(message);
 
             // close open disputes
             if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
