@@ -84,7 +84,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), request);
             processModel.setTradeMessage(request);
-            expect(phase(Trade.Phase.INIT)
+            expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_REQUESTED)
                 .with(request)
                 .from(sender))
                 .setup(tasks(
@@ -99,8 +99,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
                         },
                         errorMessage -> {
                             handleTaskRunnerFault(sender, request, errorMessage);
-                        }))
-                .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
+                        })))
                 .executeTasks(true);
             awaitTradeLatch();
         }
@@ -116,5 +115,14 @@ public class ArbitratorProtocol extends DisputeProtocol {
   @Override
   public Class<? extends TradeTask>[] getDepositsConfirmedTasks() {
       return new Class[] { SendDepositsConfirmedMessageToBuyer.class, SendDepositsConfirmedMessageToSeller.class };
+  }
+
+  @Override
+  public void handleError(String errorMessage) {
+    // set trade state to send deposit responses with nack
+    if (trade instanceof ArbitratorTrade && trade.getState() == Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST) {
+        trade.setState(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
+    }
+    super.handleError(errorMessage);
   }
 }

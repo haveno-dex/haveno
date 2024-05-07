@@ -31,9 +31,7 @@ import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessage;
 import haveno.core.trade.protocol.tasks.MakerSetLockTime;
 import haveno.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import haveno.core.trade.protocol.tasks.ProcessPaymentSentMessage;
-import haveno.core.trade.protocol.tasks.RemoveOffer;
 import haveno.core.trade.protocol.tasks.SellerPreparePaymentReceivedMessage;
-import haveno.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import haveno.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import haveno.desktop.common.view.FxmlView;
@@ -85,9 +83,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
 
-                        //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishTradeStatistics.class,
-
                         ProcessPaymentSentMessage.class,
                         ApplyFilter.class,
 
@@ -103,8 +98,6 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         ApplyFilter.class,
                         VerifyPeersAccountAgeWitness.class,
                         MakerSetLockTime.class,
-
-                        RemoveOffer.class,
 
                         ApplyFilter.class,
                         BuyerPreparePaymentSentMessage.class,
@@ -134,18 +127,11 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         VerifyPeersAccountAgeWitness.class,
                         MakerSetLockTime.class,
 
-                        //SellerAsMakerProcessDepositTxMessage.class,
-                        RemoveOffer.class,
-
-                        //SellerSendsDepositTxAndDelayedPayoutTxMessage.class,
-                        SellerPublishTradeStatistics.class,
-
                         ProcessPaymentSentMessage.class,
                         ApplyFilter.class,
 
                         ApplyFilter.class,
                         SellerPreparePaymentReceivedMessage.class,
-                        //SellerBroadcastPayoutTx.class, // TODO (woodser): removed from main pipeline; debug view?
                         SellerSendPaymentReceivedMessageToBuyer.class
                         )
                 ));

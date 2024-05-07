@@ -69,8 +69,6 @@ import haveno.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import haveno.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import haveno.core.trade.protocol.tasks.ProcessSignContractRequest;
 import haveno.core.trade.protocol.tasks.SendDepositRequest;
-import haveno.core.trade.protocol.tasks.RemoveOffer;
-import haveno.core.trade.protocol.tasks.SellerPublishTradeStatistics;
 import haveno.core.trade.protocol.tasks.MaybeResendDisputeClosedMessageWithPayout;
 import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
@@ -434,13 +432,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 Validator.checkTradeId(processModel.getOfferId(), response);
                 latchTrade();
                 processModel.setTradeMessage(response);
-                expect(anyState(Trade.State.SENT_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST, Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS, Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK)
+                expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_REQUESTED, Trade.Phase.DEPOSITS_PUBLISHED)
                         .with(response)
                         .from(sender))
                         .setup(tasks(
-                                ProcessDepositResponse.class,
-                                RemoveOffer.class,
-                                SellerPublishTradeStatistics.class)
+                                ProcessDepositResponse.class)
                         .using(new TradeTaskRunner(trade,
                             () -> {
                                 stopTimeout();
@@ -672,8 +668,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
 
         if (ackMessage.isSuccess()) {
-            log.info("Received AckMessage for {} from {} with tradeId {} and uid {}",
-                    ackMessage.getSourceMsgClassName(), sender, trade.getId(), ackMessage.getSourceUid());
+            log.info("Received AckMessage for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
 
             // handle ack for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
             if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
@@ -689,8 +684,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 else peer.setDepositsConfirmedMessageAcked(true);
             }
         } else {
-            String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
-            log.warn(err);
+            log.warn("Received AckMessage with error state for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
 
             // set trade state on deposit request nack
             if (ackMessage.getSourceMsgClassName().equals(DepositRequest.class.getSimpleName())) {

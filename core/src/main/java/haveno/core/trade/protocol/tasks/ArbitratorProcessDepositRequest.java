@@ -43,7 +43,7 @@ import java.util.UUID;
 @Slf4j
 public class ArbitratorProcessDepositRequest extends TradeTask {
 
-    private boolean depositTxsRelayed = false;
+    private Throwable error;
 
     @SuppressWarnings({"unused"})
     public ArbitratorProcessDepositRequest(TaskRunner taskHandler, Trade trade) {
@@ -52,132 +52,155 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
     @Override
     protected void run() {
-        MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
         try {
             runInterceptHook();
 
-            // get contract and signature
-            String contractAsJson = trade.getContractAsJson();
-            DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
-            byte[] signature = request.getContractSignature();
+            // check if trade is failed
+            if (trade.getState() == Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED) throw new RuntimeException("Cannot process deposit request because trade is already failed, tradeId=" + trade.getId());
 
-            // get trader info
-            TradePeer trader = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
-            if (trader == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
-            PubKeyRing peerPubKeyRing = trader.getPubKeyRing();
-
-            // verify signature
-            if (!HavenoUtils.isSignatureValid(peerPubKeyRing, contractAsJson, signature)) {
-                throw new RuntimeException("Peer's contract signature is invalid");
-            }
-
-            // set peer's signature
-            trader.setContractSignature(signature);
-
-            // collect expected values
-            Offer offer = trade.getOffer();
-            boolean isFromTaker = trader == trade.getTaker();
-            boolean isFromBuyer = trader == trade.getBuyer();
-            BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
-            BigInteger sendTradeAmount =  isFromBuyer ? BigInteger.ZERO : trade.getAmount();
-            BigInteger securityDeposit = isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
-            String depositAddress = processModel.getMultisigAddress();
-
-            // verify deposit tx
-            MoneroTx verifiedTx;
-            try {
-                verifiedTx = trade.getXmrWalletService().verifyDepositTx(
-                        offer.getId(),
-                        tradeFee,
-                        trade.getProcessModel().getTradeFeeAddress(),
-                        sendTradeAmount,
-                        securityDeposit,
-                        depositAddress,
-                        trader.getDepositTxHash(),
-                        request.getDepositTxHex(),
-                        request.getDepositTxKey(),
-                        null);
-            } catch (Exception e) {
-                throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + trader.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
-            }
-
-            // extend timeout
-            if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while verifying deposit tx for {} {}" + trade.getClass().getSimpleName() + " " + trade.getShortId());
-            trade.startProtocolTimeout();
-
-            // set deposit info
-            trader.setSecurityDeposit(securityDeposit.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
-            trader.setDepositTxFee(verifiedTx.getFee());
-            trader.setDepositTxHex(request.getDepositTxHex());
-            trader.setDepositTxKey(request.getDepositTxKey());
-            if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
-
-            // relay deposit txs when both available
-            if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
-
-                // update trade state
-                trade.setState(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
-                processModel.getTradeManager().requestPersistence();
-
-                // relay txs
-                MoneroSubmitTxResult makerResult = daemon.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
-                MoneroSubmitTxResult takerResult = daemon.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
-                if (!makerResult.isGood()) throw new RuntimeException("Error submitting maker deposit tx: " + JsonUtils.serialize(makerResult));
-                if (!takerResult.isGood()) throw new RuntimeException("Error submitting taker deposit tx: " + JsonUtils.serialize(takerResult));
-                daemon.relayTxsByHash(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
-                depositTxsRelayed = true;
-
-                // update trade state
-                log.info("Arbitrator submitted deposit txs for trade " + trade.getId());
-                trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
-                processModel.getTradeManager().requestPersistence();
-
-                // create deposit response
-                DepositResponse response = new DepositResponse(
-                        trade.getOffer().getId(),
-                        UUID.randomUUID().toString(),
-                        Version.getP2PMessageVersion(),
-                        new Date().getTime(),
-                        null,
-                        trade.getBuyer().getSecurityDeposit().longValue(),
-                        trade.getSeller().getSecurityDeposit().longValue());
-
-                // send deposit response to maker and taker
-                sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
-                sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
-            } else {
-                if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
-                if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
-            }
-
+            // update trade state
+            trade.setStateIfValidTransitionTo(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
             processModel.getTradeManager().requestPersistence();
+
+            // process request
+            processDepositRequest();
             complete();
         } catch (Throwable t) {
-
-            // handle error before deposits relayed
-            if (!depositTxsRelayed) {
-                try {
-                    daemon.flushTxPool(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                // create deposit response with error
-                DepositResponse response = new DepositResponse(
-                    trade.getOffer().getId(),
-                    UUID.randomUUID().toString(),
-                    Version.getP2PMessageVersion(),
-                    new Date().getTime(),
-                    t.getMessage(),
-                    trade.getBuyer().getSecurityDeposit().longValue(),
-                    trade.getSeller().getSecurityDeposit().longValue());
-
-                // send deposit response to maker and taker
-                sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
-                sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
-            }
+            this.error = t;
+            t.printStackTrace();
+            trade.setState(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
             failed(t);
         }
+        processModel.getTradeManager().requestPersistence();
+    }
+
+    private void processDepositRequest() {
+
+        // get contract and signature
+        String contractAsJson = trade.getContractAsJson();
+        DepositRequest request = (DepositRequest) processModel.getTradeMessage(); // TODO (woodser): verify response
+        byte[] signature = request.getContractSignature();
+
+        // get trader info
+        TradePeer trader = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+        if (trader == null) throw new RuntimeException(request.getClass().getSimpleName() + " is not from maker, taker, or arbitrator");
+        PubKeyRing peerPubKeyRing = trader.getPubKeyRing();
+
+        // verify signature
+        if (!HavenoUtils.isSignatureValid(peerPubKeyRing, contractAsJson, signature)) {
+            throw new RuntimeException("Peer's contract signature is invalid");
+        }
+
+        // set peer's signature
+        trader.setContractSignature(signature);
+
+        // collect expected values
+        Offer offer = trade.getOffer();
+        boolean isFromTaker = trader == trade.getTaker();
+        boolean isFromBuyer = trader == trade.getBuyer();
+        BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
+        BigInteger sendTradeAmount =  isFromBuyer ? BigInteger.ZERO : trade.getAmount();
+        BigInteger securityDeposit = isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+        String depositAddress = processModel.getMultisigAddress();
+
+        // verify deposit tx
+        MoneroTx verifiedTx;
+        try {
+            verifiedTx = trade.getXmrWalletService().verifyDepositTx(
+                    offer.getId(),
+                    tradeFee,
+                    trade.getProcessModel().getTradeFeeAddress(),
+                    sendTradeAmount,
+                    securityDeposit,
+                    depositAddress,
+                    trader.getDepositTxHash(),
+                    request.getDepositTxHex(),
+                    request.getDepositTxKey(),
+                    null);
+        } catch (Exception e) {
+            throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + trader.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+        }
+
+        // update trade state
+        trader.setSecurityDeposit(securityDeposit.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+        trader.setDepositTxFee(verifiedTx.getFee());
+        trader.setDepositTxHex(request.getDepositTxHex());
+        trader.setDepositTxKey(request.getDepositTxKey());
+        if (request.getPaymentAccountKey() != null) trader.setPaymentAccountKey(request.getPaymentAccountKey());
+        processModel.getTradeManager().requestPersistence();
+
+        // relay deposit txs when both available
+        MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
+        if (processModel.getMaker().getDepositTxHex() != null && processModel.getTaker().getDepositTxHex() != null) {
+
+            // check timeout and extend just before relaying
+            if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out before relaying deposit txs for {} {}" + trade.getClass().getSimpleName() + " " + trade.getShortId());
+            trade.addInitProgressStep();
+
+            try {
+
+                // submit txs to pool but do not relay
+                MoneroSubmitTxResult makerResult = daemon.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
+                if (!makerResult.isGood()) throw new RuntimeException("Error submitting maker deposit tx: " + JsonUtils.serialize(makerResult));
+                MoneroSubmitTxResult takerResult = daemon.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
+                if (!takerResult.isGood()) throw new RuntimeException("Error submitting taker deposit tx: " + JsonUtils.serialize(takerResult));
+
+                // relay txs
+                daemon.relayTxsByHash(Arrays.asList(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash()));
+
+                // update trade state
+                log.info("Arbitrator published deposit txs for trade " + trade.getId());
+                trade.setState(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
+            } catch (Exception e) {
+
+                // flush txs from pool
+                try {
+                    daemon.flushTxPool(processModel.getMaker().getDepositTxHash());
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
+                try {
+                    daemon.flushTxPool(processModel.getTaker().getDepositTxHash());
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
+                throw e;
+            }
+        } else {
+
+            // subscribe to trade state once to send responses with ack or nack
+            trade.stateProperty().addListener((obs, oldState, newState) -> {
+                if (newState == Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED) {
+                    sendDepositResponses(error == null ? "Arbitrator failed to publish deposit txs within timeout for trade " + trade.getId() : error.getMessage());
+                } else if (newState == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) {
+                    sendDepositResponses(null);
+                }
+            });
+
+            if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
+            if (processModel.getTaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
+        }
+    }
+
+    private boolean isTimedOut() {
+        return !processModel.getTradeManager().hasOpenTrade(trade);
+    }
+
+    private void sendDepositResponses(String errorMessage) {
+                
+        // create deposit response
+        DepositResponse response = new DepositResponse(
+                trade.getOffer().getId(),
+                UUID.randomUUID().toString(),
+                Version.getP2PMessageVersion(),
+                new Date().getTime(),
+                errorMessage,
+                trade.getBuyer().getSecurityDeposit().longValue(),
+                trade.getSeller().getSecurityDeposit().longValue());
+
+        // send deposit response to maker and taker
+        sendDepositResponse(trade.getMaker().getNodeAddress(), trade.getMaker().getPubKeyRing(), response);
+        sendDepositResponse(trade.getTaker().getNodeAddress(), trade.getTaker().getPubKeyRing(), response);
     }
 
     private void sendDepositResponse(NodeAddress nodeAddress, PubKeyRing pubKeyRing, DepositResponse response) {
@@ -191,12 +214,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             public void onFault(String errorMessage) {
                 log.error("Sending {} failed: uid={}; peer={}; error={}", response.getClass().getSimpleName(), nodeAddress, trade.getId(), errorMessage);
                 appendToErrorMessage("Sending message failed: message=" + response + "\nerrorMessage=" + errorMessage);
-                failed();
             }
         });
-    }
-
-    private boolean isTimedOut() {
-        return !processModel.getTradeManager().hasOpenTrade(trade);
     }
 }

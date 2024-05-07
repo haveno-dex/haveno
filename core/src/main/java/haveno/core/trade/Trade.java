@@ -39,6 +39,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
+import haveno.common.app.Capability;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -66,12 +67,14 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
+import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.TorNetworkNode;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
@@ -137,7 +140,7 @@ public abstract class Trade implements Tradable, Model {
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long SYNC_EVERY_NUM_BLOCKS = 360; // ~1/2 day
-    private static final long DELETE_AFTER_NUM_BLOCKS = 1; // if deposit requested but not published
+    private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private final Object walletLock = new Object();
     private final Object pollLock = new Object();
@@ -651,7 +654,7 @@ public abstract class Trade implements Tradable, Model {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
-                if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
+                if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
                 if (isDepositsPublished() && !isPayoutUnlocked()) updatePollPeriod();
                 if (isPaymentReceived()) {
                     UserThread.execute(() -> {
@@ -956,15 +959,17 @@ public abstract class Trade implements Tradable, Model {
                 try {
 
                     // ensure wallet is initialized
+                    boolean syncedWallet = false;
                     if (wallet == null) {
                         log.warn("Wallet is not initialized for {} {}, opening", getClass().getSimpleName(), getId());
                         getWallet();
                         syncWallet(true);
+                        syncedWallet = true;
                     }
 
-                    // wallet must be synced
-                    if (isDepositRequested() && isWalletBehind()) {
-                        log.warn("Wallet is not synced for {} {}, syncing", getClass().getSimpleName(), getId());
+                    // sync wallet if deposit requested and payout not unlocked
+                    if (isDepositRequested() && !isPayoutUnlocked() && !syncedWallet) {
+                        log.warn("Syncing wallet on deletion for trade {} {}, syncing", getClass().getSimpleName(), getId());
                         syncWallet(true);
                     }
 
@@ -1407,14 +1412,14 @@ public abstract class Trade implements Tradable, Model {
             return;
         }
 
-        // unreserve taker key images
+        // unreserve taker's key images
         if (this instanceof TakerTrade) {
             ThreadUtils.submitToPool(() -> {
                 xmrWalletService.thawOutputs(getSelf().getReserveTxKeyImages());
             });
         }
 
-        // unreserve open offer
+        // unreserve maker's open offer
         Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOfferById(this.getId());
         if (this instanceof MakerTrade && openOffer.isPresent()) {
             processModel.getOpenOfferManager().unreserveOpenOffer(openOffer.get());
@@ -2501,6 +2506,47 @@ public abstract class Trade implements Tradable, Model {
                     };
                 }
             }, getId());
+        }
+    }
+
+    private void onDepositsPublished() {
+
+        // skip if arbitrator
+        if (this instanceof ArbitratorTrade) return;
+
+        // freeze outputs until spent
+        xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
+
+        // close open offer or reset address entries
+        if (this instanceof MakerTrade) {
+            processModel.getOpenOfferManager().closeOpenOffer(getOffer());
+        } else {
+            getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
+        }
+
+        // seller publishes trade statistics
+        if (this instanceof SellerTrade) {
+            checkNotNull(getSeller().getDepositTx());
+            processModel.getP2PService().findPeersCapabilities(getTradePeer().getNodeAddress())
+                    .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
+                    .ifPresentOrElse(capabilities -> {
+
+                        // Our peer has updated, so as we are the seller we will publish the trade statistics.
+                        // The peer as buyer does not publish anymore with v.1.4.0 (where Capability.TRADE_STATISTICS_3 was added)
+                        String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
+                        boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
+                        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
+                        if (tradeStatistics.isValid()) {
+                            log.info("Publishing trade statistics");
+                            processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
+                        } else {
+                            log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
+                        }
+                    },
+                    () -> {
+                        log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
+                                "To avoid duplicates we do not publish from our side.");
+                    });
         }
     }
 
