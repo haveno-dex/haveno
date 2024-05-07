@@ -848,6 +848,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     protected void latchTrade() {
+        trade.awaitInitialized();
         if (tradeLatch != null) throw new RuntimeException("Trade latch is not null. That should never happen.");
         if (trade.isShutDown()) throw new RuntimeException("Cannot latch trade " + trade.getId() + " for protocol because it's shut down");
         tradeLatch = new CountDownLatch(1);
