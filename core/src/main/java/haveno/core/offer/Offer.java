@@ -81,7 +81,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
         AVAILABLE,
         NOT_AVAILABLE,
         REMOVED,
-        MAKER_OFFLINE
+        MAKER_OFFLINE,
+        INVALID
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

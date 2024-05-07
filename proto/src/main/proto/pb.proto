@@ -1358,6 +1358,7 @@ message Offer {
         NOT_AVAILABLE = 4;
         REMOVED = 5;
         MAKER_OFFLINE = 6;
+        INVALID = 7;
     }
 
     OfferPayload offer_payload = 1;
