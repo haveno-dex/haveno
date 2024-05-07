@@ -166,6 +166,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                             trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (Exception e) {
+                        HavenoUtils.waitFor(trade.getXmrConnectionService().getRefreshPeriodMs()); // wait to see published tx
                         trade.syncAndPollWallet();
                         if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
                         else throw e;
