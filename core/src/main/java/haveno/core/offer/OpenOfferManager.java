@@ -1788,7 +1788,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 UserThread.runAfterRandomDelay(() -> {
                                     // we need to check if in the meantime the offer has been removed
                                     if (openOffers.contains(openOffer) && openOffer.isAvailable())
-                                        refreshOffer(openOffer);
+                                        refreshOffer(openOffer, 0, 1);
                                 }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
                             }
                         } else {
@@ -1801,10 +1801,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             log.trace("periodicRefreshOffersTimer already stated");
     }
 
-    private void refreshOffer(OpenOffer openOffer) {
+    private void refreshOffer(OpenOffer openOffer, int numAttempts, int maxAttempts) {
         offerBookService.refreshTTL(openOffer.getOffer().getOfferPayload(),
                 () -> log.debug("Successful refreshed TTL for offer"),
-                log::warn);
+                (errorMessage) -> {
+                    log.warn(errorMessage);
+                    if (numAttempts + 1 < maxAttempts) {
+                        UserThread.runAfter(() -> refreshOffer(openOffer, numAttempts + 1, maxAttempts), 10);
+                    }
+                });
     }
 
     private void restart() {
