@@ -149,7 +149,9 @@ class TakeOfferDataModel extends OfferDataModel {
                     },
                     errorMessage -> {
                         log.warn(errorMessage);
-                        if (offer.getState() != Offer.State.NOT_AVAILABLE) new Popup().warning(errorMessage).show(); // expected and handled elsewhere in UI
+                        if (offer.getState() != Offer.State.NOT_AVAILABLE && offer.getState() != Offer.State.INVALID) { // handled elsewhere in UI
+                            new Popup().warning(errorMessage).show();
+                        }
                     });
         }
     }

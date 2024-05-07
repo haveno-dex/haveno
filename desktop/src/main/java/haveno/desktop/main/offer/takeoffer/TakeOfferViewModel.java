@@ -373,6 +373,10 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                         offerWarning.set(Res.get("takeOffer.failed.offerTaken"));
                     takeOfferRequested = false;
                     break;
+                case INVALID:
+                    offerWarning.set(Res.get("takeOffer.failed.offerInvalid"));
+                    takeOfferRequested = false;
+                    break;
                 case REMOVED:
                     // if (takeOfferRequested) // TODO: show any warning or removed is expected?
                     //     offerWarning.set(Res.get("takeOffer.failed.offerRemoved"));
