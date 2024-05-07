@@ -431,6 +431,7 @@ public abstract class Trade implements Tradable, Model {
     //  Mutable
     @Getter
     transient private boolean isInitialized;
+    transient private boolean isFullyInitialized;
     @Getter
     transient private boolean isShutDownStarted;
     @Getter
@@ -723,7 +724,10 @@ public abstract class Trade implements Tradable, Model {
         isInitialized = true;
 
         // done if deposit not requested or payout unlocked
-        if (!isDepositRequested() || isPayoutUnlocked()) return;
+        if (!isDepositRequested() || isPayoutUnlocked()) {
+            isFullyInitialized = true;
+            return;
+        }
 
         // open wallet or done if wallet does not exist
         if (walletExists()) getWallet();
@@ -732,6 +736,7 @@ public abstract class Trade implements Tradable, Model {
             if (payoutTx != null && payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
                 log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
                 setPayoutStateUnlocked();
+                isFullyInitialized = true;
                 return;
             } else {
                 log.warn("Missing trade wallet for {} {}, state={}, marked completed={}", getClass().getSimpleName(), getShortId(), getState(), isCompleted());
@@ -741,6 +746,11 @@ public abstract class Trade implements Tradable, Model {
 
         // start polling if deposit requested
         if (isDepositRequested()) tryInitPolling();
+        isFullyInitialized = true;
+    }
+
+    public void awaitInitialized() {
+        while (!isFullyInitialized) HavenoUtils.waitFor(100); // TODO: use proper notification and refactor isInitialized, fullyInitialized, and arbitrator idling
     }
 
     public void requestPersistence() {
@@ -1203,6 +1213,7 @@ public abstract class Trade implements Tradable, Model {
             for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                 try {
                     wallet.submitMultisigTxHex(payoutTxHex);
+                    ThreadUtils.submitToPool(() -> pollWallet());
                     break;
                 } catch (Exception e) {
                     log.warn("Failed to submit payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
@@ -1211,7 +1222,6 @@ public abstract class Trade implements Tradable, Model {
                 }
             }
         }
-        pollWallet();
     }
 
     /**
