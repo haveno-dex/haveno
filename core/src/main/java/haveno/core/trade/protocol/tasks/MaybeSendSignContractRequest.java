@@ -31,13 +31,10 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
@@ -118,9 +115,15 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     }
                 } catch (Exception e) {
 
-                    // re-freeze reserved outputs
-                    if (trade.getSelf().getReserveTxKeyImages() != null) {
-                        trade.getXmrWalletService().freezeOutputs(trade.getSelf().getReserveTxKeyImages());
+                    // thaw deposit inputs
+                    if (depositTx != null) {
+                        trade.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(depositTx));
+                        trade.getSelf().setReserveTxKeyImages(null);
+                    }
+
+                    // re-freeze maker offer inputs
+                    if (trade instanceof MakerTrade) {
+                        trade.getXmrWalletService().freezeOutputs(trade.getOffer().getOfferPayload().getReserveTxKeyImages());
                     }
 
                     throw e;
@@ -129,17 +132,13 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 // reset protocol timeout
                 trade.addInitProgressStep();
 
-                // collect reserved key images
-                List<String> reservedKeyImages = new ArrayList<String>();
-                for (MoneroOutput input : depositTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-
                 // update trade state
                 BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
                 trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
                 trade.getSelf().setDepositTx(depositTx);
                 trade.getSelf().setDepositTxHash(depositTx.getHash());
                 trade.getSelf().setDepositTxFee(depositTx.getFee());
-                trade.getSelf().setReserveTxKeyImages(reservedKeyImages);
+                trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
                 trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
                 trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
             }

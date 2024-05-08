@@ -45,12 +45,15 @@ import java.security.PrivateKey;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -495,5 +498,11 @@ public class HavenoUtils {
             if (address.equals(destination.getAddress())) return destination;
         }
         return null;
+    }
+
+    public static List<String> getInputKeyImages(MoneroTxWallet tx) {
+        List<String> inputKeyImages = new ArrayList<String>();
+        for (MoneroOutput input : tx.getInputs()) inputKeyImages.add(input.getKeyImage().getHex());
+        return inputKeyImages;
     }
 }
