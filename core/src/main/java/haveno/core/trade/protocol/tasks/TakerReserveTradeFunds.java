@@ -20,17 +20,15 @@ package haveno.core.trade.protocol.tasks;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 public class TakerReserveTradeFunds extends TradeTask {
@@ -43,6 +41,11 @@ public class TakerReserveTradeFunds extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
+
+            // taker trade expected
+            if (!(trade instanceof TakerTrade)) {
+                throw new RuntimeException("Expected taker trade but was " + trade.getClass().getSimpleName() + " " + trade.getShortId() + ". That should never happen.");
+            }
 
             // create reserve tx
             MoneroTxWallet reserveTx = null;
@@ -60,31 +63,39 @@ public class TakerReserveTradeFunds extends TradeTask {
                 String returnAddress = trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
                 // attempt creating reserve tx
-                synchronized (HavenoUtils.getWalletFunctionLock()) {
-                    for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                        try {
-                            reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
-                        } catch (Exception e) {
-                            log.warn("Error creating reserve tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
-                            if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                            HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                try {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                            try {
+                                reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
+                            } catch (Exception e) {
+                                log.warn("Error creating reserve tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
+                                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                            }
+            
+                            // check for timeout
+                            if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getShortId());
+                            if (reserveTx != null) break;
                         }
-        
-                        // check for timeout
-                        if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getShortId());
-                        if (reserveTx != null) break;
                     }
+                } catch (Exception e) {
+
+                    // thaw reserved inputs
+                    if (reserveTx != null) {
+                        model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                        trade.getSelf().setReserveTxKeyImages(null);
+                    }
+
+                    throw e;
                 }
+
 
                 // reset protocol timeout
                 trade.startProtocolTimeout();
 
-                // collect reserved key images
-                List<String> reservedKeyImages = new ArrayList<String>();
-                for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-
                 // update trade state
-                trade.getTaker().setReserveTxKeyImages(reservedKeyImages);
+                trade.getTaker().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
             }
 
             // save process state
