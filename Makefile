@@ -311,7 +311,7 @@ seednode-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=9999 \
+		--nodePort=3002 \
 		--appName=haveno-XMR_STAGENET_Seed_3002 \
 		--xmrNode=http://127.0.0.1:38081 \
 
@@ -320,7 +320,7 @@ seednode2-stagenet:
 		--baseCurrencyNetwork=XMR_STAGENET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=9999 \
+		--nodePort=3003 \
 		--appName=haveno-XMR_STAGENET_Seed_3003 \
 		--xmrNode=http://127.0.0.1:38081 \
 
@@ -431,7 +431,7 @@ seednode:
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=9999 \
+		--nodePort=1002 \
 		--appName=haveno-XMR_MAINNET_Seed_1002 \
 		--xmrNode=http://127.0.0.1:18081 \
 
@@ -440,7 +440,7 @@ seednode2:
 		--baseCurrencyNetwork=XMR_MAINNET \
 		--useLocalhostForP2P=false \
 		--useDevPrivilegeKeys=false \
-		--nodePort=9999 \
+		--nodePort=1003 \
 		--appName=haveno-XMR_MAINNET_Seed_1003 \
 		--xmrNode=http://127.0.0.1:18081 \
 
