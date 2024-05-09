@@ -121,7 +121,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   public void handleError(String errorMessage) {
     // set trade state to send deposit responses with nack
     if (trade instanceof ArbitratorTrade && trade.getState() == Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST) {
-        trade.setState(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
+        trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
     }
     super.handleError(errorMessage);
   }
