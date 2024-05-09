@@ -238,7 +238,9 @@ public final class XmrConnectionService {
 
     public MoneroRpcConnection getBestAvailableConnection() {
         accountService.checkAccountOpen();
-        return connectionManager.getBestAvailableConnection();
+        List<MoneroRpcConnection> ignoredConnections = new ArrayList<MoneroRpcConnection>();
+        if (xmrLocalNode.shouldBeIgnored() && connectionManager.hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(connectionManager.getConnectionByUri(xmrLocalNode.getUri()));
+        return connectionManager.getBestAvailableConnection(ignoredConnections.toArray(new MoneroRpcConnection[0]));
     }
 
     public void setAutoSwitch(boolean autoSwitch) {
@@ -458,7 +460,9 @@ public final class XmrConnectionService {
 
                 // restore last connection
                 if (connectionList.getCurrentConnectionUri().isPresent() && connectionManager.hasConnection(connectionList.getCurrentConnectionUri().get())) {
-                    connectionManager.setConnection(connectionList.getCurrentConnectionUri().get());
+                    if (!HavenoUtils.isLocalHost(connectionList.getCurrentConnectionUri().get()) || !xmrLocalNode.shouldBeIgnored()) {
+                        connectionManager.setConnection(connectionList.getCurrentConnectionUri().get());
+                    }
                 }
 
                 // set connection proxies

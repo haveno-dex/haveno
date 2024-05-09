@@ -81,7 +81,7 @@ public class XmrLocalNode {
     public XmrLocalNode(Config config, Preferences preferences) {
         this.config = config;
         this.preferences = preferences;
-        this.daemon = new MoneroDaemonRpc("http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort);
+        this.daemon = new MoneroDaemonRpc(getUri());
 
         // initialize connection manager to listen to local connection
         this.connectionManager = new MoneroConnectionManager().setConnection(daemon.getRpcConnection());
@@ -90,6 +90,10 @@ public class XmrLocalNode {
             for (var listener : listeners) listener.onConnectionChanged(connection); // notify of connection changes
         });
         this.connectionManager.startPolling(REFRESH_PERIOD_LOCAL_MS);
+    }
+
+    public String getUri() {
+        return "http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort;
     }
 
     /**
