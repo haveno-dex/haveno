@@ -3,15 +3,14 @@
 This guide describes how to deploy a Haveno network:
 
 - Manage services on a VPS
-- Build Haveno
+- Fork and build Haveno
 - Start a Monero node
 - Build and start price nodes
-- Create and register seed nodes
-- Register keypairs with administrative privileges
-- Create and register arbitrators
-- Set a network filter
+- Add seed nodes
+- Add arbitrators
+- Configure trade fees and other configuration
 - Build Haveno installers for distribution
-- Send alerts to update the application
+- Send alerts to update the application and other maintenance
 
 ## Manage services on a VPS
 
@@ -23,24 +22,22 @@ Arbitrators can be started in a Screen session and then detached to run in the b
 
 Some good hints about how to secure a VPS are in [Monero's meta repository](https://github.com/monero-project/meta/blob/master/SERVER_SETUP_HARDENING.md).
 
-## Build Haveno
+## Fork and build Haveno
+
+First fork Haveno to a public repository. Then build Haveno:
 
 ```
-git clone https://github.com/haveno-dex/haveno.git
+git clone <your fork url>
 cd haveno
 git checkout <latest tag>
 make clean && make
 ```
 
-See [installing.md](installing.md) for more detail.
-
 ## Start a Monero node
 
-Seed nodes and arbitrators should use a local, trusted Monero node for performance and function.
+Seed nodes and arbitrators must use a local, unrestricted Monero node for performance and functionality.
 
-Arbitrators require a trusted node in order to submit and flush transactions from the pool.
-
-Customize and deploy private-stagenet.service and private-stagenet.conf to run a private Monero node as a system service for the seed node and arbitrator to use locally.
+To run a private Monero node as a system service, customize and deploy private-stagenet.service and private-stagenet.conf.
 
 Optionally customize and deploy monero-stagenet.service and monero-stagenet.conf to run a public Monero node as a system service for Haveno clients to use.
 
@@ -48,21 +45,21 @@ You can also start the Monero node in your current terminal session by running `
 
 ## Build and start price nodes
 
-The price node is separated from Haveno and is to be run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode
+The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode.
 
-After the price node is built and deployed, add the price node to `DEFAULT_NODES` in ProvidersRepository.java.
+After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
 
 Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as a system service.
 
-## Register Monero nodes for clients
+## Add seed nodes
 
-Optionally register new or different Monero nodes for clients to connect to in `getAllXmrNodes()` within XmrNodes.java.
+For each seed node:
 
-## Create and register seed nodes
-
-From the root of the repository, run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
-
-The node will print its onion address to the console. Record the onion address in `core/src/main/resources/xmr_<network>.seednodes` and remove unused seed nodes from `xmr_<network>.seednodes`. Be careful to record full addresses correctly.
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. [Start a local Monero node](#start-a-local-monero-node).
+3. Run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
+4. The node will print its onion address to the console. Record the onion address in `core/src/main/resources/xmr_<network>.seednodes`. Be careful to record full addresses correctly.
+5. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 Customize and deploy haveno-seednode.service to run a seed node as a system service.
 
@@ -70,62 +67,58 @@ Each seed node requires a locally running Monero node. You can use the default p
 
 Rebuild all seed nodes any time the list of registered seed nodes changes.
 
-## Register keypairs with arbitrator privileges
+At least 2 seed nodes should be run because the seed nodes restart once per day, and registered network information is lost if all seed nodes restart at the same time.
 
-1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate public/private keypairs for arbitrator privileges.
-2. Add arbitrator public keys to the corresponding network type in ArbitratorManager.java `getPubKeyList()`.
+## Register keypairs with privileges
 
-## Register keypairs with developer privileges
+### Register keypair(s) with developer privileges
 
-Keypairs with developer privileges are able to set the network's filter object, which can filter out offers, onions, currencies, payment methods, etc.
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. Generate public/private keypairs for developers: `./gradlew generateKeypairs`
+3. Add the developer public keys in the constructor of FilterManager.java.
+4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
-1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate public/private keypairs for developer privileges.
-2. Set developer public keys in the constructor of FilterManager.java.
+### Register keypair(s) with alert privileges
 
-## Register keypair with alert privileges
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. Generate public/private keypairs for alerts: `./gradlew generateKeypairs`
+2. Add the public keys in the constructor of AlertManager.java.
+4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
-A keypair with alert privileges is able to send alerts, e.g. to update the application.
+### Register keypair(s) with private notification privileges
 
-1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate a public/private keypair for alert privileges.
-2. Set alert public keys in the constructor of AlertManager.java.
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. Generate public/private keypairs for private notifications: `./gradlew generateKeypairs`
+2. Add the public keys in the constructor of PrivateNotificationManager.java.
+4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
-## Register keypairs with private notification privileges
+## Add arbitrators
 
-1. Run core/src/test/java/haveno/core/util/GenerateKeypairs.java to generate public/private keypairs for private notification privileges.
-2. Set public keys in the constructor of PrivateNotificationManager.java.
+For each arbitrator:
 
-## Set XMR address to collect trade fees
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. Generate a public/private keypair for the arbitrator: `./gradlew generateKeypairs`
+3. Add the public key to `getPubKeyList()` in [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L62).
+4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
+5. [Start a local Monero node](#start-a-local-monero-node).
+6. Start the Haveno desktop application using the application launcher or e.g. `make arbitrator-desktop-mainnet`
+7. Go to the `Account` tab and then press `ctrl + r`. A prompt will open asking to enter the key to register the arbitrator. Enter your public key.
 
-Set the XMR address to collect trade fees in `getTradeFeeAddress()` in HavenoUtils.java.
+The arbitrator is now registered and ready to accept requests for dispute resolution.
 
-## Set the network's release date
+**Notes**
+- Arbitrators must use a local Monero node with unrestricted RPC in order to submit and flush transactions from the pool.
+- Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
+- Remember that for the network to run correctly and people to be able to open and accept trades, at least one arbitrator must be registered on the network.
+- IMPORTANT: Do not reuse keypairs on multiple arbitrator instances.
 
-Optionally set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.
-
-This will prevent posting sell offers which no buyers can take before any buyer accounts are signed and aged, while the network bootstraps.
-
-After a period (default 60 days), the limit is lifted and sellers can post offers exceeding unsigned buy limits, but they will receive an informational warning for an additional period (default 6 months after release).
-
-The defaults can be adjusted with the related constants in HavenoUtils.java.
-
-## Create and register arbitrators
-
-Before running the arbitrator, remember that at least one seednode should already be deployed and its address listed in `core/src/main/resources/xmr_<network>.seednodes`.
-
-First rebuild Haveno: `make skip-tests`.
-
-Run `make arbitrator-desktop` to run an arbitrator on Monero's mainnet or `make arbitrator-desktop-stagenet` to run an arbitrator on Monero's stagenet.
+## Remove an arbitrator
 
 > **Note**
-> Unregister the arbitrator before retiring the app, or clients will continue to try to connect for some time.
+> Ensure the arbitrator's trades are completed before retiring the instance.
 
-The Haveno GUI will open. If on mainnet, ignore the error about not receiving a filter object which is not added yet. Click on the `Account` tab and then press `ctrl + r`. A prompt will open asking to enter the key to register the arbitrator. Use a key generated in the previous steps and complete the registration. The arbitrator is now registered and ready to accept requests of dispute resolution.
-
-Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
-
-Remember that for the network to run correctly and people to be able to open and accept trades, at least one arbitrator must be registered on the network.
-
-IMPORTANT: Do not reuse keypairs, and remember to revoke the private keypair to terminate the arbitrator.
+1. Start the arbitrator's desktop application using the application launcher or e.g. `make arbitrator-desktop-mainnet` from the root of the repository.
+2. Go to the `Account` tab and click the button to unregister the arbitrator.
 
 ## Set a network filter on mainnet
 
@@ -139,11 +132,31 @@ To set the network's filter object:
 > **Note**
 > If all seed nodes are restarted at the same time, arbitrators and the filter object will become unregistered and will need to be re-registered.
 
+## Set the network's release date
+
+Optionally set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.
+
+This will prevent posting sell offers which no buyers can take before any buyer accounts are signed and aged, while the network bootstraps.
+
+After a period (default 60 days), the limit is lifted and sellers can post offers exceeding unsigned buy limits, but they will receive an informational warning for an additional period (default 6 months after release).
+
+The defaults can be adjusted with the related constants in HavenoUtils.java.
+
+## Configure trade fees
+
+Trade fees can be configured in HavenoUtils.java.
+
+The maker and taker fee percents can be adjusted.
+
+Set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `true` for the arbitrator to assign the trade fee address, which defaults to their own wallet.
+
+Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
+
 ## Start users for testing
 
-Start user1 on Monero's mainnet using `make user1-desktop` or Monero's stagenet using `make user1-desktop-stagenet`.
+Start user1 on Monero's mainnet using `make user1-desktop-mainnet` or Monero's stagenet using `make user1-desktop-stagenet`.
 
-Similarly, start user2 on Monero's mainnet using `make user2-desktop` or Monero's stagenet using `make user2-desktop-stagenet`.
+Similarly, start user2 on Monero's mainnet using `make user2-desktop-mainnet` or Monero's stagenet using `make user2-desktop-stagenet`.
 
 Test trades among the users and arbitrator.
 
