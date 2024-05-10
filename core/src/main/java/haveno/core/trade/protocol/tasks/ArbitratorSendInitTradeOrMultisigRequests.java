@@ -126,8 +126,9 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
         trade.getSelf().setPreparedMultisigHex(preparedHex);
 
         // set trade fee address
+        String address = HavenoUtils.ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS ? trade.getXmrWalletService().getBaseAddressEntry().getAddressString() : HavenoUtils.getGlobalTradeFeeAddress();
         if (trade.getProcessModel().getTradeFeeAddress() == null) {
-            trade.getProcessModel().setTradeFeeAddress(HavenoUtils.getTradeFeeAddress());
+            trade.getProcessModel().setTradeFeeAddress(address);
         }
 
         // create message to initialize multisig
