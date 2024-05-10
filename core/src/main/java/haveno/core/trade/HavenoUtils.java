@@ -72,6 +72,7 @@ public class HavenoUtils {
     public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 30;
 
     // configure fees
+    public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
     public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
     public static final double PENALTY_FEE_PCT = 0.02; // 2%
@@ -432,8 +433,17 @@ public class HavenoUtils {
 
     // ----------------------------- OTHER UTILS ------------------------------
 
-    public static String getTradeFeeAddress() {
-       return xmrWalletService.getBaseAddressEntry().getAddressString();
+    public static String getGlobalTradeFeeAddress() {
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
+        case XMR_STAGENET:
+            return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
+        case XMR_MAINNET:
+            throw new RuntimeException("Mainnet fee address not implemented");
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
     }
 
     public static String getBurnAddress() {

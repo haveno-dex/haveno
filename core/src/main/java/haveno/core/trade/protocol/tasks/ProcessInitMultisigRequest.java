@@ -21,6 +21,7 @@ import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
@@ -65,9 +66,13 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // get sender
           TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
 
-          // set trade fee address from arbitrator
-          if (request.getTradeFeeAddress() != null && sender == trade.getArbitrator()) {
-            trade.getProcessModel().setTradeFeeAddress(request.getTradeFeeAddress());
+          // set trade fee address
+          if (HavenoUtils.ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS) {
+            if (request.getTradeFeeAddress() != null && sender == trade.getArbitrator()) {
+              trade.getProcessModel().setTradeFeeAddress(request.getTradeFeeAddress());
+            }
+          } else {
+            trade.getProcessModel().setTradeFeeAddress(HavenoUtils.getGlobalTradeFeeAddress());
           }
 
           // reconcile peer's established multisig hex with message
