@@ -53,7 +53,7 @@ jobs:
           ./gradlew packageInstallers
         working-directory: .
       - name: Move Release Files on Unix
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
