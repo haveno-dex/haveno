@@ -131,7 +131,7 @@ public class XmrWalletService {
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
-    private static final long NUM_BLOCKS_BEHIND_WARNING = 5;
+    private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
 
     private final User user;
     private final Preferences preferences;
@@ -303,7 +303,7 @@ public class XmrWalletService {
         if (!xmrConnectionService.isSyncedWithinTolerance()) return false;
         Long targetHeight = xmrConnectionService.getTargetHeight();
         if (targetHeight == null) return false;
-        if (targetHeight - walletHeight.get() <= 3) return true; // synced if within 3 blocks of target height
+        if (targetHeight - walletHeight.get() <= NUM_BLOCKS_BEHIND_TOLERANCE) return true; // synced if within a few blocks of target height
         return false;
     }
 
@@ -1785,7 +1785,7 @@ public class XmrWalletService {
                     log.warn("Last daemon info is null");
                     return;
                 }
-                if (wasWalletSynced && walletHeight.get() < xmrConnectionService.getTargetHeight() - NUM_BLOCKS_BEHIND_WARNING && !Config.baseCurrencyNetwork().isTestnet()) {
+                if (wasWalletSynced && walletHeight.get() < xmrConnectionService.getTargetHeight() - NUM_BLOCKS_BEHIND_TOLERANCE && !Config.baseCurrencyNetwork().isTestnet()) {
                     log.warn("Updating connection because main wallet is {} blocks behind monerod, wallet height={}, monerod height={}", xmrConnectionService.getTargetHeight() - walletHeight.get(), walletHeight.get(), lastInfo.getHeight());
                     xmrConnectionService.switchToBestConnection();
                 }
