@@ -102,7 +102,7 @@ For each arbitrator:
 4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 5. [Start a local Monero node](#start-a-local-monero-node).
 6. Start the Haveno desktop application using the application launcher or e.g. `make arbitrator-desktop-mainnet`
-7. Go to the `Account` tab and then press `ctrl + r`. A prompt will open asking to enter the key to register the arbitrator. Enter your public key.
+7. Go to the `Account` tab and then press `ctrl + r`. A prompt will open asking to enter the key to register the arbitrator. Enter your private key.
 
 The arbitrator is now registered and ready to accept requests for dispute resolution.
 
@@ -144,13 +144,11 @@ The defaults can be adjusted with the related constants in HavenoUtils.java.
 
 ## Configure trade fees
 
-Trade fees can be configured in HavenoUtils.java.
-
-The maker and taker fee percents can be adjusted.
+Trade fees can be configured in HavenoUtils.java. The maker and taker fee percents can be adjusted.
 
 Set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `true` for the arbitrator to assign the trade fee address, which defaults to their own wallet.
 
-Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
+Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getGlobalTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
 
 ## Start users for testing
 

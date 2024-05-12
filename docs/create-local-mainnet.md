@@ -1,0 +1,122 @@
+# Create Haveno network quick start guide
+
+These instructions describe how to quickly start a Haveno network running on Monero's main network on your local machine, which is useful for demonstration and testing.
+
+For a more robust deployment to a VPS for reliable uptime, see the [deployment guide](./deployment-guide.md).
+
+## Clone and build Haveno
+
+```
+git clone https://github.com/haveno-dex/haveno.git
+cd haveno
+git checkout master
+make clean && make
+```
+
+## Start a Monero node
+
+In a new terminal window, run `make monerod` to start and sync a Monero node on mainnet.
+
+Seed nodes and arbitrators require a local, unrestricted Monero node for performance and functionality.
+
+## Start and register seed nodes
+
+In a new terminal window, run: `make seednode`.
+
+The seed node's onion address will print to the screen (denoted by `Hidden service`). Record the seed node's URL to xmr_mainnet.seednodes with port 1002. For example, `4op7nzb65z4xg2taqmt2uhih7uwi3ya25yx5bvskbkjisnq7rwepzvad.onion:1002`.
+
+In a new terminal window, run: `make seednode2`.
+
+The seed node's onion address will print to the screen (denoted by `Hidden service`). Record the seed node's URL to xmr_mainnet.seednodes with port 1003. For example, `abwyc7ccjq4oyiej5z3dpwupzql34nnedaft5jc5l2dbocko7naosrjqd.onion:1003`.
+
+Stop both seed nodes.
+
+## Register public key(s) for various roles
+
+Run `./gradlew generateKeypairs`. A list of public/private keypairs will print to the screen which can be used for different roles like arbitration, sending private notifications, etc.
+
+For demonstration, we can use the first generated public/private keypair for all roles, but you can customize as desired.
+
+Hardcode the public key(s) in these files:
+
+- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/alert/AlertManager.java#L111)
+- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
+- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/filter/FilterManager.java#L117)
+- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/mainnet_placeholders/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L110)
+
+## Start the seed nodes
+
+Rebuild for the previous changes to the source code to take effect: `make skip-tests`.
+
+In a new terminal window, run: `make seednode`.
+
+In a new terminal window, run: `make seednode2`.
+
+## Start and register the arbitrator
+
+In a new terminal window, run: `make arbitrator-desktop-mainnet`.
+
+Ignore the error about not receiving a filter object.
+
+Go to the `Account` tab and then press `ctrl + r`. A prompt will open asking to enter the key to register the arbitrator. Enter your private key.
+
+## Set a network filter on mainnet
+
+On mainnet, the p2p network is expected to have a filter object for offers, onions, currencies, payment methods, etc.
+
+To set the network's filter object:
+
+1. Enter `ctrl + f` in the arbitrator or other Haveno instance to open the Filter window.
+2. Enter a developer private key from the previous steps and click "Add Filter" to register.
+
+## Other configuration
+
+### Set the network's release date
+
+Set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.
+
+This will prevent posting sell offers which no buyers can take before any buyer accounts are signed and aged, while the network bootstraps.
+
+After a period (default 60 days), the limit is lifted and sellers can post offers exceeding unsigned buy limits, but they will receive an informational warning for an additional period (default 6 months after release).
+
+The defaults can be adjusted with the related constants in HavenoUtils.java.
+
+### Optionally configure trade fees
+
+Trade fees can be configured in HavenoUtils.java. The maker and taker fee percents can be adjusted.
+
+Set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `true` for the arbitrator to assign the trade fee address, which defaults to their own wallet.
+
+Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getGlobalTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
+
+### Optionally start a price node
+
+The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode.
+
+After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
+
+## Review all local changes
+
+For comparison, placeholders to run on mainnet are marked [here on this branch](https://github.com/haveno-dex/haveno/tree/mainnet_placeholders).
+
+## Start users for testing
+
+Optionally set `--ignoreLocalXmrNode` to `true` in Makefile for the user applications to use public nodes and ignore the locally running Monero node, in order test real network conditions.
+
+Start user1: `make user1-desktop-mainnet`.
+
+Start user2: `make user2-desktop-mainnet`.
+
+Test trades among the users and arbitrator over Monero's mainnet.
+
+## Build the installers for distribution
+
+If you want to build the installers for distribution, first change `XMR_STAGENET` to `XMR_MAINNET` in [package.gradle](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/desktop/package/package.gradle#L278).
+
+Then [follow instructions](https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md) to build the installers for distribution.
+
+Alternatively, the installers are built automatically by GitHub.
+
+## Share your repo for testing
+
+If you commit your local changes and share your git repository's URL, others can make trades on your network by building from the same repository configuration. However a [more robust VPS setup](./deployment-guide.md) should be used for actual trades.
