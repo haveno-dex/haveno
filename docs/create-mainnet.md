@@ -1,8 +1,8 @@
 # Create Haveno network quick start guide
 
-These instructions describe how to quickly start a Haveno network running on Monero's main network on your local machine, which is useful for demonstration and testing.
+These instructions describe how to quickly start a public Haveno network running on Monero's main network from your local machine, which is useful for demonstration and testing.
 
-For a more robust deployment to a VPS for reliable uptime, see the [deployment guide](./deployment-guide.md).
+For a more robust and decentralized deployment to VPS for reliable uptime, see the [deployment guide](./deployment-guide.md).
 
 ## Clone and build Haveno
 
