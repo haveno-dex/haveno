@@ -115,11 +115,20 @@ To share your network for others to use, commit your local changes and share you
 
 It is not sufficient to share only your seed node addresses, because their application must be built with the same public keys and other configuration to work properly.
 
-For actual trades, a [more robust VPS setup](./deployment-guide.md) should be used.
+After sharing your git repository, others can build and start their application with:
+
+```
+git clone <your repo url>
+cd haveno
+make skip-tests
+make user1-desktop-mainnet
+```
+
+However a [more robust VPS setup](./deployment-guide.md) should be used for actual trades.
 
 ## Build the installers for distribution
 
-If you want to build the installers for distribution, first change `XMR_STAGENET` to `XMR_MAINNET` in [package.gradle](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/desktop/package/package.gradle#L278).
+To build the installers for distribution, first change `XMR_STAGENET` to `XMR_MAINNET` in [package.gradle](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/desktop/package/package.gradle#L278).
 
 Then [follow instructions](https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md) to build the installers for distribution.
 
