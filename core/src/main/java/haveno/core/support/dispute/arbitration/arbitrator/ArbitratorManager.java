@@ -42,6 +42,7 @@ import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentManager;
 import haveno.core.user.User;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+//import java.util.ArrayList;TODO
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
@@ -78,7 +79,10 @@ public class ArbitratorManager extends DisputeAgentManager<Arbitrator> {
                     "02a1a458df5acf4ab08fdca748e28f33a955a30854c8c1a831ee733dca7f0d2fcd",
                     "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
         case XMR_MAINNET:
-            return List.of();
+            return List.of(
+                    "029da09bc04dea33cd11a31bc1c05aa830b9180acb84e5370ee7fde60cae9f3d03",
+                    "021c798eb224ba23bd91ed7710a85d9b9a6439c29f4f29c1a14b96750a0da36aa7",
+                    "02e9dc14edddde19cc9f829a0739d0ab0c7310154ad94a15d477b51d85991b5a8a");
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }
