@@ -1021,7 +1021,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         setGraphic(null);
                                     } else {
                                         setText("");
-                                        setGraphic(new ColoredDecimalPlacesWithZerosText(model.formatDepositString(
+                                        String rangePrefix = item.getOffer().isRange() ? "<= " : "";
+                                        setGraphic(new ColoredDecimalPlacesWithZerosText(rangePrefix + model.formatDepositString(
                                                 deposit, item.getOffer().getAmount().longValueExact()),
                                                 GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
                                     }
