@@ -230,9 +230,13 @@ class SpreadViewModel extends ActivatableViewModel {
                 }
             }
 
-            for (Offer offer : offers) totalAmount = totalAmount.add(offer.getAmount());
+            BigInteger totalAmountForCurrency = BigInteger.ZERO;
+            for (Offer offer : offers) {
+                totalAmount = totalAmount.add(offer.getAmount());
+                totalAmountForCurrency = totalAmountForCurrency.add(offer.getAmount());
+            }
             spreadItems.add(new SpreadItem(key, buyOffers.size(), sellOffers.size(),
-                    uniqueOffers.size(), spread, percentage, percentageValue, totalAmount));
+                    uniqueOffers.size(), spread, percentage, percentageValue, totalAmountForCurrency));
         }
 
         maxPlacesForAmount.set(formatAmount(totalAmount, false).length());
