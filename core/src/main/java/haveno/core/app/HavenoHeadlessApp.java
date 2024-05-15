@@ -77,7 +77,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
         });
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> log.info("onDisplayTorNetworkSettingsHandler: show={}", show));
         havenoSetup.setChainFileLockedExceptionHandler(msg -> log.error("onChainFileLockedExceptionHandler: msg={}", msg));
-        havenoSetup.setLockedUpFundsHandler(msg -> log.info("onLockedUpFundsHandler: msg={}", msg));
+        tradeManager.setLockedUpFundsHandler(msg -> log.info("onLockedUpFundsHandler: msg={}", msg));
         havenoSetup.setShowFirstPopupIfResyncSPVRequestedHandler(() -> log.info("onShowFirstPopupIfResyncSPVRequestedHandler"));
         havenoSetup.setDisplayUpdateHandler((alert, key) -> log.info("onDisplayUpdateHandler"));
         havenoSetup.setDisplayAlertHandler(alert -> log.info("onDisplayAlertHandler. alert={}", alert));

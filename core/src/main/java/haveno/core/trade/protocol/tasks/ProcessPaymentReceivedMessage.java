@@ -75,7 +75,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
 
             // ack and complete if already processed
-            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal()) {
+            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
                 log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
                 complete();
                 return;

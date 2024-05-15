@@ -50,6 +50,7 @@
             <TableColumn fx:id="stateColumn" minWidth="80"/>
             <TableColumn fx:id="duplicateColumn" minWidth="30" maxWidth="30" sortable="false"/>
             <TableColumn fx:id="avatarColumn" minWidth="40" maxWidth="40"/>
+            <TableColumn fx:id="removeTradeColumn" minWidth="40" maxWidth="40"/>
         </columns>
     </TableView>
 

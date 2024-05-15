@@ -227,4 +227,12 @@ public class ClosedTradableManager implements PersistedDataHost {
     private void requestPersistence() {
         persistenceManager.requestPersistence();
     }
+
+    public void removeTrade(Trade trade) {
+        synchronized (closedTradables) {
+            if (closedTradables.remove(trade)) {
+                requestPersistence();
+            }
+        }
+    }
 }

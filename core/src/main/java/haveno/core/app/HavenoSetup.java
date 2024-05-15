@@ -66,13 +66,11 @@ import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.TradeTxException;
 import haveno.core.user.Preferences;
 import haveno.core.user.Preferences.UseTorForXmr;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
@@ -92,7 +90,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -107,7 +104,6 @@ import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
 
@@ -449,11 +445,7 @@ public class HavenoSetup {
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 showFirstPopupIfResyncSPVRequestedHandler,
                 showPopupIfInvalidBtcConfigHandler,
-                () -> {
-                    if (allBasicServicesInitialized) {
-                        checkForLockedUpFunds();
-                    }
-                },
+                () -> {},
                 () -> {});
     }
 
@@ -465,10 +457,6 @@ public class HavenoSetup {
                 filterWarningHandler,
                 revolutAccountsUpdateHandler,
                 amazonGiftCardAccountsUpdateHandler);
-
-        if (xmrWalletService.downloadPercentageProperty().get() == 1) {
-            checkForLockedUpFunds();
-        }
 
         alertManager.alertMessageProperty().addListener((observable, oldValue, newValue) ->
                 displayAlertIfPresent(newValue, false));
@@ -483,32 +471,6 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void checkForLockedUpFunds() {
-        // We check if there are locked up funds in failed or closed trades
-        try {
-            Set<String> setOfAllTradeIds = tradeManager.getSetOfFailedOrClosedTradeIdsFromLockedInFunds();
-            btcWalletService.getAddressEntriesForTrade().stream()
-                    .filter(e -> setOfAllTradeIds.contains(e.getOfferId()) &&
-                            e.getContext() == AddressEntry.Context.MULTI_SIG)
-                    .forEach(e -> {
-                        Coin balance = e.getCoinLockedInMultiSigAsCoin();
-                        if (balance.isPositive()) {
-                            String message = Res.get("popup.warning.lockedUpFunds",
-                                    formatter.formatCoinWithCode(balance), e.getAddressString(), e.getOfferId());
-                            log.warn(message);
-                            if (lockedUpFundsHandler != null) {
-                                lockedUpFundsHandler.accept(message);
-                            }
-                        }
-                    });
-        } catch (TradeTxException e) {
-            log.warn(e.getMessage());
-            if (lockedUpFundsHandler != null) {
-                lockedUpFundsHandler.accept(e.getMessage());
-            }
-        }
-    }
 
     @Nullable
     public static String getLastHavenoVersion() {
