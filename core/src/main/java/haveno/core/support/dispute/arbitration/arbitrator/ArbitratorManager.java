@@ -82,7 +82,8 @@ public class ArbitratorManager extends DisputeAgentManager<Arbitrator> {
             //return new ArrayList<String>();
             return List.of(
                     "029da09bc04dea33cd11a31bc1c05aa830b9180acb84e5370ee7fde60cae9f3d03",
-                    "02834de139c2767cd11f000f8ea71a3e168fec81132850a4a2cce65385da57a98a");
+                    "021c798eb224ba23bd91ed7710a85d9b9a6439c29f4f29c1a14b96750a0da36aa7",
+                    "02e9dc14edddde19cc9f829a0739d0ab0c7310154ad94a15d477b51d85991b5a8a");
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }
