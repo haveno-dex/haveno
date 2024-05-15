@@ -82,7 +82,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
 
-    public static final String DEFAULT_APP_NAME = "Haveno";
+    public static final String DEFAULT_APP_NAME = "Haveno"; // TODO: customize for your network to avoid user data corruption with other networks
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;

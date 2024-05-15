@@ -65,6 +65,8 @@ import org.bitcoinj.core.Coin;
 @Slf4j
 public class HavenoUtils {
 
+    // TODO: change configuration for mainnet
+
     // configure release date
     private static final String RELEASE_DATE = "01-03-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "01-03-2024 00:00:00"
     public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts

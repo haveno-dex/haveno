@@ -81,7 +81,7 @@ public class XmrNodes {
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.sethforprivacy.com", 38089, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 38089, 3, null)
                 );
-            case XMR_MAINNET:
+            case XMR_MAINNET: // TODO: add or remove monerod endpoints for clients
                 return Arrays.asList(
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 18081, 1, "@local"),
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node.cakewallet.com", 18081, 2, "@cakewallet"),

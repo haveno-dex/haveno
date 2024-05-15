@@ -50,6 +50,7 @@ public class ProvidersRepository {
     private static final List<String> DEFAULT_NODES = Arrays.asList(
             "http://elaxlgigphpicy5q7pi5wkz2ko2vgjbq4576vic7febmx4xcxvk6deqd.onion/", // Haveno
             "http://a66ulzwhhudtqy6k2efnhodj2n6wnc5mnzjs3ocqtf47lwtcuo4wxyqd.onion/" // Cake
+            // TODO: add more onion price providers for mainnet
     );
 
     private final Config config;
@@ -131,7 +132,9 @@ public class ProvidersRepository {
                 providers = List.of(
                     "http://localhost:8078/",
                     "https://price.haveno.network/",
-                    "http://173.230.142.36:8078/");
+                    "http://173.230.142.36:8078/"
+                    // TODO: add more clearnet price providers for mainnet
+                );
             } else {
                 providers = DEFAULT_NODES;
             }
