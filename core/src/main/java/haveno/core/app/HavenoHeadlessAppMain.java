@@ -31,7 +31,7 @@ public class HavenoHeadlessAppMain extends HavenoExecutable {
     protected HeadlessApp headlessApp;
 
     public HavenoHeadlessAppMain() {
-        super("Haveno Daemon", "havenod", "Haveno", Version.VERSION);
+        super("Haveno Daemon", "havenod", HavenoExecutable.DEFAULT_APP_NAME, Version.VERSION);
     }
 
     public static void main(String[] args) throws Exception {
