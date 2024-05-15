@@ -361,6 +361,7 @@ public abstract class NetworkNode implements MessageListener {
     }
 
     public void shutDown(Runnable shutDownCompleteHandler) {
+        log.info("NetworkNode shutdown started");
         if (!shutDownInProgress) {
             shutDownInProgress = true;
             if (server != null) {

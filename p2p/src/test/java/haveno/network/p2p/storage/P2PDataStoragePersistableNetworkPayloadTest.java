@@ -30,7 +30,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static haveno.network.p2p.storage.TestState.SavedTestState;
-import static haveno.network.p2p.storage.TestState.getTestNodeAddress;
 import static java.util.stream.Stream.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -67,8 +66,9 @@ public class P2PDataStoragePersistableNetworkPayloadTest {
 
         @BeforeEach
         public void setup() {
-            persistableNetworkPayload = createInstance();
-            testState = new TestState();
+            this.persistableNetworkPayload = this.createInstance();
+
+            this.testState = new TestState();
         }
 
         void assertAndDoAdd(PersistableNetworkPayload persistableNetworkPayload,
@@ -82,14 +82,15 @@ public class P2PDataStoragePersistableNetworkPayloadTest {
 
             if (testCase == TestCase.PUBLIC_API) {
                 assertEquals(expectedReturnValue,
-                        testState.mockedStorage.addPersistableNetworkPayload(persistableNetworkPayload, getTestNodeAddress(), reBroadcast));
+                        this.testState.mockedStorage.addPersistableNetworkPayload(persistableNetworkPayload, TestState.getTestNodeAddress(), reBroadcast));
             } else { // onMessage
-                Connection mockedConnection = mock();
-                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(getTestNodeAddress()));
+                Connection mockedConnection = mock(Connection.class);
+                when(mockedConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(TestState.getTestNodeAddress()));
 
                 testState.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(persistableNetworkPayload), mockedConnection);
             }
-            testState.verifyPersistableAdd(beforeState, persistableNetworkPayload, expectedHashMapAndDataStoreUpdated, expectedListenersSignaled, expectedBroadcast);
+
+            this.testState.verifyPersistableAdd(beforeState, persistableNetworkPayload, expectedHashMapAndDataStoreUpdated, expectedListenersSignaled, expectedBroadcast);
         }
 
         static Stream<Object[]> data() {
@@ -103,16 +104,17 @@ public class P2PDataStoragePersistableNetworkPayloadTest {
         @MethodSource("data")
         @ParameterizedTest(name = "{index}: Test with TestCase={0} allowBroadcast={1} reBroadcast={2} checkDate={3}")
         public void addPersistableNetworkPayload(TestCase testCase, boolean reBroadcast) {
-            assertAndDoAdd(persistableNetworkPayload, testCase, reBroadcast, true, true, true, true);
+            // First add should succeed regardless of parameters
+            assertAndDoAdd(this.persistableNetworkPayload, testCase, reBroadcast, true, true, true, true);
         }
 
         @MethodSource("data")
         @ParameterizedTest(name = "{index}: Test with TestCase={0} allowBroadcast={1} reBroadcast={2} checkDate={3}")
         public void addPersistableNetworkPayloadDuplicate(TestCase testCase, boolean reBroadcast) {
-            assertAndDoAdd(persistableNetworkPayload, testCase, reBroadcast, true, true, true, true);
+            assertAndDoAdd(this.persistableNetworkPayload, testCase, reBroadcast, true, true, true, true);
 
             // We return true and broadcast if reBroadcast is set
-            // assertAndDoAdd(persistableNetworkPayload, testCase, reBroadcast, reBroadcast, false, false, reBroadcast);
+            // assertAndDoAdd(this.persistableNetworkPayload, testCase, reBroadcast, reBroadcast, false, false, reBroadcast);
         }
     }
 
