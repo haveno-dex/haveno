@@ -264,7 +264,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         p2PService.addP2PServiceListener(new BootstrapListener() {
             @Override
-            public void onUpdatedDataReceived() {
+            public void onDataReceived() {
                 tryApplyMessages();
             }
         });

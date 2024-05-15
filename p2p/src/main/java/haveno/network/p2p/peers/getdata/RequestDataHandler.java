@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 class RequestDataHandler implements MessageListener {
-    private static final long TIMEOUT = 180;
+    private static final long TIMEOUT = 240;
 
     private NodeAddress peersNodeAddress;
     private String getDataRequestType;
@@ -69,7 +69,7 @@ class RequestDataHandler implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public interface Listener {
-        void onComplete();
+        void onComplete(boolean wasTruncated);
 
         @SuppressWarnings("UnusedParameters")
         void onFault(String errorMessage, @SuppressWarnings("SameParameterValue") @Nullable Connection connection);
@@ -138,7 +138,7 @@ class RequestDataHandler implements MessageListener {
             }
 
             getDataRequestType = getDataRequest.getClass().getSimpleName();
-            log.info("We send a {} to peer {}. ", getDataRequestType, nodeAddress);
+            log.info("\n\n>> We send a {} to peer {}\n", getDataRequestType, nodeAddress);
             networkNode.addMessageListener(this);
             SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getDataRequest);
             //noinspection UnstableApiUsage
@@ -197,8 +197,7 @@ class RequestDataHandler implements MessageListener {
                                 connection.getPeersNodeAddressOptional().get());
 
                         cleanup();
-                        listener.onComplete();
-                        // firstRequest = false;
+                        listener.onComplete(getDataResponse.isWasTruncated());
                     } else {
                         log.warn("Nonce not matching. That can happen rarely if we get a response after a canceled " +
                                         "handshake (timeout causes connection close but peer might have sent a msg before " +
@@ -239,7 +238,7 @@ class RequestDataHandler implements MessageListener {
         StringBuilder sb = new StringBuilder();
         String sep = System.lineSeparator();
         sb.append(sep).append("#################################################################").append(sep);
-        sb.append("Connected to node: ").append(peersNodeAddress.getFullAddress()).append(sep);
+        sb.append("Data provided by node: ").append(peersNodeAddress.getFullAddress()).append(sep);
         int items = dataSet.size() + persistableNetworkPayloadSet.size();
         sb.append("Received ").append(items).append(" instances from a ")
                 .append(getDataRequestType).append(sep);
@@ -249,7 +248,7 @@ class RequestDataHandler implements MessageListener {
                 .append(" / ")
                 .append(Utilities.readableFileSize(value.second.get()))
                 .append(sep));
-        sb.append("#################################################################");
+        sb.append("#################################################################\n");
         log.info(sb.toString());
     }
 

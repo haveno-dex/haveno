@@ -18,6 +18,7 @@
 package haveno.network;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+import haveno.common.util.SingleThreadExecutorUtils;
 import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.NetworkParameters;
@@ -32,7 +33,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -83,9 +83,9 @@ public class Socks5DnsDiscovery extends MultiplexingDiscovery {
         // Attempted workaround for reported bugs on Linux in which gethostbyname does not appear to be properly
         // thread safe and can cause segfaults on some libc versions.
         if (Utilities.isLinux())
-            return Executors.newSingleThreadExecutor(new ContextPropagatingThreadFactory("DNS seed lookups"));
+            return SingleThreadExecutorUtils.getSingleThreadExecutor(new ContextPropagatingThreadFactory("DNS seed lookups"));
         else
-            return Executors.newFixedThreadPool(seeds.size(), new DaemonThreadFactory("DNS seed lookups"));
+            return Utilities.getFixedThreadPoolExecutor(seeds.size(), new DaemonThreadFactory("DNS seed lookups"));
     }
 
     /**

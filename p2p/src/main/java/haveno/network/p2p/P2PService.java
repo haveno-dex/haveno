@@ -189,6 +189,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     }
 
     private void doShutDown() {
+        log.info("P2PService doShutDown started");
 
         if (p2PDataStorage != null) {
             p2PDataStorage.shutDown();
@@ -298,7 +299,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onUpdatedDataReceived() {
-        applyIsBootstrapped(P2PServiceListener::onUpdatedDataReceived);
+        p2pServiceListeners.forEach(P2PServiceListener::onUpdatedDataReceived);
     }
 
     @Override
@@ -313,7 +314,8 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onDataReceived() {
-        p2pServiceListeners.forEach(P2PServiceListener::onDataReceived);
+        applyIsBootstrapped(P2PServiceListener::onDataReceived);
+
     }
 
     private void applyIsBootstrapped(Consumer<P2PServiceListener> listenerHandler) {

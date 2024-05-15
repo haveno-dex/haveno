@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
@@ -50,6 +51,7 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
     private boolean shutDownRequested;
     private Runnable shutDownResultHandler;
     private final ListeningExecutorService executor;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -90,6 +92,7 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
     }
 
     private void doShutDown() {
+        log.info("Broadcaster doShutDown started");
         broadcastHandlers.forEach(BroadcastHandler::cancel);
         if (timer != null) {
             timer.stop();

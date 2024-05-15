@@ -74,6 +74,7 @@ public class BroadcastHandler implements PeerManager.Listener {
 
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
+    @Nullable
     private final ResultHandler resultHandler;
     private final String uid;
 
@@ -276,6 +277,9 @@ public class BroadcastHandler implements PeerManager.Listener {
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
+                log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
+                numOfFailedBroadcasts.incrementAndGet();
+
                 if (stopped.get()) {
                     return;
                 }
