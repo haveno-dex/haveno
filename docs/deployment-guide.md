@@ -132,6 +132,16 @@ To set the network's filter object:
 > **Note**
 > If all seed nodes are restarted at the same time, arbitrators and the filter object will become unregistered and will need to be re-registered.
 
+## Change the default folder name for Haveno application data
+
+To avoid data corruption by using Haveno with other networks, change the default folder name for Haveno's application data with your network, by setting [DEFAULT_APP_NAME](https://github.com/haveno-dex/haveno/blob/1aa62863f49a15e8322a8d96e58dc0ed37dec4eb/core/src/main/java/haveno/core/app/HavenoExecutable.java#L85) in HavenoExecutable.java.
+
+For example, change "Haveno" to "HavenoX", which will use the application folder:
+
+- Linux: ~/.local/share/HavenoX/
+- macOS: ~/Library/Application Support/HavenoX/
+- Windows: ~\AppData\Roaming\HavenoX\
+
 ## Set the network's release date
 
 Optionally set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.
