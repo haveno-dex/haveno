@@ -20,6 +20,8 @@ package haveno.desktop.main.portfolio.closedtrades;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
+import com.jfoenix.controls.JFXButton;
+import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -45,7 +47,7 @@ import haveno.desktop.main.overlays.windows.ClosedTradesSummaryWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
+import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
@@ -112,7 +114,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @FXML
     TableColumn<ClosedTradesListItem, ClosedTradesListItem> priceColumn, deviationColumn, amountColumn, volumeColumn,
             tradeFeeColumn, buyerSecurityDepositColumn, sellerSecurityDepositColumn,
-            marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn,
+            marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn, removeTradeColumn,
             duplicateColumn, avatarColumn;
     @FXML
     FilterBox filterBox;
@@ -186,6 +188,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         setDateColumnCellFactory();
         setMarketColumnCellFactory();
         setStateColumnCellFactory();
+        setRemoveTradeColumnCellFactory();
         setDuplicateColumnCellFactory();
         setAvatarColumnCellFactory();
 
@@ -440,7 +443,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
                                 if (item != null && !empty && isMyOfferAsMaker(item.getTradable().getOffer().getOfferPayload())) {
                                     if (button == null) {
-                                        button = getRegularIconButton(MaterialDesignIcon.CONTENT_COPY);
+                                        button = FormBuilder.getRegularIconButton(MaterialDesignIcon.CONTENT_COPY);
                                         button.setTooltip(new Tooltip(Res.get("shared.duplicateOffer")));
                                         setGraphic(button);
                                     }
@@ -670,6 +673,54 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                         };
                     }
                 });
+    }
+
+    private TableColumn<ClosedTradesListItem, ClosedTradesListItem> setRemoveTradeColumnCellFactory() {
+        removeTradeColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        removeTradeColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<ClosedTradesListItem, ClosedTradesListItem> call(TableColumn<ClosedTradesListItem,
+                    ClosedTradesListItem> column) {
+                        return new TableCell<>() {
+
+                            @Override
+                            public void updateItem(ClosedTradesListItem newItem, boolean empty) {
+                                if (newItem == null || !(newItem.getTradable() instanceof Trade)) {
+                                    setGraphic(null);
+                                    return;
+                                }
+
+                                Trade trade = (Trade) newItem.getTradable();
+                                super.updateItem(newItem, empty);
+                                if (!empty && newItem != null && !trade.isPayoutConfirmed()) {
+                                    Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
+                                    JFXButton iconButton = new JFXButton("", icon);
+                                    iconButton.setStyle("-fx-cursor: hand;");
+                                    iconButton.getStyleClass().add("hidden-icon-button");
+                                    iconButton.setTooltip(new Tooltip(Res.get("portfolio.failed.revertToPending")));
+                                    iconButton.setOnAction(e -> onRevertTrade(trade));
+                                    setGraphic(iconButton);
+                                } else {
+                                    setGraphic(null);
+                                }
+                            }
+                        };
+                    }
+                });
+        return removeTradeColumn;
+    }
+
+    private void onRevertTrade(Trade trade) {
+        new Popup().attention(Res.get("portfolio.failed.revertToPending.popup"))
+                .onAction(() -> onMoveTradeToPendingTrades(trade))
+                .actionButtonText(Res.get("shared.yes"))
+                .closeButtonText(Res.get("shared.no"))
+                .show();
+    }
+
+    private void onMoveTradeToPendingTrades(Trade trade) {
+        model.dataModel.onMoveTradeToPendingTrades(trade);
     }
 
     private void onDuplicateOffer(Offer offer) {

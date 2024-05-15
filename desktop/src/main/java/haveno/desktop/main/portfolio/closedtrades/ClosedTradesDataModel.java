@@ -27,6 +27,8 @@ import haveno.core.trade.ClosedTradableFormatter;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.ClosedTradableUtil;
 import haveno.core.trade.Tradable;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
@@ -49,18 +51,21 @@ class ClosedTradesDataModel extends ActivatableDataModel {
     final AccountAgeWitnessService accountAgeWitnessService;
     private final ObservableList<ClosedTradesListItem> list = FXCollections.observableArrayList();
     private final ListChangeListener<Tradable> tradesListChangeListener;
+    private final TradeManager tradeManager;
 
     @Inject
     public ClosedTradesDataModel(ClosedTradableManager closedTradableManager,
                                  ClosedTradableFormatter closedTradableFormatter,
                                  Preferences preferences,
                                  PriceFeedService priceFeedService,
-                                 AccountAgeWitnessService accountAgeWitnessService) {
+                                 AccountAgeWitnessService accountAgeWitnessService,
+                                 TradeManager tradeManager) {
         this.closedTradableManager = closedTradableManager;
         this.closedTradableFormatter = closedTradableFormatter;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
         this.accountAgeWitnessService = accountAgeWitnessService;
+        this.tradeManager = tradeManager;
 
         tradesListChangeListener = change -> applyList();
     }
@@ -123,5 +128,9 @@ class ClosedTradesDataModel extends ActivatableDataModel {
         );
         // We sort by date, the earliest first
         list.sort((o1, o2) -> o2.getTradable().getDate().compareTo(o1.getTradable().getDate()));
+    }
+
+    public void onMoveTradeToPendingTrades(Trade trade) {
+        tradeManager.onMoveClosedTradeToPendingTrades(trade);
     }
 }

@@ -345,7 +345,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
                 .show());
-        havenoSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
+        tradeManager.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
 
         havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))
