@@ -113,18 +113,20 @@ class SpreadViewModel extends ActivatableViewModel {
 
     private void update(ObservableList<OfferBookListItem> offerBookListItems) {
         Map<String, List<Offer>> offersByCurrencyMap = new HashMap<>();
-        for (OfferBookListItem offerBookListItem : offerBookListItems) {
-            Offer offer = offerBookListItem.getOffer();
-            String key = offer.getCurrencyCode();
-            if (includePaymentMethod) {
-                key = offer.getPaymentMethod().getShortName();
-                if (expandedView) {
-                    key += ":" + offer.getCurrencyCode();
+        synchronized (offerBookListItems) {
+            for (OfferBookListItem offerBookListItem : offerBookListItems) {
+                Offer offer = offerBookListItem.getOffer();
+                String key = offer.getCurrencyCode();
+                if (includePaymentMethod) {
+                    key = offer.getPaymentMethod().getShortName();
+                    if (expandedView) {
+                        key += ":" + offer.getCurrencyCode();
+                    }
                 }
+                if (!offersByCurrencyMap.containsKey(key))
+                    offersByCurrencyMap.put(key, new ArrayList<>());
+                offersByCurrencyMap.get(key).add(offer);
             }
-            if (!offersByCurrencyMap.containsKey(key))
-                offersByCurrencyMap.put(key, new ArrayList<>());
-            offersByCurrencyMap.get(key).add(offer);
         }
         spreadItems.clear();
 
