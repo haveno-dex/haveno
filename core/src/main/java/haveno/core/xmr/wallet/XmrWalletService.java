@@ -132,6 +132,8 @@ public class XmrWalletService {
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
+    private static final long LOG_POLL_ERROR_AFTER_MS = 180000; // log poll error if unsuccessful after this time
+    private static Long lastPollSuccessTimestamp;
 
     private final User user;
     private final Preferences preferences;
@@ -1803,9 +1805,14 @@ public class XmrWalletService {
                     synchronized (WALLET_LOCK) { // avoid long fetch from blocking other operations
                         synchronized (HavenoUtils.getDaemonLock()) {
                             try {
-                                cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); 
+                                cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
+                                lastPollSuccessTimestamp = System.currentTimeMillis();
                             } catch (Exception e) { // fetch from pool can fail
-                                if (!isShutDownStarted) log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                                if (!isShutDownStarted) {
+                                    if (lastPollSuccessTimestamp == null || System.currentTimeMillis() - lastPollSuccessTimestamp > LOG_POLL_ERROR_AFTER_MS) { // only log if not recently successful
+                                        log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                                    }
+                                }
                             }
                         }
                     }
