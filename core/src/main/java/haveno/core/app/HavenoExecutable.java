@@ -82,7 +82,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
 
-    public static final String DEFAULT_APP_NAME = "Haveno-RETO";
+    public static final String DEFAULT_APP_NAME = "Haveno-reto";
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
