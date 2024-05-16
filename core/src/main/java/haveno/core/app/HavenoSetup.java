@@ -388,6 +388,8 @@ public class HavenoSetup {
         p2PService.getP2PDataStorage().readFromResources(postFix, completeHandler);
     }
 
+    public Config getConfig() {return config;}
+
     private synchronized void resetStartupTimeout() {
         if (p2pNetworkAndWalletInitialized != null && p2pNetworkAndWalletInitialized.get()) return; // skip if already initialized
         if (startupTimeout != null) startupTimeout.stop();

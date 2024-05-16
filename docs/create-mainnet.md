@@ -37,12 +37,13 @@ Run `./gradlew generateKeypairs`. A list of public/private keypairs will print t
 
 For demonstration, we can use the first generated public/private keypair for all roles, but you can customize as desired.
 
-Hardcode the public key(s) in these files:
+The public keys are stored at the `keys` directory inside the appdata folder, which resolves to these locations by default with the appName `haveno-XMR_MAINNET_Seed_1002`
+- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/alert.txt` for alert public keys
+- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/arbitrator.txt` for arbitrator public keys
+- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/filter.txt` for filter public keys
+- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/private_notification.txt` for private notification public keys
 
-- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/alert/AlertManager.java#L111)
-- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
-- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/filter/FilterManager.java#L117)
-- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/mainnet_placeholders/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L110)
+Fill these files with generated or provided public keys
 
 ## Start the seed nodes
 

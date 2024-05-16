@@ -1,6 +1,7 @@
 package haveno.common.config;
 
 import ch.qos.logback.classic.Level;
+import com.google.gson.Gson;
 import joptsimple.AbstractOptionSpec;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.HelpFormatter;
@@ -20,6 +21,7 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,6 +47,7 @@ import static java.util.stream.Collectors.toList;
  * when adding or modifying options. Furthermore, while accessor methods are often useful
  * when mocking an object in a testing context, this class is designed for testability
  * without needing to be mocked. See {@code ConfigTests} for examples.
+ *
  * @see #Config(String...)
  * @see #Config(String, File, String...)
  */
@@ -135,6 +138,12 @@ public class Config {
     public final File defaultAppDataDir;
     public final File defaultConfigFile;
 
+    // Public key list
+    public final List<String> privateNotificationPublicKeys;
+    public final List<String> filterPublicKeys;
+    public final List<String> arbitratorPublicKeys;
+    public final List<String> alertPublicKeys;
+
     // Options supported only at the command-line interface (cli)
     public final boolean helpRequested;
     public final File configFile;
@@ -167,7 +176,7 @@ public class Config {
     public final boolean dumpStatistics;
     public final boolean ignoreDevMsg;
     public final List<String> providers;
-    public final List<String> seedNodes;
+    public final List<String> seedNodes = new ArrayList<>();
     public final List<String> banList;
     public final boolean useLocalhostForP2P;
     public final int maxConnections;
@@ -203,6 +212,12 @@ public class Config {
     public final boolean bypassMempoolValidation;
     public final boolean passwordRequired;
 
+    public final double makerFeePct;
+    public final double takerFeePct;
+    public final double penaltyFeePct;
+    public final boolean arbitratorAssignsTradeFeeAddress;
+
+
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
     public final File walletDir;
@@ -220,6 +235,7 @@ public class Config {
      * to the actual system user data directory and/or real Haveno application data
      * directory. Most production use cases will favor calling the
      * {@link #Config(String, File, String...)} constructor directly.
+     *
      * @param args zero or more command line arguments in the form "--optName=optValue"
      * @throws ConfigException if any problems are encountered during option parsing
      * @see #Config(String, File, String...)
@@ -240,9 +256,10 @@ public class Config {
      * will take precedence. Note that the {@value HELP} and {@value CONFIG_FILE} options
      * are supported only at the command line and are disallowed within the config file
      * itself.
-     * @param defaultAppName typically "Haveno" or similar
+     *
+     * @param defaultAppName     typically "Haveno" or similar
      * @param defaultUserDataDir typically the OS-specific user data directory location
-     * @param args zero or more command line arguments in the form "--optName=optValue"
+     * @param args               zero or more command line arguments in the form "--optName=optValue"
      * @throws ConfigException if any problems are encountered during option parsing
      */
     public Config(String defaultAppName, File defaultUserDataDir, String... args) {
@@ -257,7 +274,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<String> configFileOpt =
                 parser.accepts(CONFIG_FILE, format("Specify configuration file. " +
-                        "Relative paths will be prefixed by %s location.", APP_DATA_DIR))
+                                "Relative paths will be prefixed by %s location.", APP_DATA_DIR))
                         .withRequiredArg()
                         .ofType(String.class)
                         .defaultsTo(DEFAULT_CONFIG_FILE_NAME);
@@ -336,7 +353,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Boolean> ignoreLocalXmrNodeOpt = // TODO: update this to ignore local XMR node
                 parser.accepts(IGNORE_LOCAL_XMR_NODE,
-                        "If set to true a Monero node running locally will be ignored")
+                                "If set to true a Monero node running locally will be ignored")
                         .withRequiredArg()
                         .ofType(Boolean.class)
                         .defaultsTo(false);
@@ -356,21 +373,21 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Boolean> useDevModeOpt =
                 parser.accepts(USE_DEV_MODE,
-                        "Enables dev mode which is used for convenience for developer testing")
+                                "Enables dev mode which is used for convenience for developer testing")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<Boolean> useDevModeHeaderOpt =
                 parser.accepts(USE_DEV_MODE_HEADER,
-                        "Use dev mode css scheme to distinguish dev instances.")
+                                "Use dev mode css scheme to distinguish dev instances.")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<Boolean> useDevPrivilegeKeysOpt =
                 parser.accepts(USE_DEV_PRIVILEGE_KEYS, "If set to true all privileged features requiring a private " +
-                        "key to be enabled are overridden by a dev key pair (This is for developers only!)")
+                                "key to be enabled are overridden by a dev key pair (This is for developers only!)")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
@@ -383,9 +400,9 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Boolean> ignoreDevMsgOpt =
                 parser.accepts(IGNORE_DEV_MSG, "If set to true all signed " +
-                        "network_messages from haveno developers are ignored (Global " +
-                        "alert, Version update alert, Filters for offers, nodes or " +
-                        "trading account data)")
+                                "network_messages from haveno developers are ignored (Global " +
+                                "alert, Version update alert, Filters for offers, nodes or " +
+                                "trading account data)")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
@@ -398,7 +415,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<String> seedNodesOpt =
                 parser.accepts(SEED_NODES, "Override hard coded seed nodes as comma separated list e.g. " +
-                        "'rxdkppp3vicnbgqt.onion:8002,mfla72c4igh5ta2t.onion:8002'")
+                                "'rxdkppp3vicnbgqt.onion:8002,mfla72c4igh5ta2t.onion:8002'")
                         .withRequiredArg()
                         .withValuesSeparatedBy(',')
                         .describedAs("host:port[,...]");
@@ -430,22 +447,22 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<String> socks5ProxyHttpAddressOpt =
                 parser.accepts(SOCKS_5_PROXY_HTTP_ADDRESS,
-                        "A proxy address to be used for Http requests (should be non-Tor)")
+                                "A proxy address to be used for Http requests (should be non-Tor)")
                         .withRequiredArg()
                         .describedAs("host:port")
                         .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<Path> torrcFileOpt =
                 parser.accepts(TORRC_FILE, "An existing torrc-file to be sourced for Tor. Note that torrc-entries, " +
-                        "which are critical to Haveno's correct operation, cannot be overwritten.")
+                                "which are critical to Haveno's correct operation, cannot be overwritten.")
                         .withRequiredArg()
                         .describedAs("File")
                         .withValuesConvertedBy(new PathConverter(PathProperties.FILE_EXISTING, PathProperties.READABLE));
 
         ArgumentAcceptingOptionSpec<String> torrcOptionsOpt =
                 parser.accepts(TORRC_OPTIONS, "A list of torrc-entries to amend to Haveno's torrc. Note that " +
-                        "torrc-entries, which are critical to Haveno's flawless operation, cannot be overwritten. " +
-                        "[torrc options line, torrc option, ...]")
+                                "torrc-entries, which are critical to Haveno's flawless operation, cannot be overwritten. " +
+                                "[torrc options line, torrc option, ...]")
                         .withRequiredArg()
                         .withValuesConvertedBy(RegexMatcher.regex("^([^\\s,]+\\s[^,]+,?\\s*)+$"))
                         .defaultsTo("");
@@ -457,7 +474,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Integer> torControlPortOpt =
                 parser.accepts(TOR_CONTROL_PORT,
-                        "The control port of an already running Tor service to be used by Haveno.")
+                                "The control port of an already running Tor service to be used by Haveno.")
                         .availableUnless(TORRC_FILE, TORRC_OPTIONS)
                         .withRequiredArg()
                         .ofType(int.class)
@@ -472,7 +489,7 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Path> torControlCookieFileOpt =
                 parser.accepts(TOR_CONTROL_COOKIE_FILE, "The cookie file for authenticating against the already " +
-                        "running Tor service. Use in conjunction with --" + TOR_CONTROL_USE_SAFE_COOKIE_AUTH)
+                                "running Tor service. Use in conjunction with --" + TOR_CONTROL_USE_SAFE_COOKIE_AUTH)
                         .availableIf(TOR_CONTROL_PORT)
                         .availableUnless(TOR_CONTROL_PASSWORD)
                         .withRequiredArg()
@@ -481,7 +498,7 @@ public class Config {
 
         OptionSpecBuilder torControlUseSafeCookieAuthOpt =
                 parser.accepts(TOR_CONTROL_USE_SAFE_COOKIE_AUTH,
-                        "Use the SafeCookie method when authenticating to the already running Tor service.")
+                                "Use the SafeCookie method when authenticating to the already running Tor service.")
                         .availableIf(TOR_CONTROL_COOKIE_FILE);
 
         OptionSpecBuilder torStreamIsolationOpt =
@@ -550,21 +567,21 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<String> socks5DiscoverModeOpt =
                 parser.accepts(SOCKS5_DISCOVER_MODE, "Specify discovery mode for Bitcoin nodes. " +
-                        "One or more of: [ADDR, DNS, ONION, ALL] (comma separated, they get OR'd together).")
+                                "One or more of: [ADDR, DNS, ONION, ALL] (comma separated, they get OR'd together).")
                         .withRequiredArg()
                         .describedAs("mode[,...]")
                         .defaultsTo("ALL");
 
         ArgumentAcceptingOptionSpec<Boolean> useAllProvidedNodesOpt =
                 parser.accepts(USE_ALL_PROVIDED_NODES,
-                        "Set to true if connection of bitcoin nodes should include clear net nodes")
+                                "Set to true if connection of bitcoin nodes should include clear net nodes")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<String> userAgentOpt =
                 parser.accepts(USER_AGENT,
-                        "User agent at btc node connections")
+                                "User agent at btc node connections")
                         .withRequiredArg()
                         .defaultsTo("Haveno");
 
@@ -587,28 +604,28 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Boolean> preventPeriodicShutdownAtSeedNodeOpt =
                 parser.accepts(PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE,
-                        "Prevents periodic shutdown at seed nodes")
+                                "Prevents periodic shutdown at seed nodes")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<Boolean> republishMailboxEntriesOpt =
                 parser.accepts(REPUBLISH_MAILBOX_ENTRIES,
-                        "Republish mailbox messages at startup")
+                                "Republish mailbox messages at startup")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<Boolean> bypassMempoolValidationOpt =
                 parser.accepts(BYPASS_MEMPOOL_VALIDATION,
-                        "Prevents mempool check of trade parameters")
+                                "Prevents mempool check of trade parameters")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<Boolean> passwordRequiredOpt =
                 parser.accepts(PASSWORD_REQUIRED,
-                        "Requires a password for creating a Haveno account")
+                                "Requires a password for creating a Haveno account")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
@@ -696,7 +713,7 @@ public class Config {
             this.dumpStatistics = options.valueOf(dumpStatisticsOpt);
             this.ignoreDevMsg = options.valueOf(ignoreDevMsgOpt);
             this.providers = options.valuesOf(providersOpt);
-            this.seedNodes = options.valuesOf(seedNodesOpt);
+            this.seedNodes.addAll(options.valuesOf(seedNodesOpt));
             this.banList = options.valuesOf(banListOpt);
             this.useLocalhostForP2P = !this.baseCurrencyNetwork.isMainnet() && options.valueOf(useLocalhostForP2POpt);
             this.maxConnections = options.valueOf(maxConnectionsOpt);
@@ -739,6 +756,31 @@ public class Config {
         this.torDir = mkdir(btcNetworkDir, "tor");
         this.walletDir = mkdir(btcNetworkDir, "wallet");
 
+        // Get network specific settings
+        File jsonFile = new File(btcNetworkDir.getAbsolutePath() + "/network.json");
+        try {
+            if(!jsonFile.exists()) {
+                jsonFile.createNewFile();
+                String json = new Gson().toJson(new NetworkJSONFile());
+                Files.writeString(jsonFile.toPath(), json);
+            }
+            NetworkJSONFile network_info = new Gson().fromJson(Files.readString(jsonFile.toPath()), NetworkJSONFile.class);
+            this.alertPublicKeys = network_info.getAlertKeys();
+            this.arbitratorPublicKeys = network_info.getArbitratorKeys();
+            this.filterPublicKeys = network_info.getFilterKeys();
+            this.privateNotificationPublicKeys = network_info.getPrivateNotificationKeys();
+
+            this.makerFeePct = network_info.getMaker_ratio();
+            this.takerFeePct = network_info.getTaker_ratio();
+            this.penaltyFeePct = network_info.getTaker_ratio();
+            this.arbitratorAssignsTradeFeeAddress = network_info.getArbitratorAssignsTradeFeeAddress();
+
+            for(NetworkJSONFile.NetworkJSONFileSeedNode seedNode : network_info.getSeedNodes()) {
+                seedNodes.add(seedNode.onionAddress);
+            }
+        } catch (IOException e) {
+            throw new ConfigException("Failed to process network.json file: ", e);
+        }
         // Assign values to special-case static fields
         APP_DATA_DIR_VALUE = appDataDir;
         BASE_CURRENCY_NETWORK_VALUE = baseCurrencyNetwork;
@@ -779,7 +821,6 @@ public class Config {
         }
     }
 
-
     // == STATIC UTILS ===================================================================
 
     private static String randomAppName() {
@@ -804,6 +845,7 @@ public class Config {
     /**
      * Creates {@value APP_DATA_DIR} including any nonexistent parent directories. Does
      * nothing if the directory already exists.
+     *
      * @return the given directory, now guaranteed to exist
      */
     private static File mkAppDataDir(File dir) {
@@ -820,6 +862,7 @@ public class Config {
     /**
      * Creates child directory assuming parent directories already exist. Does nothing if
      * the directory already exists.
+     *
      * @return the child directory, now guaranteed to exist
      */
     private static File mkdir(File parent, String child) {
@@ -843,10 +886,11 @@ public class Config {
      * because of its large number of subclasses, injecting the Guice-managed
      * {@link Config} class is not worth the effort. {@link #appDataDir} should be
      * favored in all other cases.
+     *
      * @throws NullPointerException if the static value has not yet been assigned, i.e. if
-     * the Guice-managed {@link Config} class has not yet been instantiated elsewhere.
-     * This should never be the case, as Guice wiring always happens before any
-     * {@code Overlay} class is instantiated.
+     *                              the Guice-managed {@link Config} class has not yet been instantiated elsewhere.
+     *                              This should never be the case, as Guice wiring always happens before any
+     *                              {@code Overlay} class is instantiated.
      */
     public static File appDataDir() {
         return checkNotNull(APP_DATA_DIR_VALUE, "The static appDataDir has not yet " +
@@ -873,6 +917,7 @@ public class Config {
      * the <a href="https://en.wikipedia.org/wiki/Law_of_Demeter">Law of Demeter</a>. The
      * non-static {@link #baseCurrencyNetwork} property should be favored whenever
      * possible.
+     *
      * @see #baseCurrencyNetwork()
      */
     public static NetworkParameters baseCurrencyNetworkParameters() {
