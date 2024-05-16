@@ -80,11 +80,16 @@ public class TaskRunner<T extends Model> {
         isCanceled = true;
     }
 
+    public boolean isCanceled() {
+        return isCanceled;
+    }
+
     void handleComplete() {
         next();
     }
 
     void handleErrorMessage(String errorMessage) {
+        if (isCanceled) return;
         log.error("Task failed: " + currentTask.getSimpleName() + " / errorMessage: " + errorMessage);
         failed = true;
         errorMessageHandler.handleErrorMessage(errorMessage);

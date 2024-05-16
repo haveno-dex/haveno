@@ -41,6 +41,7 @@ public class PlaceOfferProtocol {
     private Timer timeoutTimer;
     private final TransactionResultHandler resultHandler;
     private final ErrorMessageHandler errorMessageHandler;
+    private TaskRunner<PlaceOfferModel> taskRunner;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +66,7 @@ public class PlaceOfferProtocol {
 
         startTimeoutTimer();
 
-        TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
+        taskRunner = new TaskRunner<>(model,
                 () -> {
 
                     // reset timer if response not yet received
@@ -145,6 +146,7 @@ public class PlaceOfferProtocol {
 
     private void handleError(String errorMessage) {
         if (timeoutTimer != null) {
+            taskRunner.cancel();
             log.error(errorMessage);
             stopTimeoutTimer();
             model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
