@@ -47,12 +47,10 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class HavenoAppMain extends HavenoExecutable {
 
-    public static final String DEFAULT_APP_NAME = "Haveno";
-
     private HavenoApp application;
 
     public HavenoAppMain() {
-        super("Haveno Desktop", "haveno-desktop", DEFAULT_APP_NAME, Version.VERSION);
+        super("Haveno Desktop", "haveno-desktop", HavenoExecutable.DEFAULT_APP_NAME, Version.VERSION);
     }
 
     public static void main(String[] args) {

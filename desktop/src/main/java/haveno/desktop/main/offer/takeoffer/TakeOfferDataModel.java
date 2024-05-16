@@ -182,9 +182,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         this.amount.set(offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit())));
 
-        securityDeposit = offer.getDirection() == OfferDirection.SELL ?
-                getBuyerSecurityDeposit() :
-                getSellerSecurityDeposit();
+        updateSecurityDeposit();
 
         calculateVolume();
         calculateTotalToPay();
@@ -374,11 +372,12 @@ class TakeOfferDataModel extends OfferDataModel {
 
     void applyAmount(BigInteger amount) {
         this.amount.set(amount.min(BigInteger.valueOf(getMaxTradeLimit())));
-
         calculateTotalToPay();
     }
 
     void calculateTotalToPay() {
+        updateSecurityDeposit();
+
         // Taker pays 2 times the tx fee because the mining fee might be different when maker created the offer
         // and reserved his funds, so that would not work well with dynamic fees.
         // The mining fee for the takeOfferFee tx is deducted from the createOfferFee and not visible to the trader
@@ -468,11 +467,17 @@ class TakeOfferDataModel extends OfferDataModel {
         return securityDeposit;
     }
 
-    public BigInteger getBuyerSecurityDeposit() {
+    private void updateSecurityDeposit() {
+        securityDeposit = offer.getDirection() == OfferDirection.SELL ?
+                getBuyerSecurityDeposit() :
+                getSellerSecurityDeposit();
+    }
+
+    private BigInteger getBuyerSecurityDeposit() {
         return offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(amount.get());
     }
 
-    public BigInteger getSellerSecurityDeposit() {
+    private BigInteger getSellerSecurityDeposit() {
         return offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(amount.get());
     }
 

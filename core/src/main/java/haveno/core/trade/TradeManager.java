@@ -119,6 +119,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
@@ -129,6 +130,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javax.annotation.Nullable;
 import lombok.Getter;
+import lombok.Setter;
 import monero.daemon.model.MoneroTx;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
@@ -173,6 +175,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
+
+    @Setter
+    @Nullable
+    private Consumer<String> lockedUpFundsHandler; // TODO: this is unused
 
     // set comparator for processing mailbox messages
     static {
@@ -310,7 +316,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         } else {
             p2PService.addP2PServiceListener(new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     initPersistedTrades();
                 }
             });
@@ -492,6 +498,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
                             xmrWalletService.swapAddressEntryToAvailable(addressEntry.getOfferId(), addressEntry.getContext());
                         });
+
+                checkForLockedUpFunds();
             }
 
             // notify that persisted trades initialized
@@ -1040,15 +1048,21 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public void onMoveFailedTradeToPendingTrades(Trade trade) {
-        addFailedTradeToPendingTrades(trade);
+        addTradeToPendingTrades(trade);
         failedTradesManager.removeTrade(trade);
     }
 
-    public void removeFailedTrade(Trade trade) {
+    public void onMoveClosedTradeToPendingTrades(Trade trade) {
+        trade.setCompleted(false);
+        addTradeToPendingTrades(trade);
+        closedTradableManager.removeTrade(trade);
+    }
+
+    private void removeFailedTrade(Trade trade) {
         failedTradesManager.removeTrade(trade);
     }
 
-    public void addFailedTradeToPendingTrades(Trade trade) {
+    private void addTradeToPendingTrades(Trade trade) {
         if (!trade.isInitialized()) {
             initPersistedTrade(trade);
         }
@@ -1058,6 +1072,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
         synchronized (tradableList) {
             return getObservableList().stream().filter(Trade::isFundsLockedIn);
+        }
+    }
+
+    private void checkForLockedUpFunds() {
+        try {
+            getSetOfFailedOrClosedTradeIdsFromLockedInFunds();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 

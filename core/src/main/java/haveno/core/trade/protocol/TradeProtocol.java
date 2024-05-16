@@ -285,7 +285,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             synchronized (trade) {
 
                 // skip if no need to reprocess
-                if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
+                if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished())) {
                     return;
                 }
 

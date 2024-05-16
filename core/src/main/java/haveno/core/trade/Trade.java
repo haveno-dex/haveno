@@ -1408,7 +1408,7 @@ public abstract class Trade implements Tradable, Model {
 
         // check if deposit published
         if (isDepositsPublished()) {
-            restorePublishedTrade();
+            restoreDepositsPublishedTrade();
             return;
         }
 
@@ -1446,7 +1446,7 @@ public abstract class Trade implements Tradable, Model {
         // listen for deposits published to restore trade
         protocolErrorStateSubscription = EasyBind.subscribe(stateProperty(), state -> {
             if (isDepositsPublished()) {
-                restorePublishedTrade();
+                restoreDepositsPublishedTrade();
                 if (protocolErrorStateSubscription != null) {    // unsubscribe
                     protocolErrorStateSubscription.unsubscribe();
                     protocolErrorStateSubscription = null;
@@ -1496,7 +1496,7 @@ public abstract class Trade implements Tradable, Model {
         });
     }
 
-    private void restorePublishedTrade() {
+    private void restoreDepositsPublishedTrade() {
 
         // close open offer
         if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOfferById(getId()).isPresent()) {
@@ -2370,15 +2370,23 @@ public abstract class Trade implements Tradable, Model {
                     setDepositTxs(txs);
 
                     // check if any outputs spent (observed on payout published)
+                    boolean hasSpentOutput = false;
+                    boolean hasFailedTx = false;
                     for (MoneroTxWallet tx : txs) {
+                        if (tx.isFailed()) hasFailedTx = true;
                         for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                            if (Boolean.TRUE.equals(output.isSpent())) setPayoutStatePublished();
+                            if (Boolean.TRUE.equals(output.isSpent())) hasSpentOutput = true;
                         }
+                    }
+                    if (hasSpentOutput) setPayoutStatePublished();
+                    else if (hasFailedTx && isPayoutPublished()) {
+                        log.warn("{} {} is in payout published state but has failed tx and no spent outputs, resetting payout state to unpublished", getClass().getSimpleName(), getShortId());
+                        setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
                     }
 
                     // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
                     for (MoneroTxWallet tx : txs) {
-                        if (tx.isOutgoing()) {
+                        if (tx.isOutgoing() && !tx.isFailed()) {
                             setPayoutTx(tx);
                             setPayoutStatePublished();
                             if (tx.isConfirmed()) setPayoutStateConfirmed();
@@ -2460,6 +2468,10 @@ public abstract class Trade implements Tradable, Model {
         if (!isPayoutUnlocked()) setPayoutState(PayoutState.PAYOUT_UNLOCKED);
     }
 
+    private Trade getTrade() {
+        return this;
+    }
+
     /**
      * Listen to block notifications from the main wallet in order to sync
      * idling trade wallets awaiting the payout to confirm or unlock.
@@ -2485,9 +2497,10 @@ public abstract class Trade implements Tradable, Model {
                 try {
 
                     // get payout height if unknown
-                    if (payoutHeight == null && getPayoutTxId() != null) {
+                    if (payoutHeight == null && getPayoutTxId() != null && isPayoutPublished()) {
                         MoneroTx tx = xmrWalletService.getDaemon().getTx(getPayoutTxId());
-                        if (tx.isConfirmed()) payoutHeight = tx.getHeight();
+                        if (tx == null) log.warn("Payout tx not found for {} {}, txId={}", getTrade().getClass().getSimpleName(), getId(), getPayoutTxId());
+                        else if (tx.isConfirmed()) payoutHeight = tx.getHeight();
                     }
 
                     // sync wallet if confirm or unlock expected

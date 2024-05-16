@@ -345,7 +345,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
                 .show());
-        havenoSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
+        tradeManager.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
 
         havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))
@@ -449,7 +449,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         } else {
             p2PService.addP2PServiceListener(new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     setupInvalidOpenOffersHandler();
                 }
             });
@@ -527,7 +527,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             } else {
                 p2PService.addP2PServiceListener(new BootstrapListener() {
                     @Override
-                    public void onUpdatedDataReceived() {
+                    public void onDataReceived() {
                         accountAgeWitnessService.publishMyAccountAgeWitness(aliPayAccount.getPaymentAccountPayload());
                     }
                 });

@@ -71,6 +71,16 @@ Here is an example config:
 
 Fill in the JSON file with the network's settings or replace it with the provided `network.json`
 
+## Change the default folder name for Haveno application data
+
+To avoid data corruption by using Haveno with other networks, change the default folder name for Haveno's application data with your network, by setting [DEFAULT_APP_NAME](https://github.com/haveno-dex/haveno/blob/1aa62863f49a15e8322a8d96e58dc0ed37dec4eb/core/src/main/java/haveno/core/app/HavenoExecutable.java#L85) in HavenoExecutable.java.
+
+For example, change "Haveno" to "HavenoX", which will use the application folder:
+
+- Linux: ~/.local/share/HavenoX/
+- macOS: ~/Library/Application Support/HavenoX/
+- Windows: ~\AppData\Roaming\HavenoX\
+
 ## Start the seed nodes
 
 Rebuild for the previous changes to the source code to take effect: `make skip-tests`.

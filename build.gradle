@@ -360,6 +360,7 @@ configure(project(':p2p')) {
         testImplementation "ch.qos.logback:logback-core:$logbackVersion"
         testImplementation "org.apache.commons:commons-lang3:$langVersion"
         testImplementation("org.mockito:mockito-core:$mockitoVersion")
+        testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
 
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
@@ -602,7 +603,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.0.3-SNAPSHOT'
+    version = '1.0.4-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,
