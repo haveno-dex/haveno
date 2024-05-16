@@ -65,7 +65,7 @@ public final class XmrConnectionService {
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
-    private static final long MIN_ERROR_LOG_PERIOD_MS = 300000; // minimum period between logging errors fetching daemon info
+    private static final long LOG_POLL_ERROR_AFTER_MS = 300000; // minimum period between logging errors fetching daemon info
     private static Long lastErrorTimestamp;
 
     private final Object lock = new Object();
@@ -661,7 +661,7 @@ public final class XmrConnectionService {
                 if (isShutDownStarted) return;
 
                 // log error message periodically
-                if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > MIN_ERROR_LOG_PERIOD_MS)) {
+                if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > LOG_POLL_ERROR_AFTER_MS)) {
                     lastErrorTimestamp = System.currentTimeMillis();
                     log.warn("Could not update daemon info: " + e.getMessage());
                     if (DevEnv.isDevMode()) e.printStackTrace();
