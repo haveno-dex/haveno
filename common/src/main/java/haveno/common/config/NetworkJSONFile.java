@@ -12,8 +12,8 @@ public class NetworkJSONFile {
     private List<String> privateNotificationKeys = new ArrayList<>();
 
     private Boolean arbitratorAssignsTradeFeeAddress = true;
-    private Double maker_ratio = 0.0075;
-    private Double taker_ratio = 0.0015;
+    private Double maker_ratio = 0.0015;
+    private Double taker_ratio = 0.0075;
     private Double penalty_ratio = 0.02;
 /*
     private static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS_DEFAULT = true;

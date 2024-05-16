@@ -37,13 +37,39 @@ Run `./gradlew generateKeypairs`. A list of public/private keypairs will print t
 
 For demonstration, we can use the first generated public/private keypair for all roles, but you can customize as desired.
 
-The public keys are stored at the `keys` directory inside the appdata folder, which resolves to these locations by default with the appName `haveno-XMR_MAINNET_Seed_1002`
-- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/alert.txt` for alert public keys
-- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/arbitrator.txt` for arbitrator public keys
-- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/filter.txt` for filter public keys
-- `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/keys/private_notification.txt` for private notification public keys
+The public keys are stored in the `network.json` file inside the appdata folder, which resolves to these locations by default with the appName `haveno-XMR_MAINNET_Seed_1002` would resolve to `~/.local/share/haveno-XMR_MAINNET_Seed_1002/xmr_mainnet/network.json`
+Here is an example config:
 
-Fill these files with generated or provided public keys
+```json
+{
+    "alertKeys": [
+        "03894c9184e7a59a55e3fc14cfeae6df446b4a216a401ae7fb59bc83bf340a0ac7"
+    ],
+    "arbitratorKeys": [
+        "03894c9184e7a59a55e3fc14cfeae6df446b4a216a401ae7fb59bc83bf340a0ac7"
+    ],
+    "filterKeys": [
+        "03894c9184e7a59a55e3fc14cfeae6df446b4a216a401ae7fb59bc83bf340a0ac7"
+    ],
+    "privateNotificationKeys": [
+        "03894c9184e7a59a55e3fc14cfeae6df446b4a216a401ae7fb59bc83bf340a0ac7"
+    ],
+    "arbitratorAssignsTradeFeeAddress": true,
+    "maker_ratio": 0.0025,
+    "taker_ratio": 0.0075,
+    "penalty_ratio": 0.02,
+    "seedNodes":[
+        {
+            "onionAddress": "example.onion:1002",
+            "info": "@nobody"
+        }
+    ]
+}
+
+
+```
+
+Fill in the JSON file with the network's settings or replace it with the provided `network.json`
 
 ## Start the seed nodes
 
