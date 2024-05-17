@@ -649,9 +649,6 @@ public final class XmrConnectionService {
                     log.info("Successfully fetched daemon info after previous error");
                     lastErrorTimestamp = null;
                 }
-
-                // clear error message
-                if (HavenoUtils.havenoSetup != null) HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(null);
             } catch (Exception e) {
 
                 // not connected to daemon
