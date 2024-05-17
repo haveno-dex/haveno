@@ -26,7 +26,9 @@ See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
 ## Status of the project
 
-A live test network is online and users can run Haveno and make test trades between each other using Monero's stagenet. See the [instructions to build Haveno and connect to the network](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md).
+Haveno can be used on Monero's main network by using a third party Haveno network. We do not officially endorse any networks at this time, but they can be found online.
+
+A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the network.
 
 Note that Haveno is being actively developed. If you find issues or bugs, please let us know.
 
