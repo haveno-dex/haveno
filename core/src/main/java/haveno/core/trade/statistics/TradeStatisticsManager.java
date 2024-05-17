@@ -26,7 +26,7 @@ import haveno.core.locale.CurrencyTuple;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
-import haveno.core.trade.BuyerTrade;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
@@ -163,8 +163,8 @@ public class TradeStatisticsManager {
         long ts = System.currentTimeMillis();
         Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
         trades.forEach(trade -> {
-            if (trade instanceof BuyerTrade) {
-                log.debug("Trade: {} is a buyer trade, we only republish we have been seller.",
+            if (!(trade instanceof SellerTrade)) {
+                log.debug("Trade: {} is not a seller trade, we only republish if we were seller",
                         trade.getShortId());
                 return;
             }
