@@ -1321,6 +1321,7 @@ public class XmrWalletService {
         } catch (Exception e) {
             log.warn("Error initializing main wallet: " + e.getMessage());
             e.printStackTrace();
+            HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
             throw e;
         }
     }
@@ -1592,7 +1593,7 @@ public class XmrWalletService {
         } catch (Exception e) {
             e.printStackTrace();
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
-            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
+            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.\n\nError message: " + e.getMessage());
         }
     }
 
