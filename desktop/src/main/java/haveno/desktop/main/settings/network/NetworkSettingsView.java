@@ -25,6 +25,7 @@ import haveno.core.api.XmrLocalNode;
 import haveno.core.filter.Filter;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.validation.RegexValidator;
@@ -266,7 +267,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             }
         };
 
-        xmrNodesInputTextField.setPromptText(Res.get("settings.net.ips"));
+        xmrNodesInputTextField.setPromptText(Res.get("settings.net.ips", "" + HavenoUtils.getDefaultMoneroPort()));
         RegexValidator regexValidator = RegexValidatorFactory.addressRegexValidator();
         xmrNodesInputTextField.setValidator(regexValidator);
         xmrNodesInputTextField.setErrorMessage(Res.get("validation.invalidAddressList"));
