@@ -68,15 +68,6 @@ public class XmrLocalNode {
         if (!Config.baseCurrencyNetwork().isMainnet()) MONEROD_ARGS.add("--" + Config.baseCurrencyNetwork().getNetwork().toLowerCase());
     }
 
-    // default rpc ports
-    private static Integer rpcPort;
-    static {
-        if (Config.baseCurrencyNetwork().isMainnet()) rpcPort = 18081;
-        else if (Config.baseCurrencyNetwork().isTestnet()) rpcPort = 28081;
-        else if (Config.baseCurrencyNetwork().isStagenet()) rpcPort = 38081;
-        else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
-    }
-
     @Inject
     public XmrLocalNode(Config config, Preferences preferences) {
         this.config = config;
@@ -93,7 +84,7 @@ public class XmrLocalNode {
     }
 
     public String getUri() {
-        return "http://" + HavenoUtils.LOOPBACK_HOST + ":" + rpcPort;
+        return "http://" + HavenoUtils.LOOPBACK_HOST + ":" + HavenoUtils.getDefaultMoneroPort();
     }
 
     /**
@@ -129,7 +120,7 @@ public class XmrLocalNode {
     }
 
     public boolean equalsUri(String uri) {
-        return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == rpcPort;
+        return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
     }
 
     /**

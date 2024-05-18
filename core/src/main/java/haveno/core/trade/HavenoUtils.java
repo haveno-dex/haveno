@@ -515,4 +515,11 @@ public class HavenoUtils {
         for (MoneroOutput input : tx.getInputs()) inputKeyImages.add(input.getKeyImage().getHex());
         return inputKeyImages;
     }
+
+    public static int getDefaultMoneroPort() {
+        if (Config.baseCurrencyNetwork().isMainnet()) return 18081;
+        else if (Config.baseCurrencyNetwork().isTestnet()) return 28081;
+        else if (Config.baseCurrencyNetwork().isStagenet()) return 38081;
+        else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
+    }
 }
