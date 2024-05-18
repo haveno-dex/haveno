@@ -1372,6 +1372,9 @@ public class XmrWalletService {
                         // reapply connection after wallet synced
                         onConnectionChanged(xmrConnectionService.getConnection());
 
+                        // reset internal state if main wallet was swapped
+                        resetIfWalletChanged();
+
                         // signal that main wallet is synced
                         doneDownload();
 
@@ -1406,6 +1409,23 @@ public class XmrWalletService {
                 // start polling main wallet
                 startPolling();
             }
+        }
+    }
+
+    private void resetIfWalletChanged() {
+        getAddressEntryListAsImmutableList(); // TODO: using getter to create base address if necessary
+        List<XmrAddressEntry> baseAddresses = getAddressEntries(XmrAddressEntry.Context.BASE_ADDRESS);
+        if (baseAddresses.size() > 1 || (baseAddresses.size() == 1 && !baseAddresses.get(0).getAddressString().equals(wallet.getPrimaryAddress()))) {
+            String warningMsg = "New Monero wallet detected. Resetting internal state.";
+            if (!tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
+            HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+
+            // reset address entries
+            xmrAddressEntryList.clear();
+            getAddressEntryListAsImmutableList(); // recreate base address
+
+            // cancel offers
+            tradeManager.getOpenOfferManager().removeAllOpenOffers(null);
         }
     }
 
