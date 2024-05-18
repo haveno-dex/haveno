@@ -88,7 +88,7 @@ class OpenOffersDataModel extends ActivatableDataModel {
     private void applyList() {
         list.clear();
 
-        list.addAll(openOfferManager.getObservableList().stream().map(OpenOfferListItem::new).collect(Collectors.toList()));
+        list.addAll(openOfferManager.getOpenOffers().stream().map(OpenOfferListItem::new).collect(Collectors.toList()));
 
         // we sort by date, earliest first
         list.sort((o1, o2) -> o2.getOffer().getDate().compareTo(o1.getOffer().getDate()));

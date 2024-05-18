@@ -678,6 +678,13 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
+        model.getTopErrorMsg().addListener((ov, oldValue, newValue) -> {
+            log.warn("top level warning has been set! " + newValue);
+            if (newValue != null) {
+                new Popup().warning(newValue).show();
+            }
+        });
+
         // temporarily disabled due to high CPU usage (per issue #4649)
         //model.getCombinedSyncProgress().addListener((ov, oldValue, newValue) -> {
         //    if ((double) newValue >= 1) {
