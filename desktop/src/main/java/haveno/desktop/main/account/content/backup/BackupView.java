@@ -23,8 +23,10 @@ import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -127,9 +129,18 @@ public class BackupView extends ActivatableView<GridPane, Void> {
             if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
                 PersistenceManager.flushAllDataToDiskAtBackup(() -> {
                     try {
+
+                        // copy data directory to backup directory
                         String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
                         String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
+                        File destinationFile = new File(destination);
                         FileUtil.copyDirectory(dataDir, new File(destination));
+
+                        // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
+                        File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
+                        if (monerod.exists()) monerod.delete();
+                        File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
+                        if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
                         new Popup().feedback(Res.get("account.backup.success", destination)).show();
                     } catch (IOException e) {
                         e.printStackTrace();
