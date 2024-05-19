@@ -299,216 +299,216 @@ public class ChatView extends AnchorPane {
 
                     @Override
                     protected void updateItem(ChatMessage message, boolean empty) {
-                        super.updateItem(message, empty);
-                        if (message != null && !empty) {
-                            copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(messageLabel.getText()));
-                            messageLabel.setOnMouseClicked(event -> {
-                                if (2 > event.getClickCount()) {
-                                    return;
-                                }
-                                GUIUtil.showSelectableTextModal(headerLabel.getText(), messageLabel.getText());
-                            });
-
-                            if (!messageAnchorPane.prefWidthProperty().isBound())
-                                messageAnchorPane.prefWidthProperty()
-                                        .bind(messageListView.widthProperty().subtract(padding + GUIUtil.getScrollbarWidth(messageListView)));
-
-                            AnchorPane.clearConstraints(bg);
-                            AnchorPane.clearConstraints(headerLabel);
-                            AnchorPane.clearConstraints(arrow);
-                            AnchorPane.clearConstraints(messageLabel);
-                            AnchorPane.clearConstraints(copyIcon);
-                            AnchorPane.clearConstraints(statusHBox);
-                            AnchorPane.clearConstraints(attachmentsBox);
-
-                            AnchorPane.setTopAnchor(bg, 15d);
-                            AnchorPane.setBottomAnchor(bg, bottomBorder);
-                            AnchorPane.setTopAnchor(headerLabel, 0d);
-                            AnchorPane.setBottomAnchor(arrow, bottomBorder + 5d);
-                            AnchorPane.setTopAnchor(messageLabel, 25d);
-                            AnchorPane.setTopAnchor(copyIcon, 25d);
-                            AnchorPane.setBottomAnchor(attachmentsBox, bottomBorder + 10);
-
-                            boolean senderIsTrader = message.isSenderIsTrader();
-                            boolean isMyMsg = supportSession.isClient() == senderIsTrader;
-
-                            arrow.setVisible(!message.isSystemMessage());
-                            arrow.setManaged(!message.isSystemMessage());
-                            statusHBox.setVisible(false);
-
-                            headerLabel.getStyleClass().removeAll("message-header", "my-message-header", "success-text",
-                                    "highlight-static");
-                            messageLabel.getStyleClass().removeAll("my-message", "message");
-                            copyIcon.getStyleClass().removeAll("my-message", "message");
-
-                            if (message.isSystemMessage()) {
-                                headerLabel.getStyleClass().addAll("message-header", "success-text");
-                                bg.setId("message-bubble-green");
-                                messageLabel.getStyleClass().add("my-message");
-                                copyIcon.getStyleClass().add("my-message");
-                                message.addWeakMessageStateListener(() -> updateMsgState(message));
-                                updateMsgState(message);
-                            } else if (isMyMsg) {
-                                headerLabel.getStyleClass().add("my-message-header");
-                                bg.setId("message-bubble-blue");
-                                messageLabel.getStyleClass().add("my-message");
-                                copyIcon.getStyleClass().add("my-message");
-                                if (supportSession.isClient())
-                                    arrow.setId("bubble_arrow_blue_left");
-                                else
-                                    arrow.setId("bubble_arrow_blue_right");
-
-                                if (sendMsgBusyAnimationListener != null)
-                                    sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
-
-                                sendMsgBusyAnimationListener = (observable, oldValue, newValue) -> {
-                                    if (!newValue)
-                                        updateMsgState(message);
-                                };
-
-                                sendMsgBusyAnimation.isRunningProperty().addListener(sendMsgBusyAnimationListener);
-                                message.addWeakMessageStateListener(() -> updateMsgState(message));
-                                updateMsgState(message);
-                            } else {
-                                headerLabel.getStyleClass().add("message-header");
-                                bg.setId("message-bubble-grey");
-                                messageLabel.getStyleClass().add("message");
-                                copyIcon.getStyleClass().add("message");
-                                if (supportSession.isClient())
-                                    arrow.setId("bubble_arrow_grey_right");
-                                else
-                                    arrow.setId("bubble_arrow_grey_left");
-                            }
-
-                            if (message.isSystemMessage()) {
-                                AnchorPane.setLeftAnchor(headerLabel, padding);
-                                AnchorPane.setRightAnchor(headerLabel, padding);
-                                AnchorPane.setLeftAnchor(bg, border);
-                                AnchorPane.setRightAnchor(bg, border);
-                                AnchorPane.setLeftAnchor(messageLabel, padding);
-                                AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight);
-                                AnchorPane.setRightAnchor(copyIcon, padding);
-                                AnchorPane.setLeftAnchor(attachmentsBox, padding);
-                                AnchorPane.setRightAnchor(attachmentsBox, padding);
-                                AnchorPane.setLeftAnchor(statusHBox, padding);
-                            } else if (senderIsTrader) {
-                                AnchorPane.setLeftAnchor(headerLabel, padding + arrowWidth);
-                                AnchorPane.setLeftAnchor(bg, border + arrowWidth);
-                                AnchorPane.setRightAnchor(bg, border);
-                                AnchorPane.setLeftAnchor(arrow, border);
-                                AnchorPane.setLeftAnchor(messageLabel, padding + arrowWidth);
-                                AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight);
-                                AnchorPane.setRightAnchor(copyIcon, padding);
-                                AnchorPane.setLeftAnchor(attachmentsBox, padding + arrowWidth);
-                                AnchorPane.setRightAnchor(attachmentsBox, padding);
-                                AnchorPane.setRightAnchor(statusHBox, padding);
-                            } else {
-                                AnchorPane.setRightAnchor(headerLabel, padding + arrowWidth);
-                                AnchorPane.setRightAnchor(bg, border + arrowWidth);
-                                AnchorPane.setLeftAnchor(bg, border);
-                                AnchorPane.setRightAnchor(arrow, border);
-                                AnchorPane.setLeftAnchor(messageLabel, padding);
-                                AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight + arrowWidth);
-                                AnchorPane.setRightAnchor(copyIcon, padding + arrowWidth);
-                                AnchorPane.setLeftAnchor(attachmentsBox, padding);
-                                AnchorPane.setRightAnchor(attachmentsBox, padding + arrowWidth);
-                                AnchorPane.setLeftAnchor(statusHBox, padding);
-                            }
-                            AnchorPane.setBottomAnchor(statusHBox, 7d);
-                            String metaData = DisplayUtils.formatDateTime(new Date(message.getDate()));
-                            if (!message.isSystemMessage())
-                                metaData = (isMyMsg ? "Sent " : "Received ") + metaData
-                                        + (isMyMsg ? "" : " from " + counterpartyName);
-                            headerLabel.setText(metaData);
-                            messageLabel.setText(message.getMessage());
-                            attachmentsBox.getChildren().clear();
-                            if (allowAttachments &&
-                                    message.getAttachments() != null &&
-                                    message.getAttachments().size() > 0) {
-                                AnchorPane.setBottomAnchor(messageLabel, bottomBorder + attachmentsBoxHeight + 10);
-                                attachmentsBox.getChildren().add(new AutoTooltipLabel(Res.get("support.attachments") + " ") {{
-                                    setPadding(new Insets(0, 0, 3, 0));
-                                    if (isMyMsg)
-                                        getStyleClass().add("my-message");
-                                    else
-                                        getStyleClass().add("message");
-                                }});
-                                message.getAttachments().forEach(attachment -> {
-                                    Label icon = new Label();
-                                    setPadding(new Insets(0, 0, 3, 0));
-                                    if (isMyMsg)
-                                        icon.getStyleClass().add("attachment-icon");
-                                    else
-                                        icon.getStyleClass().add("attachment-icon-black");
-
-                                    AwesomeDude.setIcon(icon, AwesomeIcon.FILE_TEXT);
-                                    icon.setPadding(new Insets(-2, 0, 0, 0));
-                                    icon.setTooltip(new Tooltip(attachment.getFileName()));
-                                    icon.setOnMouseClicked(event -> onOpenAttachment(attachment));
-                                    attachmentsBox.getChildren().add(icon);
+                        UserThread.execute(() -> {
+                            super.updateItem(message, empty);
+                            if (message != null && !empty) {
+                                copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(messageLabel.getText()));
+                                messageLabel.setOnMouseClicked(event -> {
+                                    if (2 > event.getClickCount()) {
+                                        return;
+                                    }
+                                    GUIUtil.showSelectableTextModal(headerLabel.getText(), messageLabel.getText());
                                 });
+    
+                                if (!messageAnchorPane.prefWidthProperty().isBound())
+                                    messageAnchorPane.prefWidthProperty()
+                                            .bind(messageListView.widthProperty().subtract(padding + GUIUtil.getScrollbarWidth(messageListView)));
+    
+                                AnchorPane.clearConstraints(bg);
+                                AnchorPane.clearConstraints(headerLabel);
+                                AnchorPane.clearConstraints(arrow);
+                                AnchorPane.clearConstraints(messageLabel);
+                                AnchorPane.clearConstraints(copyIcon);
+                                AnchorPane.clearConstraints(statusHBox);
+                                AnchorPane.clearConstraints(attachmentsBox);
+    
+                                AnchorPane.setTopAnchor(bg, 15d);
+                                AnchorPane.setBottomAnchor(bg, bottomBorder);
+                                AnchorPane.setTopAnchor(headerLabel, 0d);
+                                AnchorPane.setBottomAnchor(arrow, bottomBorder + 5d);
+                                AnchorPane.setTopAnchor(messageLabel, 25d);
+                                AnchorPane.setTopAnchor(copyIcon, 25d);
+                                AnchorPane.setBottomAnchor(attachmentsBox, bottomBorder + 10);
+    
+                                boolean senderIsTrader = message.isSenderIsTrader();
+                                boolean isMyMsg = supportSession.isClient() == senderIsTrader;
+    
+                                arrow.setVisible(!message.isSystemMessage());
+                                arrow.setManaged(!message.isSystemMessage());
+                                statusHBox.setVisible(false);
+    
+                                headerLabel.getStyleClass().removeAll("message-header", "my-message-header", "success-text",
+                                        "highlight-static");
+                                messageLabel.getStyleClass().removeAll("my-message", "message");
+                                copyIcon.getStyleClass().removeAll("my-message", "message");
+    
+                                if (message.isSystemMessage()) {
+                                    headerLabel.getStyleClass().addAll("message-header", "success-text");
+                                    bg.setId("message-bubble-green");
+                                    messageLabel.getStyleClass().add("my-message");
+                                    copyIcon.getStyleClass().add("my-message");
+                                    message.addWeakMessageStateListener(() -> UserThread.execute(() -> updateMsgState(message)));
+                                    updateMsgState(message);
+                                } else if (isMyMsg) {
+                                    headerLabel.getStyleClass().add("my-message-header");
+                                    bg.setId("message-bubble-blue");
+                                    messageLabel.getStyleClass().add("my-message");
+                                    copyIcon.getStyleClass().add("my-message");
+                                    if (supportSession.isClient())
+                                        arrow.setId("bubble_arrow_blue_left");
+                                    else
+                                        arrow.setId("bubble_arrow_blue_right");
+    
+                                    if (sendMsgBusyAnimationListener != null)
+                                        sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
+    
+                                    sendMsgBusyAnimationListener = (observable, oldValue, newValue) -> {
+                                        if (!newValue)
+                                            UserThread.execute(() -> updateMsgState(message));
+                                    };
+    
+                                    sendMsgBusyAnimation.isRunningProperty().addListener(sendMsgBusyAnimationListener);
+                                    message.addWeakMessageStateListener(() -> UserThread.execute(() -> updateMsgState(message)));
+                                    updateMsgState(message);
+                                } else {
+                                    headerLabel.getStyleClass().add("message-header");
+                                    bg.setId("message-bubble-grey");
+                                    messageLabel.getStyleClass().add("message");
+                                    copyIcon.getStyleClass().add("message");
+                                    if (supportSession.isClient())
+                                        arrow.setId("bubble_arrow_grey_right");
+                                    else
+                                        arrow.setId("bubble_arrow_grey_left");
+                                }
+    
+                                if (message.isSystemMessage()) {
+                                    AnchorPane.setLeftAnchor(headerLabel, padding);
+                                    AnchorPane.setRightAnchor(headerLabel, padding);
+                                    AnchorPane.setLeftAnchor(bg, border);
+                                    AnchorPane.setRightAnchor(bg, border);
+                                    AnchorPane.setLeftAnchor(messageLabel, padding);
+                                    AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight);
+                                    AnchorPane.setRightAnchor(copyIcon, padding);
+                                    AnchorPane.setLeftAnchor(attachmentsBox, padding);
+                                    AnchorPane.setRightAnchor(attachmentsBox, padding);
+                                    AnchorPane.setLeftAnchor(statusHBox, padding);
+                                } else if (senderIsTrader) {
+                                    AnchorPane.setLeftAnchor(headerLabel, padding + arrowWidth);
+                                    AnchorPane.setLeftAnchor(bg, border + arrowWidth);
+                                    AnchorPane.setRightAnchor(bg, border);
+                                    AnchorPane.setLeftAnchor(arrow, border);
+                                    AnchorPane.setLeftAnchor(messageLabel, padding + arrowWidth);
+                                    AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight);
+                                    AnchorPane.setRightAnchor(copyIcon, padding);
+                                    AnchorPane.setLeftAnchor(attachmentsBox, padding + arrowWidth);
+                                    AnchorPane.setRightAnchor(attachmentsBox, padding);
+                                    AnchorPane.setRightAnchor(statusHBox, padding);
+                                } else {
+                                    AnchorPane.setRightAnchor(headerLabel, padding + arrowWidth);
+                                    AnchorPane.setRightAnchor(bg, border + arrowWidth);
+                                    AnchorPane.setLeftAnchor(bg, border);
+                                    AnchorPane.setRightAnchor(arrow, border);
+                                    AnchorPane.setLeftAnchor(messageLabel, padding);
+                                    AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight + arrowWidth);
+                                    AnchorPane.setRightAnchor(copyIcon, padding + arrowWidth);
+                                    AnchorPane.setLeftAnchor(attachmentsBox, padding);
+                                    AnchorPane.setRightAnchor(attachmentsBox, padding + arrowWidth);
+                                    AnchorPane.setLeftAnchor(statusHBox, padding);
+                                }
+                                AnchorPane.setBottomAnchor(statusHBox, 7d);
+                                String metaData = DisplayUtils.formatDateTime(new Date(message.getDate()));
+                                if (!message.isSystemMessage())
+                                    metaData = (isMyMsg ? "Sent " : "Received ") + metaData
+                                            + (isMyMsg ? "" : " from " + counterpartyName);
+                                headerLabel.setText(metaData);
+                                messageLabel.setText(message.getMessage());
+                                attachmentsBox.getChildren().clear();
+                                if (allowAttachments &&
+                                        message.getAttachments() != null &&
+                                        message.getAttachments().size() > 0) {
+                                    AnchorPane.setBottomAnchor(messageLabel, bottomBorder + attachmentsBoxHeight + 10);
+                                    attachmentsBox.getChildren().add(new AutoTooltipLabel(Res.get("support.attachments") + " ") {{
+                                        setPadding(new Insets(0, 0, 3, 0));
+                                        if (isMyMsg)
+                                            getStyleClass().add("my-message");
+                                        else
+                                            getStyleClass().add("message");
+                                    }});
+                                    message.getAttachments().forEach(attachment -> {
+                                        Label icon = new Label();
+                                        setPadding(new Insets(0, 0, 3, 0));
+                                        if (isMyMsg)
+                                            icon.getStyleClass().add("attachment-icon");
+                                        else
+                                            icon.getStyleClass().add("attachment-icon-black");
+    
+                                        AwesomeDude.setIcon(icon, AwesomeIcon.FILE_TEXT);
+                                        icon.setPadding(new Insets(-2, 0, 0, 0));
+                                        icon.setTooltip(new Tooltip(attachment.getFileName()));
+                                        icon.setOnMouseClicked(event -> onOpenAttachment(attachment));
+                                        attachmentsBox.getChildren().add(icon);
+                                    });
+                                } else {
+                                    AnchorPane.setBottomAnchor(messageLabel, bottomBorder + 10);
+                                }
+    
+                                // Need to set it here otherwise style is not correct
+                                AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY, "16.0");
+                                copyIcon.getStyleClass().addAll("icon", "copy-icon-disputes");
+    
+                                // TODO There are still some cell rendering issues on updates
+                                setGraphic(messageAnchorPane);
                             } else {
-                                AnchorPane.setBottomAnchor(messageLabel, bottomBorder + 10);
+                                if (sendMsgBusyAnimation != null && sendMsgBusyAnimationListener != null)
+                                    sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
+    
+                                messageAnchorPane.prefWidthProperty().unbind();
+    
+                                copyIcon.setOnMouseClicked(null);
+                                messageLabel.setOnMouseClicked(null);
+                                setGraphic(null);
                             }
-
-                            // Need to set it here otherwise style is not correct
-                            AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY, "16.0");
-                            copyIcon.getStyleClass().addAll("icon", "copy-icon-disputes");
-
-                            // TODO There are still some cell rendering issues on updates
-                            UserThread.execute(() -> setGraphic(messageAnchorPane));
-                        } else {
-                            if (sendMsgBusyAnimation != null && sendMsgBusyAnimationListener != null)
-                                sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
-
-                            messageAnchorPane.prefWidthProperty().unbind();
-
-                            copyIcon.setOnMouseClicked(null);
-                            messageLabel.setOnMouseClicked(null);
-                            UserThread.execute(() -> setGraphic(null));
-                        }
+                        });
                     }
 
                     private void updateMsgState(ChatMessage message) {
-                        UserThread.execute(() -> {
-                            boolean visible;
-                            AwesomeIcon icon = null;
-                            String text = null;
-                            statusIcon.getStyleClass().add("status-icon");
-                            statusInfoLabel.getStyleClass().add("status-icon");
-                            statusHBox.setOpacity(1);
-                            log.debug("updateMsgState msg-{}, ack={}, arrived={}", message.getMessage(),
-                                    message.acknowledgedProperty().get(), message.arrivedProperty().get());
-                            if (message.acknowledgedProperty().get()) {
-                                visible = true;
-                                icon = AwesomeIcon.OK_SIGN;
-                                text = Res.get("support.acknowledged");
-                            } else if (message.storedInMailboxProperty().get()) {
-                                visible = true;
-                                icon = AwesomeIcon.ENVELOPE;
-                                text = Res.get("support.savedInMailbox");
-                            } else if (message.ackErrorProperty().get() != null) {
-                                visible = true;
-                                icon = AwesomeIcon.EXCLAMATION_SIGN;
-                                text = Res.get("support.error", message.ackErrorProperty().get());
-                                statusIcon.getStyleClass().add("error-text");
-                                statusInfoLabel.getStyleClass().add("error-text");
-                            } else if (message.arrivedProperty().get()) {
-                                visible = true;
-                                icon = AwesomeIcon.MAIL_REPLY;
-                                text = Res.get("support.transient");
-                            } else {
-                                visible = false;
-                                log.debug("updateMsgState called but no msg state available. message={}", message);
-                            }
-    
-                            statusHBox.setVisible(visible);
-                            if (visible) {
-                                AwesomeDude.setIcon(statusIcon, icon, "14");
-                                statusIcon.setTooltip(new Tooltip(text));
-                                statusInfoLabel.setText(text);
-                            }
-                        });
+                        boolean visible;
+                        AwesomeIcon icon = null;
+                        String text = null;
+                        statusIcon.getStyleClass().add("status-icon");
+                        statusInfoLabel.getStyleClass().add("status-icon");
+                        statusHBox.setOpacity(1);
+                        log.debug("updateMsgState msg-{}, ack={}, arrived={}", message.getMessage(),
+                                message.acknowledgedProperty().get(), message.arrivedProperty().get());
+                        if (message.acknowledgedProperty().get()) {
+                            visible = true;
+                            icon = AwesomeIcon.OK_SIGN;
+                            text = Res.get("support.acknowledged");
+                        } else if (message.storedInMailboxProperty().get()) {
+                            visible = true;
+                            icon = AwesomeIcon.ENVELOPE;
+                            text = Res.get("support.savedInMailbox");
+                        } else if (message.ackErrorProperty().get() != null) {
+                            visible = true;
+                            icon = AwesomeIcon.EXCLAMATION_SIGN;
+                            text = Res.get("support.error", message.ackErrorProperty().get());
+                            statusIcon.getStyleClass().add("error-text");
+                            statusInfoLabel.getStyleClass().add("error-text");
+                        } else if (message.arrivedProperty().get()) {
+                            visible = true;
+                            icon = AwesomeIcon.MAIL_REPLY;
+                            text = Res.get("support.transient");
+                        } else {
+                            visible = false;
+                            log.debug("updateMsgState called but no msg state available. message={}", message);
+                        }
+
+                        statusHBox.setVisible(visible);
+                        if (visible) {
+                            AwesomeDude.setIcon(statusIcon, icon, "14");
+                            statusIcon.setTooltip(new Tooltip(text));
+                            statusInfoLabel.setText(text);
+                        }
                     }
                 };
             }
