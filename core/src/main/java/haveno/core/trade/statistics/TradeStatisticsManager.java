@@ -113,15 +113,15 @@ public class TradeStatisticsManager {
 
     private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> set) {
 
-        // collect trades before May 18, 2024
-        Set<TradeStatistics3> tradesBeforeMay18_24 = set.stream()
-                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-05-18T00:00:00Z")))
+        // collect trades before May 31, 2024
+        Set<TradeStatistics3> tradesBeforeMay31_24 = set.stream()
+                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-05-31T00:00:00Z")))
                 .collect(Collectors.toSet());
 
         // collect duplicated trades
         Set<TradeStatistics3> duplicated = new HashSet<TradeStatistics3>();
         Set<TradeStatistics3> deduplicated = new HashSet<TradeStatistics3>();
-        for (TradeStatistics3 tradeStatistics : tradesBeforeMay18_24) {
+        for (TradeStatistics3 tradeStatistics : tradesBeforeMay31_24) {
             if (hasLenientDuplicate(tradeStatistics, deduplicated)) duplicated.add(tradeStatistics);
             else deduplicated.add(tradeStatistics);
         }
