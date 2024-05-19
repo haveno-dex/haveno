@@ -641,6 +641,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return havenoSetup.getWalletServiceErrorMsg();
     }
 
+    StringProperty getTopErrorMsg() {
+        return havenoSetup.getTopErrorMsg();
+    }
+
     StringProperty getXmrSplashSyncIconId() {
         return havenoSetup.getXmrSplashSyncIconId();
     }

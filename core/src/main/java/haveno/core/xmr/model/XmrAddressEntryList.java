@@ -140,6 +140,11 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
         return newAddressEntry;
     }
 
+    public void clear() {
+        entrySet.clear();
+        requestPersistence();
+    }
+
     public void requestPersistence() {
         persistenceManager.requestPersistence();
     }

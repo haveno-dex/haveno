@@ -26,7 +26,7 @@ import haveno.core.locale.CurrencyTuple;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
-import haveno.core.trade.BuyerTrade;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
@@ -35,6 +35,7 @@ import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -98,11 +99,47 @@ public class TradeStatisticsManager {
                 .map(e -> (TradeStatistics3) e)
                 .filter(TradeStatistics3::isValid)
                 .collect(Collectors.toSet());
+        
+
+        // remove duplicates in early trades due to bug
+        deduplicateEarlyTradeStatistics(set);
+
         synchronized (observableTradeStatisticsSet) {
             observableTradeStatisticsSet.addAll(set);
             priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsSet);
         }
         maybeDumpStatistics();
+    }
+
+    private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> set) {
+
+        // collect trades before May 18, 2024
+        Set<TradeStatistics3> tradesBeforeMay18_24 = set.stream()
+                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-05-18T00:00:00Z")))
+                .collect(Collectors.toSet());
+
+        // collect duplicated trades
+        Set<TradeStatistics3> duplicated = new HashSet<TradeStatistics3>();
+        Set<TradeStatistics3> deduplicated = new HashSet<TradeStatistics3>();
+        for (TradeStatistics3 tradeStatistics : tradesBeforeMay18_24) {
+            if (hasLenientDuplicate(tradeStatistics, deduplicated)) duplicated.add(tradeStatistics);
+            else deduplicated.add(tradeStatistics);
+        }
+
+        // remove duplicated trades
+        set.removeAll(duplicated);
+    }
+
+    private boolean hasLenientDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
+        return set.stream().anyMatch(e -> isLenientDuplicate(tradeStatistics, e));
+    }
+
+    private boolean isLenientDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        boolean isWithin2Minutes = Math.abs(tradeStatistics1.getDate().getTime() - tradeStatistics2.getDate().getTime()) < 120000;
+        return isWithin2Minutes && 
+                tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency()) &&
+                tradeStatistics1.getAmount() == tradeStatistics2.getAmount() && 
+                tradeStatistics1.getPrice() == tradeStatistics2.getPrice();
     }
 
     public ObservableSet<TradeStatistics3> getObservableTradeStatisticsSet() {
@@ -163,8 +200,8 @@ public class TradeStatisticsManager {
         long ts = System.currentTimeMillis();
         Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
         trades.forEach(trade -> {
-            if (trade instanceof BuyerTrade) {
-                log.debug("Trade: {} is a buyer trade, we only republish we have been seller.",
+            if (!(trade instanceof SellerTrade)) {
+                log.debug("Trade: {} is not a seller trade, we only republish if we were seller",
                         trade.getShortId());
                 return;
             }

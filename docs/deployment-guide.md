@@ -134,9 +134,12 @@ To set the network's filter object:
 
 ## Change the default folder name for Haveno application data
 
-To avoid data corruption by using Haveno with other networks, change the default folder name for Haveno's application data with your network, by setting [DEFAULT_APP_NAME](https://github.com/haveno-dex/haveno/blob/1aa62863f49a15e8322a8d96e58dc0ed37dec4eb/core/src/main/java/haveno/core/app/HavenoExecutable.java#L85) in HavenoExecutable.java.
+To avoid user data corruption when using multiple Haveno networks, change the default folder name for Haveno's application data on your network:
 
-For example, change "Haveno" to "HavenoX", which will use the application folder:
+- Change `DEFAULT_APP_NAME` in [HavenoExecutable.java](https://.com/haveno-dex/haveno/blob/1aa62863f49a15e8322a8d96e58dc0ed37dec4eb/core/src/main/java/haveno/core/app/HavenoExecutable.java#L85).
+- Change `appName` throughout the [Makefile](https://github.com/haveno-dex/haveno/blob/64acf86fbea069b0ae9f9bce086f8ecce1e91b87/Makefile#L479) accordingly.
+
+For example, change "Haveno" to "HavenoX", which will use this application folder:
 
 - Linux: ~/.local/share/HavenoX/
 - macOS: ~/Library/Application Support/HavenoX/

@@ -132,6 +132,8 @@ public class XmrWalletService {
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
+    private static final long LOG_POLL_ERROR_AFTER_MS = 180000; // log poll error if unsuccessful after this time
+    private static Long lastPollSuccessTimestamp;
 
     private final User user;
     private final Preferences preferences;
@@ -1319,6 +1321,7 @@ public class XmrWalletService {
         } catch (Exception e) {
             log.warn("Error initializing main wallet: " + e.getMessage());
             e.printStackTrace();
+            HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
             throw e;
         }
     }
@@ -1369,6 +1372,9 @@ public class XmrWalletService {
                         // reapply connection after wallet synced
                         onConnectionChanged(xmrConnectionService.getConnection());
 
+                        // reset internal state if main wallet was swapped
+                        resetIfWalletChanged();
+
                         // signal that main wallet is synced
                         doneDownload();
 
@@ -1403,6 +1409,23 @@ public class XmrWalletService {
                 // start polling main wallet
                 startPolling();
             }
+        }
+    }
+
+    private void resetIfWalletChanged() {
+        getAddressEntryListAsImmutableList(); // TODO: using getter to create base address if necessary
+        List<XmrAddressEntry> baseAddresses = getAddressEntries(XmrAddressEntry.Context.BASE_ADDRESS);
+        if (baseAddresses.size() > 1 || (baseAddresses.size() == 1 && !baseAddresses.get(0).getAddressString().equals(wallet.getPrimaryAddress()))) {
+            String warningMsg = "New Monero wallet detected. Resetting internal state.";
+            if (!tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
+            HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+
+            // reset address entries
+            xmrAddressEntryList.clear();
+            getAddressEntryListAsImmutableList(); // recreate base address
+
+            // cancel offers
+            tradeManager.getOpenOfferManager().removeAllOpenOffers(null);
         }
     }
 
@@ -1590,7 +1613,7 @@ public class XmrWalletService {
         } catch (Exception e) {
             e.printStackTrace();
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
-            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
+            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.\n\nError message: " + e.getMessage());
         }
     }
 
@@ -1803,9 +1826,14 @@ public class XmrWalletService {
                     synchronized (WALLET_LOCK) { // avoid long fetch from blocking other operations
                         synchronized (HavenoUtils.getDaemonLock()) {
                             try {
-                                cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); 
+                                cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
+                                lastPollSuccessTimestamp = System.currentTimeMillis();
                             } catch (Exception e) { // fetch from pool can fail
-                                if (!isShutDownStarted) log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                                if (!isShutDownStarted) {
+                                    if (lastPollSuccessTimestamp == null || System.currentTimeMillis() - lastPollSuccessTimestamp > LOG_POLL_ERROR_AFTER_MS) { // only log if not recently successful
+                                        log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                                    }
+                                }
                             }
                         }
                     }

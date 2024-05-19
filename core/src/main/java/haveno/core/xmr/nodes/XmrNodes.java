@@ -35,6 +35,7 @@
 package haveno.core.xmr.nodes;
 
 import haveno.common.config.Config;
+import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -127,7 +128,6 @@ public class XmrNodes {
     @EqualsAndHashCode
     @Getter
     public static class XmrNode {
-        private static final int DEFAULT_PORT = Config.baseCurrencyNetworkParameters().getPort();
 
         private final MoneroNodesOption type;
         @Nullable
@@ -138,7 +138,7 @@ public class XmrNodes {
         private final String operator; // null in case the user provides a list of custom btc nodes
         @Nullable
         private final String address; // IPv4 address
-        private int port = DEFAULT_PORT;
+        private int port = HavenoUtils.getDefaultMoneroPort();
         private int priority = 0;
 
         /**
@@ -149,7 +149,7 @@ public class XmrNodes {
             String[] parts = fullAddress.split("]");
             checkArgument(parts.length > 0);
             String host = "";
-            int port = DEFAULT_PORT;
+            int port = HavenoUtils.getDefaultMoneroPort();
             if (parts[0].contains("[") && parts[0].contains(":")) {
                 // IPv6 address and optional port number
                 // address part delimited by square brackets e.g. [2a01:123:456:789::2]:8333

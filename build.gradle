@@ -71,7 +71,7 @@ configure(subprojects) {
         loggingVersion = '1.2'
         lombokVersion = '1.18.30'
         mockitoVersion = '5.10.0'
-        netlayerVersion = '33485b9e57' // Netlayer version "0.7.7" with Tor browser version 13.0.6 and tor binary version: 0.4.8.9
+        netlayerVersion = '72a4fae5cf' // Tor browser version 13.0.15 and tor binary version: 0.4.8.11
         protobufVersion = '3.19.1'
         protocVersion = protobufVersion
         pushyVersion = '0.13.2'
@@ -603,7 +603,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.0.4-SNAPSHOT'
+    version = '1.0.5-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,

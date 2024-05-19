@@ -74,6 +74,7 @@ public abstract class Task<T extends Model> {
 //        t.printStackTrace(pw);
 //        errorMessage = sw.toString();
         
+        if (taskHandler.isCanceled()) return;
         errorMessage = t.getMessage() + " (task " + getClass().getSimpleName() + ")";
         log.error(errorMessage, t);
         taskHandler.handleErrorMessage(errorMessage);

@@ -97,6 +97,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.SetChangeListener;
@@ -139,6 +140,7 @@ public class HavenoSetup {
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final ArbitrationManager arbitrationManager;
+    private final StringProperty topErrorMsg = new SimpleStringProperty();
     @Setter
     @Nullable
     private Consumer<Runnable> displayTacHandler;
@@ -715,6 +717,10 @@ public class HavenoSetup {
 
     public StringProperty getWalletServiceErrorMsg() {
         return walletAppSetup.getWalletServiceErrorMsg();
+    }
+
+    public StringProperty getTopErrorMsg() {
+        return topErrorMsg;
     }
 
     public StringProperty getXmrSplashSyncIconId() {
