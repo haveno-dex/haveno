@@ -733,7 +733,7 @@ public class XmrWalletService {
      * The transaction is submitted to the pool then flushed without relaying.
      *
      * @param offerId id of offer to verify trade tx
-     * @param feeAmount amount sent to fee address
+     * @param tradeFeeAmount amount sent to fee address
      * @param feeAddress fee address
      * @param sendAmount amount sent to transfer address
      * @param sendAddress transfer address
@@ -743,7 +743,7 @@ public class XmrWalletService {
      * @param keyImages expected key images of inputs, ignored if null
      * @return the verified tx
      */
-    public MoneroTx verifyTradeTx(String offerId, BigInteger feeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
+    public MoneroTx verifyTradeTx(String offerId, BigInteger tradeFeeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
         if (txHash == null) throw new IllegalArgumentException("Cannot verify trade tx with null id");
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
@@ -780,11 +780,11 @@ public class XmrWalletService {
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), minerFeeDiff);
 
                 // verify proof to fee address
-                BigInteger actualFee = BigInteger.ZERO;
-                if (feeAmount.compareTo(BigInteger.ZERO) > 0) {
-                    MoneroCheckTx feeCheck = wallet.checkTxKey(txHash, txKey, feeAddress);
-                    if (!feeCheck.isGood()) throw new RuntimeException("Invalid proof to trade fee address");
-                    actualFee = feeCheck.getReceivedAmount();
+                BigInteger actualTradeFee = BigInteger.ZERO;
+                if (tradeFeeAmount.compareTo(BigInteger.ZERO) > 0) {
+                    MoneroCheckTx tradeFeeCheck = wallet.checkTxKey(txHash, txKey, feeAddress);
+                    if (!tradeFeeCheck.isGood()) throw new RuntimeException("Invalid proof to trade fee address");
+                    actualTradeFee = tradeFeeCheck.getReceivedAmount();
                 }
 
                 // verify proof to transfer address
@@ -792,15 +792,15 @@ public class XmrWalletService {
                 if (!transferCheck.isGood()) throw new RuntimeException("Invalid proof to transfer address");
                 BigInteger actualSendAmount = transferCheck.getReceivedAmount();
 
-                // verify fee amount
-                if (!actualFee.equals(feeAmount)) throw new RuntimeException("Invalid fee amount, expected " + feeAmount + " but was " + actualFee);
+                // verify trade fee amount
+                if (!actualTradeFee.equals(tradeFeeAmount)) throw new RuntimeException("Invalid trade fee amount, expected " + tradeFeeAmount + " but was " + actualTradeFee);
 
                 // verify send amount
                 BigInteger expectedSendAmount = sendAmount.subtract(tx.getFee());
                 if (!actualSendAmount.equals(expectedSendAmount)) throw new RuntimeException("Invalid send amount, expected " + expectedSendAmount + " but was " + actualSendAmount + " with tx fee " + tx.getFee());
                 return tx;
             } catch (Exception e) {
-                log.warn("Error verifying trade tx with offer id=" + offerId + (tx == null ? "" : ", tx=" + tx) + ": " + e.getMessage());
+                log.warn("Error verifying trade tx with offer id=" + offerId + (tx == null ? "" : ", tx=\n" + tx) + ": " + e.getMessage());
                 throw e;
             } finally {
                 try {

@@ -41,7 +41,7 @@ import haveno.core.trade.SellerAsMakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.tasks.ApplyFilter;
-import haveno.core.trade.protocol.tasks.MakerSendInitTradeRequest;
+import haveno.core.trade.protocol.tasks.MakerSendInitTradeRequestToArbitrator;
 import haveno.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
@@ -76,7 +76,7 @@ public class SellerAsMakerProtocol extends SellerProtocol implements MakerProtoc
                         .setup(tasks(
                                 ApplyFilter.class,
                                 ProcessInitTradeRequest.class,
-                                MakerSendInitTradeRequest.class)
+                                MakerSendInitTradeRequestToArbitrator.class)
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     startTimeout();

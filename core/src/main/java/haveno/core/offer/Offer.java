@@ -210,23 +210,23 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getPrice();
     }
 
-    public void verifyTakersTradePrice(long takersTradePrice) throws TradePriceOutOfToleranceException,
+    public void verifyTradePrice(long price) throws TradePriceOutOfToleranceException,
             MarketPriceNotAvailableException, IllegalArgumentException {
         if (!isUseMarketBasedPrice()) {
-            checkArgument(takersTradePrice == getFixedPrice(),
+            checkArgument(price == getFixedPrice(),
                     "Takers price does not match offer price. " +
-                            "Takers price=" + takersTradePrice + "; offer price=" + getFixedPrice());
+                            "Takers price=" + price + "; offer price=" + getFixedPrice());
             return;
         }
 
-        Price tradePrice = Price.valueOf(getCurrencyCode(), takersTradePrice);
+        Price tradePrice = Price.valueOf(getCurrencyCode(), price);
         Price offerPrice = getPrice();
         if (offerPrice == null)
             throw new MarketPriceNotAvailableException("Market price required for calculating trade price is not available.");
 
-        checkArgument(takersTradePrice > 0, "takersTradePrice must be positive");
+        checkArgument(price > 0, "takersTradePrice must be positive");
 
-        double relation = (double) takersTradePrice / (double) offerPrice.getValue();
+        double relation = (double) price / (double) offerPrice.getValue();
         // We allow max. 2 % difference between own offerPayload price calculation and takers calculation.
         // Market price might be different at maker's and takers side so we need a bit of tolerance.
         // The tolerance will get smaller once we have multiple price feeds avoiding fast price fluctuations
@@ -234,7 +234,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
         double deviation = Math.abs(1 - relation);
         log.info("Price at take-offer time: id={}, currency={}, takersPrice={}, makersPrice={}, deviation={}",
-                getShortId(), getCurrencyCode(), takersTradePrice, offerPrice.getValue(),
+                getShortId(), getCurrencyCode(), price, offerPrice.getValue(),
                 deviation * 100 + "%");
         if (deviation > PRICE_TOLERANCE) {
             String msg = "Taker's trade price is too far away from our calculated price based on the market price.\n" +

@@ -362,7 +362,7 @@ public abstract class Trade implements Tradable, Model {
     private long takeOfferDate;
 
     // Initialization
-    private static final int TOTAL_INIT_STEPS = 23; // total estimated steps
+    private static final int TOTAL_INIT_STEPS = 24; // total estimated steps
     private int initStep = 0;
     @Getter
     private double initProgress = 0;
@@ -1552,6 +1552,7 @@ public abstract class Trade implements Tradable, Model {
     public void addInitProgressStep() {
         startProtocolTimeout();
         initProgress = Math.min(1.0, (double) ++initStep / TOTAL_INIT_STEPS);
+        //if (this instanceof TakerTrade) log.warn("Init step count: " + initStep); // log init step count for taker trades in order to update total steps
         UserThread.execute(() -> initProgressProperty.set(initProgress));
     }
 

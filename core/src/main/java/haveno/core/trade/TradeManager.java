@@ -538,182 +538,195 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void handleInitTradeRequest(InitTradeRequest request, NodeAddress sender) {
-      log.info("Received InitTradeRequest from {} with tradeId {} and uid {}", sender, request.getOfferId(), request.getUid());
+        log.info("Received InitTradeRequest from {} with tradeId {} and uid {}", sender, request.getOfferId(), request.getUid());
 
-      try {
-          Validator.nonEmptyStringOf(request.getOfferId());
-      } catch (Throwable t) {
-          log.warn("Invalid InitTradeRequest message " + request.toString());
-          return;
-      }
-
-      // handle request as arbitrator
-      boolean isArbitrator = request.getArbitratorNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress());
-      if (isArbitrator) {
-
-        // verify this node is registered arbitrator
-        Arbitrator thisArbitrator = user.getRegisteredArbitrator();
-        NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
-        if (thisArbitrator == null || !thisArbitrator.getNodeAddress().equals(thisAddress)) {
-            log.warn("Ignoring InitTradeRequest from {} with tradeId {} because we are not an arbitrator", sender, request.getOfferId());
+        try {
+            Validator.nonEmptyStringOf(request.getOfferId());
+        } catch (Throwable t) {
+            log.warn("Invalid InitTradeRequest message " + request.toString());
             return;
         }
 
-        // get offer associated with trade
-        Offer offer = null;
-        for (Offer anOffer : offerBookService.getOffers()) {
-            if (anOffer.getId().equals(request.getOfferId())) {
-                offer = anOffer;
-            }
-        }
-        if (offer == null) {
-            log.warn("Ignoring InitTradeRequest from {} with tradeId {} because offer is not on the books", sender, request.getOfferId());
-            return;
-        }
+        // handle request as maker
+        if (request.getMakerNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) {
 
-        // verify arbitrator is payload signer unless they are offline
-        // TODO (woodser): handle if payload signer differs from current arbitrator (verify signer is offline)
-
-        // verify maker is offer owner
-        // TODO (woodser): maker address might change if they disconnect and reconnect, should allow maker address to differ if pubKeyRing is same?
-        if (!offer.getOwnerNodeAddress().equals(request.getMakerNodeAddress())) {
-            log.warn("Ignoring InitTradeRequest from {} with tradeId {} because maker is not offer owner", sender, request.getOfferId());
-            return;
-        }
-
-        // handle trade
-        Trade trade;
-        Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
-        if (tradeOptional.isPresent()) {
-            trade = tradeOptional.get();
-
-            // verify request is from maker
-            if (!sender.equals(request.getMakerNodeAddress())) {
-
-                // send nack if trade already taken
-                String errMsg = "Trade is already taken, tradeId=" + request.getOfferId();
-                log.warn(errMsg);
-                sendAckMessage(sender, request.getPubKeyRing(), request, false, errMsg);
+            // get open offer
+            Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOfferById(request.getOfferId());
+            if (!openOfferOptional.isPresent()) return;
+            OpenOffer openOffer = openOfferOptional.get();
+            if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
+            Offer offer = openOffer.getOffer();
+  
+            // ensure trade does not already exist
+            Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
+            if (tradeOptional.isPresent()) {
+                log.warn("Maker trade already exists with id " + request.getOfferId() + ". This should never happen.");
                 return;
             }
-        } else {
-
-            // verify request is from taker
-            if (!sender.equals(request.getTakerNodeAddress())) {
-                log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request must be from taker when trade is not initialized", sender, request.getOfferId());
-                return;
-            }
-
-            // create arbitrator trade
-            trade = new ArbitratorTrade(offer,
-                    BigInteger.valueOf(request.getTradeAmount()),
-                    offer.getOfferPayload().getPrice(),
-                    xmrWalletService,
-                    getNewProcessModel(offer),
-                    UUID.randomUUID().toString(),
-                    request.getMakerNodeAddress(),
-                    request.getTakerNodeAddress(),
-                    request.getArbitratorNodeAddress());
-
-            // set reserve tx hash if available
-            Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getOfferId());
-            if (signedOfferOptional.isPresent()) {
-                SignedOffer signedOffer = signedOfferOptional.get();
-                trade.getMaker().setReserveTxHash(signedOffer.getReserveTxHash());
-            }
-
-            // initialize trade protocol
+  
+            // reserve open offer
+            openOfferManager.reserveOpenOffer(openOffer);
+  
+            // initialize trade
+            Trade trade;
+            if (offer.isBuyOffer())
+                trade = new BuyerAsMakerTrade(offer,
+                        BigInteger.valueOf(request.getTradeAmount()),
+                        offer.getOfferPayload().getPrice(),
+                        xmrWalletService,
+                        getNewProcessModel(offer),
+                        UUID.randomUUID().toString(),
+                        request.getMakerNodeAddress(),
+                        request.getTakerNodeAddress(),
+                        request.getArbitratorNodeAddress());
+            else
+                trade = new SellerAsMakerTrade(offer,
+                        BigInteger.valueOf(request.getTradeAmount()),
+                        offer.getOfferPayload().getPrice(),
+                        xmrWalletService,
+                        getNewProcessModel(offer),
+                        UUID.randomUUID().toString(),
+                        request.getMakerNodeAddress(),
+                        request.getTakerNodeAddress(),
+                        request.getArbitratorNodeAddress());
+            trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId());
+            trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
+            trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
+            trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
+            trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
+            trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
+            trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
+            trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
+            trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
             initTradeAndProtocol(trade, createTradeProtocol(trade));
             addTrade(trade);
+  
+            // notify on phase changes
+            // TODO (woodser): save subscription, bind on startup
+            EasyBind.subscribe(trade.statePhaseProperty(), phase -> {
+                if (phase == Phase.DEPOSITS_PUBLISHED) {
+                    notificationService.sendTradeNotification(trade, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
+                }
+            });
+  
+            // process with protocol
+            ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
+                log.warn("Maker error during trade initialization: " + errorMessage);
+                trade.onProtocolError();
+            });
         }
 
-          // process with protocol
-          ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
-              log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-              trade.onProtocolError();
-          });
+        // handle request as arbitrator
+        else if (request.getArbitratorNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) {
 
-          requestPersistence();
-      }
+            // verify this node is registered arbitrator
+            Arbitrator thisArbitrator = user.getRegisteredArbitrator();
+            NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
+            if (thisArbitrator == null || !thisArbitrator.getNodeAddress().equals(thisAddress)) {
+                log.warn("Ignoring InitTradeRequest because we are not an arbitrator, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
 
-      // handle request as maker
-      else {
+            // get offer associated with trade
+            Offer offer = null;
+            for (Offer anOffer : offerBookService.getOffers()) {
+                if (anOffer.getId().equals(request.getOfferId())) {
+                    offer = anOffer;
+                }
+            }
+            if (offer == null) {
+                log.warn("Ignoring InitTradeRequest to arbitrator because offer is not on the books, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
 
-          Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOfferById(request.getOfferId());
-          if (!openOfferOptional.isPresent()) {
-              return;
-          }
+            // verify arbitrator is payload signer unless they are offline
+            // TODO (woodser): handle if payload signer differs from current arbitrator (verify signer is offline)
 
-          OpenOffer openOffer = openOfferOptional.get();
-          if (openOffer.getState() != OpenOffer.State.AVAILABLE) {
-              return;
-          }
+            // verify maker is offer owner
+            // TODO (woodser): maker address might change if they disconnect and reconnect, should allow maker address to differ if pubKeyRing is same?
+            if (!offer.getOwnerNodeAddress().equals(request.getMakerNodeAddress())) {
+                log.warn("Ignoring InitTradeRequest to arbitrator because maker is not offer owner, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
 
-          Offer offer = openOffer.getOffer();
+            // handle trade
+            Trade trade;
+            Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
+            if (tradeOptional.isPresent()) {
+                trade = tradeOptional.get();
 
-          // verify request is from arbitrator
-          Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(sender);
-          if (arbitrator == null) {
-              log.warn("Ignoring InitTradeRequest from {} with tradeId {} because request is not from accepted arbitrator", sender, request.getOfferId());
-              return;
-          }
+                // verify request is from taker
+                if (!sender.equals(request.getTakerNodeAddress())) {
+                    log.warn("Ignoring InitTradeRequest from non-taker, tradeId={}, sender={}", request.getOfferId(), sender);
+                    return;
+                }
+            } else {
 
-          Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
-          if (tradeOptional.isPresent()) {
-              log.warn("Maker trade already exists with id " + request.getOfferId() + ". This should never happen.");
-              return;
-          }
+                // verify request is from maker
+                if (!sender.equals(request.getMakerNodeAddress())) {
+                    log.warn("Ignoring InitTradeRequest to arbitrator because request must be from maker when trade is not initialized, tradeId={}, sender={}", request.getOfferId(), sender);
+                    return;
+                }
 
-          // reserve open offer
-          openOfferManager.reserveOpenOffer(openOffer);
+                // create arbitrator trade
+                trade = new ArbitratorTrade(offer,
+                        BigInteger.valueOf(request.getTradeAmount()),
+                        offer.getOfferPayload().getPrice(),
+                        xmrWalletService,
+                        getNewProcessModel(offer),
+                        UUID.randomUUID().toString(),
+                        request.getMakerNodeAddress(),
+                        request.getTakerNodeAddress(),
+                        request.getArbitratorNodeAddress());
 
-          // initialize trade
-          Trade trade;
-          if (offer.isBuyOffer())
-              trade = new BuyerAsMakerTrade(offer,
-                      BigInteger.valueOf(request.getTradeAmount()),
-                      offer.getOfferPayload().getPrice(),
-                      xmrWalletService,
-                      getNewProcessModel(offer),
-                      UUID.randomUUID().toString(),
-                      request.getMakerNodeAddress(),
-                      request.getTakerNodeAddress(),
-                      request.getArbitratorNodeAddress());
-          else
-              trade = new SellerAsMakerTrade(offer,
-                      BigInteger.valueOf(request.getTradeAmount()),
-                      offer.getOfferPayload().getPrice(),
-                      xmrWalletService,
-                      getNewProcessModel(offer),
-                      UUID.randomUUID().toString(),
-                      request.getMakerNodeAddress(),
-                      request.getTakerNodeAddress(),
-                      request.getArbitratorNodeAddress());
+                // set reserve tx hash if available
+                Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getOfferId());
+                if (signedOfferOptional.isPresent()) {
+                    SignedOffer signedOffer = signedOfferOptional.get();
+                    trade.getMaker().setReserveTxHash(signedOffer.getReserveTxHash());
+                }
 
-          trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
-          trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
-          initTradeAndProtocol(trade, createTradeProtocol(trade));
-          trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
-          trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
-          trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
-          trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
-          trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
-          addTrade(trade);
+                // initialize trade protocol
+                initTradeAndProtocol(trade, createTradeProtocol(trade));
+                addTrade(trade);
+            }
 
-          // notify on phase changes
-          // TODO (woodser): save subscription, bind on startup
-          EasyBind.subscribe(trade.statePhaseProperty(), phase -> {
-              if (phase == Phase.DEPOSITS_PUBLISHED) {
-                  notificationService.sendTradeNotification(trade, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
-              }
-          });
+            // process with protocol
+            ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
+                log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
+                trade.onProtocolError();
+            });
 
-          // process with protocol
-          ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
-              log.warn("Maker error during trade initialization: " + errorMessage);
-              trade.onProtocolError();
-          });
-      }
+            requestPersistence();
+        }
+
+        // handle request as taker
+        else if (request.getTakerNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) {
+
+            // verify request is from arbitrator
+            Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(sender);
+            if (arbitrator == null) {
+                log.warn("Ignoring InitTradeRequest to taker because request is not from accepted arbitrator, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
+            // get trade
+            Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
+            if (!tradeOptional.isPresent()) {
+                log.warn("Ignoring InitTradeRequest to taker because trade is not initialized, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+            Trade trade = tradeOptional.get();
+
+            // process with protocol
+            ((TakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender);
+        }
+        
+        // invalid sender
+        else {
+            log.warn("Ignoring InitTradeRequest because sender is not maker, arbitrator, or taker, tradeId={}, sender={}", request.getOfferId(), sender);
+            return;
+        }
     }
 
     private void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress peer) {
@@ -843,71 +856,58 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (amount.compareTo(offer.getAmount()) > 0) throw new RuntimeException("Trade amount exceeds offer amount");
         if (amount.compareTo(offer.getMinAmount()) < 0) throw new RuntimeException("Trade amount is less than minimum offer amount");
 
-        OfferAvailabilityModel model = getOfferAvailabilityModel(offer, isTakerApiUser, paymentAccountId, amount);
-        offer.checkOfferAvailability(model,
-                () -> {
-                    if (offer.getState() == Offer.State.AVAILABLE) {
-                        Trade trade;
-                        if (offer.isBuyOffer()) {
-                            trade = new SellerAsTakerTrade(offer,
-                                    amount,
-                                    model.getTradeRequest().getTradePrice(),
-                                    xmrWalletService,
-                                    getNewProcessModel(offer),
-                                    UUID.randomUUID().toString(),
-                                    model.getPeerNodeAddress(),
-                                    P2PService.getMyNodeAddress(),
-                                    offer.getOfferPayload().getArbitratorSigner());
-                        } else {
-                            trade = new BuyerAsTakerTrade(offer,
-                                    amount,
-                                    model.getTradeRequest().getTradePrice(),
-                                    xmrWalletService,
-                                    getNewProcessModel(offer),
-                                    UUID.randomUUID().toString(),
-                                    model.getPeerNodeAddress(),
-                                    P2PService.getMyNodeAddress(),
-                                    offer.getOfferPayload().getArbitratorSigner());
-                        }
+        // ensure trade is not already open
+        Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
+        if (tradeOptional.isPresent()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " is already open");
 
-                        trade.getProcessModel().setTradeMessage(model.getTradeRequest());
-                        trade.getProcessModel().setMakerSignature(model.getMakerSignature());
-                        trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
-                        trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
-                        trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
-                        trade.getSelf().setPubKeyRing(model.getPubKeyRing());
-                        trade.getSelf().setPaymentAccountId(paymentAccountId);
+        // create trade
+        Trade trade;
+        if (offer.isBuyOffer()) {
+            trade = new SellerAsTakerTrade(offer,
+                    amount,
+                    offer.getPrice().getValue(),
+                    xmrWalletService,
+                    getNewProcessModel(offer),
+                    UUID.randomUUID().toString(),
+                    offer.getMakerNodeAddress(),
+                    P2PService.getMyNodeAddress(),
+                    null);
+        } else {
+            trade = new BuyerAsTakerTrade(offer,
+                    amount,
+                    offer.getPrice().getValue(),
+                    xmrWalletService,
+                    getNewProcessModel(offer),
+                    UUID.randomUUID().toString(),
+                    offer.getMakerNodeAddress(),
+                    P2PService.getMyNodeAddress(),
+                    null);
+        }
 
-                        // ensure trade is not already open
-                        Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
-                        if (tradeOptional.isPresent()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + trade.getId() + " is already open");
+        trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
+        trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
+        trade.getMaker().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
+        trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
+        trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
+        trade.getSelf().setPaymentAccountId(paymentAccountId);
 
-                        // initialize trade protocol
-                        TradeProtocol tradeProtocol = createTradeProtocol(trade);
-                        addTrade(trade);
+        // initialize trade protocol
+        TradeProtocol tradeProtocol = createTradeProtocol(trade);
+        addTrade(trade);
 
-                        initTradeAndProtocol(trade, tradeProtocol);
-                        trade.addInitProgressStep();
+        initTradeAndProtocol(trade, tradeProtocol);
+        trade.addInitProgressStep();
 
-                        // process with protocol
-                        ((TakerProtocol) tradeProtocol).onTakeOffer(result -> {
-                            tradeResultHandler.handleResult(trade);
-                            requestPersistence();
-                        }, errorMessage -> {
-                            log.warn("Taker error during trade initialization: " + errorMessage);
-                            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move to maybe remove on error
-                            trade.onProtocolError();
-                            errorMessageHandler.handleErrorMessage(errorMessage);
-                        });
-                        requestPersistence();
-                    } else {
-                        log.warn("Cannot take offer {} because it's not available, state={}", offer.getId(), offer.getState());
-                    }
-                },
-                errorMessage -> {
-                    log.warn("Taker error during check offer availability: " + errorMessage);
-                    errorMessageHandler.handleErrorMessage(errorMessage);
-                });
+        // process with protocol
+        ((TakerProtocol) tradeProtocol).onTakeOffer(result -> {
+            tradeResultHandler.handleResult(trade);
+            requestPersistence();
+        }, errorMessage -> {
+            log.warn("Taker error during trade initialization: " + errorMessage);
+            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move to maybe remove on error
+            trade.onProtocolError();
+            errorMessageHandler.handleErrorMessage(errorMessage);
+        });
 
         requestPersistence();
     }
