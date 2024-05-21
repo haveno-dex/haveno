@@ -48,10 +48,11 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             runInterceptHook();
             Offer offer = trade.getOffer();
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
-            boolean isFromMaker = request.getSenderNodeAddress().equals(trade.getMaker().getNodeAddress());
+            TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+            boolean isFromMaker = sender == trade.getMaker();
             boolean isFromBuyer = isFromMaker ? offer.getDirection() == OfferDirection.BUY : offer.getDirection() == OfferDirection.SELL;
 
-            // TODO (woodser): if signer online, should never be called by maker
+            // TODO (woodser): if signer online, should never be called by maker?
 
             // process reserve tx with expected values
             BigInteger penaltyFee = HavenoUtils.multiply(isFromMaker ? offer.getAmount() : trade.getAmount(), offer.getPenaltyFeePct());
@@ -73,7 +74,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                     null);
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException("Error processing reserve tx from " + (isFromMaker ? "maker " : "taker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+                throw new RuntimeException("Error processing reserve tx from " + (isFromMaker ? "maker " : "taker ") + processModel.getTempTradePeerNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 
             // save reserve tx to model

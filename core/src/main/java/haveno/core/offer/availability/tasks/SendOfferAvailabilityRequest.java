@@ -26,6 +26,7 @@ import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.messages.OfferAvailabilityRequest;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.user.User;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -53,8 +54,9 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             User user = model.getUser();
             P2PService p2PService = model.getP2PService();
             XmrWalletService walletService = model.getXmrWalletService();
-            String paymentAccountId = model.getPaymentAccountId();
-            String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
+            String makerPaymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
+            String takerPaymentAccountId = model.getPaymentAccountId();
+            String paymentMethodId = user.getPaymentAccount(takerPaymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
@@ -66,14 +68,16 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
 
             // send InitTradeRequest to maker to sign
             InitTradeRequest tradeRequest = new InitTradeRequest(
+                    TradeProtocolVersion.MULTISIG_2_3, // TODO: replace with first of their accepted protocols
                     offer.getId(),
-                    P2PService.getMyNodeAddress(),
-                    p2PService.getKeyRing().getPubKeyRing(),
                     model.getTradeAmount().longValueExact(),
                     price.getValue(),
-                    user.getAccountId(),
-                    paymentAccountId,
                     paymentMethodId,
+                    null,
+                    user.getAccountId(),
+                    makerPaymentAccountId,
+                    takerPaymentAccountId,
+                    p2PService.getKeyRing().getPubKeyRing(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     sig,
@@ -84,8 +88,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     null, // reserve tx not sent from taker to maker
                     null,
                     null,
-                    payoutAddress,
-                    null);
+                    payoutAddress);
 
             // save trade request to later send to arbitrator
             model.setTradeRequest(tradeRequest);

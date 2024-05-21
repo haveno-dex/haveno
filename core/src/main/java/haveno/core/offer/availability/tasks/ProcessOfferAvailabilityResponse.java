@@ -23,7 +23,6 @@ import haveno.core.offer.AvailabilityResult;
 import haveno.core.offer.Offer;
 import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
-import haveno.core.trade.HavenoUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -49,13 +48,6 @@ public class ProcessOfferAvailabilityResponse extends Task<OfferAvailabilityMode
             if (offerAvailabilityResponse.getAvailabilityResult() != AvailabilityResult.AVAILABLE) {
                 offer.setState(Offer.State.NOT_AVAILABLE);
                 failed("Take offer attempt rejected because of: " + offerAvailabilityResponse.getAvailabilityResult());
-                return;
-            }
-            
-            // verify maker signature for trade request
-            if (!HavenoUtils.isMakerSignatureValid(model.getTradeRequest(), offerAvailabilityResponse.getMakerSignature(), offer.getPubKeyRing())) {
-                offer.setState(Offer.State.INVALID);
-                failed("Take offer attempt failed because maker signature is invalid");
                 return;
             }
             

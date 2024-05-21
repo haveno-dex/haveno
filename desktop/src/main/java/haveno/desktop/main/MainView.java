@@ -679,7 +679,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         });
 
         model.getTopErrorMsg().addListener((ov, oldValue, newValue) -> {
-            log.warn("top level warning has been set! " + newValue);
+            log.warn("Top level warning: " + newValue);
             if (newValue != null) {
                 new Popup().warning(newValue).show();
             }

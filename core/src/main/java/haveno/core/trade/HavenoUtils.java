@@ -32,7 +32,6 @@ import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
@@ -324,52 +323,6 @@ public class HavenoUtils {
      */
     public static boolean isArbitratorSignatureValid(OfferPayload offer, Arbitrator arbitrator) {
         return isSignatureValid(arbitrator.getPubKeyRing(), offer.getSignatureHash(), offer.getArbitratorSignature());
-    }
-
-    /**
-     * Check if the maker signature for a trade request is valid.
-     *
-     * @param request is the trade request to check
-     * @return true if the maker's signature is valid for the trade request
-     */
-    public static boolean isMakerSignatureValid(InitTradeRequest request, byte[] signature, PubKeyRing makerPubKeyRing) {
-
-        // re-create trade request with signed fields
-        InitTradeRequest signedRequest = new InitTradeRequest(
-                request.getOfferId(),
-                request.getSenderNodeAddress(),
-                request.getPubKeyRing(),
-                request.getTradeAmount(),
-                request.getTradePrice(),
-                request.getAccountId(),
-                request.getPaymentAccountId(),
-                request.getPaymentMethodId(),
-                request.getUid(),
-                request.getMessageVersion(),
-                request.getAccountAgeWitnessSignatureOfOfferId(),
-                request.getCurrentDate(),
-                request.getMakerNodeAddress(),
-                request.getTakerNodeAddress(),
-                null,
-                null,
-                null,
-                null,
-                request.getPayoutAddress(),
-                null
-                );
-
-        // get trade request as string
-        String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
-
-        // verify maker signature
-        boolean isSignatureValid = isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
-        if (!isSignatureValid) {
-            log.warn("Invalid maker signature for trade request: " + request.getOfferId() + " from " + request.getSenderNodeAddress().getAddressForDisplay());
-            log.warn("Trade request as json: " + tradeRequestAsJson);
-            log.warn("Maker pub key ring: " + (makerPubKeyRing == null ? null : "..."));
-            log.warn("Maker signature: " + (signature == null ? null : Utilities.bytesAsHexString(signature)));
-        }
-        return isSignatureValid;
     }
 
     /**

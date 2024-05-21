@@ -33,20 +33,19 @@ import java.util.Optional;
 @EqualsAndHashCode(callSuper = true)
 @Value
 public final class InitTradeRequest extends TradeMessage implements DirectMessage {
-    private final NodeAddress senderNodeAddress;
+    TradeProtocolVersion tradeProtocolVersion;
     private final long tradeAmount;
     private final long tradePrice;
-    private final String accountId;
-    private final String paymentAccountId;
     private final String paymentMethodId;
-    private final PubKeyRing pubKeyRing;
-
-    // added in v 0.6. can be null if we trade with an older peer
+    @Nullable
+    private final String makerAccountId;
+    private final String takerAccountId;
+    private final String makerPaymentAccountId;
+    private final String takerPaymentAccountId;
+    private final PubKeyRing takerPubKeyRing;
     @Nullable
     private final byte[] accountAgeWitnessSignatureOfOfferId;
     private final long currentDate;
-
-    // XMR integration
     private final NodeAddress makerNodeAddress;
     private final NodeAddress takerNodeAddress;
     @Nullable
@@ -59,36 +58,37 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     private final String reserveTxKey;
     @Nullable
     private final String payoutAddress;
-    @Nullable
-    private final byte[] makerSignature;
 
-    public InitTradeRequest(String offerId,
-                                     NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
-                                     long tradeAmount,
-                                     long tradePrice,
-                                     String accountId,
-                                     String paymentAccountId,
-                                     String paymentMethodId,
-                                     String uid,
-                                     String messageVersion,
-                                     @Nullable byte[] accountAgeWitnessSignatureOfOfferId,
-                                     long currentDate,
-                                     NodeAddress makerNodeAddress,
-                                     NodeAddress takerNodeAddress,
-                                     NodeAddress arbitratorNodeAddress,
-                                     @Nullable String reserveTxHash,
-                                     @Nullable String reserveTxHex,
-                                     @Nullable String reserveTxKey,
-                                     @Nullable String payoutAddress,
-                                     @Nullable byte[] makerSignature) {
+    public InitTradeRequest(TradeProtocolVersion tradeProtocolVersion,
+                                    String offerId,
+                                    long tradeAmount,
+                                    long tradePrice,
+                                    String paymentMethodId,
+                                    @Nullable String makerAccountId,
+                                    String takerAccountId,
+                                    String makerPaymentAccountId,
+                                    String takerPaymentAccountId,
+                                    PubKeyRing takerPubKeyRing,
+                                    String uid,
+                                    String messageVersion,
+                                    @Nullable byte[] accountAgeWitnessSignatureOfOfferId,
+                                    long currentDate,
+                                    NodeAddress makerNodeAddress,
+                                    NodeAddress takerNodeAddress,
+                                    NodeAddress arbitratorNodeAddress,
+                                    @Nullable String reserveTxHash,
+                                    @Nullable String reserveTxHex,
+                                    @Nullable String reserveTxKey,
+                                    @Nullable String payoutAddress) {
         super(messageVersion, offerId, uid);
-        this.senderNodeAddress = senderNodeAddress;
-        this.pubKeyRing = pubKeyRing;
+        this.tradeProtocolVersion = tradeProtocolVersion;
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
-        this.accountId = accountId;
-        this.paymentAccountId = paymentAccountId;
+        this.makerAccountId = makerAccountId;
+        this.takerAccountId = takerAccountId;
+        this.makerPaymentAccountId = makerPaymentAccountId;
+        this.takerPaymentAccountId = takerPaymentAccountId;
+        this.takerPubKeyRing = takerPubKeyRing;
         this.paymentMethodId = paymentMethodId;
         this.accountAgeWitnessSignatureOfOfferId = accountAgeWitnessSignatureOfOfferId;
         this.currentDate = currentDate;
@@ -99,7 +99,6 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
         this.payoutAddress = payoutAddress;
-        this.makerSignature = makerSignature;
     }
 
 
@@ -107,28 +106,30 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    @Override
+
+	@Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.InitTradeRequest.Builder builder = protobuf.InitTradeRequest.newBuilder()
+                .setTradeProtocolVersion(TradeProtocolVersion.toProtoMessage(tradeProtocolVersion))
                 .setOfferId(offerId)
-                .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setTakerNodeAddress(takerNodeAddress.toProtoMessage())
                 .setMakerNodeAddress(makerNodeAddress.toProtoMessage())
                 .setTradeAmount(tradeAmount)
                 .setTradePrice(tradePrice)
-                .setPubKeyRing(pubKeyRing.toProtoMessage())
-                .setPaymentAccountId(paymentAccountId)
+                .setTakerPubKeyRing(takerPubKeyRing.toProtoMessage())
+                .setMakerPaymentAccountId(makerPaymentAccountId)
+                .setTakerPaymentAccountId(takerPaymentAccountId)
                 .setPaymentMethodId(paymentMethodId)
-                .setAccountId(accountId)
+                .setTakerAccountId(takerAccountId)
                 .setUid(uid);
 
+        Optional.ofNullable(makerAccountId).ifPresent(e -> builder.setMakerAccountId(makerAccountId));
         Optional.ofNullable(arbitratorNodeAddress).ifPresent(e -> builder.setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage()));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(payoutAddress).ifPresent(e -> builder.setPayoutAddress(payoutAddress));
         Optional.ofNullable(accountAgeWitnessSignatureOfOfferId).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfOfferId(ByteString.copyFrom(e)));
-        Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setInitTradeRequest(builder).build();
@@ -137,14 +138,16 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     public static InitTradeRequest fromProto(protobuf.InitTradeRequest proto,
                                                       CoreProtoResolver coreProtoResolver,
                                                       String messageVersion) {
-        return new InitTradeRequest(proto.getOfferId(),
-                NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                PubKeyRing.fromProto(proto.getPubKeyRing()),
+        return new InitTradeRequest(TradeProtocolVersion.fromProto(proto.getTradeProtocolVersion()),
+                proto.getOfferId(),
                 proto.getTradeAmount(),
                 proto.getTradePrice(),
-                proto.getAccountId(),
-                proto.getPaymentAccountId(),
                 proto.getPaymentMethodId(),
+                ProtoUtil.stringOrNullFromProto(proto.getMakerAccountId()),
+                proto.getTakerAccountId(),
+                proto.getMakerPaymentAccountId(),
+                proto.getTakerPaymentAccountId(),
+                PubKeyRing.fromProto(proto.getTakerPubKeyRing()),
                 proto.getUid(),
                 messageVersion,
                 ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfOfferId()),
@@ -155,29 +158,31 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()),
-                ProtoUtil.stringOrNullFromProto(proto.getPayoutAddress()),
-                ProtoUtil.byteArrayOrNullFromProto(proto.getMakerSignature()));
+                ProtoUtil.stringOrNullFromProto(proto.getPayoutAddress()));
     }
 
     @Override
     public String toString() {
         return "InitTradeRequest{" +
-                "\n     senderNodeAddress=" + senderNodeAddress +
+                "\n     tradeProtocolVersion=" + tradeProtocolVersion +
                 ",\n     offerId=" + offerId +
                 ",\n     tradeAmount=" + tradeAmount +
                 ",\n     tradePrice=" + tradePrice +
-                ",\n     pubKeyRing=" + pubKeyRing +
-                ",\n     accountId='" + accountId + '\'' +
-                ",\n     paymentAccountId=" + paymentAccountId +
                 ",\n     paymentMethodId=" + paymentMethodId +
-                ",\n     arbitratorNodeAddress=" + arbitratorNodeAddress +
+                ",\n     makerAccountId=" + makerAccountId +
+                ",\n     takerAccountId=" + takerAccountId +
+                ",\n     makerPaymentAccountId=" + makerPaymentAccountId +
+                ",\n     takerPaymentAccountId=" + takerPaymentAccountId +
+                ",\n     takerPubKeyRing=" + takerPubKeyRing +
                 ",\n     accountAgeWitnessSignatureOfOfferId=" + Utilities.bytesAsHexString(accountAgeWitnessSignatureOfOfferId) +
                 ",\n     currentDate=" + currentDate +
+                ",\n     makerNodeAddress=" + makerNodeAddress +
+                ",\n     takerNodeAddress=" + takerNodeAddress +
+                ",\n     arbitratorNodeAddress=" + arbitratorNodeAddress +
                 ",\n     reserveTxHash=" + reserveTxHash +
                 ",\n     reserveTxHex=" + reserveTxHex +
                 ",\n     reserveTxKey=" + reserveTxKey +
                 ",\n     payoutAddress=" + payoutAddress +
-                ",\n     makerSignature=" + (makerSignature == null ? null : Utilities.byteArrayToInteger(makerSignature)) +
                 "\n} " + super.toString();
     }
 }

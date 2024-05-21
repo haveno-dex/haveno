@@ -19,9 +19,12 @@ package haveno.core.trade.protocol;
 
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.handlers.TradeResultHandler;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.network.p2p.NodeAddress;
 
 public interface TakerProtocol extends TraderProtocol {
     void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler);
+    void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer);
 
     enum TakerEvent implements FluentProtocol.Event {
         TAKE_OFFER

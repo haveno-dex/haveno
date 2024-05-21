@@ -40,12 +40,15 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.SellerAsTakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.handlers.TradeResultHandler;
+import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.tasks.ApplyFilter;
+import haveno.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import haveno.core.trade.protocol.tasks.TakerReserveTradeFunds;
 import haveno.core.trade.protocol.tasks.TakerSendInitTradeRequestToArbitrator;
+import haveno.core.trade.protocol.tasks.TakerSendInitTradeRequestToMaker;
+import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
-// TODO (woodser): remove unused request handling
 @Slf4j
 public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtocol {
     
@@ -65,31 +68,60 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     @Override
     public void onTakeOffer(TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
-      System.out.println(getClass().getSimpleName() + ".onTakeOffer()");
-      ThreadUtils.execute(() -> {
-          synchronized (trade) {
-              latchTrade();
-              this.tradeResultHandler = tradeResultHandler;
-              this.errorMessageHandler = errorMessageHandler;
-              expect(phase(Trade.Phase.INIT)
-                      .with(TakerEvent.TAKE_OFFER)
-                      .from(trade.getTradePeer().getNodeAddress()))
-                      .setup(tasks(
-                              ApplyFilter.class,
-                              TakerReserveTradeFunds.class,
-                              TakerSendInitTradeRequestToArbitrator.class)
-                      .using(new TradeTaskRunner(trade,
-                              () -> {
-                                  startTimeout();
-                                  unlatchTrade();
-                              },
-                              errorMessage -> {
-                                  handleError(errorMessage);
-                              }))
-                      .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
-                      .executeTasks(true);
-              awaitTradeLatch();
-          }
-      }, trade.getId());
+        System.out.println(getClass().getSimpleName() + ".onTakeOffer()");
+        ThreadUtils.execute(() -> {
+            synchronized (trade) {
+                latchTrade();
+                this.tradeResultHandler = tradeResultHandler;
+                this.errorMessageHandler = errorMessageHandler;
+                expect(phase(Trade.Phase.INIT)
+                        .with(TakerEvent.TAKE_OFFER)
+                        .from(trade.getTradePeer().getNodeAddress()))
+                        .setup(tasks(
+                                ApplyFilter.class,
+                                TakerReserveTradeFunds.class,
+                                TakerSendInitTradeRequestToMaker.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    startTimeout();
+                                    unlatchTrade();
+                                },
+                                errorMessage -> {
+                                    handleError(errorMessage);
+                                }))
+                        .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
+                        .executeTasks(true);
+                awaitTradeLatch();
+            }
+        }, trade.getId());
+    }
+
+    @Override
+    public void handleInitTradeRequest(InitTradeRequest message,
+                                       NodeAddress peer) {
+        System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
+        ThreadUtils.execute(() -> {
+            synchronized (trade) {
+                latchTrade();
+                expect(phase(Trade.Phase.INIT)
+                        .with(message)
+                        .from(peer))
+                        .setup(tasks(
+                                ApplyFilter.class,
+                                ProcessInitTradeRequest.class,
+                                TakerSendInitTradeRequestToArbitrator.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    startTimeout();
+                                    handleTaskRunnerSuccess(peer, message);
+                                },
+                                errorMessage -> {
+                                    handleTaskRunnerFault(peer, message, errorMessage);
+                                }))
+                        .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
+                        .executeTasks(true);
+                awaitTradeLatch();
+            }
+        }, trade.getId());
     }
 }
