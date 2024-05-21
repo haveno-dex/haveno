@@ -459,8 +459,11 @@ public final class XmrConnectionService {
                 }
 
                 // restore last connection
-                if (connectionList.getCurrentConnectionUri().isPresent() && connectionManager.hasConnection(connectionList.getCurrentConnectionUri().get())) {
-                    if (!HavenoUtils.isLocalHost(connectionList.getCurrentConnectionUri().get()) || !xmrLocalNode.shouldBeIgnored()) {
+                if (isFixedConnection()) {
+                    if (getConnections().size() != 1) throw new IllegalStateException("Expected connection list to have 1 fixed connection but was: " + getConnections().size());
+                    connectionManager.setConnection(getConnections().get(0));
+                } else if (connectionList.getCurrentConnectionUri().isPresent() && connectionManager.hasConnection(connectionList.getCurrentConnectionUri().get())) {
+                    if (!xmrLocalNode.shouldBeIgnored() || !xmrLocalNode.equalsUri(connectionList.getCurrentConnectionUri().get())) {
                         connectionManager.setConnection(connectionList.getCurrentConnectionUri().get());
                     }
                 }
