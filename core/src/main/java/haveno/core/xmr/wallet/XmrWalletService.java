@@ -1321,7 +1321,7 @@ public class XmrWalletService {
         } catch (Exception e) {
             log.warn("Error initializing main wallet: " + e.getMessage());
             e.printStackTrace();
-            HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
+            HavenoUtils.havenoSetup.getTopErrorMsg().set(e.getMessage());
             throw e;
         }
     }

@@ -48,6 +48,8 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroConnectionManager;
@@ -84,6 +86,8 @@ public final class XmrConnectionService {
     private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
+    @Getter
+    private final StringProperty connectionServiceErrorMsg = new SimpleStringProperty();
     private final LongProperty numUpdates = new SimpleLongProperty(0);
     private Socks5ProxyProvider socks5ProxyProvider;
 
@@ -652,6 +656,9 @@ public final class XmrConnectionService {
                     log.info("Successfully fetched daemon info after previous error");
                     lastErrorTimestamp = null;
                 }
+
+                // clear error message
+                getConnectionServiceErrorMsg().set(null);
             } catch (Exception e) {
 
                 // not connected to daemon
@@ -668,7 +675,7 @@ public final class XmrConnectionService {
                 }
 
                 // set error message
-                if (HavenoUtils.havenoSetup != null) HavenoUtils.havenoSetup.getWalletServiceErrorMsg().set(e.getMessage());
+                getConnectionServiceErrorMsg().set(e.getMessage());
             } finally {
                 pollInProgress = false;
             }

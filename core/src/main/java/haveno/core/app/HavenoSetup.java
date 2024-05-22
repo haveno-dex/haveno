@@ -53,6 +53,7 @@ import haveno.core.alert.Alert;
 import haveno.core.alert.AlertManager;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
@@ -72,7 +73,6 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.setup.WalletsSetup;
-import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.Socks5ProxyProvider;
@@ -120,7 +120,7 @@ public class HavenoSetup {
     private final WalletAppSetup walletAppSetup;
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
-    private final BtcWalletService btcWalletService;
+    private final XmrConnectionService xmrConnectionService;
     @Getter
     private final XmrWalletService xmrWalletService;
     private final P2PService p2PService;
@@ -217,8 +217,8 @@ public class HavenoSetup {
                        WalletAppSetup walletAppSetup,
                        WalletsManager walletsManager,
                        WalletsSetup walletsSetup,
+                       XmrConnectionService xmrConnectionService,
                        XmrWalletService xmrWalletService,
-                       BtcWalletService btcWalletService,
                        P2PService p2PService,
                        PrivateNotificationManager privateNotificationManager,
                        SignedWitnessStorageService signedWitnessStorageService,
@@ -242,8 +242,8 @@ public class HavenoSetup {
         this.walletAppSetup = walletAppSetup;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
+        this.xmrConnectionService = xmrConnectionService;
         this.xmrWalletService = xmrWalletService;
-        this.btcWalletService = btcWalletService;
         this.p2PService = p2PService;
         this.privateNotificationManager = privateNotificationManager;
         this.signedWitnessStorageService = signedWitnessStorageService;
@@ -715,8 +715,8 @@ public class HavenoSetup {
         return walletAppSetup.getXmrWalletSyncProgress();
     }
 
-    public StringProperty getWalletServiceErrorMsg() {
-        return walletAppSetup.getWalletServiceErrorMsg();
+    public StringProperty getConnectionServiceErrorMsg() {
+        return xmrConnectionService.getConnectionServiceErrorMsg();
     }
 
     public StringProperty getTopErrorMsg() {
