@@ -516,7 +516,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             xmrSplashInfo.setId("splash-error-state-msg");
             xmrSplashInfo.getStyleClass().add("error-text");
         };
-        model.getWalletServiceErrorMsg().addListener(walletServiceErrorMsgListener);
+        model.getConnectionServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
         xmrSyncIndicator = new ProgressBar();
         xmrSyncIndicator.setPrefWidth(305);
@@ -625,7 +625,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     }
 
     private void disposeSplashScreen() {
-        model.getWalletServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
+        model.getConnectionServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
         model.getXmrSplashSyncIconId().removeListener(xmrSyncIconIdListener);
 
         model.getP2pNetworkWarnMsg().removeListener(splashP2PNetworkErrorMsgListener);
@@ -663,7 +663,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         //blockchainSyncIndicator.setMaxHeight(10);
         //blockchainSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
-        model.getWalletServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
+        model.getConnectionServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
                 xmrInfoLabel.setId("splash-error-state-msg");
                 xmrInfoLabel.getStyleClass().add("error-text");

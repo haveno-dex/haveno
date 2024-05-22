@@ -89,8 +89,6 @@ public class WalletAppSetup {
     @Getter
     private final DoubleProperty xmrWalletSyncProgress = new SimpleDoubleProperty(-1);
     @Getter
-    private final StringProperty walletServiceErrorMsg = new SimpleStringProperty();
-    @Getter
     private final StringProperty xmrSplashSyncIconId = new SimpleStringProperty();
     @Getter
     private final StringProperty xmrInfo = new SimpleStringProperty(Res.get("mainView.footer.xmrInfo.initializing"));
@@ -130,7 +128,7 @@ public class WalletAppSetup {
                 xmrWalletService.downloadPercentageProperty(),
                 xmrWalletService.walletHeightProperty(),
                 walletServiceException,
-                getWalletServiceErrorMsg(),
+                xmrConnectionService.getConnectionServiceErrorMsg(),
                 (numConnectionUpdates, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
                     String result;
                     if (exception == null && errorMsg == null) {
@@ -177,16 +175,16 @@ public class WalletAppSetup {
                                 getXmrDaemonNetworkAsString());
                         if (exception != null) {
                             if (exception instanceof TimeoutException) {
-                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
+                                xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
                             } else if (exception.getCause() instanceof BlockStoreException) {
                                 if (exception.getCause().getCause() instanceof ChainFileLockedException && chainFileLockedExceptionHandler != null) {
                                     chainFileLockedExceptionHandler.accept(Res.get("popup.warning.startupFailed.twoInstances"));
                                 }
                             } else if (exception instanceof RejectedTxException) {
                                 rejectedTxException.set((RejectedTxException) exception);
-                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
+                                xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
                             } else {
-                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
+                                xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                             }
                         }
                     }

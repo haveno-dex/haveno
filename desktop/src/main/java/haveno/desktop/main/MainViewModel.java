@@ -637,8 +637,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return combinedSyncProgress;
     }
 
-    StringProperty getWalletServiceErrorMsg() {
-        return havenoSetup.getWalletServiceErrorMsg();
+    StringProperty getConnectionServiceErrorMsg() {
+        return havenoSetup.getConnectionServiceErrorMsg();
     }
 
     StringProperty getTopErrorMsg() {
