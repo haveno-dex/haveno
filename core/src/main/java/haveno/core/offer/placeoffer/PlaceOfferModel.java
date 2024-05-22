@@ -36,7 +36,6 @@ import haveno.network.p2p.P2PService;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Transaction;
 
 import java.math.BigInteger;
@@ -70,8 +69,6 @@ public class PlaceOfferModel implements Model {
     private boolean offerAddedToOfferBook;
     @Setter
     private Transaction transaction;
-    @Setter
-    private MoneroTxWallet reserveTx;
     @Setter
     private SignOfferResponse signOfferResponse;
     @Setter

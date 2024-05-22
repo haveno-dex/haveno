@@ -51,6 +51,13 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
 
+            // skip if reserve tx already created
+            if (openOffer.getReserveTxHash() != null && !openOffer.getReserveTxHash().isEmpty()) {
+                log.info("Reserve tx already created for offerId={}", openOffer.getShortId());
+                complete();
+                return;
+            }
+
             // verify monero connection
             model.getXmrWalletService().getConnectionService().verifyConnection();
 
@@ -102,7 +109,6 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 openOffer.setReserveTxHex(reserveTx.getFullHex());
                 openOffer.setReserveTxKey(reserveTx.getKey());
                 offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
-                model.setReserveTx(reserveTx);
             }
             complete();
         } catch (Throwable t) {

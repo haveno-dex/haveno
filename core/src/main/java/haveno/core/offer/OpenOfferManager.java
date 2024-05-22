@@ -130,6 +130,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private static final long REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC = 30;
     private static final long REPUBLISH_INTERVAL_MS = TimeUnit.MINUTES.toMillis(30);
     private static final long REFRESH_INTERVAL_MS = OfferPayload.TTL / 2;
+    private static final int MAX_PROCESS_ATTEMPTS = 5;
 
     private final CoreContext coreContext;
     private final KeyRing keyRing;
@@ -156,7 +157,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final SignedOfferList signedOffers = new SignedOfferList();
     private final PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private final Map<String, PlaceOfferProtocol> placeOfferProtocols = new HashMap<String, PlaceOfferProtocol>();
-    private BigInteger lastUnlockedBalance;
     private boolean stopped;
     private Timer periodicRepublishOffersTimer, periodicRefreshOffersTimer, retryRepublishOffersTimer;
     @Getter
@@ -471,17 +471,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     log.warn("Error processing unposted offers: " + errorMessage);
                 });
 
-                // register to process unposted offers when unlocked balance increases
-                if (xmrWalletService.getWallet() != null) lastUnlockedBalance = xmrWalletService.getAvailableBalance();
+                // register to process unposted offers on new block
                 xmrWalletService.addWalletListener(new MoneroWalletListener() {
                     @Override
-                    public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-                        if (lastUnlockedBalance == null || lastUnlockedBalance.compareTo(newUnlockedBalance) < 0) {
-                            processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                                log.warn("Error processing unposted offers on new unlocked balance: " + errorMessage); // TODO: popup to notify user that offer did not post
-                            });
-                        }
-                        lastUnlockedBalance = newUnlockedBalance;
+                    public void onNewBlock(long height) {
+                        processScheduledOffers((transaction) -> {}, (errorMessage) -> {
+                            log.warn("Error processing unposted offers on new block {}: {}", height, errorMessage);
+                        });
                     }
                 });
 
@@ -860,8 +856,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     processUnpostedOffer(openOffers, scheduledOffer, (transaction) -> {
                         latch.countDown();
                     }, errorMessage -> {
-                        log.warn("Error processing unposted offer {}: {}", scheduledOffer.getId(), errorMessage);
-                        onCancelled(scheduledOffer);
+                        log.warn("Error processing unposted offer, offerId={}, attempt={}/{}, error={}", scheduledOffer.getId(), scheduledOffer.getNumProcessingAttempts(), MAX_PROCESS_ATTEMPTS, errorMessage);
+                        if (scheduledOffer.getNumProcessingAttempts() >= MAX_PROCESS_ATTEMPTS) {
+                            log.warn("Offer canceled after {} attempts, offerId={}, error={}", scheduledOffer.getNumProcessingAttempts(), scheduledOffer.getId(), errorMessage);
+                            HavenoUtils.havenoSetup.getTopErrorMsg().set("Offer canceled after " + scheduledOffer.getNumProcessingAttempts() + " attempts. Please switch to a better Monero connection and try again.\n\nOffer ID: " + scheduledOffer.getId() + "\nError: " + errorMessage);
+                            onCancelled(scheduledOffer);
+                        }
                         errorMessages.add(errorMessage);
                         latch.countDown();
                     });
@@ -875,6 +875,26 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void processUnpostedOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        
+        // skip if already processing
+        if (openOffer.isProcessing()) {
+            resultHandler.handleResult(null);
+            return;
+        }
+
+        // process offer
+        openOffer.setProcessing(true);
+        doProcessUnpostedOffer(openOffers, openOffer, (transaction) -> {
+            openOffer.setProcessing(false);
+            resultHandler.handleResult(transaction);
+        }, (errorMsg) -> {
+            openOffer.setProcessing(false);
+            openOffer.setNumProcessingAttempts(openOffer.getNumProcessingAttempts() + 1);
+            errorMessageHandler.handleErrorMessage(errorMsg);
+        });
+    }
+
+    private void doProcessUnpostedOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         new Thread(() -> {
             try {
 

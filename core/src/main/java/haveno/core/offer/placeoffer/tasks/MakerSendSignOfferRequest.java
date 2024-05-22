@@ -24,6 +24,7 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.availability.DisputeAgentSelection;
 import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
@@ -47,8 +48,6 @@ import java.util.UUID;
 public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(MakerSendSignOfferRequest.class);
 
-    private boolean failed = false;
-
     @SuppressWarnings({"unused"})
     public MakerSendSignOfferRequest(TaskRunner taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
@@ -56,7 +55,8 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
 
     @Override
     protected void run() {
-        Offer offer = model.getOpenOffer().getOffer();
+        OpenOffer openOffer = model.getOpenOffer();
+        Offer offer = openOffer.getOffer();
         try {
             runInterceptHook();
 
@@ -71,9 +71,9 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     new Date().getTime(),
-                    model.getReserveTx().getHash(),
-                    model.getReserveTx().getFullHex(),
-                    model.getReserveTx().getKey(),
+                    openOffer.getReserveTxHash(),
+                    openOffer.getReserveTxHex(),
+                    openOffer.getReserveTxKey(),
                     offer.getOfferPayload().getReserveTxKeyImages(),
                     returnAddress);
 
@@ -81,8 +81,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             sendSignOfferRequests(request, () -> {
                 complete();
             }, (errorMessage) -> {
-                appendToErrorMessage("Error signing offer " + request.getOfferId() + ": " + errorMessage);
-                failed(errorMessage);
+                failed("Error signing offer " + request.getOfferId() + ": " + errorMessage);
             });
         } catch (Throwable t) {
             offer.setErrorMessage("An error occurred.\n" +

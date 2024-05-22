@@ -103,6 +103,12 @@ public final class OpenOffer implements Tradable {
     @Setter
     transient private long mempoolStatus = -1;
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
+    @Getter
+    @Setter
+    transient boolean isProcessing = false;
+    @Getter
+    @Setter
+    transient int numProcessingAttempts = 0;
 
     public OpenOffer(Offer offer) {
         this(offer, 0, false);
@@ -193,9 +199,9 @@ public final class OpenOffer implements Tradable {
                 proto.getScheduledTxHashesList(),
                 ProtoUtil.stringOrNullFromProto(proto.getSplitOutputTxHash()),
                 proto.getSplitOutputTxFee(),
-                proto.getReserveTxHash(),
-                proto.getReserveTxHex(),
-                proto.getReserveTxKey());
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
         return openOffer;
     }
 
