@@ -315,6 +315,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (showExtraInfo) {
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo"), "", 0).second;
             textArea.setText(offer.getExtraInfo());
+            textArea.setMaxHeight(200);
             textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
                 if (newScene != null) {
                     // avoid javafx css warning
