@@ -80,6 +80,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                         } catch (Exception e) {
                             log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                            model.getProtocol().startTimeoutTimer(); // reset protocol timeout
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                         }
     
@@ -88,6 +89,9 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                         if (reserveTx != null) break;
                     }
                 }
+
+                // reset protocol timeout
+                model.getProtocol().startTimeoutTimer();
 
                 // collect reserved key images
                 List<String> reservedKeyImages = new ArrayList<String>();
@@ -98,11 +102,8 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 openOffer.setReserveTxHex(reserveTx.getFullHex());
                 openOffer.setReserveTxKey(reserveTx.getKey());
                 offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
+                model.setReserveTx(reserveTx);
             }
-
-            // reset protocol timeout
-            model.getProtocol().startTimeoutTimer();
-            model.setReserveTx(reserveTx);
             complete();
         } catch (Throwable t) {
             offer.setErrorMessage("An error occurred.\n" +
