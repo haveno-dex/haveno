@@ -348,9 +348,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         if (model.getDataModel().canPlaceOffer()) {
             Offer offer = model.createAndGetOffer();
             if (!DevEnv.isDevMode()) {
-                offerDetailsWindow.onPlaceOffer(() ->
-                        model.onPlaceOffer(offer, offerDetailsWindow::hide))
-                        .show(offer);
+                offerDetailsWindow.onPlaceOffer(() -> {
+                    model.onPlaceOffer(offer, offerDetailsWindow::hide);
+                }).show(offer);
+                offerDetailsWindow.onClose(() -> {
+                    model.onCancelOffer(null, null);
+                });
             } else {
                 balanceSubscription.unsubscribe();
                 model.onPlaceOffer(offer, () -> {

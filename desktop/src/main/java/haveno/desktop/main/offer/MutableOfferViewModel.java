@@ -21,6 +21,8 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 import haveno.common.util.MathUtils;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
@@ -34,6 +36,8 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.FiatVolumeValidator;
@@ -68,6 +72,7 @@ import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.BooleanProperty;
@@ -617,12 +622,35 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 updateButtonDisableState();
                 updateSpinnerInfo();
                 resultHandler.run();
-
             });
         });
 
         updateButtonDisableState();
         updateSpinnerInfo();
+    }
+
+    public void onCancelOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        createOfferRequested = false;
+        OpenOfferManager openOfferManager = HavenoUtils.openOfferManager;
+        Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(offer.getId());
+        if (openOffer.isPresent()) {
+            openOfferManager.cancelOpenOffer(openOffer.get(), () -> {
+                UserThread.execute(() -> {
+                    updateButtonDisableState();
+                    updateSpinnerInfo();
+                });
+                if (resultHandler != null) resultHandler.handleResult();
+            }, errorMessage -> {
+                UserThread.execute(() -> {
+                    updateButtonDisableState();
+                    updateSpinnerInfo();
+                    if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
+                });
+            });
+        } else {
+            if (resultHandler != null) resultHandler.handleResult();
+            return;
+        }
     }
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
