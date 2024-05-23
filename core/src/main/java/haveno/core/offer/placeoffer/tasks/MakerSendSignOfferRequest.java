@@ -137,6 +137,12 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                 log.warn("Arbitrator unavailable: address={}, error={}", arbitratorNodeAddress, errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
 
+                // check if offer still scheduled
+                if (!model.getOpenOffer().isScheduled()) {
+                    errorMessageHandler.handleErrorMessage("Offer is no longer scheduled, offerId=" + model.getOpenOffer().getId());
+                    return;
+                }
+
                 // get alternative arbitrator
                 Arbitrator altArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager(), excludedArbitrators);
                 if (altArbitrator == null) {

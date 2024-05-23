@@ -66,7 +66,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             synchronized (XmrWalletService.WALLET_LOCK) {
 
                 // reset protocol timeout
-                verifyOpen();
+                verifyScheduled();
                 model.getProtocol().startTimeoutTimer();
 
                 // collect relevant info
@@ -92,7 +92,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                         }
     
                         // verify still open
-                        verifyOpen();
+                        verifyScheduled();
                         if (reserveTx != null) break;
                     }
                 }
@@ -119,11 +119,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         }
     }
 
-    public void verifyOpen() {
-        if (!isOpen()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is no longer open");
-    }
-
-    public boolean isOpen() {
-        return model.getOpenOfferManager().getOpenOfferById(model.getOpenOffer().getId()).isPresent();
+    public void verifyScheduled() {
+        if (!model.getOpenOffer().isScheduled()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
     }
 }

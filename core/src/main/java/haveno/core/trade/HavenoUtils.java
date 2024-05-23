@@ -30,6 +30,7 @@ import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.messages.PaymentReceivedMessage;
@@ -97,9 +98,11 @@ public class HavenoUtils {
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
+    // TODO: better way to share references?
     public static HavenoSetup havenoSetup;
-    public static ArbitrationManager arbitrationManager; // TODO: better way to share references?
+    public static ArbitrationManager arbitrationManager;
     public static XmrWalletService xmrWalletService;
+    public static OpenOfferManager openOfferManager;
 
     public static boolean isSeedNode() {
         return havenoSetup == null;

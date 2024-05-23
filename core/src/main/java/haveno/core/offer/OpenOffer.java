@@ -246,6 +246,10 @@ public final class OpenOffer implements Tradable {
         return state == State.DEACTIVATED;
     }
 
+    public boolean isCanceled() {
+        return state == State.CANCELED;
+    }
+
     @Override
     public String toString() {
         return "OpenOffer{" +

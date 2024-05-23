@@ -417,7 +417,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         button.setOnAction(e -> {
             if (GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation)) {
                 button.setDisable(true);
-                cancelButton.setDisable(true);
+                cancelButton.setDisable(isPlaceOffer ? false : true); // TODO: enable cancel button for taking an offer until messages sent
                 // temporarily disabled due to high CPU usage (per issue #4649)
                 // busyAnimation.play();
                 if (isPlaceOffer) {
