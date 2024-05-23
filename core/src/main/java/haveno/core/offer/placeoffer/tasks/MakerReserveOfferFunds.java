@@ -79,22 +79,33 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
 
                 // attempt creating reserve tx
-                synchronized (HavenoUtils.getWalletFunctionLock()) {
-                    for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                        try {
-                            //if (true) throw new RuntimeException("Pretend error");
-                            reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
-                        } catch (Exception e) {
-                            log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
-                            if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                            model.getProtocol().startTimeoutTimer(); // reset protocol timeout
-                            HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                try {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                            try {
+                                //if (true) throw new RuntimeException("Pretend error");
+                                reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
+                            } catch (Exception e) {
+                                log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
+                                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                                model.getProtocol().startTimeoutTimer(); // reset protocol timeout
+                                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                            }
+        
+                            // verify still open
+                            verifyScheduled();
+                            if (reserveTx != null) break;
                         }
-    
-                        // verify still open
-                        verifyScheduled();
-                        if (reserveTx != null) break;
                     }
+                } catch (Exception e) {
+
+                    // reset state with wallet lock
+                    model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
+                    if (reserveTx != null) {
+                        model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                    }
+
+                    throw e;
                 }
 
                 // reset protocol timeout
