@@ -560,7 +560,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // ensure trade does not already exist
             Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
             if (tradeOptional.isPresent()) {
-                log.warn("Maker trade already exists with id " + request.getOfferId() + ". This should never happen.");
+                log.warn("Ignoring InitTradeRequest to maker because trade already exists with id " + request.getOfferId() + ". This should never happen.");
                 return;
             }
   
@@ -657,7 +657,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                 // verify request is from taker
                 if (!sender.equals(request.getTakerNodeAddress())) {
-                    log.warn("Ignoring InitTradeRequest from non-taker, tradeId={}, sender={}", request.getOfferId(), sender);
+                    if (sender.equals(request.getMakerNodeAddress())) {
+                        log.warn("Received InitTradeRequest from maker to arbitrator for trade that is already initializing, tradeId={}, sender={}", request.getOfferId(), sender);
+                        sendAckMessage(sender, trade.getMaker().getPubKeyRing(), request, false, "Trade is already initializing for " + getClass().getSimpleName() + " " + trade.getId());
+                    } else {
+                        log.warn("Ignoring InitTradeRequest from non-taker, tradeId={}, sender={}", request.getOfferId(), sender);
+                    }
                     return;
                 }
             } else {
