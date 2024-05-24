@@ -94,6 +94,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.common.MoneroUtils;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.model.MoneroKeyImage;
@@ -1082,16 +1083,40 @@ public abstract class Trade implements Tradable, Model {
     private MoneroTxWallet doCreatePayoutTx() {
 
         // check if multisig import needed
-        MoneroWallet multisigWallet = getWallet();
-        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+        if (wallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
 
         // gather info
         String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
         String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
         Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
-        BigInteger sellerDepositAmount = multisigWallet.getTx(this.getSeller().getDepositTxHash()).getIncomingAmount();
-        BigInteger buyerDepositAmount = multisigWallet.getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount();
+
+        // TODO: wallet query to get deposit txs can sometimes return null, maybe when disconnected?
+        if (wallet.getTx(getSeller().getDepositTxHash()) == null || wallet.getTx(getBuyer().getDepositTxHash()) == null) {
+            String warningMsg = "Issue detected with trade wallet " + getShortId() + ". Please send logs to Haveno developers and restart your application if you encounter further problems:";
+            warningMsg += "\n\nSeller deposit tx id: " + getSeller().getDepositTxHash();
+            warningMsg += "\nBuyer deposit tx id: " + getBuyer().getDepositTxHash();
+            warningMsg += "\nSeller deposit tx is initialized: " + (getSeller().getDepositTx() != null);
+            warningMsg += "\nBuyer deposit tx is initialized: " + (getBuyer().getDepositTx() != null);
+            log.warn(warningMsg);
+
+            // request with logging
+            int previousLogLevel = MoneroUtils.getLogLevel();
+            MoneroUtils.setLogLevel(3);
+            log.warn("Requesting seller tx with logging");
+            MoneroTxWallet fetchedTx = wallet.getTx(getSeller().getDepositTxHash());
+            log.info("Seller tx: " + fetchedTx);
+            log.warn("Requesting buyer tx with logging");
+            fetchedTx = wallet.getTx(getBuyer().getDepositTxHash());
+            log.info("Buyer tx: " + fetchedTx);
+            MoneroUtils.setLogLevel(previousLogLevel);
+
+            // set top level error message to notify user
+            HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+        }
+
+        BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
+        BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
@@ -1112,7 +1137,7 @@ public abstract class Trade implements Tradable, Model {
         getBuyer().setPayoutAmount(HavenoUtils.getDestination(buyerPayoutAddress, payoutTx).getAmount());
         getSeller().setPayoutTxFee(payoutTxFeeSplit);
         getSeller().setPayoutAmount(HavenoUtils.getDestination(sellerPayoutAddress, payoutTx).getAmount());
-        getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
+        getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
         return payoutTx;
     }
 
@@ -1147,8 +1172,8 @@ public abstract class Trade implements Tradable, Model {
         // gather relevant info
         MoneroWallet wallet = getWallet();
         Contract contract = getContract();
-        BigInteger sellerDepositAmount = wallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
-        BigInteger buyerDepositAmount = wallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
+        BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
+        BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
 
         // describe payout tx
@@ -2283,6 +2308,10 @@ public abstract class Trade implements Tradable, Model {
 
     private void pollWallet() {
         if (pollInProgress) return;
+        doPollWallet();
+    }
+
+    private void doPollWallet() {
         synchronized (pollLock) {
             pollInProgress = true;
             try {
@@ -2424,8 +2453,8 @@ public abstract class Trade implements Tradable, Model {
         return walletHeight.get() < xmrConnectionService.getTargetHeight();
     }
 
-    private void setDepositTxs(List<? extends MoneroTx> txs) {
-        for (MoneroTx tx : txs) {
+    private void setDepositTxs(List<MoneroTxWallet> txs) {
+        for (MoneroTxWallet tx : txs) {
             if (tx.getHash().equals(getMaker().getDepositTxHash())) getMaker().setDepositTx(tx);
             if (tx.getHash().equals(getTaker().getDepositTxHash())) getTaker().setDepositTx(tx);
         }

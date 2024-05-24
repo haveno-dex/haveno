@@ -118,6 +118,7 @@ public class XmrWalletService {
     public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
     public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.ELEVATED;
+    public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
@@ -126,7 +127,6 @@ public class XmrWalletService {
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_MAX_WALLET_BACKUPS = 1;
-    private static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final int MAX_SYNC_ATTEMPTS = 3;
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
