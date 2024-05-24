@@ -424,6 +424,7 @@ public abstract class Trade implements Tradable, Model {
     transient private Subscription tradeStateSubscription;
     transient private Subscription tradePhaseSubscription;
     transient private Subscription payoutStateSubscription;
+    transient private Subscription disputeStateSubscription;
     transient private TaskLooper pollLooper;
     transient private Long pollPeriodMs;
     transient private Long pollNormalStartTimeMs;
@@ -696,6 +697,9 @@ public abstract class Trade implements Tradable, Model {
                     // auto complete arbitrator trade
                     if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
 
+                    // maybe publish trade statistic
+                    maybePublishTradeStatistics();
+
                     // reset address entries
                     processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
                 }
@@ -705,6 +709,16 @@ public abstract class Trade implements Tradable, Model {
                     if (!isInitialized) return;
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
                     clearAndShutDown();
+                }
+            });
+        });
+
+        // handle dispute events
+        disputeStateSubscription = EasyBind.subscribe(disputeStateProperty, newValue -> {
+            if (!isInitialized || isShutDownStarted) return;
+            ThreadUtils.submitToPool(() -> {
+                if (isDisputeClosed()) {
+                    maybePublishTradeStatistics();
                 }
             });
         });
@@ -1422,6 +1436,7 @@ public abstract class Trade implements Tradable, Model {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
+            if (disputeStateSubscription != null) disputeStateSubscription.unsubscribe();
         });
     }
 
@@ -1998,6 +2013,10 @@ public abstract class Trade implements Tradable, Model {
         return isArbitrator() ? getBuyer().getDisputeClosedMessage() != null || getSeller().getDisputeClosedMessage() != null : getArbitrator().getDisputeClosedMessage() != null;
     }
 
+    public boolean isDisputeClosed() {
+        return getDisputeState().isClosed();
+    }
+
     public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
@@ -2147,6 +2166,39 @@ public abstract class Trade implements Tradable, Model {
         long delay = 60;
         for (int i = retryCycles; i < reprocessCount; i++) delay *= 2;
         return Math.min(MAX_REPROCESS_DELAY_SECONDS, delay);
+    }
+
+    public void maybePublishTradeStatistics() {
+        if (shouldPublishTradeStatistics()) doPublishTradeStatistics();
+    }
+
+    public boolean shouldPublishTradeStatistics() {
+        if (!isSeller()) return false;
+        return tradeAmountTransferred();
+    }
+
+    private boolean tradeAmountTransferred() {
+        return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
+    }
+
+    private void doPublishTradeStatistics() {
+        processModel.getP2PService().findPeersCapabilities(getTradePeer().getNodeAddress())
+                .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
+                .ifPresentOrElse(capabilities -> {
+                    String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
+                    boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
+                    TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
+                    if (tradeStatistics.isValid()) {
+                        log.info("Publishing trade statistics");
+                        processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
+                    } else {
+                        log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
+                    }
+                },
+                () -> {
+                    log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
+                            "To avoid duplicates we do not publish from our side.");
+                });
     }
 
 
@@ -2565,31 +2617,6 @@ public abstract class Trade implements Tradable, Model {
             processModel.getOpenOfferManager().closeOpenOffer(getOffer());
         } else {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
-        }
-
-        // seller publishes trade statistics
-        if (this instanceof SellerTrade) {
-            checkNotNull(getSeller().getDepositTx());
-            processModel.getP2PService().findPeersCapabilities(getTradePeer().getNodeAddress())
-                    .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
-                    .ifPresentOrElse(capabilities -> {
-
-                        // Our peer has updated, so as we are the seller we will publish the trade statistics.
-                        // The peer as buyer does not publish anymore with v.1.4.0 (where Capability.TRADE_STATISTICS_3 was added)
-                        String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
-                        boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
-                        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
-                        if (tradeStatistics.isValid()) {
-                            log.info("Publishing trade statistics");
-                            processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
-                        } else {
-                            log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
-                        }
-                    },
-                    () -> {
-                        log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
-                                "To avoid duplicates we do not publish from our side.");
-                    });
         }
     }
 
