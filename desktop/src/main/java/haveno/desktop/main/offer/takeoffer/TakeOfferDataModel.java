@@ -18,6 +18,8 @@
 package haveno.desktop.main.offer.takeoffer;
 
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -221,7 +223,8 @@ class TakeOfferDataModel extends OfferDataModel {
             offerBook.removeOffer(checkNotNull(offer));
         }
 
-        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        // reset address entries off thread
+        ThreadUtils.submitToPool(() -> xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId()));
     }
 
 
