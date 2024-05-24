@@ -33,7 +33,7 @@ import haveno.network.p2p.NodeAddress;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroTxWallet;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
@@ -56,7 +56,7 @@ public final class TradePeer implements PersistablePayload {
     @Setter
     @Nullable
     transient private byte[] preparedDepositTx;
-    transient private MoneroTx depositTx;
+    transient private MoneroTxWallet depositTx;
 
     // Persistable mutable
     @Nullable
