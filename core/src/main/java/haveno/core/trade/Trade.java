@@ -94,7 +94,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
-import monero.common.MoneroUtils;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemon;
 import monero.daemon.model.MoneroKeyImage;
@@ -964,6 +963,7 @@ public abstract class Trade implements Tradable, Model {
     private void forceCloseWallet() {
         if (wallet != null) {
             xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
+            stopPolling();
             wallet = null;
         }
     }
@@ -1099,36 +1099,18 @@ public abstract class Trade implements Tradable, Model {
         // check if multisig import needed
         if (wallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
 
-        // gather info
-        String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
-        String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
-        Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
-        Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
-
-        // TODO: wallet query to get deposit txs can sometimes return null, maybe when disconnected?
-        if (wallet.getTx(getSeller().getDepositTxHash()) == null || wallet.getTx(getBuyer().getDepositTxHash()) == null) {
-            String warningMsg = "Issue detected with trade wallet " + getShortId() + ". Please send logs to Haveno developers and restart your application if you encounter further problems:";
-            warningMsg += "\n\nSeller deposit tx id: " + getSeller().getDepositTxHash();
-            warningMsg += "\nBuyer deposit tx id: " + getBuyer().getDepositTxHash();
-            warningMsg += "\nSeller deposit tx is initialized: " + (getSeller().getDepositTx() != null);
-            warningMsg += "\nBuyer deposit tx is initialized: " + (getBuyer().getDepositTx() != null);
-            log.warn(warningMsg);
-
-            // request with logging
-            int previousLogLevel = MoneroUtils.getLogLevel();
-            MoneroUtils.setLogLevel(3);
-            log.warn("Requesting seller tx with logging");
-            MoneroTxWallet fetchedTx = wallet.getTx(getSeller().getDepositTxHash());
-            log.info("Seller tx: " + fetchedTx);
-            log.warn("Requesting buyer tx with logging");
-            fetchedTx = wallet.getTx(getBuyer().getDepositTxHash());
-            log.info("Buyer tx: " + fetchedTx);
-            MoneroUtils.setLogLevel(previousLogLevel);
-
-            // set top level error message to notify user
-            HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+        // TODO: wallet sometimes returns empty data, after disconnect?
+        List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
+        if (txs.isEmpty()) {
+            log.warn("Restarting wallet for {} {} because deposit txs are missing to create payout tx", getClass().getSimpleName(), getId());
+            forceRestartTradeWallet();
         }
 
+        // gather info
+        String sellerPayoutAddress = getSeller().getPayoutAddressString();
+        String buyerPayoutAddress = getBuyer().getPayoutAddressString();
+        Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
+        Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
         BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
@@ -1163,7 +1145,7 @@ public abstract class Trade implements Tradable, Model {
                         return createTx(txConfig);
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new RuntimeException("Loser payout is too small to cover the mining fee");
-                        log.warn("Failed to create payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        log.warn("Failed to create dispute payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -1182,6 +1164,22 @@ public abstract class Trade implements Tradable, Model {
      */
     public void processPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
         log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
+
+        // TODO: wallet sometimes returns empty data, after disconnect? detect this condition with failure tolerance
+        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+            try {
+                List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
+                if (txs.isEmpty()) {
+                    log.warn("Restarting wallet for {} {} because deposit txs are missing to process payout tx", getClass().getSimpleName(), getId());
+                    forceRestartTradeWallet();
+                }
+                break;
+            } catch (Exception e) {
+                log.warn("Failed get wallet txs, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+            }
+        }
 
         // gather relevant info
         MoneroWallet wallet = getWallet();
@@ -2514,12 +2512,13 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void forceRestartTradeWallet() {
-        log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
         if (isShutDownStarted || restartInProgress) return;
+        log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
         restartInProgress = true;
         forceCloseWallet();
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
+        doPollWallet();
         if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitPolling(), getId());
     }
 
@@ -2609,15 +2608,15 @@ public abstract class Trade implements Tradable, Model {
         // skip if arbitrator
         if (this instanceof ArbitratorTrade) return;
 
-        // freeze outputs until spent
-        xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
-
         // close open offer or reset address entries
         if (this instanceof MakerTrade) {
             processModel.getOpenOfferManager().closeOpenOffer(getOffer());
         } else {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
         }
+
+        // freeze outputs until spent
+        ThreadUtils.submitToPool(() -> xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
