@@ -1068,24 +1068,26 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         MoneroTxWallet splitOutputTx = null;
         synchronized (XmrWalletService.WALLET_LOCK) {
             XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-            long startTime = System.currentTimeMillis();
-            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                try {
-                    log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getShortId(), entry.getSubaddressIndex());
-                    splitOutputTx = xmrWalletService.createTx(new MoneroTxConfig()
-                            .setAccountIndex(0)
-                            .setAddress(entry.getAddressString())
-                            .setAmount(reserveAmount)
-                            .setRelay(true)
-                            .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
-                    break;
-                } catch (Exception e) {
-                    log.warn("Error creating split output tx to fund offer {} at subaddress {}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                    if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+            synchronized (HavenoUtils.getWalletFunctionLock()) {
+                long startTime = System.currentTimeMillis();
+                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    try {
+                        log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getShortId(), entry.getSubaddressIndex());
+                        splitOutputTx = xmrWalletService.createTx(new MoneroTxConfig()
+                                .setAccountIndex(0)
+                                .setAddress(entry.getAddressString())
+                                .setAmount(reserveAmount)
+                                .setRelay(true)
+                                .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
+                        break;
+                    } catch (Exception e) {
+                        log.warn("Error creating split output tx to fund offer {} at subaddress {}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    }
                 }
+                log.info("Done creating split output tx to fund offer {} in {} ms", openOffer.getId(), System.currentTimeMillis() - startTime);
             }
-            log.info("Done creating split output tx to fund offer {} in {} ms", openOffer.getId(), System.currentTimeMillis() - startTime);
         }
 
         // set split tx
