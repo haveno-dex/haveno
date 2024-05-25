@@ -334,7 +334,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() " + trade.getId());
-        if (!trade.isArbitrator()) trade.addInitProgressStep(); // extend timeout unless arbitrator
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 
