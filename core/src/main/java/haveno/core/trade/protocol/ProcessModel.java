@@ -114,7 +114,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private byte[] payoutTxSignature;
     @Nullable
     @Setter
-    private byte[] preparedDepositTx;
+    private byte[] preparedDepositTx; // TODO: remove this unused field
     @Setter
     private boolean useSavingsWallet;
     @Setter

@@ -49,7 +49,7 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '32.1.1-jre'
         guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.26'
+        moneroJavaVersion = '0.8.27'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
@@ -71,7 +71,7 @@ configure(subprojects) {
         loggingVersion = '1.2'
         lombokVersion = '1.18.30'
         mockitoVersion = '5.10.0'
-        netlayerVersion = '72a4fae5cf' // Tor browser version 13.0.15 and tor binary version: 0.4.8.11
+        netlayerVersion = 'e2ce2a142c' // Tor browser version 13.0.15 and tor binary version: 0.4.8.11
         protobufVersion = '3.19.1'
         protocVersion = protobufVersion
         pushyVersion = '0.13.2'
@@ -603,7 +603,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.0.5-SNAPSHOT'
+    version = '1.0.6-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,

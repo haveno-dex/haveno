@@ -225,26 +225,31 @@ message PrefixedSealedAndSignedMessage {
     string uid = 4;
 }
 
+enum TradeProtocolVersion {
+    MULTISIG_2_3 = 0;
+}
+
 message InitTradeRequest {
-    string offer_id = 1;
-    NodeAddress sender_node_address = 2;
-    PubKeyRing pub_key_ring = 3;
-    int64 trade_amount = 4;
-    int64 trade_price = 5;
-    string account_id = 6;
-    string payment_account_id = 7;
-    string payment_method_id = 8;
-    string uid = 9;
-    bytes account_age_witness_signature_of_offer_id = 10;
-    int64 current_date = 11;
-    NodeAddress maker_node_address = 12;
-    NodeAddress taker_node_address = 13;
-    NodeAddress arbitrator_node_address = 14;
-    string reserve_tx_hash = 15;
-    string reserve_tx_hex = 16;
-    string reserve_tx_key = 17;
-    string payout_address = 18;
-    bytes maker_signature = 19;
+    TradeProtocolVersion trade_protocol_version = 1;
+    string offer_id = 2;
+    int64 trade_amount = 3;
+    int64 trade_price = 4;
+    string payment_method_id = 5;
+    string maker_account_id = 6;
+    string taker_account_id = 7;
+    string maker_payment_account_id = 8;
+    string taker_payment_account_id = 9;
+    PubKeyRing taker_pub_key_ring = 10;
+    string uid = 11;
+    bytes account_age_witness_signature_of_offer_id = 12;
+    int64 current_date = 13;
+    NodeAddress maker_node_address = 14;
+    NodeAddress taker_node_address = 15;
+    NodeAddress arbitrator_node_address = 16;
+    string reserve_tx_hash = 17;
+    string reserve_tx_hex = 18;
+    string reserve_tx_key = 19;
+    string payout_address = 20;
 }
 
 message InitMultisigRequest {

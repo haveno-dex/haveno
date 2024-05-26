@@ -84,6 +84,10 @@ public class PlaceOfferProtocol {
 
         taskRunner.run();
     }
+
+    public void cancelOffer() {
+        handleError("Offer was canceled: " + model.getOpenOffer().getOffer().getId()); // cancel is treated as error for callers to handle
+    }
     
     // TODO (woodser): switch to fluent
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
@@ -147,9 +151,11 @@ public class PlaceOfferProtocol {
     private void handleError(String errorMessage) {
         if (timeoutTimer != null) {
             taskRunner.cancel();
-            log.error(errorMessage);
+            if (!model.getOpenOffer().isCanceled()) {
+                log.error(errorMessage);
+                model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
+            }
             stopTimeoutTimer();
-            model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
             errorMessageHandler.handleErrorMessage(errorMessage);
         }
     }

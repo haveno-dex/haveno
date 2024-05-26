@@ -334,7 +334,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() " + trade.getId());
-        trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 
@@ -358,13 +357,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     ProcessSignContractRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
-                                        startTimeout();
                                         handleTaskRunnerSuccess(sender, message);
                                     },
                                     errorMessage -> {
                                         handleTaskRunnerFault(sender, message, errorMessage);
-                                    }))
-                            .withTimeout(TRADE_STEP_TIMEOUT_SECONDS)) // extend timeout
+                                    })))
                             .executeTasks(true);
                     awaitTradeLatch();
                 } else {

@@ -362,7 +362,7 @@ public abstract class Trade implements Tradable, Model {
     private long takeOfferDate;
 
     // Initialization
-    private static final int TOTAL_INIT_STEPS = 23; // total estimated steps
+    private static final int TOTAL_INIT_STEPS = 24; // total estimated steps
     private int initStep = 0;
     @Getter
     private double initProgress = 0;
@@ -423,6 +423,7 @@ public abstract class Trade implements Tradable, Model {
     transient private Subscription tradeStateSubscription;
     transient private Subscription tradePhaseSubscription;
     transient private Subscription payoutStateSubscription;
+    transient private Subscription disputeStateSubscription;
     transient private TaskLooper pollLooper;
     transient private Long pollPeriodMs;
     transient private Long pollNormalStartTimeMs;
@@ -695,6 +696,9 @@ public abstract class Trade implements Tradable, Model {
                     // auto complete arbitrator trade
                     if (isArbitrator() && !isCompleted()) processModel.getTradeManager().onTradeCompleted(this);
 
+                    // maybe publish trade statistic
+                    maybePublishTradeStatistics();
+
                     // reset address entries
                     processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
                 }
@@ -704,6 +708,16 @@ public abstract class Trade implements Tradable, Model {
                     if (!isInitialized) return;
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
                     clearAndShutDown();
+                }
+            });
+        });
+
+        // handle dispute events
+        disputeStateSubscription = EasyBind.subscribe(disputeStateProperty, newValue -> {
+            if (!isInitialized || isShutDownStarted) return;
+            ThreadUtils.submitToPool(() -> {
+                if (isDisputeClosed()) {
+                    maybePublishTradeStatistics();
                 }
             });
         });
@@ -949,6 +963,7 @@ public abstract class Trade implements Tradable, Model {
     private void forceCloseWallet() {
         if (wallet != null) {
             xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
+            stopPolling();
             wallet = null;
         }
     }
@@ -1082,16 +1097,22 @@ public abstract class Trade implements Tradable, Model {
     private MoneroTxWallet doCreatePayoutTx() {
 
         // check if multisig import needed
-        MoneroWallet multisigWallet = getWallet();
-        if (multisigWallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+        if (wallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+
+        // TODO: wallet sometimes returns empty data, after disconnect?
+        List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
+        if (txs.isEmpty()) {
+            log.warn("Restarting wallet for {} {} because deposit txs are missing to create payout tx", getClass().getSimpleName(), getId());
+            forceRestartTradeWallet();
+        }
 
         // gather info
-        String sellerPayoutAddress = this.getSeller().getPayoutAddressString();
-        String buyerPayoutAddress = this.getBuyer().getPayoutAddressString();
+        String sellerPayoutAddress = getSeller().getPayoutAddressString();
+        String buyerPayoutAddress = getBuyer().getPayoutAddressString();
         Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
-        BigInteger sellerDepositAmount = multisigWallet.getTx(this.getSeller().getDepositTxHash()).getIncomingAmount();
-        BigInteger buyerDepositAmount = multisigWallet.getTx(this.getBuyer().getDepositTxHash()).getIncomingAmount();
+        BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
+        BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
@@ -1112,7 +1133,7 @@ public abstract class Trade implements Tradable, Model {
         getBuyer().setPayoutAmount(HavenoUtils.getDestination(buyerPayoutAddress, payoutTx).getAmount());
         getSeller().setPayoutTxFee(payoutTxFeeSplit);
         getSeller().setPayoutAmount(HavenoUtils.getDestination(sellerPayoutAddress, payoutTx).getAmount());
-        getSelf().setUpdatedMultisigHex(multisigWallet.exportMultisigHex());
+        getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
         return payoutTx;
     }
 
@@ -1124,7 +1145,7 @@ public abstract class Trade implements Tradable, Model {
                         return createTx(txConfig);
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new RuntimeException("Loser payout is too small to cover the mining fee");
-                        log.warn("Failed to create payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        log.warn("Failed to create dispute payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -1144,11 +1165,27 @@ public abstract class Trade implements Tradable, Model {
     public void processPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
         log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
 
+        // TODO: wallet sometimes returns empty data, after disconnect? detect this condition with failure tolerance
+        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+            try {
+                List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
+                if (txs.isEmpty()) {
+                    log.warn("Restarting wallet for {} {} because deposit txs are missing to process payout tx", getClass().getSimpleName(), getId());
+                    forceRestartTradeWallet();
+                }
+                break;
+            } catch (Exception e) {
+                log.warn("Failed get wallet txs, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+            }
+        }
+
         // gather relevant info
         MoneroWallet wallet = getWallet();
         Contract contract = getContract();
-        BigInteger sellerDepositAmount = wallet.getTx(getSeller().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): redundancy of processModel.getPreparedDepositTxId() vs this.getDepositTxId() necessary or avoidable?
-        BigInteger buyerDepositAmount = wallet.getTx(getBuyer().getDepositTxHash()).getIncomingAmount();
+        BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
+        BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
 
         // describe payout tx
@@ -1397,6 +1434,7 @@ public abstract class Trade implements Tradable, Model {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
             if (tradePhaseSubscription != null) tradePhaseSubscription.unsubscribe();
             if (payoutStateSubscription != null) payoutStateSubscription.unsubscribe();
+            if (disputeStateSubscription != null) disputeStateSubscription.unsubscribe();
         });
     }
 
@@ -1552,6 +1590,7 @@ public abstract class Trade implements Tradable, Model {
     public void addInitProgressStep() {
         startProtocolTimeout();
         initProgress = Math.min(1.0, (double) ++initStep / TOTAL_INIT_STEPS);
+        //if (this instanceof TakerTrade) log.warn("Init step count: " + initStep); // log init step count for taker trades in order to update total steps
         UserThread.execute(() -> initProgressProperty.set(initProgress));
     }
 
@@ -1972,6 +2011,10 @@ public abstract class Trade implements Tradable, Model {
         return isArbitrator() ? getBuyer().getDisputeClosedMessage() != null || getSeller().getDisputeClosedMessage() != null : getArbitrator().getDisputeClosedMessage() != null;
     }
 
+    public boolean isDisputeClosed() {
+        return getDisputeState().isClosed();
+    }
+
     public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
@@ -2121,6 +2164,39 @@ public abstract class Trade implements Tradable, Model {
         long delay = 60;
         for (int i = retryCycles; i < reprocessCount; i++) delay *= 2;
         return Math.min(MAX_REPROCESS_DELAY_SECONDS, delay);
+    }
+
+    public void maybePublishTradeStatistics() {
+        if (shouldPublishTradeStatistics()) doPublishTradeStatistics();
+    }
+
+    public boolean shouldPublishTradeStatistics() {
+        if (!isSeller()) return false;
+        return tradeAmountTransferred();
+    }
+
+    private boolean tradeAmountTransferred() {
+        return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
+    }
+
+    private void doPublishTradeStatistics() {
+        processModel.getP2PService().findPeersCapabilities(getTradePeer().getNodeAddress())
+                .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
+                .ifPresentOrElse(capabilities -> {
+                    String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
+                    boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
+                    TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
+                    if (tradeStatistics.isValid()) {
+                        log.info("Publishing trade statistics");
+                        processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
+                    } else {
+                        log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
+                    }
+                },
+                () -> {
+                    log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
+                            "To avoid duplicates we do not publish from our side.");
+                });
     }
 
 
@@ -2282,6 +2358,10 @@ public abstract class Trade implements Tradable, Model {
 
     private void pollWallet() {
         if (pollInProgress) return;
+        doPollWallet();
+    }
+
+    private void doPollWallet() {
         synchronized (pollLock) {
             pollInProgress = true;
             try {
@@ -2423,8 +2503,8 @@ public abstract class Trade implements Tradable, Model {
         return walletHeight.get() < xmrConnectionService.getTargetHeight();
     }
 
-    private void setDepositTxs(List<? extends MoneroTx> txs) {
-        for (MoneroTx tx : txs) {
+    private void setDepositTxs(List<MoneroTxWallet> txs) {
+        for (MoneroTxWallet tx : txs) {
             if (tx.getHash().equals(getMaker().getDepositTxHash())) getMaker().setDepositTx(tx);
             if (tx.getHash().equals(getTaker().getDepositTxHash())) getTaker().setDepositTx(tx);
         }
@@ -2432,12 +2512,13 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void forceRestartTradeWallet() {
-        log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
         if (isShutDownStarted || restartInProgress) return;
+        log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
         restartInProgress = true;
         forceCloseWallet();
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
+        doPollWallet();
         if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitPolling(), getId());
     }
 
@@ -2527,9 +2608,6 @@ public abstract class Trade implements Tradable, Model {
         // skip if arbitrator
         if (this instanceof ArbitratorTrade) return;
 
-        // freeze outputs until spent
-        xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
-
         // close open offer or reset address entries
         if (this instanceof MakerTrade) {
             processModel.getOpenOfferManager().closeOpenOffer(getOffer());
@@ -2537,30 +2615,8 @@ public abstract class Trade implements Tradable, Model {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
         }
 
-        // seller publishes trade statistics
-        if (this instanceof SellerTrade) {
-            checkNotNull(getSeller().getDepositTx());
-            processModel.getP2PService().findPeersCapabilities(getTradePeer().getNodeAddress())
-                    .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
-                    .ifPresentOrElse(capabilities -> {
-
-                        // Our peer has updated, so as we are the seller we will publish the trade statistics.
-                        // The peer as buyer does not publish anymore with v.1.4.0 (where Capability.TRADE_STATISTICS_3 was added)
-                        String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
-                        boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
-                        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
-                        if (tradeStatistics.isValid()) {
-                            log.info("Publishing trade statistics");
-                            processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
-                        } else {
-                            log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
-                        }
-                    },
-                    () -> {
-                        log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
-                                "To avoid duplicates we do not publish from our side.");
-                    });
-        }
+        // freeze outputs until spent
+        ThreadUtils.submitToPool(() -> xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

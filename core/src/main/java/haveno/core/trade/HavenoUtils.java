@@ -30,9 +30,9 @@ import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.JsonUtil;
@@ -66,10 +66,10 @@ import org.bitcoinj.core.Coin;
 public class HavenoUtils {
 
     // configure release date
-    private static final String RELEASE_DATE = "01-03-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "01-03-2024 00:00:00"
+    private static final String RELEASE_DATE = "25-05-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "25-05-2024 00:00:00"
     public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
     public static final int WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS = 182; // number of days to warn if sell offer exceeds unsigned buy limit
-    public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 30;
+    public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 60;
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
@@ -79,7 +79,7 @@ public class HavenoUtils {
 
     // synchronize requests to the daemon
     private static boolean SYNC_DAEMON_REQUESTS = true; // sync long requests to daemon (e.g. refresh, update pool)
-    private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create tx, import multisig hex)
+    private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
     private static Object DAEMON_LOCK = new Object();
     public static Object getDaemonLock() {
         return SYNC_DAEMON_REQUESTS ? DAEMON_LOCK : new Object();
@@ -98,9 +98,11 @@ public class HavenoUtils {
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
+    // TODO: better way to share references?
     public static HavenoSetup havenoSetup;
-    public static ArbitrationManager arbitrationManager; // TODO: better way to share references?
+    public static ArbitrationManager arbitrationManager;
     public static XmrWalletService xmrWalletService;
+    public static OpenOfferManager openOfferManager;
 
     public static boolean isSeedNode() {
         return havenoSetup == null;
@@ -324,52 +326,6 @@ public class HavenoUtils {
      */
     public static boolean isArbitratorSignatureValid(OfferPayload offer, Arbitrator arbitrator) {
         return isSignatureValid(arbitrator.getPubKeyRing(), offer.getSignatureHash(), offer.getArbitratorSignature());
-    }
-
-    /**
-     * Check if the maker signature for a trade request is valid.
-     *
-     * @param request is the trade request to check
-     * @return true if the maker's signature is valid for the trade request
-     */
-    public static boolean isMakerSignatureValid(InitTradeRequest request, byte[] signature, PubKeyRing makerPubKeyRing) {
-
-        // re-create trade request with signed fields
-        InitTradeRequest signedRequest = new InitTradeRequest(
-                request.getOfferId(),
-                request.getSenderNodeAddress(),
-                request.getPubKeyRing(),
-                request.getTradeAmount(),
-                request.getTradePrice(),
-                request.getAccountId(),
-                request.getPaymentAccountId(),
-                request.getPaymentMethodId(),
-                request.getUid(),
-                request.getMessageVersion(),
-                request.getAccountAgeWitnessSignatureOfOfferId(),
-                request.getCurrentDate(),
-                request.getMakerNodeAddress(),
-                request.getTakerNodeAddress(),
-                null,
-                null,
-                null,
-                null,
-                request.getPayoutAddress(),
-                null
-                );
-
-        // get trade request as string
-        String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
-
-        // verify maker signature
-        boolean isSignatureValid = isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
-        if (!isSignatureValid) {
-            log.warn("Invalid maker signature for trade request: " + request.getOfferId() + " from " + request.getSenderNodeAddress().getAddressForDisplay());
-            log.warn("Trade request as json: " + tradeRequestAsJson);
-            log.warn("Maker pub key ring: " + (makerPubKeyRing == null ? null : "..."));
-            log.warn("Maker signature: " + (signature == null ? null : Utilities.bytesAsHexString(signature)));
-        }
-        return isSignatureValid;
     }
 
     /**

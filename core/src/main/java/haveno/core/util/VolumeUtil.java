@@ -168,11 +168,11 @@ public class VolumeUtil {
     }
 
     public static String formatVolume(Volume volume, boolean appendCode) {
-        return formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()), appendCode);
+        return formatVolume(volume, volume == null ? null : getMonetaryFormat(volume.getCurrencyCode()), appendCode);
     }
 
     public static String formatAverageVolumeWithCode(Volume volume) {
-        return formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()).minDecimals(2), true);
+        return formatVolume(volume, volume == null ? null : getMonetaryFormat(volume.getCurrencyCode()).minDecimals(2), true);
     }
 
     public static String formatVolumeLabel(String currencyCode) {

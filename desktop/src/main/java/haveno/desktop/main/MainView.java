@@ -352,23 +352,24 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         settingsButtonWithBadge.getStyleClass().add("new");
 
         navigation.addListener((viewPath, data) -> {
-            if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0)
-                return;
+            UserThread.execute(() -> {
+                if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0) return;
 
-            Class<? extends View> viewClass = viewPath.tip();
-            View view = viewLoader.load(viewClass);
-            contentContainer.getChildren().setAll(view.getRoot());
+                Class<? extends View> viewClass = viewPath.tip();
+                View view = viewLoader.load(viewClass);
+                contentContainer.getChildren().setAll(view.getRoot());
 
-            try {
-                navButtons.getToggles().stream()
-                        .filter(toggle -> toggle instanceof NavButton)
-                        .filter(button -> viewClass == ((NavButton) button).viewClass)
-                        .findFirst()
-                        .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
-                        .setSelected(true);
-            } catch (HavenoException e) {
-                navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
-            }
+                try {
+                    navButtons.getToggles().stream()
+                            .filter(toggle -> toggle instanceof NavButton)
+                            .filter(button -> viewClass == ((NavButton) button).viewClass)
+                            .findFirst()
+                            .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
+                            .setSelected(true);
+                } catch (HavenoException e) {
+                    navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
+                }
+            });
         });
 
         VBox splashScreen = createSplashScreen();
@@ -516,7 +517,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             xmrSplashInfo.setId("splash-error-state-msg");
             xmrSplashInfo.getStyleClass().add("error-text");
         };
-        model.getWalletServiceErrorMsg().addListener(walletServiceErrorMsgListener);
+        model.getConnectionServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
         xmrSyncIndicator = new ProgressBar();
         xmrSyncIndicator.setPrefWidth(305);
@@ -625,7 +626,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     }
 
     private void disposeSplashScreen() {
-        model.getWalletServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
+        model.getConnectionServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
         model.getXmrSplashSyncIconId().removeListener(xmrSyncIconIdListener);
 
         model.getP2pNetworkWarnMsg().removeListener(splashP2PNetworkErrorMsgListener);
@@ -663,7 +664,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         //blockchainSyncIndicator.setMaxHeight(10);
         //blockchainSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
-        model.getWalletServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
+        model.getConnectionServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
                 xmrInfoLabel.setId("splash-error-state-msg");
                 xmrInfoLabel.getStyleClass().add("error-text");
@@ -679,7 +680,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         });
 
         model.getTopErrorMsg().addListener((ov, oldValue, newValue) -> {
-            log.warn("top level warning has been set! " + newValue);
+            log.warn("Top level warning: " + newValue);
             if (newValue != null) {
                 new Popup().warning(newValue).show();
             }

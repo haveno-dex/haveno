@@ -51,6 +51,13 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
 
+            // skip if reserve tx already created
+            if (openOffer.getReserveTxHash() != null && !openOffer.getReserveTxHash().isEmpty()) {
+                log.info("Reserve tx already created for offerId={}", openOffer.getShortId());
+                complete();
+                return;
+            }
+
             // verify monero connection
             model.getXmrWalletService().getConnectionService().verifyConnection();
 
@@ -59,7 +66,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             synchronized (XmrWalletService.WALLET_LOCK) {
 
                 // reset protocol timeout
-                verifyOpen();
+                verifyScheduled();
                 model.getProtocol().startTimeoutTimer();
 
                 // collect relevant info
@@ -72,22 +79,37 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
 
                 // attempt creating reserve tx
-                synchronized (HavenoUtils.getWalletFunctionLock()) {
-                    for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                        try {
-                            //if (true) throw new RuntimeException("Pretend error");
-                            reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
-                        } catch (Exception e) {
-                            log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
-                            if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                            HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                try {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                            try {
+                                //if (true) throw new RuntimeException("Pretend error");
+                                reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
+                            } catch (Exception e) {
+                                log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
+                                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                                model.getProtocol().startTimeoutTimer(); // reset protocol timeout
+                                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                            }
+        
+                            // verify still open
+                            verifyScheduled();
+                            if (reserveTx != null) break;
                         }
-    
-                        // verify still open
-                        verifyOpen();
-                        if (reserveTx != null) break;
                     }
+                } catch (Exception e) {
+
+                    // reset state with wallet lock
+                    model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
+                    if (reserveTx != null) {
+                        model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                    }
+
+                    throw e;
                 }
+
+                // reset protocol timeout
+                model.getProtocol().startTimeoutTimer();
 
                 // collect reserved key images
                 List<String> reservedKeyImages = new ArrayList<String>();
@@ -99,10 +121,6 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 openOffer.setReserveTxKey(reserveTx.getKey());
                 offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
             }
-
-            // reset protocol timeout
-            model.getProtocol().startTimeoutTimer();
-            model.setReserveTx(reserveTx);
             complete();
         } catch (Throwable t) {
             offer.setErrorMessage("An error occurred.\n" +
@@ -112,11 +130,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         }
     }
 
-    public void verifyOpen() {
-        if (!isOpen()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is no longer open");
-    }
-
-    public boolean isOpen() {
-        return model.getOpenOfferManager().getOpenOfferById(model.getOpenOffer().getId()).isPresent();
+    public void verifyScheduled() {
+        if (!model.getOpenOffer().isScheduled()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
     }
 }

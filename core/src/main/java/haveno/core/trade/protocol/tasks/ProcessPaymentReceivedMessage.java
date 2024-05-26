@@ -103,6 +103,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
             }
 
+            // advance state, arbitrator auto completes when payout published
+            trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+
             // publish signed witness
             SignedWitness signedWitness = message.getBuyerSignedWitness();
             if (signedWitness != null && trade instanceof BuyerTrade) {
@@ -113,7 +116,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // complete
-            trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // arbitrator auto completes when payout published
             trade.requestPersistence();
             complete();
         } catch (Throwable t) {

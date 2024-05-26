@@ -546,12 +546,16 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     private void updateXmrDaemonSyncProgress() {
         final DoubleProperty xmrDaemonSyncProgress = havenoSetup.getXmrDaemonSyncProgress();
-        combinedSyncProgress.set(xmrDaemonSyncProgress.doubleValue());
+        UserThread.execute(() -> {
+            combinedSyncProgress.set(xmrDaemonSyncProgress.doubleValue());
+        });
     }
     
     private void updateXmrWalletSyncProgress() {
         final DoubleProperty xmrWalletSyncProgress = havenoSetup.getXmrWalletSyncProgress();
-        combinedSyncProgress.set(xmrWalletSyncProgress.doubleValue());
+        UserThread.execute(() -> {
+            combinedSyncProgress.set(xmrWalletSyncProgress.doubleValue());
+        });
     }
 
     private void setupInvalidOpenOffersHandler() {
@@ -637,8 +641,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return combinedSyncProgress;
     }
 
-    StringProperty getWalletServiceErrorMsg() {
-        return havenoSetup.getWalletServiceErrorMsg();
+    StringProperty getConnectionServiceErrorMsg() {
+        return havenoSetup.getConnectionServiceErrorMsg();
     }
 
     StringProperty getTopErrorMsg() {

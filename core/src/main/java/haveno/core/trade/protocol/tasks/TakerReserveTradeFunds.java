@@ -81,7 +81,8 @@ public class TakerReserveTradeFunds extends TradeTask {
                     }
                 } catch (Exception e) {
 
-                    // thaw reserved inputs
+                    // reset state with wallet lock
+                    model.getXmrWalletService().resetAddressEntriesForTrade(trade.getId());
                     if (reserveTx != null) {
                         model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
                         trade.getSelf().setReserveTxKeyImages(null);
@@ -95,11 +96,14 @@ public class TakerReserveTradeFunds extends TradeTask {
                 trade.startProtocolTimeout();
 
                 // update trade state
+                trade.getTaker().setReserveTxHash(reserveTx.getHash());
+                trade.getTaker().setReserveTxHex(reserveTx.getFullHex());
+                trade.getTaker().setReserveTxKey(reserveTx.getKey());
                 trade.getTaker().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
             }
 
             // save process state
-            processModel.setReserveTx(reserveTx);
+            processModel.setReserveTx(reserveTx); // TODO: remove this? how is it used?
             processModel.getTradeManager().requestPersistence();
             trade.addInitProgressStep();
             complete();
