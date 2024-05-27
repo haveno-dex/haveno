@@ -48,12 +48,14 @@ import haveno.core.payment.validation.BICValidator;
 import haveno.core.payment.validation.CapitualValidator;
 import haveno.core.payment.validation.ChaseQuickPayValidator;
 import haveno.core.payment.validation.EmailOrMobileNrValidator;
+import haveno.core.payment.validation.EmailOrMobileNrOrCashtagValidator;
 import haveno.core.payment.validation.F2FValidator;
 import haveno.core.payment.validation.HalCashValidator;
 import haveno.core.payment.validation.InteracETransferValidator;
 import haveno.core.payment.validation.JapanBankTransferValidator;
 import haveno.core.payment.validation.LengthValidator;
 import haveno.core.payment.validation.MoneyBeamValidator;
+import haveno.core.payment.validation.NameOrUsernameOrEmailOrMobileNrValidator;
 import haveno.core.payment.validation.PerfectMoneyValidator;
 import haveno.core.payment.validation.PopmoneyValidator;
 import haveno.core.payment.validation.PromptPayValidator;
@@ -75,6 +77,7 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
+import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
@@ -94,6 +97,7 @@ import haveno.desktop.components.paymentmethods.NeftForm;
 import haveno.desktop.components.paymentmethods.NequiForm;
 import haveno.desktop.components.paymentmethods.PaxumForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
+import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
 import haveno.desktop.components.paymentmethods.PayseraForm;
 import haveno.desktop.components.paymentmethods.PaytmForm;
@@ -117,6 +121,7 @@ import haveno.desktop.components.paymentmethods.TransferwiseUsdForm;
 import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
+import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
@@ -158,6 +163,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
     private final EmailOrMobileNrValidator zelleValidator;
+    private final NameOrUsernameOrEmailOrMobileNrValidator paypalValidator;
+    private final NameOrUsernameOrEmailOrMobileNrValidator venmoValidator;
+    private final EmailOrMobileNrOrCashtagValidator cashAppValidator;
     private final ChaseQuickPayValidator chaseQuickPayValidator;
     private final InteracETransferValidator interacETransferValidator;
     private final JapanBankTransferValidator japanBankTransferValidator;
@@ -189,6 +197,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
                             EmailOrMobileNrValidator zelleValidator,
+                            EmailOrMobileNrOrCashtagValidator cashAppValidator,
+                            NameOrUsernameOrEmailOrMobileNrValidator nuemValidator,
                             ChaseQuickPayValidator chaseQuickPayValidator,
                             InteracETransferValidator interacETransferValidator,
                             JapanBankTransferValidator japanBankTransferValidator,
@@ -217,6 +227,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         this.perfectMoneyValidator = perfectMoneyValidator;
         this.swishValidator = swishValidator;
         this.zelleValidator = zelleValidator;
+        this.paypalValidator = nuemValidator;
+        this.venmoValidator = nuemValidator;
+        this.cashAppValidator = cashAppValidator;
         this.chaseQuickPayValidator = chaseQuickPayValidator;
         this.interacETransferValidator = interacETransferValidator;
         this.japanBankTransferValidator = japanBankTransferValidator;
@@ -624,6 +637,12 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new AchTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 return new DomesticWireTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYPAL_ID:
+                return new PayPalForm(paymentAccount, accountAgeWitnessService, paypalValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.VENMO_ID:
+                return new VenmoForm(paymentAccount, accountAgeWitnessService, venmoValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CASH_APP_ID:
+                return new CashAppForm(paymentAccount, accountAgeWitnessService, cashAppValidator, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
@@ -669,4 +688,3 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     }
 
 }
-

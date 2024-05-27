@@ -47,8 +47,10 @@ import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BizumAccount;
 import haveno.core.payment.CapitualAccount;
+import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
 import haveno.core.payment.ZelleAccount;
@@ -89,6 +91,7 @@ import haveno.core.payment.TransferwiseUsdAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.UpholdAccount;
 import haveno.core.payment.UpiAccount;
+import haveno.core.payment.VenmoAccount;
 import haveno.core.payment.VerseAccount;
 import haveno.core.payment.WeChatPayAccount;
 import haveno.core.payment.WesternUnionAccount;
@@ -194,10 +197,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
     public static final String OK_PAY_ID = "OK_PAY";
-    @Deprecated
+    // @Deprecated
     public static final String CASH_APP_ID = "CASH_APP"; // Removed due too high chargeback risk
-    @Deprecated
-    public static final String VENMO_ID = "VENMO";  // Removed due too high chargeback risk
+    // @Deprecated
+    public static final String VENMO_ID = "VENMO"; // Removed due too high chargeback risk
+    public static final String PAYPAL_ID = "PAYPAL";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -254,17 +258,24 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod ACH_TRANSFER;
     public static PaymentMethod DOMESTIC_WIRE_TRANSFER;
     public static PaymentMethod BSQ_SWAP;
+    public static PaymentMethod PAYPAL;
+    public static PaymentMethod CASH_APP;
+    public static PaymentMethod VENMO;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
     public static PaymentMethod OK_PAY = getDummyPaymentMethod(OK_PAY_ID);
-    @Deprecated
-    public static PaymentMethod CASH_APP = getDummyPaymentMethod(CASH_APP_ID); // Removed due too high chargeback risk
-    @Deprecated
-    public static PaymentMethod VENMO = getDummyPaymentMethod(VENMO_ID); // Removed due too high chargeback risk
+    // @Deprecated
+    // public static PaymentMethod CASH_APP = getDummyPaymentMethod(CASH_APP_ID); //
+    // Removed due too high chargeback risk
+    // @Deprecated
+    // public static PaymentMethod VENMO = getDummyPaymentMethod(VENMO_ID); //
+    // Removed due too high chargeback risk
 
-    // The limit and duration assignment must not be changed as that could break old offers (if amount would be higher
-    // than new trade limit) and violate the maker expectation when he created the offer (duration).
+    // The limit and duration assignment must not be changed as that could break old
+    // offers (if amount would be higher
+    // than new trade limit) and violate the maker expectation when he created the
+    // offer (duration).
     public final static List<PaymentMethod> paymentMethods = Arrays.asList(
             // EUR
             HAL_CASH = new PaymentMethod(HAL_CASH_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(HalCashAccount.SUPPORTED_CURRENCIES)),
@@ -343,7 +354,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
             // Cryptos with 1 hour trade period
-            BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
+            BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
+            PAYPAL = new PaymentMethod(PAYPAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayPalAccount.SUPPORTED_CURRENCIES)),
+            VENMO = new PaymentMethod(VENMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VenmoAccount.SUPPORTED_CURRENCIES)),
+            CASH_APP = new PaymentMethod(CASH_APP_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAppAccount.SUPPORTED_CURRENCIES))
     );
 
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private

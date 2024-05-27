@@ -87,6 +87,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
         INTERMEDIARY_SWIFT_CODE,
         MOBILE_NR,
         NATIONAL_ACCOUNT_ID,
+        NAME_OR_USERNAME_OR_EMAIL_OR_MOBILE_NR,
         PAYID,
         PIX_KEY,
         POSTAL_ADDRESS,

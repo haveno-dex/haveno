@@ -37,23 +37,22 @@ import java.util.Map;
 @Setter
 @Getter
 @Slf4j
-public final class VenmoAccountPayload extends PaymentAccountPayload {
+public final class PayPalAccountPayload extends PaymentAccountPayload {
     private String nameOrUsernameOrEmailOrMobileNr = "";
 
-    public VenmoAccountPayload(String paymentMethod, String id) {
+    public PayPalAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private VenmoAccountPayload(String paymentMethod,
-                                String id,
-                                String nameOrUsernameOrEmailOrMobileNr,
-                                long maxTradePeriod,
-                                Map<String, String> excludeFromJsonDataMap) {
+    private PayPalAccountPayload(String paymentMethod,
+            String id,
+            String nameOrUsernameOrEmailOrMobileNr,
+            long maxTradePeriod,
+            Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
                 id,
                 maxTradePeriod,
@@ -65,19 +64,18 @@ public final class VenmoAccountPayload extends PaymentAccountPayload {
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
-                .setVenmoAccountPayload(protobuf.VenmoAccountPayload.newBuilder()
+                .setPaypalAccountPayload(protobuf.PayPalAccountPayload.newBuilder()
                         .setNameOrUsernameOrEmailOrMobileNr(nameOrUsernameOrEmailOrMobileNr))
                 .build();
     }
 
-    public static VenmoAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
-        return new VenmoAccountPayload(proto.getPaymentMethodId(),
+    public static PayPalAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
+        return new PayPalAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
-                proto.getVenmoAccountPayload().getNameOrUsernameOrEmailOrMobileNr(),
+                proto.getPaypalAccountPayload().getNameOrUsernameOrEmailOrMobileNr(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
@@ -85,7 +83,7 @@ public final class VenmoAccountPayload extends PaymentAccountPayload {
 
     @Override
     public String getPaymentDetails() {
-        return Res.getWithCol("payment.venmo.NameOrUsernameOrEmailOrMobileNr") + " "
+        return Res.getWithCol("payment.paypal.paypalNameOrUsernameOrEmailOrMobileNr") + " "
                 + nameOrUsernameOrEmailOrMobileNr;
     }
 

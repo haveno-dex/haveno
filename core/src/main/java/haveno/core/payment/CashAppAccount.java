@@ -30,7 +30,6 @@ import java.util.List;
 
 // Removed due too high chargeback risk
 // Cannot be deleted as it would break old trade history entries
-@Deprecated
 @EqualsAndHashCode(callSuper = true)
 public final class CashAppAccount extends PaymentAccount {
 
@@ -56,11 +55,11 @@ public final class CashAppAccount extends PaymentAccount {
         throw new RuntimeException("Not implemented");
     }
 
-    public void setCashTag(String cashTag) {
-        ((CashAppAccountPayload) paymentAccountPayload).setCashTag(cashTag);
+    public void setEmailOrMobileNrOrCashtag(String emailOrMobileNrOrCashtag) {
+        ((CashAppAccountPayload) paymentAccountPayload).setEmailOrMobileNrOrCashtag(emailOrMobileNrOrCashtag);
     }
 
-    public String getCashTag() {
-        return ((CashAppAccountPayload) paymentAccountPayload).getCashTag();
+    public String getEmailOrMobileNrOrCashtag() {
+        return ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag();
     }
 }

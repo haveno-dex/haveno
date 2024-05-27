@@ -30,7 +30,7 @@ import java.util.List;
 
 // Removed due too high chargeback risk
 // Cannot be deleted as it would break old trade history entries
-@Deprecated
+// @Deprecated
 @EqualsAndHashCode(callSuper = true)
 public final class VenmoAccount extends PaymentAccount {
 
@@ -56,19 +56,12 @@ public final class VenmoAccount extends PaymentAccount {
         throw new RuntimeException("Not implemented");
     }
 
-    public void setVenmoUserName(String venmoUserName) {
-        ((VenmoAccountPayload) paymentAccountPayload).setVenmoUserName(venmoUserName);
+    public void setNameOrUsernameOrEmailOrMobileNr(String venmoNameOrUsernameOrEmailOrMobileNr) {
+        ((VenmoAccountPayload) paymentAccountPayload)
+                .setNameOrUsernameOrEmailOrMobileNr(venmoNameOrUsernameOrEmailOrMobileNr);
     }
 
-    public String getVenmoUserName() {
-        return ((VenmoAccountPayload) paymentAccountPayload).getVenmoUserName();
-    }
-
-    public void setHolderName(String holderName) {
-        ((VenmoAccountPayload) paymentAccountPayload).setHolderName(holderName);
-    }
-
-    public String getHolderName() {
-        return ((VenmoAccountPayload) paymentAccountPayload).getHolderName();
+    public String getNameOrUsernameOrEmailOrMobileNr() {
+        return ((VenmoAccountPayload) paymentAccountPayload).getNameOrUsernameOrEmailOrMobileNr();
     }
 }

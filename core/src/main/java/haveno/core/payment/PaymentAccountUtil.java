@@ -66,6 +66,7 @@ import static haveno.core.payment.payload.PaymentMethod.NATIONAL_BANK_ID;
 import static haveno.core.payment.payload.PaymentMethod.NEFT_ID;
 import static haveno.core.payment.payload.PaymentMethod.NEQUI_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAXUM_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAYPAL_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAYSERA_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAYTM_ID;
 import static haveno.core.payment.payload.PaymentMethod.PERFECT_MONEY_ID;
@@ -214,6 +215,8 @@ public class PaymentAccountUtil {
                 return USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES;
             case VENMO_ID:
                 return VenmoAccount.SUPPORTED_CURRENCIES;
+            case PAYPAL_ID:
+                return PayPalAccount.SUPPORTED_CURRENCIES;
             case JAPAN_BANK_ID:
                 return JapanBankAccount.SUPPORTED_CURRENCIES;
             case WECHAT_PAY_ID:
