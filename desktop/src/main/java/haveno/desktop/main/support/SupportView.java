@@ -35,6 +35,8 @@
 package haveno.desktop.main.support;
 
 import com.google.inject.Inject;
+
+import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
@@ -143,7 +145,7 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
-                loadView(viewPath.tip());
+                UserThread.execute(() -> loadView(viewPath.tip()));
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
