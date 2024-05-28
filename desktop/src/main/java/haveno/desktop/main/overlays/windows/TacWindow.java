@@ -41,7 +41,7 @@ public class TacWindow extends Overlay<TacWindow> {
             this.width = primaryScreenBoundsWidth * 0.8;
             log.warn("Very small screen: primaryScreenBounds=" + primaryScreenBounds.toString());
         } else {
-            width = 1100;
+            width = 1250;
         }
     }
 
@@ -78,7 +78,6 @@ public class TacWindow extends Overlay<TacWindow> {
                 "    - In case of arbitration, you must cooperate with the arbitrator and respond to each message within 48 hours.\n" +
                 "    - The arbitrator may penalize offer makers and traders for breaching Haveno rules and the principle of acting in good faith within the network, up to the value of the security deposit.\n";
         message(text);
-        showScrollPane();
         actionButtonText(Res.get("tacWindow.agree"));
         closeButtonText(Res.get("tacWindow.disagree"));
         onClose(HavenoApp.getShutDownHandler());
