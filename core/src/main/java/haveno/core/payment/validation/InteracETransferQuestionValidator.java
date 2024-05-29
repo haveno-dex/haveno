@@ -13,7 +13,7 @@ public class InteracETransferQuestionValidator extends InputValidator {
     public InteracETransferQuestionValidator(LengthValidator lengthValidator, RegexValidator regexValidator) {
 
         lengthValidator.setMinLength(1);
-        lengthValidator.setMaxLength(40);
+        lengthValidator.setMaxLength(160);
         this.lengthValidator = lengthValidator;
 
         regexValidator.setPattern("[A-Za-z0-9\\-\\_\\'\\,\\.\\? ]+");
