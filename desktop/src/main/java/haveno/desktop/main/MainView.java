@@ -352,24 +352,22 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         settingsButtonWithBadge.getStyleClass().add("new");
 
         navigation.addListener((viewPath, data) -> {
-            UserThread.execute(() -> {
-                if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0) return;
+            if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0) return;
 
-                Class<? extends View> viewClass = viewPath.tip();
-                View view = viewLoader.load(viewClass);
-                contentContainer.getChildren().setAll(view.getRoot());
+            Class<? extends View> viewClass = viewPath.tip();
+            View view = viewLoader.load(viewClass);
+            contentContainer.getChildren().setAll(view.getRoot());
 
-                try {
-                    navButtons.getToggles().stream()
-                            .filter(toggle -> toggle instanceof NavButton)
-                            .filter(button -> viewClass == ((NavButton) button).viewClass)
-                            .findFirst()
-                            .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
-                            .setSelected(true);
-                } catch (HavenoException e) {
-                    navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
-                }
-            });
+            try {
+                navButtons.getToggles().stream()
+                        .filter(toggle -> toggle instanceof NavButton)
+                        .filter(button -> viewClass == ((NavButton) button).viewClass)
+                        .findFirst()
+                        .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
+                        .setSelected(true);
+            } catch (HavenoException e) {
+                navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
+            }
         });
 
         VBox splashScreen = createSplashScreen();
