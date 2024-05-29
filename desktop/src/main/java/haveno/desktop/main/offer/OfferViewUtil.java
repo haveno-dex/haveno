@@ -29,7 +29,6 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.offer.offerbook.XmrOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
-import haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
@@ -90,10 +89,8 @@ public class OfferViewUtil {
 
     public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+        if ("XMR".equals(currencyCode)) {
             offerBookViewClazz = XmrOfferBookView.class;
-        } else if (currencyCode.equals(GUIUtil.TOP_CRYPTO.getCode())) {
-            offerBookViewClazz = TopCryptoOfferBookView.class;
         } else {
             offerBookViewClazz = OtherOfferBookView.class;
         }
