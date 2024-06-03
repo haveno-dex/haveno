@@ -888,13 +888,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     P2PService.getMyNodeAddress(),
                     null);
         }
-
         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
         trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
         trade.getMaker().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
         trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
         trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
         trade.getSelf().setPaymentAccountId(paymentAccountId);
+        trade.getSelf().setPaymentMethodId(user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId());
 
         // initialize trade protocol
         TradeProtocol tradeProtocol = createTradeProtocol(trade);
