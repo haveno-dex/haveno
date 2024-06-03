@@ -54,8 +54,6 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
             User user = processModel.getUser();
             P2PService p2PService = processModel.getP2PService();
             XmrWalletService walletService = model.getXmrWalletService();
-            String paymentAccountId = trade.getSelf().getPaymentAccountId();
-            String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
@@ -67,7 +65,7 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
                     offer.getId(),
                     trade.getAmount().longValueExact(),
                     trade.getPrice().getValue(),
-                    paymentMethodId,
+                    trade.getSelf().getPaymentMethodId(),
                     null,
                     user.getAccountId(),
                     trade.getMaker().getPaymentAccountId(),

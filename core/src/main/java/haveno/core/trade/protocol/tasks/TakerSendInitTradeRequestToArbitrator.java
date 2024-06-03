@@ -57,7 +57,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
                     offer.getId(),
                     trade.getAmount().longValueExact(),
                     trade.getPrice().getValue(),
-                    offer.getOfferPayload().getPaymentMethodId(),
+                    trade.getSelf().getPaymentMethodId(),
                     trade.getMaker().getAccountId(),
                     trade.getTaker().getAccountId(),
                     trade.getMaker().getPaymentAccountId(),
