@@ -352,7 +352,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         settingsButtonWithBadge.getStyleClass().add("new");
 
         navigation.addListener((viewPath, data) -> {
-            UserThread.execute(() -> {
+            UserThread.await(() -> {
                 if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0) return;
 
                 Class<? extends View> viewClass = viewPath.tip();
