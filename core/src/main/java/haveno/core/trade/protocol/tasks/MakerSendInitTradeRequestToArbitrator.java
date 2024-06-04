@@ -138,7 +138,7 @@ public class MakerSendInitTradeRequestToArbitrator extends TradeTask {
                 trade.getSelf().getReserveTxHash(),
                 trade.getSelf().getReserveTxHex(),
                 trade.getSelf().getReserveTxKey(),
-                model.getXmrWalletService().getAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString());
+                model.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString());
 
         // send request to arbitrator
         log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getOfferId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
