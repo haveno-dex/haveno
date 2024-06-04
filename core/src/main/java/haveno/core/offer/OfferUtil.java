@@ -35,6 +35,7 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
+import static haveno.core.offer.OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.CAPABILITIES;
 import static haveno.core.offer.OfferPayload.F2F_CITY;
 import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
@@ -42,6 +43,8 @@ import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.REFERRAL_ID;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
+
+import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PaymentAccount;
@@ -195,6 +198,10 @@ public class OfferUtil {
 
         if (paymentAccount instanceof PayByMailAccount) {
             extraDataMap.put(PAY_BY_MAIL_EXTRA_INFO, ((PayByMailAccount) paymentAccount).getExtraInfo());
+        }
+
+        if (paymentAccount instanceof AustraliaPayidAccount) {
+            extraDataMap.put(AUSTRALIA_PAYID_EXTRA_INFO, ((AustraliaPayidAccount) paymentAccount).getExtraInfo());
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());

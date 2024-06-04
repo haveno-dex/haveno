@@ -158,7 +158,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
-            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed;
+            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed, australiaPayidWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
@@ -267,6 +267,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
         maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowCashAtAtmWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowAustraliaPayidWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
             nextButton.setVisible(false);
@@ -1126,6 +1127,23 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_AT_ATM_ID) &&
                 !cashAtAtmWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
             cashAtAtmWarningDisplayed = true;
+            UserThread.runAfter(() -> {
+                new GenericMessageWindow()
+                        .preamble(Res.get("payment.tradingRestrictions"))
+                        .instruction(offer.getExtraInfo())
+                        .actionButtonText(Res.get("shared.iConfirm"))
+                        .closeButtonText(Res.get("shared.close"))
+                        .width(Layout.INITIAL_WINDOW_WIDTH)
+                        .onClose(() -> close(false))
+                        .show();
+            }, 500, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void maybeShowAustraliaPayidWarning(PaymentAccount paymentAccount, Offer offer) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.AUSTRALIA_PAYID_ID) &&
+                !australiaPayidWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
+            australiaPayidWarningDisplayed = true;
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
                         .preamble(Res.get("payment.tradingRestrictions"))

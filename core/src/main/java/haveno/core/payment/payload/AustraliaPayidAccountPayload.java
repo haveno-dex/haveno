@@ -38,6 +38,7 @@ import java.util.Map;
 public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
     private String payid = "";
     private String bankAccountName = "";
+    private String extraInfo = "";
 
     public AustraliaPayidAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -52,6 +53,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                                          String id,
                                          String payid,
                                          String bankAccountName,
+                                         String extraInfo,
                                          long maxTradePeriod,
                                          Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -61,6 +63,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
 
         this.payid = payid;
         this.bankAccountName = bankAccountName;
+        this.extraInfo = extraInfo;
     }
 
     @Override
@@ -70,6 +73,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                         protobuf.AustraliaPayidPayload.newBuilder()
                                 .setPayid(payid)
                                 .setBankAccountName(bankAccountName)
+                                .setExtraInfo(extraInfo)
                 ).build();
     }
 
@@ -79,6 +83,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                 proto.getId(),
                 AustraliaPayidPayload.getPayid(),
                 AustraliaPayidPayload.getBankAccountName(),
+                AustraliaPayidPayload.getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 CollectionUtils.isEmpty(proto.getExcludeFromJsonDataMap()) ? null : new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -97,7 +102,8 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
     public String getPaymentDetailsForTradePopup() {
         return
                 Res.get("payment.australia.payid") + ": " + payid + "\n" +
-                        Res.get("payment.account.owner") + ": " + bankAccountName;
+                        Res.get("payment.account.owner") + ": " + bankAccountName + "\n" +
+                        Res.get("payment.shared.extraInfo") + ": " + extraInfo;
     }
 
 
