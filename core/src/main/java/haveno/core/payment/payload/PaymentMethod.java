@@ -363,7 +363,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SWIFT_ID,
                 TRANSFERWISE_ID,
                 UPHOLD_ID,
-                ZELLE_ID);
+                ZELLE_ID,
+                AUSTRALIA_PAYID_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 

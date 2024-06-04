@@ -29,11 +29,16 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.FormBuilder;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
+
+import com.jfoenix.controls.JFXTextArea;
 
 public class AustraliaPayidForm extends PaymentMethodForm {
     private final AustraliaPayidAccount australiaPayidAccount;
@@ -42,8 +47,15 @@ public class AustraliaPayidForm extends PaymentMethodForm {
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
                 ((AustraliaPayidAccountPayload) paymentAccountPayload).getBankAccountName());
+
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.payid"),
                 ((AustraliaPayidAccountPayload) paymentAccountPayload).getPayid());
+
+        AustraliaPayidAccountPayload payId = (AustraliaPayidAccountPayload) paymentAccountPayload;
+        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
+        textExtraInfo.setMinHeight(70);
+        textExtraInfo.setEditable(false);
+        textExtraInfo.setText(payId.getExtraInfo());
         return gridRow;
     }
 
@@ -78,6 +90,15 @@ public class AustraliaPayidForm extends PaymentMethodForm {
             updateFromInputs();
         });
 
+        TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt")).second;
+        extraTextArea.setMinHeight(70);
+        ((JFXTextArea) extraTextArea).setLabelFloat(false);
+        extraTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
+            australiaPayidAccount.setExtraInfo(newValue);
+            updateFromInputs();
+        });
+
         TradeCurrency singleTradeCurrency = australiaPayidAccount.getSingleTradeCurrency();
         String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "null";
         addTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"), nameAndCode);
@@ -96,11 +117,19 @@ public class AustraliaPayidForm extends PaymentMethodForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(australiaPayidAccount.getPaymentMethod().getId()));
+
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.payid"),
                 australiaPayidAccount.getPayid());
+
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
                 australiaPayidAccount.getBankAccountName()).second;
         field.setMouseTransparent(false);
+
+        TextArea textAreaExtra = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
+        textAreaExtra.setText(australiaPayidAccount.getExtraInfo());
+        textAreaExtra.setMinHeight(70);
+        textAreaExtra.setEditable(false);
+
         TradeCurrency singleTradeCurrency = australiaPayidAccount.getSingleTradeCurrency();
         String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "null";
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"), nameAndCode);
