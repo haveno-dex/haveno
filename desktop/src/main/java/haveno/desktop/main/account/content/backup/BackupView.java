@@ -18,6 +18,7 @@
 package haveno.desktop.main.account.content.backup;
 
 import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
@@ -27,6 +28,7 @@ import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -40,6 +42,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
@@ -125,31 +129,54 @@ public class BackupView extends ActivatableView<GridPane, Void> {
         openFileOrShowWarning(openLogsButton, logFile);
 
         backupNow.setOnAction(event -> {
-            String backupDirectory = preferences.getBackupDirectory();
-            if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
-                PersistenceManager.flushAllDataToDiskAtBackup(() -> {
-                    try {
 
-                        // copy data directory to backup directory
-                        String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
-                        String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
-                        File destinationFile = new File(destination);
-                        FileUtil.copyDirectory(dataDir, new File(destination));
-
-                        // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
-                        File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
-                        if (monerod.exists()) monerod.delete();
-                        File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
-                        if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
-                        new Popup().feedback(Res.get("account.backup.success", destination)).show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        log.error(e.getMessage());
-                        showWrongPathWarningAndReset(e);
-                    }
-                });
+            // windows requires closing wallets for read access
+            if (Utilities.isWindows()) {
+                new Popup().information(Res.get("settings.net.needRestart"))
+                    .actionButtonText(Res.get("shared.applyAndShutDown"))
+                    .onAction(() -> {
+                        UserThread.runAfter(() -> {
+                            HavenoApp.setOnGracefulShutDownHandler(() -> doBackup());
+                            HavenoApp.getShutDownHandler().run();
+                        }, 500, TimeUnit.MILLISECONDS);
+                    })
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> {
+                        // nothing to do
+                    })
+                    .show();
+            } else {
+                doBackup();
             }
         });
+    }
+
+    private void doBackup() {
+        log.info("Backing up data directory");
+        String backupDirectory = preferences.getBackupDirectory();
+        if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
+            PersistenceManager.flushAllDataToDiskAtBackup(() -> {
+                try {
+
+                    // copy data directory to backup directory
+                    String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
+                    String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
+                    File destinationFile = new File(destination);
+                    FileUtil.copyDirectory(dataDir, new File(destination));
+
+                    // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
+                    File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
+                    if (monerod.exists()) monerod.delete();
+                    File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
+                    if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
+                    new Popup().feedback(Res.get("account.backup.success", destination)).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    log.error(e.getMessage());
+                    showWrongPathWarningAndReset(e);
+                }
+            });
+        }
     }
 
     private void openFileOrShowWarning(Button button, File dataDir) {
