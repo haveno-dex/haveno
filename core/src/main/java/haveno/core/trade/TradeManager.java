@@ -659,7 +659,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (!sender.equals(request.getTakerNodeAddress())) {
                     if (sender.equals(request.getMakerNodeAddress())) {
                         log.warn("Received InitTradeRequest from maker to arbitrator for trade that is already initializing, tradeId={}, sender={}", request.getOfferId(), sender);
-                        sendAckMessage(sender, trade.getMaker().getPubKeyRing(), request, false, "Trade is already initializing for " + getClass().getSimpleName() + " " + trade.getId());
+                        sendAckMessage(sender, trade.getMaker().getPubKeyRing(), request, false, "Trade is already initializing for " + trade.getClass().getSimpleName() + " " + trade.getId());
                     } else {
                         log.warn("Ignoring InitTradeRequest from non-taker, tradeId={}, sender={}", request.getOfferId(), sender);
                     }
