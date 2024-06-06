@@ -221,7 +221,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         processModel.getP2PService().sendEncryptedDirectMessage(nodeAddress, pubKeyRing, response, new SendDirectMessageListener() {
             @Override
             public void onArrived() {
-                log.info("{} arrived: trading peer={}; offerId={}; uid={}", response.getClass().getSimpleName(), nodeAddress, trade.getId());
+                log.info("{} arrived: trading peer={}; offerId={}; uid={}", response.getClass().getSimpleName(), nodeAddress, trade.getId(), trade.getUid());
             }
             @Override
             public void onFault(String errorMessage) {
