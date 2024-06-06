@@ -364,7 +364,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.onShutDownStarted();
             } catch (Exception e) {
                 if (e.getMessage() != null && e.getMessage().contains("Connection reset")) return; // expected if shut down with ctrl+c
-                log.warn("Error notifying {} {} that shut down started {}", getClass().getSimpleName(), trade.getId());
+                log.warn("Error notifying {} {} that shut down started {}", trade.getClass().getSimpleName(), trade.getId());
                 e.printStackTrace();
             }
         });
