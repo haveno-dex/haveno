@@ -1268,6 +1268,18 @@ public class XmrWalletService {
 
     private void initialize() {
 
+        // try to load native monero library
+        if (useNativeXmrWallet && !MoneroUtils.isNativeLibraryLoaded()) {
+            try {
+                MoneroUtils.loadNativeLibrary();
+            } catch (Exception | UnsatisfiedLinkError e) {
+                log.warn("Failed to load Monero native libraries: " + e.getMessage());
+            }
+        }
+        String appliedMsg = "Monero native libraries applied: " + isNativeLibraryApplied();
+        if (useNativeXmrWallet && !isNativeLibraryApplied()) log.warn(appliedMsg);
+        else log.info(appliedMsg);
+
         // listen for connection changes
         xmrConnectionService.addConnectionListener(connection -> {
 
@@ -1290,18 +1302,6 @@ public class XmrWalletService {
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
         xmrConnectionService.downloadPercentageProperty().addListener(walletInitListener);
         initMainWalletIfConnected();
-
-        // try to load native monero library
-        if (useNativeXmrWallet && !MoneroUtils.isNativeLibraryLoaded()) {
-            try {
-                MoneroUtils.loadNativeLibrary();
-            } catch (Exception | UnsatisfiedLinkError e) {
-                log.warn("Failed to load Monero native libraries: " + e.getMessage());
-            }
-        }
-        String appliedMsg = "Monero native libraries applied: " + isNativeLibraryApplied();
-        if (useNativeXmrWallet && !isNativeLibraryApplied()) log.warn(appliedMsg);
-        else log.info(appliedMsg);
     }
 
     private void initMainWalletIfConnected() {
