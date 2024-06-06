@@ -122,6 +122,7 @@ class TransactionsListItem {
                 if (trade.getSelf().getDepositTxHash() != null &&
                         trade.getSelf().getDepositTxHash().equals(txId)) {
                     details = Res.get("funds.tx.multiSigDeposit", tradeId);
+                    addressString = trade.getProcessModel().getMultisigAddress();
                 } else if (trade.getPayoutTxId() != null &&
                         trade.getPayoutTxId().equals(txId)) {
                     details = Res.get("funds.tx.multiSigPayout", tradeId);
