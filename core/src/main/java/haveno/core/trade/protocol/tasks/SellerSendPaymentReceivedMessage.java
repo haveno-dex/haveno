@@ -50,7 +50,7 @@ import haveno.network.p2p.NodeAddress;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
@@ -85,7 +85,6 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        checkNotNull(trade.getPayoutTxHex(), "Payout tx must not be null");
         if (getReceiver().getPaymentReceivedMessage() == null) {
 
             // sign account witness
@@ -104,14 +103,15 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                     tradeId,
                     processModel.getMyNodeAddress(),
                     deterministicId,
-                    trade.isPayoutPublished() ? null : trade.getPayoutTxHex(), // unsigned
-                    trade.isPayoutPublished() ? trade.getPayoutTxHex() : null, // signed
+                    trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null, // unsigned // TODO: phase in after next update to clear old style trades
+                    trade.getPayoutTxHex() == null ? null : trade.getPayoutTxHex(), // signed
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
                     trade.getTradePeer().getAccountAgeWitness(),
                     signedWitness,
                     getReceiver() == trade.getArbitrator() ? trade.getBuyer().getPaymentSentMessage() : null // buyer already has payment sent message
             );
+            checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "PaymentReceivedMessage does not include payout tx hex");
 
             // sign message
             try {

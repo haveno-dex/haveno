@@ -45,7 +45,6 @@ import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -132,6 +131,14 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
     private void processPayoutTx(PaymentReceivedMessage message) {
 
+        // adapt from 1.0.6 to 1.0.7 which changes field usage
+        // TODO: remove after future updates to allow old trades to clear
+        if (trade.getPayoutTxHex() != null && trade.getBuyer().getPaymentSentMessage() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
+            log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            if (trade instanceof BuyerTrade) trade.getSelf().setUnsignedPayoutTxHex(trade.getPayoutTxHex());
+            trade.setPayoutTxHex(null);
+        }
+
         // update wallet
         trade.importMultisigHex();
         trade.syncAndPollWallet();
@@ -160,11 +167,11 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     try {
                         PaymentSentMessage paymentSentMessage = (trade.isArbitrator() ? trade.getBuyer() : trade.getArbitrator()).getPaymentSentMessage();
                         if (paymentSentMessage == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
-                        if (StringUtils.equals(trade.getPayoutTxHex(), paymentSentMessage.getPayoutTxHex())) { // unsigned
+                        if (trade.getPayoutTxHex() == null) { // unsigned
                             log.info("{} {} verifying, signing, and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.processPayoutTx(message.getUnsignedPayoutTxHex(), true, true);
                         } else {
-                            log.info("{} {} re-verifying and publishing payout tx", trade.getClass().getSimpleName(), trade.getId());
+                            log.info("{} {} re-verifying and publishing signed payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (Exception e) {

@@ -482,7 +482,7 @@ public abstract class Trade implements Tradable, Model {
     @Nullable
     @Getter
     @Setter
-    private String payoutTxHex;
+    private String payoutTxHex; // signed payout tx hex
     @Getter
     @Setter
     private String payoutTxKey;
@@ -1230,8 +1230,9 @@ public abstract class Trade implements Tradable, Model {
 
             // sign tx
             MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
             payoutTxHex = result.getSignedMultisigTxHex();
+            setPayoutTxHex(payoutTxHex);
 
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
@@ -1247,8 +1248,8 @@ public abstract class Trade implements Tradable, Model {
         }
 
         // update trade state
-        setPayoutTx(payoutTx);
-        setPayoutTxHex(payoutTxHex);
+        updatePayout(payoutTx);
+        requestPersistence();
 
         // submit payout tx
         if (publish) {
@@ -1692,7 +1693,7 @@ public abstract class Trade implements Tradable, Model {
         getVolumeProperty().set(getVolume());
     }
 
-    public void setPayoutTx(MoneroTxWallet payoutTx) {
+    public void updatePayout(MoneroTxWallet payoutTx) {
 
         // set payout tx fields
         this.payoutTx = payoutTx;
@@ -2467,7 +2468,7 @@ public abstract class Trade implements Tradable, Model {
                     // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
                     for (MoneroTxWallet tx : txs) {
                         if (tx.isOutgoing() && !tx.isFailed()) {
-                            setPayoutTx(tx);
+                            updatePayout(tx);
                             setPayoutStatePublished();
                             if (tx.isConfirmed()) setPayoutStateConfirmed();
                             if (!tx.isLocked()) setPayoutStateUnlocked();

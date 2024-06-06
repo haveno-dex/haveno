@@ -120,7 +120,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                     trade.getCounterCurrencyTxId(),
                     trade.getCounterCurrencyExtraData(),
                     deterministicId,
-                    trade.getPayoutTxHex(),
+                    trade.getSelf().getUnsignedPayoutTxHex(),
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getSelf().getPaymentAccountKey(),
                     trade.getTradePeer().getAccountAgeWitness()
