@@ -28,16 +28,19 @@ import haveno.core.locale.Res;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
+import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.MoneyGramAccount;
 import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
+import haveno.core.payment.VenmoAccount;
 import haveno.core.payment.WesternUnionAccount;
 import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.payload.PaymentMethod;
@@ -48,6 +51,8 @@ import haveno.core.payment.validation.BICValidator;
 import haveno.core.payment.validation.CapitualValidator;
 import haveno.core.payment.validation.ChaseQuickPayValidator;
 import haveno.core.payment.validation.EmailOrMobileNrValidator;
+import haveno.core.payment.validation.EmailOrMobileNrOrCashtagValidator;
+import haveno.core.payment.validation.EmailOrMobileNrOrUsernameValidator;
 import haveno.core.payment.validation.F2FValidator;
 import haveno.core.payment.validation.HalCashValidator;
 import haveno.core.payment.validation.InteracETransferValidator;
@@ -75,6 +80,7 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
+import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
@@ -94,6 +100,7 @@ import haveno.desktop.components.paymentmethods.NeftForm;
 import haveno.desktop.components.paymentmethods.NequiForm;
 import haveno.desktop.components.paymentmethods.PaxumForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
+import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
 import haveno.desktop.components.paymentmethods.PayseraForm;
 import haveno.desktop.components.paymentmethods.PaytmForm;
@@ -117,6 +124,7 @@ import haveno.desktop.components.paymentmethods.TransferwiseUsdForm;
 import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
+import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
@@ -158,6 +166,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
     private final EmailOrMobileNrValidator zelleValidator;
+    private final EmailOrMobileNrOrUsernameValidator paypalValidator;
+    private final EmailOrMobileNrOrUsernameValidator venmoValidator;
+    private final EmailOrMobileNrOrCashtagValidator cashAppValidator;
     private final ChaseQuickPayValidator chaseQuickPayValidator;
     private final InteracETransferValidator interacETransferValidator;
     private final JapanBankTransferValidator japanBankTransferValidator;
@@ -189,6 +200,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
                             EmailOrMobileNrValidator zelleValidator,
+                            EmailOrMobileNrOrCashtagValidator cashAppValidator,
+                            EmailOrMobileNrOrUsernameValidator emailMobileUsernameValidator,
                             ChaseQuickPayValidator chaseQuickPayValidator,
                             InteracETransferValidator interacETransferValidator,
                             JapanBankTransferValidator japanBankTransferValidator,
@@ -217,6 +230,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         this.perfectMoneyValidator = perfectMoneyValidator;
         this.swishValidator = swishValidator;
         this.zelleValidator = zelleValidator;
+        this.paypalValidator = emailMobileUsernameValidator;
+        this.venmoValidator = emailMobileUsernameValidator;
+        this.cashAppValidator = cashAppValidator;
         this.chaseQuickPayValidator = chaseQuickPayValidator;
         this.interacETransferValidator = interacETransferValidator;
         this.japanBankTransferValidator = japanBankTransferValidator;
@@ -358,6 +374,27 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                         } else if (paymentAccount instanceof AmazonGiftCardAccount) {
                             new Popup().information(Res.get("payment.amazonGiftCard.info", currencyName, currencyName))
                                     .width(900)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
+                        } else if (paymentAccount instanceof CashAppAccount) {
+                            new Popup().warning(Res.get("payment.cashapp.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
+                        } else if (paymentAccount instanceof VenmoAccount) {
+                            new Popup().warning(Res.get("payment.venmo.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
+                        } else if (paymentAccount instanceof PayPalAccount) {
+                            new Popup().warning(Res.get("payment.paypal.info"))
+                                    .width(700)
                                     .closeButtonText(Res.get("shared.cancel"))
                                     .actionButtonText(Res.get("shared.iUnderstand"))
                                     .onAction(() -> doSaveNewAccount(paymentAccount))
@@ -624,6 +661,12 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new AchTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 return new DomesticWireTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYPAL_ID:
+                return new PayPalForm(paymentAccount, accountAgeWitnessService, paypalValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.VENMO_ID:
+                return new VenmoForm(paymentAccount, accountAgeWitnessService, venmoValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CASH_APP_ID:
+                return new CashAppForm(paymentAccount, accountAgeWitnessService, cashAppValidator, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
@@ -669,4 +712,3 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     }
 
 }
-
