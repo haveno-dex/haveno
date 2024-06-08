@@ -91,7 +91,7 @@ public final class SatispayAccountPayload extends CountryBasedPaymentAccountPayl
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.userName") + " " + holderName;
+        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.username") + " " + holderName;
     }
 
     @Override

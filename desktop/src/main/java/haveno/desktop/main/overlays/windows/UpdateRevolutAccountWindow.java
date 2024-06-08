@@ -66,7 +66,7 @@ public class UpdateRevolutAccountWindow extends Overlay<UpdateRevolutAccountWind
 
     private void addContent() {
         addLabel(gridPane, ++rowIndex, Res.get("payment.account.revolut.addUserNameInfo", Res.get("payment.revolut.info"), revolutAccount.getAccountName()));
-        userNameInputTextField = addInputTextField(gridPane, ++rowIndex, Res.get("payment.account.userName"), Layout.COMPACT_FIRST_ROW_DISTANCE);
+        userNameInputTextField = addInputTextField(gridPane, ++rowIndex, Res.get("payment.account.username"), Layout.COMPACT_FIRST_ROW_DISTANCE);
         userNameInputTextField.setValidator(revolutValidator);
         userNameInputTextField.textProperty().addListener((observable, oldValue, newValue) ->
                 actionButton.setDisable(!revolutValidator.validate(newValue).isValid));
@@ -81,7 +81,7 @@ public class UpdateRevolutAccountWindow extends Overlay<UpdateRevolutAccountWind
         actionButton.setOnAction(event -> {
             String userName = userNameInputTextField.getText();
             if (revolutValidator.validate(userName).isValid) {
-                revolutAccount.setUserName(userName);
+                revolutAccount.setUsername(userName);
                 user.requestPersistence();
                 closeHandlerOptional.ifPresent(Runnable::run);
                 hide();

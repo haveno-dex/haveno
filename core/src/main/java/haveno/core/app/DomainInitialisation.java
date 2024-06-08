@@ -217,7 +217,7 @@ public class DomainInitialisation {
             revolutAccountsUpdateHandler.accept(user.getPaymentAccountsAsObservable().stream()
                     .filter(paymentAccount -> paymentAccount instanceof RevolutAccount)
                     .map(paymentAccount -> (RevolutAccount) paymentAccount)
-                    .filter(RevolutAccount::userNameNotSet)
+                    .filter(RevolutAccount::usernameNotSet)
                     .collect(Collectors.toList()));
         }
         if (amazonGiftCardAccountsUpdateHandler != null && user.getPaymentAccountsAsObservable() != null) {

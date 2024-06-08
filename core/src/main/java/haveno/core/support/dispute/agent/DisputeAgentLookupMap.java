@@ -45,7 +45,7 @@ public class DisputeAgentLookupMap {
             case "6c4cim7h7t3bm4bnchbf727qrhdfrfr6lhod25wjtizm2sifpkktvwad.onion:9999":
                 return "pazza83";
             default:
-                log.warn("No user name for dispute agent with address {} found.", fullAddress);
+                log.warn("No username for dispute agent with address {} found.", fullAddress);
                 return Res.get("shared.na");
         }
     }

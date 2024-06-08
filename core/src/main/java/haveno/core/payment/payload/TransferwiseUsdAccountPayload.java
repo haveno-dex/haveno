@@ -96,7 +96,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.userName") + " " + holderName;
+        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.username") + " " + holderName;
     }
 
     @Override

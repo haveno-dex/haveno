@@ -32,7 +32,7 @@ import java.util.List;
 public final class RevolutAccount extends PaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
-            PaymentAccountFormField.FieldId.USER_NAME,
+            PaymentAccountFormField.FieldId.USERNAME,
             PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.SALT
@@ -82,16 +82,16 @@ public final class RevolutAccount extends PaymentAccount {
         return new RevolutAccountPayload(paymentMethod.getId(), id);
     }
 
-    public void setUserName(String userName) {
-        revolutAccountPayload().setUserName(userName);
+    public void setUsername(String userame) {
+        revolutAccountPayload().setUserName(userame);
     }
 
-    public String getUserName() {
-        return (revolutAccountPayload()).getUserName();
+    public String getUsername() {
+        return (revolutAccountPayload()).getUsername();
     }
 
-    public boolean userNameNotSet() {
-        return (revolutAccountPayload()).userNameNotSet();
+    public boolean usernameNotSet() {
+        return (revolutAccountPayload()).usernameNotSet();
     }
 
     private RevolutAccountPayload revolutAccountPayload() {

@@ -86,6 +86,8 @@ public class PaymentAccountFactory {
                 return new TransferwiseAccount();
             case PaymentMethod.TRANSFERWISE_USD_ID:
                 return new TransferwiseUsdAccount();
+            case PaymentMethod.PAYPAL_ID:
+                return new PayPalAccount();
             case PaymentMethod.PAYSERA_ID:
                 return new PayseraAccount();
             case PaymentMethod.PAXUM_ID:

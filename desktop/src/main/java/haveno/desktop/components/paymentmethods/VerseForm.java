@@ -39,7 +39,7 @@ public class VerseForm extends PaymentMethodForm {
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.userName"),
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.username"),
                 ((VerseAccountPayload) paymentAccountPayload).getHolderName());
         return gridRow;
     }
@@ -55,7 +55,7 @@ public class VerseForm extends PaymentMethodForm {
     public void addFormForAddAccount() {
         gridRowFrom = gridRow + 1;
 
-        InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.userName"));
+        InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.username"));
         holderNameInputTextField.setValidator(inputValidator);
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             account.setHolderName(newValue.trim());
@@ -92,7 +92,7 @@ public class VerseForm extends PaymentMethodForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(account.getPaymentMethod().getId()));
-        TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.userName"),
+        TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.username"),
                 account.getHolderName()).second;
         field.setMouseTransparent(false);
         addLimitations(true);

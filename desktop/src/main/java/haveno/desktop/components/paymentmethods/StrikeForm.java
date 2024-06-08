@@ -41,7 +41,7 @@ public class StrikeForm extends PaymentMethodForm {
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        addTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.account.userName"),
+        addTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.account.username"),
                 ((StrikeAccountPayload) paymentAccountPayload).getHolderName(), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
         return gridRow;
     }
@@ -60,7 +60,7 @@ public class StrikeForm extends PaymentMethodForm {
 
         gridRowFrom = gridRow + 1;
 
-        InputTextField holderNameField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.userName"));
+        InputTextField holderNameField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.username"));
         holderNameField.setValidator(inputValidator);
         holderNameField.textProperty().addListener((ov, oldValue, newValue) -> {
             account.setHolderName(newValue.trim());
@@ -84,7 +84,7 @@ public class StrikeForm extends PaymentMethodForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(account.getPaymentMethod().getId()));
-        TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.userName"),
+        TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.username"),
                 account.getHolderName()).second;
         field.setMouseTransparent(false);
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"), account.getSingleTradeCurrency().getNameAndCode());

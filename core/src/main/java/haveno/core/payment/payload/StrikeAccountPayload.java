@@ -86,7 +86,7 @@ public final class StrikeAccountPayload extends CountryBasedPaymentAccountPayloa
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.userName") + " " + holderName;
+        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.username") + " " + holderName;
     }
 
     @Override
