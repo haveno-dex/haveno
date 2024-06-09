@@ -93,6 +93,7 @@ public final class XmrConnectionService {
 
     private boolean isInitialized;
     private boolean pollInProgress;
+    private boolean connectionFallBack;
     private MoneroDaemonRpc daemon;
     private Boolean isConnected = false;
     @Getter
@@ -449,8 +450,8 @@ public final class XmrConnectionService {
                     }
                 } else {
 
-                    // add default connections
-                    for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
+                    // add preferred connections or fallback to provided nodes
+                    for (XmrNode node : connectionFallBack ? xmrNodes.getProvidedXmrNodes() : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
                         if (node.hasClearNetAddress()) {
                             MoneroRpcConnection connection = new MoneroRpcConnection(node.getAddress() + ":" + node.getPort()).setPriority(node.getPriority());
                             addConnection(connection);
@@ -558,6 +559,7 @@ public final class XmrConnectionService {
         // update polling
         doPollDaemon();
         UserThread.runAfter(() -> updatePolling(), getRefreshPeriodMs() / 1000);
+        if (connectionFallBack) return;
 
         // notify listeners in parallel
         log.info("XmrConnectionService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : isConnected);
@@ -608,9 +610,18 @@ public final class XmrConnectionService {
                     lastInfo = daemon.getInfo();
                 } catch (Exception e) {
                     try {
-                        log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
-                        switchToBestConnection();
-                        lastInfo = daemon.getInfo();
+                        if (isFixedConnection()) {
+                            log.warn("Failed to fetch daemon info, trying to fallback to provided nodes: " + e.getMessage());
+                            connectionFallBack = true;
+                            isConnected = false;
+                            connectionManager.setAutoSwitch(true);
+                            initializeConnections();
+                            return;
+                        } else {
+                            log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
+                            switchToBestConnection();
+                            lastInfo = daemon.getInfo();
+                        }
                     } catch (Exception e2) {
                         throw e2; // caught internally
                     }
@@ -689,6 +700,7 @@ public final class XmrConnectionService {
     }
 
     private boolean isFixedConnection() {
+        if (connectionFallBack) return false;
         return !"".equals(config.xmrNode) || preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM;
     }
 }
