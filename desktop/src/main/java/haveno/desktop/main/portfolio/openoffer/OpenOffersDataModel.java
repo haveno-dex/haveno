@@ -18,6 +18,7 @@
 package haveno.desktop.main.portfolio.openoffer;
 
 import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.offer.Offer;
@@ -46,9 +47,8 @@ class OpenOffersDataModel extends ActivatableDataModel {
     public OpenOffersDataModel(OpenOfferManager openOfferManager, PriceFeedService priceFeedService) {
         this.openOfferManager = openOfferManager;
         this.priceFeedService = priceFeedService;
-
-        tradesListChangeListener = change -> applyList();
-        currenciesUpdateFlagPropertyListener = (observable, oldValue, newValue) -> applyList();
+        tradesListChangeListener = change -> UserThread.execute(() -> applyList());
+        currenciesUpdateFlagPropertyListener = (observable, oldValue, newValue) -> UserThread.execute(() -> applyList());
     }
 
     @Override
@@ -85,7 +85,7 @@ class OpenOffersDataModel extends ActivatableDataModel {
         return openOfferManager.isMyOffer(offer) ? offer.getDirection() : offer.getMirroredDirection();
     }
 
-    private void applyList() {
+    private synchronized void applyList() {
         list.clear();
 
         list.addAll(openOfferManager.getOpenOffers().stream().map(OpenOfferListItem::new).collect(Collectors.toList()));
