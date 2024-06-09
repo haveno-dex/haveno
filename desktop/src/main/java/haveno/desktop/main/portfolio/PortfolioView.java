@@ -191,6 +191,9 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         } else if (view instanceof FailedTradesView) {
             currentTab = failedTradesTab;
         } else if (view instanceof EditOfferView) {
+            if (data instanceof OpenOffer) {
+                openOffer = (OpenOffer) data;
+            }
             if (openOffer != null) {
                 if (editOfferView == null) {
                     editOfferView = (EditOfferView) view;

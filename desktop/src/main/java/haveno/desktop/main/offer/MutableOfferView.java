@@ -703,7 +703,15 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             marketBasedPriceTextField.clear();
             volumeTextField.clear();
             triggerPriceInputTextField.clear();
-            initWithData(model.dataModel.direction, model.getTradeCurrency(), offerActionHandler);
+            if (!CurrencyUtil.isTraditionalCurrency(newValue)) {
+                if (model.isShownAsBuyOffer()) {
+                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.buy"),
+                            model.getTradeCurrency().getCode()));
+                } else {
+                    placeOfferButton.updateText(Res.get("createOffer.placeOfferButtonCrypto", Res.get("shared.sell"),
+                            model.getTradeCurrency().getCode()));
+                }
+            }
         };
 
         placeOfferCompletedListener = (o, oldValue, newValue) -> {
