@@ -760,7 +760,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         missingCoinListener = (observable, oldValue, newValue) -> {
             if (!newValue.toString().equals("")) {
-                //updateQrCode(); // disabled to avoid wallet requests on key strokes
+                updateQrCode();
             }
         };
 
