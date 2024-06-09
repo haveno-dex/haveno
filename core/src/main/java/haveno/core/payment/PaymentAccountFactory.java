@@ -132,15 +132,14 @@ public class PaymentAccountFactory {
                 return new AchTransferAccount();
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 return new DomesticWireTransferAccount();
-
-            // Cannot be deleted as it would break old trade history entries
-            case PaymentMethod.OK_PAY_ID:
-                return new OKPayAccount();
             case PaymentMethod.CASH_APP_ID:
                 return new CashAppAccount();
             case PaymentMethod.VENMO_ID:
                 return new VenmoAccount();
 
+            // Cannot be deleted as it would break old trade history entries
+            case PaymentMethod.OK_PAY_ID:
+                return new OKPayAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

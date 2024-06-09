@@ -42,8 +42,7 @@ public class PayPalForm extends PaymentMethodForm {
     private final EmailOrMobileNrOrUsernameValidator paypalValidator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.email.mobile.username"),
-                ((PayPalAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrUsername());
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.email.mobile.username"), ((PayPalAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrUsername());
         return gridRow;
     }
 

@@ -41,8 +41,7 @@ public class VenmoForm extends PaymentMethodForm {
     private final EmailOrMobileNrOrUsernameValidator venmoValidator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.email.mobile.username"),
-                ((VenmoAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrUsername());
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.email.mobile.username"), ((VenmoAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrUsername());
         return gridRow;
     }
 
