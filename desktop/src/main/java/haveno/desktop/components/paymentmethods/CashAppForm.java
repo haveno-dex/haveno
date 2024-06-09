@@ -42,8 +42,7 @@ public class CashAppForm extends PaymentMethodForm {
     private final EmailOrMobileNrOrCashtagValidator cashAppValidator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.email.mobile.cashtag"),
-                ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag());
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.email.mobile.cashtag"), ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag());
         return gridRow;
     }
 
