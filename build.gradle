@@ -452,14 +452,14 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux.tar.gz',
-                'linux-x86_64-sha256'  : '3537fe2006997a1065748d27e9513ac3e0c942ab56a97a6e43065ddfd1820394',
-                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-linux-aarch64.tar.gz',
-                'linux-aarch64-sha256' : '6ff81c61780fe08defbd6576bd93c6711cf5ad3e79be0e3bc2184ff11cc6a472',
-                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'           : 'c7cafe1000a5839f02d02ed2edce5b1df3a06b5c77f4d91eaba106d948347730',
-                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release2/monero-bins-haveno-windows.zip',
-                'windows-sha256'       : '9b900faefa75f354870646989484978d1fb11add392ffd05eb5abe7e514e395a'
+                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-linux-x86_64.tar.gz',
+                'linux-x86_64-sha256'  : '591e63c1e3249e0cfbba74f0302022160f64f049d06abff95417ad3ecb588581',
+                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-linux-aarch64.tar.gz',
+                'linux-aarch64-sha256' : 'a3c361f24333f84efdfe34a6f98a117ad43425cf422c7ea20a82719927d17a09',
+                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'           : '9eb01951976767372a3d10180c092af937afe6494928ea73e311476be5c0eba3',
+                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release3/monero-bins-haveno-windows.zip',
+                'windows-sha256'       : '49b84fab3a1f69564068fecff105b6079b843d99792409dffca4a66eb279288f'
             ]
 
             String osKey
@@ -532,6 +532,7 @@ configure(project(':core')) {
 
         ext.downloadAndVerifyDependencies = { String archiveURL, String archiveSHA256, File destinationArchiveFile ->
             ext.dependencyDownloadedAndVerified = false
+
             // if archive exists, check to see if its already up to date
             if (destinationArchiveFile.exists()) {
                 println "Verifying existing archive ${destinationArchiveFile}"
@@ -551,6 +552,7 @@ configure(project(':core')) {
 
             println 'Verifying checksum for downloaded binary ...'
             ant.archiveHash = archiveSHA256
+
             // use a different verifyProperty name from existing verification or it will always fail
             ant.checksum(file: destinationArchiveFile, algorithm: 'SHA-256', property: '${archiveHash}', verifyProperty: 'downloadedHashMatches')
             if (ant.properties['downloadedHashMatches'] != 'true') {

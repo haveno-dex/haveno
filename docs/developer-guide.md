@@ -60,12 +60,12 @@ Based on these instructions: https://github.com/monero-project/monero#cross-comp
 > Note:
 > If you get the prompt "Reversed (or previously applied) patch detected!  Assume -R? [n]" then confirm 'y'.
 
-**Build for Linux**
+**Build for Linux x86_64**
 
 1. `make depends target=x86_64-linux-gnu -j<num cores>`
 2. `cd build/x86_64-linux-gnu/release/bin/`
-3. `tar -zcvf monero-bins-haveno-linux.tar.gz monerod monero-wallet-rpc`
-4. Save monero-bins-haveno-linux.tar.gz for release.
+3. `tar -zcvf monero-bins-haveno-linux-x86_64.tar.gz monerod monero-wallet-rpc`
+4. Save monero-bins-haveno-linux-x86_64.tar.gz for release.
 
 **Build for Mac**
 
@@ -82,6 +82,15 @@ Based on these instructions: https://github.com/monero-project/monero#cross-comp
 4. `cd build/x86_64-w64-mingw32/release/bin/`
 5. `zip monero-bins-haveno-windows.zip monerod.exe monero-wallet-rpc.exe`
 6. Save monero-bins-haveno-windows.zip for release.
+
+**Build for Linux ARM64**
+
+From Ubuntu 20.04 on ARM64 machine (requires g++-aarch64-linux-gnu):
+
+1. `make depends target=aarch64-linux-gnu -j<num cores>`
+2. `cd build/aarch64-linux-gnu/release/bin/`
+3. `tar -zcvf monero-bins-haveno-linux-arm64.tar.gz monerod monero-wallet-rpc`
+4. Save monero-bins-haveno-linux-arm64.tar.gz for release.
 
 ## Build executable installers for each platform
 
