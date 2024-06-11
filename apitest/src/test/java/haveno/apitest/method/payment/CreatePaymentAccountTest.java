@@ -676,7 +676,7 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
         assertEquals(COMPLETED_FORM_MAP.get(PROPERTY_NAME_SELECTED_TRADE_CURRENCY),
                 paymentAccount.getSelectedTradeCurrency().getCode());
         verifyCommonFormEntries(paymentAccount);
-        assertEquals(COMPLETED_FORM_MAP.get(PROPERTY_NAME_USERNAME), paymentAccount.getUserName());
+        assertEquals(COMPLETED_FORM_MAP.get(PROPERTY_NAME_USERNAME), paymentAccount.getUsername());
         print(paymentAccount);
     }
 

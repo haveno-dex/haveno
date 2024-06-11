@@ -39,7 +39,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
-import haveno.common.app.Capability;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -482,7 +481,7 @@ public abstract class Trade implements Tradable, Model {
     @Nullable
     @Getter
     @Setter
-    private String payoutTxHex;
+    private String payoutTxHex; // signed payout tx hex
     @Getter
     @Setter
     private String payoutTxKey;
@@ -1230,8 +1229,9 @@ public abstract class Trade implements Tradable, Model {
 
             // sign tx
             MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-            if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing payout tx");
+            if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
             payoutTxHex = result.getSignedMultisigTxHex();
+            setPayoutTxHex(payoutTxHex);
 
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
@@ -1247,8 +1247,8 @@ public abstract class Trade implements Tradable, Model {
         }
 
         // update trade state
-        setPayoutTx(payoutTx);
-        setPayoutTxHex(payoutTxHex);
+        updatePayout(payoutTx);
+        requestPersistence();
 
         // submit payout tx
         if (publish) {
@@ -1692,7 +1692,7 @@ public abstract class Trade implements Tradable, Model {
         getVolumeProperty().set(getVolume());
     }
 
-    public void setPayoutTx(MoneroTxWallet payoutTx) {
+    public void updatePayout(MoneroTxWallet payoutTx) {
 
         // set payout tx fields
         this.payoutTx = payoutTx;
@@ -2180,23 +2180,15 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void doPublishTradeStatistics() {
-        processModel.getP2PService().findPeersCapabilities(getTradePeer().getNodeAddress())
-                .filter(capabilities -> capabilities.containsAll(Capability.TRADE_STATISTICS_3))
-                .ifPresentOrElse(capabilities -> {
-                    String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
-                    boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
-                    TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
-                    if (tradeStatistics.isValid()) {
-                        log.info("Publishing trade statistics");
-                        processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
-                    } else {
-                        log.warn("Trade statistics are invalid. We do not publish. {}", tradeStatistics);
-                    }
-                },
-                () -> {
-                    log.info("Our peer does not has updated yet, so they will publish the trade statistics. " +
-                            "To avoid duplicates we do not publish from our side.");
-                });
+        String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
+        boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
+        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
+        if (tradeStatistics.isValid()) {
+            log.info("Publishing trade statistics for {} {}", getClass().getSimpleName(), getId());
+            processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
+        } else {
+            log.warn("Trade statistics are invalid for {} {}. We do not publish: {}", getClass().getSimpleName(), getId(), tradeStatistics);
+        }
     }
 
 
@@ -2467,7 +2459,7 @@ public abstract class Trade implements Tradable, Model {
                     // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
                     for (MoneroTxWallet tx : txs) {
                         if (tx.isOutgoing() && !tx.isFailed()) {
-                            setPayoutTx(tx);
+                            updatePayout(tx);
                             setPayoutStatePublished();
                             if (tx.isConfirmed()) setPayoutStateConfirmed();
                             if (!tx.isLocked()) setPayoutStateUnlocked();

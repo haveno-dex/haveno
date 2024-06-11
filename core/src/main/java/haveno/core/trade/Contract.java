@@ -263,7 +263,13 @@ public final class Contract implements NetworkPayload {
 
     // edits a contract json string
     public static String sanitizeContractAsJson(String contractAsJson) {
-        return contractAsJson; // TODO: anything to sanitize?
+        return contractAsJson
+                .replaceAll(
+                        "\"takerPaymentAccountPayload\": \\{[^}]*}",
+                        "\"takerPaymentAccountPayload\": null")
+                .replaceAll(
+                        "\"makerPaymentAccountPayload\": \\{[^}]*}",
+                        "\"makerPaymentAccountPayload\": null");
     }
 
     public void printDiff(@Nullable String peersContractAsJson) {

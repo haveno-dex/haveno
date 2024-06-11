@@ -86,6 +86,8 @@ public class PaymentAccountFactory {
                 return new TransferwiseAccount();
             case PaymentMethod.TRANSFERWISE_USD_ID:
                 return new TransferwiseUsdAccount();
+            case PaymentMethod.PAYPAL_ID:
+                return new PayPalAccount();
             case PaymentMethod.PAYSERA_ID:
                 return new PayseraAccount();
             case PaymentMethod.PAXUM_ID:
@@ -130,15 +132,14 @@ public class PaymentAccountFactory {
                 return new AchTransferAccount();
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 return new DomesticWireTransferAccount();
-
-            // Cannot be deleted as it would break old trade history entries
-            case PaymentMethod.OK_PAY_ID:
-                return new OKPayAccount();
             case PaymentMethod.CASH_APP_ID:
                 return new CashAppAccount();
             case PaymentMethod.VENMO_ID:
                 return new VenmoAccount();
 
+            // Cannot be deleted as it would break old trade history entries
+            case PaymentMethod.OK_PAY_ID:
+                return new OKPayAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

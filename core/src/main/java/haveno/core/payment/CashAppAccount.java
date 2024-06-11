@@ -28,17 +28,22 @@ import lombok.NonNull;
 
 import java.util.List;
 
-// Removed due too high chargeback risk
-// Cannot be deleted as it would break old trade history entries
-@Deprecated
 @EqualsAndHashCode(callSuper = true)
 public final class CashAppAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("GBP"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR_OR_CASHTAG,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT);
 
     public CashAppAccount() {
         super(PaymentMethod.CASH_APP);
-        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
+        tradeCurrencies.addAll(getSupportedCurrencies());
     }
 
     @Override
@@ -53,14 +58,14 @@ public final class CashAppAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
-    public void setCashTag(String cashTag) {
-        ((CashAppAccountPayload) paymentAccountPayload).setCashTag(cashTag);
+    public void setEmailOrMobileNrOrCashtag(String emailOrMobileNrOrCashtag) {
+        ((CashAppAccountPayload) paymentAccountPayload).setEmailOrMobileNrOrCashtag(emailOrMobileNrOrCashtag);
     }
 
-    public String getCashTag() {
-        return ((CashAppAccountPayload) paymentAccountPayload).getCashTag();
+    public String getEmailOrMobileNrOrCashtag() {
+        return ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag();
     }
 }

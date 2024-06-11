@@ -47,8 +47,10 @@ import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BizumAccount;
 import haveno.core.payment.CapitualAccount;
+import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
 import haveno.core.payment.ZelleAccount;
@@ -89,6 +91,7 @@ import haveno.core.payment.TransferwiseUsdAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.UpholdAccount;
 import haveno.core.payment.UpiAccount;
+import haveno.core.payment.VenmoAccount;
 import haveno.core.payment.VerseAccount;
 import haveno.core.payment.WeChatPayAccount;
 import haveno.core.payment.WesternUnionAccount;
@@ -190,14 +193,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String SWIFT_ID = "SWIFT";
     public static final String ACH_TRANSFER_ID = "ACH_TRANSFER";
     public static final String DOMESTIC_WIRE_TRANSFER_ID = "DOMESTIC_WIRE_TRANSFER";
-
-    // Cannot be deleted as it would break old trade history entries
     @Deprecated
-    public static final String OK_PAY_ID = "OK_PAY";
-    @Deprecated
-    public static final String CASH_APP_ID = "CASH_APP"; // Removed due too high chargeback risk
-    @Deprecated
-    public static final String VENMO_ID = "VENMO";  // Removed due too high chargeback risk
+    public static final String OK_PAY_ID = "OK_PAY"; // Cannot be deleted as it would break old trade history entries
+    public static final String CASH_APP_ID = "CASH_APP";
+    public static final String VENMO_ID = "VENMO";
+    public static final String PAYPAL_ID = "PAYPAL";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -254,14 +254,13 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod ACH_TRANSFER;
     public static PaymentMethod DOMESTIC_WIRE_TRANSFER;
     public static PaymentMethod BSQ_SWAP;
+    public static PaymentMethod PAYPAL;
+    public static PaymentMethod CASH_APP;
+    public static PaymentMethod VENMO;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
     public static PaymentMethod OK_PAY = getDummyPaymentMethod(OK_PAY_ID);
-    @Deprecated
-    public static PaymentMethod CASH_APP = getDummyPaymentMethod(CASH_APP_ID); // Removed due too high chargeback risk
-    @Deprecated
-    public static PaymentMethod VENMO = getDummyPaymentMethod(VENMO_ID); // Removed due too high chargeback risk
 
     // The limit and duration assignment must not be changed as that could break old offers (if amount would be higher
     // than new trade limit) and violate the maker expectation when he created the offer (duration).
@@ -280,9 +279,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
-
             POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
+            VENMO = new PaymentMethod(VENMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VenmoAccount.SUPPORTED_CURRENCIES)),
 
             // Canada
             INTERAC_E_TRANSFER = new PaymentMethod(INTERAC_E_TRANSFER_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(InteracETransferAccount.SUPPORTED_CURRENCIES)),
@@ -326,6 +325,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             SWIFT = new PaymentMethod(SWIFT_ID, 7 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(SwiftAccount.SUPPORTED_CURRENCIES)),
             ACH_TRANSFER = new PaymentMethod(ACH_TRANSFER_ID, 5 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(AchTransferAccount.SUPPORTED_CURRENCIES)),
             DOMESTIC_WIRE_TRANSFER = new PaymentMethod(DOMESTIC_WIRE_TRANSFER_ID, 3 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(DomesticWireTransferAccount.SUPPORTED_CURRENCIES)),
+            PAYPAL = new PaymentMethod(PAYPAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayPalAccount.SUPPORTED_CURRENCIES)),
+            CASH_APP = new PaymentMethod(CASH_APP_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAppAccount.SUPPORTED_CURRENCIES)),
 
             // Japan
             JAPAN_BANK = new PaymentMethod(JAPAN_BANK_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(JapanBankAccount.SUPPORTED_CURRENCIES)),
@@ -342,6 +343,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
+            
             // Cryptos with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
     );
@@ -363,7 +365,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SWIFT_ID,
                 TRANSFERWISE_ID,
                 UPHOLD_ID,
-                ZELLE_ID);
+                ZELLE_ID,
+                AUSTRALIA_PAYID_ID,
+                CASH_APP_ID,
+                PAYPAL_ID,
+                VENMO_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -580,7 +586,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.CHASE_QUICK_PAY_ID) ||
                 id.equals(PaymentMethod.POPMONEY_ID) ||
                 id.equals(PaymentMethod.MONEY_BEAM_ID) ||
-                id.equals(PaymentMethod.UPHOLD_ID);
+                id.equals(PaymentMethod.UPHOLD_ID) ||
+                id.equals(PaymentMethod.CASH_APP_ID) ||
+                id.equals(PaymentMethod.PAYPAL_ID) ||
+                id.equals(PaymentMethod.VENMO_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {

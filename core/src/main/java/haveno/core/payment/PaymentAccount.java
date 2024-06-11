@@ -416,7 +416,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case ANSWER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_NAME:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case BANK_ACCOUNT_NUMBER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_TYPE:
@@ -515,7 +516,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case NATIONAL_ACCOUNT_ID:
             throw new IllegalArgumentException("Not implemented");
         case PAYID:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case PIX_KEY:
             throw new IllegalArgumentException("Not implemented");
         case POSTAL_ADDRESS:
@@ -550,7 +552,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             Optional<List<TradeCurrency>> tradeCurrencies =  CurrencyUtil.getTradeCurrenciesInList(currencyCodes, getSupportedCurrencies());
             if (!tradeCurrencies.isPresent()) throw new IllegalArgumentException("No trade currencies were found in the " + getPaymentMethod().getDisplayString() + " account form");
             break;
-        case USER_NAME:
+        case USERNAME:
+            processValidationResult(new LengthValidator(3, 100).validate(value));
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_USERNAME:
+            processValidationResult(new LengthValidator(3, 100).validate(value));
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_CASHTAG:
             processValidationResult(new LengthValidator(3, 100).validate(value));
             break;
         case ADDRESS:
@@ -596,7 +604,11 @@ public abstract class PaymentAccount implements PersistablePayload {
         case ANSWER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_NAME:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.account.owner"));
+            field.setMinLength(2);
+            field.setMaxLength(100);
+            break;
         case BANK_ACCOUNT_NUMBER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_TYPE:
@@ -724,7 +736,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case NATIONAL_ACCOUNT_ID:
             throw new IllegalArgumentException("Not implemented");
         case PAYID:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.email.mobile"));
+            break;
         case PIX_KEY:
             throw new IllegalArgumentException("Not implemented");
         case POSTAL_ADDRESS:
@@ -760,9 +774,21 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setSupportedCurrencies(getSupportedCurrencies());
             field.setValue(String.join(",", getSupportedCurrencies().stream().map(TradeCurrency::getCode).collect(Collectors.toList())));
             break;
-        case USER_NAME:
+        case USERNAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.account.userName"));
+            field.setLabel(Res.get("payment.account.username"));
+            field.setMinLength(3);
+            field.setMaxLength(100);
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_USERNAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.email.mobile.username"));
+            field.setMinLength(3);
+            field.setMaxLength(100);
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_CASHTAG:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.email.mobile.cashtag"));
             field.setMinLength(3);
             field.setMaxLength(100);
             break;

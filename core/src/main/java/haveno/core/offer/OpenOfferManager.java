@@ -230,9 +230,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
             @Override
             public void onAdded(Offer offer) {
+
+                // cancel offer if reserved funds spent
                 Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
                 if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
-                    closeOpenOffer(offer);
+                    log.warn("Canceling open offer because reserved funds have been spent, offerId={}, state={}", offer.getId(), openOfferOptional.get().getState());
+                    cancelOpenOffer(openOfferOptional.get(), null, null);
                 }
             }
             @Override
@@ -552,7 +555,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     if (openOffer.isCanceled()) latch.countDown();
                     else {
                         log.warn("Error processing unposted offer {}: {}", openOffer.getId(), errorMessage);
-                        doCancel(openOffer);
+                        doCancelOffer(openOffer);
                         offer.setErrorMessage(errorMessage);
                         latch.countDown();
                         errorMessageHandler.handleErrorMessage(errorMessage);
@@ -622,19 +625,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                         () -> {
                             ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
-                                doCancel(openOffer);
-                                resultHandler.handleResult();
+                                doCancelOffer(openOffer);
+                                if (resultHandler != null) resultHandler.handleResult();
                             });
                         },
                         errorMessageHandler);
             } else {
                 ThreadUtils.submitToPool(() -> {
-                    doCancel(openOffer);
-                    resultHandler.handleResult();
+                    doCancelOffer(openOffer);
+                    if (resultHandler != null) resultHandler.handleResult();
                 });
             }
         } else {
-            errorMessageHandler.handleErrorMessage("You can't remove an offer that is currently edited.");
+            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't remove an offer that is currently edited.");
         }
     }
 
@@ -708,7 +711,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     // remove open offer which thaws its key images
-    private void doCancel(@NotNull OpenOffer openOffer) {
+    private void doCancelOffer(@NotNull OpenOffer openOffer) {
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
@@ -874,7 +877,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             if (scheduledOffer.getNumProcessingAttempts() >= MAX_PROCESS_ATTEMPTS) {
                                 log.warn("Offer canceled after {} attempts, offerId={}, error={}", scheduledOffer.getNumProcessingAttempts(), scheduledOffer.getId(), errorMessage);
                                 HavenoUtils.havenoSetup.getTopErrorMsg().set("Offer canceled after " + scheduledOffer.getNumProcessingAttempts() + " attempts. Please switch to a better Monero connection and try again.\n\nOffer ID: " + scheduledOffer.getId() + "\nError: " + errorMessage);
-                                doCancel(scheduledOffer);
+                                doCancelOffer(scheduledOffer);
                             }
                             errorMessages.add(errorMessage);
                         }
@@ -1754,7 +1757,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             } else {
 
                 // cancel and recreate offer
-                doCancel(openOffer);
+                doCancelOffer(openOffer);
                 Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
                 updatedOffer.setPriceFeedService(priceFeedService);
                 OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
@@ -1770,7 +1773,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     }, (errorMessage) -> {
                         if (!updatedOpenOffer.isCanceled()) {
                             log.warn("Error reposting offer {}: {}", updatedOpenOffer.getId(), errorMessage);
-                            doCancel(updatedOpenOffer);
+                            doCancelOffer(updatedOpenOffer);
                             updatedOffer.setErrorMessage(errorMessage);
                         }
                         latch.countDown();

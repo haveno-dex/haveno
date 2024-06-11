@@ -42,11 +42,14 @@ public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
             
             // validate arbitrator signature
             if (!HavenoUtils.isArbitratorSignatureValid(model.getSignOfferResponse().getSignedOfferPayload(), arbitrator)) {
-                throw new RuntimeException("Offer payload has invalid arbitrator signature");
+                throw new RuntimeException("Arbitrator's offer payload has invalid signature, offerId=" + offer.getId());
             }
             
             // set arbitrator signature for maker's offer
             offer.getOfferPayload().setArbitratorSignature(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature());
+            if (!HavenoUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator)) {
+                throw new RuntimeException("Maker's offer payload has invalid signature, offerId=" + offer.getId());
+            }
             offer.setState(Offer.State.AVAILABLE);
             complete();
         } catch (Exception e) {

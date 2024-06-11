@@ -91,47 +91,54 @@ public class PlaceOfferProtocol {
     
     // TODO (woodser): switch to fluent
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
-      log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
-      model.setSignOfferResponse(response);
+        log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
+        model.setSignOfferResponse(response);
 
-      if (!model.getOpenOffer().getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
-          log.warn("Ignoring sign offer response from different sender");
-          return;
-      }
+        // ignore if unexpected signer
+        if (!model.getOpenOffer().getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
+            log.warn("Ignoring sign offer response from different sender");
+            return;
+        }
 
-      // ignore if timer already stopped
-      if (timeoutTimer == null) {
-          log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
-          return;
-      }
+        // ignore if payloads have different timestamps
+        if (model.getOpenOffer().getOffer().getOfferPayload().getDate() != response.getSignedOfferPayload().getDate()) {
+            log.warn("Ignoring sign offer response from arbitrator for offer payload with different timestamp");
+            return;
+        }
 
-      // reset timer
-      startTimeoutTimer();
+        // ignore if timer already stopped
+        if (timeoutTimer == null) {
+            log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
+            return;
+        }
 
-      TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
-              () -> {
-                  log.debug("sequence at handleSignOfferResponse completed");
-                  stopTimeoutTimer();
-                  resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
-              },
-              (errorMessage) -> {
-                  if (model.isOfferAddedToOfferBook()) {
-                      model.getOfferBookService().removeOffer(model.getOpenOffer().getOffer().getOfferPayload(),
-                              () -> {
-                                  model.setOfferAddedToOfferBook(false);
-                                  log.debug("OfferPayload removed from offer book.");
-                              },
-                              log::error);
-                  }
-                  handleError(errorMessage);
-              }
-      );
-      taskRunner.addTasks(
-              MakerProcessSignOfferResponse.class,
-              AddToOfferBook.class
-      );
+        // reset timer
+        startTimeoutTimer();
 
-      taskRunner.run();
+        TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
+                () -> {
+                    log.debug("sequence at handleSignOfferResponse completed");
+                    stopTimeoutTimer();
+                    resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
+                },
+                (errorMessage) -> {
+                    if (model.isOfferAddedToOfferBook()) {
+                        model.getOfferBookService().removeOffer(model.getOpenOffer().getOffer().getOfferPayload(),
+                                () -> {
+                                    model.setOfferAddedToOfferBook(false);
+                                    log.debug("OfferPayload removed from offer book.");
+                                },
+                                log::error);
+                    }
+                    handleError(errorMessage);
+                }
+        );
+        taskRunner.addTasks(
+                MakerProcessSignOfferResponse.class,
+                AddToOfferBook.class
+        );
+
+        taskRunner.run();
     }
 
     public void startTimeoutTimer() {

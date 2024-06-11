@@ -65,6 +65,10 @@ In a new terminal window, run: `make seednode`.
 
 In a new terminal window, run: `make seednode2`.
 
+> **Notes**
+> * Avoid all seed nodes going offline at the same time. If all seed nodes go offline at the same time, the network will be reset, including registered arbitrators, the network filter object, and trade history. In that case, arbitrators need to restart or re-register, and the network filter object needs to be re-applied. This should be done immediately or clients will cancel their offers due to the signing arbitrators being unregistered and no replacements being available to re-sign.
+> * At least 2 seed nodes should be run because the seed nodes restart once per day.
+
 ## Start and register the arbitrator
 
 In a new terminal window, run: `make arbitrator-desktop-mainnet`.

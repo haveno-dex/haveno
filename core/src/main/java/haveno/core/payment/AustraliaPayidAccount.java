@@ -36,6 +36,14 @@ public final class AustraliaPayidAccount extends PaymentAccount {
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+        PaymentAccountFormField.FieldId.BANK_ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.PAYID,
+        PaymentAccountFormField.FieldId.EXTRA_INFO,
+        PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.SALT
+    );
+
     @Override
     protected PaymentAccountPayload createPayload() {
         return new AustraliaPayidAccountPayload(paymentMethod.getId(), id);
@@ -48,7 +56,7 @@ public final class AustraliaPayidAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public String getPayid() {
@@ -67,5 +75,13 @@ public final class AustraliaPayidAccount extends PaymentAccount {
     public void setBankAccountName(String bankAccountName) {
         if (bankAccountName == null) bankAccountName = "";
         ((AustraliaPayidAccountPayload) paymentAccountPayload).setBankAccountName(bankAccountName);
+    }
+
+    public void setExtraInfo(String extraInfo) {
+        ((AustraliaPayidAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((AustraliaPayidAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }

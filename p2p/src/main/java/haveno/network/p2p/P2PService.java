@@ -564,6 +564,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         return keyRing;
     }
 
+    // TODO: this is unreliable and unused, because peer sometimes reports no TRADE_STATISTICS_3 capability, causing valid trades to be unpublished
     public Optional<Capabilities> findPeersCapabilities(NodeAddress peer) {
         return networkNode.getConfirmedConnections().stream()
                 .filter(e -> e.getPeersNodeAddressOptional().isPresent())

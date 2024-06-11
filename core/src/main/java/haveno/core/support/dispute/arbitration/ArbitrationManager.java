@@ -62,6 +62,7 @@ import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
+import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
@@ -86,11 +87,9 @@ import monero.wallet.model.MoneroTxWallet;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -433,19 +432,16 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // check daemon connection
         trade.verifyDaemonConnection();
 
-        // determine if we already signed dispute payout tx
-        // TODO: better way, such as by saving signed dispute payout tx hex in designated field instead of shared payoutTxHex field?
-        Set<String> nonSignedDisputePayoutTxHexes = new HashSet<String>();
-        if (trade.getTradePeer().getPaymentSentMessage() != null) nonSignedDisputePayoutTxHexes.add(trade.getTradePeer().getPaymentSentMessage().getPayoutTxHex());
-        if (trade.getTradePeer().getPaymentReceivedMessage() != null) {
-            nonSignedDisputePayoutTxHexes.add(trade.getTradePeer().getPaymentReceivedMessage().getUnsignedPayoutTxHex());
-            nonSignedDisputePayoutTxHexes.add(trade.getTradePeer().getPaymentReceivedMessage().getSignedPayoutTxHex());
+        // adapt from 1.0.6 to 1.0.7 which changes field usage
+        // TODO: remove after future updates to allow old trades to clear
+        if (trade.getPayoutTxHex() != null && trade.getBuyer().getPaymentSentMessage() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
+            log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            if (trade instanceof BuyerTrade) trade.getSelf().setUnsignedPayoutTxHex(trade.getPayoutTxHex());
+            trade.setPayoutTxHex(null);
         }
-        boolean signed = trade.getPayoutTxHex() != null && !nonSignedDisputePayoutTxHexes.contains(trade.getPayoutTxHex());
 
         // sign arbitrator-signed payout tx
-        if (signed) disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
-        else {
+        if (trade.getPayoutTxHex() == null) {
             MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(unsignedPayoutTxHex);
             if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
             String signedMultisigTxHex = result.getSignedMultisigTxHex();
@@ -468,6 +464,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
                 log.info("Payout tx fee {} is within tolerance, diff %={}", arbitratorSignedPayoutTx.getFee(), feeDiff);
             }
+        } else {
+            disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
         }
 
         // submit fully signed payout tx to the network
@@ -485,8 +483,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }
 
         // update state
-        trade.setPayoutTx(disputeTxSet.getTxs().get(0)); // TODO (woodser): is trade.payoutTx() mutually exclusive from dispute payout tx?
-        trade.setPayoutTxId(disputeTxSet.getTxs().get(0).getHash());
+        trade.updatePayout(disputeTxSet.getTxs().get(0));
         trade.setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
         dispute.setDisputePayoutTxId(disputeTxSet.getTxs().get(0).getHash());
         return disputeTxSet;

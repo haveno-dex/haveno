@@ -53,7 +53,7 @@ public class InteracETransferQuestionValidatorTest {
 
         assertFalse(validator.validate(null).isValid); // null
         assertFalse(validator.validate("").isValid); // empty
-        assertFalse(validator.validate("abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ").isValid); // too long
+        assertFalse(validator.validate("abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ").isValid); // too long
         assertFalse(validator.validate("abc !@#").isValid); // invalid characters
     }
 

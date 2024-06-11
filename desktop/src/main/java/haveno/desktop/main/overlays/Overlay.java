@@ -35,6 +35,7 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import haveno.desktop.util.Transitions;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -48,12 +49,14 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.input.KeyCode;
@@ -84,6 +87,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static javafx.scene.input.MouseEvent.MOUSE_CLICKED;
 
 @Slf4j
 public abstract class Overlay<T extends Overlay<T>> {
@@ -158,7 +163,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected boolean useAnimation = true;
     protected boolean showScrollPane = false;
 
-    protected Label headlineIcon, headLineLabel, messageLabel;
+    protected Label headlineIcon, copyIcon, headLineLabel, messageLabel;
     protected String headLine, message, closeButtonText, actionButtonText,
             secondaryActionButtonText, dontShowAgainId, dontShowAgainText,
             truncatedMessage;
@@ -748,6 +753,23 @@ public abstract class Overlay<T extends Overlay<T>> {
 
 
         if (headLineLabel != null) {
+            if (copyIcon != null) {
+                copyIcon.getStyleClass().add("popup-icon-information");
+                copyIcon.setManaged(true);
+                copyIcon.setVisible(true);
+                FormBuilder.getIconForLabel(AwesomeIcon.COPY, copyIcon, "1.1em");
+                copyIcon.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
+                    if (message != null) {
+                        String forClipboard = headLineLabel.getText() + System.lineSeparator() + message
+                            + System.lineSeparator() + (messageHyperlinks == null ? "" : messageHyperlinks.toString());
+                        Utilities.copyToClipboard(forClipboard);
+                        Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                        Node node = (Node) mouseEvent.getSource();
+                        UserThread.runAfter(() -> tp.hide(), 1);
+                        tp.show(node, mouseEvent.getScreenX() + Layout.PADDING, mouseEvent.getScreenY() + Layout.PADDING);
+                    }
+                });
+            }
 
             switch (type) {
                 case Information:
@@ -802,7 +824,19 @@ public abstract class Overlay<T extends Overlay<T>> {
             if (headlineStyle != null)
                 headLineLabel.setStyle(headlineStyle);
 
-            hBox.getChildren().addAll(headlineIcon, headLineLabel);
+            if (message != null) {
+                copyIcon = new Label();
+                copyIcon.setManaged(false);
+                copyIcon.setVisible(false);
+                copyIcon.setPadding(new Insets(3));
+                copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+                final Pane spacer = new Pane();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                spacer.setMinSize(Layout.PADDING, 1);
+                hBox.getChildren().addAll(headlineIcon, headLineLabel, spacer, copyIcon);
+            } else {
+                hBox.getChildren().addAll(headlineIcon, headLineLabel);
+            }
 
             GridPane.setHalignment(hBox, HPos.LEFT);
             GridPane.setRowIndex(hBox, rowIndex);

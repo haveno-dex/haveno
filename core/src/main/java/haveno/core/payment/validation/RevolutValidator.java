@@ -19,8 +19,8 @@ package haveno.core.payment.validation;
 
 public final class RevolutValidator extends LengthValidator {
     public RevolutValidator() {
-        // Not sure what are requirements for Revolut user names
-        // Please keep in mind that even we force users to set user name at startup we should handle also the case
+        // Not sure what are requirements for Revolut usernames
+        // Please keep in mind that even we force users to set username at startup we should handle also the case
         // that the old accountID as phone number or email is displayed at the username text field and we do not
         // want to break validation in those cases. So being too strict on the validators might cause more troubles
         // as its worth...

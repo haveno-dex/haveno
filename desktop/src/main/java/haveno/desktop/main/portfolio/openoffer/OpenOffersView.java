@@ -75,8 +75,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
 
 @FxmlView
@@ -113,7 +111,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     private PortfolioView.OpenOfferActionHandler openOfferActionHandler;
     private ChangeListener<Number> widthListener;
 
-    private Map<String, Subscription> offerStateSubscriptions = new HashMap<String, Subscription>();
+    private Map<String, ChangeListener<OpenOffer.State>> offerStateChangeListeners = new HashMap<String, ChangeListener<OpenOffer.State>>();
 
     @Inject
     public OpenOffersView(OpenOffersViewModel model, Navigation navigation, OfferDetailsWindow offerDetailsWindow) {
@@ -702,11 +700,16 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     OpenOffer openOffer = item.getOpenOffer();
-                                    if (!offerStateSubscriptions.containsKey(openOffer.getId())) {
-                                        offerStateSubscriptions.put(openOffer.getId(), EasyBind.subscribe(openOffer.stateProperty(), state -> {
-                                            refresh();
-                                        }));
+
+                                    // refresh on state change
+                                    if (offerStateChangeListeners.containsKey(openOffer.getId())) {
+                                        openOffer.stateProperty().removeListener(offerStateChangeListeners.get(openOffer.getId()));
+                                        offerStateChangeListeners.remove(openOffer.getId());
                                     }
+                                    ChangeListener<OpenOffer.State> listener = (observable, oldValue, newValue) -> { if (oldValue != newValue) refresh(); };
+                                    offerStateChangeListeners.put(openOffer.getId(), listener);
+                                    openOffer.stateProperty().addListener(listener);
+
                                     if (openOffer.getState() == OpenOffer.State.SCHEDULED) {
                                         setGraphic(new AutoTooltipLabel(Res.get("shared.pending")));
                                         return;

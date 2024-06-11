@@ -364,7 +364,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.onShutDownStarted();
             } catch (Exception e) {
                 if (e.getMessage() != null && e.getMessage().contains("Connection reset")) return; // expected if shut down with ctrl+c
-                log.warn("Error notifying {} {} that shut down started {}", getClass().getSimpleName(), trade.getId());
+                log.warn("Error notifying {} {} that shut down started {}", trade.getClass().getSimpleName(), trade.getId());
                 e.printStackTrace();
             }
         });
@@ -888,13 +888,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     P2PService.getMyNodeAddress(),
                     null);
         }
-
         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
         trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
         trade.getMaker().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
         trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
         trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
         trade.getSelf().setPaymentAccountId(paymentAccountId);
+        trade.getSelf().setPaymentMethodId(user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId());
 
         // initialize trade protocol
         TradeProtocol tradeProtocol = createTradeProtocol(trade);

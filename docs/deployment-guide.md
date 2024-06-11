@@ -67,7 +67,9 @@ Each seed node requires a locally running Monero node. You can use the default p
 
 Rebuild all seed nodes any time the list of registered seed nodes changes.
 
-At least 2 seed nodes should be run because the seed nodes restart once per day, and registered network information is lost if all seed nodes restart at the same time.
+> **Notes**
+> * Avoid all seed nodes going offline at the same time. If all seed nodes go offline at the same time, the network will be reset, including registered arbitrators, the network filter object, and trade history. In that case, arbitrators need to restart or re-register, and the network filter object needs to be re-applied. This should be done immediately or clients will cancel their offers due to the signing arbitrators being unregistered and no replacements being available to re-sign.
+> * At least 2 seed nodes should be run because the seed nodes restart once per day.
 
 ## Register keypairs with privileges
 
@@ -219,6 +221,5 @@ Arbitrators can manually sign payment accounts. First open the legacy UI.
 
 ## Other tips
 
-* Avoid all seed nodes going offline at the same time. If all seed nodes go offline at the same time, arbitrator registration and the network filter will be fully reset, so all arbitrators will need to be re-registered, and the network filter will need to be recreated. This should be done immediately or clients will cancel their offers due to the signing arbitrators being unregistered and no replacements being available to re-sign.
 * If a dispute does not open properly, try manually reopening the dispute with a keyboard shortcut: `ctrl + o`.
 * To send a private notification to a peer: click the user icon and enter `alt + r`. Enter a private key which is registered to send private notifications.

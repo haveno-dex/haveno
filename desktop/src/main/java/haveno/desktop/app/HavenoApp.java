@@ -89,6 +89,8 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     private static Consumer<Application> appLaunchedHandler;
     @Getter
     private static Runnable shutDownHandler;
+    @Setter
+    private static Runnable onGracefulShutDownHandler;
 
     @Setter
     private Injector injector;
@@ -145,6 +147,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             new Thread(() -> {
                 gracefulShutDownHandler.gracefulShutDown(() -> {
                     log.info("App shutdown complete");
+                    if (onGracefulShutDownHandler != null) onGracefulShutDownHandler.run();
                 });
             }).start();
             shutDownRequested = true;
