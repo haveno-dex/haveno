@@ -64,7 +64,7 @@ import org.bitcoinj.core.Coin;
  */
 @Slf4j
 public class HavenoUtils {
-
+    //preland: UNSTATIC THIS!!!
     // configure release date
     private static final String RELEASE_DATE = "25-05-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "25-05-2024 00:00:00"
     public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
@@ -308,7 +308,7 @@ public class HavenoUtils {
 
     /**
      * Sign an offer.
-     * 
+     *
      * @param offer is an unsigned offer to sign
      * @param keyRing is the arbitrator's key ring to sign with
      * @return the arbitrator's signature

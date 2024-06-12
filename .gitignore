@@ -37,3 +37,6 @@ deploy
 .vscode
 .vim/*
 */.factorypath
+node_modules/
+package.json
+package-lock.json

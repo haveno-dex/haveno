@@ -79,6 +79,7 @@ public class ArbitratorManager extends DisputeAgentManager<Arbitrator> {
                     "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
         case XMR_MAINNET:
             return List.of();
+            //preland: add pubkey stuf idk
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }

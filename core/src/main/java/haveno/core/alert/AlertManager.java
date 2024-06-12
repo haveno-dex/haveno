@@ -110,6 +110,7 @@ public class AlertManager {
                     "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
         case XMR_MAINNET:
             return List.of();
+            //preland: return pubkey list from user
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }
