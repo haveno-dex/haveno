@@ -805,6 +805,7 @@ public abstract class Trade implements Tradable, Model {
             long time = System.currentTimeMillis();
             wallet = xmrWalletService.createWallet(getWalletName());
             log.info("{} {} created multisig wallet in {} ms", getClass().getSimpleName(), getId(), System.currentTimeMillis() - time);
+            log.warn("Multisig wallet seed for {} {}: {}", getClass().getSimpleName(), getId(), wallet.getSeed());
             return wallet;
         }
     }

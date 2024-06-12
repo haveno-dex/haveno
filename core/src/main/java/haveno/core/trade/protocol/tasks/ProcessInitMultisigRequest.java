@@ -83,12 +83,17 @@ public class ProcessInitMultisigRequest extends TradeTask {
           if (sender.getExchangedMultisigHex() == null) sender.setExchangedMultisigHex(request.getExchangedMultisigHex());
           else if (request.getExchangedMultisigHex() != null && !sender.getExchangedMultisigHex().equals(request.getExchangedMultisigHex())) throw new RuntimeException("Message's exchanged multisig differs from previous messages: " + request.getExchangedMultisigHex() + " versus " + sender.getExchangedMultisigHex());
 
+          if (multisigWallet != null) {
+            log.warn("Keys before processing message for {} {}: public spend key={}, public view key={}", trade.getClass().getSimpleName(), trade.getShortId(), multisigWallet.getPublicSpendKey(), multisigWallet.getPublicViewKey());
+          }
+
           // prepare multisig if applicable
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
-            log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
+            log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
             multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
+            log.warn("Prepared multisig hex for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getSelf().getPreparedMultisigHex());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
             updateParticipants = true;
           } else if (processModel.getMultisigAddress() == null) {
@@ -97,19 +102,25 @@ public class ProcessInitMultisigRequest extends TradeTask {
 
           // make multisig if applicable
           TradePeer[] peers = getMultisigPeers();
+          String peer0Name = trade.getBuyer() == peers[0] ? "buyer" : trade.getSeller() == peers[0] ? "seller" : "arbitrator";
+          String peer1Name = trade.getBuyer() == peers[1] ? "buyer" : trade.getSeller() == peers[1] ? "seller" : "arbitrator";
           if (trade.getSelf().getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
-            log.info("Making multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
+            log.info("Making multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            log.warn("Making multisig with prepared multisig hexes for {} {}: {}={} and {}={}", trade.getClass().getSimpleName(), trade.getShortId(), peer0Name, peers[0].getPreparedMultisigHex(), peer1Name, peers[1].getPreparedMultisigHex());
             String multisigHex = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, xmrWalletService.getWalletPassword()); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
             trade.getSelf().setMadeMultisigHex(multisigHex);
-            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_MADE);
+            log.warn("Made multisig hex for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getSelf().getMadeMultisigHex());
+            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_MADE); 
             updateParticipants = true;
           }
 
           // import made multisig keys if applicable
           if (trade.getSelf().getExchangedMultisigHex() == null && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
             log.info("Importing made multisig hex for {} {}", trade.getClass().getSimpleName(), trade.getId());
+            log.warn("Importing made multisig hex for {} {}: {}={} and {}={}", trade.getClass().getSimpleName(), trade.getShortId(), peer0Name, peers[0].getMadeMultisigHex(), peer1Name, peers[1].getMadeMultisigHex());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), xmrWalletService.getWalletPassword());
             trade.getSelf().setExchangedMultisigHex(result.getMultisigHex());
+            log.warn("Exchanged multisig hex for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getSelf().getExchangedMultisigHex());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_EXCHANGED);
             updateParticipants = true;
           }
@@ -117,11 +128,15 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // import exchanged multisig keys if applicable
           if (processModel.getMultisigAddress() == null && peers[0].getExchangedMultisigHex() != null && peers[1].getExchangedMultisigHex() != null) {
             log.info("Importing exchanged multisig hex for trade {}", trade.getId());
+            log.warn("Importing exchanged multisig hex for {} {}: {}={} and {}={}", trade.getClass().getSimpleName(), trade.getShortId(), peer0Name, peers[0].getExchangedMultisigHex(), peer1Name, peers[1].getExchangedMultisigHex());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
             processModel.setMultisigAddress(result.getAddress());
+            log.warn("Imported exchanged multisig hex for {} {}: address={}, exchanged={}", trade.getClass().getSimpleName(), trade.getShortId(), processModel.getMultisigAddress(), result.getMultisigHex());
             new Thread(() -> trade.saveWallet()).start(); // save multisig wallet off thread on completion
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
           }
+
+          log.warn("Keys after processing message for {} {}: public spend key={}, public view key={}", trade.getClass().getSimpleName(), trade.getShortId(), multisigWallet.getPublicSpendKey(), multisigWallet.getPublicViewKey());
 
           // update multisig participants if new state to communicate
           if (updateParticipants) {
