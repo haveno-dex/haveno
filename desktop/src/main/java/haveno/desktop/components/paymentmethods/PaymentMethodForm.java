@@ -297,6 +297,7 @@ public abstract class PaymentMethodForm {
         checkBox.setMinWidth(60);
         checkBox.setMaxWidth(checkBox.getMinWidth());
         checkBox.setTooltip(new Tooltip(e.getName()));
+        checkBox.setSelected(false);
         checkBox.setOnAction(event -> {
             if (checkBox.isSelected())
                 paymentAccount.addCurrency(e);
