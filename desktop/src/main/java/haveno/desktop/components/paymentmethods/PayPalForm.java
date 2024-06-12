@@ -34,7 +34,12 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 
-import static haveno.desktop.util.FormBuilder.*;
+
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelFlowPane;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+
 
 public class PayPalForm extends PaymentMethodForm {
     private final PayPalAccount paypalAccount;
