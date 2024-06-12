@@ -36,6 +36,7 @@ import java.util.Map;
 @Slf4j
 public final class PayPalAccountPayload extends PaymentAccountPayload {
     private String emailOrMobileNrOrUsername = "";
+    private String details = "";
 
     public PayPalAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -48,6 +49,7 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
     private PayPalAccountPayload(String paymentMethod,
             String id,
             String emailOrMobileNrOrUsername,
+            String details,
             long maxTradePeriod,
             Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -56,12 +58,14 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
                 excludeFromJsonDataMap);
 
         this.emailOrMobileNrOrUsername = emailOrMobileNrOrUsername;
+        this.details = details;
     }
 
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
                 .setPaypalAccountPayload(protobuf.PayPalAccountPayload.newBuilder()
+                        .setDetails(details)
                         .setEmailOrMobileNrOrUsername(emailOrMobileNrOrUsername))
                 .build();
     }
@@ -70,6 +74,7 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
         return new PayPalAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 proto.getPaypalAccountPayload().getEmailOrMobileNrOrUsername(),
+                proto.getPaypalAccountPayload().getDetails(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -81,7 +86,9 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
     @Override
     public String getPaymentDetails() {
         return Res.getWithCol("payment.email.mobile.username") + " "
-                + emailOrMobileNrOrUsername;
+                + emailOrMobileNrOrUsername
+                + Res.getWithCol("shared.details") + " "
+                + details;
     }
 
     @Override

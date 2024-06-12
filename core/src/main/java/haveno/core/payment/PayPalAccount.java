@@ -84,6 +84,10 @@ public final class PayPalAccount extends PaymentAccount {
         return INPUT_FIELD_IDS;
     }
 
+    public void setDetails(String details) {
+        ((PayPalAccountPayload) paymentAccountPayload).setDetails(details);
+    }
+
     public void setEmailOrMobileNrOrUsername(String emailOrMobileNrOrUsername) {
         ((PayPalAccountPayload) paymentAccountPayload)
                 .setEmailOrMobileNrOrUsername(emailOrMobileNrOrUsername);
