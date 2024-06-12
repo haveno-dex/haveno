@@ -74,9 +74,12 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
         if (message == null) {
 
+            log.warn("Keys before exporting multisig hex for DepositsConfirmedMessage for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
+
             // export multisig hex once
             if (trade.getSelf().getUpdatedMultisigHex() == null) {
                 trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
+                log.warn("Keys after exporting multisig hex for DepositsConfirmedMessage for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
                 processModel.getTradeManager().requestPersistence();
             }
 

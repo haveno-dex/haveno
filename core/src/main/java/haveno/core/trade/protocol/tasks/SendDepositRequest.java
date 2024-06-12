@@ -99,6 +99,7 @@ public class SendDepositRequest extends TradeTask {
                         trade.setStateIfValidTransitionTo(Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST);
                         processModel.getTradeManager().requestPersistence();
                         trade.addInitProgressStep();
+                        log.warn("Keys after SendDepositRequest for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
                         complete();
                     }
                     @Override

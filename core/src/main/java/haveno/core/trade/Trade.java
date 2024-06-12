@@ -2520,7 +2520,10 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void setStateDepositsConfirmed() {
-        if (!isDepositsConfirmed()) setState(State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN);
+        if (!isDepositsConfirmed()) {
+            log.warn("Keys after first confirmation for {} {}: public spend key={}, public view key={}, address={}", getClass().getSimpleName(), getShortId(), getWallet().getPublicSpendKey(), getWallet().getPublicViewKey(), getWallet().getPrimaryAddress());
+            setState(State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN);
+        }
     }
 
     private void setStateDepositsUnlocked() {

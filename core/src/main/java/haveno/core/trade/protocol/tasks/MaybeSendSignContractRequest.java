@@ -96,6 +96,8 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     trade.getXmrWalletService().thawOutputs(trade.getSelf().getReserveTxKeyImages());
                 }
 
+                log.warn("Keys before creating deposit tx for {} {}: public spend key={}, public view key={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey());
+
                 // attempt creating deposit tx
                 try {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
@@ -198,6 +200,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
     }
 
     private void completeAux() {
+        log.warn("Keys after creating deposit tx for {} {}: public spend key={}, public view key={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey());
         trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
         trade.addInitProgressStep();
         processModel.getTradeManager().requestPersistence();

@@ -63,6 +63,8 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             // update multisig hex
             sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
 
+            log.warn("Keys on ProcessDepositsConfirmedMessage for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
+
             // try to import multisig hex (retry later)
             ThreadUtils.submitToPool(() -> {
                 try {

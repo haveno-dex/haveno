@@ -50,6 +50,8 @@ public class ProcessDepositResponse extends TradeTask {
           trade.getBuyer().setSecurityDeposit(BigInteger.valueOf(message.getBuyerSecurityDeposit()));
           trade.getSeller().setSecurityDeposit(BigInteger.valueOf(message.getSellerSecurityDeposit()));
 
+          log.warn("Keys on ProcessDepositResponse for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
+
           // set success state
           trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
           processModel.getTradeManager().requestPersistence();

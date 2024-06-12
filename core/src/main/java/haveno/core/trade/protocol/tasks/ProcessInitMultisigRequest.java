@@ -84,7 +84,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           else if (request.getExchangedMultisigHex() != null && !sender.getExchangedMultisigHex().equals(request.getExchangedMultisigHex())) throw new RuntimeException("Message's exchanged multisig differs from previous messages: " + request.getExchangedMultisigHex() + " versus " + sender.getExchangedMultisigHex());
 
           if (multisigWallet != null) {
-            log.warn("Keys before processing message for {} {}: public spend key={}, public view key={}", trade.getClass().getSimpleName(), trade.getShortId(), multisigWallet.getPublicSpendKey(), multisigWallet.getPublicViewKey());
+            log.warn("Keys before processing message for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
           }
 
           // prepare multisig if applicable
@@ -132,11 +132,16 @@ public class ProcessInitMultisigRequest extends TradeTask {
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
             processModel.setMultisigAddress(result.getAddress());
             log.warn("Imported exchanged multisig hex for {} {}: address={}, exchanged={}", trade.getClass().getSimpleName(), trade.getShortId(), processModel.getMultisigAddress(), result.getMultisigHex());
-            new Thread(() -> trade.saveWallet()).start(); // save multisig wallet off thread on completion
+            // new Thread(() -> {
+
+            // }).start(); // save multisig wallet off thread on completion
+            log.warn("Keys before saving wallet for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
+            trade.saveWallet();
+            log.warn("Keys after saving wallet for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
           }
 
-          log.warn("Keys after processing message for {} {}: public spend key={}, public view key={}", trade.getClass().getSimpleName(), trade.getShortId(), multisigWallet.getPublicSpendKey(), multisigWallet.getPublicViewKey());
+          log.warn("Keys after processing message for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
 
           // update multisig participants if new state to communicate
           if (updateParticipants) {

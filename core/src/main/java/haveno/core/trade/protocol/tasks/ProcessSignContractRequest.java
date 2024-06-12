@@ -161,6 +161,7 @@ public class ProcessSignContractRequest extends TradeTask {
     }
 
     private void completeAux() {
+        log.warn("Keys after ProcessSignContractRequest for {} {}: public spend key={}, public view key={}, address={}", trade.getClass().getSimpleName(), trade.getShortId(), trade.getWallet().getPublicSpendKey(), trade.getWallet().getPublicViewKey(), trade.getWallet().getPrimaryAddress());
         trade.addInitProgressStep();
         trade.setState(State.CONTRACT_SIGNED);
         processModel.getTradeManager().requestPersistence();
