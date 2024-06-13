@@ -61,6 +61,10 @@ public final class CashAppAccount extends PaymentAccount {
         return INPUT_FIELD_IDS;
     }
 
+    public void setDetails(String details) {
+        ((CashAppAccountPayload) paymentAccountPayload).setDetails(details);
+    }
+
     public void setEmailOrMobileNrOrCashtag(String emailOrMobileNrOrCashtag) {
         ((CashAppAccountPayload) paymentAccountPayload).setEmailOrMobileNrOrCashtag(emailOrMobileNrOrCashtag);
     }

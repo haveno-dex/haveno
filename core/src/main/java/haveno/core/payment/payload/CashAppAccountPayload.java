@@ -36,6 +36,7 @@ import java.util.Map;
 @Slf4j
 public final class CashAppAccountPayload extends PaymentAccountPayload {
     private String emailOrMobileNrOrCashtag = "";
+    private String details = "";
 
     public CashAppAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -48,6 +49,7 @@ public final class CashAppAccountPayload extends PaymentAccountPayload {
     private CashAppAccountPayload(String paymentMethod,
                                   String id,
                                   String emailOrMobileNrOrCashtag,
+                                  String details,
                                   long maxTradePeriod,
                                   Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -56,12 +58,14 @@ public final class CashAppAccountPayload extends PaymentAccountPayload {
                 excludeFromJsonDataMap);
 
         this.emailOrMobileNrOrCashtag = emailOrMobileNrOrCashtag;
+        this.details = details;
     }
 
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
                 .setCashAppAccountPayload(protobuf.CashAppAccountPayload.newBuilder()
+                        .setDetails(details)
                         .setEmailOrMobileNrOrCashtag(emailOrMobileNrOrCashtag))
                 .build();
     }
@@ -70,6 +74,7 @@ public final class CashAppAccountPayload extends PaymentAccountPayload {
         return new CashAppAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 proto.getCashAppAccountPayload().getEmailOrMobileNrOrCashtag(),
+                proto.getCashAppAccountPayload().getDetails(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -81,7 +86,9 @@ public final class CashAppAccountPayload extends PaymentAccountPayload {
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.email.mobile.cashtag") + " " + emailOrMobileNrOrCashtag;
+        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.email.mobile.cashtag") + " "
+                + emailOrMobileNrOrCashtag + Res.getWithCol("shared.details") + " "
+                + details;
     }
 
     @Override

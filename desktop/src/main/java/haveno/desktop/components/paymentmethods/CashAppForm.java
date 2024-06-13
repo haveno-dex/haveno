@@ -29,6 +29,7 @@ import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.Layout;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
@@ -36,10 +37,13 @@ import javafx.scene.layout.GridPane;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.addTopLabelFlowPane;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+
 
 public class CashAppForm extends PaymentMethodForm {
     private final CashAppAccount cashAppAccount;
     private final EmailOrMobileNrOrCashtagValidator cashAppValidator;
+    private TextArea sharedDetailsTextArea;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.email.mobile.cashtag"), ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag());
@@ -64,8 +68,16 @@ public class CashAppForm extends PaymentMethodForm {
         mobileNrInputTextField.setValidator(cashAppValidator);
         mobileNrInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             cashAppAccount.setEmailOrMobileNrOrCashtag(newValue.trim());
+        });
+
+        sharedDetailsTextArea = addTopLabelTextArea(gridPane, ++gridRow,
+                Res.get("shared.details"), "").second;
+        sharedDetailsTextArea.setMinHeight(70);
+        sharedDetailsTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
+            cashAppAccount.setDetails(newValue);
             updateFromInputs();
         });
+
         addCurrenciesGrid(true);
         addLimitations(false);
         addAccountNameTextFieldWithAutoFillToggleButton();
@@ -97,6 +109,15 @@ public class CashAppForm extends PaymentMethodForm {
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email.mobile.cashtag"),
                 cashAppAccount.getEmailOrMobileNrOrCashtag()).second;
         field.setMouseTransparent(false);
+
+        sharedDetailsTextArea = addTopLabelTextArea(gridPane, ++gridRow,
+                Res.get("shared.details"), "").second;
+        sharedDetailsTextArea.setMinHeight(70);
+        sharedDetailsTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
+            cashAppAccount.setDetails(newValue);
+            updateFromInputs();
+        });
+
         addLimitations(true);
         addCurrenciesGrid(false);
     }
@@ -105,6 +126,6 @@ public class CashAppForm extends PaymentMethodForm {
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
                 && cashAppValidator.validate(cashAppAccount.getEmailOrMobileNrOrCashtag()).isValid
-                && cashAppAccount.getTradeCurrencies().size() > 0);
+                && !cashAppAccount.getTradeCurrencies().isEmpty());
     }
 }
