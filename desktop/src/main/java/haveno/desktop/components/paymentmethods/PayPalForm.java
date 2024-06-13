@@ -113,6 +113,7 @@ public class PayPalForm extends PaymentMethodForm {
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow,
                 Res.get("payment.email.mobile.username"),
                 paypalAccount.getEmailOrMobileNrOrUsername()).second;
+        field.setMouseTransparent(false);
 
         sharedDetailsTextArea = addTopLabelTextArea(gridPane, ++gridRow,
                 Res.get("shared.details"), "").second;
@@ -121,8 +122,7 @@ public class PayPalForm extends PaymentMethodForm {
             paypalAccount.setDetails(newValue);
             updateFromInputs();
         });
-
-        field.setMouseTransparent(false);
+        
         addLimitations(true);
         addCurrenciesGrid(false);
     }
