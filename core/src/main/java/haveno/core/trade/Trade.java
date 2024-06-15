@@ -1228,10 +1228,14 @@ public abstract class Trade implements Tradable, Model {
         if (sign) {
 
             // sign tx
-            MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-            if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
-            payoutTxHex = result.getSignedMultisigTxHex();
-            setPayoutTxHex(payoutTxHex);
+            try {
+                MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
+                if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
+                payoutTxHex = result.getSignedMultisigTxHex();
+                setPayoutTxHex(payoutTxHex);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
 
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
@@ -1239,6 +1243,7 @@ public abstract class Trade implements Tradable, Model {
 
             // verify fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
+            log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getId());
             MoneroTxWallet feeEstimateTx = createPayoutTx();
             BigInteger feeEstimate = feeEstimateTx.getFee();
             double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
