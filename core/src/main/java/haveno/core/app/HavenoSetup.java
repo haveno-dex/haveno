@@ -377,7 +377,7 @@ public class HavenoSetup {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            log.error(e.toString());
+            log.warn(e.toString());
         }
     }
 
