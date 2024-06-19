@@ -377,7 +377,7 @@ public class HavenoSetup {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            log.warn(e.toString());
+            log.warn("Failed to install Monero binaries: " + e.toString());
         }
     }
 
