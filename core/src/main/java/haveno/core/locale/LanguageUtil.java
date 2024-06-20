@@ -44,7 +44,7 @@ public class LanguageUtil {
             "fa", // Persian
             "it", // Italian
             "cs", // Czech
-            "pl" // Polish
+            "pl", // Polish
             "tr" // Turkish
             /*
             // not translated yet
