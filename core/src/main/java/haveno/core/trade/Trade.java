@@ -2175,7 +2175,7 @@ public abstract class Trade implements Tradable, Model {
         return tradeAmountTransferred();
     }
 
-    private boolean tradeAmountTransferred() {
+    public boolean tradeAmountTransferred() {
         return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
     }
 
