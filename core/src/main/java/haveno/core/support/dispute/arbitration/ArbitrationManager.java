@@ -274,15 +274,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     }
                     dispute.setDisputeResult(disputeResult);
 
-                    // sync and save wallet
-                    if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
-
                     // update multisig hex
                     if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
                     if (trade.walletExists()) trade.importMultisigHex();
 
+                    // sync and save wallet
+                    if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
+
                     // attempt to sign and publish dispute payout tx if given and not already published
-                    if (disputeClosedMessage.getUnsignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
+                    if (!trade.isPayoutPublished() && disputeClosedMessage.getUnsignedPayoutTxHex() != null) {
 
                         // wait to sign and publish payout tx if defer flag set
                         if (disputeClosedMessage.isDeferPublishPayout()) {
