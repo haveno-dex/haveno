@@ -1545,6 +1545,7 @@ public class XmrWalletService {
             // open wallet
             config.setNetworkType(getMoneroNetworkType());
             config.setServer(connection);
+            log.info("Opening full wallet " + config.getPath() + " with monerod=" + connection.getUri());
             walletFull = MoneroWalletFull.openWallet(config);
             if (walletFull.getDaemonConnection() != null) walletFull.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done opening full wallet " + config.getPath());
@@ -1604,7 +1605,7 @@ public class XmrWalletService {
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // open wallet
-            log.info("Opening RPC wallet " + config.getPath() + " connected to daemon " + connection.getUri());
+            log.info("Opening RPC wallet " + config.getPath() + " with monerod=" + connection.getUri());
             config.setServer(connection);
             walletRpc.openWallet(config);
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
