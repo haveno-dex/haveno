@@ -557,6 +557,7 @@ public final class XmrConnectionService {
         
         // update polling
         doPollDaemon();
+        if (currentConnection != getConnection()) return; // polling can change connection
         UserThread.runAfter(() -> updatePolling(), getRefreshPeriodMs() / 1000);
 
         // notify listeners in parallel
@@ -607,13 +608,22 @@ public final class XmrConnectionService {
                 try {
                     lastInfo = daemon.getInfo();
                 } catch (Exception e) {
-                    try {
-                        log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
-                        switchToBestConnection();
-                        lastInfo = daemon.getInfo();
-                    } catch (Exception e2) {
-                        throw e2; // caught internally
+
+                    // skip handling if shutting down
+                    if (isShutDownStarted) return;
+
+                    // fallback to provided nodes if custom connection fails on startup
+                    if (lastInfo == null && "".equals(config.xmrNode) && preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM) {
+                        log.warn("Failed to fetch daemon info from custom node on startup, falling back to provided nodes: " + e.getMessage());
+                        preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                        initializeConnections();
+                        return;
                     }
+
+                    // switch to best connection
+                    log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
+                    switchToBestConnection();
+                    lastInfo = daemon.getInfo(); // caught internally if still fails
                 }
 
                 // connected to daemon
