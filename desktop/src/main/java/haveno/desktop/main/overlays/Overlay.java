@@ -33,6 +33,7 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
+import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -41,6 +42,8 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -56,6 +59,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
@@ -163,7 +167,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected boolean useAnimation = true;
     protected boolean showScrollPane = false;
 
-    protected Label headlineIcon, copyIcon, headLineLabel, messageLabel;
+    protected TextArea messageTextArea;
+    protected Label headlineIcon, copyIcon, headLineLabel;
     protected String headLine, message, closeButtonText, actionButtonText,
             secondaryActionButtonText, dontShowAgainId, dontShowAgainText,
             truncatedMessage;
@@ -847,20 +852,42 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void addMessage() {
         if (message != null) {
-            messageLabel = new AutoTooltipLabel(truncatedMessage);
-            messageLabel.setMouseTransparent(true);
-            messageLabel.setWrapText(true);
+            messageTextArea = new TextArea(truncatedMessage);
+            messageTextArea.setEditable(false);
+            messageTextArea.setStyle("""
+                -fx-background-insets: 0px;
+                -fx-border-width: 0px;
+                -fx-focus-color: -fx-control-inner-background;
+                -fx-faint-focus-color: -fx-control-inner-background;
+            """);
+            messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
+                if (newScene != null) {
+                    // avoid javafx css warning
+                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
+                    messageTextArea.applyCss();
+                    var text = messageTextArea.lookup(".text");
+
+                    messageTextArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
+                        return messageTextArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
+                    }, text.boundsInLocalProperty()));
+
+                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
+                        Platform.runLater(() -> messageTextArea.requestLayout());
+                    });
+                }
+            });
+            messageTextArea.setWrapText(true);
 
             Region messageRegion;
             if (showScrollPane) {
-                scrollPane = new ScrollPane(messageLabel);
+                scrollPane = new ScrollPane(messageTextArea);
                 scrollPane.setHbarPolicy(ScrollBarPolicy.NEVER);
                 scrollPane.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
                 scrollPane.setFitToWidth(true);
 
                 messageRegion = scrollPane;
             } else
-                messageRegion = messageLabel;
+                messageRegion = messageTextArea;
 
             GridPane.setHalignment(messageRegion, HPos.LEFT);
             GridPane.setHgrow(messageRegion, Priority.ALWAYS);
@@ -892,7 +919,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     private void addReportErrorButtons() {
-        messageLabel.setText(Res.get("popup.reportError", truncatedMessage));
+        messageTextArea.setText(Res.get("popup.reportError", truncatedMessage));
 
         Button logButton = new AutoTooltipButton(Res.get("popup.reportError.log"));
         GridPane.setMargin(logButton, new Insets(20, 0, 0, 0));
