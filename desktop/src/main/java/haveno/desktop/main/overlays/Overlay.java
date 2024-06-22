@@ -854,12 +854,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (message != null) {
             messageTextArea = new TextArea(truncatedMessage);
             messageTextArea.setEditable(false);
-            messageTextArea.setStyle("""
-                -fx-background-insets: 0px;
-                -fx-border-width: 0px;
-                -fx-focus-color: -fx-control-inner-background;
-                -fx-faint-focus-color: -fx-control-inner-background;
-            """);
+            messageTextArea.getStyleClass().add("text-area-no-border");
             messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
                 if (newScene != null) {
                     // avoid javafx css warning
