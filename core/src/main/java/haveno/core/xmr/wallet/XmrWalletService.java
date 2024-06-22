@@ -113,7 +113,7 @@ public class XmrWalletService {
 
     // monero configuration
     public static final int NUM_BLOCKS_UNLOCK = 10;
-    public static final String MONERO_BINS_DIR = Config.baseCurrencyNetwork().isTestnet() ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero binaries and wallet files
+    public static final String MONERO_BINS_DIR = Config.appDataDir().getAbsolutePath();
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee

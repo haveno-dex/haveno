@@ -532,6 +532,7 @@ configure(project(':core')) {
 
         ext.downloadAndVerifyDependencies = { String archiveURL, String archiveSHA256, File destinationArchiveFile ->
             ext.dependencyDownloadedAndVerified = false
+
             // if archive exists, check to see if its already up to date
             if (destinationArchiveFile.exists()) {
                 println "Verifying existing archive ${destinationArchiveFile}"
@@ -545,14 +546,15 @@ configure(project(':core')) {
                 }
             }
 
+            // download archives
             println "Downloading ${archiveURL}"
             ant.get(src: archiveURL, dest: destinationArchiveFile)
             println 'Download saved to ' + destinationArchiveFile
 
+            // verify checksum
             println 'Verifying checksum for downloaded binary ...'
             ant.archiveHash = archiveSHA256
-            // use a different verifyProperty name from existing verification or it will always fail
-            ant.checksum(file: destinationArchiveFile, algorithm: 'SHA-256', property: '${archiveHash}', verifyProperty: 'downloadedHashMatches')
+            ant.checksum(file: destinationArchiveFile, algorithm: 'SHA-256', property: '${archiveHash}', verifyProperty: 'downloadedHashMatches') // use a different verifyProperty name from existing verification or it will always fail
             if (ant.properties['downloadedHashMatches'] != 'true') {
                 ant.fail('Checksum mismatch: Downloaded archive has a different checksum than expected')
             }
