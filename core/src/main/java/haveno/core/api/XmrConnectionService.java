@@ -530,7 +530,7 @@ public final class XmrConnectionService {
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
-        if (isShutDownStarted) return;
+        if (isShutDownStarted || !accountService.isAccountOpen()) return;
         if (currentConnection == null) {
             log.warn("Setting daemon connection to null");
             Thread.dumpStack();
