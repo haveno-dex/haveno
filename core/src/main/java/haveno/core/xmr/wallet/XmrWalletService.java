@@ -322,7 +322,7 @@ public class XmrWalletService {
     }
 
     public boolean isProxyApplied(boolean wasWalletSynced) {
-        return preferences.isProxyApplied(wasWalletSynced);
+        return preferences.isProxyApplied(wasWalletSynced) && xmrConnectionService.isProxyApplied();
     }
 
     public String getWalletPassword() {

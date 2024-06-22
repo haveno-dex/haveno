@@ -293,7 +293,7 @@ public class OfferBookService {
     }
 
     private long getKeyImageRefreshPeriodMs() {
-        return xmrConnectionService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+        return xmrConnectionService.isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
     private void updateAffectedOffers(String keyImage) {

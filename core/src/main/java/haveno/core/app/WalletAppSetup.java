@@ -268,9 +268,9 @@ public class WalletAppSetup {
 
     private String getXmrDaemonNetworkAsString() {
         String postFix;
-        if (xmrConnectionService.isConnectionLocal())
+        if (xmrConnectionService.isConnectionLocalHost())
             postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
-        else if (xmrConnectionService.isConnectionTor())
+        else if (xmrConnectionService.isProxyApplied())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else
             postFix = "";
@@ -279,7 +279,7 @@ public class WalletAppSetup {
 
     private String getXmrWalletNetworkAsString() {
         String postFix;
-        if (xmrConnectionService.isConnectionLocal())
+        if (xmrConnectionService.isConnectionLocalHost())
             postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
         else if (xmrWalletService.isProxyApplied())
             postFix = " " + Res.get("mainView.footer.usingTor");
