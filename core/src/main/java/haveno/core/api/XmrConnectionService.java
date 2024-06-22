@@ -253,12 +253,12 @@ public final class XmrConnectionService {
         connectionList.setAutoSwitch(autoSwitch);
     }
 
-    public boolean isConnectionLocal() {
-        return isConnectionLocal(getConnection());
+    public boolean isConnectionLocalHost() {
+        return isConnectionLocalHost(getConnection());
     }
 
-    public boolean isConnectionTor() {
-        return useTorProxy(getConnection());
+    public boolean isProxyApplied() {
+        return isProxyApplied(getConnection());
     }
 
     public long getRefreshPeriodMs() {
@@ -328,26 +328,26 @@ public final class XmrConnectionService {
         downloadListener.doneDownload();
     }
 
-    private boolean isConnectionLocal(MoneroRpcConnection connection) {
+    private boolean isConnectionLocalHost(MoneroRpcConnection connection) {
         return connection != null && HavenoUtils.isLocalHost(connection.getUri());
     }
 
     private long getDefaultRefreshPeriodMs() {
         MoneroRpcConnection connection = getConnection();
         if (connection == null) return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
-        if (isConnectionLocal(connection)) {
+        if (isConnectionLocalHost(connection)) {
             if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
             else return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
-        } else if (useTorProxy(connection)) {
+        } else if (isProxyApplied(connection)) {
             return REFRESH_PERIOD_ONION_MS;
         } else {
             return REFRESH_PERIOD_HTTP_MS;
         }
     }
 
-    private boolean useTorProxy(MoneroRpcConnection connection) {
+    private boolean isProxyApplied(MoneroRpcConnection connection) {
         if (connection == null) return false;
-        return connection.isOnion() || (preferences.getUseTorForXmr().isUseTorForXmr() && !HavenoUtils.isLocalHost(connection.getUri()));
+        return connection.isOnion() || (preferences.getUseTorForXmr().isUseTorForXmr() && !HavenoUtils.isPrivateIp(connection.getUri()));
     }
 
     private void initialize() {
@@ -475,7 +475,7 @@ public final class XmrConnectionService {
                 // set connection proxies
                 log.info("TOR proxy URI: " + getProxyUri());
                 for (MoneroRpcConnection connection : connectionManager.getConnections()) {
-                    if (useTorProxy(connection)) connection.setProxyUri(getProxyUri());
+                    if (isProxyApplied(connection)) connection.setProxyUri(getProxyUri());
                 }
 
                 // restore auto switch
@@ -495,7 +495,7 @@ public final class XmrConnectionService {
                 // set connection from startup argument if given
                 connectionManager.setAutoSwitch(false);
                 MoneroRpcConnection connection = new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1);
-                if (useTorProxy(connection)) connection.setProxyUri(getProxyUri());
+                if (isProxyApplied(connection)) connection.setProxyUri(getProxyUri());
                 connectionManager.setConnection(connection);
 
                 // start local node if applicable
