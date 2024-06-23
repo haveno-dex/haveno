@@ -108,11 +108,14 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
         if (singleTradeCurrency != null) {
-            if (singleTradeCurrency instanceof TraditionalCurrency)
+            if (singleTradeCurrency instanceof TraditionalCurrency) {
                 preferences.addTraditionalCurrency((TraditionalCurrency) singleTradeCurrency);
+                preferences.onSinglePaymentAccountCurrienciesSelected((TraditionalCurrency) singleTradeCurrency);
+            }
             else
                 preferences.addCryptoCurrency((CryptoCurrency) singleTradeCurrency);
         } else if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
+            singleTradeCurrency = tradeCurrencies.getFirst();
             if (tradeCurrencies.contains(CurrencyUtil.getDefaultTradeCurrency()))
                 paymentAccount.setSelectedTradeCurrency(CurrencyUtil.getDefaultTradeCurrency());
             else
@@ -124,6 +127,9 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
                 else
                     preferences.addCryptoCurrency((CryptoCurrency) tradeCurrency);
             });
+
+            if (singleTradeCurrency instanceof TraditionalCurrency) // Assuming Traditional and Crypto currencies are never mixed
+                preferences.onPaymentAccountCurrienciesSelected(tradeCurrencies);
         }
 
         user.addPaymentAccount(paymentAccount);

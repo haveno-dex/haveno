@@ -224,7 +224,7 @@ public abstract class PaymentAccount implements PersistablePayload {
     }
 
     public boolean hasMultipleCurrencies() {
-        return tradeCurrencies.size() > 1;
+        return getSelectedTradeCurrencies().size() > 1;
     }
 
     public void setSingleTradeCurrency(TradeCurrency tradeCurrency) {
@@ -235,7 +235,10 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     @Nullable
     public TradeCurrency getSingleTradeCurrency() {
-        if (tradeCurrencies.size() == 1)
+        List<TradeCurrency> currencies = getSelectedTradeCurrencies();
+        if (currencies.size() == 1)
+            return currencies.get(0);
+        else if (tradeCurrencies.size() == 1)
             return tradeCurrencies.get(0);
         else
             return null;
@@ -275,6 +278,18 @@ public abstract class PaymentAccount implements PersistablePayload {
         return this.getPaymentMethod().getId().equals(paymentMethodId);
     }
 
+    public TradeCurrency getTradeCurrencyByCode(String code) {
+        return tradeCurrencies.stream()
+                .filter(o1 -> o1.getCode().equals(code))
+                .findFirst()
+                .orElse(null); // This should never be null.
+    }
+
+    private List<TradeCurrency> getSelectedTradeCurrencies() {
+        return tradeCurrencies.stream()
+                .filter(TradeCurrency::getSelected)
+                .toList();
+    }
     /**
      * Return an Optional of the trade currency for this payment account, or
      * Optional.empty() if none is found.  If this payment account has a selected
@@ -285,12 +300,13 @@ public abstract class PaymentAccount implements PersistablePayload {
      * @return Optional of the trade currency for the given payment account
      */
     public Optional<TradeCurrency> getTradeCurrency() {
+        List<TradeCurrency> currencies = getSelectedTradeCurrencies();
         if (this.getSelectedTradeCurrency() != null)
             return Optional.of(this.getSelectedTradeCurrency());
         else if (this.getSingleTradeCurrency() != null)
             return Optional.of(this.getSingleTradeCurrency());
         else if (!this.getTradeCurrencies().isEmpty())
-            return Optional.of(this.getTradeCurrencies().get(0));
+            return Optional.of(currencies.get(0));
         else
             return Optional.empty();
     }

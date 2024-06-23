@@ -1807,9 +1807,10 @@ message Currency {
 message TradeCurrency {
     string code = 1;
     string name = 2;
+    bool selected = 3;
     oneof message {
-        CryptoCurrency crypto_currency = 3;
-        TraditionalCurrency traditional_currency = 4;
+        CryptoCurrency crypto_currency = 4;
+        TraditionalCurrency traditional_currency = 5;
     }
 }
 

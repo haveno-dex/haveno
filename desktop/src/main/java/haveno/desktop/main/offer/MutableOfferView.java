@@ -101,6 +101,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
 import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
@@ -499,7 +500,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             model.onCurrencySelected(model.getTradeCurrency());
 
             if (paymentAccount.hasMultipleCurrencies()) {
-                final List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
+                final List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies().stream()
+                    .filter(TradeCurrency::getSelected)
+                    .collect(Collectors.toList());
                 currencyComboBox.setItems(FXCollections.observableArrayList(tradeCurrencies));
                 currencyComboBox.getSelectionModel().select(model.getTradeCurrency());
             } else {

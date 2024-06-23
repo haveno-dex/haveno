@@ -143,7 +143,10 @@ public class XmrOfferBookViewModel extends OfferBookViewModel {
         } else {
             return CurrencyUtil.getMainTraditionalCurrencies().stream().sorted((o1, o2) ->
                     Boolean.compare(!hasPaymentAccountForCurrency(o1),
-                            !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList()).get(0);
+                            !hasPaymentAccountForCurrency(o2)))
+                    .filter(TradeCurrency::getSelected) // This assumes there will ALWAYS be a default "selected" currency
+                    .collect(Collectors.toList())
+                    .get(0);
         }
     }
 

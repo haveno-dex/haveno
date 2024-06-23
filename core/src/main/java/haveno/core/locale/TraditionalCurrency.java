@@ -55,17 +55,29 @@ public final class TraditionalCurrency extends TradeCurrency {
         this(Currency.getInstance(currencyCode), getLocale());
     }
 
+    public TraditionalCurrency(String currencyCode, Boolean selected) {
+        this(Currency.getInstance(currencyCode), getLocale(), selected);
+    }
+
+    public TraditionalCurrency(String currencyCode, String name, Boolean selected) {
+        super(currencyCode, name, selected);
+    }
+
     public TraditionalCurrency(String currencyCode, String name) {
         super(currencyCode, name);
     }
 
     public TraditionalCurrency(TraditionalCurrency currency) {
-        this(currency.getCode(), currency.getName());
+        this(currency.getCode(), currency.getName(), currency.getSelected());
     }
 
     @SuppressWarnings("WeakerAccess")
     public TraditionalCurrency(Currency currency) {
         this(currency, getLocale());
+    }
+
+    public TraditionalCurrency(Currency currency, Locale locale, Boolean selected) {
+        super(currency.getCurrencyCode(), currency.getDisplayName(locale), selected);
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -83,12 +95,13 @@ public final class TraditionalCurrency extends TradeCurrency {
         return getTradeCurrencyBuilder()
                 .setCode(code)
                 .setName(name)
+                .setSelected(getSelected())
                 .setTraditionalCurrency(protobuf.TraditionalCurrency.newBuilder())
                 .build();
     }
 
     public static TraditionalCurrency fromProto(protobuf.TradeCurrency proto) {
-        return new TraditionalCurrency(proto.getCode(), proto.getName());
+        return new TraditionalCurrency(proto.getCode(), proto.getName(), proto.getSelected());
     }
 
 

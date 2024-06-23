@@ -142,14 +142,20 @@ public class CurrencyUtil {
 
     public static List<TraditionalCurrency> getMainFiatCurrencies() {
         List<TraditionalCurrency> list = new ArrayList<>();
-        list.add(new TraditionalCurrency("USD"));
-        list.add(new TraditionalCurrency("EUR"));
-        list.add(new TraditionalCurrency("GBP"));
-        list.add(new TraditionalCurrency("CAD"));
-        list.add(new TraditionalCurrency("AUD"));
-        list.add(new TraditionalCurrency("RUB"));
-        list.add(new TraditionalCurrency("INR"));
-        list.add(new TraditionalCurrency("NGN"));
+        list.add(new TraditionalCurrency("USD", true));
+        list.add(new TraditionalCurrency("EUR", true));
+        list.add(new TraditionalCurrency("GBP", true));
+        list.add(new TraditionalCurrency("CAD", true));
+        list.add(new TraditionalCurrency("AUD", true));
+        list.add(new TraditionalCurrency("RUB", true));
+        list.add(new TraditionalCurrency("INR", true));
+        list.add(new TraditionalCurrency("NGN", true));
+        list.add(new TraditionalCurrency("CNY", true));
+        list.add(new TraditionalCurrency("JPY", true));
+        list.add(new TraditionalCurrency("BRL", true));
+        list.add(new TraditionalCurrency("THB", true));
+        list.add(new TraditionalCurrency("SEK", true));
+        list.add(new TraditionalCurrency("DKK", true));
         postProcessTraditionalCurrenciesList(list);
         return list;
     }
@@ -271,7 +277,7 @@ public class CurrencyUtil {
 
     public static boolean isPricePrecise(String currencyCode) {
         return isCryptoCurrency(currencyCode) ||
-            "XAU".equals(currencyCode.toUpperCase()) || 
+            "XAU".equals(currencyCode.toUpperCase()) ||
             "XAG".equals(currencyCode.toUpperCase());
     }
 
