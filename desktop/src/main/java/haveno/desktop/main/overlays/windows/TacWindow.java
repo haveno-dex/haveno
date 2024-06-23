@@ -89,7 +89,7 @@ public class TacWindow extends Overlay<TacWindow> {
     protected void addMessage() {
         super.addMessage();
         String fontStyleClass = smallScreen ? "small-text" : "normal-text";
-        messageLabel.getStyleClass().add(fontStyleClass);
+        messageTextArea.getStyleClass().add(fontStyleClass);
 
         // TODO: link to the wiki
         // HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
