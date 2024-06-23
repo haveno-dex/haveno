@@ -293,11 +293,14 @@ public abstract class PaymentMethodForm {
                                       TradeCurrency e, PaymentAccount paymentAccount) {
         CheckBox checkBox = new AutoTooltipCheckBox(e.getCode());
         checkBox.setMouseTransparent(!isEditable);
-        checkBox.setSelected(paymentAccount.getTradeCurrencies().contains(e));
+        checkBox.setSelected(paymentAccount.getTradeCurrencies().contains(e)
+                && paymentAccount.getTradeCurrencyByCode(e.getCode()).getSelected());
         checkBox.setMinWidth(60);
         checkBox.setMaxWidth(checkBox.getMinWidth());
         checkBox.setTooltip(new Tooltip(e.getName()));
         checkBox.setOnAction(event -> {
+            e.setSelected(checkBox.isSelected());
+
             if (checkBox.isSelected())
                 paymentAccount.addCurrency(e);
             else

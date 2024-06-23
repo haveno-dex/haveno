@@ -150,6 +150,12 @@ public class CurrencyUtil {
         list.add(new TraditionalCurrency("RUB"));
         list.add(new TraditionalCurrency("INR"));
         list.add(new TraditionalCurrency("NGN"));
+        list.add(new TraditionalCurrency("CNY"));
+        list.add(new TraditionalCurrency("JPY"));
+        list.add(new TraditionalCurrency("BRL"));
+        list.add(new TraditionalCurrency("THB"));
+        list.add(new TraditionalCurrency("SEK"));
+        list.add(new TraditionalCurrency("DKK"));
         postProcessTraditionalCurrenciesList(list);
         return list;
     }
@@ -271,7 +277,7 @@ public class CurrencyUtil {
 
     public static boolean isPricePrecise(String currencyCode) {
         return isCryptoCurrency(currencyCode) ||
-            "XAU".equals(currencyCode.toUpperCase()) || 
+            "XAU".equals(currencyCode.toUpperCase()) ||
             "XAG".equals(currencyCode.toUpperCase());
     }
 

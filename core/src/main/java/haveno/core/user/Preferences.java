@@ -214,6 +214,27 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         setupPreferences();
     }
 
+    public void onSinglePaymentAccountCurrienciesSelected(TraditionalCurrency currency) {
+        prefPayload.setBuyScreenCurrencyCode(currency.getCode());
+        prefPayload.setSellScreenCurrencyCode(currency.getCode());
+        setPreferredTradeCurrency(currency);
+    }
+
+    public void onPaymentAccountCurrienciesSelected(List<TradeCurrency> currencies) {
+        List<TraditionalCurrency> availableCurrencies = currencies.stream()
+                .filter(o1 -> o1 instanceof TraditionalCurrency)
+                .map(o1 -> (TraditionalCurrency) o1)
+                .distinct()
+                .sorted((o1, o2) -> {   // Give priority to selected currencies.
+                    if (o1.getSelected() && !o2.getSelected()) return -1;
+                    else if (!o1.getSelected() && o2.getSelected()) return 1;
+                    else return 0;
+                })
+                .collect(Collectors.toList());
+        setTraditionalCurrencies(availableCurrencies);
+        onSinglePaymentAccountCurrienciesSelected(availableCurrencies.get(0));
+    }
+
     private void initNewPreferences() {
         prefPayload = new PreferencesPayload();
         prefPayload.setUserLanguage(GlobalSettings.getLocale().getLanguage());
