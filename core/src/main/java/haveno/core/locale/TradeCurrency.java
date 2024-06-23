@@ -21,6 +21,7 @@ import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.persistable.PersistablePayload;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -33,10 +34,21 @@ public abstract class TradeCurrency implements PersistablePayload, Comparable<Tr
     protected final String code;
     @EqualsAndHashCode.Exclude
     protected final String name;
+    @EqualsAndHashCode.Exclude
+    @Getter
+    @Setter
+    protected Boolean selected;
+
+    public TradeCurrency(String code, String name, @NotNull Boolean selected) {
+        this.code = code;
+        this.name = name;
+        this.selected = selected;
+    }
 
     public TradeCurrency(String code, String name) {
         this.code = code;
         this.name = name;
+        this.selected = false;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +69,8 @@ public abstract class TradeCurrency implements PersistablePayload, Comparable<Tr
     public protobuf.TradeCurrency.Builder getTradeCurrencyBuilder() {
         return protobuf.TradeCurrency.newBuilder()
                 .setCode(code)
-                .setName(name);
+                .setName(name)
+                .setSelected(selected);
     }
 
 

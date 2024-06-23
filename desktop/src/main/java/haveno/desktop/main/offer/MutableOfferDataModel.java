@@ -26,6 +26,7 @@ import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.CreateOfferService;
@@ -303,6 +304,14 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         if (paymentAccount != null && !this.paymentAccount.equals(paymentAccount)) {
             preferences.setSelectedPaymentAccountForCreateOffer(paymentAccount);
+
+            TradeCurrency singleTradeCurrency = paymentAccount.getTradeCurrencies().getFirst();
+            if (singleTradeCurrency instanceof TraditionalCurrency) {
+                preferences.onPaymentAccountCurrienciesSelected(paymentAccount.getSupportedCurrencies());
+                user.requestPersistence();
+                paymentAccount.onPersistChanges();
+            }
+
             this.paymentAccount = paymentAccount;
 
             setTradeCurrencyFromPaymentAccount(paymentAccount);
