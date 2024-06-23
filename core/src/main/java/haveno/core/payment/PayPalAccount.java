@@ -66,7 +66,6 @@ public final class PayPalAccount extends PaymentAccount {
 
     public PayPalAccount() {
         super(PaymentMethod.PAYPAL);
-        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override
