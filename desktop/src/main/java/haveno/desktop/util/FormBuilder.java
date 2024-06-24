@@ -57,6 +57,7 @@ import haveno.desktop.components.TxIdTextField;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -415,7 +416,10 @@ public class FormBuilder {
         GridPane.setColumnIndex(label2, 1);
         GridPane.setMargin(label1, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label1, HPos.LEFT);
+        GridPane.setValignment(label1, VPos.TOP);
         GridPane.setMargin(label2, new Insets(top, 0, 0, 0));
+        GridPane.setHalignment(label2, HPos.LEFT);
+        GridPane.setValignment(label2, VPos.TOP);
 
         return new Tuple2<>(label1, label2);
     }
