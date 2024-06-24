@@ -301,7 +301,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     tooltip = new Tooltip(CountryUtil.getNamesByCodesString(acceptedCountryCodes));
                 }
             }
-            Label acceptedCountries = addConfirmationLabelLabel(gridPane, ++rowIndex,
+            Label acceptedCountries = addConfirmationLabelLabel(gridPane, true, ++rowIndex,
                     Res.get("shared.acceptedTakerCountries"), countries).second;
             if (tooltip != null) {
                 acceptedCountries.setMouseTransparent(false);
