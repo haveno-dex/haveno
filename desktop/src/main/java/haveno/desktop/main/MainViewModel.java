@@ -61,6 +61,7 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.DisplayAlertMessageWindow;
+import haveno.desktop.main.overlays.windows.SplinterManagerWindow;
 import haveno.desktop.main.overlays.windows.TacWindow;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.main.overlays.windows.UpdateAmazonGiftCardAccountWindow;
@@ -121,6 +122,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     private final WalletPasswordWindow walletPasswordWindow;
     private final NotificationCenter notificationCenter;
     private final TacWindow tacWindow;
+    private final SplinterManagerWindow splinterManagerWindow;
     @Getter
     private final PriceFeedService priceFeedService;
     private final Config config;
@@ -165,6 +167,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          WalletPasswordWindow walletPasswordWindow,
                          NotificationCenter notificationCenter,
                          TacWindow tacWindow,
+                         SplinterManagerWindow splinterManagerWindow,
                          PriceFeedService priceFeedService,
                          Config config,
                          AccountAgeWitnessService accountAgeWitnessService,
@@ -188,6 +191,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         this.walletPasswordWindow = walletPasswordWindow;
         this.notificationCenter = notificationCenter;
         this.tacWindow = tacWindow;
+        this.splinterManagerWindow = splinterManagerWindow;
         this.priceFeedService = priceFeedService;
         this.config = config;
         this.accountAgeWitnessService = accountAgeWitnessService;
@@ -274,7 +278,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // show welcome message 
+        // show welcome message
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET) {
             String key = "welcome.stagenet";
             if (DontShowAgainLookup.showAgain(key)) {
@@ -332,6 +336,17 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setDisplayTacHandler(acceptedHandler -> UserThread.runAfter(() -> {
             //noinspection FunctionalExpressionCanBeFolded
             tacWindow.onAction(acceptedHandler::run).show();
+        }, 1));
+        /* havenoSetup.setDisplaySplinterManagerHandler(show -> {
+            if (show) {
+                splinterManagerWindow.show();
+            } else if (splinterManagerWindow.isDisplayed()) {
+                splinterManagerWindow.hide();
+            }
+        });*/
+        havenoSetup.setDisplaySplinterManagerHandler(acceptedHandler -> UserThread.runAfter(() -> {
+            //noinspection FunctionalExpressionCanBeFolded
+            splinterManagerWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> {
@@ -550,7 +565,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             combinedSyncProgress.set(xmrDaemonSyncProgress.doubleValue());
         });
     }
-    
+
     private void updateXmrWalletSyncProgress() {
         final DoubleProperty xmrWalletSyncProgress = havenoSetup.getXmrWalletSyncProgress();
         UserThread.execute(() -> {

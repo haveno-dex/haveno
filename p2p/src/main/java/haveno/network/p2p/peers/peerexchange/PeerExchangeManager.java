@@ -55,8 +55,10 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
 
-    private final Set<NodeAddress> seedNodeAddresses;
+    private Set<NodeAddress> seedNodeAddresses;
     private final Map<NodeAddress, PeerExchangeHandler> handlerMap = new HashMap<>();
+
+    private final SeedNodeRepository seedNodeRepository;
 
     private Timer retryTimer, periodicTimer;
     private boolean stopped;
@@ -77,6 +79,7 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
         this.networkNode.addConnectionListener(this);
         this.peerManager.addListener(this);
 
+        this.seedNodeRepository = seedNodeRepository;
         this.seedNodeAddresses = new HashSet<>(seedNodeRepository.getSeedNodeAddresses());
     }
 
@@ -91,6 +94,9 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
         closeAllHandlers();
     }
 
+    public void updateSeedNodes(){
+        seedNodeAddresses = new HashSet<>(seedNodeRepository.getSeedNodeAddresses());
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API

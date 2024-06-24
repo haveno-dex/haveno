@@ -99,7 +99,8 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
     private final NetworkNode networkNode;
     private final ClockWatcher clockWatcher;
-    private final Set<NodeAddress> seedNodeAddresses;
+    private final SeedNodeRepository seedNodeRepository;
+    private Set<NodeAddress> seedNodeAddresses;
     private final PersistenceManager<PeerList> persistenceManager;
     private final ClockWatcher.Listener clockWatcherListener;
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
@@ -138,7 +139,10 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                        ClockWatcher clockWatcher,
                        PersistenceManager<PeerList> persistenceManager,
                        @Named(Config.MAX_CONNECTIONS) int maxConnections) {
+        log.info("preland");
+        log.info(seedNodeRepository.getSeedNodeAddresses().toString());
         this.networkNode = networkNode;
+        this.seedNodeRepository = seedNodeRepository;
         this.seedNodeAddresses = new HashSet<>(seedNodeRepository.getSeedNodeAddresses());
         this.clockWatcher = clockWatcher;
         this.persistenceManager = persistenceManager;
@@ -185,6 +189,9 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         }
     }
 
+    public void updateSeedNodes(){
+        seedNodeAddresses = new HashSet<>(seedNodeRepository.getSeedNodeAddresses());
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PersistedDataHost implementation

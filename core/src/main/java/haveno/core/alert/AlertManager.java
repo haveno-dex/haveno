@@ -23,6 +23,7 @@ import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
+import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 public class AlertManager {
     private static final Logger log = LoggerFactory.getLogger(AlertManager.class);
 
+    private final Preferences preferences;
     private final P2PService p2PService;
     private final KeyRing keyRing;
     private final User user;
@@ -58,11 +60,13 @@ public class AlertManager {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public AlertManager(P2PService p2PService,
+    public AlertManager(Preferences preferences,
+                        P2PService p2PService,
                         KeyRing keyRing,
                         User user,
                         @Named(Config.IGNORE_DEV_MSG) boolean ignoreDevMsg,
                         @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
+        this.preferences = preferences;
         this.p2PService = p2PService;
         this.keyRing = keyRing;
         this.user = user;
@@ -109,8 +113,7 @@ public class AlertManager {
                     "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
                     "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
         case XMR_MAINNET:
-            return List.of();
-            //preland: return pubkey list from user
+            return preferences.getPubKeyList();
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }

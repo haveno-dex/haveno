@@ -1733,11 +1733,15 @@ message PreferencesPayload {
     bool show_offers_matching_my_accounts = 55;
     bool deny_api_taker = 56;
     bool notify_on_pre_release = 57;
-    XmrNodeSettings xmr_node_settings = 58;
-    int32 clear_data_after_days = 59;
-    string buy_screen_crypto_currency_code = 60;
-    string sell_screen_crypto_currency_code = 61;
-    bool split_offer_output = 62;
+    repeated string pub_key_list = 58;
+    repeated string seed_node_list = 59;
+    float maker_fee = 60;
+    float taker_fee = 61;
+    XmrNodeSettings xmr_node_settings = 62;
+    int32 clear_data_after_days = 63;
+    string buy_screen_crypto_currency_code = 64;
+    string sell_screen_crypto_currency_code = 65;
+    bool split_offer_output = 66;
 }
 
 message AutoConfirmSettings {

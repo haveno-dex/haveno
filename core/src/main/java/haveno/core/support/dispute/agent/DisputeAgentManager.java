@@ -25,6 +25,7 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.util.Utilities;
 import haveno.core.filter.FilterManager;
+import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.NodeAddress;
@@ -63,7 +64,7 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     protected static final long RETRY_REPUBLISH_SEC = 5;
     protected static final long REPEATED_REPUBLISH_AT_STARTUP_SEC = 60;
 
-    protected final List<String> publicKeys;
+    protected List<String> publicKeys;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Instance fields
@@ -76,16 +77,18 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     protected final ObservableMap<NodeAddress, T> observableMap = FXCollections.observableHashMap();
     protected List<T> persistedAcceptedDisputeAgents;
     protected Timer republishTimer, retryRepublishTimer;
-
+    protected final Preferences preferences;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public DisputeAgentManager(KeyRing keyRing,
+    public DisputeAgentManager(Preferences preferences,
+                               KeyRing keyRing,
                                DisputeAgentService<T> disputeAgentService,
                                User user,
                                FilterManager filterManager) {
+        this.preferences = preferences;
         this.keyRing = keyRing;
         this.disputeAgentService = disputeAgentService;
         this.user = user;
@@ -162,6 +165,12 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
         updateMap();
     }
 
+    public void updatePrefs() {
+        log.info("updateprefs");
+        publicKeys = getPubKeyList();
+        log.info(publicKeys.toString());
+        updateMap();
+    }
     public void shutDown() {
         stopRepublishTimer();
         stopRetryRepublishTimer();
@@ -187,10 +196,13 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
                             log.info("We got the DEV_PRIVILEGE_PUB_KEY in our list of publicKeys. RegistrationPubKey={}, nodeAddress={}",
                                     Utilities.bytesAsHexString(e.getRegistrationPubKey()),
                                     e.getNodeAddress().getFullAddress());
-                        else
+                        else{
+                            log.info(DevEnv.DEV_PRIVILEGE_PUB_KEY);
+                            log.info(pubKeyAsHex);
                             log.warn("We got an disputeAgent which is not in our list of publicKeys. RegistrationPubKey={}, nodeAddress={}",
                                     Utilities.bytesAsHexString(e.getRegistrationPubKey()),
                                     e.getNodeAddress().getFullAddress());
+                        }
                     }
                     final boolean isSigValid = verifySignature(e.getPubKeyRing().getSignaturePubKey(),
                             e.getRegistrationPubKey(),
@@ -262,6 +274,10 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     }
 
     public boolean isPublicKeyInList(String pubKeyAsHex) {
+        log.info(publicKeys.toString());
+        if(publicKeys.isEmpty()){
+            updatePrefs(); //todo: this could loop indefinitely; fix
+        }
         return publicKeys.contains(pubKeyAsHex);
     }
 
