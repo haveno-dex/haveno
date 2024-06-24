@@ -41,6 +41,14 @@ public class ClosedTradableUtil {
     public static Map<String, Long> getTotalVolumeByCurrency(List<Tradable> tradableList) {
         Map<String, Long> map = new HashMap<>();
         tradableList.stream()
+                .filter(tradable -> {
+                    if (tradable instanceof Trade) {
+                        Trade trade = castToTrade(tradable);
+                        return trade.isCompleted(); // TODO: does not consider if trade was reverted by arbitrator
+                    } else {
+                        return false;
+                    }
+                })
                 .flatMap(tradable -> tradable.getOptionalVolume().stream())
                 .forEach(volume -> {
                     String currencyCode = volume.getCurrencyCode();

@@ -265,11 +265,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         cssThemeProperty.set(prefPayload.getCssTheme());
 
 
-        // if no valid Bitcoin block explorer is set, select the 1st valid Bitcoin block explorer
-        ArrayList<BlockChainExplorer> btcExplorers = getBlockChainExplorers();
+        // if no valid Monero block explorer is set, select the 1st valid Monero block explorer
+        ArrayList<BlockChainExplorer> xmrExplorers = getBlockChainExplorers();
         if (getBlockChainExplorer() == null ||
                 getBlockChainExplorer().name.length() == 0) {
-            setBlockChainExplorer(btcExplorers.get(0));
+            setBlockChainExplorer(xmrExplorers.get(0));
         }
         tradeCurrenciesAsObservable.addAll(prefPayload.getTraditionalCurrencies());
         tradeCurrenciesAsObservable.addAll(prefPayload.getCryptoCurrencies());
@@ -281,8 +281,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         if (xmrNodesFromOptions != null && !xmrNodesFromOptions.isEmpty()) {
             if (getMoneroNodes() != null && !getMoneroNodes().equals(xmrNodesFromOptions)) {
-                log.warn("The Bitcoin node(s) from the program argument and the one(s) persisted in the UI are different. " +
-                        "The Bitcoin node(s) {} from the program argument will be used.", xmrNodesFromOptions);
+                log.warn("The Monero node(s) from the program argument and the one(s) persisted in the UI are different. " +
+                        "The Monero node(s) {} from the program argument will be used.", xmrNodesFromOptions);
             }
             setMoneroNodes(xmrNodesFromOptions);
             setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.CUSTOM.ordinal());
@@ -574,8 +574,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setMoneroNodes(String bitcoinNodes) {
-        prefPayload.setMoneroNodes(bitcoinNodes);
+    public void setMoneroNodes(String moneroNodes) {
+        prefPayload.setMoneroNodes(moneroNodes);
         requestPersistence();
     }
 
@@ -665,8 +665,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setMoneroNodesOptionOrdinal(int bitcoinNodesOptionOrdinal) {
-        prefPayload.setMoneroNodesOptionOrdinal(bitcoinNodesOptionOrdinal);
+    public void setMoneroNodesOptionOrdinal(int moneroNodesOptionOrdinal) {
+        prefPayload.setMoneroNodesOptionOrdinal(moneroNodesOptionOrdinal);
         requestPersistence();
     }
 
@@ -904,7 +904,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setSortMarketCurrenciesNumerically(boolean sortMarketCurrenciesNumerically);
 
-        void setMoneroNodes(String bitcoinNodes);
+        void setMoneroNodes(String moneroNodes);
 
         void setUseCustomWithdrawalTxFee(boolean useCustomWithdrawalTxFee);
 
@@ -938,7 +938,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setUseTorForXmrOrdinal(int useTorForXmrOrdinal);
 
-        void setMoneroNodesOptionOrdinal(int bitcoinNodesOption);
+        void setMoneroNodesOptionOrdinal(int moneroNodesOption);
 
         void setReferralId(String referralId);
 

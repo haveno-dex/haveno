@@ -57,6 +57,7 @@ import haveno.desktop.components.TxIdTextField;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -379,15 +380,30 @@ public class FormBuilder {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Confirmation Fields
     ///////////////////////////////////////////////////////////////////////////////////////////
-
+    public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
+                                                                 int rowIndex,
+                                                                 String title1,
+                                                                 String title2,
+                                                                 double top) {
+        return addConfirmationLabelLabel(gridPane, false, rowIndex, title1, title2, top);
+    }
     public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
                                                                  int rowIndex,
                                                                  String title1,
                                                                  String title2) {
-        return addConfirmationLabelLabel(gridPane, rowIndex, title1, title2, 0);
+        return addConfirmationLabelLabel(gridPane, false, rowIndex, title1, title2, 0);
     }
 
     public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
+                                                                 boolean isWrapped,
+                                                                 int rowIndex,
+                                                                 String title1,
+                                                                 String title2) {
+        return addConfirmationLabelLabel(gridPane, isWrapped, rowIndex, title1, title2, 0);
+    }
+
+    public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
+                                                                 boolean isWrapped,
                                                                  int rowIndex,
                                                                  String title1,
                                                                  String title2,
@@ -396,10 +412,14 @@ public class FormBuilder {
         label1.getStyleClass().add("confirmation-label");
         Label label2 = addLabel(gridPane, rowIndex, title2);
         label2.getStyleClass().add("confirmation-value");
+        label2.setWrapText(isWrapped);
         GridPane.setColumnIndex(label2, 1);
         GridPane.setMargin(label1, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label1, HPos.LEFT);
+        GridPane.setValignment(label1, VPos.TOP);
         GridPane.setMargin(label2, new Insets(top, 0, 0, 0));
+        GridPane.setHalignment(label2, HPos.LEFT);
+        GridPane.setValignment(label2, VPos.TOP);
 
         return new Tuple2<>(label1, label2);
     }
@@ -451,12 +471,21 @@ public class FormBuilder {
                                                                        String title1,
                                                                        String title2,
                                                                        double top) {
+        return addConfirmationLabelTextArea(gridPane, false, rowIndex, title1, title2, top);
+    }
+
+    public static Tuple2<Label, TextArea> addConfirmationLabelTextArea(GridPane gridPane,
+                                                                       boolean isWrapped,
+                                                                       int rowIndex,
+                                                                       String title1,
+                                                                       String title2,
+                                                                       double top) {
         Label label = addLabel(gridPane, rowIndex, title1);
         label.getStyleClass().add("confirmation-label");
 
         TextArea textArea = addTextArea(gridPane, rowIndex, title2);
         ((JFXTextArea) textArea).setLabelFloat(false);
-
+        textArea.setWrapText(isWrapped);
         GridPane.setColumnIndex(textArea, 1);
         GridPane.setMargin(label, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label, HPos.LEFT);
@@ -464,6 +493,7 @@ public class FormBuilder {
 
         return new Tuple2<>(label, textArea);
     }
+
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////

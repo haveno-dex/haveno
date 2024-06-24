@@ -115,6 +115,7 @@ public class OfferBookService {
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
+                UserThread.execute(() -> {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
@@ -128,22 +129,25 @@ public class OfferBookService {
                             }
                         }
                     });
+                });
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> {
-                    if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                        maybeInitializeKeyImagePoller();
-                        keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
-                        Offer offer = new Offer(offerPayload);
-                        offer.setPriceFeedService(priceFeedService);
-                        setReservedFundsSpent(offer);
-                        synchronized (offerBookChangedListeners) {
-                            offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
+                UserThread.execute(() -> {
+                    protectedStorageEntries.forEach(protectedStorageEntry -> {
+                        if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                            maybeInitializeKeyImagePoller();
+                            keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                            Offer offer = new Offer(offerPayload);
+                            offer.setPriceFeedService(priceFeedService);
+                            setReservedFundsSpent(offer);
+                            synchronized (offerBookChangedListeners) {
+                                offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
+                            }
                         }
-                    }
+                    });
                 });
             }
         });
@@ -278,9 +282,11 @@ public class OfferBookService {
         keyImagePoller.addListener(new XmrKeyImageListener() {
             @Override
             public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                for (String keyImage : spentStatuses.keySet()) {
-                    updateAffectedOffers(keyImage);
-                }
+                UserThread.execute(() -> {
+                    for (String keyImage : spentStatuses.keySet()) {
+                        updateAffectedOffers(keyImage);
+                    }
+                });
             }
         });
 
@@ -293,7 +299,7 @@ public class OfferBookService {
     }
 
     private long getKeyImageRefreshPeriodMs() {
-        return xmrConnectionService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+        return xmrConnectionService.isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
     private void updateAffectedOffers(String keyImage) {
@@ -301,12 +307,8 @@ public class OfferBookService {
             if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
                 synchronized (offerBookChangedListeners) {
                     offerBookChangedListeners.forEach(listener -> {
-
-                        // notify off thread to avoid deadlocking
-                        new Thread(() -> {
-                            listener.onRemoved(offer);
-                            listener.onAdded(offer);
-                        }).start();
+                        listener.onRemoved(offer);
+                        listener.onAdded(offer);
                     });
                 }
             }

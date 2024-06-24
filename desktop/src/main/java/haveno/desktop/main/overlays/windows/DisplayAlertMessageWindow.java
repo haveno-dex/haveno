@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 public class DisplayAlertMessageWindow extends Overlay<DisplayAlertMessageWindow> {
     private static final Logger log = LoggerFactory.getLogger(DisplayAlertMessageWindow.class);
@@ -41,6 +40,7 @@ public class DisplayAlertMessageWindow extends Overlay<DisplayAlertMessageWindow
         type = Type.Attention;
     }
 
+    @Override
     public void show() {
         width = 768;
         // need to set headLine, otherwise the fields will not be created in addHeadLine
@@ -75,7 +75,8 @@ public class DisplayAlertMessageWindow extends Overlay<DisplayAlertMessageWindow
 
     private void addContent() {
         checkNotNull(alert, "alertMessage must not be null");
-        addMultilineLabel(gridPane, ++rowIndex, alert.getMessage(), 10);
+        message(alert.getMessage());
+        addMessage();
         if (alert.isSoftwareUpdateNotification()) {
             String url = "https://haveno.exchange/downloads";
             HyperlinkWithIcon hyperlinkWithIcon = FormBuilder.addLabelHyperlinkWithIcon(gridPane, ++rowIndex,

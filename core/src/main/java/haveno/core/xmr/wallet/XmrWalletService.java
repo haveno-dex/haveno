@@ -113,7 +113,7 @@ public class XmrWalletService {
 
     // monero configuration
     public static final int NUM_BLOCKS_UNLOCK = 10;
-    public static final String MONERO_BINS_DIR = Config.baseCurrencyNetwork().isTestnet() ? System.getProperty("user.dir") + File.separator + ".localnet" : Config.appDataDir().getAbsolutePath(); // .localnet contains monero binaries and wallet files
+    public static final String MONERO_BINS_DIR = Config.appDataDir().getAbsolutePath();
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
@@ -322,7 +322,7 @@ public class XmrWalletService {
     }
 
     public boolean isProxyApplied(boolean wasWalletSynced) {
-        return preferences.isProxyApplied(wasWalletSynced);
+        return preferences.isProxyApplied(wasWalletSynced) && xmrConnectionService.isProxyApplied();
     }
 
     public String getWalletPassword() {
@@ -1545,6 +1545,7 @@ public class XmrWalletService {
             // open wallet
             config.setNetworkType(getMoneroNetworkType());
             config.setServer(connection);
+            log.info("Opening full wallet " + config.getPath() + " with monerod=" + connection.getUri());
             walletFull = MoneroWalletFull.openWallet(config);
             if (walletFull.getDaemonConnection() != null) walletFull.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done opening full wallet " + config.getPath());
@@ -1604,7 +1605,7 @@ public class XmrWalletService {
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // open wallet
-            log.info("Opening RPC wallet " + config.getPath() + " connected to daemon " + connection.getUri());
+            log.info("Opening RPC wallet " + config.getPath() + " with monerod=" + connection.getUri());
             config.setServer(connection);
             walletRpc.openWallet(config);
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
