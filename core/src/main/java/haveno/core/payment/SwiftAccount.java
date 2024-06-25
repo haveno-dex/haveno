@@ -59,6 +59,7 @@ public final class SwiftAccount extends PaymentAccount {
 
     public SwiftAccount() {
         super(PaymentMethod.SWIFT);
+        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override
