@@ -1200,6 +1200,19 @@ textfield */
     -fx-border-color: -bs-background-gray;
 }
 
+.text-area-no-border {
+    -fx-border-color: -fx-control-inner-background;
+}
+
+.text-area-no-border .content {
+    -fx-background-color: -fx-control-inner-background;
+}
+
+.text-area-no-border:focused {
+    -fx-focus-color: -fx-control-inner-background;
+    -fx-faint-focus-color: -fx-control-inner-background;
+}
+
 /*******************************************************************************
  *                                                                             *
  * Tab pane                                                                    *

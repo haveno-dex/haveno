@@ -92,6 +92,7 @@ import javafx.collections.ObservableList;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemon;
@@ -886,6 +887,8 @@ public abstract class Trade implements Tradable, Model {
                     try {
                         doImportMultisigHex();
                         break;
+                    } catch (IllegalArgumentException e) {
+                        throw e;
                     } catch (Exception e) {
                         log.warn("Failed to import multisig hex, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
@@ -909,10 +912,42 @@ public abstract class Trade implements Tradable, Model {
         log.info("Importing multisig hexes for {} {}, count={}", getClass().getSimpleName(), getShortId(), multisigHexes.size());
         long startTime = System.currentTimeMillis();
         if (!multisigHexes.isEmpty()) {
-            wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
+            try {
+                wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
+            } catch (MoneroError e) {
+
+                // import multisig hex individually if one is invalid
+                if (isInvalidImportError(e.getMessage())) {
+                    log.warn("Peer has invalid multisig hex for {} {}, importing individually", getClass().getSimpleName(), getShortId());
+                    boolean imported = false;
+                    Exception lastError = null;
+                    for (TradePeer peer : getOtherPeers()) {
+                        if (peer.getUpdatedMultisigHex() == null) continue;
+                        try {
+                            wallet.importMultisigHex(peer.getUpdatedMultisigHex());
+                            imported = true;
+                        } catch (MoneroError e2) {
+                            lastError = e2;
+                            if (isInvalidImportError(e2.getMessage())) {
+                                log.warn("{} has invalid multisig hex for {} {}, error={}, multisigHex={}", getPeerRole(peer), getClass().getSimpleName(), getShortId(), e2.getMessage(), peer.getUpdatedMultisigHex());
+                            } else {
+                                throw e2;
+                            }
+                        }
+                    }
+                    if (!imported) throw new IllegalArgumentException("Could not import any multisig hexes for " + getClass().getSimpleName() + " " + getShortId(), lastError);
+                } else {
+                    throw e;
+                }
+            }
             requestSaveWallet();
         }
         log.info("Done importing multisig hexes for {} {} in {} ms, count={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size());
+    }
+
+    // TODO: checking error strings isn't robust, but the library doesn't provide a way to check if multisig hex is invalid. throw IllegalArgumentException from library on invalid multisig hex?
+    private boolean isInvalidImportError(String errMsg) {
+        return errMsg.contains("Failed to parse hex") || errMsg.contains("Multisig info is for a different account");
     }
 
     public void changeWalletPassword(String oldPassword, String newPassword) {
@@ -1228,10 +1263,14 @@ public abstract class Trade implements Tradable, Model {
         if (sign) {
 
             // sign tx
-            MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
-            if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
-            payoutTxHex = result.getSignedMultisigTxHex();
-            setPayoutTxHex(payoutTxHex);
+            try {
+                MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
+                if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
+                payoutTxHex = result.getSignedMultisigTxHex();
+                setPayoutTxHex(payoutTxHex);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
 
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
@@ -1239,6 +1278,7 @@ public abstract class Trade implements Tradable, Model {
 
             // verify fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
+            log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getId());
             MoneroTxWallet feeEstimateTx = createPayoutTx();
             BigInteger feeEstimate = feeEstimateTx.getFee();
             double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
@@ -2175,7 +2215,7 @@ public abstract class Trade implements Tradable, Model {
         return tradeAmountTransferred();
     }
 
-    private boolean tradeAmountTransferred() {
+    public boolean tradeAmountTransferred() {
         return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
     }
 

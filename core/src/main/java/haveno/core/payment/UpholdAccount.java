@@ -69,7 +69,6 @@ public final class UpholdAccount extends PaymentAccount {
 
     public UpholdAccount() {
         super(PaymentMethod.UPHOLD);
-        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override

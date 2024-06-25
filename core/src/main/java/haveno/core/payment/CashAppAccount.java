@@ -43,7 +43,6 @@ public final class CashAppAccount extends PaymentAccount {
 
     public CashAppAccount() {
         super(PaymentMethod.CASH_APP);
-        tradeCurrencies.addAll(getSupportedCurrencies());
     }
 
     @Override

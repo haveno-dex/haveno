@@ -44,14 +44,14 @@ public class LanguageUtil {
             "fa", // Persian
             "it", // Italian
             "cs", // Czech
-            "pl" // Polish
+            "pl", // Polish
+            "tr" // Turkish
             /*
             // not translated yet
             "el", // Greek
             "sr-Latn-RS", // Serbian [Latin] (Serbia)
             "hu", // Hungarian
             "ro", // Romanian
-            "tr" // Turkish
             "iw", // Hebrew
             "hi", // Hindi
             "ko", // Korean

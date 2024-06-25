@@ -61,8 +61,6 @@ public final class OKPayAccount extends PaymentAccount {
 
     public OKPayAccount() {
         super(PaymentMethod.OK_PAY);
-
-        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override

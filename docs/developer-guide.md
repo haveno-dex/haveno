@@ -48,6 +48,11 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
 
 Based on these instructions: https://github.com/monero-project/monero#cross-compiling
 
+> Note:
+> If during building you get the prompt "Reversed (or previously applied) patch detected!  Assume -R? [n]" then confirm 'y'.
+
+**Prepare Linux x86_64**
+
 1. Install Ubuntu 20.04 on x86_64.
 2. `sudo apt-get update && sudo apt-get upgrade`
 3. Install monero dependencies: `sudo apt update && sudo apt install build-essential cmake pkg-config libssl-dev libzmq3-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev libpgm-dev qttools5-dev-tools libhidapi-dev libusb-1.0-0-dev libprotobuf-dev protobuf-compiler libudev-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-locale-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev libboost-system-dev libboost-thread-dev python3 ccache`
@@ -57,15 +62,12 @@ Based on these instructions: https://github.com/monero-project/monero#cross-comp
 7. `git fetch origin && git reset --hard origin/release-v0.18`
 8. `git submodule update --init --force`
 
-> Note:
-> If you get the prompt "Reversed (or previously applied) patch detected!  Assume -R? [n]" then confirm 'y'.
-
-**Build for Linux**
+**Build for Linux x86_64**
 
 1. `make depends target=x86_64-linux-gnu -j<num cores>`
 2. `cd build/x86_64-linux-gnu/release/bin/`
-3. `tar -zcvf monero-bins-haveno-linux.tar.gz monerod monero-wallet-rpc`
-4. Save monero-bins-haveno-linux.tar.gz for release.
+3. `tar -zcvf monero-bins-haveno-linux-x86_64.tar.gz monerod monero-wallet-rpc`
+4. Save monero-bins-haveno-linux-x86_64.tar.gz for release.
 
 **Build for Mac**
 
@@ -82,6 +84,24 @@ Based on these instructions: https://github.com/monero-project/monero#cross-comp
 4. `cd build/x86_64-w64-mingw32/release/bin/`
 5. `zip monero-bins-haveno-windows.zip monerod.exe monero-wallet-rpc.exe`
 6. Save monero-bins-haveno-windows.zip for release.
+
+**Prepare Linux aarch64**
+
+1. Install Ubuntu 20.04 on aarch64.
+2. `sudo apt-get update && sudo apt-get upgrade`
+3. Install monero dependencies: `sudo apt update && sudo apt install build-essential cmake pkg-config libssl-dev libzmq3-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev libpgm-dev qttools5-dev-tools libhidapi-dev libusb-1.0-0-dev libprotobuf-dev protobuf-compiler libudev-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-locale-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev libboost-system-dev libboost-thread-dev python3 ccache`
+4. `sudo apt install cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev libtinfo5 autoconf libtool libtool-bin gperf git curl`
+5. `git clone https://github.com/haveno-dex/monero.git`
+6. `cd ./monero` (or rename to haveno-monero: `mv monero/ haveno-monero && cd ./haveno-monero`)
+7. `git fetch origin && git reset --hard origin/release-v0.18`
+8. `git submodule update --init --force`
+
+**Build for Linux aarch64**
+
+1. `make depends target=aarch64-linux-gnu -j<num cores>`
+2. `cd build/aarch64-linux-gnu/release/bin/`
+3. `tar -zcvf monero-bins-haveno-linux-aarch64.tar.gz monerod monero-wallet-rpc`
+4. Save monero-bins-haveno-linux-aarch64.tar.gz for release.
 
 ## Build executable installers for each platform
 

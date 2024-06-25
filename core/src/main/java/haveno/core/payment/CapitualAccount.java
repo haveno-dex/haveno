@@ -40,7 +40,6 @@ public final class CapitualAccount extends PaymentAccount {
 
     public CapitualAccount() {
         super(PaymentMethod.CAPITUAL);
-        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override

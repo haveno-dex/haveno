@@ -27,11 +27,13 @@ import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.ZipUtils;
+import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import lombok.Getter;
@@ -139,6 +141,7 @@ public class CoreAccountService {
         }
     }
 
+    // TODO: share common code with BackupView to backup
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
 
@@ -149,9 +152,16 @@ public class CoreAccountService {
                 PipedInputStream in = new PipedInputStream(bufferSize); // pipe the serialized account object to stream which will be read by the consumer
                 PipedOutputStream out = new PipedOutputStream(in);
                 log.info("Zipping directory " + dataDir);
+                
+                // exclude monero binaries from backup so they're reinstalled with permissions
+                List<File> excludedFiles = Arrays.asList(
+                        new File(XmrWalletService.MONERO_WALLET_RPC_PATH),
+                        new File(XmrLocalNode.MONEROD_PATH)
+                );
+
                 new Thread(() -> {
                     try {
-                        ZipUtils.zipDirToStream(dataDir, out, bufferSize);
+                        ZipUtils.zipDirToStream(dataDir, out, bufferSize, excludedFiles);
                     } catch (Exception ex) {
                         error.accept(ex);
                     }

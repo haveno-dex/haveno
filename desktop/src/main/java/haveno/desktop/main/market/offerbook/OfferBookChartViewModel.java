@@ -19,6 +19,8 @@ package haveno.desktop.main.market.offerbook;
 
 import com.google.common.math.LongMath;
 import com.google.inject.Inject;
+
+import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
@@ -135,10 +137,12 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         currenciesUpdatedListener = (observable, oldValue, newValue) -> {
             if (!isAnyPriceAbsent()) {
-                offerBook.fillOfferBookListItems();
-                updateChartData();
-                var self = this;
-                priceFeedService.updateCounterProperty().removeListener(self.currenciesUpdatedListener);
+                UserThread.execute(() -> {
+                    offerBook.fillOfferBookListItems();
+                    updateChartData();
+                    var self = this;
+                    priceFeedService.updateCounterProperty().removeListener(self.currenciesUpdatedListener);
+                });
             }
         };
 

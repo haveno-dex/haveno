@@ -40,6 +40,7 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.text.DecimalFormat;
@@ -418,12 +419,32 @@ public class HavenoUtils {
     /**
      * Check if the given URI is on local host.
      */
-    public static boolean isLocalHost(String uri) {
+    public static boolean isLocalHost(String uriString) {
         try {
-            String host = new URI(uri).getHost();
+            String host = new URI(uriString).getHost();
             return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if the given URI is local or a private IP address.
+     */
+    public static boolean isPrivateIp(String uriString) {
+        if (isLocalHost(uriString)) return true;
+        try {
+
+            // get the host
+            URI uri = new URI(uriString);
+            String host = uri.getHost();
+
+            // check if private IP address
+            if (host == null) return false;
+            InetAddress inetAddress = InetAddress.getByName(host);
+            return inetAddress.isAnyLocalAddress() || inetAddress.isLoopbackAddress() || inetAddress.isSiteLocalAddress();
+        } catch (Exception e) {
+            return false;
         }
     }
 

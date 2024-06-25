@@ -100,7 +100,6 @@ public final class MoneyGramAccount extends PaymentAccount {
 
     public MoneyGramAccount() {
         super(PaymentMethod.MONEY_GRAM);
-        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override
