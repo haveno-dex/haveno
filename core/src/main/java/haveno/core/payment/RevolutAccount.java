@@ -74,7 +74,6 @@ public final class RevolutAccount extends PaymentAccount {
 
     public RevolutAccount() {
         super(PaymentMethod.REVOLUT);
-        tradeCurrencies.addAll(getSupportedCurrencies());
     }
 
     @Override

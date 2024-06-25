@@ -42,7 +42,6 @@ public final class AdvancedCashAccount extends PaymentAccount {
 
     public AdvancedCashAccount() {
         super(PaymentMethod.ADVANCED_CASH);
-        tradeCurrencies.addAll(SUPPORTED_CURRENCIES);
     }
 
     @Override
