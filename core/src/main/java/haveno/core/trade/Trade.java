@@ -1151,6 +1151,8 @@ public abstract class Trade implements Tradable, Model {
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
+        log.warn("Creating payout tx with tradeAmount={}, sellerDepositAmount={}, buyerDepositAmount={}, sellerPayoutAmount={}, buyerPayoutAmount={}", tradeAmount, sellerDepositAmount, buyerDepositAmount, sellerPayoutAmount, buyerPayoutAmount);
+
         // create payout tx
         MoneroTxWallet payoutTx = createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
@@ -1220,6 +1222,7 @@ public abstract class Trade implements Tradable, Model {
         Contract contract = getContract();
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
         BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
+        if (BigInteger.ZERO.equals(buyerDepositAmount)) log.warn("Buyer deposit amount is zero for {} {}", getClass().getSimpleName(), getId());
         BigInteger tradeAmount = getAmount();
 
         // describe payout tx
@@ -1245,6 +1248,16 @@ public abstract class Trade implements Tradable, Model {
 
         // verify sum of outputs = destination amounts + change amount
         if (!payoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(payoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
+
+
+
+        log.warn("Payout tx fee: {}", payoutTx.getFee());
+        log.warn("Payout tx change amount: {}", payoutTx.getChangeAmount());
+        log.warn("Buyer deposit amount: {}", buyerDepositAmount);
+        log.warn("Seller deposit amount: {}", sellerDepositAmount);
+        log.warn("Trade amount: {}", tradeAmount);
+        log.warn("\nSeller deposit tx:\n {}", getSeller().getDepositTx());
+        log.warn("Buyer deposit tx:\n {}", getBuyer().getDepositTx());
 
         // verify buyer destination amount is deposit amount + this amount - 1/2 tx costs
         BigInteger txCost = payoutTx.getFee().add(payoutTx.getChangeAmount());
