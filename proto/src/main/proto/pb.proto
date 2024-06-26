@@ -1061,6 +1061,7 @@ message UpholdAccountPayload {
 
 message CashAppAccountPayload {
     string email_or_mobile_nr_or_cashtag = 1;
+    string details = 2;
 }
 
 message MoneyBeamAccountPayload {
