@@ -2404,8 +2404,10 @@ public abstract class Trade implements Tradable, Model {
                 // skip if deposit txs unknown or not requested
                 if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null || !isDepositRequested()) return;
 
+                // skip if daemon not synced
+                if (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance()) return;
+
                 // sync if wallet too far behind daemon
-                if (xmrConnectionService.getTargetHeight() == null) return;
                 if (walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
 
                 // update deposit txs

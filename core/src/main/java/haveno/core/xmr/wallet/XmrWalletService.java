@@ -1803,12 +1803,18 @@ public class XmrWalletService {
             pollInProgress = true;
             try {
 
-                // switch to best connection if daemon is too far behind
+                // skip if daemon not synced
                 MoneroDaemonInfo lastInfo = xmrConnectionService.getLastInfo();
                 if (lastInfo == null) {
                     log.warn("Last daemon info is null");
                     return;
                 }
+                if (!xmrConnectionService.isSyncedWithinTolerance()) {
+                    log.warn("Monero daemon is not synced within tolerance, height={}, targetHeight={}", xmrConnectionService.chainHeightProperty().get(), xmrConnectionService.getTargetHeight());
+                    return;
+                }
+
+                // switch to best connection if wallet is too far behind
                 if (wasWalletSynced && walletHeight.get() < xmrConnectionService.getTargetHeight() - NUM_BLOCKS_BEHIND_TOLERANCE && !Config.baseCurrencyNetwork().isTestnet()) {
                     log.warn("Updating connection because main wallet is {} blocks behind monerod, wallet height={}, monerod height={}", xmrConnectionService.getTargetHeight() - walletHeight.get(), walletHeight.get(), lastInfo.getHeight());
                     xmrConnectionService.switchToBestConnection();
