@@ -65,6 +65,7 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import monero.common.MoneroUtils;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -99,6 +100,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private ChangeListener<Boolean> amountFocusListener;
     private int rowIndex = 0;
     private final static int MAX_ATTEMPTS = 3;
+    boolean sendMax = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -165,7 +167,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         });
 
         sendMaxLink.setOnAction(event -> {
-            amount = xmrWalletService.getAvailableBalance();
+            sendMax = true;
+            amount = null; // set amount when tx created
             amountTextField.setText(Res.get("funds.withdrawal.maximum"));
         });
 
@@ -177,6 +180,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         };
         amountListener = (observable, oldValue, newValue) -> {
             if (amountTextField.focusedProperty().get()) {
+                sendMax = false; // disable max if amount changed while focused
                 try {
                     amount = HavenoUtils.parseXmr(amountTextField.getText());
                 } catch (Throwable t) {
@@ -185,7 +189,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
             }
         };
         amountFocusListener = (observable, oldValue, newValue) -> {
-            if (oldValue && !newValue) {
+
+            // parse amount on focus out unless sending max
+            if (oldValue && !newValue && !sendMax) {
                 if (amount.compareTo(BigInteger.ZERO) > 0)
                     amountTextField.setText(HavenoUtils.formatXmr(amount));
                 else
@@ -236,12 +242,18 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         if (GUIUtil.isReadyForTxBroadcastOrShowPopup(xmrWalletService)) {
             try {
 
+                // validate address
+                final String withdrawToAddress = withdrawToTextField.getText();
+                if (!MoneroUtils.isValidAddress(withdrawToAddress, XmrWalletService.getMoneroNetworkType())) {
+                    throw new IllegalArgumentException(Res.get("validation.xmr.invalidAddress"));
+                }
+
+                // set max amount if requested
+                if (sendMax) amount = xmrWalletService.getAvailableBalance();
+
                 // check sufficient available balance
                 if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
 
-                // collect info
-                final String withdrawToAddress = withdrawToTextField.getText();
-                boolean subtractFee = amount.equals(xmrWalletService.getAvailableBalance());
 
                 // create tx
                 MoneroTxWallet tx = null;
@@ -253,10 +265,11 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                                 .setAccountIndex(0)
                                 .setAmount(amount)
                                 .setAddress(withdrawToAddress)
-                                .setSubtractFeeFrom(subtractFee ? Arrays.asList(0) : null));
+                                .setSubtractFeeFrom(sendMax ? Arrays.asList(0) : null));
                         log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
                         break;
                     } catch (Exception e) {
+                        if (isNotEnoughMoney(e.getMessage())) throw e;
                         log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, MAX_ATTEMPTS, e.getMessage());
                         if (i == MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -266,13 +279,17 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // popup confirmation message
                 popupConfirmationMessage(tx);
             } catch (Throwable e) {
-                if (e.getMessage().contains("enough")) new Popup().warning(Res.get("funds.withdrawal.warn.amountExceeds")).show();
+                if (isNotEnoughMoney(e.getMessage())) new Popup().warning(Res.get("funds.withdrawal.warn.notEnoughFunds")).show();
                 else {
                     e.printStackTrace();
                     new Popup().warning(e.getMessage()).show();
                 }
             }
         }
+    }
+
+    private static boolean isNotEnoughMoney(String errorMsg) {
+        return errorMsg.contains("not enough");
     }
 
     private void popupConfirmationMessage(MoneroTxWallet tx) {
@@ -330,6 +347,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void reset() {
+        sendMax = false;
         amount = BigInteger.ZERO;
         amountTextField.setText("");
         amountTextField.setPromptText(Res.get("funds.withdrawal.setAmount"));
