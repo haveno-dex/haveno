@@ -1141,16 +1141,16 @@ public class FormBuilder {
         TextField textField = new HavenoTextField();
         textField.setPromptText(textFieldTitle);
 
-        HyperlinkWithIcon maxButton = new ExternalHyperlink(maxButtonTitle);
-        maxButton.setPadding(new Insets(4, 0, 0, 0));
+        HyperlinkWithIcon maxLink = new ExternalHyperlink(maxButtonTitle);
 
         HBox hBox = new HBox();
         hBox.setSpacing(10);
-        hBox.getChildren().addAll(textField, maxButton);
+        hBox.getChildren().addAll(textField, maxLink);
+        hBox.setAlignment(Pos.CENTER_LEFT);
 
         final Tuple2<Label, VBox> labelVBoxTuple2 = addTopLabelWithVBox(gridPane, rowIndex, title, hBox, top);
 
-        return new Tuple3<>(labelVBoxTuple2.first, textField, maxButton);
+        return new Tuple3<>(labelVBoxTuple2.first, textField, maxLink);
     }
 
 

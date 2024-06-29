@@ -254,7 +254,6 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // check sufficient available balance
                 if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
 
-
                 // create tx
                 MoneroTxWallet tx = null;
                 for (int i = 0; i < MAX_ATTEMPTS; i++) {
@@ -279,11 +278,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // popup confirmation message
                 popupConfirmationMessage(tx);
             } catch (Throwable e) {
-                if (isNotEnoughMoney(e.getMessage())) new Popup().warning(Res.get("funds.withdrawal.warn.notEnoughFunds")).show();
-                else {
-                    e.printStackTrace();
-                    new Popup().warning(e.getMessage()).show();
-                }
+                e.printStackTrace();
+                if (isNotEnoughMoney(e.getMessage())) new Popup().warning(Res.get("funds.withdrawal.notEnoughFunds")).show();
+                else new Popup().warning(e.getMessage()).show();
             }
         }
     }
