@@ -150,7 +150,7 @@ public class XmrNodes {
             if (parts[0].contains("[") && parts[0].contains(":")) {
                 // IPv6 address and optional port number
                 // address part delimited by square brackets e.g. [2a01:123:456:789::2]:8333
-                host = parts[0].replace("[", "").replace("]", "");
+                host = parts[0] + "]";  // keep the square brackets per RFC-2732
                 if (parts.length == 2)
                     port = Integer.parseInt(parts[1].replace(":", ""));
             } else if (parts[0].contains(":") && !parts[0].contains(".")) {
