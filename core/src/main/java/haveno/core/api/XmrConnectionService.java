@@ -99,6 +99,7 @@ public final class XmrConnectionService {
     private MoneroDaemonInfo lastInfo;
     private Long syncStartHeight = null;
     private TaskLooper daemonPollLooper;
+    @Getter
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
 
