@@ -1159,35 +1159,28 @@ public class FormBuilder {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Label + TextField + RadioButton + RadioButton
+    // Label + TextField + HyperlinkWithIcon
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static Tuple4<Label, TextField, RadioButton, RadioButton> addTopLabelTextFieldRadioButtonRadioButton(GridPane gridPane,
-                                                                                                                int rowIndex,
-                                                                                                                ToggleGroup toggleGroup,
-                                                                                                                String title,
-                                                                                                                String textFieldTitle,
-                                                                                                                String radioButtonTitle1,
-                                                                                                                String radioButtonTitle2,
-                                                                                                                double top) {
+    public static Tuple3<Label, TextField, HyperlinkWithIcon> addTopLabelTextFieldHyperLink(GridPane gridPane,
+                                                                                            int rowIndex,
+                                                                                            String title,
+                                                                                            String textFieldTitle,
+                                                                                            String maxButtonTitle,
+                                                                                            double top) {
         TextField textField = new HavenoTextField();
         textField.setPromptText(textFieldTitle);
 
-        RadioButton radioButton1 = new AutoTooltipRadioButton(radioButtonTitle1);
-        radioButton1.setToggleGroup(toggleGroup);
-        radioButton1.setPadding(new Insets(6, 0, 0, 0));
-
-        RadioButton radioButton2 = new AutoTooltipRadioButton(radioButtonTitle2);
-        radioButton2.setToggleGroup(toggleGroup);
-        radioButton2.setPadding(new Insets(6, 0, 0, 0));
+        HyperlinkWithIcon maxLink = new ExternalHyperlink(maxButtonTitle);
 
         HBox hBox = new HBox();
         hBox.setSpacing(10);
-        hBox.getChildren().addAll(textField, radioButton1, radioButton2);
+        hBox.getChildren().addAll(textField, maxLink);
+        hBox.setAlignment(Pos.CENTER_LEFT);
 
         final Tuple2<Label, VBox> labelVBoxTuple2 = addTopLabelWithVBox(gridPane, rowIndex, title, hBox, top);
 
-        return new Tuple4<>(labelVBoxTuple2.first, textField, radioButton1, radioButton2);
+        return new Tuple3<>(labelVBoxTuple2.first, textField, maxLink);
     }
 
 
