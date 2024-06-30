@@ -107,7 +107,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final ClockWatcher clockWatcher;
     private final WalletsSetup walletsSetup;
     private final P2PService p2PService;
-    private final XmrConnectionService connectionManager;
+    private final XmrConnectionService connectionService;
 
     private final ObservableList<P2pNetworkListItem> p2pNetworkListItems = FXCollections.observableArrayList();
     private final SortedList<P2pNetworkListItem> p2pSortedList = new SortedList<>(p2pNetworkListItems);
@@ -131,7 +131,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @Inject
     public NetworkSettingsView(WalletsSetup walletsSetup,
                                P2PService p2PService,
-                               XmrConnectionService connectionManager,
+                               XmrConnectionService connectionService,
                                Preferences preferences,
                                XmrNodes xmrNodes,
                                FilterManager filterManager,
@@ -141,7 +141,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         super();
         this.walletsSetup = walletsSetup;
         this.p2PService = p2PService;
-        this.connectionManager = connectionManager;
+        this.connectionService = connectionService;
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
         this.filterManager = filterManager;
@@ -303,10 +303,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
         rescanOutputsButton.setOnAction(event -> GUIUtil.rescanOutputs(preferences));
 
-        moneroPeersSubscription = EasyBind.subscribe(connectionManager.peerConnectionsProperty(),
+        moneroPeersSubscription = EasyBind.subscribe(connectionService.peerConnectionsProperty(),
                 this::updateMoneroPeersTable);
 
-        moneroBlockHeightSubscription = EasyBind.subscribe(connectionManager.chainHeightProperty(),
+        moneroBlockHeightSubscription = EasyBind.subscribe(connectionService.chainHeightProperty(),
                 this::updateChainHeightTextField);
 
         nodeAddressSubscription = EasyBind.subscribe(p2PService.getNetworkNode().nodeAddressProperty(),
@@ -503,6 +503,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateP2PTable() {
+        if (connectionService.isShutDownStarted()) return; // ignore if shutting down
         p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
         p2pNetworkListItems.clear();
         p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
