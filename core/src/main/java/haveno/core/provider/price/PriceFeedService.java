@@ -33,7 +33,6 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.provider.PriceHttpClient;
 import haveno.core.provider.ProvidersRepository;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.user.Preferences;
 import haveno.network.http.HttpClient;
@@ -144,15 +143,17 @@ public class PriceFeedService {
     public void awaitExternalPrices() {
         CountDownLatch latch = new CountDownLatch(1);
         ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { 
-            if (hasExternalPrices() && latch.getCount() != 0) latch.countDown();
+            if (hasExternalPrices()) UserThread.execute(() -> latch.countDown());
         };
-        updateCounter.addListener(listener);
-        if (hasExternalPrices()) {
-            updateCounter.removeListener(listener);
-            return;
+        UserThread.execute(() -> updateCounter.addListener(listener));
+        if (hasExternalPrices()) UserThread.execute(() -> latch.countDown());
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            UserThread.execute(() -> updateCounter.removeListener(listener));
         }
-        HavenoUtils.awaitLatch(latch);
-        updateCounter.removeListener(listener);
     }
 
     public boolean hasExternalPrices() {
@@ -377,17 +378,21 @@ public class PriceFeedService {
      */
     public synchronized Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
         CountDownLatch latch = new CountDownLatch(1);
-        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { if (latch.getCount() != 0) latch.countDown(); };
-        updateCounter.addListener(listener);
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> latch.countDown();
+        UserThread.execute(() -> updateCounter.addListener(listener));
         requestAllPricesError = null;
         requestPrices();
         UserThread.runAfter(() -> {
-            if (latch.getCount() == 0) return;
-            requestAllPricesError = "Timeout fetching market prices within 20 seconds";
-            latch.countDown();
+            if (latch.getCount() > 0) requestAllPricesError = "Timeout fetching market prices within 20 seconds";
+            UserThread.execute(() -> latch.countDown());
         }, 20);
-        HavenoUtils.awaitLatch(latch);
-        updateCounter.removeListener(listener);
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            UserThread.execute(() -> updateCounter.removeListener(listener));
+        }
         if (requestAllPricesError != null) throw new RuntimeException(requestAllPricesError);
         return cache;
     }
