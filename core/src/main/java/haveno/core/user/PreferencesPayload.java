@@ -131,6 +131,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
+    private List<String> pubKeyList = new ArrayList<>();
+    private List <String> seedNodeList = new ArrayList<>();
+    private float makerFee;
+    private float takerFee;
+
     private XmrNodeSettings xmrNodeSettings = new XmrNodeSettings();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +203,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setHideNonAccountPaymentMethods(hideNonAccountPaymentMethods)
                 .setShowOffersMatchingMyAccounts(showOffersMatchingMyAccounts)
                 .setDenyApiTaker(denyApiTaker)
-                .setNotifyOnPreRelease(notifyOnPreRelease);
+                .setNotifyOnPreRelease(notifyOnPreRelease)
+                .addAllPubKeyList(pubKeyList)
+                .addAllSeedNodeList(seedNodeList)
+                .setMakerFee(makerFee)
+                .setTakerFee(takerFee);
 
         Optional.ofNullable(backupDirectory).ifPresent(builder::setBackupDirectory);
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));
@@ -217,6 +226,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(rpcUser).ifPresent(builder::setRpcUser);
         Optional.ofNullable(rpcPw).ifPresent(builder::setRpcPw);
         Optional.ofNullable(takeOfferSelectedPaymentAccountId).ifPresent(builder::setTakeOfferSelectedPaymentAccountId);
+        //Optional.ofNullable(pubKeyList).ifPresent(build::setPubKeyList);
         Optional.ofNullable(xmrNodeSettings).ifPresent(settings -> builder.setXmrNodeSettings(settings.toProtoMessage()));
         return protobuf.PersistableEnvelope.newBuilder().setPreferencesPayload(builder).build();
     }
@@ -298,6 +308,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getShowOffersMatchingMyAccounts(),
                 proto.getDenyApiTaker(),
                 proto.getNotifyOnPreRelease(),
+                proto.getPubKeyListList(),
+                proto.getSeedNodeListList(),
+                proto.getMakerFee(),
+                proto.getTakerFee(),
                 XmrNodeSettings.fromProto(proto.getXmrNodeSettings())
         );
     }

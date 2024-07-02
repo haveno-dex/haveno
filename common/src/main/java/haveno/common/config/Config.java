@@ -116,6 +116,10 @@ public class Config {
     public static final String BTC_FEE_INFO = "bitcoinFeeInfo";
     public static final String BYPASS_MEMPOOL_VALIDATION = "bypassMempoolValidation";
     public static final String PASSWORD_REQUIRED = "passwordRequired";
+    public static final String PUB_KEYS_LIST = "pubKeyList";
+    public static final String DEV_PRIV_LIST = "devPrivilegeKeyList";
+    public static final String MAKER_FEE = "makerFee";
+    public static final String TAKER_FEE = "takerFee";
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -202,6 +206,12 @@ public class Config {
     public final boolean republishMailboxEntries;
     public final boolean bypassMempoolValidation;
     public final boolean passwordRequired;
+
+    // Options supported only within the config file (unless i screw up the implementation)
+    public final List<String> pubKeyList;
+    public final List<String> devPrivilegeKeyList;
+    public final float makerFee;
+    public final float takerFee;
 
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
@@ -612,8 +622,32 @@ public class Config {
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
+        ArgumentAcceptingOptionSpec<String> pubKeyListOpt =
+                parser.accepts(PUB_KEYS_LIST,
+        "List of public keys for the accepted splinter")
+                        .withRequiredArg()
+                        .ofType(String.class)
+                        .withValuesSeparatedBy(',')
+                        .describedAs("key[,...]");
+        ArgumentAcceptingOptionSpec<String> devPrivilegeKeyListOpt =
+                parser.accepts(DEV_PRIV_LIST,
+        "List of privileged dev keys for the accepted splinter")
+                        .withRequiredArg()
+                        .ofType(String.class)
+                        .withValuesSeparatedBy(',')
+                        .describedAs("key[,...]");
+        ArgumentAcceptingOptionSpec<Float> makerFeeOpt =
+                parser.accepts(MAKER_FEE, "Maker fee for the accepted splinter")
+                        .withRequiredArg()
+                        .ofType(Float.class)
+                        .defaultsTo(0.0015f);
+        ArgumentAcceptingOptionSpec<Float> takerFeeOpt =
+                parser.accepts(TAKER_FEE, "Taker fee for the accepted splinter")
+                        .withRequiredArg()
+                        .ofType(Float.class)
+                        .defaultsTo(0.0075f);
 
-        try {
+try {
             CompositeOptionSet options = new CompositeOptionSet();
 
             // Parse command line options
@@ -717,7 +751,10 @@ public class Config {
             this.useAllProvidedNodes = options.valueOf(useAllProvidedNodesOpt);
             this.userAgent = options.valueOf(userAgentOpt);
             this.numConnectionsForBtc = options.valueOf(numConnectionsForBtcOpt);
-
+            this.pubKeyList = options.valuesOf(pubKeyListOpt);
+            this.devPrivilegeKeyList = options.valuesOf(devPrivilegeKeyListOpt);
+            this.makerFee = options.valueOf(makerFeeOpt);
+            this.takerFee = options.valueOf(takerFeeOpt);
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.apiPort = options.valueOf(apiPortOpt);
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
