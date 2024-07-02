@@ -99,6 +99,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         paymentAccounts.clear();
         paymentAccount = null;
         marketPriceMargin = 0;
+        roundTo.set(null);
     }
 
     public void applyOpenOffer(OpenOffer openOffer) {
@@ -121,7 +122,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
             else
                 paymentAccount.setSelectedTradeCurrency(selectedTradeCurrency);
         }
-        
+
         // TODO: update for XMR to use percent as double?
 
         // If the security deposit got bounded because it was below the coin amount limit, it can be bigger
@@ -161,6 +162,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         setAmount(offer.getAmount());
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
+        setRoundToSelection(offer.getRoundTo());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
         setTriggerPrice(openOffer.getTriggerPrice());
         if (offer.isUseMarketBasedPrice()) {
@@ -216,7 +218,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),
                 offerPayload.getArbitratorSignature(),
-                offerPayload.getReserveTxKeyImages());
+                offerPayload.getReserveTxKeyImages(),
+                offerPayload.getRoundTo());
 
         final Offer editedOffer = new Offer(editedPayload);
         editedOffer.setPriceFeedService(priceFeedService);

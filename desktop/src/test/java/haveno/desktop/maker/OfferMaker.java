@@ -49,6 +49,7 @@ public class OfferMaker {
     public static final Property<Offer, Long> date = newProperty();
     public static final Property<Offer, Long> price = newProperty();
     public static final Property<Offer, Long> minAmount = newProperty();
+    public static final Property<Offer, Integer> roundTo = newProperty();
     public static final Property<Offer, Long> amount = newProperty();
     public static final Property<Offer, String> baseCurrencyCode = newProperty();
     public static final Property<Offer, String> counterCurrencyCode = newProperty();
@@ -111,7 +112,8 @@ public class OfferMaker {
                     lookup.valueOf(protocolVersion, 0),
                     getLocalHostNodeWithPort(99999),
                     null,
-                    null));
+                    null,
+                    lookup.valueOf(roundTo, 1)));
 
     public static final Maker<Offer> xmrUsdOffer = a(Offer);
     public static final Maker<Offer> btcBCHCOffer = a(Offer).but(with(counterCurrencyCode, "BCHC"));

@@ -177,7 +177,8 @@ public class CoreOffersService {
                              boolean reserveExactAmount,
                              String paymentAccountId,
                              Consumer<Offer> resultHandler,
-                             ErrorMessageHandler errorMessageHandler) {
+                             ErrorMessageHandler errorMessageHandler,
+                             int roundTo) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
 
@@ -200,7 +201,8 @@ public class CoreOffersService {
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
                 securityDeposit,
-                paymentAccount);
+                paymentAccount,
+                roundTo);
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
 
@@ -224,7 +226,8 @@ public class CoreOffersService {
                     BigInteger amount,
                     BigInteger minAmount,
                     double buyerSecurityDeposit,
-                    PaymentAccount paymentAccount) {
+                    PaymentAccount paymentAccount,
+                    Integer roundTo) {
         return createOfferService.createAndGetOffer(offerId,
                 direction,
                 currencyCode.toUpperCase(),
@@ -234,7 +237,8 @@ public class CoreOffersService {
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
                 buyerSecurityDeposit,
-                paymentAccount);
+                paymentAccount,
+                roundTo);
     }
 
     void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {

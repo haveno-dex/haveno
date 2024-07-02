@@ -343,7 +343,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
-            
+
             // Cryptos with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
     );
@@ -595,6 +595,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static boolean isRoundedForAtmCash(String id) {
         return id.equals(PaymentMethod.CASH_AT_ATM_ID) ||
             id.equals(PaymentMethod.HAL_CASH_ID);
+    }
+
+    public static boolean isRoundedForPBMCash(String id) {
+        return id.equals(PaymentMethod.PAY_BY_MAIL_ID);
     }
 
     public static boolean isFixedPriceOnly(String id) {

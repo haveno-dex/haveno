@@ -103,12 +103,14 @@ public class CreateOfferService {
                                    boolean useMarketBasedPrice,
                                    double marketPriceMargin,
                                    double securityDepositAsDouble,
-                                   PaymentAccount paymentAccount) {
+                                   PaymentAccount paymentAccount,
+                                   Integer roundTo) {
 
         log.info("create and get offer with offerId={}, " +
                         "currencyCode={}, " +
                         "direction={}, " +
                         "fixedPrice={}, " +
+                        "roundTo={}, " +
                         "useMarketBasedPrice={}, " +
                         "marketPriceMargin={}, " +
                         "amount={}, " +
@@ -118,6 +120,7 @@ public class CreateOfferService {
                 currencyCode,
                 direction,
                 fixedPrice == null ? null : fixedPrice.getValue(),
+                roundTo,
                 useMarketBasedPrice,
                 marketPriceMargin,
                 amount,
@@ -216,7 +219,8 @@ public class CreateOfferService {
                 Version.TRADE_PROTOCOL_VERSION,
                 null,
                 null,
-                null);
+                null,
+                roundTo);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
         return offer;

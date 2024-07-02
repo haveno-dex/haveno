@@ -26,6 +26,7 @@ import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
+import lombok.Getter;
 import org.bitcoinj.utils.MonetaryFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,8 @@ public class OfferForJson {
     public final double marketPriceMargin;
     public final String paymentMethod;
     public final String id;
+    @Getter
+    public final int roundTo;
 
     // primaryMarket fields are based on industry standard where primaryMarket is always in the focus (in the app BTC is always in the focus - will be changed in a larger refactoring once)
     public String currencyPair;
@@ -81,7 +84,8 @@ public class OfferForJson {
                         String id,
                         boolean useMarketBasedPrice,
                         double marketPriceMargin,
-                        PaymentMethod paymentMethod) {
+                        PaymentMethod paymentMethod,
+                        Integer roundTo) {
 
         this.direction = direction;
         this.currencyCode = currencyCode;
@@ -93,6 +97,7 @@ public class OfferForJson {
         this.useMarketBasedPrice = useMarketBasedPrice;
         this.marketPriceMargin = marketPriceMargin;
         this.paymentMethod = paymentMethod.getId();
+        this.roundTo = roundTo;
 
         setDisplayStrings();
     }
