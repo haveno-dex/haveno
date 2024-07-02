@@ -94,7 +94,8 @@ public class TradesChartsViewModelTest {
             0,
             null,
             null,
-            null);
+            null,
+            1);
 
     @BeforeEach
     public void setup() throws IOException {

@@ -349,6 +349,10 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return BigInteger.valueOf(offerPayload.getMinAmount());
     }
 
+    public Integer getRoundTo() {
+        return offerPayload.getRoundTo();
+    }
+
     public boolean isRange() {
         return offerPayload.getAmount() != offerPayload.getMinAmount();
     }

@@ -656,6 +656,7 @@ message OfferPayload {
     NodeAddress arbitrator_signer = 36;
     bytes arbitrator_signature = 37;
     repeated string reserve_tx_key_images = 38;
+    int32 round_to = 39;
 }
 
 enum OfferDirection {

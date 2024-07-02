@@ -84,6 +84,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         setAmount(offer.getAmount());
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
+        setRoundToSelection(offer.getRoundTo());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
 
         setBuyerSecurityDeposit(getBuyerSecurityAsPercent(offer));
