@@ -55,6 +55,7 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.editoffer.EditOfferView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
@@ -145,6 +146,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     protected Label amountBtcLabel, volumeCurrencyLabel, minAmountBtcLabel;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private ComboBox<TradeCurrency> currencyComboBox;
+    protected ComboBox<Integer> roundToComboBox;
     private ImageView qrCodeImageView;
     private VBox currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
     private HBox fundingHBox, firstRowHBox, secondRowHBox, placeOfferBox, amountValueCurrencyBox,
@@ -155,12 +157,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
             buyerSecurityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
-            isMinBuyerSecurityDepositListener, triggerPriceFocusedListener;
+            isMinBuyerSecurityDepositListener, triggerPriceFocusedListener, roundToSelectionFocusedListener;
     private ChangeListener<BigInteger> missingCoinListener;
     private ChangeListener<String> tradeCurrencyCodeListener, errorMessageListener,
             marketPriceMarginListener, volumeListener, buyerSecurityDepositInBTCListener;
     private ChangeListener<Number> marketPriceAvailableListener;
     private EventHandler<ActionEvent> currencyComboBoxSelectionHandler, paymentAccountsComboBoxSelectionHandler;
+    private EventHandler<ActionEvent> roundToComboBoxSelectionHandler;
     private OfferView.CloseHandler closeHandler;
 
     protected int gridRow = 0;
@@ -228,6 +231,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             isActivated = true;
             currencyComboBox.setPrefWidth(250);
             paymentAccountsComboBox.setPrefWidth(250);
+            roundToComboBox.setPrefWidth(100);
 
             addBindings();
             addListeners();
@@ -244,6 +248,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             currencyComboBox.getSelectionModel().select(model.getTradeCurrency());
             paymentAccountsComboBox.setItems(getPaymentAccounts());
             paymentAccountsComboBox.getSelectionModel().select(model.getPaymentAccount());
+            roundToComboBox.setItems(getRoundToList());
 
             onPaymentAccountsComboBoxSelected();
 
@@ -403,6 +408,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         });
 
         paymentAccountsComboBox.setDisable(true);
+        roundToComboBox.setDisable(true);
 
         editOfferElements.forEach(node -> {
             node.setMouseTransparent(true);
@@ -507,6 +513,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 if (singleTradeCurrency != null)
                     currencyTextField.setText(singleTradeCurrency.getNameAndCode());
             }
+            if (!(this instanceof EditOfferView))
+                if (PaymentMethod.isRoundedForPBMCash(paymentAccount.getPaymentMethod().getId())) {
+                    roundToComboBox.setDisable(false);
+                } else {
+                    roundToComboBox.setDisable(true);
+                    model.roundTo.set(1); // Initialize model data with '1' for any non-PBM payment type
+                }
+
         } else {
             currencySelection.setVisible(false);
             currencySelection.setManaged(false);
@@ -522,6 +536,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void onCurrencyComboBoxSelected() {
         model.onCurrencySelected(currencyComboBox.getSelectionModel().getSelectedItem());
+    }
+
+    protected void onRoundToComboBoxSelected() {
+        model.onRoundToSelected(roundToComboBox.getSelectionModel().getSelectedItem());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -560,6 +578,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         buyerSecurityDepositLabel.textProperty().bind(model.buyerSecurityDepositLabel);
         tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
+        roundToComboBox.valueProperty().bindBidirectional(model.roundTo);
 
         // Validation
         amountTextField.validationResultProperty().bind(model.amountValidationResult);
@@ -583,6 +602,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentTitledGroupBg.managedProperty().bind(paymentTitledGroupBg.visibleProperty());
         currencyComboBox.prefWidthProperty().bind(paymentAccountsComboBox.widthProperty());
         currencyComboBox.managedProperty().bind(currencyComboBox.visibleProperty());
+        roundToComboBox.managedProperty().bind(roundToComboBox.visibleProperty());
         currencyTextFieldBox.managedProperty().bind(currencyTextFieldBox.visibleProperty());
     }
 
@@ -610,6 +630,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         tradeFeeDescriptionLabel.textProperty().unbind();
         tradeFeeInXmrLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.visibleProperty().unbind();
+        roundToComboBox.valueProperty().unbindBidirectional(model.roundTo);
 
         // Validation
         amountTextField.validationResultProperty().unbind();
@@ -633,6 +654,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentAccountsComboBox.managedProperty().unbind();
         currencyComboBox.managedProperty().unbind();
         currencyComboBox.prefWidthProperty().unbind();
+        roundToComboBox.managedProperty().unbind();
         currencyTextFieldBox.managedProperty().unbind();
     }
 
@@ -689,6 +711,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             triggerPriceInputTextField.setText(model.triggerPrice.get());
         };
 
+        roundToSelectionFocusedListener = (o, oldValue, newValue) -> {
+            model.onFocusOutRoundToSelection(oldValue, newValue);
+        };
+
         errorMessageListener = (o, oldValue, newValue) -> {
             if (newValue != null)
                 UserThread.runAfter(() -> new Popup().error(Res.get("createOffer.amountPriceBox.error.message", model.errorMessage.get()))
@@ -697,6 +723,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         paymentAccountsComboBoxSelectionHandler = e -> onPaymentAccountsComboBoxSelected();
         currencyComboBoxSelectionHandler = e -> onCurrencyComboBoxSelected();
+        roundToComboBoxSelectionHandler = e -> onRoundToComboBoxSelected();
 
         tradeCurrencyCodeListener = (observable, oldValue, newValue) -> {
             fixedPriceTextField.clear();
@@ -865,6 +892,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         marketBasedPriceTextField.focusedProperty().addListener(priceAsPercentageFocusedListener);
         volumeTextField.focusedProperty().addListener(volumeFocusedListener);
         buyerSecurityDepositInputTextField.focusedProperty().addListener(buyerSecurityDepositFocusedListener);
+        roundToComboBox.focusedProperty().addListener(roundToSelectionFocusedListener);
 
         // notifications
         model.getDataModel().getShowWalletFundedNotification().addListener(getShowWalletFundedNotificationListener);
@@ -878,6 +906,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         // UI actions
         paymentAccountsComboBox.setOnAction(paymentAccountsComboBoxSelectionHandler);
         currencyComboBox.setOnAction(currencyComboBoxSelectionHandler);
+        roundToComboBox.setOnAction(roundToComboBoxSelectionHandler);
     }
 
     private void removeListeners() {
@@ -897,6 +926,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         marketBasedPriceTextField.focusedProperty().removeListener(priceAsPercentageFocusedListener);
         volumeTextField.focusedProperty().removeListener(volumeFocusedListener);
         buyerSecurityDepositInputTextField.focusedProperty().removeListener(buyerSecurityDepositFocusedListener);
+        roundToComboBox.focusedProperty().removeListener(roundToSelectionFocusedListener);
 
         // notifications
         model.getDataModel().getShowWalletFundedNotification().removeListener(getShowWalletFundedNotificationListener);
@@ -910,6 +940,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         // UI actions
         paymentAccountsComboBox.setOnAction(null);
         currencyComboBox.setOnAction(null);
+        roundToComboBox.setOnAction(null);
     }
 
 
@@ -945,12 +976,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 Res.get("shared.chooseTradingAccount"), Res.get("shared.chooseTradingAccount"));
         final Tuple3<VBox, Label, ComboBox<TradeCurrency>> currencyBoxTuple = addTopLabelComboBox(
                 Res.get("shared.currency"), Res.get("list.currency.select"));
+        final Tuple3<VBox, Label, ComboBox<Integer>> roundingBoxTuple = addTopLabelComboBox(
+                Res.get("shared.roundTo"), Res.get("shared.roundTo"));
 
         currencySelection = currencyBoxTuple.first;
         paymentGroupBox.getChildren().addAll(tradingAccountBoxTuple.first, currencySelection);
 
         GridPane.setRowIndex(paymentGroupBox, gridRow);
-        GridPane.setColumnSpan(paymentGroupBox, 2);
+        GridPane.setColumnSpan(paymentGroupBox, 3);
         GridPane.setMargin(paymentGroupBox, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 0));
         gridPane.getChildren().add(paymentGroupBox);
 
@@ -959,6 +992,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentAccountsComboBox.setMinWidth(tradingAccountBoxTuple.first.getMinWidth());
         paymentAccountsComboBox.setPrefWidth(tradingAccountBoxTuple.first.getMinWidth());
         editOfferElements.add(tradingAccountBoxTuple.first);
+
+        roundingBoxTuple.first.setMinWidth(75);
+        roundToComboBox = roundingBoxTuple.third;
+        roundToComboBox.setMinWidth(roundingBoxTuple.first.getMinWidth());
+        roundToComboBox.setPrefWidth(roundingBoxTuple.first.getMinWidth());
+        editOfferElements.add(roundingBoxTuple.first);
+        paymentGroupBox.getChildren().add(roundingBoxTuple.first);
 
         // we display either currencyComboBox (multi currency account) or currencyTextField (single)
         currencyComboBox = currencyBoxTuple.third;
@@ -1447,6 +1487,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private ObservableList<PaymentAccount> getPaymentAccounts() {
         return filterPaymentAccounts(model.getDataModel().getPaymentAccounts());
+    }
+
+    private ObservableList<Integer> getRoundToList() {
+        return model.getDataModel().getRoundToList();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

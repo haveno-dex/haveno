@@ -517,6 +517,7 @@ message PostOfferRequest {
     string trigger_price = 9;
     bool reserve_exact_amount = 10;
     string payment_account_id = 11;
+    int32 round_to = 12;
 }
 
 message PostOfferReply {
@@ -562,6 +563,7 @@ message OfferInfo {
     string arbitrator_signer = 29;
     string split_output_tx_hash = 30;
     uint64 split_output_tx_fee = 31 [jstype = JS_STRING];
+    int32 round_to = 32;
 }
 
 message AvailabilityResultWithDescription {
