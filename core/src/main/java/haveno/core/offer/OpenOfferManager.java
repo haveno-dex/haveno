@@ -96,6 +96,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -113,6 +114,7 @@ import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutputQuery;
+import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTransferQuery;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxQuery;
@@ -852,10 +854,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
-    public boolean hasAvailableOutput(BigInteger amount) {
-        return findSplitOutputFundingTx(getOpenOffers(), null, amount, null) != null;
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Place offer helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -929,7 +927,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 if (openOffer.isReserveExactAmount()) {
 
                     // find tx with exact input amount
-                    MoneroTxWallet splitOutputTx = findSplitOutputFundingTx(openOffers, openOffer);
+                    MoneroTxWallet splitOutputTx = getSplitOutputFundingTx(openOffers, openOffer);
                     if (splitOutputTx != null && openOffer.getSplitOutputTxHash() == null) {
                         setSplitOutputTx(openOffer, splitOutputTx);
                     }
@@ -965,89 +963,62 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }).start();
     }
 
-    private MoneroTxWallet findSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer) {
+    private MoneroTxWallet getSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer) {
         XmrAddressEntry addressEntry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-        return findSplitOutputFundingTx(openOffers, openOffer, openOffer.getOffer().getAmountNeeded(), addressEntry.getSubaddressIndex());
+        return getSplitOutputFundingTx(openOffers, openOffer, openOffer.getOffer().getAmountNeeded(), addressEntry.getSubaddressIndex());
     }
 
-    private MoneroTxWallet findSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger reserveAmount, Integer preferredSubaddressIndex) {
-        List<MoneroTxWallet> fundingTxs = new ArrayList<>();
-        MoneroTxWallet earliestUnscheduledTx = null;
+    private MoneroTxWallet getSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger reserveAmount, Integer preferredSubaddressIndex) {
 
         // return split output tx if already assigned
         if (openOffer != null && openOffer.getSplitOutputTxHash() != null) {
             return xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
         }
 
-        // return earliest tx with exact amount to offer's subaddress if available
+        // get split output tx to offer's preferred subaddress
         if (preferredSubaddressIndex != null) {
-
-            // get txs with exact output amount
-            fundingTxs = xmrWalletService.getTxs(new MoneroTxQuery()
-                    .setIsConfirmed(true)
-                    .setOutputQuery(new MoneroOutputQuery()
-                            .setAccountIndex(0)
-                            .setSubaddressIndex(preferredSubaddressIndex)
-                            .setAmount(reserveAmount)
-                            .setIsSpent(false)
-                            .setIsFrozen(false)));
-
-            // return earliest tx if available
-            earliestUnscheduledTx = getEarliestUnscheduledTx(openOffers, fundingTxs);
+            List<MoneroTxWallet> fundingTxs = getSplitOutputFundingTxs(reserveAmount, preferredSubaddressIndex);
+            MoneroTxWallet earliestUnscheduledTx = getEarliestUnscheduledTx(openOffers, openOffer, fundingTxs);
             if (earliestUnscheduledTx != null) return earliestUnscheduledTx;
         }
 
-        // return if awaiting scheduled tx
-        if (openOffer.getScheduledTxHashes() != null) return null;
-
-        // get all transactions including from pool
-        List<MoneroTxWallet> allTxs = xmrWalletService.getTxs(false);
-
-        if (preferredSubaddressIndex != null) {
-
-            // return earliest tx with exact incoming transfer to fund offer's subaddress if available (since outputs are not available until confirmed)
-            fundingTxs.clear();
-            for (MoneroTxWallet tx : allTxs) {
-                boolean hasExactTransfer = tx.getTransfers(new MoneroTransferQuery()
-                        .setIsIncoming(true)
-                        .setAccountIndex(0)
-                        .setSubaddressIndex(preferredSubaddressIndex)
-                        .setAmount(reserveAmount)).size() > 0;
-                if (hasExactTransfer) fundingTxs.add(tx);
-            }
-            earliestUnscheduledTx = getEarliestUnscheduledTx(openOffers, fundingTxs);
-            if (earliestUnscheduledTx != null) return earliestUnscheduledTx;
-        }
-
-        // return earliest tx with exact confirmed output to any subaddress if available
-        fundingTxs.clear();
-        for (MoneroTxWallet tx : allTxs) {
-            boolean hasExactOutput = tx.getOutputsWallet(new MoneroOutputQuery()
-                    .setAccountIndex(0)
-                    .setAmount(reserveAmount)
-                    .setIsSpent(false)
-                    .setIsFrozen(false)).size() > 0;
-            if (hasExactOutput) fundingTxs.add(tx);
-        }
-        earliestUnscheduledTx = getEarliestUnscheduledTx(openOffers, fundingTxs);
-        if (earliestUnscheduledTx != null) return earliestUnscheduledTx;
-
-        // return earliest tx with exact incoming transfer to any subaddress if available (since outputs are not available until confirmed)
-        fundingTxs.clear();
-        for (MoneroTxWallet tx : allTxs) {
-            boolean hasExactTransfer = tx.getTransfers(new MoneroTransferQuery()
-                    .setIsIncoming(true)
-                    .setAccountIndex(0)
-                    .setAmount(reserveAmount)).size() > 0;
-            if (hasExactTransfer) fundingTxs.add(tx);
-        }
-        return getEarliestUnscheduledTx(openOffers, fundingTxs);
+        // get split output tx to any subaddress
+        List<MoneroTxWallet> fundingTxs = getSplitOutputFundingTxs(reserveAmount, null);
+        return getEarliestUnscheduledTx(openOffers, openOffer, fundingTxs);
     }
 
-    private MoneroTxWallet getEarliestUnscheduledTx(List<OpenOffer> openOffers, List<MoneroTxWallet> txs) {
+    private List<MoneroTxWallet> getSplitOutputFundingTxs(BigInteger reserveAmount, Integer preferredSubaddressIndex) {
+        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsIncoming(true).setIsFailed(false));
+        Set<MoneroTxWallet> removeTxs = new HashSet<MoneroTxWallet>();
+        for (MoneroTxWallet tx : splitOutputTxs) {
+            if (tx.getOutputs() != null) { // outputs not available until first confirmation
+                for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                    if (output.isSpent() || output.isFrozen()) removeTxs.add(tx);
+                }
+            }
+            if (!hasExactAmount(tx, reserveAmount, preferredSubaddressIndex)) removeTxs.add(tx);
+        }
+        splitOutputTxs.removeAll(removeTxs);
+        return splitOutputTxs;
+    }
+
+    private boolean hasExactAmount(MoneroTxWallet tx, BigInteger amount, Integer preferredSubaddressIndex) {
+        boolean hasExactOutput = (tx.getOutputsWallet(new MoneroOutputQuery()
+                .setAccountIndex(0)
+                .setSubaddressIndex(preferredSubaddressIndex)
+                .setAmount(amount)).size() > 0);
+        if (hasExactOutput) return true;
+        boolean hasExactTransfer = (tx.getTransfers(new MoneroTransferQuery()
+                .setAccountIndex(0)
+                .setSubaddressIndex(preferredSubaddressIndex)
+                .setAmount(amount)).size() > 0);
+        return hasExactTransfer;
+    }
+
+    private MoneroTxWallet getEarliestUnscheduledTx(List<OpenOffer> openOffers, OpenOffer excludeOpenOffer, List<MoneroTxWallet> txs) {
         MoneroTxWallet earliestUnscheduledTx = null;
         for (MoneroTxWallet tx : txs) {
-            if (isTxScheduled(openOffers, tx.getHash())) continue;
+            if (isTxScheduledByOtherOffer(openOffers, excludeOpenOffer, tx.getHash())) continue;
             if (earliestUnscheduledTx == null || (earliestUnscheduledTx.getNumConfirmations() < tx.getNumConfirmations())) earliestUnscheduledTx = tx;
         }
         return earliestUnscheduledTx;
@@ -1121,7 +1092,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         List<String> scheduledTxHashes = new ArrayList<String>();
         BigInteger scheduledAmount = BigInteger.ZERO;
         for (MoneroTxWallet lockedTx : lockedTxs) {
-            if (isTxScheduled(openOffers, lockedTx.getHash())) continue;
+            if (isTxScheduledByOtherOffer(openOffers, openOffer, lockedTx.getHash())) continue;
             if (lockedTx.getIncomingTransfers() == null || lockedTx.getIncomingTransfers().isEmpty()) continue;
             scheduledTxHashes.add(lockedTx.getHash());
             for (MoneroIncomingTransfer transfer : lockedTx.getIncomingTransfers()) {
@@ -1154,11 +1125,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return scheduledAmount;
     }
 
-    private boolean isTxScheduled(List<OpenOffer> openOffers, String txHash) {
-        for (OpenOffer openOffer : openOffers) {
-            if (openOffer.getState() != OpenOffer.State.SCHEDULED) continue;
-            if (openOffer.getScheduledTxHashes() == null) continue;
-            for (String scheduledTxHash : openOffer.getScheduledTxHashes()) {
+    private boolean isTxScheduledByOtherOffer(List<OpenOffer> openOffers, OpenOffer openOffer, String txHash) {
+        for (OpenOffer otherOffer : openOffers) {
+            if (otherOffer == openOffer) continue;
+            if (otherOffer.getState() != OpenOffer.State.SCHEDULED) continue;
+            if (otherOffer.getScheduledTxHashes() == null) continue;
+            for (String scheduledTxHash : otherOffer.getScheduledTxHashes()) {
                 if (txHash.equals(scheduledTxHash)) return true;
             }
         }

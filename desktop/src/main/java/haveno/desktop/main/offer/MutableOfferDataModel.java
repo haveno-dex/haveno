@@ -466,11 +466,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         }
     }
 
-    public boolean hasAvailableSplitOutput() {
-        BigInteger reserveAmount = totalToPay.get();
-        return openOfferManager.hasAvailableOutput(reserveAmount);
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
