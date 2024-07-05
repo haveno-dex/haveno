@@ -125,6 +125,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -627,9 +628,7 @@ public abstract class Trade implements Tradable, Model {
 
         // handle connection change on dedicated thread
         xmrConnectionService.addConnectionListener(connection -> {
-            ThreadUtils.submitToPool(() -> { // TODO: remove this?
-                ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
-            });
+            ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
         });
 
         // reset buyer's payment sent state if no ack receive
@@ -1133,10 +1132,10 @@ public abstract class Trade implements Tradable, Model {
         // check if multisig import needed
         if (wallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
 
-        // TODO: wallet sometimes returns empty data, after disconnect?
-        List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
-        if (txs.isEmpty()) {
-            log.warn("Restarting wallet for {} {} because deposit txs are missing to create payout tx", getClass().getSimpleName(), getId());
+        // TODO: wallet sometimes returns empty data, due to unreliable connection with specific daemons?
+        if (getMakerDepositTx() == null || getTakerDepositTx() == null) {
+            log.warn("Switching Monero connection and restarting trade wallet because deposit txs are missing to create payout tx for {} {}", getClass().getSimpleName(), getShortId());
+            switchToNextBestConnection();
             forceRestartTradeWallet();
         }
 
@@ -2236,10 +2235,6 @@ public abstract class Trade implements Tradable, Model {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private String getConnectionChangedThreadId() {
-        return getId() + ".onConnectionChanged";
-    }
-
     // lazy initialization
     private ObjectProperty<BigInteger> getAmountProperty() {
         if (tradeAmountProperty == null)
@@ -2253,6 +2248,17 @@ public abstract class Trade implements Tradable, Model {
         if (tradeVolumeProperty == null)
             tradeVolumeProperty = getVolume() != null ? new SimpleObjectProperty<>(getVolume()) : new SimpleObjectProperty<>();
         return tradeVolumeProperty;
+    }
+
+    private String getConnectionChangedThreadId() {
+        return getId() + ".onConnectionChanged";
+    }
+
+    private void switchToNextBestConnection() {
+        xmrConnectionService.switchToNextBestConnection();
+        CountDownLatch latch = new CountDownLatch(1);
+        ThreadUtils.execute(() -> latch.countDown(), getConnectionChangedThreadId()); // wait for connection change to complete
+        HavenoUtils.awaitLatch(latch);
     }
 
     private void onConnectionChanged(MoneroRpcConnection connection) {

@@ -36,7 +36,10 @@ import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
@@ -201,9 +204,21 @@ public final class XmrConnectionService {
         return connectionManager.getConnections();
     }
 
-    public void switchToBestConnection() {
-        if (isFixedConnection() || !connectionManager.getAutoSwitch()) return;
+    private void switchToBestConnection() {
+        if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
+            log.info("Skipping switch to best Monero connection because connection is fixed or auto switch is disabled");
+            return;
+        }
         MoneroRpcConnection bestConnection = getBestAvailableConnection();
+        if (bestConnection != null) setConnection(bestConnection);
+    }
+
+    public void switchToNextBestConnection() {
+        if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
+            log.info("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
+            return;
+        }
+        MoneroRpcConnection bestConnection = getBestAvailableConnection(List.of(getConnection()));
         if (bestConnection != null) setConnection(bestConnection);
     }
 
@@ -244,8 +259,19 @@ public final class XmrConnectionService {
     public MoneroRpcConnection getBestAvailableConnection() {
         accountService.checkAccountOpen();
         List<MoneroRpcConnection> ignoredConnections = new ArrayList<MoneroRpcConnection>();
-        if (xmrLocalNode.shouldBeIgnored() && connectionManager.hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(connectionManager.getConnectionByUri(xmrLocalNode.getUri()));
+        addLocalNodeIfIgnored(ignoredConnections);
         return connectionManager.getBestAvailableConnection(ignoredConnections.toArray(new MoneroRpcConnection[0]));
+    }
+
+    private MoneroRpcConnection getBestAvailableConnection(Collection<MoneroRpcConnection> ignoredConnections) {
+        accountService.checkAccountOpen();
+        Set<MoneroRpcConnection> ignoredConnectionsSet = new HashSet<>(ignoredConnections);
+        addLocalNodeIfIgnored(ignoredConnectionsSet);
+        return connectionManager.getBestAvailableConnection(ignoredConnectionsSet.toArray(new MoneroRpcConnection[0]));
+    }
+
+    private void addLocalNodeIfIgnored(Collection<MoneroRpcConnection> ignoredConnections) {
+        if (xmrLocalNode.shouldBeIgnored() && connectionManager.hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(connectionManager.getConnectionByUri(xmrLocalNode.getUri()));
     }
 
     public void setAutoSwitch(boolean autoSwitch) {
