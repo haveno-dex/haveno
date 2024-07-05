@@ -99,7 +99,6 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
     private ChangeListener<String> amountListener;
     private ChangeListener<Boolean> amountFocusListener;
     private int rowIndex = 0;
-    private final static int MAX_ATTEMPTS = 3;
     boolean sendMax = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -256,7 +255,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
                 // create tx
                 MoneroTxWallet tx = null;
-                for (int i = 0; i < MAX_ATTEMPTS; i++) {
+                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     try {
                         log.info("Creating withdraw tx");
                         long startTime = System.currentTimeMillis();
@@ -269,8 +268,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         break;
                     } catch (Exception e) {
                         if (isNotEnoughMoney(e.getMessage())) throw e;
-                        log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, MAX_ATTEMPTS, e.getMessage());
-                        if (i == MAX_ATTEMPTS - 1) throw e;
+                        log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
