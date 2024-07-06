@@ -1465,7 +1465,7 @@ public class XmrWalletService {
             try {
                 height = wallet.getHeight(); // can get read timeout while syncing
             } catch (Exception e) {
-                e.printStackTrace();
+                if (!isShutDownStarted) e.printStackTrace();
                 return;
             }
             if (height < xmrConnectionService.getTargetHeight()) updateSyncProgress(height);
