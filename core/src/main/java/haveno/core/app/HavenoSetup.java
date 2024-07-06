@@ -113,7 +113,7 @@ import org.fxmisc.easybind.monadic.MonadicBinding;
 public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
 
-    private static final long STARTUP_TIMEOUT_MINUTES = 5;
+    private static final long STARTUP_TIMEOUT_MINUTES = 4;
 
     private final DomainInitialisation domainInitialisation;
     private final P2PNetworkSetup p2PNetworkSetup;
