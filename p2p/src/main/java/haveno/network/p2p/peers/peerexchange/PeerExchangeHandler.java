@@ -115,35 +115,39 @@ class PeerExchangeHandler implements MessageListener {
                             TIMEOUT, TimeUnit.SECONDS);
                 }
 
-                SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getPeersRequest);
-                Futures.addCallback(future, new FutureCallback<Connection>() {
-                    @Override
-                    public void onSuccess(Connection connection) {
-                        if (!stopped) {
-                            //TODO
-                            /*if (!connection.getPeersNodeAddressOptional().isPresent()) {
-                                connection.setPeersNodeAddress(nodeAddress);
-                                log.warn("sendGetPeersRequest: !connection.getPeersNodeAddressOptional().isPresent()");
-                            }*/
-
-                            PeerExchangeHandler.this.connection = connection;
-                            connection.addMessageListener(PeerExchangeHandler.this);
-                        } else {
-                            log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onSuccess call.");
+                try {
+                    SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getPeersRequest);
+                    Futures.addCallback(future, new FutureCallback<Connection>() {
+                        @Override
+                        public void onSuccess(Connection connection) {
+                            if (!stopped) {
+                                //TODO
+                                /*if (!connection.getPeersNodeAddressOptional().isPresent()) {
+                                    connection.setPeersNodeAddress(nodeAddress);
+                                    log.warn("sendGetPeersRequest: !connection.getPeersNodeAddressOptional().isPresent()");
+                                }*/
+    
+                                PeerExchangeHandler.this.connection = connection;
+                                connection.addMessageListener(PeerExchangeHandler.this);
+                            } else {
+                                log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onSuccess call.");
+                            }
                         }
-                    }
-
-                    @Override
-                    public void onFailure(@NotNull Throwable throwable) {
-                        if (!stopped) {
-                            String errorMessage = "Sending getPeersRequest to " + nodeAddress +
-                                    " failed. That is expected if the peer is offline. Exception=" + throwable.getMessage();
-                            handleFault(errorMessage, CloseConnectionReason.SEND_MSG_FAILURE, nodeAddress);
-                        } else {
-                            log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onFailure call.");
+    
+                        @Override
+                        public void onFailure(@NotNull Throwable throwable) {
+                            if (!stopped) {
+                                String errorMessage = "Sending getPeersRequest to " + nodeAddress +
+                                        " failed. That is expected if the peer is offline. Exception=" + throwable.getMessage();
+                                handleFault(errorMessage, CloseConnectionReason.SEND_MSG_FAILURE, nodeAddress);
+                            } else {
+                                log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onFailure call.");
+                            }
                         }
-                    }
-                }, MoreExecutors.directExecutor());
+                    }, MoreExecutors.directExecutor());
+                } catch (Exception e) {
+                    if (!networkNode.isShutDownStarted()) throw e;
+                }
             } else {
                 log.debug("My node address is still null at sendGetPeersRequest. We ignore that call.");
             }
