@@ -174,7 +174,10 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         List<String> acceptedCountryCodes = offer.getAcceptedCountryCodes();
         boolean showAcceptedCountryCodes = acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty();
         boolean isF2F = offer.getPaymentMethod().equals(PaymentMethod.F2F);
-        boolean showExtraInfo = offer.getPaymentMethod().equals(PaymentMethod.F2F) || offer.getPaymentMethod().equals(PaymentMethod.PAY_BY_MAIL) || offer.getPaymentMethod().equals(PaymentMethod.AUSTRALIA_PAYID);
+        boolean showExtraInfo = offer.getPaymentMethod().equals(PaymentMethod.F2F) ||
+                offer.getPaymentMethod().equals(PaymentMethod.PAY_BY_MAIL) ||
+                offer.getPaymentMethod().equals(PaymentMethod.AUSTRALIA_PAYID)||
+                offer.getPaymentMethod().equals(PaymentMethod.PAYPAL_ID);
         if (!takeOfferHandlerOptional.isPresent())
             rows++;
         if (showAcceptedBanks)

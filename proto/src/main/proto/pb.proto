@@ -1072,6 +1072,7 @@ message VenmoAccountPayload {
 }
 message PayPalAccountPayload {
     string email_or_mobile_nr_or_username = 1;
+    string extra_info = 2;
 }
 
 message PopmoneyAccountPayload {
