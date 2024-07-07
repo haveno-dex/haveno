@@ -62,6 +62,7 @@ public final class PayPalAccount extends PaymentAccount {
             PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR_OR_USERNAME,
             PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EXTRA_INFO,
             PaymentAccountFormField.FieldId.SALT);
 
     public PayPalAccount() {
@@ -90,5 +91,13 @@ public final class PayPalAccount extends PaymentAccount {
 
     public String getEmailOrMobileNrOrUsername() {
         return ((PayPalAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrUsername();
+    }
+
+    public void setExtraInfo(String extraInfo) {
+        ((PayPalAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((PayPalAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }

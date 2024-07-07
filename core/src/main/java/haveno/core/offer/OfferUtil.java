@@ -40,6 +40,7 @@ import static haveno.core.offer.OfferPayload.CAPABILITIES;
 import static haveno.core.offer.OfferPayload.F2F_CITY;
 import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.PAYPAL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.REFERRAL_ID;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
@@ -47,6 +48,7 @@ import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
@@ -198,6 +200,10 @@ public class OfferUtil {
 
         if (paymentAccount instanceof PayByMailAccount) {
             extraDataMap.put(PAY_BY_MAIL_EXTRA_INFO, ((PayByMailAccount) paymentAccount).getExtraInfo());
+        }
+
+        if (paymentAccount instanceof PayPalAccount) {
+            extraDataMap.put(PAYPAL_EXTRA_INFO, ((PayPalAccount) paymentAccount).getExtraInfo());
         }
 
         if (paymentAccount instanceof AustraliaPayidAccount) {
