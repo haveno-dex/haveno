@@ -269,7 +269,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowCashAtAtmWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowAustraliaPayidWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowPaypalWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowPayPalWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowCashAppWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
@@ -1160,7 +1160,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
     }
 
-    private void maybeShowPaypalWarning(PaymentAccount paymentAccount, Offer offer) {
+    private void maybeShowPayPalWarning(PaymentAccount paymentAccount, Offer offer) {
         if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.PAYPAL_ID) &&
                 !paypalWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
             paypalWarningDisplayed = true;
