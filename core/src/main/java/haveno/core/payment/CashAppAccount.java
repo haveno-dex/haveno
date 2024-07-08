@@ -39,6 +39,7 @@ public final class CashAppAccount extends PaymentAccount {
             PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR_OR_CASHTAG,
             PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EXTRA_INFO,
             PaymentAccountFormField.FieldId.SALT);
 
     public CashAppAccount() {
@@ -66,5 +67,13 @@ public final class CashAppAccount extends PaymentAccount {
 
     public String getEmailOrMobileNrOrCashtag() {
         return ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag();
+    }
+
+    public void setExtraInfo(String extraInfo) {
+        ((CashAppAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((CashAppAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }

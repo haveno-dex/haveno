@@ -412,6 +412,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return getExtraDataMap().get(OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.PAYPAL_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.PAYPAL_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASHAPP_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.CASHAPP_EXTRA_INFO);
         else
             return "";
     }

@@ -177,7 +177,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         boolean showExtraInfo = offer.getPaymentMethod().equals(PaymentMethod.F2F) ||
                 offer.getPaymentMethod().equals(PaymentMethod.PAY_BY_MAIL) ||
                 offer.getPaymentMethod().equals(PaymentMethod.AUSTRALIA_PAYID)||
-                offer.getPaymentMethod().equals(PaymentMethod.PAYPAL_ID);
+                offer.getPaymentMethod().equals(PaymentMethod.PAYPAL_ID)||
+                offer.getPaymentMethod().equals(PaymentMethod.CASH_APP_ID);
         if (!takeOfferHandlerOptional.isPresent())
             rows++;
         if (showAcceptedBanks)

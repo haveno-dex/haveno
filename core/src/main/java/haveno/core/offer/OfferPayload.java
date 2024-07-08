@@ -94,6 +94,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Keys for extra map
     // Only set for traditional offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";
+    public static final String CASHAPP_EXTRA_INFO = "cashAppExtraInfo";
     public static final String REFERRAL_ID = "referralId";
     // Only used in payment method F2F
     public static final String F2F_CITY = "f2fCity";
