@@ -1693,7 +1693,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // determine if offer is valid
             boolean isValid = true;
             Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
-            if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
+            if (arbitrator == null) {
+                log.warn("Offer {} signed by unavailable arbitrator, reposting", openOffer.getId());
+                isValid = false;
+            } else if (!HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
                 log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
                 isValid = false;
             }
