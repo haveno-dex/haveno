@@ -54,6 +54,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -88,11 +90,25 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getPrice().getValue(),
-                trade.getAmount().longValueExact(),
+                fuzzTradeAmount(trade.getAmount().longValueExact()),
                 offer.getPaymentMethod().getId(),
-                trade.getTakeOfferDate().getTime(),
+                fuzzTradeDate(trade.getTakeOfferDate().getTime()),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);
+    }
+
+    private static long fuzzTradeAmount(long exactAmount) { //  randomize completed trade info #1099
+        long adjustedAmount = (long) ThreadLocalRandom.current().nextDouble(
+                exactAmount * 0.95, exactAmount * 1.05);
+        log.info("fuzzed trade amount from {} to {}", exactAmount, adjustedAmount);
+        return adjustedAmount;
+    }
+
+    private static long fuzzTradeDate(long originalTimestamp) { //  randomize completed trade info #1099
+        long adjustedTimestamp = ThreadLocalRandom.current().nextLong(
+                originalTimestamp-TimeUnit.HOURS.toMillis(24), originalTimestamp);
+        log.info("fuzzed trade datestamp from {} to {}", new Date(originalTimestamp), new Date(adjustedTimestamp));
+        return adjustedTimestamp;
     }
 
     // This enum must not change the order as we use the ordinal for storage to reduce data size.
