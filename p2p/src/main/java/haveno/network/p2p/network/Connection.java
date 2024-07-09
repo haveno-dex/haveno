@@ -170,6 +170,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private final Capabilities capabilities = new Capabilities();
 
+    // throttle logs of reported invalid requests
+    private static long lastLoggedInvalidRequestReport = 0;
+    private static int unloggedInvalidRequestReports = 0;
+    private static final long LOG_INVALID_REQUEST_REPORTS_INTERVAL_MS = 60000; // log invalid request reports once every 60s
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -606,32 +611,52 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
      */
 
     public boolean reportInvalidRequest(RuleViolation ruleViolation) {
-        log.info("We got reported the ruleViolation {} at connection with address{} and uid {}", ruleViolation, this.getPeersNodeAddressProperty(), this.getUid());
+        return Connection.reportInvalidRequest(this, ruleViolation);
+    }
+
+    private static synchronized boolean reportInvalidRequest(Connection connection, RuleViolation ruleViolation) {
+
+        // determine if report should be logged to avoid spamming the logs
+        boolean logReport = System.currentTimeMillis() - lastLoggedInvalidRequestReport > LOG_INVALID_REQUEST_REPORTS_INTERVAL_MS;
+
+        // count the number of unlogged reports since last log entry
+        if (!logReport) unloggedInvalidRequestReports++;
+
+        // handle report
+        if (logReport) log.info("We got reported the ruleViolation {} at connection with address {} and uid {}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid());
         int numRuleViolations;
-        numRuleViolations = ruleViolations.getOrDefault(ruleViolation, 0);
-
+        numRuleViolations = connection.ruleViolations.getOrDefault(ruleViolation, 0);
         numRuleViolations++;
-        ruleViolations.put(ruleViolation, numRuleViolations);
-
+        connection.ruleViolations.put(ruleViolation, numRuleViolations);
         if (numRuleViolations >= ruleViolation.maxTolerance) {
-            log.warn("We close connection as we received too many corrupt requests. " +
+            if (logReport) log.warn("We close connection as we received too many corrupt requests. " +
                     "ruleViolations={} " +
-                    "connection with address{} and uid {}", ruleViolations, peersNodeAddressProperty, uid);
-            this.ruleViolation = ruleViolation;
+                    "connection with address {} and uid {}", connection.ruleViolations, connection.peersNodeAddressProperty, connection.uid);
+            connection.ruleViolation = ruleViolation;
             if (ruleViolation == RuleViolation.PEER_BANNED) {
-                log.debug("We close connection due RuleViolation.PEER_BANNED. peersNodeAddress={}", getPeersNodeAddressOptional());
-                shutDown(CloseConnectionReason.PEER_BANNED);
+                if (logReport) log.debug("We close connection due RuleViolation.PEER_BANNED. peersNodeAddress={}", connection.getPeersNodeAddressOptional());
+                connection.shutDown(CloseConnectionReason.PEER_BANNED);
             } else if (ruleViolation == RuleViolation.INVALID_CLASS) {
-                log.warn("We close connection due RuleViolation.INVALID_CLASS");
-                shutDown(CloseConnectionReason.INVALID_CLASS_RECEIVED);
+                if (logReport) log.warn("We close connection due RuleViolation.INVALID_CLASS");
+                connection.shutDown(CloseConnectionReason.INVALID_CLASS_RECEIVED);
             } else {
-                log.warn("We close connection due RuleViolation.RULE_VIOLATION");
-                shutDown(CloseConnectionReason.RULE_VIOLATION);
+                if (logReport) log.warn("We close connection due RuleViolation.RULE_VIOLATION");
+                connection.shutDown(CloseConnectionReason.RULE_VIOLATION);
             }
 
+            resetReportedInvalidRequestsThrottle(logReport);
             return true;
         } else {
+            resetReportedInvalidRequestsThrottle(logReport);
             return false;
+        }
+    }
+
+    private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
+        if (logReport) {
+            if (unloggedInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", unloggedInvalidRequestReports);
+            unloggedInvalidRequestReports = 0;
+            lastLoggedInvalidRequestReport = System.currentTimeMillis();
         }
     }
 
