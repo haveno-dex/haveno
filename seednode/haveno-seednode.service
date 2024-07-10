@@ -7,12 +7,13 @@ User=haveno
 Group=haveno
 SyslogIdentifier=Haveno-Seednode
 
-# $PATH is a placeholder
-ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
+ExecStart=/bin/sh /path/to/haveno-seednode\
+  --baseCurrencyNetwork=XMR_STAGENET\
   --useLocalhostForP2P=false\
   --useDevPrivilegeKeys=false\
   --nodePort=2002\
-  --appName=haveno-XMR_STAGENET_Seed_2002
+  --appName=haveno-XMR_STAGENET_Seed_2002\
+  --xmrNode=http://[::1]:38088
 
 ExecStop=/bin/kill ${MAINPID}
 Restart=always
