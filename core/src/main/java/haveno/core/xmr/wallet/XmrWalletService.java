@@ -1845,9 +1845,6 @@ public class XmrWalletService {
                         }
                     }
                 }
-
-                // cache wallet info
-                cacheWalletInfo();
             } catch (Exception e) {
                 if (wallet == null || isShutDownStarted) return;
                 boolean isConnectionRefused = e.getMessage() != null && e.getMessage().contains("Connection refused");
@@ -1857,6 +1854,15 @@ public class XmrWalletService {
                     //e.printStackTrace();
                 }
             } finally {
+
+                // cache wallet info last
+                if (wallet != null && !isShutDownStarted) {
+                    try {
+                        cacheWalletInfo();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
                 pollInProgress = false;
             }
         }
