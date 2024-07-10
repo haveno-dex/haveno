@@ -40,23 +40,8 @@ deploy:
 			screen -S localnet -X screen -t $$target; \
 			screen -S localnet -p $$target -X stuff "make $$target\n"; \
 		done;
-	# give bitcoind rpc server time to start
+	# give time to start
 	sleep 5
-
-bitcoind:
-	./.localnet/bitcoind \
-		-regtest \
-		-peerbloomfilters=1 \
-		-datadir=.localnet/ \
-		-rpcuser=haveno \
-		-rpcpassword=1234 \
-
-btc-blocks:
-	./.localnet/bitcoin-cli \
-		-regtest \
-		-rpcuser=haveno \
-		-rpcpassword=1234 \
-		generatetoaddress 101 bcrt1q6j90vywv8x7eyevcnn2tn2wrlg3vsjlsvt46qz
 
 .PHONY: build seednode localnet
 
