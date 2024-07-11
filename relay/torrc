@@ -1,3 +1,4 @@
 HiddenServiceDir build/tor-hidden-service
 HiddenServicePort 80 127.0.0.1:8080
 HiddenServicePoWDefensesEnabled 1
+HiddenServiceEnableIntroDoSDefense 1
