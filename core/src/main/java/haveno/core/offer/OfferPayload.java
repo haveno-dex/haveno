@@ -44,6 +44,7 @@ import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -239,6 +240,47 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.upperClosePrice = upperClosePrice;
         this.isPrivateOffer = isPrivateOffer;
         this.hashOfChallenge = hashOfChallenge;
+    }
+
+    public OfferPayload(OfferPayload offerPayload) {
+        this.id = offerPayload.id;
+        this.date = offerPayload.date;
+        this.ownerNodeAddress = offerPayload.ownerNodeAddress;
+        this.pubKeyRing = offerPayload.pubKeyRing;
+        this.baseCurrencyCode = offerPayload.baseCurrencyCode;
+        this.counterCurrencyCode = offerPayload.counterCurrencyCode;
+        this.direction = offerPayload.direction;
+        this.price = offerPayload.price;
+        this.amount = offerPayload.amount;
+        this.minAmount = offerPayload.minAmount;
+        this.makerFeePct = offerPayload.makerFeePct;
+        this.takerFeePct = offerPayload.takerFeePct;
+        this.penaltyFeePct = offerPayload.penaltyFeePct;
+        this.buyerSecurityDepositPct = offerPayload.buyerSecurityDepositPct;
+        this.sellerSecurityDepositPct = offerPayload.sellerSecurityDepositPct;
+        this.paymentMethodId = offerPayload.paymentMethodId;
+        this.makerPaymentAccountId = offerPayload.makerPaymentAccountId;
+        this.extraDataMap = offerPayload.extraDataMap == null ? null : new HashMap<>(offerPayload.extraDataMap);
+        this.versionNr = offerPayload.versionNr;
+        this.protocolVersion = offerPayload.protocolVersion;
+        this.arbitratorSigner = offerPayload.arbitratorSigner;
+        this.arbitratorSignature = offerPayload.arbitratorSignature;
+        this.reserveTxKeyImages = offerPayload.reserveTxKeyImages == null ? null : new ArrayList<>(offerPayload.reserveTxKeyImages);
+        this.marketPriceMarginPct = offerPayload.marketPriceMarginPct;
+        this.useMarketBasedPrice = offerPayload.useMarketBasedPrice;
+        this.countryCode = offerPayload.countryCode;
+        this.acceptedCountryCodes = offerPayload.acceptedCountryCodes == null ? null : new ArrayList<>(offerPayload.acceptedCountryCodes);
+        this.bankId = offerPayload.bankId;
+        this.acceptedBankIds = offerPayload.acceptedBankIds == null ? null : new ArrayList<>(offerPayload.acceptedBankIds);
+        this.blockHeightAtOfferCreation = offerPayload.blockHeightAtOfferCreation;
+        this.maxTradeLimit = offerPayload.maxTradeLimit;
+        this.maxTradePeriod = offerPayload.maxTradePeriod;
+        this.useAutoClose = offerPayload.useAutoClose;
+        this.useReOpenAfterAutoClose = offerPayload.useReOpenAfterAutoClose;
+        this.lowerClosePrice = offerPayload.lowerClosePrice;
+        this.upperClosePrice = offerPayload.upperClosePrice;
+        this.isPrivateOffer = offerPayload.isPrivateOffer;
+        this.hashOfChallenge = offerPayload.hashOfChallenge;
     }
 
     public byte[] getHash() {

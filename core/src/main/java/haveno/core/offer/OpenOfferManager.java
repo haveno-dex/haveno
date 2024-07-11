@@ -1728,16 +1728,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
             } else {
 
-                // cancel and recreate offer
-                doCancelOffer(openOffer);
-                Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
-                updatedOffer.setPriceFeedService(priceFeedService);
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
+                // remove and recreate offer
+                Offer updatedOffer;
+                OpenOffer updatedOpenOffer;
+                synchronized (openOffers) {
+                    doCancelOffer(openOffer);
+                    updatedOffer = new Offer(new OfferPayload(openOffer.getOffer().getOfferPayload()));
+                    updatedOffer.getOfferPayload().setReserveTxKeyImages(null); // nullify key images in updated offer TODO: must preserve original offer payload because broadcast happens 2s later, else signature is invalid in seed node
+                    updatedOffer.getOfferPayload().setArbitratorSignature(null);
+                    updatedOffer.setPriceFeedService(priceFeedService);
+                    updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
+                    addOpenOffer(updatedOpenOffer);
+                }
 
                 // repost offer
                 synchronized (processOffersLock) {
                     CountDownLatch latch = new CountDownLatch(1);
-                    addOpenOffer(updatedOpenOffer);
                     processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
                         requestPersistence();
                         latch.countDown();

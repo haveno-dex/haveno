@@ -103,6 +103,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                     model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
                     if (reserveTx != null) {
                         model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                        offer.getOfferPayload().setReserveTxKeyImages(null);
                     }
 
                     throw e;
