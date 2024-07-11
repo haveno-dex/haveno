@@ -121,6 +121,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     PaymentMethod selectedPaymentMethod = getShowAllEntryForPaymentMethod();
 
     boolean isTabSelected;
+    String filterText = "";
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(true);
     final BooleanProperty disableMatchToggle = new SimpleBooleanProperty();
     final IntegerProperty maxPlacesForAmount = new SimpleIntegerProperty();
@@ -267,6 +268,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
             saveSelectedCurrencyCodeInPreferences(direction, code);
         }
+    }
+
+    void onFilterKeyTyped(String filterText) {
+        this.filterText = filterText;
+        filterOffers();
     }
 
     abstract void saveSelectedCurrencyCodeInPreferences(OfferDirection direction, String code);
@@ -566,7 +572,17 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         Predicate<OfferBookListItem> predicate = useOffersMatchingMyAccountsFilter ?
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
-        filteredItems.setPredicate(predicate);
+
+        if (!filterText.isEmpty()) {
+            Predicate<OfferBookListItem> nextPredicate=offerBookListItem ->
+                    offerBookListItem.getOffer().getOfferPayload().getOwnerNodeAddress().getFullAddress().contains(filterText);
+            nextPredicate=nextPredicate.or(offerBookListItem ->
+                    offerBookListItem.getOffer().getId().contains(filterText));
+
+            filteredItems.setPredicate(predicate.and(nextPredicate));
+        } else {
+            filteredItems.setPredicate(predicate);
+        }
     }
 
     abstract Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,
