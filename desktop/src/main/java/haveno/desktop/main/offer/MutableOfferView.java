@@ -149,9 +149,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     protected ComboBox<Integer> roundToComboBox;
     private ImageView qrCodeImageView;
     private VBox currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
+    protected VBox roundToVBox;
     private HBox fundingHBox, firstRowHBox, secondRowHBox, placeOfferBox, amountValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, volumeValueCurrencyBox, priceValueCurrencyBox,
-            minAmountValueCurrencyBox, advancedOptionsBox, triggerPriceHBox;
+            minAmountValueCurrencyBox, advancedOptionsBox, triggerPriceHBox, paymentGroupBox;
 
     private Subscription isWaitingForFundsSubscription, balanceSubscription;
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
@@ -408,7 +409,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         });
 
         paymentAccountsComboBox.setDisable(true);
-        roundToComboBox.setDisable(true);
+        setRoundToComboBoxVisibility(false);
 
         editOfferElements.forEach(node -> {
             node.setMouseTransparent(true);
@@ -515,10 +516,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             }
             if (!(this instanceof EditOfferView))
                 if (PaymentMethod.isRoundedForPBMCash(paymentAccount.getPaymentMethod().getId())) {
-                    roundToComboBox.setDisable(false);
+                    setRoundToComboBoxVisibility(true);
                 } else {
-                    roundToComboBox.setDisable(true);
-                    model.roundTo.set(1); // Initialize model data with '1' for any non-PBM payment type
+                    setRoundToComboBoxVisibility(false);
+                    model.onRoundToSelected(1);         // Initialize model data with '1' for any non-PBM payment type
                 }
 
         } else {
@@ -967,7 +968,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 1, Res.get("offerbook.createOffer"));
         GridPane.setColumnSpan(paymentTitledGroupBg, 2);
 
-        HBox paymentGroupBox = new HBox();
+        paymentGroupBox = new HBox();
         paymentGroupBox.setAlignment(Pos.CENTER_LEFT);
         paymentGroupBox.setSpacing(12);
         paymentGroupBox.setPadding(new Insets(10, 0, 18, 0));
@@ -976,7 +977,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 Res.get("shared.chooseTradingAccount"), Res.get("shared.chooseTradingAccount"));
         final Tuple3<VBox, Label, ComboBox<TradeCurrency>> currencyBoxTuple = addTopLabelComboBox(
                 Res.get("shared.currency"), Res.get("list.currency.select"));
-        final Tuple3<VBox, Label, ComboBox<Integer>> roundingBoxTuple = addTopLabelComboBox(
+        final Tuple3<VBox, Label, ComboBox<Integer>> roundToBoxTuple = addTopLabelComboBox(
                 Res.get("shared.roundTo"), Res.get("shared.roundTo"));
 
         currencySelection = currencyBoxTuple.first;
@@ -992,13 +993,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentAccountsComboBox.setMinWidth(tradingAccountBoxTuple.first.getMinWidth());
         paymentAccountsComboBox.setPrefWidth(tradingAccountBoxTuple.first.getMinWidth());
         editOfferElements.add(tradingAccountBoxTuple.first);
-
-        roundingBoxTuple.first.setMinWidth(75);
-        roundToComboBox = roundingBoxTuple.third;
-        roundToComboBox.setMinWidth(roundingBoxTuple.first.getMinWidth());
-        roundToComboBox.setPrefWidth(roundingBoxTuple.first.getMinWidth());
-        editOfferElements.add(roundingBoxTuple.first);
-        paymentGroupBox.getChildren().add(roundingBoxTuple.first);
 
         // we display either currencyComboBox (multi currency account) or currencyTextField (single)
         currencyComboBox = currencyBoxTuple.third;
@@ -1023,6 +1017,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         editOfferElements.add(currencyTextFieldBox);
 
         paymentGroupBox.getChildren().add(currencyTextFieldBox);
+
+        roundToVBox = roundToBoxTuple.first;
+        roundToVBox.setMinWidth(75);
+        roundToComboBox = roundToBoxTuple.third;
+        roundToComboBox.setMinWidth(roundToVBox.getMinWidth());
+        roundToComboBox.setPrefWidth(roundToVBox.getMinWidth());
+        editOfferElements.add(roundToVBox);
+        setRoundToComboBoxVisibility(true);
     }
 
     private void addAmountPriceGroup() {
@@ -1491,6 +1493,16 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private ObservableList<Integer> getRoundToList() {
         return model.getDataModel().getRoundToList();
+    }
+
+    protected void setRoundToComboBoxVisibility(boolean isVisible) {
+        if (isVisible) {
+            if (!paymentGroupBox.getChildren().contains(roundToVBox))
+                paymentGroupBox.getChildren().add(roundToVBox);
+        }
+        else {
+            paymentGroupBox.getChildren().remove(roundToVBox);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

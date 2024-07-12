@@ -98,7 +98,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         minAmountBtcLabel.setDisable(true);
         volumeTextField.setDisable(true);
         volumeCurrencyLabel.setDisable(true);
-        roundToComboBox.setDisable(true);
+        setRoundToComboBoxVisibility(false);
 
         // Workaround to fix margin on top of amount group
         gridPane.setPadding(new Insets(-20, 25, -1, 25));
