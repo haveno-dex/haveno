@@ -1393,7 +1393,7 @@ message SignedOffer {
 message OpenOffer {
     enum State {
         PB_ERROR = 0;
-        SCHEDULED = 1;
+        PENDING = 1;
         AVAILABLE = 2;
         RESERVED = 3;
         CLOSED = 4;

@@ -116,9 +116,10 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     model.getOpenOffer().getOffer().getOfferPayload().setArbitratorSigner(arbitratorNodeAddress);
                     model.getOpenOffer().getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
                     resultHandler.handleResult();
-                 } else {
-                     errorMessageHandler.handleErrorMessage("Arbitrator nacked SignOfferRequest for offer " + request.getOfferId() + ": " + ackMessage.getErrorMessage());
-                 }
+                } else {
+                    model.getOpenOffer().getOffer().setState(Offer.State.INVALID);
+                    errorMessageHandler.handleErrorMessage("Arbitrator nacked SignOfferRequest for offer " + request.getOfferId() + ": " + ackMessage.getErrorMessage());
+                }
             }
         };
         model.getP2PService().addDecryptedDirectMessageListener(ackListener);
@@ -137,9 +138,9 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                 log.warn("Arbitrator unavailable: address={}, error={}", arbitratorNodeAddress, errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
 
-                // check if offer still scheduled
-                if (!model.getOpenOffer().isScheduled()) {
-                    errorMessageHandler.handleErrorMessage("Offer is no longer scheduled, offerId=" + model.getOpenOffer().getId());
+                // check if offer still pending
+                if (!model.getOpenOffer().isPending()) {
+                    errorMessageHandler.handleErrorMessage("Offer is no longer pending, offerId=" + model.getOpenOffer().getId());
                     return;
                 }
 

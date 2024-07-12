@@ -53,7 +53,7 @@ import java.util.Optional;
 public final class OpenOffer implements Tradable {
 
     public enum State {
-        SCHEDULED,
+        PENDING,
         AVAILABLE,
         RESERVED,
         CLOSED,
@@ -120,7 +120,7 @@ public final class OpenOffer implements Tradable {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
-        state = State.SCHEDULED;
+        state = State.PENDING;
     }
 
     public OpenOffer(Offer offer, long triggerPrice, OpenOffer openOffer) {
@@ -165,8 +165,8 @@ public final class OpenOffer implements Tradable {
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
 
-        if (this.state == State.RESERVED)
-            setState(State.AVAILABLE);
+        // reset reserved state to available
+        if (this.state == State.RESERVED) setState(State.AVAILABLE);
     }
 
     @Override
@@ -232,8 +232,8 @@ public final class OpenOffer implements Tradable {
         return stateProperty;
     }
 
-    public boolean isScheduled() {
-        return state == State.SCHEDULED;
+    public boolean isPending() {
+        return state == State.PENDING;
     }
 
     public boolean isAvailable() {

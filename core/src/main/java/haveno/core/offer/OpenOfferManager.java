@@ -132,7 +132,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private static final long REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC = 30;
     private static final long REPUBLISH_INTERVAL_MS = TimeUnit.MINUTES.toMillis(30);
     private static final long REFRESH_INTERVAL_MS = OfferPayload.TTL / 2;
-    private static final int MAX_PROCESS_ATTEMPTS = 5;
+    private static final int NUM_ATTEMPTS_THRESHOLD = 5; // process pending offer only on republish cycle after this many attempts
 
     private final CoreContext coreContext;
     private final KeyRing keyRing;
@@ -252,17 +252,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // read open offers
         persistenceManager.readPersisted(persisted -> {
-                    openOffers.setAll(persisted.getList());
-                    openOffers.forEach(openOffer -> openOffer.getOffer().setPriceFeedService(priceFeedService));
+            openOffers.setAll(persisted.getList());
+            openOffers.forEach(openOffer -> openOffer.getOffer().setPriceFeedService(priceFeedService));
 
-                    // read signed offers
-                    signedOfferPersistenceManager.readPersisted(signedOfferPersisted -> {
-                        signedOffers.setAll(signedOfferPersisted.getList());
-                        completeHandler.run();
-                    },
-                    completeHandler);
-                },
-                completeHandler);
+            // read signed offers
+            signedOfferPersistenceManager.readPersisted(signedOfferPersisted -> {
+                signedOffers.setAll(signedOfferPersisted.getList());
+                completeHandler.run();
+            },
+            completeHandler);
+        },
+        completeHandler);
     }
 
     private synchronized void maybeInitializeKeyImagePoller() {
@@ -472,17 +472,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
         //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
-                // process scheduled offers
-                processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                    log.warn("Error processing unposted offers: " + errorMessage);
-                });
+                // process pending offers
+                processPendingOffers(false);
 
-                // register to process unposted offers on new block
+                // register to process pending offers on new block
                 xmrWalletService.addWalletListener(new MoneroWalletListener() {
                     @Override
                     public void onNewBlock(long height) {
-                        processScheduledOffers((transaction) -> {}, (errorMessage) -> {
-                            log.warn("Error processing unposted offers on new block {}: {}", height, errorMessage);
+
+                        // process pending offers on new block a few times
+                        processPendingOffers(true, (transaction) -> {}, (errorMessage) -> {
+                            log.warn("Error processing pending offers on new block {}: {}", height, errorMessage);
                         });
                     }
                 });
@@ -549,16 +549,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             synchronized (processOffersLock) {
                 CountDownLatch latch = new CountDownLatch(1);
                 addOpenOffer(openOffer);
-                processUnpostedOffer(getOpenOffers(), openOffer, (transaction) -> {
+                processPendingOffer(getOpenOffers(), openOffer, (transaction) -> {
                     requestPersistence();
                     latch.countDown();
                     resultHandler.handleResult(transaction);
                 }, (errorMessage) -> {
                     if (openOffer.isCanceled()) latch.countDown();
                     else {
-                        log.warn("Error processing unposted offer {}: {}", openOffer.getId(), errorMessage);
+                        log.warn("Error processing pending offer {}: {}", openOffer.getId(), errorMessage);
                         doCancelOffer(openOffer);
-                        offer.setErrorMessage(errorMessage);
                         latch.countDown();
                         errorMessageHandler.handleErrorMessage(errorMessage);
                     }
@@ -583,9 +582,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     public void activateOpenOffer(OpenOffer openOffer,
                                   ResultHandler resultHandler,
                                   ErrorMessageHandler errorMessageHandler) {
-        if (openOffer.isScheduled()) {
-            resultHandler.handleResult(); // ignore if scheduled
-        } else if (!offersToBeEdited.containsKey(openOffer.getId())) {
+        if (openOffer.isPending()) {
+            resultHandler.handleResult(); // ignore if pending
+        } else if (offersToBeEdited.containsKey(openOffer.getId())) {
+            errorMessageHandler.handleErrorMessage("You can't activate an offer that is currently edited.");
+        } else {
             Offer offer = openOffer.getOffer();
             offerBookService.activateOffer(offer,
                     () -> {
@@ -595,8 +596,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         resultHandler.handleResult();
                     },
                     errorMessageHandler);
-        } else {
-            errorMessageHandler.handleErrorMessage("You can't activate an offer that is currently edited.");
         }
     }
 
@@ -858,26 +857,35 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // Place offer helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void processScheduledOffers(TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
+    private void processPendingOffers(boolean skipOffersWithTooManyAttempts) {
+        processPendingOffers(skipOffersWithTooManyAttempts, (transaction) -> {}, (errorMessage) -> {
+            log.warn("Error processing pending offers: " + errorMessage);
+        });
+    }
+    
+    private void processPendingOffers(boolean skipOffersWithTooManyAttempts,
+                                       TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
         ThreadUtils.execute(() -> {
             synchronized (processOffersLock) {
                 List<String> errorMessages = new ArrayList<String>();
                 List<OpenOffer> openOffers = getOpenOffers();
-                for (OpenOffer scheduledOffer : openOffers) {
-                    if (scheduledOffer.getState() != OpenOffer.State.SCHEDULED) continue;
+                for (OpenOffer pendingOffer : openOffers) {
+                    if (pendingOffer.getState() != OpenOffer.State.PENDING) continue;
+                    if (skipOffersWithTooManyAttempts && pendingOffer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD) continue; // skip offers with too many attempts
                     CountDownLatch latch = new CountDownLatch(1);
-                    processUnpostedOffer(openOffers, scheduledOffer, (transaction) -> {
+                    processPendingOffer(openOffers, pendingOffer, (transaction) -> {
                         latch.countDown();
                     }, errorMessage -> {
-                        if (!scheduledOffer.isCanceled()) {
-                            log.warn("Error processing unposted offer, offerId={}, attempt={}/{}, error={}", scheduledOffer.getId(), scheduledOffer.getNumProcessingAttempts(), MAX_PROCESS_ATTEMPTS, errorMessage);
-                            if (scheduledOffer.getNumProcessingAttempts() >= MAX_PROCESS_ATTEMPTS) {
-                                log.warn("Offer canceled after {} attempts, offerId={}, error={}", scheduledOffer.getNumProcessingAttempts(), scheduledOffer.getId(), errorMessage);
-                                HavenoUtils.havenoSetup.getTopErrorMsg().set("Offer canceled after " + scheduledOffer.getNumProcessingAttempts() + " attempts. Please switch to a better Monero connection and try again.\n\nOffer ID: " + scheduledOffer.getId() + "\nError: " + errorMessage);
-                                doCancelOffer(scheduledOffer);
-                            }
+                        if (!pendingOffer.isCanceled()) {
+                            log.warn("Error processing pending offer, offerId={}, attempt={}, error={}", pendingOffer.getId(), pendingOffer.getNumProcessingAttempts(), errorMessage);
                             errorMessages.add(errorMessage);
+                            
+                            // cancel offer if invalid
+                            if (pendingOffer.getOffer().getState() == Offer.State.INVALID) {
+                                log.warn("Canceling offer because it's invalid: {}", pendingOffer.getId());
+                                doCancelOffer(pendingOffer);
+                            }
                         }
                         latch.countDown();
                     });
@@ -890,7 +898,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }, THREAD_ID);
     }
 
-    private void processUnpostedOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+    private void processPendingOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         
         // skip if already processing
         if (openOffer.isProcessing()) {
@@ -900,17 +908,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // process offer
         openOffer.setProcessing(true);
-        doProcessUnpostedOffer(openOffers, openOffer, (transaction) -> {
+        doProcessPendingOffer(openOffers, openOffer, (transaction) -> {
             openOffer.setProcessing(false);
             resultHandler.handleResult(transaction);
         }, (errorMsg) -> {
             openOffer.setProcessing(false);
             openOffer.setNumProcessingAttempts(openOffer.getNumProcessingAttempts() + 1);
+            openOffer.getOffer().setErrorMessage(errorMsg);
             errorMessageHandler.handleErrorMessage(errorMsg);
         });
     }
 
-    private void doProcessUnpostedOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+    private void doProcessPendingOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         new Thread(() -> {
             try {
 
@@ -1074,7 +1083,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffer.setSplitOutputTxFee(splitOutputTx.getFee().longValueExact());
         openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
         openOffer.setScheduledAmount(openOffer.getOffer().getAmountNeeded().toString());
-        openOffer.setState(OpenOffer.State.SCHEDULED);
+        openOffer.setState(OpenOffer.State.PENDING);
     }
 
     private void scheduleWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
@@ -1105,13 +1114,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // schedule txs
         openOffer.setScheduledTxHashes(scheduledTxHashes);
         openOffer.setScheduledAmount(scheduledAmount.toString());
-        openOffer.setState(OpenOffer.State.SCHEDULED);
+        openOffer.setState(OpenOffer.State.PENDING);
     }
 
     private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
         BigInteger scheduledAmount = BigInteger.ZERO;
         for (OpenOffer openOffer : openOffers) {
-            if (openOffer.getState() != OpenOffer.State.SCHEDULED) continue;
+            if (openOffer.getState() != OpenOffer.State.PENDING) continue;
             if (openOffer.getScheduledTxHashes() == null) continue;
             List<MoneroTxWallet> fundingTxs = xmrWalletService.getTxs(openOffer.getScheduledTxHashes());
             for (MoneroTxWallet fundingTx : fundingTxs) {
@@ -1128,7 +1137,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private boolean isTxScheduledByOtherOffer(List<OpenOffer> openOffers, OpenOffer openOffer, String txHash) {
         for (OpenOffer otherOffer : openOffers) {
             if (otherOffer == openOffer) continue;
-            if (otherOffer.getState() != OpenOffer.State.SCHEDULED) continue;
+            if (otherOffer.getState() != OpenOffer.State.PENDING) continue;
             if (otherOffer.getScheduledTxHashes() == null) continue;
             for (String scheduledTxHash : otherOffer.getScheduledTxHashes()) {
                 if (txHash.equals(scheduledTxHash)) return true;
@@ -1728,25 +1737,29 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
             } else {
 
-                // cancel and recreate offer
-                doCancelOffer(openOffer);
-                Offer updatedOffer = new Offer(openOffer.getOffer().getOfferPayload());
-                updatedOffer.setPriceFeedService(priceFeedService);
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, openOffer.getTriggerPrice());
+                // reset offer state to pending
+                openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
+                openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+                openOffer.getOffer().setState(Offer.State.UNKNOWN);
+                openOffer.setState(OpenOffer.State.PENDING);
 
-                // repost offer
+                // republish offer
                 synchronized (processOffersLock) {
                     CountDownLatch latch = new CountDownLatch(1);
-                    addOpenOffer(updatedOpenOffer);
-                    processUnpostedOffer(getOpenOffers(), updatedOpenOffer, (transaction) -> {
+                    processPendingOffer(getOpenOffers(), openOffer, (transaction) -> {
                         requestPersistence();
                         latch.countDown();
                         if (completeHandler != null) completeHandler.run();
                     }, (errorMessage) -> {
-                        if (!updatedOpenOffer.isCanceled()) {
-                            log.warn("Error reposting offer {}: {}", updatedOpenOffer.getId(), errorMessage);
-                            doCancelOffer(updatedOpenOffer);
-                            updatedOffer.setErrorMessage(errorMessage);
+                        if (!openOffer.isCanceled()) {
+                            log.warn("Error republishing offer {}: {}", openOffer.getId(), errorMessage);
+                            openOffer.getOffer().setErrorMessage(errorMessage);
+
+                            // cancel offer if invalid
+                            if (openOffer.getOffer().getState() == Offer.State.INVALID) {
+                                log.warn("Canceling offer because it's invalid: {}", openOffer.getId());
+                                doCancelOffer(openOffer);
+                            }
                         }
                         latch.countDown();
                         if (completeHandler != null) completeHandler.run();
