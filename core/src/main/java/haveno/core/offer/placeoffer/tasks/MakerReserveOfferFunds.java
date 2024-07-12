@@ -66,7 +66,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             synchronized (XmrWalletService.WALLET_LOCK) {
 
                 // reset protocol timeout
-                verifyScheduled();
+                verifyPending();
                 model.getProtocol().startTimeoutTimer();
 
                 // collect relevant info
@@ -94,7 +94,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                             }
         
                             // verify still open
-                            verifyScheduled();
+                            verifyPending();
                             if (reserveTx != null) break;
                         }
                     }
@@ -104,6 +104,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                     model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
                     if (reserveTx != null) {
                         model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                        offer.getOfferPayload().setReserveTxKeyImages(null);
                     }
 
                     throw e;
@@ -131,7 +132,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         }
     }
 
-    public void verifyScheduled() {
-        if (!model.getOpenOffer().isScheduled()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
+    public void verifyPending() {
+        if (!model.getOpenOffer().isPending()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
     }
 }
