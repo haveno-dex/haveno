@@ -15,7 +15,7 @@ ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
   --appName=haveno-XMR_STAGENET_Seed_2002
   --xmrNode=[::1]:38088
 
-ExecStop=/bin/kill ${MAINPID}
+ExecStop=/bin/kill ${MAINPID} ; sleep 5
 Restart=always
 
 # Hardening
