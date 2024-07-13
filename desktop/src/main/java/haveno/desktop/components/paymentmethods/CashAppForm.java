@@ -49,7 +49,7 @@ public class CashAppForm extends PaymentMethodForm {
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.email.mobile.cashtag"), ((CashAppAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrCashtag());
 
         CashAppAccountPayload payId = (CashAppAccountPayload) paymentAccountPayload;
-        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
+        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
         textExtraInfo.setEditable(false);
         textExtraInfo.setText(payId.getExtraInfo());
