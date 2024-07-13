@@ -48,11 +48,11 @@ public class AustraliaPayidForm extends PaymentMethodForm {
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
                 ((AustraliaPayidAccountPayload) paymentAccountPayload).getBankAccountName());
 
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.payid"),
+        addCompactTopLabelTextField(gridPane, gridRow, 1, Res.get("payment.payid"),
                 ((AustraliaPayidAccountPayload) paymentAccountPayload).getPayid());
 
         AustraliaPayidAccountPayload payId = (AustraliaPayidAccountPayload) paymentAccountPayload;
-        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
+        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
         textExtraInfo.setEditable(false);
         textExtraInfo.setText(payId.getExtraInfo());
