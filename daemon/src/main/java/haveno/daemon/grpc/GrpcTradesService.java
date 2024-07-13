@@ -258,8 +258,8 @@ class GrpcTradesService extends TradesImplBase {
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                             put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(3, MINUTES));
-                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                         }}
                 )));
     }
