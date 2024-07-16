@@ -61,16 +61,20 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             }
 
             // update multisig hex
-            sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
+            if (sender.getUpdatedMultisigHex() == null) {
+                sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
 
-            // try to import multisig hex (retry later)
-            ThreadUtils.submitToPool(() -> {
-                try {
-                    trade.importMultisigHex();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                // try to import multisig hex (retry later)
+                if (!trade.isPayoutPublished()) {
+                    ThreadUtils.submitToPool(() -> {
+                        try {
+                            trade.importMultisigHex();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
                 }
-            });
+            }
 
             // persist
             processModel.getTradeManager().requestPersistence();
