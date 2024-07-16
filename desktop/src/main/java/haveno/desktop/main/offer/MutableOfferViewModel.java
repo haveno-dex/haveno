@@ -113,6 +113,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     public final StringProperty amount = new SimpleStringProperty();
     public final StringProperty minAmount = new SimpleStringProperty();
     protected final StringProperty buyerSecurityDeposit = new SimpleStringProperty();
+    protected final ObjectProperty<Integer> roundTo = new SimpleObjectProperty<>();
     final StringProperty buyerSecurityDepositInBTC = new SimpleStringProperty();
     final StringProperty buyerSecurityDepositLabel = new SimpleStringProperty();
 
@@ -164,12 +165,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private ChangeListener<String> priceStringListener, marketPriceMarginStringListener;
     private ChangeListener<String> volumeStringListener;
     private ChangeListener<String> securityDepositStringListener;
+    private ChangeListener<Number> roundToNumberListener;
 
     private ChangeListener<BigInteger> amountListener;
     private ChangeListener<BigInteger> minAmountListener;
     private ChangeListener<Price> priceListener;
     private ChangeListener<Volume> volumeListener;
     private ChangeListener<Number> securityDepositAsDoubleListener;
+    private ChangeListener<Number> roundToListener;
 
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<String> errorMessageListener;
@@ -231,6 +234,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 setAmountToModel();
                 setMinAmountToModel();
                 setPriceToModel();
+                setRoundToToModel();
                 dataModel.calculateVolume();
                 dataModel.calculateTotalToPay();
                 updateButtonDisableState();
@@ -344,6 +348,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     }
                 }
             }
+            dataModel.onRoundToSelected(dataModel.getRoundTo().get());
             updateButtonDisableState();
         };
         marketPriceMarginStringListener = (ov, oldValue, newValue) -> {
@@ -428,6 +433,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             }
         };
 
+        roundToNumberListener = (ov, oldValue, newValue) -> {
+            roundTo.set((Integer) newValue);
+            updateButtonDisableState();
+        };
 
         amountListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
@@ -465,6 +474,12 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
             ignoreVolumeStringListener = false;
             applyMakerFee();
+        };
+        roundToListener = (ov, oldValue, newValue) -> {
+            if (newValue != null)
+                roundTo.set((Integer) newValue);
+            else
+                roundTo.set(1);
         };
 
         securityDepositAsDoubleListener = (ov, oldValue, newValue) -> {
@@ -525,6 +540,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getUseMarketBasedPrice().addListener(useMarketBasedPriceListener);
         volume.addListener(volumeStringListener);
         buyerSecurityDeposit.addListener(securityDepositStringListener);
+        roundTo.addListener(roundToNumberListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().addListener(amountListener);
@@ -532,6 +548,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getPrice().addListener(priceListener);
         dataModel.getVolume().addListener(volumeListener);
         dataModel.getBuyerSecurityDepositPct().addListener(securityDepositAsDoubleListener);
+        dataModel.getRoundTo().addListener(roundToListener);
 
         // dataModel.feeFromFundingTxProperty.addListener(feeFromFundingTxListener);
         dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
@@ -547,6 +564,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getUseMarketBasedPrice().removeListener(useMarketBasedPriceListener);
         volume.removeListener(volumeStringListener);
         buyerSecurityDeposit.removeListener(securityDepositStringListener);
+        roundTo.removeListener(roundToNumberListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().removeListener(amountListener);
@@ -554,6 +572,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getPrice().removeListener(priceListener);
         dataModel.getVolume().removeListener(volumeListener);
         dataModel.getBuyerSecurityDepositPct().removeListener(securityDepositAsDoubleListener);
+        dataModel.getRoundTo().removeListener(roundToListener);
 
         //dataModel.feeFromFundingTxProperty.removeListener(feeFromFundingTxListener);
         dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
@@ -671,6 +690,31 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         marketPrice = priceFeedService.getMarketPrice(dataModel.getTradeCurrencyCode().get());
         marketPriceAvailableProperty.set(marketPrice == null || !marketPrice.isExternallyProvidedPrice() ? 0 : 1);
         updateButtonDisableState();
+    }
+    public void onEditOfferConfirmed() {
+        final String currencyCode = dataModel.getTradeCurrencyCode().get();
+        try {
+            double volumeAsDouble = ParsingUtils.parseNumberStringToDouble(volume.get());
+            double amountAsDouble = ParsingUtils.parseNumberStringToDouble(amount.get());
+            double manualPriceAsDouble = offerUtil.calculateManualPrice(volumeAsDouble, amountAsDouble);
+            int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                    TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+            price.set(FormattingUtils.formatRoundedDoubleWithPrecision(manualPriceAsDouble, precision));
+            setPriceToModel();
+        } catch (NumberFormatException t) {
+            price.set("");
+            new Popup().warning(Res.get("validation.NaN")).show();
+        }
+    }
+    public void onRoundToSelected(Integer rounding) {
+        dataModel.onRoundToSelected(rounding);
+
+        if (isVolumeInputValid(volume.get()).isValid) {
+            setVolumeToModel();
+            setPriceToModel();
+            dataModel.calculateAmount();
+            dataModel.calculateTotalToPay();
+        }
     }
 
     void onShowPayFundsScreen(Runnable actionHandler) {
@@ -803,6 +847,13 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     void onFocusOutTriggerPriceTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
             onTriggerPriceTextFieldChanged();
+        }
+    }
+
+    void onFocusOutRoundToSelection(boolean oldValue, boolean newValue) {
+        if (oldValue && !newValue) {
+            this.roundTo.set(this.roundTo.get()); // Do nothing
+            setRoundToToModel();
         }
     }
 
@@ -1175,6 +1226,18 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             }
         } else {
             dataModel.setPrice(null);
+        }
+    }
+
+    private void setRoundToToModel() {
+        if (roundTo.get() != null) {
+            try {
+                dataModel.setRoundToSelection(this.roundTo.get());
+            } catch (Throwable t) {
+                log.debug(t.getMessage());
+            }
+        } else {
+            dataModel.setRoundToSelection(1);
         }
     }
 

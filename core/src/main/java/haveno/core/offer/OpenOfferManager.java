@@ -717,7 +717,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
-        removeOpenOffer(openOffer); 
+        removeOpenOffer(openOffer);
         closedTradableManager.add(openOffer); // TODO: don't add these to closed tradables?
         xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
@@ -891,7 +891,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void processUnpostedOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        
+
         // skip if already processing
         if (openOffer.isProcessing()) {
             resultHandler.handleResult(null);
@@ -1614,7 +1614,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         protocolVersion,
                         originalOfferPayload.getArbitratorSigner(),
                         originalOfferPayload.getArbitratorSignature(),
-                        originalOfferPayload.getReserveTxKeyImages());
+                        originalOfferPayload.getReserveTxKeyImages(),
+                        originalOfferPayload.getRoundTo());
 
                 // Save states from original data to use for the updated
                 Offer.State originalOfferState = originalOffer.getState();

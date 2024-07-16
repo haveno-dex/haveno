@@ -90,6 +90,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     @Setter
     @Nullable
     protected List<String> reserveTxKeyImages;
+    protected final int roundTo;
 
     // Keys for extra map
     // Only set for traditional offers
@@ -200,7 +201,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         int protocolVersion,
                         @Nullable NodeAddress arbitratorSigner,
                         @Nullable byte[] arbitratorSignature,
-                        @Nullable List<String> reserveTxKeyImages) {
+                        @Nullable List<String> reserveTxKeyImages,
+                        int roundTo) {
         this.id = id;
         this.date = date;
         this.ownerNodeAddress = ownerNodeAddress;
@@ -239,6 +241,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.upperClosePrice = upperClosePrice;
         this.isPrivateOffer = isPrivateOffer;
         this.hashOfChallenge = hashOfChallenge;
+        this.roundTo = roundTo;
     }
 
     public byte[] getHash() {
@@ -289,7 +292,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             protocolVersion,
             arbitratorSigner,
             null,
-            reserveTxKeyImages
+            reserveTxKeyImages,
+            roundTo
         );
 
         return signee.getHash();
@@ -370,7 +374,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setLowerClosePrice(lowerClosePrice)
                 .setUpperClosePrice(upperClosePrice)
                 .setIsPrivateOffer(isPrivateOffer)
-                .setProtocolVersion(protocolVersion);
+                .setProtocolVersion(protocolVersion)
+                .setRoundTo(roundTo);
         Optional.ofNullable(ownerNodeAddress).ifPresent(e -> builder.setOwnerNodeAddress(ownerNodeAddress.toProtoMessage()));
         Optional.ofNullable(countryCode).ifPresent(builder::setCountryCode);
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
@@ -431,7 +436,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getProtocolVersion(),
                 proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
                 ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()),
-                proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
+                proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()),
+                proto.getRoundTo());
     }
 
     @Override
@@ -476,6 +482,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
                 ",\r\n     arbitratorSigner=" + arbitratorSigner +
                 ",\r\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
+                ",\r\n     roundTo=" + roundTo +
                 "\r\n} ";
     }
 
@@ -517,6 +524,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             object.add("protocolVersion", context.serialize(offerPayload.getProtocolVersion()));
             object.add("arbitratorSigner", context.serialize(offerPayload.getArbitratorSigner()));
             object.add("arbitratorSignature", context.serialize(offerPayload.getArbitratorSignature()));
+            object.add("roundTo", context.serialize(offerPayload.getRoundTo()));
             return object;
         }
     }

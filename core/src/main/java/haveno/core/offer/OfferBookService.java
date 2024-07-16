@@ -340,7 +340,8 @@ public class OfferBookService {
                                 offer.getId(),
                                 offer.isUseMarketBasedPrice(),
                                 offer.getMarketPriceMarginPct(),
-                                offer.getPaymentMethod()
+                                offer.getPaymentMethod(),
+                                offer.getRoundTo()
                         );
                     } catch (Throwable t) {
                         // In case an offer was corrupted with null values we ignore it

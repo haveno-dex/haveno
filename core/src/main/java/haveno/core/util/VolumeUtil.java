@@ -45,6 +45,7 @@ import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.MonetaryFormat;
 
@@ -52,7 +53,7 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Locale;
-
+@Slf4j
 public class VolumeUtil {
 
     private static final MonetaryFormat VOLUME_FORMAT_UNIT = new MonetaryFormat().shift(0).minDecimals(0).repeatOptionalDecimals(0, 0);
@@ -61,13 +62,32 @@ public class VolumeUtil {
     private static double EXPONENT = Math.pow(10, TraditionalMoney.SMALLEST_UNIT_EXPONENT); // 1000000000000 with precision 8
 
     public static Volume getAdjustedVolume(Volume volumeByAmount, String paymentMethodId) {
+        return getAdjustedVolume(volumeByAmount, paymentMethodId, 1);
+    }
+
+    public static Volume getAdjustedVolume(Volume volumeByAmount, String paymentMethodId, Integer factor) {
         if (PaymentMethod.isRoundedForAtmCash(paymentMethodId))
             return VolumeUtil.getRoundedAtmCashVolume(volumeByAmount);
+        else if (PaymentMethod.isRoundedForPBMCash(paymentMethodId))
+            try {
+                return VolumeUtil.getRoundedVolumeUnit(volumeByAmount, factor);
+            }
+            catch (NullPointerException e) {
+                if (factor != null) {         //TODO: Figure out why 'factor' is null when initializing a "edit offer" operation
+                    log.error(e.toString());
+                }
+                return null;
+            }
         else if (CurrencyUtil.isVolumeRoundedToNearestUnit(volumeByAmount.getCurrencyCode()))
             return VolumeUtil.getRoundedVolumeUnit(volumeByAmount);
         else if (CurrencyUtil.isTraditionalCurrency(volumeByAmount.getCurrencyCode()))
             return VolumeUtil.getRoundedVolumePrecise(volumeByAmount);
         return volumeByAmount;
+    }
+
+    public static Volume getRoundedVolumeUnit(Volume volumeByAmount, Integer factor) {
+        // We want to get rounded to 1 unit of the currency, e.g. 1 EUR.
+        return getAdjustedVolumeUnit(volumeByAmount, factor);
     }
 
     public static Volume getRoundedVolumeUnit(Volume volumeByAmount) {

@@ -53,15 +53,18 @@ import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
-import java.util.Comparator;
+
 import static java.util.Comparator.comparing;
+
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -104,6 +107,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected final ObjectProperty<Price> price = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> minVolume = new SimpleObjectProperty<>();
+    protected final ObjectProperty<Integer> roundTo = new SimpleObjectProperty<>();
 
     // Percentage value of buyer security deposit. E.g. 0.01 means 1% of trade amount
     protected final DoubleProperty buyerSecurityDepositPct = new SimpleDoubleProperty();
@@ -288,7 +292,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 useMarketBasedPrice.get(),
                 useMarketBasedPrice.get() ? marketPriceMargin : 0,
                 buyerSecurityDepositPct.get(),
-                paymentAccount);
+                paymentAccount,
+                roundTo.get());
     }
 
     void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -359,6 +364,15 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
         checkNotNull(tradeCurrency, "tradeCurrency must not be null");
         tradeCurrencyCode.set(tradeCurrency.getCode());
+    }
+
+    protected void onRoundToSelected(Integer rounding) {
+        roundTo.set(rounding);
+
+        calculateVolume();
+        calculateTotalToPay();
+        updateBalance();
+        setSuggestedSecurityDeposit(getPaymentAccount());
     }
 
     void onCurrencySelected(TradeCurrency tradeCurrency) {
@@ -448,6 +462,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return paymentAccounts;
     }
 
+    public ObservableList<Integer> getRoundToList() {
+        // TODO: Do not hard code
+        return FXCollections.observableArrayList(1, 5, 10, 20);
+    }
     public double getMarketPriceMarginPct() {
         return marketPriceMargin;
     }
@@ -483,7 +501,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         if (isNonZeroPrice.test(price) && isNonZeroAmount.test(amount)) {
             try {
                 Volume volumeByAmount = calculateVolumeForAmount(amount);
-
                 volume.set(volumeByAmount);
 
                 calculateMinVolume();
@@ -499,7 +516,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         if (isNonZeroPrice.test(price) && isNonZeroAmount.test(minAmount)) {
             try {
                 Volume volumeByAmount = calculateVolumeForAmount(minAmount);
-
                 minVolume.set(volumeByAmount);
 
             } catch (Throwable t) {
@@ -510,7 +526,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     private Volume calculateVolumeForAmount(ObjectProperty<BigInteger> minAmount) {
         Volume volumeByAmount = price.get().getVolumeByAmount(minAmount.get());
-        volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, paymentAccount.getPaymentMethod().getId());
+        volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, paymentAccount.getPaymentMethod().getId(), roundTo.get());
         return volumeByAmount;
     }
 
@@ -597,6 +613,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return minAmount;
     }
 
+    protected ReadOnlyObjectProperty<Integer> getRoundTo() {
+        return roundTo;
+    }
+
     public ReadOnlyObjectProperty<Price> getPrice() {
         return price;
     }
@@ -611,6 +631,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected void setMinAmount(BigInteger minAmount) {
         this.minAmount.set(minAmount);
+    }
+
+    protected void setRoundToSelection(Integer selection) {
+        this.roundTo.set(selection);
     }
 
     public ReadOnlyStringProperty getTradeCurrencyCode() {

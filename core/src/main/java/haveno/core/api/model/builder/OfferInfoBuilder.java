@@ -63,6 +63,7 @@ public final class OfferInfoBuilder {
     private String arbitratorSigner;
     private String splitOutputTxHash;
     private long splitOutputTxFee;
+    private int roundTo;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -223,7 +224,7 @@ public final class OfferInfoBuilder {
         this.arbitratorSigner = arbitratorSigner;
         return this;
     }
-    
+
     public OfferInfoBuilder withSplitOutputTxHash(String splitOutputTxHash) {
         this.splitOutputTxHash = splitOutputTxHash;
         return this;
@@ -231,6 +232,11 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withSplitOutputTxFee(long splitOutputTxFee) {
         this.splitOutputTxFee = splitOutputTxFee;
+        return this;
+    }
+
+    public OfferInfoBuilder withRoundTo(int roundTo) {
+        this.roundTo = roundTo;
         return this;
     }
 

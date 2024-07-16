@@ -98,6 +98,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         minAmountBtcLabel.setDisable(true);
         volumeTextField.setDisable(true);
         volumeCurrencyLabel.setDisable(true);
+        setRoundToComboBoxVisibility(false);
 
         // Workaround to fix margin on top of amount group
         gridPane.setPadding(new Insets(-20, 25, -1, 25));
@@ -201,6 +202,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         confirmButton.setOnAction(e -> {
             if (model.isPriceInRange()) {
                 model.isNextButtonDisabled.setValue(true);
+                model.onEditOfferConfirmed();
                 cancelButton.setDisable(true);
                 busyAnimation.play();
                 spinnerInfoLabel.setText(Res.get("editOffer.publishOffer"));

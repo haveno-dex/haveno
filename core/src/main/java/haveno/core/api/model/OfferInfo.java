@@ -78,6 +78,7 @@ public class OfferInfo implements Payload {
     @Nullable
     private final String splitOutputTxHash;
     private final long splitOutputTxFee;
+    private final int roundTo;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -111,6 +112,7 @@ public class OfferInfo implements Payload {
         this.arbitratorSigner = builder.getArbitratorSigner();
         this.splitOutputTxHash = builder.getSplitOutputTxHash();
         this.splitOutputTxFee = builder.getSplitOutputTxFee();
+        this.roundTo = builder.getRoundTo();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -177,7 +179,8 @@ public class OfferInfo implements Payload {
                 .withPubKeyRing(offer.getOfferPayload().getPubKeyRing().toString())
                 .withVersionNumber(offer.getOfferPayload().getVersionNr())
                 .withProtocolVersion(offer.getOfferPayload().getProtocolVersion())
-                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress());
+                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress())
+                .withRoundTo(offer.getRoundTo());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -215,7 +218,8 @@ public class OfferInfo implements Payload {
                 .setPubKeyRing(pubKeyRing)
                 .setVersionNr(versionNumber)
                 .setProtocolVersion(protocolVersion)
-                .setSplitOutputTxFee(splitOutputTxFee);
+                .setSplitOutputTxFee(splitOutputTxFee)
+                .setRoundTo(roundTo);
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
         Optional.ofNullable(splitOutputTxHash).ifPresent(builder::setSplitOutputTxHash);
         return builder.build();
@@ -255,6 +259,7 @@ public class OfferInfo implements Payload {
                 .withArbitratorSigner(proto.getArbitratorSigner())
                 .withSplitOutputTxHash(proto.getSplitOutputTxHash())
                 .withSplitOutputTxFee(proto.getSplitOutputTxFee())
+                .withRoundTo(proto.getRoundTo())
                 .build();
     }
 }

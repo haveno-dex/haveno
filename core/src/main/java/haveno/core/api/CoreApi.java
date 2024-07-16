@@ -420,7 +420,8 @@ public class CoreApi {
                                    boolean reserveExactAmount,
                                    String paymentAccountId,
                                    Consumer<Offer> resultHandler,
-                                   ErrorMessageHandler errorMessageHandler) {
+                                   ErrorMessageHandler errorMessageHandler,
+                                   int roundTo) {
         coreOffersService.postOffer(currencyCode,
                 directionAsString,
                 priceAsString,
@@ -433,7 +434,8 @@ public class CoreApi {
                 reserveExactAmount,
                 paymentAccountId,
                 resultHandler,
-                errorMessageHandler);
+                errorMessageHandler,
+                roundTo);
     }
 
     public Offer editOffer(String offerId,
@@ -445,7 +447,8 @@ public class CoreApi {
                            BigInteger amount,
                            BigInteger minAmount,
                            double buyerSecurityDeposit,
-                           PaymentAccount paymentAccount) {
+                           PaymentAccount paymentAccount,
+                           Integer roundTo) {
         return coreOffersService.editOffer(offerId,
                 currencyCode,
                 direction,
@@ -455,7 +458,8 @@ public class CoreApi {
                 amount,
                 minAmount,
                 buyerSecurityDeposit,
-                paymentAccount);
+                paymentAccount,
+                roundTo);
     }
 
     public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
