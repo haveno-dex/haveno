@@ -496,6 +496,10 @@ public class CoreApi {
                 tradeInstant);
     }
 
+    public void deletePaymentAccount(String paymentAccountId) {
+        paymentAccountsService.deletePaymentAccount(paymentAccountId);
+    }
+
     public List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return paymentAccountsService.getCryptoCurrencyPaymentMethods();
     }
