@@ -34,6 +34,8 @@ import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountReply;
 import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
 import haveno.proto.grpc.CreatePaymentAccountReply;
 import haveno.proto.grpc.CreatePaymentAccountRequest;
+import haveno.proto.grpc.DeletePaymentAccountReply;
+import haveno.proto.grpc.DeletePaymentAccountRequest;
 import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsReply;
 import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
 import haveno.proto.grpc.GetPaymentAccountFormReply;
@@ -153,6 +155,19 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
             var reply = CreateCryptoCurrencyPaymentAccountReply.newBuilder()
                     .setPaymentAccount(paymentAccount.toProtoMessage())
                     .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void deletePaymentAccount(DeletePaymentAccountRequest req,
+                                                   StreamObserver<DeletePaymentAccountReply> responseObserver) {
+        try {
+            coreApi.deletePaymentAccount(req.getPaymentAccountId());
+            var reply = DeletePaymentAccountReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
