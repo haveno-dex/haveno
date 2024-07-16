@@ -54,6 +54,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.Random;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -88,11 +90,30 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getPrice().getValue(),
-                trade.getAmount().longValueExact(),
+                fuzzTradeAmountReproducibly(trade),
                 offer.getPaymentMethod().getId(),
-                trade.getTakeOfferDate().getTime(),
+                fuzzTradeDateReproducibly(trade),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);
+    }
+
+    private static long fuzzTradeAmountReproducibly(Trade trade) { //  randomize completed trade info #1099
+        long originalTimestamp = trade.getTakeOfferDate().getTime();
+        long exactAmount = trade.getAmount().longValueExact();
+        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
+        long adjustedAmount = (long) random.nextDouble(
+                exactAmount * 0.95, exactAmount * 1.05);
+        log.debug("trade {} fuzzed trade amount for tradeStatistics is {}", trade.getShortId(), adjustedAmount);
+        return adjustedAmount;
+    }
+
+    private static long fuzzTradeDateReproducibly(Trade trade) { //  randomize completed trade info #1099
+        long originalTimestamp = trade.getTakeOfferDate().getTime();
+        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
+        long adjustedTimestamp = random.nextLong(
+                originalTimestamp-TimeUnit.HOURS.toMillis(24), originalTimestamp);
+        log.debug("trade {} fuzzed trade datestamp for tradeStatistics is {}", trade.getShortId(), new Date(adjustedTimestamp));
+        return adjustedTimestamp;
     }
 
     // This enum must not change the order as we use the ordinal for storage to reduce data size.
