@@ -490,7 +490,6 @@ public abstract class Trade implements Tradable, Model {
     private Long payoutHeight;
     private IdlePayoutSyncer idlePayoutSyncer;
     @Getter
-    @Setter
     private boolean isCompleted;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -614,8 +613,8 @@ public abstract class Trade implements Tradable, Model {
     public void initialize(ProcessModelServiceProvider serviceProvider) {
         if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
-        // done if payout unlocked
-        if (isPayoutUnlocked()) {
+        // done if payout unlocked and marked complete
+        if (isPayoutUnlocked() && isCompleted()) {
             clearAndShutDown();
             return;
         }
@@ -679,13 +678,12 @@ public abstract class Trade implements Tradable, Model {
                     log.info("Payout published for {} {}", getClass().getSimpleName(), getId());
 
                     // sync main wallet to update pending balance
-                    if (!isPayoutConfirmed()) {
-                        new Thread(() -> {
-                            HavenoUtils.waitFor(1000);
-                            if (isShutDownStarted) return;
-                            if (xmrConnectionService.isConnected()) syncAndPollWallet();
-                        }).start();
-                    }
+                    ThreadUtils.submitToPool(() -> {
+                        HavenoUtils.waitFor(1000);
+                        if (isPayoutConfirmed()) return;
+                        if (isShutDownStarted) return;
+                        if (xmrConnectionService.isConnected()) syncAndPollWallet();
+                    });
 
                     // complete disputed trade
                     if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) {
@@ -707,7 +705,8 @@ public abstract class Trade implements Tradable, Model {
                 if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
                     if (!isInitialized) return;
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
-                    clearAndShutDown();
+                    if (isCompleted()) clearAndShutDown();
+                    else deleteWallet();
                 }
             });
         });
@@ -788,6 +787,11 @@ public abstract class Trade implements Tradable, Model {
 
     public NodeAddress getArbitratorNodeAddress() {
         return getArbitrator() == null ? null : getArbitrator().getNodeAddress();
+    }
+
+    public void setCompleted(boolean completed) {
+        this.isCompleted = completed;
+        if (isPayoutUnlocked()) clearAndShutDown();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -996,7 +1000,11 @@ public abstract class Trade implements Tradable, Model {
 
     private void forceCloseWallet() {
         if (wallet != null) {
-            xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
+            try {
+                xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
+            } catch (Exception e) {
+                log.warn("Error force closing wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            }
             stopPolling();
             wallet = null;
         }

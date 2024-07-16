@@ -296,7 +296,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest()");
+        System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
@@ -333,7 +333,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() " + trade.getId());
+        System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         ThreadUtils.execute(() -> {
             synchronized (trade) {
 
@@ -376,7 +376,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() " + trade.getId());
+        System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
@@ -422,7 +422,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleDepositResponse()");
+        System.out.println(getClass().getSimpleName() + ".handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade) {
@@ -452,7 +452,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handle(DepositsConfirmedMessage message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender);
+        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender + " for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade) {
@@ -481,7 +481,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage)");
+        System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         if (!trade.isInitialized() || trade.isShutDown()) return;
         if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
             log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
@@ -535,7 +535,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage)");
+        System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {

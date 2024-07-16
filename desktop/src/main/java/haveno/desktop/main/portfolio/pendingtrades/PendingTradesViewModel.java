@@ -210,6 +210,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             sellerState.set(UNDEFINED);
             buyerState.set(BuyerState.UNDEFINED);
             onTradeStateChanged(trade.getState());
+            if (trade.isPayoutPublished()) onPayoutStateChanged(trade.getPayoutState()); // TODO: payout state takes precedence in case PaymentReceivedMessage not processed
+            else onTradeStateChanged(trade.getState());
         });
     }
 
