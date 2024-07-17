@@ -561,10 +561,6 @@ public class CoreApi {
         return coreTradesService.getTrades();
     }
 
-    public String getTradeRole(String tradeId) {
-        return coreTradesService.getTradeRole(tradeId);
-    }
-
     public List<ChatMessage> getChatMessages(String tradeId) {
         return coreTradesService.getChatMessages(tradeId);
     }

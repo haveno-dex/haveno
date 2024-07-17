@@ -96,9 +96,8 @@ class GrpcTradesService extends TradesImplBase {
                          StreamObserver<GetTradeReply> responseObserver) {
         try {
             Trade trade = coreApi.getTrade(req.getTradeId());
-            String role = coreApi.getTradeRole(req.getTradeId());
             var reply = GetTradeReply.newBuilder()
-                    .setTrade(toTradeInfo(trade, role).toProtoMessage())
+                    .setTrade(toTradeInfo(trade).toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

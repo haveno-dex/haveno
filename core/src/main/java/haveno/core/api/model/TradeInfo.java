@@ -21,6 +21,7 @@ import haveno.common.Payload;
 import haveno.core.api.model.builder.TradeInfoV1Builder;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
+import haveno.core.trade.TradeUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -142,10 +143,7 @@ public class TradeInfo implements Payload {
     }
 
     public static TradeInfo toTradeInfo(Trade trade) {
-        return toTradeInfo(trade, null);
-    }
-
-    public static TradeInfo toTradeInfo(Trade trade, String role) {
+        String role = TradeUtil.getRole(trade);
         ContractInfo contractInfo;
         if (trade.getContract() != null) {
             Contract contract = trade.getContract();
