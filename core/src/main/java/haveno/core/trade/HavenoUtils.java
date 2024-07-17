@@ -78,6 +78,9 @@ public class HavenoUtils {
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
     public static final double PENALTY_FEE_PCT = 0.02; // 2%
 
+    // other configuration
+    public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
+
     // synchronize requests to the daemon
     private static boolean SYNC_DAEMON_REQUESTS = true; // sync long requests to daemon (e.g. refresh, update pool)
     private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
@@ -99,7 +102,7 @@ public class HavenoUtils {
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
-    // TODO: better way to share references?
+    // shared references TODO: better way to share references?
     public static HavenoSetup havenoSetup;
     public static ArbitrationManager arbitrationManager;
     public static XmrWalletService xmrWalletService;

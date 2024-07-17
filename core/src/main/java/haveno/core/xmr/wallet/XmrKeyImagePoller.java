@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import haveno.core.trade.HavenoUtils;
+
 /**
  * Poll for changes to the spent status of key images.
  *
@@ -47,6 +49,7 @@ public class XmrKeyImagePoller {
     private TaskLooper looper;
     private Map<String, MoneroKeyImageSpentStatus> lastStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
     private boolean isPolling = false;
+    private Long lastLogPollErrorTimestamp;
 
     /**
      * Construct the listener.
@@ -265,7 +268,12 @@ public class XmrKeyImagePoller {
                 spentStatuses = daemon.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
             }
         } catch (Exception e) {
-            log.warn("Error polling spent status of key images: " + e.getMessage());
+
+            // limit error logging
+            if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
+                log.warn("Error polling spent status of key images: " + e.getMessage());
+                lastLogPollErrorTimestamp = System.currentTimeMillis();
+            }
             return;
         }
 
