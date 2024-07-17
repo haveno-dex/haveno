@@ -270,6 +270,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         if (isNotEnoughMoney(e.getMessage())) throw e;
                         log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        if (xmrWalletService.getConnectionService().isConnected()) xmrWalletService.requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }

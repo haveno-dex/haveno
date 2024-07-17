@@ -141,6 +141,7 @@ public abstract class Trade implements Tradable, Model {
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long SYNC_EVERY_NUM_BLOCKS = 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
+    private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private final Object walletLock = new Object();
     private final Object pollLock = new Object();
@@ -626,9 +627,7 @@ public abstract class Trade implements Tradable, Model {
 
         // handle connection change on dedicated thread
         xmrConnectionService.addConnectionListener(connection -> {
-            ThreadUtils.submitToPool(() -> { // TODO: remove this?
-                ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
-            });
+            ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
         });
 
         // reset buyer's payment sent state if no ack receive
@@ -847,6 +846,14 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
+    public boolean requestSwitchToNextBestConnection() {
+        if (xmrConnectionService.requestSwitchToNextBestConnection()) {
+            onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
+            return true;
+        }
+        return false;
+    }
+
     public boolean isIdling() {
         return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
@@ -884,69 +891,8 @@ public abstract class Trade implements Tradable, Model {
         }).start();
     }
 
-    public void importMultisigHex() {
-        synchronized (walletLock) {
-            synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
-                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                    try {
-                        doImportMultisigHex();
-                        break;
-                    } catch (IllegalArgumentException e) {
-                        throw e;
-                    } catch (Exception e) {
-                        log.warn("Failed to import multisig hex, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
-                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                    }
-                }
-            }
-        }
-    }
-
-    private void doImportMultisigHex() {
-
-        // ensure wallet sees deposits confirmed
-        if (!isDepositsConfirmed()) syncAndPollWallet();
-
-        // collect multisig hex from peers
-        List<String> multisigHexes = new ArrayList<String>();
-        for (TradePeer peer : getOtherPeers()) if (peer.getUpdatedMultisigHex() != null) multisigHexes.add(peer.getUpdatedMultisigHex());
-
-        // import multisig hex
-        log.info("Importing multisig hexes for {} {}, count={}", getClass().getSimpleName(), getShortId(), multisigHexes.size());
-        long startTime = System.currentTimeMillis();
-        if (!multisigHexes.isEmpty()) {
-            try {
-                wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
-            } catch (MoneroError e) {
-
-                // import multisig hex individually if one is invalid
-                if (isInvalidImportError(e.getMessage())) {
-                    log.warn("Peer has invalid multisig hex for {} {}, importing individually", getClass().getSimpleName(), getShortId());
-                    boolean imported = false;
-                    Exception lastError = null;
-                    for (TradePeer peer : getOtherPeers()) {
-                        if (peer.getUpdatedMultisigHex() == null) continue;
-                        try {
-                            wallet.importMultisigHex(peer.getUpdatedMultisigHex());
-                            imported = true;
-                        } catch (MoneroError e2) {
-                            lastError = e2;
-                            if (isInvalidImportError(e2.getMessage())) {
-                                log.warn("{} has invalid multisig hex for {} {}, error={}, multisigHex={}", getPeerRole(peer), getClass().getSimpleName(), getShortId(), e2.getMessage(), peer.getUpdatedMultisigHex());
-                            } else {
-                                throw e2;
-                            }
-                        }
-                    }
-                    if (!imported) throw new IllegalArgumentException("Could not import any multisig hexes for " + getClass().getSimpleName() + " " + getShortId(), lastError);
-                } else {
-                    throw e;
-                }
-            }
-            requestSaveWallet();
-        }
-        log.info("Done importing multisig hexes for {} {} in {} ms, count={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size());
+    private boolean isReadTimeoutError(String errMsg) {
+        return errMsg.contains("Read timed out");
     }
 
     // TODO: checking error strings isn't robust, but the library doesn't provide a way to check if multisig hex is invalid. throw IllegalArgumentException from library on invalid multisig hex?
@@ -962,7 +908,13 @@ public abstract class Trade implements Tradable, Model {
     }
 
     public void requestSaveWallet() {
-        ThreadUtils.submitToPool(() -> saveWallet()); // save wallet off main thread
+
+        // save wallet off main thread
+        ThreadUtils.execute(() -> {
+            synchronized (walletLock) {
+                if (walletExists()) saveWallet();
+            }
+         }, getId());
     }
 
     public void saveWallet() {
@@ -1109,6 +1061,104 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
+    public void importMultisigHex() {
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
+                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    try {
+                        doImportMultisigHex();
+                        break;
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        log.warn("Failed to import multisig hex, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
+                        if (isReadTimeoutError(e.getMessage())) forceRestartTradeWallet(); // wallet can be stuck a while
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    }
+                }
+            }
+        }
+    }
+
+    private void doImportMultisigHex() {
+
+        // ensure wallet sees deposits confirmed
+        if (!isDepositsConfirmed()) syncAndPollWallet();
+
+        // collect multisig hex from peers
+        List<String> multisigHexes = new ArrayList<String>();
+        for (TradePeer peer : getOtherPeers()) if (peer.getUpdatedMultisigHex() != null) multisigHexes.add(peer.getUpdatedMultisigHex());
+
+        // import multisig hex
+        log.info("Importing multisig hexes for {} {}, count={}", getClass().getSimpleName(), getShortId(), multisigHexes.size());
+        long startTime = System.currentTimeMillis();
+        if (!multisigHexes.isEmpty()) {
+            try {
+                wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
+
+                // check if import is still needed // TODO: we once received a multisig hex which was too short, causing import to still be needed
+                if (wallet.isMultisigImportNeeded()) {
+                    String errorMessage = "Multisig import still needed for " + getClass().getSimpleName() + " " + getShortId() + " after already importing, multisigHexes=" + multisigHexes;
+                    log.warn(errorMessage);
+
+                    // ignore multisig hex which is significantly shorter than others
+                    int maxLength = 0;
+                    boolean removed = false;
+                    for (String hex : multisigHexes) maxLength = Math.max(maxLength, hex.length());
+                    for (String hex : new ArrayList<>(multisigHexes)) {
+                        if (hex.length() < maxLength / 2) {
+                            String ignoringMessage = "Ignoring multisig hex from " + getMultisigHexRole(hex) + " for " + getClass().getSimpleName() + " " + getShortId() + " because it is too short, multisigHex=" + hex;
+                            setErrorMessage(ignoringMessage);
+                            log.warn(ignoringMessage);
+                            multisigHexes.remove(hex);
+                            removed = true;
+                        }
+                    }
+
+                    // re-import valid multisig hexes
+                    if (removed) wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
+                    if (wallet.isMultisigImportNeeded()) throw new IllegalStateException(errorMessage);
+                }
+            } catch (MoneroError e) {
+
+                // import multisig hex individually if one is invalid
+                if (isInvalidImportError(e.getMessage())) {
+                    log.warn("Peer has invalid multisig hex for {} {}, importing individually", getClass().getSimpleName(), getShortId());
+                    boolean imported = false;
+                    Exception lastError = null;
+                    for (TradePeer peer : getOtherPeers()) {
+                        if (peer.getUpdatedMultisigHex() == null) continue;
+                        try {
+                            wallet.importMultisigHex(peer.getUpdatedMultisigHex());
+                            imported = true;
+                        } catch (MoneroError e2) {
+                            lastError = e2;
+                            if (isInvalidImportError(e2.getMessage())) {
+                                log.warn("{} has invalid multisig hex for {} {}, error={}, multisigHex={}", getPeerRole(peer), getClass().getSimpleName(), getShortId(), e2.getMessage(), peer.getUpdatedMultisigHex());
+                            } else {
+                                throw e2;
+                            }
+                        }
+                    }
+                    if (!imported) throw new IllegalArgumentException("Could not import any multisig hexes for " + getClass().getSimpleName() + " " + getShortId(), lastError);
+                } else {
+                    throw e;
+                }
+            }
+            requestSaveWallet();
+        }
+        log.info("Done importing multisig hexes for {} {} in {} ms, count={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size());
+    }
+
+    private String getMultisigHexRole(String multisigHex) {
+        if (multisigHex.equals(getArbitrator().getUpdatedMultisigHex())) return "arbitrator";
+        if (multisigHex.equals(getBuyer().getUpdatedMultisigHex())) return "buyer";
+        if (multisigHex.equals(getSeller().getUpdatedMultisigHex())) return "seller";
+        throw new IllegalArgumentException("Multisig hex does not belong to any peer");
+    }
+
     /**
      * Create the payout tx.
      *
@@ -1125,9 +1175,12 @@ public abstract class Trade implements Tradable, Model {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     try {
                         return doCreatePayoutTx();
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw e;
                     } catch (Exception e) {
                         log.warn("Failed to create payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
@@ -1139,14 +1192,10 @@ public abstract class Trade implements Tradable, Model {
     private MoneroTxWallet doCreatePayoutTx() {
 
         // check if multisig import needed
-        if (wallet.isMultisigImportNeeded()) throw new RuntimeException("Cannot create payout tx because multisig import is needed");
+        if (wallet.isMultisigImportNeeded()) throw new IllegalStateException("Cannot create payout tx because multisig import is needed for " + getClass().getSimpleName() + " " + getShortId());
 
-        // TODO: wallet sometimes returns empty data, after disconnect?
-        List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
-        if (txs.isEmpty()) {
-            log.warn("Restarting wallet for {} {} because deposit txs are missing to create payout tx", getClass().getSimpleName(), getId());
-            forceRestartTradeWallet();
-        }
+        // recover if missing wallet data
+        recoverIfMissingWalletData();
 
         // gather info
         String sellerPayoutAddress = getSeller().getPayoutAddressString();
@@ -1184,11 +1233,15 @@ public abstract class Trade implements Tradable, Model {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     try {
+                        if (wallet.isMultisigImportNeeded()) throw new IllegalStateException("Cannot create dispute payout tx because multisig import is needed for " + getClass().getSimpleName() + " " + getShortId());
                         return createTx(txConfig);
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw e;
                     } catch (Exception e) {
-                        if (e.getMessage().contains("not possible")) throw new RuntimeException("Loser payout is too small to cover the mining fee");
+                        if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
                         log.warn("Failed to create dispute payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
@@ -1205,23 +1258,30 @@ public abstract class Trade implements Tradable, Model {
      * @param publish publishes the signed payout tx if true
      */
     public void processPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
-        log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
-
-        // TODO: wallet sometimes returns empty data, after disconnect? detect this condition with failure tolerance
-        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-            try {
-                List<MoneroTxWallet> txs = wallet.getTxs(); // TODO: this fetches from pool
-                if (txs.isEmpty()) {
-                    log.warn("Restarting wallet for {} {} because deposit txs are missing to process payout tx", getClass().getSimpleName(), getId());
-                    forceRestartTradeWallet();
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getWalletFunctionLock()) {
+                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    try {
+                        doProcessPayoutTx(payoutTxHex, sign, publish);
+                        break;
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        log.warn("Failed to process payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    }
                 }
-                break;
-            } catch (Exception e) {
-                log.warn("Failed get wallet txs, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
-                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
             }
         }
+    }
+
+    private void doProcessPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
+        log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
+
+        // recover if missing wallet data
+        recoverIfMissingWalletData();
 
         // gather relevant info
         MoneroWallet wallet = getWallet();
@@ -1234,6 +1294,7 @@ public abstract class Trade implements Tradable, Model {
         MoneroTxSet describedTxSet = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
         if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new IllegalArgumentException("Bad payout tx"); // TODO (woodser): test nack
         MoneroTxWallet payoutTx = describedTxSet.getTxs().get(0);
+        if (payoutTxId == null) updatePayout(payoutTx); // update payout tx if not signed
 
         // verify payout tx has exactly 2 destinations
         if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new IllegalArgumentException("Payout tx does not have exactly two destinations");
@@ -1265,10 +1326,11 @@ public abstract class Trade implements Tradable, Model {
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
         // check connection
-        if (sign || publish) verifyDaemonConnection();
+        boolean doSign = sign && getPayoutTxHex() == null;
+        if (doSign || publish) verifyDaemonConnection();
 
         // handle tx signing
-        if (sign) {
+        if (doSign) {
 
             // sign tx
             try {
@@ -1283,6 +1345,7 @@ public abstract class Trade implements Tradable, Model {
             // describe result
             describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
             payoutTx = describedTxSet.getTxs().get(0);
+            updatePayout(payoutTx);
 
             // verify fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
@@ -1294,22 +1357,16 @@ public abstract class Trade implements Tradable, Model {
             log.info("Payout tx fee {} is within tolerance, diff %={}", payoutTx.getFee(), feeDiff);
         }
 
-        // update trade state
-        updatePayout(payoutTx);
+        // save trade state
         requestPersistence();
 
         // submit payout tx
         if (publish) {
-            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                try {
-                    wallet.submitMultisigTxHex(payoutTxHex);
-                    ThreadUtils.submitToPool(() -> pollWallet());
-                    break;
-                } catch (Exception e) {
-                    log.warn("Failed to submit payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
-                    if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                }
+            try {
+                wallet.submitMultisigTxHex(payoutTxHex);
+                setPayoutStatePublished();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId(), e);
             }
         }
     }
@@ -2244,10 +2301,6 @@ public abstract class Trade implements Tradable, Model {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private String getConnectionChangedThreadId() {
-        return getId() + ".onConnectionChanged";
-    }
-
     // lazy initialization
     private ObjectProperty<BigInteger> getAmountProperty() {
         if (tradeAmountProperty == null)
@@ -2261,6 +2314,10 @@ public abstract class Trade implements Tradable, Model {
         if (tradeVolumeProperty == null)
             tradeVolumeProperty = getVolume() != null ? new SimpleObjectProperty<>(getVolume()) : new SimpleObjectProperty<>();
         return tradeVolumeProperty;
+    }
+
+    private String getConnectionChangedThreadId() {
+        return getId() + ".onConnectionChanged";
     }
 
     private void onConnectionChanged(MoneroRpcConnection connection) {
@@ -2355,11 +2412,11 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void setPollPeriod(long pollPeriodMs) {
-        synchronized (walletLock) {
+        synchronized (pollLock) {
             if (this.isShutDownStarted) return;
             if (this.pollPeriodMs != null && this.pollPeriodMs == pollPeriodMs) return;
             this.pollPeriodMs = pollPeriodMs;
-            if (isPollInProgress()) {
+            if (isPolling()) {
                 stopPolling();
                 startPolling();
             }
@@ -2372,8 +2429,8 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void startPolling() {
-        synchronized (walletLock) {
-            if (isShutDownStarted || isPollInProgress()) return;
+        synchronized (pollLock) {
+            if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
             pollLooper = new TaskLooper(() -> pollWallet());
@@ -2382,153 +2439,156 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void stopPolling() {
-        synchronized (walletLock) {
-            if (isPollInProgress()) {
+        synchronized (pollLock) {
+            if (isPolling()) {
                 pollLooper.stop();
                 pollLooper = null;
             }
         }
     }
     
-    private boolean isPollInProgress() {
-        synchronized (walletLock) {
+    private boolean isPolling() {
+        synchronized (pollLock) {
             return pollLooper != null;
         }
     }
 
     private void pollWallet() {
-        if (pollInProgress) return;
+        synchronized (pollLock) {
+            if (pollInProgress) return;
+        }
         doPollWallet();
     }
 
     private void doPollWallet() {
+        if (isShutDownStarted) return;
         synchronized (pollLock) {
             pollInProgress = true;
-            try {
+        }
+        try {
 
-                // skip if payout unlocked
-                if (isPayoutUnlocked()) return;
+            // skip if payout unlocked
+            if (isPayoutUnlocked()) return;
 
-                // skip if deposit txs unknown or not requested
-                if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null || !isDepositRequested()) return;
+            // skip if deposit txs unknown or not requested
+            if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null || !isDepositRequested()) return;
 
-                // skip if daemon not synced
-                if (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance()) return;
+            // skip if daemon not synced
+            if (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance()) return;
 
-                // sync if wallet too far behind daemon
-                if (walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
+            // sync if wallet too far behind daemon
+            if (walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
 
-                // update deposit txs
-                if (!isDepositsUnlocked()) {
+            // update deposit txs
+            if (!isDepositsUnlocked()) {
 
-                    // sync wallet if behind
-                    syncWalletIfBehind();
+                // sync wallet if behind
+                syncWalletIfBehind();
 
-                    // get txs from trade wallet
-                    MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-                    Boolean updatePool = !isDepositsConfirmed() && (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null);
-                    if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
-                    List<MoneroTxWallet> txs;
-                    if (!updatePool) txs = wallet.getTxs(query);
-                    else {
-                        synchronized (walletLock) {
-                            synchronized (HavenoUtils.getDaemonLock()) {
-                                txs = wallet.getTxs(query);
-                            }
-                        }
-                    }
-                    setDepositTxs(txs);
-                    if (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null) return; // skip if either deposit tx not seen
-                    setStateDepositsSeen();
-
-                    // set actual security deposits
-                    if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
-                        BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
-                        BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
-                        getBuyer().setSecurityDeposit(buyerSecurityDeposit);
-                        getSeller().setSecurityDeposit(sellerSecurityDeposit);
-                    }
-
-                    // check for deposit txs confirmation
-                    if (getMaker().getDepositTx().isConfirmed() && getTaker().getDepositTx().isConfirmed()) setStateDepositsConfirmed();
-
-                    // check for deposit txs unlocked
-                    if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
-                        setStateDepositsUnlocked();
-                    }
-                }
-
-                // check for payout tx
-                if (isDepositsUnlocked()) {
-
-                    // determine if payout tx expected
-                    boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
-
-                    // sync wallet if payout expected or payout is published
-                    if (isPayoutExpected || isPayoutPublished()) syncWalletIfBehind();
-
-                    // rescan spent outputs to detect unconfirmed payout tx
-                    if (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                        try {
-                            wallet.rescanSpent();
-                        } catch (Exception e) {
-                            log.warn("Error rescanning spent outputs to detect payout tx for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
-                        }
-                    }
-
-                    // get txs from trade wallet
-                    MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-                    boolean updatePool = isPayoutExpected && !isPayoutConfirmed();
-                    if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
-                    List<MoneroTxWallet> txs = null;
-                    if (!updatePool) txs = wallet.getTxs(query);
-                    else {
-                        synchronized (walletLock) {
-                            synchronized (HavenoUtils.getDaemonLock()) {
-                                txs = wallet.getTxs(query);
-                            }
-                        }
-                    }
-                    setDepositTxs(txs);
-
-                    // check if any outputs spent (observed on payout published)
-                    boolean hasSpentOutput = false;
-                    boolean hasFailedTx = false;
-                    for (MoneroTxWallet tx : txs) {
-                        if (tx.isFailed()) hasFailedTx = true;
-                        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                            if (Boolean.TRUE.equals(output.isSpent())) hasSpentOutput = true;
-                        }
-                    }
-                    if (hasSpentOutput) setPayoutStatePublished();
-                    else if (hasFailedTx && isPayoutPublished()) {
-                        log.warn("{} {} is in payout published state but has failed tx and no spent outputs, resetting payout state to unpublished", getClass().getSimpleName(), getShortId());
-                        setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
-                    }
-
-                    // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
-                    for (MoneroTxWallet tx : txs) {
-                        if (tx.isOutgoing() && !tx.isFailed()) {
-                            updatePayout(tx);
-                            setPayoutStatePublished();
-                            if (tx.isConfirmed()) setPayoutStateConfirmed();
-                            if (!tx.isLocked()) setPayoutStateUnlocked();
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                boolean isConnectionRefused = e.getMessage() != null && e.getMessage().contains("Connection refused");
-                if (isConnectionRefused) forceRestartTradeWallet();
+                // get txs from trade wallet
+                MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+                Boolean updatePool = !isDepositsConfirmed() && (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null);
+                if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
+                List<MoneroTxWallet> txs;
+                if (!updatePool) txs = wallet.getTxs(query);
                 else {
-                    boolean isWalletConnected = isWalletConnectedToDaemon();
-                    if (!isShutDownStarted && wallet != null && isWalletConnected) {
-                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
-                        //e.printStackTrace();
+                    synchronized (walletLock) {
+                        synchronized (HavenoUtils.getDaemonLock()) {
+                            txs = wallet.getTxs(query);
+                        }
                     }
                 }
-            } finally {
+                setDepositTxs(txs);
+                if (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null) return; // skip if either deposit tx not seen
+                setStateDepositsSeen();
+
+                // set actual security deposits
+                if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
+                    BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
+                    BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
+                    getBuyer().setSecurityDeposit(buyerSecurityDeposit);
+                    getSeller().setSecurityDeposit(sellerSecurityDeposit);
+                }
+
+                // check for deposit txs confirmation
+                if (getMaker().getDepositTx().isConfirmed() && getTaker().getDepositTx().isConfirmed()) setStateDepositsConfirmed();
+
+                // check for deposit txs unlocked
+                if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
+                    setStateDepositsUnlocked();
+                }
+            }
+
+            // check for payout tx
+            if (isDepositsUnlocked()) {
+
+                // determine if payout tx expected
+                boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
+
+                // sync wallet if payout expected or payout is published
+                if (isPayoutExpected || isPayoutPublished()) syncWalletIfBehind();
+
+                // rescan spent outputs to detect unconfirmed payout tx
+                if (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
+                    wallet.rescanSpent();
+                }
+
+                // get txs from trade wallet
+                MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+                boolean updatePool = isPayoutExpected && !isPayoutConfirmed();
+                if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
+                List<MoneroTxWallet> txs = null;
+                if (!updatePool) txs = wallet.getTxs(query);
+                else {
+                    synchronized (walletLock) {
+                        synchronized (HavenoUtils.getDaemonLock()) {
+                            txs = wallet.getTxs(query);
+                        }
+                    }
+                }
+                setDepositTxs(txs);
+
+                // check if any outputs spent (observed on payout published)
+                boolean hasSpentOutput = false;
+                boolean hasFailedTx = false;
+                for (MoneroTxWallet tx : txs) {
+                    if (tx.isFailed()) hasFailedTx = true;
+                    for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                        if (Boolean.TRUE.equals(output.isSpent())) hasSpentOutput = true;
+                    }
+                }
+                if (hasSpentOutput) setPayoutStatePublished();
+                else if (hasFailedTx && isPayoutPublished()) {
+                    log.warn("{} {} is in payout published state but has failed tx and no spent outputs, resetting payout state to unpublished", getClass().getSimpleName(), getShortId());
+                    setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
+                }
+
+                // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
+                for (MoneroTxWallet tx : txs) {
+                    if (tx.isOutgoing() && !tx.isFailed()) {
+                        updatePayout(tx);
+                        setPayoutStatePublished();
+                        if (tx.isConfirmed()) setPayoutStateConfirmed();
+                        if (!tx.isLocked()) setPayoutStateUnlocked();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            boolean isConnectionRefused = e.getMessage() != null && e.getMessage().contains("Connection refused");
+            if (isConnectionRefused) forceRestartTradeWallet();
+            else {
+                boolean isWalletConnected = isWalletConnectedToDaemon();
+                if (!isShutDownStarted && wallet != null && isWalletConnected) {
+                    log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                    requestSwitchToNextBestConnection();
+                    //e.printStackTrace();
+                }
+            }
+        } finally {
+            synchronized (pollLock) {
                 pollInProgress = false;
             }
+            requestSaveWallet();
         }
     }
 
@@ -2553,6 +2613,70 @@ public abstract class Trade implements Tradable, Model {
         depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
     }
 
+    // TODO: wallet is sometimes missing balance or deposits, due to specific daemon connections, not saving?
+    private void recoverIfMissingWalletData() {
+        synchronized (walletLock) {
+            if (isWalletMissingData()) {
+                log.warn("Wallet is missing data for {} {}, attempting to recover", getClass().getSimpleName(), getShortId());
+
+                // force restart wallet
+                forceRestartTradeWallet();
+
+                // rescan blockchain with global daemon lock
+                synchronized (HavenoUtils.getDaemonLock()) {
+                    Long timeout = null;
+                    try {
+
+                        // extend rpc timeout for rescan
+                        if (wallet instanceof MoneroWalletRpc) {
+                            timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
+                            ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT);
+                        }
+
+                        // rescan blockchain
+                        log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
+                        wallet.rescanBlockchain();
+                    } catch (Exception e) {
+                        if (isReadTimeoutError(e.getMessage())) forceRestartTradeWallet(); // wallet can be stuck a while
+                        throw e;
+                    } finally {
+
+                        // restore rpc timeout
+                        if (wallet instanceof MoneroWalletRpc) {
+                            ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(timeout);
+                        }
+                    }
+                }
+
+                // import multisig hex
+                log.warn("Importing multisig hex to recover wallet data for {} {}", getClass().getSimpleName(), getShortId());
+                importMultisigHex();
+            }
+        }
+
+        // check again after releasing lock
+        if (isWalletMissingData()) throw new IllegalStateException("Wallet is still missing data after attempting recovery for " + getClass().getSimpleName() + " " + getShortId());
+    }
+
+    private boolean isWalletMissingData() {
+        synchronized (walletLock) {
+            if (!isDepositsUnlocked() || isPayoutPublished()) return false;
+            if (getMakerDepositTx() == null) {
+                log.warn("Missing maker deposit tx for {} {}", getClass().getSimpleName(), getId());
+                return true;
+            }
+            if (getTakerDepositTx() == null) {
+                log.warn("Missing taker deposit tx for {} {}", getClass().getSimpleName(), getId());
+                return true;
+            }
+            if (wallet.getBalance().equals(BigInteger.ZERO)) {
+                log.warn("Wallet balance is zero for {} {}", getClass().getSimpleName(), getId());
+                return true;
+            }
+            return false;
+        }
+    }
+
     private void forceRestartTradeWallet() {
         if (isShutDownStarted || restartInProgress) return;
         log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
@@ -2560,7 +2684,7 @@ public abstract class Trade implements Tradable, Model {
         forceCloseWallet();
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
-        doPollWallet();
+        pollWallet();
         if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitPolling(), getId());
     }
 

@@ -1057,6 +1057,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     } catch (Exception e) {
                         log.warn("Error creating split output tx to fund offer {} at subaddress {}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        if (xmrConnectionService.isConnected()) xmrWalletService.requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
