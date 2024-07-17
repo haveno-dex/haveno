@@ -25,11 +25,10 @@ Some good hints about how to secure a VPS are in [Monero's meta repository](http
 ## Fork and build Haveno
 
 ### Install openjdk 21
+
 #### Ubuntu 22.04
 
-```
-sudo apt-get install openjdk-21-jdk
-```
+`sudo apt-get install openjdk-21-jdk`
 
 Fork Haveno to a public repository. Then build Haveno:
 
