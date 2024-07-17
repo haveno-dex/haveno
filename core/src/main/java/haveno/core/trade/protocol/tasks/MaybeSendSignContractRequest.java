@@ -105,6 +105,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                             } catch (Exception e) {
                                 log.warn("Error creating deposit tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                                if (trade.getXmrConnectionService().isConnected()) trade.getXmrWalletService().requestSwitchToNextBestConnection();
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                             }
             
