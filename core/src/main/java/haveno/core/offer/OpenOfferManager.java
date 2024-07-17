@@ -473,14 +473,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
                 // process pending offers
-                processPendingOffers(false);
+                processPendingOffers(false, (transaction) -> {}, (errorMessage) -> {
+                    log.warn("Error processing pending offers on bootstrap: " + errorMessage);
+                });
 
                 // register to process pending offers on new block
                 xmrWalletService.addWalletListener(new MoneroWalletListener() {
                     @Override
                     public void onNewBlock(long height) {
 
-                        // process pending offers on new block a few times
+                        // process each pending offer on new block a few times, then rely on period republish
                         processPendingOffers(true, (transaction) -> {}, (errorMessage) -> {
                             log.warn("Error processing pending offers on new block {}: {}", height, errorMessage);
                         });
@@ -856,13 +858,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Place offer helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void processPendingOffers(boolean skipOffersWithTooManyAttempts) {
-        processPendingOffers(skipOffersWithTooManyAttempts, (transaction) -> {}, (errorMessage) -> {
-            log.warn("Error processing pending offers: " + errorMessage);
-        });
-    }
-    
     private void processPendingOffers(boolean skipOffersWithTooManyAttempts,
                                        TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
@@ -878,8 +873,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         latch.countDown();
                     }, errorMessage -> {
                         if (!pendingOffer.isCanceled()) {
-                            log.warn("Error processing pending offer, offerId={}, attempt={}, error={}", pendingOffer.getId(), pendingOffer.getNumProcessingAttempts(), errorMessage);
-                            errorMessages.add(errorMessage);
+                            String warnMessage = "Error processing pending offer, offerId=" + pendingOffer.getId() + ", attempt=" + pendingOffer.getNumProcessingAttempts() + ": " + errorMessage;
+                            errorMessages.add(warnMessage);
                             
                             // cancel offer if invalid
                             if (pendingOffer.getOffer().getState() == Offer.State.INVALID) {
@@ -892,8 +887,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     HavenoUtils.awaitLatch(latch);
                 }
                 requestPersistence();
-                if (errorMessages.size() > 0) errorMessageHandler.handleErrorMessage(errorMessages.toString());
-                else resultHandler.handleResult(null);
+                if (errorMessages.isEmpty()) {
+                    if (resultHandler != null) resultHandler.handleResult(null);
+                } else {
+                    if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessages.toString());
+                }
             }
         }, THREAD_ID);
     }
