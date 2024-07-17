@@ -24,7 +24,14 @@ Some good hints about how to secure a VPS are in [Monero's meta repository](http
 
 ## Fork and build Haveno
 
-First fork Haveno to a public repository. Then build Haveno:
+### Install openjdk 21
+#### Ubuntu 22.04
+
+'''
+sudo apt-get install openjdk-21-jdk
+'''
+
+Fork Haveno to a public repository. Then build Haveno:
 
 ```
 git clone <your fork url>
@@ -57,9 +64,12 @@ For each seed node:
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. [Start a local Monero node](#start-a-local-monero-node).
-3. Run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
-4. The node will print its onion address to the console. Record the onion address in `core/src/main/resources/xmr_<network>.seednodes`. Be careful to record full addresses correctly.
-5. Update all seed nodes, arbitrators, and user applications for the change to take effect.
+3. Modify ./scripts/deployment/haveno-seednode.service and ./scripts/deployment/haveno-seednode2.service as needed.
+4. Coppy ./scripts/deployment/haveno-seednode.service to /etc/systemd/system (if you are the very first seed in a new network also coppy ./scripts/deployment/haveno-seednode2.service to /etc/systemd/system).
+5. Run `sudo systemctl start haveno-seednode.service' to start the seednode and also run 'sudo systemctl start haveno-seednode2.service' if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
+6. Run 'journalctl -u haveno-seednode.service -b -f' which will print the log and show the .onion address of the seed node. Press Ctrl+C to stop printing the log and record the .onion address given
+7. Add the .onion address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) (ex: example.onion:1002). Be careful to record full addresses correctly.
+8. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 Customize and deploy haveno-seednode.service to run a seed node as a system service.
 
