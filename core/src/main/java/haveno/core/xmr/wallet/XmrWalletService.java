@@ -134,8 +134,6 @@ public class XmrWalletService {
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
-    private static final long LOG_POLL_ERROR_AFTER_MS = 180000; // log poll error if unsuccessful after this time
-    private static Long lastPollSuccessTimestamp;
 
     private final User user;
     private final Preferences preferences;
@@ -172,6 +170,7 @@ public class XmrWalletService {
     private TaskLooper pollLooper;
     private boolean pollInProgress;
     private Long pollPeriodMs;
+    private Long lastLogPollErrorTimestamp;
     private final Object pollLock = new Object();
     private Long cachedHeight;
     private BigInteger cachedBalance;
@@ -1846,11 +1845,12 @@ public class XmrWalletService {
                     synchronized (HavenoUtils.getDaemonLock()) {
                         try {
                             cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
-                            lastPollSuccessTimestamp = System.currentTimeMillis();
+                            lastLogPollErrorTimestamp = null;
                         } catch (Exception e) { // fetch from pool can fail
                             if (!isShutDownStarted) {
-                                if (lastPollSuccessTimestamp == null || System.currentTimeMillis() - lastPollSuccessTimestamp > LOG_POLL_ERROR_AFTER_MS) { // only log if not recently successful
+                                if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) { // limit error logging
                                     log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                                    lastLogPollErrorTimestamp = System.currentTimeMillis();
                                 }
                             }
                         }

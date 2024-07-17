@@ -70,8 +70,6 @@ public final class XmrConnectionService {
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
-    private static final long LOG_POLL_ERROR_AFTER_MS = 300000; // minimum period between logging errors fetching daemon info
-    private static Long lastErrorTimestamp;
 
     private final Object lock = new Object();
     private final Object pollLock = new Object();
@@ -100,6 +98,7 @@ public final class XmrConnectionService {
     private Boolean isConnected = false;
     @Getter
     private MoneroDaemonInfo lastInfo;
+    private Long lastLogPollErrorTimestamp;
     private Long syncStartHeight = null;
     private TaskLooper daemonPollLooper;
     @Getter
@@ -680,8 +679,14 @@ public final class XmrConnectionService {
                         return;
                     }
 
+                    // log error message periodically
+                    if ((lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS)) {
+                        log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
+                        if (DevEnv.isDevMode()) e.printStackTrace();
+                        lastLogPollErrorTimestamp = System.currentTimeMillis();
+                    }
+
                     // switch to best connection
-                    log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
                     switchToBestConnection();
                     lastInfo = daemon.getInfo(); // caught internally if still fails
                 }
@@ -722,9 +727,9 @@ public final class XmrConnectionService {
                 });
 
                 // handle error recovery
-                if (lastErrorTimestamp != null) {
+                if (lastLogPollErrorTimestamp != null) {
                     log.info("Successfully fetched daemon info after previous error");
-                    lastErrorTimestamp = null;
+                    lastLogPollErrorTimestamp = null;
                 }
 
                 // clear error message
@@ -736,13 +741,6 @@ public final class XmrConnectionService {
 
                 // skip if shut down
                 if (isShutDownStarted) return;
-
-                // log error message periodically
-                if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > LOG_POLL_ERROR_AFTER_MS)) {
-                    lastErrorTimestamp = System.currentTimeMillis();
-                    log.warn("Could not update daemon info: " + e.getMessage());
-                    if (DevEnv.isDevMode()) e.printStackTrace();
-                }
 
                 // set error message
                 getConnectionServiceErrorMsg().set(e.getMessage());
