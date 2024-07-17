@@ -172,7 +172,7 @@ public class TradeUtil {
      * @param trade Trade
      * @return String describing a trader's role for a given trade
      */
-    public String getRole(Trade trade) {
+    public static String getRole(Trade trade) {
         Offer offer = trade.getOffer();
         if (offer == null)
             throw new IllegalStateException(format("could not get role because no offer was found for trade '%s'",
@@ -191,7 +191,7 @@ public class TradeUtil {
      * @param currencyCode String
      * @return String describing a trader's role
      */
-    public String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
+    private static String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
         if (isTraditionalCurrency(currencyCode)) {
             String baseCurrencyCode = Res.getBaseCurrencyCode();
             if (isBuyerMakerAndSellerTaker)
