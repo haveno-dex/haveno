@@ -159,7 +159,6 @@ public class PlaceOfferProtocol {
         if (timeoutTimer != null) {
             taskRunner.cancel();
             if (!model.getOpenOffer().isCanceled()) {
-                log.error(errorMessage);
                 model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
             }
             stopTimeoutTimer();
