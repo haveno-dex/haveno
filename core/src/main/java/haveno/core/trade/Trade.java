@@ -1657,6 +1657,16 @@ public abstract class Trade implements Tradable, Model {
     private void removeTradeOnError() {
         log.warn("removeTradeOnError() trade={}, tradeId={}, state={}", getClass().getSimpleName(), getShortId(), getState());
 
+        // force close wallet in case stuck
+        forceCloseWallet();
+
+        // shut down trade thread
+        try {
+            ThreadUtils.shutDown(getId(), 1000l);
+        } catch (Exception e) {
+            log.warn("Error shutting down trade thread for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+        }
+
         // clear and shut down trade
         clearAndShutDown();
 
