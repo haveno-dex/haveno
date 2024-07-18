@@ -625,6 +625,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Canceling open offer: {}", openOffer.getId());
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
             if (openOffer.isAvailable()) {
+                openOffer.setState(OpenOffer.State.CANCELED);
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                         () -> {
                             ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
@@ -634,6 +635,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         },
                         errorMessageHandler);
             } else {
+                openOffer.setState(OpenOffer.State.CANCELED);
                 ThreadUtils.submitToPool(() -> {
                     doCancelOffer(openOffer);
                     if (resultHandler != null) resultHandler.handleResult();
@@ -1082,7 +1084,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffer.setSplitOutputTxFee(splitOutputTx.getFee().longValueExact());
         openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
         openOffer.setScheduledAmount(openOffer.getOffer().getAmountNeeded().toString());
-        openOffer.setState(OpenOffer.State.PENDING);
+        if (!openOffer.isCanceled()) openOffer.setState(OpenOffer.State.PENDING);
     }
 
     private void scheduleWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
