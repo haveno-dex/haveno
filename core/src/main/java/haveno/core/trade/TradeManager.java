@@ -284,23 +284,25 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress peer) {
+    public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress sender) {
         NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
         if (!(networkEnvelope instanceof TradeMessage)) return;
-        String tradeId = ((TradeMessage) networkEnvelope).getOfferId();
+        TradeMessage tradeMessage = (TradeMessage) networkEnvelope;
+        String tradeId = tradeMessage.getOfferId();
+        log.info("TradeManager received {} for tradeId={}, sender={}, uid={}", networkEnvelope.getClass().getSimpleName(), tradeId, sender, tradeMessage.getUid());
         ThreadUtils.execute(() -> {
             if (networkEnvelope instanceof InitTradeRequest) {
-                handleInitTradeRequest((InitTradeRequest) networkEnvelope, peer);
+                handleInitTradeRequest((InitTradeRequest) networkEnvelope, sender);
             } else if (networkEnvelope instanceof InitMultisigRequest) {
-                handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, peer);
+                handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, sender);
             } else if (networkEnvelope instanceof SignContractRequest) {
-                handleSignContractRequest((SignContractRequest) networkEnvelope, peer);
+                handleSignContractRequest((SignContractRequest) networkEnvelope, sender);
             } else if (networkEnvelope instanceof SignContractResponse) {
-                handleSignContractResponse((SignContractResponse) networkEnvelope, peer);
+                handleSignContractResponse((SignContractResponse) networkEnvelope, sender);
             } else if (networkEnvelope instanceof DepositRequest) {
-                handleDepositRequest((DepositRequest) networkEnvelope, peer);
+                handleDepositRequest((DepositRequest) networkEnvelope, sender);
             } else if (networkEnvelope instanceof DepositResponse) {
-                handleDepositResponse((DepositResponse) networkEnvelope, peer);
+                handleDepositResponse((DepositResponse) networkEnvelope, sender);
             }
         }, tradeId);
     }
@@ -538,7 +540,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void handleInitTradeRequest(InitTradeRequest request, NodeAddress sender) {
-        log.info("Received InitTradeRequest from {} with tradeId {} and uid {}", sender, request.getOfferId(), request.getUid());
+        log.info("TradeManager handling InitTradeRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -734,8 +736,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-    private void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress peer) {
-        log.info("Received {} for trade {} from {} with uid {}", request.getClass().getSimpleName(), request.getOfferId(), peer, request.getUid());
+    private void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
+    log.info("TradeManager handling InitMultisigRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -750,11 +752,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             return;
         }
         Trade trade = tradeOptional.get();
-        getTradeProtocol(trade).handleInitMultisigRequest(request, peer);
+        getTradeProtocol(trade).handleInitMultisigRequest(request, sender);
     }
 
-    private void handleSignContractRequest(SignContractRequest request, NodeAddress peer) {
-        log.info("Received {} for trade {} from {} with uid {}", request.getClass().getSimpleName(), request.getOfferId(), peer, request.getUid());
+    private void handleSignContractRequest(SignContractRequest request, NodeAddress sender) {
+    log.info("TradeManager handling SignContractRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -769,11 +771,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             return;
         }
         Trade trade = tradeOptional.get();
-        getTradeProtocol(trade).handleSignContractRequest(request, peer);
+        getTradeProtocol(trade).handleSignContractRequest(request, sender);
     }
 
-    private void handleSignContractResponse(SignContractResponse request, NodeAddress peer) {
-        log.info("Received {} for trade {} from {} with uid {}", request.getClass().getSimpleName(), request.getOfferId(), peer, request.getUid());
+    private void handleSignContractResponse(SignContractResponse request, NodeAddress sender) {
+        log.info("TradeManager handling SignContractResponse for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -788,11 +790,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             return;
         }
         Trade trade = tradeOptional.get();
-        ((TraderProtocol) getTradeProtocol(trade)).handleSignContractResponse(request, peer);
+        ((TraderProtocol) getTradeProtocol(trade)).handleSignContractResponse(request, sender);
     }
 
-    private void handleDepositRequest(DepositRequest request, NodeAddress peer) {
-        log.info("Received {} for trade {} from {} with uid {}", request.getClass().getSimpleName(), request.getOfferId(), peer, request.getUid());
+    private void handleDepositRequest(DepositRequest request, NodeAddress sender) {
+        log.info("TradeManager handling DepositRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -807,11 +809,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             return;
         }
         Trade trade = tradeOptional.get();
-        ((ArbitratorProtocol) getTradeProtocol(trade)).handleDepositRequest(request, peer);
+        ((ArbitratorProtocol) getTradeProtocol(trade)).handleDepositRequest(request, sender);
     }
 
-    private void handleDepositResponse(DepositResponse response, NodeAddress peer) {
-        log.info("Received {} for trade {} from {} with uid {}", response.getClass().getSimpleName(), response.getOfferId(), peer, response.getUid());
+    private void handleDepositResponse(DepositResponse response, NodeAddress sender) {
+        log.info("TradeManager handling DepositResponse for tradeId={}, sender={}, uid={}", response.getOfferId(), sender, response.getUid());
 
         try {
             Validator.nonEmptyStringOf(response.getOfferId());
@@ -829,7 +831,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
         }
         Trade trade = tradeOptional.get();
-        ((TraderProtocol) getTradeProtocol(trade)).handleDepositResponse(response, peer);
+        ((TraderProtocol) getTradeProtocol(trade)).handleDepositResponse(response, sender);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
