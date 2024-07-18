@@ -692,11 +692,12 @@ public class XmrWalletService {
                 try {
                     return createTradeTxFromSubaddress(feeAmount, feeAddress, sendAmount, sendAddress, subaddressIndices.get(i));
                 } catch (Exception e) {
-                    if (i == subaddressIndices.size() - 1 && reserveExactAmount) throw e; // throw if no subaddress with exact output
+                    log.info("Cannot create trade tx from preferred subaddress index " + subaddressIndices.get(i) + ": " + e.getMessage());
                 }
             }
 
             // try any subaddress
+            if (!subaddressIndices.isEmpty()) log.info("Could not create trade tx from preferred subaddresses, trying any subaddress");
             return createTradeTxFromSubaddress(feeAmount, feeAddress, sendAmount, sendAddress, null);
         }
     }
