@@ -107,9 +107,9 @@ public final class XmrConnectionService {
 
     // connection switching
     private static final int EXCLUDE_CONNECTION_SECONDS = 300;
-    private static final int SKIP_SWITCH_WITHIN_MS = 60000;
+    private static final int MAX_SWITCH_REQUESTS_PER_MINUTE = 3;
     private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
-    private long lastSwitchRequestTimestamp;
+    private int numRequestsLastMinute;
 
     @Inject
     public XmrConnectionService(P2PService p2PService,
@@ -279,24 +279,27 @@ public final class XmrConnectionService {
             return false;
         }
 
-        // skip if last switch was too recent
-        boolean skipSwitch = System.currentTimeMillis() - lastSwitchRequestTimestamp < SKIP_SWITCH_WITHIN_MS;
-        lastSwitchRequestTimestamp = System.currentTimeMillis();
-        if (skipSwitch) {
-            log.warn("Skipping switch to next best Monero connection because last switch was less than {} seconds ago", SKIP_SWITCH_WITHIN_MS / 1000);
-            lastSwitchRequestTimestamp = System.currentTimeMillis();
+        // skip if too many requests in the last minute
+        if (numRequestsLastMinute > MAX_SWITCH_REQUESTS_PER_MINUTE) {
+            log.warn("Skipping switch to next best Monero connection because more than {} requests were made in the last minute", MAX_SWITCH_REQUESTS_PER_MINUTE);
             return false;
         }
 
-        // try to get connection to switch to
+        // increment request count
+        numRequestsLastMinute++;
+        UserThread.runAfter(() -> numRequestsLastMinute--, 60); // decrement after one minute
+
+        // exclude current connection
         MoneroRpcConnection currentConnection = getConnection();
         if (currentConnection != null) excludedConnections.add(currentConnection);
+
+        // get connection to switch to
         MoneroRpcConnection bestConnection = getBestAvailableConnection(excludedConnections);
 
         // remove from excluded connections after period
         UserThread.runAfter(() -> {
             if (currentConnection != null) excludedConnections.remove(currentConnection);
-        }, EXCLUDE_CONNECTION_SECONDS); 
+        }, EXCLUDE_CONNECTION_SECONDS);
 
         // switch to best connection
         if (bestConnection == null) {
