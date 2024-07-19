@@ -967,29 +967,31 @@ public abstract class Trade implements Tradable, Model {
             if (walletExists()) {
                 try {
 
-                    // ensure wallet is initialized
-                    boolean syncedWallet = false;
-                    if (wallet == null) {
-                        log.warn("Wallet is not initialized for {} {}, opening", getClass().getSimpleName(), getId());
-                        getWallet();
-                        syncWallet(true);
-                        syncedWallet = true;
-                    }
+                    // check wallet state if deposit requested
+                    if (isDepositRequested()) {
 
-                    // sync wallet if deposit requested and payout not unlocked
-                    if (isDepositRequested() && !isPayoutUnlocked() && !syncedWallet) {
-                        log.warn("Syncing wallet on deletion for trade {} {}, syncing", getClass().getSimpleName(), getId());
-                        syncWallet(true);
-                    }
-
-                    // check if deposits published and payout not unlocked
-                    if (isDepositsPublished() && !isPayoutUnlocked()) {
-                        throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
-                    }
-
-                    // check for balance
-                    if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                        synchronized (HavenoUtils.getDaemonLock()) {
+                        // ensure wallet is initialized
+                        boolean syncedWallet = false;
+                        if (wallet == null) {
+                            log.warn("Wallet is not initialized for {} {}, opening", getClass().getSimpleName(), getId());
+                            getWallet();
+                            syncWallet(true);
+                            syncedWallet = true;
+                        }
+    
+                        // sync wallet if deposit requested and payout not unlocked
+                        if (!isPayoutUnlocked() && !syncedWallet) {
+                            log.warn("Syncing wallet on deletion for trade {} {}, syncing", getClass().getSimpleName(), getId());
+                            syncWallet(true);
+                        }
+    
+                        // check if deposits published and payout not unlocked
+                        if (isDepositsPublished() && !isPayoutUnlocked()) {
+                            throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not unlocked");
+                        }
+    
+                        // check for balance
+                        if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
                             log.warn("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getId());
                             wallet.rescanSpent();
                             if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
@@ -1656,8 +1658,9 @@ public abstract class Trade implements Tradable, Model {
     private void removeTradeOnError() {
         log.warn("removeTradeOnError() trade={}, tradeId={}, state={}", getClass().getSimpleName(), getShortId(), getState());
 
-        // force close wallet in case stuck
+        // force close and re-open wallet in case stuck
         forceCloseWallet();
+        if (isDepositRequested()) getWallet();
 
         // shut down trade thread
         try {
