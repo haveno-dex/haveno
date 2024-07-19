@@ -24,7 +24,32 @@ Some good hints about how to secure a VPS are in [Monero's meta repository](http
 
 ## Fork and build Haveno
 
-### Install openjdk 21
+### Install dependencies
+
+On Linux and macOS, install Java JDK 21:
+
+`curl -s "https://get.sdkman.io" | bash`
+`sdk install java 21.0.2.fx-librca`
+
+On Windows, install MSYS2 and Java JDK 21:
+
+Install MSYS2.
+
+Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+
+Update pacman: `pacman -Syy`
+
+Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
+
+64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
+
+32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+
+`curl -s "https://get.sdkman.io" | bash`
+
+`sdk install java 21.0.2.fx-librca`
+
+### Alternative Instructions
 
 #### Ubuntu 22.04
 
