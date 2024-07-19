@@ -2578,7 +2578,7 @@ public abstract class Trade implements Tradable, Model {
             if (isConnectionRefused) forceRestartTradeWallet();
             else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
-                if (!isShutDownStarted && wallet != null && isWalletConnected) {
+                if (wallet != null && !isShutDownStarted && isWalletConnected) {
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
                     requestSwitchToNextBestConnection();
                     //e.printStackTrace();
@@ -2622,6 +2622,9 @@ public abstract class Trade implements Tradable, Model {
                 // force restart wallet
                 forceRestartTradeWallet();
 
+                // skip if payout published in the meantime
+                if (isPayoutPublished()) return;
+
                 // rescan blockchain with global daemon lock
                 synchronized (HavenoUtils.getDaemonLock()) {
                     Long timeout = null;
@@ -2651,11 +2654,14 @@ public abstract class Trade implements Tradable, Model {
                 // import multisig hex
                 log.warn("Importing multisig hex to recover wallet data for {} {}", getClass().getSimpleName(), getShortId());
                 importMultisigHex();
+
+                // poll wallet
+                doPollWallet();
+
+                // check again if missing data
+                if (isWalletMissingData()) throw new IllegalStateException("Wallet is still missing data after attempting recovery for " + getClass().getSimpleName() + " " + getShortId());
             }
         }
-
-        // check again after releasing lock
-        if (isWalletMissingData()) throw new IllegalStateException("Wallet is still missing data after attempting recovery for " + getClass().getSimpleName() + " " + getShortId());
     }
 
     private boolean isWalletMissingData() {
@@ -2670,6 +2676,8 @@ public abstract class Trade implements Tradable, Model {
                 return true;
             }
             if (wallet.getBalance().equals(BigInteger.ZERO)) {
+                doPollWallet(); // poll once more to be sure
+                if (isPayoutPublished()) return false; // payout can become published while checking balance
                 log.warn("Wallet balance is zero for {} {}", getClass().getSimpleName(), getId());
                 return true;
             }
