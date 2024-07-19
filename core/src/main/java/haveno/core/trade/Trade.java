@@ -627,7 +627,7 @@ public abstract class Trade implements Tradable, Model {
 
         // handle connection change on dedicated thread
         xmrConnectionService.addConnectionListener(connection -> {
-            ThreadUtils.execute(() -> onConnectionChanged(connection), getConnectionChangedThreadId());
+            ThreadUtils.execute(() -> onConnectionChanged(connection), getId());
         });
 
         // reset buyer's payment sent state if no ack receive
@@ -1501,7 +1501,6 @@ public abstract class Trade implements Tradable, Model {
                 isShutDown = true;
                 List<Runnable> shutDownThreads = new ArrayList<>();
                 shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
-                shutDownThreads.add(() -> ThreadUtils.shutDown(getConnectionChangedThreadId()));
                 ThreadUtils.awaitTasks(shutDownThreads);
             }
 
@@ -2326,10 +2325,6 @@ public abstract class Trade implements Tradable, Model {
         return tradeVolumeProperty;
     }
 
-    private String getConnectionChangedThreadId() {
-        return getId() + ".onConnectionChanged";
-    }
-
     private void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
@@ -2399,24 +2394,29 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void syncWallet(boolean pollWallet) {
-        if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
-        if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
-        if (isWalletBehind()) {
-            log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getShortId());
-            long startTime = System.currentTimeMillis();
-            syncWalletIfBehind();
-            log.info("Done syncing wallet for {} {} in {} ms", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime);
-        }
-
-        // apply tor after wallet synced depending on configuration
-        if (!wasWalletSynced) {
-            wasWalletSynced = true;
-            if (xmrWalletService.isProxyApplied(wasWalletSynced)) {
-                onConnectionChanged(xmrConnectionService.getConnection());
+        try {
+            if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+            if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+            if (isWalletBehind()) {
+                log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getShortId());
+                long startTime = System.currentTimeMillis();
+                syncWalletIfBehind();
+                log.info("Done syncing wallet for {} {} in {} ms", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime);
             }
+    
+            // apply tor after wallet synced depending on configuration
+            if (!wasWalletSynced) {
+                wasWalletSynced = true;
+                if (xmrWalletService.isProxyApplied(wasWalletSynced)) {
+                    onConnectionChanged(xmrConnectionService.getConnection());
+                }
+            }
+    
+            if (pollWallet) pollWallet();
+        } catch (Exception e) {
+            ThreadUtils.execute(() -> requestSwitchToNextBestConnection(), getId());
+            throw e;
         }
-
-        if (pollWallet) pollWallet();
     }
 
     public void updatePollPeriod() {
@@ -2593,7 +2593,7 @@ public abstract class Trade implements Tradable, Model {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
-                    requestSwitchToNextBestConnection();
+                    ThreadUtils.execute(() -> requestSwitchToNextBestConnection(), getId()); // do not block polling thread
                     //e.printStackTrace();
                 }
             }

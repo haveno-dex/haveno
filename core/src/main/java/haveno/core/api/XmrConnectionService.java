@@ -303,7 +303,7 @@ public final class XmrConnectionService {
 
         // switch to best connection
         if (bestConnection == null) {
-            log.warn("Could not get connection to switch to");
+            log.warn("No connection to switch to");
             return false;
         }
         setConnection(bestConnection);
