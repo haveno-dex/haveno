@@ -22,38 +22,33 @@ Arbitrators can be started in a Screen session and then detached to run in the b
 
 Some good hints about how to secure a VPS are in [Monero's meta repository](https://github.com/monero-project/meta/blob/master/SERVER_SETUP_HARDENING.md).
 
-## Fork and build Haveno
-
-### Install dependencies
+## Install dependencies
 
 On Linux and macOS, install Java JDK 21:
 
-`curl -s "https://get.sdkman.io" | bash`
-`sdk install java 21.0.2.fx-librca`
+```
+curl -s "https://get.sdkman.io" | bash
+sdk install java 21.0.2.fx-librca
+```
+
+Alternatively, on Ubuntu 22.04:
+
+`sudo apt-get install openjdk-21-jdk`
 
 On Windows, install MSYS2 and Java JDK 21:
 
-Install MSYS2.
+1. Install [MSYS2](https://www.msys2.org/).
+2. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+4. Update pacman: `pacman -Syy`
+5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
 
-Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+    64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
 
-Update pacman: `pacman -Syy`
+    32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+6. `curl -s "https://get.sdkman.io" | bash`
+7. `sdk install java 21.0.2.fx-librca`
 
-Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
-
-64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
-
-32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
-
-`curl -s "https://get.sdkman.io" | bash`
-
-`sdk install java 21.0.2.fx-librca`
-
-### Alternative Instructions
-
-#### Ubuntu 22.04
-
-`sudo apt-get install openjdk-21-jdk`
+## Fork and build Haveno
 
 Fork Haveno to a public repository. Then build Haveno:
 
