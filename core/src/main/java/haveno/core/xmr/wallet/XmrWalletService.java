@@ -1285,7 +1285,9 @@ public class XmrWalletService {
         else log.info(appliedMsg);
 
         // listen for connection changes
-        xmrConnectionService.addConnectionListener(connection -> ThreadUtils.execute(() -> onConnectionChanged(connection), THREAD_ID));
+        xmrConnectionService.addConnectionListener(connection -> ThreadUtils.execute(() -> {
+            onConnectionChanged(connection);
+        }, THREAD_ID));
 
         // initialize main wallet when daemon synced
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
@@ -1669,7 +1671,7 @@ public class XmrWalletService {
             if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) return;
             String oldProxyUri = wallet == null || wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
             String newProxyUri = connection == null ? null : connection.getProxyUri();
-            log.info("Setting daemon connection for main wallet: uri={}, proxyUri={}", connection == null ? null : connection.getUri(), newProxyUri);
+            log.info("Setting daemon connection for main wallet, monerod={}, proxyUri={}", connection == null ? null : connection.getUri(), newProxyUri);
 
             // force restart main wallet if connection changed before synced
             if (!wasWalletSynced) {
@@ -1706,7 +1708,7 @@ public class XmrWalletService {
                 updatePollPeriod();
             }
 
-            log.info("Done setting main wallet monerod=" + (wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getUri()));
+            log.info("Done setting daemon connection for main wallet, monerod=" + (wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getUri()));
         }
     }
 
