@@ -1660,6 +1660,11 @@ public class XmrWalletService {
 
     private void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (WALLET_LOCK) {
+
+            // use current connection
+            connection = xmrConnectionService.getConnection();
+
+            // check if ignored
             if (wallet == null || isShutDownStarted) return;
             if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) return;
             String oldProxyUri = wallet == null || wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();

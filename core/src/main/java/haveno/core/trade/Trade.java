@@ -2323,6 +2323,9 @@ public abstract class Trade implements Tradable, Model {
     private void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
+            // use current connection
+            connection = xmrConnectionService.getConnection();
+
             // check if ignored
             if (isShutDownStarted) return;
             if (getWallet() == null) return;
