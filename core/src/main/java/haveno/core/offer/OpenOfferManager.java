@@ -556,13 +556,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     latch.countDown();
                     resultHandler.handleResult(transaction);
                 }, (errorMessage) -> {
-                    if (openOffer.isCanceled()) latch.countDown();
-                    else {
+                    if (!openOffer.isCanceled()) {
                         log.warn("Error processing pending offer {}: {}", openOffer.getId(), errorMessage);
                         doCancelOffer(openOffer);
-                        latch.countDown();
-                        errorMessageHandler.handleErrorMessage(errorMessage);
                     }
+                    latch.countDown();
+                    errorMessageHandler.handleErrorMessage(errorMessage);
                 });
                 HavenoUtils.awaitLatch(latch);
             }
@@ -943,8 +942,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // if not found, create tx to split exact output
                     if (splitOutputTx == null) {
-                        if (openOffer.getSplitOutputTxHash() != null) log.warn("Split output tx not found for offer {}", openOffer.getId());
-                        splitOrSchedule(openOffers, openOffer, amountNeeded);
+                        if (openOffer.getSplitOutputTxHash() != null) {
+                            log.warn("Split output tx unexpectedly unavailable for offer, offerId={}, split output tx={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
+                            setSplitOutputTx(openOffer, null);
+                        }
+                        try {
+                            splitOrSchedule(openOffers, openOffer, amountNeeded);
+                        } catch (Exception e) {
+                            log.warn("Unable to split or schedule funds for offer {}: {}", openOffer.getId(), e.getMessage());
+                            openOffer.getOffer().setState(Offer.State.INVALID);
+                            errorMessageHandler.handleErrorMessage(e.getMessage());
+                            return;
+                        }
                     } else if (!splitOutputTx.isLocked()) {
 
                         // otherwise sign and post offer if split output available
@@ -981,7 +990,23 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // return split output tx if already assigned
         if (openOffer != null && openOffer.getSplitOutputTxHash() != null) {
-            return xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
+
+            // get recorded split output tx
+            MoneroTxWallet splitOutputTx = xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
+
+            // check if split output tx is available for offer
+            if (splitOutputTx.isLocked()) return splitOutputTx;
+            else {
+                boolean isAvailable = true;
+                for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
+                    if (output.isSpent() || output.isFrozen()) {
+                        isAvailable = false;
+                        break;
+                    }
+                }
+                if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
+                else log.warn("Split output tx is no longer available for offer {}", openOffer.getId());
+            }
         }
 
         // get split output tx to offer's preferred subaddress
@@ -994,6 +1019,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // get split output tx to any subaddress
         List<MoneroTxWallet> fundingTxs = getSplitOutputFundingTxs(reserveAmount, null);
         return getEarliestUnscheduledTx(openOffers, openOffer, fundingTxs);
+    }
+
+    private boolean isReservedByOffer(OpenOffer openOffer, MoneroTxWallet tx) {
+        if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) return false;
+        Set<String> offerKeyImages = new HashSet<String>(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+            if (offerKeyImages.contains(output.getKeyImage().getHex())) return true;
+        }
+        return false;
     }
 
     private List<MoneroTxWallet> getSplitOutputFundingTxs(BigInteger reserveAmount, Integer preferredSubaddressIndex) {
@@ -1064,7 +1098,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
                         break;
                     } catch (Exception e) {
-                        log.warn("Error creating split output tx to fund offer {} at subaddress {}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        if (e.getMessage().contains("not enough")) throw e; // do not retry if not enough funds
+                        log.warn("Error creating split output tx to fund offer, offerId={}, subaddress={}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         if (xmrConnectionService.isConnected()) xmrWalletService.requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -1080,10 +1115,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void setSplitOutputTx(OpenOffer openOffer, MoneroTxWallet splitOutputTx) {
-        openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
-        openOffer.setSplitOutputTxFee(splitOutputTx.getFee().longValueExact());
-        openOffer.setScheduledTxHashes(Arrays.asList(splitOutputTx.getHash()));
-        openOffer.setScheduledAmount(openOffer.getOffer().getAmountNeeded().toString());
+        openOffer.setSplitOutputTxHash(splitOutputTx == null ? null : splitOutputTx.getHash());
+        openOffer.setSplitOutputTxFee(splitOutputTx == null ? 0l : splitOutputTx.getFee().longValueExact());
+        openOffer.setScheduledTxHashes(splitOutputTx == null ? null : Arrays.asList(splitOutputTx.getHash()));
+        openOffer.setScheduledAmount(splitOutputTx == null ? null : openOffer.getOffer().getAmountNeeded().toString());
         if (!openOffer.isCanceled()) openOffer.setState(OpenOffer.State.PENDING);
     }
 
@@ -1139,9 +1174,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         for (OpenOffer otherOffer : openOffers) {
             if (otherOffer == openOffer) continue;
             if (otherOffer.getState() != OpenOffer.State.PENDING) continue;
-            if (otherOffer.getScheduledTxHashes() == null) continue;
-            for (String scheduledTxHash : otherOffer.getScheduledTxHashes()) {
-                if (txHash.equals(scheduledTxHash)) return true;
+            if (txHash.equals(otherOffer.getSplitOutputTxHash())) return true;
+            if (otherOffer.getScheduledTxHashes() != null) {
+                for (String scheduledTxHash : otherOffer.getScheduledTxHashes()) {
+                    if (txHash.equals(scheduledTxHash)) return true;
+                }
             }
         }
         return false;
