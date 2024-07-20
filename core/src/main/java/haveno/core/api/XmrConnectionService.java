@@ -273,7 +273,7 @@ public final class XmrConnectionService {
     }
 
     public synchronized boolean requestSwitchToNextBestConnection() {
-        log.warn("Request made to switch to next best monerod, current monerod={}", getConnection() == null ? null : getConnection().getUri());
+        log.warn("Requesting switch to next best monerod, current monerod={}", getConnection() == null ? null : getConnection().getUri());
 
         // skip if shut down started
         if (isShutDownStarted) {
