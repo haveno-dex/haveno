@@ -106,10 +106,12 @@ public final class XmrConnectionService {
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
 
     // connection switching
-    private static final int EXCLUDE_CONNECTION_SECONDS = 300;
-    private static final int MAX_SWITCH_REQUESTS_PER_MINUTE = 3;
-    private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
+    private static final int EXCLUDE_CONNECTION_SECONDS = 180;
+    private static final int MAX_SWITCH_REQUESTS_PER_MINUTE = 2;
+    private static final int SKIP_SWITCH_WITHIN_MS = 10000;
     private int numRequestsLastMinute;
+    private long lastSwitchTimestamp;
+    private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
 
     @Inject
     public XmrConnectionService(P2PService p2PService,
@@ -270,12 +272,25 @@ public final class XmrConnectionService {
         if (bestConnection != null) setConnection(bestConnection);
     }
 
-    public boolean requestSwitchToNextBestConnection() {
+    public synchronized boolean requestSwitchToNextBestConnection() {
         log.warn("Request made to switch to next best monerod, current monerod={}", getConnection() == null ? null : getConnection().getUri());
+
+        // skip if shut down started
+        if (isShutDownStarted) {
+            log.warn("Skipping switch to next best Monero connection because shut down has started");
+            return false;
+        }
 
         // skip if connection is fixed
         if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
             log.info("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
+            return false;
+        }
+
+        // skip if last switch was too recent
+        boolean skipSwitch = System.currentTimeMillis() - lastSwitchTimestamp < SKIP_SWITCH_WITHIN_MS;
+        if (skipSwitch) {
+            log.warn("Skipping switch to next best Monero connection because last switch was less than {} seconds ago", SKIP_SWITCH_WITHIN_MS / 1000);
             return false;
         }
 
@@ -301,11 +316,14 @@ public final class XmrConnectionService {
             if (currentConnection != null) excludedConnections.remove(currentConnection);
         }, EXCLUDE_CONNECTION_SECONDS);
 
-        // switch to best connection
+        // return if no connection to switch to
         if (bestConnection == null) {
             log.warn("No connection to switch to");
             return false;
         }
+
+        // switch to best connection
+        lastSwitchTimestamp = System.currentTimeMillis();
         setConnection(bestConnection);
         return true;
     }
