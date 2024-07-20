@@ -690,9 +690,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         };
 
         errorMessageListener = (o, oldValue, newValue) -> {
-            if (newValue != null)
+            if (model.createOfferCanceled) return;
+            if (newValue != null) {
                 UserThread.runAfter(() -> new Popup().error(Res.get("createOffer.amountPriceBox.error.message", model.errorMessage.get()))
-                        .show(), 100, TimeUnit.MILLISECONDS);
+                    .show(), 100, TimeUnit.MILLISECONDS);
+            }
         };
 
         paymentAccountsComboBoxSelectionHandler = e -> onPaymentAccountsComboBoxSelected();

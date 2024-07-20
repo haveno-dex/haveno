@@ -109,6 +109,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private String addressAsString;
     private final String paymentLabel;
     private boolean createOfferRequested;
+    public boolean createOfferCanceled;
 
     public final StringProperty amount = new SimpleStringProperty();
     public final StringProperty minAmount = new SimpleStringProperty();
@@ -608,6 +609,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     void onPlaceOffer(Offer offer, Runnable resultHandler) {
         errorMessage.set(null);
         createOfferRequested = true;
+        createOfferCanceled = false;
 
         dataModel.onPlaceOffer(offer, transaction -> {
             resultHandler.run();
@@ -631,6 +633,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public void onCancelOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         createOfferRequested = false;
+        createOfferCanceled = true;
         OpenOfferManager openOfferManager = HavenoUtils.openOfferManager;
         Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(offer.getId());
         if (openOffer.isPresent()) {

@@ -1073,7 +1073,7 @@ public abstract class Trade implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to import multisig hex, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         if (isReadTimeoutError(e.getMessage())) forceRestartTradeWallet(); // wallet can be stuck a while
@@ -1180,7 +1180,7 @@ public abstract class Trade implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to create payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -1241,7 +1241,7 @@ public abstract class Trade implements Tradable, Model {
                         throw e;
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
-                        log.warn("Failed to create dispute payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
