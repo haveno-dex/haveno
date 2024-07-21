@@ -36,6 +36,7 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipRadioButton;
 import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.AutoTooltipTextField;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.BalanceTextField;
 import haveno.desktop.components.BusyAnimation;
@@ -1284,6 +1285,20 @@ public class FormBuilder {
         vBox.getChildren().addAll(label, comboBox);
 
         return new Tuple3<>(vBox, label, comboBox);
+    }
+
+    public static Tuple3<VBox, Label, AutoTooltipTextField> addTopLabelAutoToolTipTextField(String title) {
+        return addTopLabelAutoToolTipTextField(title, 0);
+    }
+
+    public static Tuple3<VBox, Label, AutoTooltipTextField> addTopLabelAutoToolTipTextField(String title, int top) {
+        Label label = getTopLabel(title);
+        VBox vBox = getTopLabelVBox(top);
+
+        final AutoTooltipTextField textField = new AutoTooltipTextField();
+        vBox.getChildren().addAll(label, textField);
+
+        return new Tuple3<>(vBox, label, textField);
     }
 
     @NotNull
