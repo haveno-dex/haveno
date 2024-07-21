@@ -574,10 +574,18 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
 
         if (!filterText.isEmpty()) {
-            Predicate<OfferBookListItem> nextPredicate=offerBookListItem ->
-                    offerBookListItem.getOffer().getOfferPayload().getOwnerNodeAddress().getFullAddress().contains(filterText);
-            nextPredicate=nextPredicate.or(offerBookListItem ->
-                    offerBookListItem.getOffer().getId().contains(filterText));
+
+            // filter node address
+            Predicate<OfferBookListItem> nextPredicate = offerBookListItem ->
+                    offerBookListItem.getOffer().getOfferPayload().getOwnerNodeAddress().getFullAddress().toLowerCase().contains(filterText.toLowerCase());
+
+            // filter offer id
+            nextPredicate = nextPredicate.or(offerBookListItem ->
+                    offerBookListItem.getOffer().getId().toLowerCase().contains(filterText.toLowerCase()));
+
+            // filter payment method
+            nextPredicate = nextPredicate.or(offerBookListItem ->
+                    Res.get(offerBookListItem.getOffer().getPaymentMethod().getId()).toLowerCase().contains(filterText.toLowerCase()));
 
             filteredItems.setPredicate(predicate.and(nextPredicate));
         } else {

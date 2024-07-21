@@ -188,13 +188,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 Res.get("offerbook.filterByCurrency"));
         currencyComboBoxContainer = currencyBoxTuple.first;
         currencyComboBox = currencyBoxTuple.third;
-        currencyComboBox.setPrefWidth(270);
+        currencyComboBox.setPrefWidth(250);
 
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
-        paymentMethodComboBox.setPrefWidth(270);
+        paymentMethodComboBox.setPrefWidth(250);
 
         matchingOffersToggle = new AutoTooltipSlideToggleButton();
         matchingOffersToggle.setText(Res.get("offerbook.matchingOffers"));
@@ -215,7 +215,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         var createOfferButtonStack = new StackPane(createOfferButton, disabledCreateOfferButtonTooltip);
 
-        Tuple3<VBox, Label, AutoTooltipTextField> autoToolTipTextField = addTopLabelAutoToolTipTextField(Res.get("shared.filter"));
+        Tuple3<VBox, Label, AutoTooltipTextField> autoToolTipTextField = addTopLabelAutoToolTipTextField("");
         VBox filterBox = autoToolTipTextField.first;
         filterInputField = autoToolTipTextField.third;
         filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
