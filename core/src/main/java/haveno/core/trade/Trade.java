@@ -2546,7 +2546,12 @@ public abstract class Trade implements Tradable, Model {
 
                 // rescan spent outputs to detect unconfirmed payout tx
                 if (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                    wallet.rescanSpent();
+                    try {
+                        wallet.rescanSpent();
+                    } catch (Exception e) {
+                        log.warn("Failed to rescan spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                        ThreadUtils.execute(() -> requestSwitchToNextBestConnection(), getId()); // do not block polling thread
+                    }
                 }
 
                 // get txs from trade wallet
@@ -2596,7 +2601,6 @@ public abstract class Trade implements Tradable, Model {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
-                    ThreadUtils.execute(() -> requestSwitchToNextBestConnection(), getId()); // do not block polling thread
                     //e.printStackTrace();
                 }
             }
