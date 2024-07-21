@@ -163,28 +163,33 @@ configure([project(':cli'),
 
             // edit generated shell scripts such that they expect to be executed in the
             // project root dir as opposed to a 'bin' subdirectory
-            def windowsScriptFile = file("${rootProject.projectDir}/haveno-${applicationName}.bat")
-            windowsScriptFile.text = windowsScriptFile.text.replace(
-                'set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%')
-
-            def unixScriptFile = file("${rootProject.projectDir}/haveno-$applicationName")
-            unixScriptFile.text = unixScriptFile.text.replace(
-                'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
-
-            if (applicationName == 'desktop') {
+            if (osdetector.os == 'windows') {
+                def windowsScriptFile = file("${rootProject.projectDir}/haveno-${applicationName}.bat")
                 windowsScriptFile.text = windowsScriptFile.text.replace(
-                    'DEFAULT_JVM_OPTS=', 'DEFAULT_JVM_OPTS=-XX:MaxRAM=4g ' +
-                        '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                        '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                        '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED')
+                    'set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%')
 
+                if (applicationName == 'desktop') {
+                    windowsScriptFile.text = windowsScriptFile.text.replace(
+                        'DEFAULT_JVM_OPTS=', 'DEFAULT_JVM_OPTS=-XX:MaxRAM=4g ' +
+                            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
+                            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
+                            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
+                            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED')
+                }
+            }
+            else {
+                def unixScriptFile = file("${rootProject.projectDir}/haveno-$applicationName")
                 unixScriptFile.text = unixScriptFile.text.replace(
-                    'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
-                        '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                        '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                        '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"')
+                    'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
+
+                if (applicationName == 'desktop') {
+                    unixScriptFile.text = unixScriptFile.text.replace(
+                        'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
+                            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
+                            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
+                            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
+                            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"')
+                }
             }
 
             if (applicationName == 'apitest') {
@@ -605,7 +610,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.0.8-SNAPSHOT'
+    version = '1.0.9-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,

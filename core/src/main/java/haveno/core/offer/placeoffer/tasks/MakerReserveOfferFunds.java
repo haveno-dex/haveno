@@ -66,7 +66,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             synchronized (XmrWalletService.WALLET_LOCK) {
 
                 // reset protocol timeout
-                verifyScheduled();
+                verifyPending();
                 model.getProtocol().startTimeoutTimer();
 
                 // collect relevant info
@@ -86,14 +86,15 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                                 //if (true) throw new RuntimeException("Pretend error");
                                 reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
                             } catch (Exception e) {
-                                log.warn("Error creating reserve tx, attempt={}/{}, offerId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
+                                log.warn("Error creating reserve tx, offerId={}, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                 model.getProtocol().startTimeoutTimer(); // reset protocol timeout
+                                if (model.getXmrWalletService().getConnectionService().isConnected()) model.getXmrWalletService().requestSwitchToNextBestConnection();
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                             }
         
                             // verify still open
-                            verifyScheduled();
+                            verifyPending();
                             if (reserveTx != null) break;
                         }
                     }
@@ -103,6 +104,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                     model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
                     if (reserveTx != null) {
                         model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                        offer.getOfferPayload().setReserveTxKeyImages(null);
                     }
 
                     throw e;
@@ -130,7 +132,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         }
     }
 
-    public void verifyScheduled() {
-        if (!model.getOpenOffer().isScheduled()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
+    public void verifyPending() {
+        if (!model.getOpenOffer().isPending()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
     }
 }

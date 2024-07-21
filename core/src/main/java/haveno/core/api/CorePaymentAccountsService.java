@@ -145,6 +145,16 @@ class CorePaymentAccountsService {
         return cryptoCurrencyAccount;
     }
 
+    synchronized void deletePaymentAccount(String paymentAccountId) {
+        accountService.checkAccountOpen();
+        PaymentAccount paymentAccount = getPaymentAccount(paymentAccountId);
+        if (paymentAccount == null) throw new IllegalArgumentException(format("Payment account with id %s not found", paymentAccountId));
+        user.removePaymentAccount(paymentAccount);
+        log.info("Deleted payment account with id {} and payment method {}.",
+                paymentAccount.getId(),
+                paymentAccount.getPaymentAccountPayload().getPaymentMethodId());
+    }
+
     // TODO Support all alt coin payment methods supported by UI.
     //  The getCryptoCurrencyPaymentMethods method below will be
     //  callable from the CLI when more are supported.

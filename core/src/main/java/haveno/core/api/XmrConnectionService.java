@@ -36,7 +36,10 @@ import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
@@ -67,8 +70,6 @@ public final class XmrConnectionService {
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
-    private static final long LOG_POLL_ERROR_AFTER_MS = 300000; // minimum period between logging errors fetching daemon info
-    private static Long lastErrorTimestamp;
 
     private final Object lock = new Object();
     private final Object pollLock = new Object();
@@ -97,10 +98,20 @@ public final class XmrConnectionService {
     private Boolean isConnected = false;
     @Getter
     private MoneroDaemonInfo lastInfo;
+    private Long lastLogPollErrorTimestamp;
     private Long syncStartHeight = null;
     private TaskLooper daemonPollLooper;
+    @Getter
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
+
+    // connection switching
+    private static final int EXCLUDE_CONNECTION_SECONDS = 180;
+    private static final int MAX_SWITCH_REQUESTS_PER_MINUTE = 2;
+    private static final int SKIP_SWITCH_WITHIN_MS = 10000;
+    private int numRequestsLastMinute;
+    private long lastSwitchTimestamp;
+    private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
 
     @Inject
     public XmrConnectionService(P2PService p2PService,
@@ -200,12 +211,6 @@ public final class XmrConnectionService {
         return connectionManager.getConnections();
     }
 
-    public void switchToBestConnection() {
-        if (isFixedConnection() || !connectionManager.getAutoSwitch()) return;
-        MoneroRpcConnection bestConnection = getBestAvailableConnection();
-        if (bestConnection != null) setConnection(bestConnection);
-    }
-
     public void setConnection(String connectionUri) {
         accountService.checkAccountOpen();
         connectionManager.setConnection(connectionUri); // listener will update connection list
@@ -243,8 +248,84 @@ public final class XmrConnectionService {
     public MoneroRpcConnection getBestAvailableConnection() {
         accountService.checkAccountOpen();
         List<MoneroRpcConnection> ignoredConnections = new ArrayList<MoneroRpcConnection>();
-        if (xmrLocalNode.shouldBeIgnored() && connectionManager.hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(connectionManager.getConnectionByUri(xmrLocalNode.getUri()));
+        addLocalNodeIfIgnored(ignoredConnections);
         return connectionManager.getBestAvailableConnection(ignoredConnections.toArray(new MoneroRpcConnection[0]));
+    }
+
+    private MoneroRpcConnection getBestAvailableConnection(Collection<MoneroRpcConnection> ignoredConnections) {
+        accountService.checkAccountOpen();
+        Set<MoneroRpcConnection> ignoredConnectionsSet = new HashSet<>(ignoredConnections);
+        addLocalNodeIfIgnored(ignoredConnectionsSet);
+        return connectionManager.getBestAvailableConnection(ignoredConnectionsSet.toArray(new MoneroRpcConnection[0]));
+    }
+
+    private void addLocalNodeIfIgnored(Collection<MoneroRpcConnection> ignoredConnections) {
+        if (xmrLocalNode.shouldBeIgnored() && connectionManager.hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(connectionManager.getConnectionByUri(xmrLocalNode.getUri()));
+    }
+
+    private void switchToBestConnection() {
+        if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
+            log.info("Skipping switch to best Monero connection because connection is fixed or auto switch is disabled");
+            return;
+        }
+        MoneroRpcConnection bestConnection = getBestAvailableConnection();
+        if (bestConnection != null) setConnection(bestConnection);
+    }
+
+    public synchronized boolean requestSwitchToNextBestConnection() {
+        log.warn("Requesting switch to next best monerod, current monerod={}", getConnection() == null ? null : getConnection().getUri());
+
+        // skip if shut down started
+        if (isShutDownStarted) {
+            log.warn("Skipping switch to next best Monero connection because shut down has started");
+            return false;
+        }
+
+        // skip if connection is fixed
+        if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
+            log.info("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
+            return false;
+        }
+
+        // skip if last switch was too recent
+        boolean skipSwitch = System.currentTimeMillis() - lastSwitchTimestamp < SKIP_SWITCH_WITHIN_MS;
+        if (skipSwitch) {
+            log.warn("Skipping switch to next best Monero connection because last switch was less than {} seconds ago", SKIP_SWITCH_WITHIN_MS / 1000);
+            return false;
+        }
+
+        // skip if too many requests in the last minute
+        if (numRequestsLastMinute > MAX_SWITCH_REQUESTS_PER_MINUTE) {
+            log.warn("Skipping switch to next best Monero connection because more than {} requests were made in the last minute", MAX_SWITCH_REQUESTS_PER_MINUTE);
+            return false;
+        }
+
+        // increment request count
+        numRequestsLastMinute++;
+        UserThread.runAfter(() -> numRequestsLastMinute--, 60); // decrement after one minute
+
+        // exclude current connection
+        MoneroRpcConnection currentConnection = getConnection();
+        if (currentConnection != null) excludedConnections.add(currentConnection);
+
+        // get connection to switch to
+        MoneroRpcConnection bestConnection = getBestAvailableConnection(excludedConnections);
+
+        // remove from excluded connections after period
+        UserThread.runAfter(() -> {
+            if (currentConnection != null) excludedConnections.remove(currentConnection);
+        }, EXCLUDE_CONNECTION_SECONDS);
+
+        // return if no connection to switch to
+        if (bestConnection == null) {
+            log.warn("No connection to switch to");
+            return false;
+        }
+
+        // switch to best connection
+        lastSwitchTimestamp = System.currentTimeMillis();
+        setConnection(bestConnection);
+        return true;
     }
 
     public void setAutoSwitch(boolean autoSwitch) {
@@ -504,7 +585,6 @@ public final class XmrConnectionService {
 
             // register connection listener
             connectionManager.addListener(this::onConnectionChanged);
-
             isInitialized = true;
         }
 
@@ -620,8 +700,14 @@ public final class XmrConnectionService {
                         return;
                     }
 
+                    // log error message periodically
+                    if ((lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS)) {
+                        log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
+                        if (DevEnv.isDevMode()) e.printStackTrace();
+                        lastLogPollErrorTimestamp = System.currentTimeMillis();
+                    }
+
                     // switch to best connection
-                    log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
                     switchToBestConnection();
                     lastInfo = daemon.getInfo(); // caught internally if still fails
                 }
@@ -662,9 +748,9 @@ public final class XmrConnectionService {
                 });
 
                 // handle error recovery
-                if (lastErrorTimestamp != null) {
+                if (lastLogPollErrorTimestamp != null) {
                     log.info("Successfully fetched daemon info after previous error");
-                    lastErrorTimestamp = null;
+                    lastLogPollErrorTimestamp = null;
                 }
 
                 // clear error message
@@ -676,13 +762,6 @@ public final class XmrConnectionService {
 
                 // skip if shut down
                 if (isShutDownStarted) return;
-
-                // log error message periodically
-                if ((lastErrorTimestamp == null || System.currentTimeMillis() - lastErrorTimestamp > LOG_POLL_ERROR_AFTER_MS)) {
-                    lastErrorTimestamp = System.currentTimeMillis();
-                    log.warn("Could not update daemon info: " + e.getMessage());
-                    if (DevEnv.isDevMode()) e.printStackTrace();
-                }
 
                 // set error message
                 getConnectionServiceErrorMsg().set(e.getMessage());

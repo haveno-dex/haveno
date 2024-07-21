@@ -38,6 +38,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import lombok.Getter;
 
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -82,7 +83,8 @@ public abstract class NetworkNode implements MessageListener {
     private final ListeningExecutorService sendMessageExecutor;
     private Server server;
 
-    private volatile boolean shutDownInProgress;
+    @Getter
+    private volatile boolean isShutDownStarted;
     // accessed from different threads
     private final CopyOnWriteArraySet<OutboundConnection> outBoundConnections = new CopyOnWriteArraySet<>();
     protected final ObjectProperty<NodeAddress> nodeAddressProperty = new SimpleObjectProperty<>();
@@ -181,7 +183,7 @@ public abstract class NetworkNode implements MessageListener {
                         try {
                             socket.close();
                         } catch (Throwable throwable) {
-                            if (!shutDownInProgress) {
+                            if (!isShutDownStarted) {
                                 log.error("Error at closing socket " + throwable);
                             }
                         }
@@ -362,8 +364,8 @@ public abstract class NetworkNode implements MessageListener {
 
     public void shutDown(Runnable shutDownCompleteHandler) {
         log.info("NetworkNode shutdown started");
-        if (!shutDownInProgress) {
-            shutDownInProgress = true;
+        if (!isShutDownStarted) {
+            isShutDownStarted = true;
             if (server != null) {
                 server.shutDown();
                 server = null;

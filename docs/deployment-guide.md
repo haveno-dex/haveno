@@ -22,9 +22,35 @@ Arbitrators can be started in a Screen session and then detached to run in the b
 
 Some good hints about how to secure a VPS are in [Monero's meta repository](https://github.com/monero-project/meta/blob/master/SERVER_SETUP_HARDENING.md).
 
+## Install dependencies
+
+On Linux and macOS, install Java JDK 21:
+
+```
+curl -s "https://get.sdkman.io" | bash
+sdk install java 21.0.2.fx-librca
+```
+
+Alternatively, on Ubuntu 22.04:
+
+`sudo apt-get install openjdk-21-jdk`
+
+On Windows, install MSYS2 and Java JDK 21:
+
+1. Install [MSYS2](https://www.msys2.org/).
+2. Start MSYS2 MINGW64 or MSYS MINGW32 depending on your system. Use MSYS2 for all commands throughout this document.
+4. Update pacman: `pacman -Syy`
+5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
+
+    64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
+
+    32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+6. `curl -s "https://get.sdkman.io" | bash`
+7. `sdk install java 21.0.2.fx-librca`
+
 ## Fork and build Haveno
 
-First fork Haveno to a public repository. Then build Haveno:
+Fork Haveno to a public repository. Then build Haveno:
 
 ```
 git clone <your fork url>
@@ -57,9 +83,12 @@ For each seed node:
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. [Start a local Monero node](#start-a-local-monero-node).
-3. Run `make seednode` to run a seednode on Monero's mainnet or `make seednode-stagenet` to run a seednode on Monero's stagenet.
-4. The node will print its onion address to the console. Record the onion address in `core/src/main/resources/xmr_<network>.seednodes`. Be careful to record full addresses correctly.
-5. Update all seed nodes, arbitrators, and user applications for the change to take effect.
+3. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
+4. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
+5. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
+6. Run `journalctl -u haveno-seednode.service -b -f` which will print the log and show the `.onion` address of the seed node. Press `Ctrl+C` to stop printing the log and record the `.onion` address given.
+7. Add the `.onion` address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:1002)`. Be careful to record full addresses correctly.
+8. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 Customize and deploy haveno-seednode.service to run a seed node as a system service.
 

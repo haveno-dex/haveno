@@ -1061,6 +1061,7 @@ message UpholdAccountPayload {
 
 message CashAppAccountPayload {
     string email_or_mobile_nr_or_cashtag = 1;
+    string extra_info = 2;
 }
 
 message MoneyBeamAccountPayload {
@@ -1072,6 +1073,7 @@ message VenmoAccountPayload {
 }
 message PayPalAccountPayload {
     string email_or_mobile_nr_or_username = 1;
+    string extra_info = 2;
 }
 
 message PopmoneyAccountPayload {
@@ -1391,7 +1393,7 @@ message SignedOffer {
 message OpenOffer {
     enum State {
         PB_ERROR = 0;
-        SCHEDULED = 1;
+        PENDING = 1;
         AVAILABLE = 2;
         RESERVED = 3;
         CLOSED = 4;

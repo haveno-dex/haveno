@@ -42,7 +42,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -51,11 +50,10 @@ import java.util.List;
 import java.util.Optional;
 
 @EqualsAndHashCode
-@Slf4j
 public final class OpenOffer implements Tradable {
 
     public enum State {
-        SCHEDULED,
+        PENDING,
         AVAILABLE,
         RESERVED,
         CLOSED,
@@ -122,7 +120,7 @@ public final class OpenOffer implements Tradable {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
-        state = State.SCHEDULED;
+        state = State.PENDING;
     }
 
     public OpenOffer(Offer offer, long triggerPrice, OpenOffer openOffer) {
@@ -167,8 +165,8 @@ public final class OpenOffer implements Tradable {
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
 
-        if (this.state == State.RESERVED)
-            setState(State.AVAILABLE);
+        // reset reserved state to available
+        if (this.state == State.RESERVED) setState(State.AVAILABLE);
     }
 
     @Override
@@ -234,8 +232,8 @@ public final class OpenOffer implements Tradable {
         return stateProperty;
     }
 
-    public boolean isScheduled() {
-        return state == State.SCHEDULED;
+    public boolean isPending() {
+        return state == State.PENDING;
     }
 
     public boolean isAvailable() {

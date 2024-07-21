@@ -296,7 +296,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void updateSelectToggleButtonState() {
         List<OpenOfferListItem> availableItems = sortedList.stream()
-                .filter(openOfferListItem -> !openOfferListItem.getOpenOffer().isScheduled())
+                .filter(openOfferListItem -> !openOfferListItem.getOpenOffer().isPending())
                 .collect(Collectors.toList());
         if (availableItems.size() == 0) {
             selectToggleButton.setDisable(true);
@@ -710,7 +710,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                     offerStateChangeListeners.put(openOffer.getId(), listener);
                                     openOffer.stateProperty().addListener(listener);
 
-                                    if (openOffer.getState() == OpenOffer.State.SCHEDULED) {
+                                    if (openOffer.getState() == OpenOffer.State.PENDING) {
                                         setGraphic(new AutoTooltipLabel(Res.get("shared.pending")));
                                         return;
                                     }

@@ -140,33 +140,38 @@ class RequestDataHandler implements MessageListener {
             getDataRequestType = getDataRequest.getClass().getSimpleName();
             log.info("\n\n>> We send a {} to peer {}\n", getDataRequestType, nodeAddress);
             networkNode.addMessageListener(this);
-            SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getDataRequest);
-            //noinspection UnstableApiUsage
-            Futures.addCallback(future, new FutureCallback<>() {
-                @Override
-                public void onSuccess(Connection connection) {
-                    if (!stopped) {
-                        log.trace("Send {} to {} succeeded.", getDataRequest, nodeAddress);
-                    } else {
-                        log.trace("We have stopped already. We ignore that networkNode.sendMessage.onSuccess call." +
-                                "Might be caused by a previous timeout.");
-                    }
-                }
 
-                @Override
-                public void onFailure(@NotNull Throwable throwable) {
-                    if (!stopped) {
-                        String errorMessage = "Sending getDataRequest to " + nodeAddress +
-                                " failed. That is expected if the peer is offline.\n\t" +
-                                "getDataRequest=" + getDataRequest + "." +
-                                "\n\tException=" + throwable.getMessage();
-                        handleFault(errorMessage, nodeAddress, CloseConnectionReason.SEND_MSG_FAILURE);
-                    } else {
-                        log.trace("We have stopped already. We ignore that networkNode.sendMessage.onFailure call. " +
-                                "Might be caused by a previous timeout.");
+            try {
+                SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getDataRequest);
+                //noinspection UnstableApiUsage
+                Futures.addCallback(future, new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(Connection connection) {
+                        if (!stopped) {
+                            log.trace("Send {} to {} succeeded.", getDataRequest, nodeAddress);
+                        } else {
+                            log.trace("We have stopped already. We ignore that networkNode.sendMessage.onSuccess call." +
+                                    "Might be caused by a previous timeout.");
+                        }
                     }
-                }
-            }, MoreExecutors.directExecutor());
+    
+                    @Override
+                    public void onFailure(@NotNull Throwable throwable) {
+                        if (!stopped) {
+                            String errorMessage = "Sending getDataRequest to " + nodeAddress +
+                                    " failed. That is expected if the peer is offline.\n\t" +
+                                    "getDataRequest=" + getDataRequest + "." +
+                                    "\n\tException=" + throwable.getMessage();
+                            handleFault(errorMessage, nodeAddress, CloseConnectionReason.SEND_MSG_FAILURE);
+                        } else {
+                            log.trace("We have stopped already. We ignore that networkNode.sendMessage.onFailure call. " +
+                                    "Might be caused by a previous timeout.");
+                        }
+                    }
+                }, MoreExecutors.directExecutor());
+            } catch (Exception e) {
+                if (!networkNode.isShutDownStarted()) throw e;
+            }
         } else {
             log.warn("We have stopped already. We ignore that requestData call.");
         }

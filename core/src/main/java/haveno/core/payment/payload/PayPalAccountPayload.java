@@ -36,6 +36,7 @@ import java.util.Map;
 @Slf4j
 public final class PayPalAccountPayload extends PaymentAccountPayload {
     private String emailOrMobileNrOrUsername = "";
+    private String extraInfo = "";
 
     public PayPalAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -48,6 +49,7 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
     private PayPalAccountPayload(String paymentMethod,
             String id,
             String emailOrMobileNrOrUsername,
+            String extraInfo,
             long maxTradePeriod,
             Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -56,13 +58,15 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
                 excludeFromJsonDataMap);
 
         this.emailOrMobileNrOrUsername = emailOrMobileNrOrUsername;
+        this.extraInfo = extraInfo;
     }
 
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
                 .setPaypalAccountPayload(protobuf.PayPalAccountPayload.newBuilder()
-                        .setEmailOrMobileNrOrUsername(emailOrMobileNrOrUsername))
+                .setExtraInfo(extraInfo)
+                .setEmailOrMobileNrOrUsername(emailOrMobileNrOrUsername))
                 .build();
     }
 
@@ -70,6 +74,7 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
         return new PayPalAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 proto.getPaypalAccountPayload().getEmailOrMobileNrOrUsername(),
+                proto.getPaypalAccountPayload().getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -80,8 +85,8 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
 
     @Override
     public String getPaymentDetails() {
-        return Res.getWithCol("payment.email.mobile.username") + " "
-                + emailOrMobileNrOrUsername;
+        return Res.getWithCol("payment.email.mobile.username") + " "+ emailOrMobileNrOrUsername + "\n" +
+                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo+ "\n";
     }
 
     @Override

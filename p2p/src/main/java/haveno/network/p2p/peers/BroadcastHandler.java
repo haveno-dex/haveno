@@ -352,7 +352,13 @@ public class BroadcastHandler implements PeerManager.Listener {
 
         sendMessageFutures.stream()
                 .filter(future -> !future.isCancelled() && !future.isDone())
-                .forEach(future -> future.cancel(true));
+                .forEach(future -> {
+                    try {
+                        future.cancel(true);
+                    } catch (Exception e) {
+                        if (!networkNode.isShutDownStarted()) throw e;
+                    }
+                });
         sendMessageFutures.clear();
 
         peerManager.removeListener(this);

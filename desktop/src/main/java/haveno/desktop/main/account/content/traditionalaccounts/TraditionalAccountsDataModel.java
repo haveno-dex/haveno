@@ -108,6 +108,7 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
         if (singleTradeCurrency != null) {
+            paymentAccount.setSelectedTradeCurrency(singleTradeCurrency);
             if (singleTradeCurrency instanceof TraditionalCurrency)
                 preferences.addTraditionalCurrency((TraditionalCurrency) singleTradeCurrency);
             else

@@ -47,6 +47,7 @@ public class ThreadUtils {
                 synchronized (THREADS) {
                     THREADS.put(threadId, Thread.currentThread());
                 }
+                Thread.currentThread().setName(threadId);
                 command.run();
             });
         }

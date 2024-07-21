@@ -586,6 +586,8 @@ service PaymentAccounts {
     }
     rpc CreateCryptoCurrencyPaymentAccount (CreateCryptoCurrencyPaymentAccountRequest) returns (CreateCryptoCurrencyPaymentAccountReply) {
     }
+    rpc DeletePaymentAccount (DeletePaymentAccountRequest) returns (DeletePaymentAccountReply) {
+    }
     rpc GetCryptoCurrencyPaymentMethods (GetCryptoCurrencyPaymentMethodsRequest) returns (GetCryptoCurrencyPaymentMethodsReply) {
     }
     rpc ValidateFormField (ValidateFormFieldRequest) returns (ValidateFormFieldReply) {
@@ -637,6 +639,13 @@ message CreateCryptoCurrencyPaymentAccountRequest {
     string currency_code = 2;
     string address = 3;
     bool trade_instant = 4;
+}
+
+message DeletePaymentAccountRequest {
+    string payment_account_id = 1;
+}
+
+message DeletePaymentAccountReply {
 }
 
 message CreateCryptoCurrencyPaymentAccountReply {

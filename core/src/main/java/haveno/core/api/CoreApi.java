@@ -496,6 +496,10 @@ public class CoreApi {
                 tradeInstant);
     }
 
+    public void deletePaymentAccount(String paymentAccountId) {
+        paymentAccountsService.deletePaymentAccount(paymentAccountId);
+    }
+
     public List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return paymentAccountsService.getCryptoCurrencyPaymentMethods();
     }
@@ -555,10 +559,6 @@ public class CoreApi {
 
     public List<Trade> getTrades() {
         return coreTradesService.getTrades();
-    }
-
-    public String getTradeRole(String tradeId) {
-        return coreTradesService.getTradeRole(tradeId);
     }
 
     public List<ChatMessage> getChatMessages(String tradeId) {

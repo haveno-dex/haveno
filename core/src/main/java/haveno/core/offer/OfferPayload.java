@@ -94,12 +94,14 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Keys for extra map
     // Only set for traditional offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";
+    public static final String CASHAPP_EXTRA_INFO = "cashAppExtraInfo";
     public static final String REFERRAL_ID = "referralId";
     // Only used in payment method F2F
     public static final String F2F_CITY = "f2fCity";
     public static final String F2F_EXTRA_INFO = "f2fExtraInfo";
     public static final String PAY_BY_MAIL_EXTRA_INFO = "payByMailExtraInfo";
     public static final String AUSTRALIA_PAYID_EXTRA_INFO = "australiaPayidExtraInfo";
+    public static final String PAYPAL_EXTRA_INFO = "payPalExtraInfo";
 
     // Comma separated list of ordinal of a haveno.common.app.Capability. E.g. ordinal of
     // Capability.SIGNED_ACCOUNT_AGE_WITNESS is 11 and Capability.MEDIATION is 12 so if we want to signal that maker

@@ -96,9 +96,8 @@ class GrpcTradesService extends TradesImplBase {
                          StreamObserver<GetTradeReply> responseObserver) {
         try {
             Trade trade = coreApi.getTrade(req.getTradeId());
-            String role = coreApi.getTradeRole(req.getTradeId());
             var reply = GetTradeReply.newBuilder()
-                    .setTrade(toTradeInfo(trade, role).toProtoMessage())
+                    .setTrade(toTradeInfo(trade).toProtoMessage())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -258,8 +257,8 @@ class GrpcTradesService extends TradesImplBase {
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                             put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(3, MINUTES));
-                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                         }}
                 )));
     }

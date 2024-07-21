@@ -46,6 +46,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipSlideToggleButton;
 import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.AutoTooltipTextField;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 import haveno.desktop.components.HyperlinkWithIcon;
@@ -107,6 +108,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelAutoToolTipTextField;
 
 abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewModel> extends ActivatableViewAndModel<R, M> {
 
@@ -122,6 +124,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     protected AutocompleteComboBox<TradeCurrency> currencyComboBox;
     private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private AutoTooltipButton createOfferButton;
+    private AutoTooltipTextField filterInputField;
     private AutoTooltipSlideToggleButton matchingOffersToggle;
     private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> amountColumn;
     private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> volumeColumn;
@@ -185,13 +188,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 Res.get("offerbook.filterByCurrency"));
         currencyComboBoxContainer = currencyBoxTuple.first;
         currencyComboBox = currencyBoxTuple.third;
-        currencyComboBox.setPrefWidth(270);
+        currencyComboBox.setPrefWidth(250);
 
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
-        paymentMethodComboBox.setPrefWidth(270);
+        paymentMethodComboBox.setPrefWidth(250);
 
         matchingOffersToggle = new AutoTooltipSlideToggleButton();
         matchingOffersToggle.setText(Res.get("offerbook.matchingOffers"));
@@ -212,8 +215,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         var createOfferButtonStack = new StackPane(createOfferButton, disabledCreateOfferButtonTooltip);
 
+        Tuple3<VBox, Label, AutoTooltipTextField> autoToolTipTextField = addTopLabelAutoToolTipTextField("");
+        VBox filterBox = autoToolTipTextField.first;
+        filterInputField = autoToolTipTextField.third;
+        filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
+
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
-                matchingOffersToggle, getSpacer(), createOfferButtonStack);
+                filterBox, matchingOffersToggle, getSpacer(), createOfferButtonStack);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
@@ -427,6 +435,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         nrOfOffersLabel.setText(Res.get("offerbook.nrOffers", model.getOfferList().size()));
 
         model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
+
+        filterInputField.setOnKeyTyped(event -> {
+            model.onFilterKeyTyped(filterInputField.getText());
+        });
     }
 
     private void updatePaymentMethodComboBoxEditor() {
