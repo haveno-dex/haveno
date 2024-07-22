@@ -13,7 +13,7 @@ ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
   --useDevPrivilegeKeys=false\
   --nodePort=2002\
   --appName=haveno-XMR_STAGENET_Seed_2002
-  --xmrNode=[::1]:38088
+  --xmrNode=http://[::1]:38088
 
 ExecStop=/bin/kill ${MAINPID} ; sleep 5
 Restart=always
