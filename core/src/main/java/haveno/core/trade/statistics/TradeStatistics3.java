@@ -72,7 +72,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     public static TradeStatistics3 from(Trade trade,
                                         @Nullable String referralId,
-                                        boolean isTorNetworkNode) {
+                                        boolean isTorNetworkNode,
+                                        boolean isFuzzed) {
         Map<String, String> extraDataMap = new HashMap<>();
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
@@ -90,9 +91,9 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getPrice().getValue(),
-                fuzzTradeAmountReproducibly(trade),
+                isFuzzed ? fuzzTradeAmountReproducibly(trade) : trade.getAmount().longValueExact(),
                 offer.getPaymentMethod().getId(),
-                fuzzTradeDateReproducibly(trade),
+                isFuzzed ? fuzzTradeDateReproducibly(trade) : trade.getTakeOfferDate().getTime(),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);
     }

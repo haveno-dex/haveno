@@ -2299,7 +2299,7 @@ public abstract class Trade implements Tradable, Model {
     private void doPublishTradeStatistics() {
         String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
         boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
-        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode);
+        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode, true);
         if (tradeStatistics.isValid()) {
             log.info("Publishing trade statistics for {} {}", getClass().getSimpleName(), getId());
             processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
