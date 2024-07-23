@@ -95,7 +95,7 @@ source: [Tor Project Support](https://support.torproject.org/apt/)
 8. Update repositories `sudo apt update`
 9. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`
 10. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`
-11. stop tor `sudo systemctl stop tor@default.service`
+11. stop tor `sudo systemctl stop tor`
 
 For each seed node:
 
@@ -109,11 +109,10 @@ For each seed node:
 8. Add user to tor group `sudo usermod -aG debian-tor <user>`.
    NOTE: Replace `<user>` above with the user that will be running the seed node (step 5 above)
 9. Disconnect and reconnect SSH session or logout and back in.
-10. Run `sudo systemctl start tor@default.service`
-11. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
-12. Run `journalctl -u haveno-seednode.service -b -f` which will print the log and show the `.onion` address of the seed node. Press `Ctrl+C` to stop printing the log and record the `.onion` address given.
-13. Add the `.onion` address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:1002)`. Be careful to record full addresses correctly.
-14. Update all seed nodes, arbitrators, and user applications for the change to take effect.
+10. Run `sudo systemctl start tor`
+11. Run `sudo systemctl start haveno-seednode` to start the seednode and also run `sudo systemctl start haveno-seednode2` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
+12. Add the `.onion` address from step 5 to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:2002)`. Be careful to record full addresses correctly.
+13. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 Customize and deploy haveno-seednode.service to run a seed node as a system service.
 
