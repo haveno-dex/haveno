@@ -206,13 +206,23 @@ public class TradeStatisticsManager {
 
             TradeStatistics3 tradeStatistics3 = null;
             try {
-                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode, false);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
+
+            TradeStatistics3 tradeStatistics3Fuzzed = null;
+            try {
+                tradeStatistics3Fuzzed = TradeStatistics3.from(trade, referralId, isTorNetworkNode, true);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
+
             boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
-            if (hasTradeStatistics3) {
+            boolean hasTradeStatistics3Fuzzed = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3Fuzzed.getHash()));
+            if (hasTradeStatistics3 || hasTradeStatistics3Fuzzed) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;
