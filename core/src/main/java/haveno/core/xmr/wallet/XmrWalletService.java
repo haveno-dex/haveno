@@ -1758,9 +1758,11 @@ public class XmrWalletService {
 
     private void forceCloseMainWallet() {
         stopPolling();
-        isClosingWallet = true;
-        forceCloseWallet(wallet, getWalletPath(MONERO_WALLET_NAME));
-        wallet = null;
+        if (wallet != null) {
+            isClosingWallet = true;
+            forceCloseWallet(wallet, getWalletPath(MONERO_WALLET_NAME));
+            wallet = null;
+        }
     }
 
     private void forceRestartMainWallet() {
