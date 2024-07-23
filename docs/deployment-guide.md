@@ -89,7 +89,7 @@ source: [Tor Project Support](https://support.torproject.org/apt/)
 3. Create sources.list file `sudo nano /etc/apt/sources.list.d/tor.list`
 4. Paste `deb     [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
 5. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
-   NOTE: replace "<DISTRIBUTION>" with your system codename such as "jammy" for Ubuntu 22.04
+   NOTE: replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04
 6. Press Ctrl+X, then "y", then the enter key
 7. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`
 8. Update repositories `sudo apt update`
@@ -105,7 +105,7 @@ For each seed node:
 5. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
 6. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
 7. Add user to tor group `sudo usermod -aG debian-tor <user>`.
-   NOTE: Replace "<user>" above with the user that will be running the seed node (step 5 above)
+   NOTE: Replace `<user>` above with the user that will be running the seed node (step 5 above)
 8. Disconnect and reconnect SSH session or logout and back in.
 9. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
 10. Run `journalctl -u haveno-seednode.service -b -f` which will print the log and show the `.onion` address of the seed node. Press `Ctrl+C` to stop printing the log and record the `.onion` address given.
