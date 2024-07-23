@@ -85,17 +85,16 @@ NOTE: These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so
 
 source: [Tor Project Support](https://support.torproject.org/apt/)
 1. Verify architecture `sudo dpkg --print-architecture`
-2. Install apt-transport-https `sudo apt install apt-transport-https`
-3. Create sources.list file `sudo nano /etc/apt/sources.list.d/tor.list`
-4. Paste `deb     [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
-5. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
+2. Create sources.list file `sudo nano /etc/apt/sources.list.d/tor.list`
+3. Paste `deb     [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
+4. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
    NOTE: replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04
-6. Press Ctrl+X, then "y", then the enter key
-7. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`
-8. Update repositories `sudo apt update`
-9. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`
-10. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`
-11. stop tor `sudo systemctl stop tor`
+5. Press Ctrl+X, then "y", then the enter key
+6. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`
+7. Update repositories `sudo apt update`
+8. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`
+9. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`
+10. stop tor `sudo systemctl stop tor`
 
 For each seed node:
 
@@ -107,7 +106,7 @@ For each seed node:
 6. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
 7. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
 8. Add user to tor group `sudo usermod -aG debian-tor <user>`.
-   NOTE: Replace `<user>` above with the user that will be running the seed node (step 5 above)
+   NOTE: Replace `<user>` above with the user that will be running the seed node (step 6 above)
 9. Disconnect and reconnect SSH session or logout and back in.
 10. Run `sudo systemctl start tor`
 11. Run `sudo systemctl start haveno-seednode` to start the seednode and also run `sudo systemctl start haveno-seednode2` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
