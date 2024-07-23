@@ -11,6 +11,8 @@ SyslogIdentifier=Haveno-Seednode
 ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
   --useLocalhostForP2P=false\
   --useDevPrivilegeKeys=false\
+# Uncomment the following line to use external tor
+#  --hiddenServiceAddress=example.onion:port\
   --nodePort=2002\
   --appName=haveno-XMR_STAGENET_Seed_2002
   --xmrNode=http://[::1]:38088
