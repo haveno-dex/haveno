@@ -164,7 +164,7 @@ public class XmrWalletService {
     private TaskLooper syncProgressLooper;
     private CountDownLatch syncProgressLatch;
     private Timer syncProgressTimeout;
-    private static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 45;
+    private static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 60;
 
     // wallet polling and cache
     private TaskLooper pollLooper;
