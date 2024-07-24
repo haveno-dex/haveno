@@ -131,7 +131,7 @@
     -bs-red-soft: derive(-bs-rd-error-red, 60%);
     -bs-progress-bar-track: #272728;
     -bs-chart-tick: rgba(255, 255, 255, 0.7);
-    -bs-chart-lines: rgba(0, 0, 0, 0.3);
+    -bs-chart-lines: -bs-color-gray-6;
     -bs-white: white;
     -bs-prompt-text: -bs-color-gray-6;
     -bs-decimals: #db6300;
