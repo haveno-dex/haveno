@@ -82,7 +82,8 @@ Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as
 > [!important]
 > Network admins be sure to build the desktop, arbitrator and price node clients without this patch applied as it may cause them to need external tor as well.
 
-NOTE: These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so changes may be needed for your distribution.
+> [!note]
+> These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so changes may be needed for your distribution.
 
 ### Install Tor
 
