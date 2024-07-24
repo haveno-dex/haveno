@@ -80,7 +80,7 @@ Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as
 ## Add seed nodes
 
 > [!important]
-> Network admins be sure to build the desktop, arbitrator and price node clients without this patch applied as it may cause them to need external tor as well.
+> Network admins be sure to build the desktop, arbitrator, and price node clients without this patch applied as it may cause them to need external tor as well.
 
 > [!note]
 > These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so changes may be needed for your distribution.
@@ -93,7 +93,7 @@ source: [Tor Project Support](https://support.torproject.org/apt/)
 3. Paste `deb     [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`.
 4. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`.
 > [!note]
-> NOTE: replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04.
+> Replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04.
 5. Press Ctrl+X, then "y", then the enter key.
 6. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`.
 7. Update repositories `sudo apt update`.
@@ -105,8 +105,8 @@ For each seed node:
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. [Start a local Monero node](#start-a-local-monero-node).
-3. Apply the patch `git apply /seednode/externalTorDirectBind3.patch`
-4. Rebuild the seed node `./gradlew build -x test`
+3. Apply the patch `git apply /seednode/externalTorDirectBind3.patch`.
+4. Rebuild the seed node `./gradlew build -x test`.
 5. Run `sudo cat /var/lib/tor/haveno_seednode/hostname` and note down the .onion for the next step.
 6. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
 7. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
