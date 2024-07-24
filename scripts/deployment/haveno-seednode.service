@@ -11,7 +11,7 @@ ExecStart=/bin/sh /home/haveno/haveno/haveno-seednode --baseCurrencyNetwork=XMR_
   --useLocalhostForP2P=false\
   --useDevPrivilegeKeys=false\
 # Uncomment the following line to use external tor
-#  --hiddenServiceAddress=example.onion:port\
+#  --hiddenServiceAddress=example.onion\
   --nodePort=2002\
   --appName=haveno-XMR_STAGENET_Seed_2002\
 #  --logLevel=trace\
