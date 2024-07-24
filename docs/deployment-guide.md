@@ -84,17 +84,17 @@ NOTE: These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so
 ### Install Tor
 
 source: [Tor Project Support](https://support.torproject.org/apt/)
-1. Verify architecture `sudo dpkg --print-architecture`
-2. Create sources.list file `sudo nano /etc/apt/sources.list.d/tor.list`
-3. Paste `deb     [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
-4. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`
-   NOTE: replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04
-5. Press Ctrl+X, then "y", then the enter key
-6. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`
-7. Update repositories `sudo apt update`
-8. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`
-9. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`
-10. stop tor `sudo systemctl stop tor`
+1. Verify architecture `sudo dpkg --print-architecture`.
+2. Create sources.list file `sudo nano /etc/apt/sources.list.d/tor.list`.
+3. Paste `deb     [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`.
+4. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`.
+   NOTE: replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04.
+5. Press Ctrl+X, then "y", then the enter key.
+6. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`.
+7. Update repositories `sudo apt update`.
+8. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`.
+9. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`.
+10. stop tor `sudo systemctl stop tor`.
 
 For each seed node:
 
