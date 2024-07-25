@@ -119,7 +119,7 @@ HiddenServicePoWQueueRate 200          # (Default: 250)
 HiddenServicePoWQueueBurst 1000        # (Default: 2500)
 
 ## Stream limits in the established Rendezvous Circuits
-HiddenServiceMaxStreams 25
+HiddenServiceMaxStreams 100
 #HiddenServiceMaxStreamsCloseCircuit 1
 
 ## Haveno seednode2 incoming anonymity connections
