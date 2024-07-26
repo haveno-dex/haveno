@@ -72,6 +72,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.paymentmethods.AchTransferForm;
 import haveno.desktop.components.paymentmethods.AdvancedCashForm;
@@ -144,7 +145,6 @@ import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.GridPane;
@@ -181,7 +181,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final AdvancedCashValidator advancedCashValidator;
     private final TransferwiseValidator transferwiseValidator;
     private final CoinFormatter formatter;
-    private ComboBox<PaymentMethod> paymentMethodComboBox;
+    private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private PaymentMethodForm paymentMethodForm;
     private TitledGroupBg accountTitledGroupBg;
     private Button saveNewAccountButton;
@@ -463,14 +463,16 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         removeAccountRows();
         addAccountButton.setDisable(true);
         accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
-        paymentMethodComboBox = FormBuilder.addComboBox(root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
-        paymentMethodComboBox.setVisibleRowCount(11);
+        paymentMethodComboBox = FormBuilder.<PaymentMethod>addLabelAutocompleteComboBox(
+            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.FIRST_ROW_AND_GROUP_DISTANCE
+        ).second;
+        paymentMethodComboBox.setVisibleRowCount(Math.min(paymentMethodComboBox.getItems().size(), 10));
         paymentMethodComboBox.setPrefWidth(250);
         List<PaymentMethod> list = PaymentMethod.paymentMethods.stream()
                 .filter(PaymentMethod::isTraditional)
                 .sorted()
                 .collect(Collectors.toList());
-        paymentMethodComboBox.setItems(FXCollections.observableArrayList(list));
+        paymentMethodComboBox.setAutocompleteItems(FXCollections.observableArrayList(list));
         paymentMethodComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(PaymentMethod paymentMethod) {
@@ -479,10 +481,15 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
 
             @Override
             public PaymentMethod fromString(String s) {
-                return null;
+                if (s.isEmpty())
+                    return null;
+
+                return paymentMethodComboBox.getItems().stream()
+                                            .filter(item -> Res.get(item.getId()).equals(s))
+                                            .findAny().orElse(null);
             }
         });
-        paymentMethodComboBox.setOnAction(e -> {
+        paymentMethodComboBox.setOnChangeConfirmed(e -> {
             if (paymentMethodForm != null) {
                 FormBuilder.removeRowsFromGridPane(root, 3, paymentMethodForm.getGridRow() + 1);
                 GridPane.setRowSpan(accountTitledGroupBg, paymentMethodForm.getRowSpan() + 1);
@@ -550,6 +557,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     }
 
     private PaymentMethodForm getPaymentMethodForm(PaymentMethod paymentMethod) {
+        if (paymentMethod == null) return null;
         final PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(paymentMethod);
         paymentAccount.init();
         return getPaymentMethodForm(paymentMethod, paymentAccount);

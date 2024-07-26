@@ -1409,7 +1409,7 @@ public class FormBuilder {
     // Label  + AutocompleteComboBox
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static <T> Tuple2<Label, ComboBox<T>> addLabelAutocompleteComboBox(GridPane gridPane,
+    public static <T> Tuple2<Label, AutocompleteComboBox<T>> addLabelAutocompleteComboBox(GridPane gridPane,
                                                                               int rowIndex,
                                                                               String title,
                                                                               double top) {
