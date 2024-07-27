@@ -79,6 +79,24 @@ Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as
 
 ## Add seed nodes
 
+### Seed Without Proof of Work (PoW)
+
+> [!note]
+> Using PoW is suggested. See next section for PoW setup.
+
+For each seed node:
+
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. [Start a local Monero node](#start-a-local-monero-node).
+3. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
+4. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
+5. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd>
+6. Run `journalctl -u haveno-seednode.service -b -f` which will print the log and show the `.onion` address of the seed node. Press `Ctrl+C` to stop printing the log and record the `.onion` address given.
+7. Add the `.onion` address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:1002)`. Be careful to record full addresses correctly.
+8. Update all seed nodes, arbitrators, and user applications for the change to take effect. 
+
+### Seed With Proof of Work (PoW)
+
 > [!important]
 > Network admins be sure to build the desktop, arbitrator, and price node clients without this patch applied as it may cause them to need external tor as well.
 
