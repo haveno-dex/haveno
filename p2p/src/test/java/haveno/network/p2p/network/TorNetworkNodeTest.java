@@ -50,7 +50,7 @@ public class TorNetworkNodeTest {
     public void testTorNodeBeforeSecondReady() throws InterruptedException, IOException {
         latch = new CountDownLatch(1);
         int port = 9001;
-        TorNetworkNode node1 = new TorNetworkNode(port, TestUtils.getNetworkProtoResolver(), false,
+        TorNetworkNode node1 = new TorNetworkNodeInternal("serviceAddress", port, TestUtils.getNetworkProtoResolver(), false,
                 new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12, "127.0.0.1");
         node1.start(new SetupListener() {
             @Override
@@ -77,7 +77,7 @@ public class TorNetworkNodeTest {
 
         latch = new CountDownLatch(1);
         int port2 = 9002;
-        TorNetworkNode node2 = new TorNetworkNode(port2, TestUtils.getNetworkProtoResolver(), false,
+        TorNetworkNode node2 = new TorNetworkNodeInternal("serviceAddress", port2, TestUtils.getNetworkProtoResolver(), false,
                 new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12, "127.0.0.1");
         node2.start(new SetupListener() {
             @Override
@@ -135,7 +135,7 @@ public class TorNetworkNodeTest {
     public void testTorNodeAfterBothReady() throws InterruptedException, IOException {
         latch = new CountDownLatch(2);
         int port = 9001;
-        TorNetworkNode node1 = new TorNetworkNode(port, TestUtils.getNetworkProtoResolver(), false,
+        TorNetworkNode node1 = new TorNetworkNodeInternal("serviceAddress", port, TestUtils.getNetworkProtoResolver(), false,
                 new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12, "127.0.0.1");
         node1.start(new SetupListener() {
             @Override
@@ -161,7 +161,7 @@ public class TorNetworkNodeTest {
         });
 
         int port2 = 9002;
-        TorNetworkNode node2 = new TorNetworkNode(port2, TestUtils.getNetworkProtoResolver(), false,
+        TorNetworkNode node2 = new TorNetworkNodeInternal("serviceAddress", port2, TestUtils.getNetworkProtoResolver(), false,
                 new NewTor(new File("torNode_" + port), null, "", this::getBridgeAddresses), null, 12, "127.0.0.1");
         node2.start(new SetupListener() {
             @Override

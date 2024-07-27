@@ -77,6 +77,7 @@ public class Config {
     public static final String SEED_NODES = "seedNodes";
     public static final String BAN_LIST = "banList";
     public static final String NODE_PORT = "nodePort";
+    public static final String HIDDEN_SERVICE_ADDRESS = "hiddenServiceAddress";
     public static final String USE_LOCALHOST_FOR_P2P = "useLocalhostForP2P";
     public static final String MAX_CONNECTIONS = "maxConnections";
     public static final String SOCKS_5_PROXY_XMR_ADDRESS = "socks5ProxyXmrAddress";
@@ -122,6 +123,7 @@ public class Config {
     public static final String DEFAULT_REGTEST_HOST = "none";
     public static final int DEFAULT_NUM_CONNECTIONS_FOR_BTC = 9; // down from BitcoinJ default of 12
     static final String DEFAULT_CONFIG_FILE_NAME = "haveno.properties";
+    public static final String DEFAULT_HIDDENSERVICE_ADDRESS = "placeholder.onion";
 
     // Static fields that provide access to Config properties in locations where injecting
     // a Config instance is not feasible. See Javadoc for corresponding static accessors.
@@ -151,6 +153,7 @@ public class Config {
     public final File appDataDir;
     public final int walletRpcBindPort;
     public final int nodePort;
+    public final String  hiddenServiceAddress;
     public final int maxMemory;
     public final String logLevel;
     public final List<String> bannedXmrNodes;
@@ -285,6 +288,12 @@ public class Config {
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(9999);
+
+        ArgumentAcceptingOptionSpec<String> hiddenServiceAddressOpt =
+                parser.accepts(HIDDEN_SERVICE_ADDRESS, "Hidden Service Address to listen on")
+                        .withRequiredArg()
+                        .ofType(String.class)
+                        .defaultsTo(DEFAULT_HIDDENSERVICE_ADDRESS);
 
         ArgumentAcceptingOptionSpec<Integer> walletRpcBindPortOpt =
                 parser.accepts(WALLET_RPC_BIND_PORT, "Port to bind the wallet RPC on")
@@ -670,6 +679,7 @@ public class Config {
             this.helpRequested = options.has(helpOpt);
             this.configFile = configFile;
             this.nodePort = options.valueOf(nodePortOpt);
+            this.hiddenServiceAddress = options.valueOf(hiddenServiceAddressOpt);
             this.walletRpcBindPort = options.valueOf(walletRpcBindPortOpt);
             this.maxMemory = options.valueOf(maxMemoryOpt);
             this.logLevel = options.valueOf(logLevelOpt);
