@@ -123,7 +123,7 @@ For each seed node:
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. [Start a local Monero node](#start-a-local-monero-node).
-3. Apply the patch `git apply ./seednode/externalTorDirectBind3.patch`.
+3. Apply the patch `git apply ./seednode/externalTorDirectBind4.patch`.
 4. Rebuild the seed node `./gradlew build -x test`.
 5. Run `sudo cat /var/lib/tor/haveno_seednode/hostname` and note down the .onion for the next step.
 6. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
