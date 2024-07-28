@@ -26,6 +26,7 @@ import haveno.common.config.Config;
 import static haveno.common.config.Config.BAN_LIST;
 import static haveno.common.config.Config.MAX_CONNECTIONS;
 import static haveno.common.config.Config.NODE_PORT;
+import static haveno.common.config.Config.HIDDEN_SERVICE_ADDRESS;
 import static haveno.common.config.Config.REPUBLISH_MAILBOX_ENTRIES;
 import static haveno.common.config.Config.SOCKS_5_PROXY_HTTP_ADDRESS;
 import static haveno.common.config.Config.SOCKS_5_PROXY_XMR_ADDRESS;
@@ -87,6 +88,7 @@ public class P2PModule extends AppModule {
         bind(File.class).annotatedWith(named(TOR_DIR)).toInstance(config.torDir);
 
         bind(int.class).annotatedWith(named(NODE_PORT)).toInstance(config.nodePort);
+        bind(String.class).annotatedWith(named(HIDDEN_SERVICE_ADDRESS)).toInstance(config.hiddenServiceAddress);
 
         bindConstant().annotatedWith(named(MAX_CONNECTIONS)).to(config.maxConnections);
 

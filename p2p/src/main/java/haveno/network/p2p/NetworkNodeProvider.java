@@ -28,8 +28,10 @@ import haveno.network.p2p.network.LocalhostNetworkNode;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.NewTor;
 import haveno.network.p2p.network.RunningTor;
+import haveno.network.p2p.network.DirectBindTor;
 import haveno.network.p2p.network.TorMode;
-import haveno.network.p2p.network.TorNetworkNode;
+import haveno.network.p2p.network.TorNetworkNodeDirectBind;
+import haveno.network.p2p.network.TorNetworkNodeNetlayer;
 import java.io.File;
 import javax.annotation.Nullable;
 
@@ -44,6 +46,7 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             @Named(Config.MAX_CONNECTIONS) int maxConnections,
             @Named(Config.USE_LOCALHOST_FOR_P2P) boolean useLocalhostForP2P,
             @Named(Config.NODE_PORT) int port,
+            @Named(Config.HIDDEN_SERVICE_ADDRESS) String hiddenServiceAddress,
             @Named(Config.TOR_DIR) File torDir,
             @Nullable @Named(Config.TORRC_FILE) File torrcFile,
             @Named(Config.TORRC_OPTIONS) String torrcOptions,
@@ -62,10 +65,15 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
                     torrcOptions,
                     controlHost,
                     controlPort,
+                    hiddenServiceAddress,
                     password,
                     cookieFile,
                     useSafeCookieAuthentication);
-            networkNode = new TorNetworkNode(port, networkProtoResolver, streamIsolation, torMode, banFilter, maxConnections, controlHost);
+            if (torMode instanceof NewTor || torMode instanceof RunningTor) {
+                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, controlHost);
+            } else {
+                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
+            }
         }
     }
 
@@ -75,12 +83,19 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             String torrcOptions,
             String controlHost,
             int controlPort,
+            String hiddenServiceAddress,
             String password,
             @Nullable File cookieFile,
             boolean useSafeCookieAuthentication) {
-        return controlPort != Config.UNSPECIFIED_PORT ?
-                new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication) :
-                new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
+        if (!hiddenServiceAddress.equals(Config.UNSPECIFIED_HIDDENSERVICE_ADDRESS)) {
+            return new DirectBindTor();
+        }
+        else if (controlPort != Config.UNSPECIFIED_PORT) {
+            return new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication);
+        }
+        else {
+            return new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
+        }
     }
 
     @Override
