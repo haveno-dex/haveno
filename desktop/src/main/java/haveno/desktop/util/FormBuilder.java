@@ -1405,11 +1405,29 @@ public class FormBuilder {
         return comboBox;
     }
 
+    public static <T> AutocompleteComboBox<T> addAutocompleteComboBox(GridPane gridPane, int rowIndex, String title, double top) {
+        var comboBox = new AutocompleteComboBox<T>();
+        comboBox.setLabelFloat(true);
+        comboBox.setPromptText(title);
+        comboBox.setMaxWidth(Double.MAX_VALUE);
+
+        // Default ComboBox does not show promptText after clear selection.
+        // https://stackoverflow.com/questions/50569330/how-to-reset-combobox-and-display-prompttext?noredirect=1&lq=1
+        comboBox.setButtonCell(getComboBoxButtonCell(title, comboBox));
+
+        GridPane.setRowIndex(comboBox, rowIndex);
+        GridPane.setColumnIndex(comboBox, 0);
+        GridPane.setMargin(comboBox, new Insets(top + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
+        gridPane.getChildren().add(comboBox);
+
+        return comboBox;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label  + AutocompleteComboBox
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static <T> Tuple2<Label, AutocompleteComboBox<T>> addLabelAutocompleteComboBox(GridPane gridPane,
+    public static <T> Tuple2<Label, ComboBox<T>> addLabelAutocompleteComboBox(GridPane gridPane,
                                                                               int rowIndex,
                                                                               String title,
                                                                               double top) {
