@@ -28,10 +28,10 @@ import haveno.network.p2p.network.LocalhostNetworkNode;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.NewTor;
 import haveno.network.p2p.network.RunningTor;
+import haveno.network.p2p.network.DirectBindTor;
 import haveno.network.p2p.network.TorMode;
-import haveno.network.p2p.network.TorNetworkNodeInternal;
-import haveno.network.p2p.network.TorNetworkNodeExternal;
-
+import haveno.network.p2p.network.TorNetworkNodeDirectBind;
+import haveno.network.p2p.network.TorNetworkNodeNetlayer;
 import java.io.File;
 import javax.annotation.Nullable;
 
@@ -69,10 +69,10 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
                     password,
                     cookieFile,
                     useSafeCookieAuthentication);
-            if (torMode instanceof NewTor) {
-                networkNode = new TorNetworkNodeInternal(hiddenServiceAddress, port, networkProtoResolver, streamIsolation, torMode, banFilter, maxConnections, controlHost);
+            if (torMode instanceof NewTor || torMode instanceof RunningTor) {
+                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, controlHost);
             } else {
-                networkNode = new TorNetworkNodeExternal(hiddenServiceAddress, port, networkProtoResolver, streamIsolation, torMode, banFilter, maxConnections, controlHost);
+                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
             }
         }
     }
@@ -87,9 +87,13 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             String password,
             @Nullable File cookieFile,
             boolean useSafeCookieAuthentication) {
-        return (controlPort != Config.UNSPECIFIED_PORT || !hiddenServiceAddress.equals(Config.DEFAULT_HIDDENSERVICE_ADDRESS)) ?
-                new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication) :
-                new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
+        if (!hiddenServiceAddress.equals("")) {
+            return new DirectBindTor();
+        } else if (controlPort != Config.UNSPECIFIED_PORT) {
+            return new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication);
+        } else {
+            return new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
+        }
     }
 
     @Override

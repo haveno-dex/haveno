@@ -293,7 +293,7 @@ public class Config {
                 parser.accepts(HIDDEN_SERVICE_ADDRESS, "Hidden Service Address to listen on")
                         .withRequiredArg()
                         .ofType(String.class)
-                        .defaultsTo(DEFAULT_HIDDENSERVICE_ADDRESS);
+                        .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<Integer> walletRpcBindPortOpt =
                 parser.accepts(WALLET_RPC_BIND_PORT, "Port to bind the wallet RPC on")

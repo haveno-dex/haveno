@@ -18,14 +18,9 @@
 package haveno.network.p2p.network;
 
 import haveno.network.p2p.NodeAddress;
-import haveno.network.utils.Utils;
 
-import haveno.common.Timer;
-import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.util.SingleThreadExecutorUtils;
-
-import org.berndpruenster.netlayer.tor.Tor;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
@@ -41,16 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public abstract class TorNetworkNode extends NetworkNode {
-    private static final long SHUT_DOWN_TIMEOUT = 2;
 
-    protected final String torControlHost;
-    protected final String serviceAddress;
-
-    private Timer shutDownTimeoutTimer;
-    protected Tor tor;
-    protected TorMode torMode;
-    private boolean shutDownInProgress;
-    private boolean shutDownComplete;
     protected final ExecutorService executor;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -59,15 +45,9 @@ public abstract class TorNetworkNode extends NetworkNode {
 
     public TorNetworkNode(String hiddenServiceAddress, int servicePort,
             NetworkProtoResolver networkProtoResolver,
-            boolean useStreamIsolation,
-            TorMode torMode,
             @Nullable BanFilter banFilter,
-            int maxConnections, String torControlHost) {
+            int maxConnections) {
         super(servicePort, networkProtoResolver, banFilter, maxConnections);
-        this.serviceAddress = hiddenServiceAddress;
-        this.torMode = torMode;
-        this.torControlHost = torControlHost;
-
         executor = SingleThreadExecutorUtils.getSingleThreadExecutor("StartTor");
     }
 
@@ -77,56 +57,19 @@ public abstract class TorNetworkNode extends NetworkNode {
 
     @Override
     public void start(@Nullable SetupListener setupListener) {
-        torMode.doRollingBackup();
-
         if (setupListener != null)
             addSetupListener(setupListener);
 
-        createTorAndHiddenService(Utils.findFreeSystemPort(), servicePort);
+        createTorAndHiddenService();
+    }
+
+    public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
+        super.shutDown(shutDownCompleteHandler);
     }
 
     public abstract Socks5Proxy getSocksProxy();
 
     protected abstract Socket createSocket(NodeAddress peerNodeAddress) throws IOException;
 
-    public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
-        log.info("TorNetworkNode shutdown started");
-        if (shutDownComplete) {
-            log.info("TorNetworkNode shutdown already completed");
-            if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
-            return;
-        }
-        if (shutDownInProgress) {
-            log.warn("Ignoring request to shut down because shut down is in progress");
-            return;
-        }
-        shutDownInProgress = true;
-
-        shutDownTimeoutTimer = UserThread.runAfter(() -> {
-            log.error("A timeout occurred at shutDown");
-            shutDownComplete = true;
-            if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
-            executor.shutdownNow();
-        }, SHUT_DOWN_TIMEOUT);
-
-        super.shutDown(() -> {
-            try {
-                tor = Tor.getDefault();
-                if (tor != null) {
-                    tor.shutdown();
-                    tor = null;
-                    log.info("Tor shutdown completed");
-                }
-                executor.shutdownNow();
-            } catch (Throwable e) {
-                log.error("Shutdown torNetworkNode failed with exception", e);
-            } finally {
-                shutDownTimeoutTimer.stop();
-                shutDownComplete = true;
-                if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
-            }
-        });
-    }
-
-    protected abstract void createTorAndHiddenService(int localPort, int servicePort);
+    protected abstract void createTorAndHiddenService();
 }
