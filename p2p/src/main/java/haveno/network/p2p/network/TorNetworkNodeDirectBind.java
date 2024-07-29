@@ -31,7 +31,8 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
     public TorNetworkNodeDirectBind(int servicePort,
                                     NetworkProtoResolver networkProtoResolver,
                                     @Nullable BanFilter banFilter,
-                                    int maxConnections, String hiddenServiceAddress) {
+                                    int maxConnections,
+                                    String hiddenServiceAddress) {
         super(servicePort, networkProtoResolver, banFilter, maxConnections);
         this.serviceAddress = hiddenServiceAddress;
     }
@@ -39,7 +40,7 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
     @Override
     public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
         super.shutDown(() -> {
-            log.info("TorNetworkNode shutdown already completed");
+            log.info("TorNetworkNodeDirectBind shutdown completed");
             if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
         });
     }
@@ -53,7 +54,7 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
 
     @Override
     protected Socket createSocket(NodeAddress peerNodeAddress) throws IOException {
-        // https://www.ietf.org/rfc1928.txt SOCKS5 Protocol
+        // https://datatracker.ietf.org/doc/html/rfc1928 SOCKS5 Protocol
         try {
             checkArgument(peerNodeAddress.getHostName().endsWith(".onion"), "PeerAddress is not an onion address");
             Socket sock = new Socket(InetAddress.getLoopbackAddress(), TOR_DATA_PORT);
@@ -93,7 +94,7 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
                 ServerSocket socket = new ServerSocket(servicePort);
                 nodeAddressProperty.set(new NodeAddress(serviceAddress + ":" + servicePort));
                 log.info("\n################################################################\n" +
-                                "Tor hidden service published: {} Port: {}\n" +
+                                "Bound to Tor hidden service: {} Port: {}\n" +
                                 "################################################################",
                         serviceAddress, servicePort);
                 UserThread.execute(() -> setupListeners.forEach(SetupListener::onTorNodeReady));

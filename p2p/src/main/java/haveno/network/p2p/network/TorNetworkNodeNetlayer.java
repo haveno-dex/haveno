@@ -64,9 +64,9 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
 
     @Override
     public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
-        log.info("TorNetworkNode shutdown started");
+        log.info("TorNetworkNodeNetlayer shutdown started");
         if (shutDownComplete) {
-            log.info("TorNetworkNode shutdown already completed");
+            log.info("TorNetworkNodeNetlayer shutdown already completed");
             if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
             return;
         }
@@ -93,7 +93,7 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                 }
                 executor.shutdownNow();
             } catch (Throwable e) {
-                log.error("Shutdown torNetworkNode failed with exception", e);
+                log.error("Shutdown TorNetworkNodeNetlayer failed with exception", e);
             } finally {
                 shutDownTimeoutTimer.stop();
                 shutDownComplete = true;

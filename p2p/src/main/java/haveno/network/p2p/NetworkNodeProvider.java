@@ -87,13 +87,11 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             String password,
             @Nullable File cookieFile,
             boolean useSafeCookieAuthentication) {
-        if (!hiddenServiceAddress.equals(Config.UNSPECIFIED_HIDDENSERVICE_ADDRESS)) {
+        if (!hiddenServiceAddress.equals("")) {
             return new DirectBindTor();
-        }
-        else if (controlPort != Config.UNSPECIFIED_PORT) {
+        } else if (controlPort != Config.UNSPECIFIED_PORT) {
             return new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication);
-        }
-        else {
+        } else {
             return new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
         }
     }

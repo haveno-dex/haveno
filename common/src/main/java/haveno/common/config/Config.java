@@ -123,7 +123,6 @@ public class Config {
     public static final String DEFAULT_REGTEST_HOST = "none";
     public static final int DEFAULT_NUM_CONNECTIONS_FOR_BTC = 9; // down from BitcoinJ default of 12
     static final String DEFAULT_CONFIG_FILE_NAME = "haveno.properties";
-    public static final String UNSPECIFIED_HIDDENSERVICE_ADDRESS = "placeholder.onion";
 
     // Static fields that provide access to Config properties in locations where injecting
     // a Config instance is not feasible. See Javadoc for corresponding static accessors.
@@ -293,7 +292,7 @@ public class Config {
                 parser.accepts(HIDDEN_SERVICE_ADDRESS, "Hidden Service Address to listen on")
                         .withRequiredArg()
                         .ofType(String.class)
-                        .defaultsTo(UNSPECIFIED_HIDDENSERVICE_ADDRESS);
+                        .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<Integer> walletRpcBindPortOpt =
                 parser.accepts(WALLET_RPC_BIND_PORT, "Port to bind the wallet RPC on")
