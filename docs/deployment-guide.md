@@ -79,6 +79,11 @@ Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as
 
 ## Add seed nodes
 
+### Seed nodes without Proof of Work (PoW)
+
+> [!note]
+> Using PoW is suggested. See next section for PoW setup.
+
 For each seed node:
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
@@ -88,7 +93,46 @@ For each seed node:
 5. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
 6. Run `journalctl -u haveno-seednode.service -b -f` which will print the log and show the `.onion` address of the seed node. Press `Ctrl+C` to stop printing the log and record the `.onion` address given.
 7. Add the `.onion` address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:1002)`. Be careful to record full addresses correctly.
-8. Update all seed nodes, arbitrators, and user applications for the change to take effect.
+8. Update all seed nodes, arbitrators, and user applications for the change to take effect. 
+
+### Seed nodes with Proof of Work (PoW)
+
+> [!note]
+> These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so changes may be needed for your distribution.
+
+### Install Tor
+
+Source: [Tor Project Support](https://support.torproject.org/apt/)
+
+1. Verify architecture `sudo dpkg --print-architecture`.
+2. Create sources.list file `sudo nano /etc/apt/sources.list.d/tor.list`.
+3. Paste `deb [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`.
+4. Paste `deb-src [signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org <DISTRIBUTION> main`.
+> [!note]
+> Replace `<DISTRIBUTION>` with your system codename such as "jammy" for Ubuntu 22.04.
+5. Press Ctrl+X, then "y", then the enter key.
+6. Add the gpg key used to sign the packages `sudo wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/deb.torproject.org-keyring.gpg >/dev/null`.
+7. Update repositories `sudo apt update`.
+8. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`.
+9. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`.
+10. stop tor `sudo systemctl stop tor`.
+
+For each seed node:
+
+1. [Build the Haveno repository](#fork-and-build-haveno).
+2. [Start a local Monero node](#start-a-local-monero-node).
+3. Rebuild the seed node `./gradlew build -x test`.
+4. Run `sudo cat /var/lib/tor/haveno_seednode/hostname` and note down the .onion for the next step.
+5. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
+6. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
+7. Add user to tor group `sudo usermod -aG debian-tor <user>`.
+> [!note]
+> Replace `<user>` above with the user that will be running the seed node (step 6 above)
+8. Disconnect and reconnect SSH session or logout and back in.
+9. Run `sudo systemctl start tor`.
+10. Run `sudo systemctl start haveno-seednode` to start the seednode and also run `sudo systemctl start haveno-seednode2` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
+11. Add the `.onion` address from step 5 to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:2002)`. Be careful to record full addresses correctly.
+12. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 Customize and deploy haveno-seednode.service to run a seed node as a system service.
 
