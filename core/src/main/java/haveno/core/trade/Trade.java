@@ -321,7 +321,11 @@ public abstract class Trade implements Tradable, Model {
         }
 
         public boolean isOpen() {
-            return this == DisputeState.DISPUTE_OPENED;
+            return isRequested() && !isClosed();
+        }
+
+        public boolean isCloseRequested() {
+            return this.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
         }
 
         public boolean isClosed() {

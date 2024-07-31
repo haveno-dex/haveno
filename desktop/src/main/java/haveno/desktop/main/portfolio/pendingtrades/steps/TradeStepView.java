@@ -190,15 +190,13 @@ public abstract class TradeStepView extends AnchorPane {
         }
         trade.errorMessageProperty().addListener(errorMessageListener);
 
-        if (!isMediationClosedState()) {
-            tradeStepInfo.setOnAction(e -> {
-                if (this.isTradePeriodOver()) {
-                    openSupportTicket();
-                } else {
-                    openChat();
-                }
-            });
-        }
+        tradeStepInfo.setOnAction(e -> {
+            if (!isArbitrationOpenedState() && this.isTradePeriodOver()) {
+                openSupportTicket();
+            } else {
+                openChat();
+            }
+        });
 
         // We get mailbox messages processed after we have bootstrapped. This will influence the states we
         // handle in our disputeStateSubscription and mediationResultStateSubscriptions. To avoid that we show
@@ -572,7 +570,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateMediationResultState(boolean blockOpeningOfResultAcceptedPopup) {
-        if (isInArbitration()) {
+        if (isInMediation()) {
             if (isRefundRequestStartedByPeer()) {
                 tradeStepInfo.setState(TradeStepInfo.State.IN_REFUND_REQUEST_PEER_REQUESTED);
             } else if (isRefundRequestSelfStarted()) {
@@ -597,7 +595,7 @@ public abstract class TradeStepView extends AnchorPane {
         }
     }
 
-    private boolean isInArbitration() {
+    private boolean isInMediation() {
         return isRefundRequestStartedByPeer() || isRefundRequestSelfStarted();
     }
 
@@ -611,6 +609,10 @@ public abstract class TradeStepView extends AnchorPane {
 
     private boolean isMediationClosedState() {
         return trade.getDisputeState() == Trade.DisputeState.MEDIATION_CLOSED;
+    }
+
+    private boolean isArbitrationOpenedState() {
+        return trade.getDisputeState().isOpen();
     }
 
     private boolean isTradePeriodOver() {
@@ -741,7 +743,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTradePeriodState(Trade.TradePeriodState tradePeriodState) {
-        if (trade.getDisputeState() == Trade.DisputeState.NO_DISPUTE) {
+        if (!trade.getDisputeState().isOpen()) {
             switch (tradePeriodState) {
                 case FIRST_HALF:
                     // just for dev testing. not possible to go back in time ;-)

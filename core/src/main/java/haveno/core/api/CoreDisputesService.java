@@ -112,7 +112,7 @@ public class CoreDisputesService {
 
             // Sends the openNewDisputeMessage to arbitrator, who will then create 2 disputes
             // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
-            disputeManager.sendDisputeOpenedMessage(dispute, false, resultHandler, faultHandler);
+            disputeManager.sendDisputeOpenedMessage(dispute, resultHandler, faultHandler);
             tradeManager.requestPersistence();
         }, trade.getId());
     }

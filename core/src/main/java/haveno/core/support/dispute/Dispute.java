@@ -77,6 +77,10 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         REOPENED,
         CLOSED;
 
+        public boolean isOpen() {
+            return this == NEW || this == OPEN || this == REOPENED;
+        }
+
         public static Dispute.State fromProto(protobuf.Dispute.State state) {
             return ProtoUtil.enumFromProto(Dispute.State.class, state.name());
         }
