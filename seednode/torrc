@@ -65,12 +65,15 @@ TestSocks 1
 # Try to write to disk less frequently than we would otherwise. This is useful when running on flash memory.
 AvoidDiskWrites 1
 
-## TODO: This option has no effect. Bisq/Haveno is tor client &/or hidden service.
+## TODO: This option has no effect. Bisq/Haveno is tor client &/or hidden service.  'man torrc':
 ## Relays and bridges only. When this option is enabled, a Tor relay writes obfuscated statistics on its
 ## role as hidden-service directory, introduction point, or rendezvous point to disk every 24 hours.
 ## If ExtraInfoStatistics is enabled, it will be published as part of the extra-info document. (Default: 1)
 HiddenServiceStatistics 0
 
+## NOTE: In order to use the ControlPort, the <user> must belong to the tor group.
+##  sudo usermod -aG debian-tor <user>
+##
 ## The port on which Tor will listen for local connections from Tor
 ## controller applications, as documented in control-spec.txt.
 #ControlPort 9051
@@ -96,13 +99,16 @@ MetricsPortPolicy accept [::1]
 ##
 ## HiddenServicePort x y:z says to redirect requests on port x to the
 ## address y:z.
+##
+## If you plan to keep your service available for a long time, you might want to make a backup copy
+## of the private_key file or complete folder /var/lib/tor/hidden_service somewhere.
 
-## Haveno seednode incoming anonymity connections
+#### Haveno seednode incoming anonymity connections ###
 HiddenServiceDir /var/lib/tor/haveno_seednode
 HiddenServicePort 2002 127.0.0.1:2002
 HiddenServicePort 2002 [::1]:2002
 
-## HiddenService options are per onion service:
+## NOTE: HiddenService options are per onion service
 ## https://community.torproject.org/onion-services/advanced/dos/
 ##
 ## Rate limiting at the Introduction Points
@@ -111,7 +117,10 @@ HiddenServiceEnableIntroDoSDefense 1
 #HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
 #HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
 
-## https://community.torproject.org/onion-services/ecosystem/technology/pow/#configuring-an-onion-service-with-the-pow-protection
+# Number of introduction points the hidden service will have. You can’t have more than 20.
+#HiddenServiceNumIntroductionPoints 3           # (Default: 3)
+
+## https://tpo.pages.torproject.net/onion-services/ecosystem/technology/pow/#configuring-an-onion-service-with-the-pow-protection
 ## Proof of Work (PoW) before establishing Rendezvous Circuits
 ## The lower the queue and burst rates, the higher the puzzle effort tends to be for users.
 HiddenServicePoWDefensesEnabled 1
@@ -119,10 +128,11 @@ HiddenServicePoWQueueRate 200          # (Default: 250)
 HiddenServicePoWQueueBurst 1000        # (Default: 2500)
 
 ## Stream limits in the established Rendezvous Circuits
+## The maximum number of simultaneous streams (connections) per rendezvous circuit. The max value allowed is 65535. (0 = unlimited)
 HiddenServiceMaxStreams 25
 #HiddenServiceMaxStreamsCloseCircuit 1
 
-## Haveno seednode2 incoming anonymity connections
+#### Haveno seednode2 incoming anonymity connections ###
 HiddenServiceDir /var/lib/tor/haveno_seednode2
 HiddenServicePort 2003 127.0.0.1:2003
 HiddenServicePort 2003 [::1]:2003
@@ -130,6 +140,7 @@ HiddenServicePort 2003 [::1]:2003
 HiddenServiceEnableIntroDoSDefense 1
 #HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
 #HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
+#HiddenServiceNumIntroductionPoints 3           # (Default: 3)
 
 HiddenServicePoWDefensesEnabled 1
 HiddenServicePoWQueueRate 200          # (Default: 250)
