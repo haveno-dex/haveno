@@ -37,7 +37,6 @@ import haveno.core.offer.OfferUtil;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
-import haveno.core.support.dispute.DisputeAlreadyOpenException;
 import haveno.core.support.dispute.DisputeList;
 import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -67,6 +66,7 @@ import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
@@ -545,33 +545,38 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             dispute.setExtraData("counterCurrencyExtraData", trade.getCounterCurrencyExtraData());
 
             trade.setDisputeState(Trade.DisputeState.MEDIATION_REQUESTED);
-            sendDisputeOpenedMessage(dispute, false, disputeManager);
+            sendDisputeOpenedMessage(dispute, disputeManager);
             tradeManager.requestPersistence();
         } else if (useArbitration) {
           // Only if we have completed mediation we allow arbitration
           disputeManager = arbitrationManager;
           Dispute dispute = disputesService.createDisputeForTrade(trade, offer, pubKeyRingProvider.get(), isMaker, isSupportTicket);
           trade.exportMultisigHex();
-          sendDisputeOpenedMessage(dispute, false, disputeManager);
+          sendDisputeOpenedMessage(dispute, disputeManager);
           tradeManager.requestPersistence();
         } else {
             log.warn("Invalid dispute state {}", disputeState.name());
         }
     }
 
-    private void sendDisputeOpenedMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
-        disputeManager.sendDisputeOpenedMessage(dispute, reOpen,
-                () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class), (errorMessage, throwable) -> {
-                    if ((throwable instanceof DisputeAlreadyOpenException)) {
-                        errorMessage += "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg");
-                        new Popup().warning(errorMessage)
-                                .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
-                                .onAction(() -> sendDisputeOpenedMessage(dispute, true, disputeManager))
-                                .closeButtonText(Res.get("shared.cancel")).show();
-                    } else {
-                        new Popup().warning(errorMessage).show();
-                    }
-                });
+    private void sendDisputeOpenedMessage(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
+        Optional<Dispute> optionalDispute = disputeManager.findDispute(dispute);
+        boolean disputeClosed = optionalDispute.isPresent() && optionalDispute.get().isClosed();
+        if (disputeClosed) {
+            String msg = "We got a dispute already open for that trade and trading peer.\n" + "TradeId = " + dispute.getTradeId();
+            new Popup().warning(msg + "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg"))
+                    .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
+                    .onAction(() -> doSendDisputeOpenedMessage(dispute, disputeManager))
+                    .closeButtonText(Res.get("shared.cancel")).show();
+        } else {
+            doSendDisputeOpenedMessage(dispute, disputeManager);
+        }
+    }
+
+    private void doSendDisputeOpenedMessage(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
+        disputeManager.sendDisputeOpenedMessage(dispute,
+                () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class),
+                (errorMessage, throwable) -> new Popup().warning(errorMessage).show());
     }
 
     public boolean isReadyForTxBroadcast() {

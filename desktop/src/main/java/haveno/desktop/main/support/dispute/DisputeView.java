@@ -1485,7 +1485,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     @Override
     public void onCloseDisputeFromChatWindow(Dispute dispute) {
-        if (dispute.getDisputeState() == Dispute.State.NEW || dispute.getDisputeState() == Dispute.State.OPEN) {
+        if (dispute.getDisputeState() == Dispute.State.NEW || dispute.getDisputeState().isOpen()) {
             handleOnProcessDispute(dispute);
         } else {
             closeDisputeFromButton();
