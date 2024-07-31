@@ -64,9 +64,9 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
 
             // skip if payout tx already created
             if (trade.getSelf().getUnsignedPayoutTxHex() != null) {
-              log.warn("Skipping preparation of payment sent message because payout tx is already created for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-              complete();
-              return;
+                log.warn("Skipping preparation of payment sent message because payout tx is already created for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+                complete();
+                return;
             }
 
             // validate state
@@ -87,6 +87,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                 MoneroTxWallet payoutTx = trade.createPayoutTx();
                 trade.updatePayout(payoutTx);
                 trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                trade.requestPersistence();
             }
 
             complete();
@@ -107,101 +108,100 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
      */
     public static class Pair<F, S> {
 
-      private F first;
-      private S second;
+        private F first;
+        private S second;
 
-      public Pair(F first, S second) {
-        super();
-        this.first = first;
-        this.second = second;
-      }
+        public Pair(F first, S second) {
+            super();
+            this.first = first;
+            this.second = second;
+        }
 
-      public F getFirst() {
-        return first;
-      }
+        public F getFirst() {
+            return first;
+        }
 
-      public void setFirst(F first) {
-        this.first = first;
-      }
+        public void setFirst(F first) {
+            this.first = first;
+        }
 
-      public S getSecond() {
-        return second;
-      }
+        public S getSecond() {
+            return second;
+        }
 
-      public void setSecond(S second) {
-        this.second = second;
-      }
+        public void setSecond(S second) {
+            this.second = second;
+        }
     }
 
     public static void printBalances(MoneroWallet wallet) {
 
-      // collect info about subaddresses
-      List<Pair<String, List<Object>>> pairs = new ArrayList<Pair<String, List<Object>>>();
-      //if (wallet == null) wallet = TestUtils.getWalletJni();
-      BigInteger balance = wallet.getBalance();
-      BigInteger unlockedBalance = wallet.getUnlockedBalance();
-      List<MoneroAccount> accounts = wallet.getAccounts(true);
-      System.out.println("Wallet balance: " + balance);
-      System.out.println("Wallet unlocked balance: " + unlockedBalance);
-      for (MoneroAccount account : accounts) {
-        add(pairs, "ACCOUNT", account.getIndex());
-        add(pairs, "SUBADDRESS", "");
-        add(pairs, "LABEL", "");
-        add(pairs, "ADDRESS", "");
-        add(pairs, "BALANCE", account.getBalance());
-        add(pairs, "UNLOCKED", account.getUnlockedBalance());
-        for (MoneroSubaddress subaddress : account.getSubaddresses()) {
-          add(pairs, "ACCOUNT", account.getIndex());
-          add(pairs, "SUBADDRESS", subaddress.getIndex());
-          add(pairs, "LABEL", subaddress.getLabel());
-          add(pairs, "ADDRESS", subaddress.getAddress());
-          add(pairs, "BALANCE", subaddress.getBalance());
-          add(pairs, "UNLOCKED", subaddress.getUnlockedBalance());
+        // collect info about subaddresses
+        List<Pair<String, List<Object>>> pairs = new ArrayList<Pair<String, List<Object>>>();
+        //if (wallet == null) wallet = TestUtils.getWalletJni();
+        BigInteger balance = wallet.getBalance();
+        BigInteger unlockedBalance = wallet.getUnlockedBalance();
+        List<MoneroAccount> accounts = wallet.getAccounts(true);
+        System.out.println("Wallet balance: " + balance);
+        System.out.println("Wallet unlocked balance: " + unlockedBalance);
+        for (MoneroAccount account : accounts) {
+            add(pairs, "ACCOUNT", account.getIndex());
+            add(pairs, "SUBADDRESS", "");
+            add(pairs, "LABEL", "");
+            add(pairs, "ADDRESS", "");
+            add(pairs, "BALANCE", account.getBalance());
+            add(pairs, "UNLOCKED", account.getUnlockedBalance());
+            for (MoneroSubaddress subaddress : account.getSubaddresses()) {
+                add(pairs, "ACCOUNT", account.getIndex());
+                add(pairs, "SUBADDRESS", subaddress.getIndex());
+                add(pairs, "LABEL", subaddress.getLabel());
+                add(pairs, "ADDRESS", subaddress.getAddress());
+                add(pairs, "BALANCE", subaddress.getBalance());
+                add(pairs, "UNLOCKED", subaddress.getUnlockedBalance());
+            }
         }
-      }
 
-      // convert info to csv
-      Integer length = null;
-      for (Pair<String, List<Object>> pair : pairs) {
-        if (length == null) length = pair.getSecond().size();
-      }
+        // convert info to csv
+        Integer length = null;
+        for (Pair<String, List<Object>> pair : pairs) {
+            if (length == null)
+                length = pair.getSecond().size();
+        }
 
-      System.out.println(pairsToCsv(pairs));
+        System.out.println(pairsToCsv(pairs));
     }
 
     private static void add(List<Pair<String, List<Object>>> pairs, String header, Object value) {
-      if (value == null) value = "";
-      Pair<String, List<Object>> pair = null;
-      for (Pair<String, List<Object>> aPair : pairs) {
-        if (aPair.getFirst().equals(header)) {
-          pair = aPair;
-          break;
+        if (value == null) value = "";
+        Pair<String, List<Object>> pair = null;
+        for (Pair<String, List<Object>> aPair : pairs) {
+            if (aPair.getFirst().equals(header)) {
+                pair = aPair;
+                break;
+            }
         }
-      }
-      if (pair == null) {
-        List<Object> vals = new ArrayList<Object>();
-        pair = new Pair<String, List<Object>>(header, vals);
-        pairs.add(pair);
-      }
-      pair.getSecond().add(value);
+        if (pair == null) {
+            List<Object> vals = new ArrayList<Object>();
+            pair = new Pair<String, List<Object>>(header, vals);
+            pairs.add(pair);
+        }
+        pair.getSecond().add(value);
     }
 
     private static String pairsToCsv(List<Pair<String, List<Object>>> pairs) {
-      StringBuilder sb = new StringBuilder();
-      for (int i = 0; i < pairs.size(); i++) {
-        sb.append(pairs.get(i).getFirst());
-        if (i < pairs.size() - 1) sb.append(',');
-        else sb.append('\n');
-      }
-      for (int i = 0; i < pairs.get(0).getSecond().size(); i++) {
-        for (int j = 0; j < pairs.size(); j++) {
-          sb.append(pairs.get(j).getSecond().get(i));
-          if (j < pairs.size() - 1) sb.append(',');
-          else sb.append('\n');
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < pairs.size(); i++) {
+            sb.append(pairs.get(i).getFirst());
+            if (i < pairs.size() - 1) sb.append(',');
+            else sb.append('\n');
         }
-      }
-      return sb.toString();
+        for (int i = 0; i < pairs.get(0).getSecond().size(); i++) {
+            for (int j = 0; j < pairs.size(); j++) {
+                sb.append(pairs.get(j).getSecond().get(i));
+                if (j < pairs.size() - 1) sb.append(',');
+                else sb.append('\n');
+            }
+        }
+        return sb.toString();
     }
 }
-
-

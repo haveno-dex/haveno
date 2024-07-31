@@ -76,8 +76,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
             // export multisig hex once
             if (trade.getSelf().getUpdatedMultisigHex() == null) {
-                trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
-                processModel.getTradeManager().requestPersistence();
+                trade.exportMultisigHex();
             }
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
