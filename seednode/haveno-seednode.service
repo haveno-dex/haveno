@@ -14,7 +14,7 @@ ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
 # Uncomment the following line to use external tor
 #  --hiddenServiceAddress=example.onion\
   --nodePort=2002\
-  --appName=haveno-XMR_STAGENET_Seed_2002\
+  --appName=haveno-XMR_STAGENET_Seed_2002
   --xmrNode=http://[::1]:38088
 
 ExecStop=/bin/kill ${MAINPID} ; sleep 5
