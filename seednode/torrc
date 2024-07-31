@@ -1,18 +1,144 @@
-RunAsDaemon 1
-SOCKSPort 9050
-ControlPort 9051
-Log notice syslog
+## Configuration file for Haveno Seednode
+##
+## To start/reload/etc this instance, run "systemctl start tor" (or reload, or..).
+## This instance will run as user debian-tor; its data directory is /var/lib/tor.
+##
+## This file is configured via:
+## /usr/share/tor/tor-service-defaults-torrc
+##
+## See 'man tor', for more options you can use in this file.
 
-CookieAuthentication 0
-CookieAuthFileGroupReadable 1
-DataDirectoryGroupReadable 1
+## Tor opens a socks proxy on port 9050 by default -- even if you don't
+## configure one below. Set "SocksPort 0" if you plan to run Tor only
+## as a relay, and not make any local application connections yourself.
+#SocksPort 9050 # Default: Bind to localhost:9050 for local connections.
+# ### SocksPort flag: OnionTrafficOnly ###
+## Tell the tor client to only connect to .onion addresses in response to SOCKS5 requests on this connection.
+## This is equivalent to NoDNSRequest, NoIPv4Traffic, NoIPv6Traffic.
+# ### SocksPort flag: ExtendedErrors ###
+## Return extended error code in the SOCKS reply. So far, the possible errors are:
+# X'F0' Onion Service Descriptor Can Not be Found
+# X'F1' Onion Service Descriptor Is Invalid
+# X'F2' Onion Service Introduction Failed
+# X'F3' Onion Service Rendezvous Failed
+# X'F4' Onion Service Missing Client Authorization
+# X'F5' Onion Service Wrong Client Authorization
+# X'F6' Onion Service Invalid Address
+# X'F7' Onion Service Introduction Timed Out
+SocksPort 9050 OnionTrafficOnly ExtendedErrors
 
-SafeSocks 0
-HiddenServiceStatistics 0
+## Entry policies to allow/deny SOCKS requests based on IP address.
+## First entry that matches wins. If no SocksPolicy is set, we accept
+## all (and only) requests that reach a SocksPort. Untrusted users who
+## can access your SocksPort may be able to learn about the connections
+## you make.
+SocksPolicy accept 127.0.0.1
+SocksPolicy accept6 [::1]
+SocksPolicy reject *
+
+## Tor will reject application connections that use unsafe variants of the socks protocol
+## — ones that only provide an IP address, meaning the application is doing a DNS resolve first.
+## Specifically, these are socks4 and socks5 when not doing remote DNS. (Default: 0)
+#SafeSocks 1
+
+## Tor will make a notice-level log entry for each connection to the Socks port indicating
+## whether the request used a safe socks protocol or an unsafe one (see above entry on SafeSocks).
+## This helps to determine whether an application using Tor is possibly leaking DNS requests. (Default: 0)
+TestSocks 1
+
+## Logs go to stdout at level "notice" unless redirected by something
+## else, like one of the below lines. You can have as many Log lines as
+## you want.
+##
+## We advise using "notice" in most cases, since anything more verbose
+## may provide sensitive information to an attacker who obtains the logs.
+##
+## Send all messages of level 'notice' or higher to /var/log/tor/notices.log
+#Log notice file /var/log/tor/notices.log
+## Send every possible message to /var/log/tor/debug.log
+#Log debug file /var/log/tor/debug.log
+## Use the system log instead of Tor's logfiles (This is default)
+#Log notice syslog
+## To send all messages to stderr:
+#Log debug stderr
+
+# Try to write to disk less frequently than we would otherwise. This is useful when running on flash memory.
 AvoidDiskWrites 1
 
-#MaxClientCircuitsPending 64
-#KeepalivePeriod 2
-#CircuitBuildTimeout 5
-#NewCircuitPeriod 15
-#NumEntryGuards 8
+## TODO: This option has no effect. Bisq/Haveno is tor client &/or hidden service.
+## Relays and bridges only. When this option is enabled, a Tor relay writes obfuscated statistics on its
+## role as hidden-service directory, introduction point, or rendezvous point to disk every 24 hours.
+## If ExtraInfoStatistics is enabled, it will be published as part of the extra-info document. (Default: 1)
+HiddenServiceStatistics 0
+
+## The port on which Tor will listen for local connections from Tor
+## controller applications, as documented in control-spec.txt.
+#ControlPort 9051
+## If you enable the controlport, be sure to enable one of these
+## authentication methods, to prevent attackers from accessing it.
+##
+## Compute the hash of a password with "tor --hash-password password".
+#HashedControlPassword 16:872860B76453A77D60CA2BB8C1A7042072093276A3D701AD684053EC4C
+CookieAuthentication 0       # (Default: 1)
+
+## MetricsPort provides an interface to the underlying Tor relay metrics.
+## Exposing publicly is dangerous, set a very strict access policy.
+## Retrieve the metrics with:  curl http://127.0.0.1:9035/metrics
+MetricsPort 127.0.0.1:9035
+MetricsPortPolicy accept 127.0.0.1
+MetricsPortPolicy accept [::1]
+
+############### This section is just for location-hidden services ###
+
+## Once you have configured a hidden service, you can look at the
+## contents of the file ".../hidden_service/hostname" for the address
+## to tell people. e.g.: 'sudo cat /var/lib/tor/haveno_seednode/hostname'
+##
+## HiddenServicePort x y:z says to redirect requests on port x to the
+## address y:z.
+
+## Haveno seednode incoming anonymity connections
+HiddenServiceDir /var/lib/tor/haveno_seednode
+HiddenServicePort 2002 127.0.0.1:2002
+HiddenServicePort 2002 [::1]:2002
+
+## HiddenService options are per onion service:
+## https://community.torproject.org/onion-services/advanced/dos/
+##
+## Rate limiting at the Introduction Points
+## Intropoint protections prevents onion service DoS from becoming a DoS for the entire machine and its guard.
+HiddenServiceEnableIntroDoSDefense 1
+#HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
+#HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
+
+## https://community.torproject.org/onion-services/ecosystem/technology/pow/#configuring-an-onion-service-with-the-pow-protection
+## Proof of Work (PoW) before establishing Rendezvous Circuits
+## The lower the queue and burst rates, the higher the puzzle effort tends to be for users.
+HiddenServicePoWDefensesEnabled 1
+HiddenServicePoWQueueRate 200          # (Default: 250)
+HiddenServicePoWQueueBurst 1000        # (Default: 2500)
+
+## Stream limits in the established Rendezvous Circuits
+HiddenServiceMaxStreams 25
+#HiddenServiceMaxStreamsCloseCircuit 1
+
+## Haveno seednode2 incoming anonymity connections
+HiddenServiceDir /var/lib/tor/haveno_seednode2
+HiddenServicePort 2003 127.0.0.1:2003
+HiddenServicePort 2003 [::1]:2003
+
+HiddenServiceEnableIntroDoSDefense 1
+#HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
+#HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
+
+HiddenServicePoWDefensesEnabled 1
+HiddenServicePoWQueueRate 200          # (Default: 250)
+HiddenServicePoWQueueBurst 1000        # (Default: 2500)
+
+HiddenServiceMaxStreams 25
+#HiddenServiceMaxStreamsCloseCircuit 1
+
+#####################################################################
+
+LongLivedPorts 2002,2003
+## Default: 21, 22, 706, 1863, 5050, 5190, 5222, 5223, 6523, 6667, 6697, 8300
