@@ -123,10 +123,10 @@ For each seed node:
 2. [Start a local Monero node](#start-a-local-monero-node).
 3. Run `sudo cat /var/lib/tor/haveno_seednode/hostname` and note down the .onion for the next step & step 10.
 4. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
-> [!note]
-> Replace `<user>` above with the user that will be running the seed node (step 3 above & step 6)
 5. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
 6. Add user to tor group `sudo usermod -aG debian-tor <user>`.
+> [!note]
+> Replace `<user>` above with the user that will be running the seed node (step 6 above & step 4)
 7. Disconnect and reconnect SSH session or logout and back in.
 8. Run `sudo systemctl start tor`.
 9. Run `sudo systemctl start haveno-seednode` to start the seednode and also run `sudo systemctl start haveno-seednode2` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
