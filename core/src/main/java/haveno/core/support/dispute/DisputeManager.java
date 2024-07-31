@@ -157,6 +157,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         disputeListService.requestPersistence();
     }
 
+    protected void requestPersistence(Trade trade) {
+        trade.requestPersistence();
+        disputeListService.requestPersistence();
+    }
+
     @Override
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
         Optional<Dispute> disputeOptional = findDispute(message);
@@ -322,7 +327,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // trader sends message to arbitrator to open dispute
     public void sendDisputeOpenedMessage(Dispute dispute,
                                             boolean reOpen,
-                                            String updatedMultisigHex,
                                             ResultHandler resultHandler,
                                             FaultHandler faultHandler) {
 
@@ -372,12 +376,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 }
 
                 // create dispute opened message
+                trade.exportMultisigHex();
                 NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
                 DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,
                         p2PService.getAddress(),
                         UUID.randomUUID().toString(),
                         getSupportType(),
-                        updatedMultisigHex,
+                        trade.getSelf().getUpdatedMultisigHex(),
                         trade.getArbitrator().getPaymentSentMessage());
                 log.info("Send {} to peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
                         "chatMessage.uid={}",
@@ -792,7 +797,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             disputeResult.getChatMessage().setArrived(true);
                             trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
                             trade.pollWalletNormallyForMs(30000);
-                            requestPersistence();
+                            requestPersistence(trade);
                             resultHandler.handleResult();
                         }
 
@@ -811,7 +816,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             disputeResult.getChatMessage().setStoredInMailbox(true);
                             Trade trade = tradeManager.getTrade(dispute.getTradeId());
                             trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_STORED_IN_MAILBOX_DISPUTE_CLOSED_MSG);
-                            requestPersistence();
+                            requestPersistence(trade);
                             resultHandler.handleResult();
                         }
 
@@ -828,13 +833,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setSendMessageError(errorMessage);
                             trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SEND_FAILED_DISPUTE_CLOSED_MSG);
-                            requestPersistence();
+                            requestPersistence(trade);
                             faultHandler.handleFault(errorMessage, new RuntimeException(errorMessage));
                         }
                     }
             );
             trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG);
-            requestPersistence();
+            requestPersistence(trade);
         } catch (Exception e) {
             faultHandler.handleFault(e.getMessage(), e);
         }
@@ -900,11 +905,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 // update trade state
                 if (updateState) {
                     trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
-                    trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
                     trade.updatePayout(payoutTx);
                     if (trade.getBuyer().getUpdatedMultisigHex() != null && trade.getBuyer().getUnsignedPayoutTxHex() == null) trade.getBuyer().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                     if (trade.getSeller().getUpdatedMultisigHex() != null && trade.getSeller().getUnsignedPayoutTxHex() == null) trade.getSeller().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                 }
+                trade.requestPersistence();
                 return payoutTx;
             } catch (Exception e) {
                 trade.syncAndPollWallet();

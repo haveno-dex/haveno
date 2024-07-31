@@ -90,7 +90,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
             }
 
-            processModel.getTradeManager().requestPersistence();
+            trade.requestPersistence();
             complete();
         } catch (Throwable t) {
             failed(t);

@@ -252,7 +252,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                     // save dispute closed message for reprocessing
                     trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
-                    requestPersistence();
+                    requestPersistence(trade);
 
                     // verify arbitrator does not receive DisputeClosedMessage
                     if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
@@ -326,17 +326,17 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     // We use the chatMessage as we only persist those not the DisputeClosedMessage.
                     // If we would use the DisputeClosedMessage we could not lookup for the msg when we receive the AckMessage.
                     sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
-                    requestPersistence();
+                    requestPersistence(trade);
                 } catch (Exception e) {
                     log.warn("Error processing dispute closed message: " + e.getMessage());
                     e.printStackTrace();
-                    requestPersistence();
+                    requestPersistence(trade);
 
                     // nack bad message and do not reprocess
                     if (e instanceof IllegalArgumentException) {
                         trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
                         sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), false, e.getMessage());
-                        requestPersistence();
+                        requestPersistence(trade);
                         throw e;
                     }
 
@@ -447,7 +447,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             String signedMultisigTxHex = result.getSignedMultisigTxHex();
             disputeTxSet.setMultisigTxHex(signedMultisigTxHex);
             trade.setPayoutTxHex(signedMultisigTxHex);
-            requestPersistence();
+            requestPersistence(trade);
 
             // verify mining fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
@@ -487,6 +487,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         trade.updatePayout(disputeTxSet.getTxs().get(0));
         trade.setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
         dispute.setDisputePayoutTxId(disputeTxSet.getTxs().get(0).getHash());
+        requestPersistence(trade);
         return disputeTxSet;
     }
 

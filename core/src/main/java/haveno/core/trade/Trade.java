@@ -1058,8 +1058,18 @@ public abstract class Trade implements Tradable, Model {
     public MoneroTxWallet createTx(MoneroTxConfig txConfig) {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
-                return wallet.createTx(txConfig);
+                MoneroTxWallet tx = wallet.createTx(txConfig);
+                exportMultisigHex();
+                requestSaveWallet();
+                return tx;
             }
+        }
+    }
+
+    public void exportMultisigHex() {
+        synchronized (walletLock) {
+            getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
+            requestPersistence();
         }
     }
 
@@ -1220,13 +1230,11 @@ public abstract class Trade implements Tradable, Model {
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
 
         // update state
-        saveWallet();
         BigInteger payoutTxFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
         getBuyer().setPayoutTxFee(payoutTxFeeSplit);
         getBuyer().setPayoutAmount(HavenoUtils.getDestination(buyerPayoutAddress, payoutTx).getAmount());
         getSeller().setPayoutTxFee(payoutTxFeeSplit);
         getSeller().setPayoutAmount(HavenoUtils.getDestination(sellerPayoutAddress, payoutTx).getAmount());
-        getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
         return payoutTx;
     }
 
@@ -1273,6 +1281,9 @@ public abstract class Trade implements Tradable, Model {
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    } finally {
+                        requestSaveWallet();
+                        requestPersistence();
                     }
                 }
             }

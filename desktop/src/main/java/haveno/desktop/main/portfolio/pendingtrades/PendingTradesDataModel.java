@@ -545,27 +545,28 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             dispute.setExtraData("counterCurrencyExtraData", trade.getCounterCurrencyExtraData());
 
             trade.setDisputeState(Trade.DisputeState.MEDIATION_REQUESTED);
-            sendDisputeOpenedMessage(dispute, false, disputeManager, trade.getSelf().getUpdatedMultisigHex());
+            sendDisputeOpenedMessage(dispute, false, disputeManager);
             tradeManager.requestPersistence();
         } else if (useArbitration) {
           // Only if we have completed mediation we allow arbitration
           disputeManager = arbitrationManager;
           Dispute dispute = disputesService.createDisputeForTrade(trade, offer, pubKeyRingProvider.get(), isMaker, isSupportTicket);
-          sendDisputeOpenedMessage(dispute, false, disputeManager, trade.getSelf().getUpdatedMultisigHex());
+          trade.exportMultisigHex();
+          sendDisputeOpenedMessage(dispute, false, disputeManager);
           tradeManager.requestPersistence();
         } else {
             log.warn("Invalid dispute state {}", disputeState.name());
         }
     }
 
-    private void sendDisputeOpenedMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager, String senderMultisigHex) {
-        disputeManager.sendDisputeOpenedMessage(dispute, reOpen, senderMultisigHex,
+    private void sendDisputeOpenedMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
+        disputeManager.sendDisputeOpenedMessage(dispute, reOpen,
                 () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class), (errorMessage, throwable) -> {
                     if ((throwable instanceof DisputeAlreadyOpenException)) {
                         errorMessage += "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg");
                         new Popup().warning(errorMessage)
                                 .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
-                                .onAction(() -> sendDisputeOpenedMessage(dispute, true, disputeManager, senderMultisigHex))
+                                .onAction(() -> sendDisputeOpenedMessage(dispute, true, disputeManager))
                                 .closeButtonText(Res.get("shared.cancel")).show();
                     } else {
                         new Popup().warning(errorMessage).show();
