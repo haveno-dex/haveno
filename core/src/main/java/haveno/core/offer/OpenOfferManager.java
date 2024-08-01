@@ -863,8 +863,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                        TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
         ThreadUtils.execute(() -> {
+            List<String> errorMessages = new ArrayList<String>();
             synchronized (processOffersLock) {
-                List<String> errorMessages = new ArrayList<String>();
                 List<OpenOffer> openOffers = getOpenOffers();
                 for (OpenOffer pendingOffer : openOffers) {
                     if (pendingOffer.getState() != OpenOffer.State.PENDING) continue;
@@ -887,12 +887,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
                     HavenoUtils.awaitLatch(latch);
                 }
-                requestPersistence();
-                if (errorMessages.isEmpty()) {
-                    if (resultHandler != null) resultHandler.handleResult(null);
-                } else {
-                    if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessages.toString());
-                }
+            }
+            requestPersistence();
+            if (errorMessages.isEmpty()) {
+                if (resultHandler != null) resultHandler.handleResult(null);
+            } else {
+                if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessages.toString());
             }
         }, THREAD_ID);
     }
