@@ -87,9 +87,11 @@ import monero.wallet.model.MoneroTxWallet;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -168,7 +170,28 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
     @Override
     public void cleanupDisputes() {
-        // no action
+
+        // remove disputes opened by arbitrator, which is not allowed
+        Set<Dispute> toRemoves = new HashSet<>();
+        List<Dispute> disputes = getDisputeList().getList();
+        for (Dispute dispute : disputes) {
+
+            // get dispute's trade
+            final Trade trade = tradeManager.getTrade(dispute.getTradeId());
+            if (trade == null) {
+                log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+                return;
+            }
+
+            // collect dispute if owned by arbitrator
+            if (dispute.getTraderPubKeyRing().equals(trade.getArbitrator().getPubKeyRing())) {
+                toRemoves.add(dispute);
+            }
+        }
+        for (Dispute toRemove : toRemoves) {
+            log.warn("Removing invalid dispute opened by arbitrator, disputeId={}", toRemove.getTradeId(), toRemove.getId());
+            getDisputeList().remove(toRemove);
+        }
     }
 
     @Override

@@ -329,7 +329,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // get trade
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
         if (trade == null) {
-            log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+            String errorMsg = "Dispute trade does not exist, tradeId=" + dispute.getTradeId();
+            faultHandler.handleFault(errorMsg, new IllegalStateException(errorMsg));
+            return;
+        }
+
+        // arbitrator cannot open disputes
+        if (trade.isArbitrator()) {
+            String errorMsg = "Arbitrators cannot open disputes.";
+            faultHandler.handleFault(errorMsg, new IllegalStateException(errorMsg));
             return;
         }
 
