@@ -688,7 +688,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             addOpenOffer(editedOpenOffer);
 
             if (editedOpenOffer.isAvailable())
-                republishOffer(editedOpenOffer);
+                maybeRepublishOffer(editedOpenOffer);
 
             offersToBeEdited.remove(openOffer.getId());
             requestPersistence();
@@ -1714,11 +1714,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         synchronized (openOffers) {
             contained = openOffers.contains(openOffer);
         }
-        if (contained && openOffer.isAvailable()) {
+        if (contained) {
             // TODO It is not clear yet if it is better for the node and the network to send out all add offer
             //  messages in one go or to spread it over a delay. With power users who have 100-200 offers that can have
             //  some significant impact to user experience and the network
-            republishOffer(openOffer, () -> processListForRepublishOffers(list));
+            maybeRepublishOffer(openOffer, () -> processListForRepublishOffers(list));
 
             /* republishOffer(openOffer,
                     () -> UserThread.runAfter(() -> processListForRepublishOffers(list),
@@ -1730,12 +1730,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
-    private void republishOffer(OpenOffer openOffer) {
-        republishOffer(openOffer, null);
+    private void maybeRepublishOffer(OpenOffer openOffer) {
+        maybeRepublishOffer(openOffer, null);
     }
 
-    private void republishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
+    private void maybeRepublishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
         ThreadUtils.execute(() -> {
+
+            // skip if prevented from publishing
+            if (preventedFromPublishing(openOffer)) {
+                if (completeHandler != null) completeHandler.run();
+                return;
+            }
 
             // determine if offer is valid
             boolean isValid = true;
@@ -1811,6 +1817,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }, THREAD_ID);
     }
 
+    private boolean preventedFromPublishing(OpenOffer openOffer) {
+        return openOffer.isDeactivated() || openOffer.isCanceled();
+    }
+
     private void startPeriodicRepublishOffersTimer() {
         stopped = false;
         if (periodicRepublishOffersTimer == null) {
@@ -1843,8 +1853,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 final OpenOffer openOffer = openOffersList.get(i);
                                 UserThread.runAfterRandomDelay(() -> {
                                     // we need to check if in the meantime the offer has been removed
-                                    if (openOffers.contains(openOffer) && openOffer.isAvailable())
-                                        refreshOffer(openOffer, 0, 1);
+                                    boolean contained = false;
+                                    synchronized (openOffers) {
+                                        contained = openOffers.contains(openOffer);
+                                    }
+                                    if (contained) maybeRefreshOffer(openOffer, 0, 1);
                                 }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
                             }
                         } else {
@@ -1857,13 +1870,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             log.trace("periodicRefreshOffersTimer already stated");
     }
 
-    private void refreshOffer(OpenOffer openOffer, int numAttempts, int maxAttempts) {
+    private void maybeRefreshOffer(OpenOffer openOffer, int numAttempts, int maxAttempts) {
+        if (preventedFromPublishing(openOffer)) return;
         offerBookService.refreshTTL(openOffer.getOffer().getOfferPayload(),
                 () -> log.debug("Successful refreshed TTL for offer"),
                 (errorMessage) -> {
                     log.warn(errorMessage);
                     if (numAttempts + 1 < maxAttempts) {
-                        UserThread.runAfter(() -> refreshOffer(openOffer, numAttempts + 1, maxAttempts), 10);
+                        UserThread.runAfter(() -> maybeRefreshOffer(openOffer, numAttempts + 1, maxAttempts), 10);
                     }
                 });
     }
