@@ -28,13 +28,10 @@ import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
-import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -218,7 +215,7 @@ public class OfferFilterService {
         return result;
     }
 
-    public boolean hasValidSignature(Offer offer) {
+    private boolean hasValidSignature(Offer offer) {
 
         // get accepted arbitrator by address
         Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(offer.getOfferPayload().getArbitratorSigner());
@@ -230,9 +227,11 @@ public class OfferFilterService {
                 if (thisArbitrator.getNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) arbitrator = thisArbitrator; // TODO: unnecessary to compare arbitrator and p2pservice address?
             } else {
                 
-                // otherwise log warning that arbitrator is unregistered
-                List<NodeAddress> arbitratorAddresses = user.getAcceptedArbitrators().stream().map(Arbitrator::getNodeAddress).collect(Collectors.toList());
-                log.warn("No arbitrator is registered with offer's signer. offerId={}, arbitrator signer={}, accepted arbitrators={}", offer.getId(), offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
+                // // otherwise log warning that arbitrator is unregistered
+                // List<NodeAddress> arbitratorAddresses = user.getAcceptedArbitrators().stream().map(Arbitrator::getNodeAddress).collect(Collectors.toList());
+                // if (!arbitratorAddresses.isEmpty()) {
+                //     log.warn("No arbitrator is registered with offer's signer. offerId={}, arbitrator signer={}, accepted arbitrators={}", offer.getId(), offer.getOfferPayload().getArbitratorSigner(), arbitratorAddresses);
+                // }
             }
         }
 
