@@ -962,9 +962,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     }
                 } else {
 
-                    // handle sufficient balance
+                    // sign and post offer if enough funds
+                    boolean hasFundsReserved = openOffer.getReserveTxHash() != null;
                     boolean hasSufficientBalance = xmrWalletService.getAvailableBalance().compareTo(amountNeeded) >= 0;
-                    if (hasSufficientBalance) {
+                    if (hasFundsReserved || hasSufficientBalance) {
                         signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
                         return;
                     } else if (openOffer.getScheduledTxHashes() == null) {
