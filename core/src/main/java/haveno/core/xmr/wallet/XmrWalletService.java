@@ -420,6 +420,10 @@ public class XmrWalletService {
     }
 
     public void forceCloseWallet(MoneroWallet wallet, String path) {
+        if (wallet == null) {
+            log.warn("Ignoring force close wallet because wallet is null, path={}", path);
+            return;
+        }
         if (wallet instanceof MoneroWalletRpc) {
             MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, true);
         } else {
@@ -1306,7 +1310,16 @@ public class XmrWalletService {
     }
 
     private void maybeInitMainWallet(boolean sync, int numAttempts) {
-        ThreadUtils.execute(() -> doMaybeInitMainWallet(sync, numAttempts), THREAD_ID);
+        ThreadUtils.execute(() -> {
+            try {
+                doMaybeInitMainWallet(sync, MAX_SYNC_ATTEMPTS);
+            } catch (Exception e) {
+                log.warn("Error initializing main wallet: " + e.getMessage());
+                e.printStackTrace();
+                HavenoUtils.setTopError(e.getMessage());
+                throw e;
+            }
+        }, THREAD_ID);
     }
 
     private void doMaybeInitMainWallet(boolean sync, int numAttempts) {
@@ -1410,7 +1423,7 @@ public class XmrWalletService {
         if (baseAddresses.size() > 1 || (baseAddresses.size() == 1 && !baseAddresses.get(0).getAddressString().equals(wallet.getPrimaryAddress()))) {
             String warningMsg = "New Monero wallet detected. Resetting internal state.";
             if (!tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
-            HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+            HavenoUtils.setTopError(warningMsg);
 
             // reset address entries
             xmrAddressEntryList.clear();
@@ -1529,7 +1542,7 @@ public class XmrWalletService {
             return walletFull;
         } catch (Exception e) {
             e.printStackTrace();
-            if (walletFull != null) forceCloseMainWallet();
+            if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
             throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'");
         }
     }

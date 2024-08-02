@@ -502,4 +502,8 @@ public class HavenoUtils {
         else if (Config.baseCurrencyNetwork().isStagenet()) return 38081;
         else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
     }
+
+    public static void setTopError(String msg) {
+        havenoSetup.getTopErrorMsg().set(msg);
+    }
 }
