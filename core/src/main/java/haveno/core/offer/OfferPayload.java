@@ -390,6 +390,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 null : new ArrayList<>(proto.getAcceptedBankIdsList());
         List<String> acceptedCountryCodes = proto.getAcceptedCountryCodesList().isEmpty() ?
                 null : new ArrayList<>(proto.getAcceptedCountryCodesList());
+        List<String> reserveTxKeyImages = proto.getReserveTxKeyImagesList().isEmpty() ?
+                null : new ArrayList<>(proto.getReserveTxKeyImagesList());
         String hashOfChallenge = ProtoUtil.stringOrNullFromProto(proto.getHashOfChallenge());
         Map<String, String> extraDataMapMap = CollectionUtils.isEmpty(proto.getExtraDataMap()) ?
                 null : proto.getExtraDataMap();
@@ -431,7 +433,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getProtocolVersion(),
                 proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
                 ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()),
-                proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
+                reserveTxKeyImages);
     }
 
     @Override

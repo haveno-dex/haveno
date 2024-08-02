@@ -1754,7 +1754,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
                 isValid = false;
             }
-            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && (openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty())) {
+            if ((openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null || openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty()) && (openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty())) {
                 log.warn("Offer {} is missing reserve tx hash but has reserved key images, reposting", openOffer.getId());
                 isValid = false;
             }
