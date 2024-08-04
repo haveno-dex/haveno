@@ -506,4 +506,16 @@ public class HavenoUtils {
     public static void setTopError(String msg) {
         havenoSetup.getTopErrorMsg().set(msg);
     }
+
+    public static boolean isConnectionRefused(Exception e) {
+        return e != null && e.getMessage().contains("Connection refused");
+    }
+
+    public static boolean isReadTimeout(Exception e) {
+        return e != null && e.getMessage().contains("Read timed out");
+    }
+
+    public static boolean isUnresponsive(Exception e) {
+        return isConnectionRefused(e) || isReadTimeout(e);
+    }
 }

@@ -850,8 +850,8 @@ public abstract class Trade implements Tradable, Model {
         }
     }
 
-    public boolean requestSwitchToNextBestConnection() {
-        if (xmrConnectionService.requestSwitchToNextBestConnection()) {
+    public boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
+        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
             onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
             return true;
         }
@@ -893,10 +893,6 @@ public abstract class Trade implements Tradable, Model {
                 updatePollPeriod();
             }
         }).start();
-    }
-
-    private boolean isReadTimeoutError(String errMsg) {
-        return errMsg.contains("Read timed out");
     }
 
     // TODO: checking error strings isn't robust, but the library doesn't provide a way to check if multisig hex is invalid. throw IllegalArgumentException from library on invalid multisig hex?
@@ -1081,6 +1077,7 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         doImportMultisigHex();
                         break;
@@ -1088,9 +1085,8 @@ public abstract class Trade implements Tradable, Model {
                         throw e;
                     } catch (Exception e) {
                         log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
-                        if (isReadTimeoutError(e.getMessage())) forceRestartTradeWallet(); // wallet can be stuck a while
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
@@ -1168,6 +1164,12 @@ public abstract class Trade implements Tradable, Model {
         log.info("Done importing multisig hexes for {} {} in {} ms, count={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size());
     }
 
+    private void handleWalletError(Exception e, MoneroRpcConnection sourceConnection) {
+        if (HavenoUtils.isUnresponsive(e)) forceCloseWallet(); // wallet can be stuck a while
+        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection(sourceConnection);
+        getWallet(); // re-open wallet
+    }
+
     private String getMultisigHexRole(String multisigHex) {
         if (multisigHex.equals(getArbitrator().getUpdatedMultisigHex())) return "arbitrator";
         if (multisigHex.equals(getBuyer().getUpdatedMultisigHex())) return "buyer";
@@ -1189,14 +1191,15 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         return doCreatePayoutTx();
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
                         log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
@@ -1246,6 +1249,7 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         if (wallet.isMultisigImportNeeded()) throw new IllegalStateException("Cannot create dispute payout tx because multisig import is needed for " + getClass().getSimpleName() + " " + getShortId());
                         return createTx(txConfig);
@@ -1254,8 +1258,8 @@ public abstract class Trade implements Tradable, Model {
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
                         log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
@@ -1275,6 +1279,7 @@ public abstract class Trade implements Tradable, Model {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         doProcessPayoutTx(payoutTxHex, sign, publish);
                         break;
@@ -1282,8 +1287,8 @@ public abstract class Trade implements Tradable, Model {
                         throw e;
                     } catch (Exception e) {
                         log.warn("Failed to process payout tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, getShortId(), e.getMessage());
+                        handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     } finally {
                         requestSaveWallet();
@@ -2412,6 +2417,7 @@ public abstract class Trade implements Tradable, Model {
     }
 
     private void syncWallet(boolean pollWallet) {
+        MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
         try {
             if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
             if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
@@ -2432,7 +2438,7 @@ public abstract class Trade implements Tradable, Model {
     
             if (pollWallet) pollWallet();
         } catch (Exception e) {
-            ThreadUtils.execute(() -> requestSwitchToNextBestConnection(), getId());
+            ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             throw e;
         }
     }
@@ -2561,11 +2567,12 @@ public abstract class Trade implements Tradable, Model {
 
                 // rescan spent outputs to detect unconfirmed payout tx
                 if (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         wallet.rescanSpent();
                     } catch (Exception e) {
                         log.warn("Failed to rescan spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
-                        ThreadUtils.execute(() -> requestSwitchToNextBestConnection(), getId()); // do not block polling thread
+                        ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId()); // do not block polling thread
                     }
                 }
 
@@ -2610,12 +2617,11 @@ public abstract class Trade implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            boolean isConnectionRefused = e.getMessage() != null && e.getMessage().contains("Connection refused");
-            if (isConnectionRefused) forceRestartTradeWallet();
+            if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet();
             else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
-                    log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                    log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
                     //e.printStackTrace();
                 }
             }
@@ -2675,7 +2681,8 @@ public abstract class Trade implements Tradable, Model {
                         log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
                         wallet.rescanBlockchain();
                     } catch (Exception e) {
-                        if (isReadTimeoutError(e.getMessage())) forceRestartTradeWallet(); // wallet can be stuck a while
+                        log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                        if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
                         throw e;
                     } finally {
 

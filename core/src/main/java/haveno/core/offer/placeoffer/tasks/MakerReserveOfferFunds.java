@@ -32,6 +32,7 @@ import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -82,14 +83,16 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 try {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
                         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                            MoneroRpcConnection sourceConnection = model.getXmrWalletService().getConnectionService().getConnection();
                             try {
                                 //if (true) throw new RuntimeException("Pretend error");
                                 reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
                             } catch (Exception e) {
                                 log.warn("Error creating reserve tx, offerId={}, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, openOffer.getShortId(), e.getMessage());
+                                model.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                verifyPending();
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                 model.getProtocol().startTimeoutTimer(); // reset protocol timeout
-                                if (model.getXmrWalletService().getConnectionService().isConnected()) model.getXmrWalletService().requestSwitchToNextBestConnection();
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                             }
         
@@ -129,7 +132,11 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
         }
     }
 
-    public void verifyPending() {
-        if (!model.getOpenOffer().isPending()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
+    private boolean isPending() {
+        return model.getOpenOffer().isPending();
+    }
+
+    private void verifyPending() {
+        if (!isPending()) throw new RuntimeException("Offer " + model.getOpenOffer().getOffer().getId() + " is canceled");
     }
 }
