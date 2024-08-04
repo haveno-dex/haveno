@@ -257,7 +257,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // create tx
                 MoneroTxWallet tx = null;
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                    MoneroRpcConnection sourceConnection = xmrWalletService.getConnectionService().getConnection();
+                    MoneroRpcConnection sourceConnection = xmrWalletService.getXmrConnectionService().getConnection();
                     try {
                         log.info("Creating withdraw tx");
                         long startTime = System.currentTimeMillis();
@@ -272,7 +272,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         if (isNotEnoughMoney(e.getMessage())) throw e;
                         log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrWalletService.getConnectionService().isConnected()) xmrWalletService.requestSwitchToNextBestConnection(sourceConnection);
+                        if (xmrWalletService.getXmrConnectionService().isConnected()) xmrWalletService.requestSwitchToNextBestConnection(sourceConnection);
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }

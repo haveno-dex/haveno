@@ -499,7 +499,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         // process on trade thread
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 String errorMessage = null;
                 PubKeyRing senderPubKeyRing = null;
                 try {

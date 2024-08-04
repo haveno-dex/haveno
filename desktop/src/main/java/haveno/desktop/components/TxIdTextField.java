@@ -197,7 +197,7 @@ public class TxIdTextField extends AnchorPane {
         try {
             if (trade == null) {
                 tx = useCache ? xmrWalletService.getDaemonTxWithCache(txId) : xmrWalletService.getDaemonTx(txId);
-                tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+                tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getXmrConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
             } else {
                 if (txId.equals(trade.getMaker().getDepositTxHash())) tx = trade.getMakerDepositTx();
                 else if (txId.equals(trade.getTaker().getDepositTxHash())) tx = trade.getTakerDepositTx();

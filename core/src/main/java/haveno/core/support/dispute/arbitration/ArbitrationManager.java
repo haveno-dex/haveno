@@ -240,7 +240,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         ThreadUtils.execute(() -> {
             ChatMessage chatMessage = null;
             Dispute dispute = null;
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 try {
                     DisputeResult disputeResult = disputeClosedMessage.getDisputeResult();
                     chatMessage = disputeResult.getChatMessage();
@@ -384,7 +384,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {
         if (trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
 
                 // skip if no need to reprocess
                 if (trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
@@ -478,7 +478,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 trade.setPayoutTxHex(signedMultisigTxHex);
                 requestPersistence(trade);
             } catch (Exception e) {
-                throw new IllegalStateException(e);
+                throw new IllegalStateException(e.getMessage());
             }
 
             // verify mining fee is within tolerance by recreating payout tx

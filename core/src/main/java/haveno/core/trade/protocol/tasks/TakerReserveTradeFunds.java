@@ -24,7 +24,6 @@ import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
-import haveno.core.xmr.wallet.XmrWalletService;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import monero.wallet.model.MoneroTxWallet;
@@ -50,7 +49,7 @@ public class TakerReserveTradeFunds extends TradeTask {
 
             // create reserve tx
             MoneroTxWallet reserveTx = null;
-            synchronized (XmrWalletService.WALLET_LOCK) {
+            synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
 
                 // check for timeout
                 if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while getting lock to create reserve tx, tradeId=" + trade.getShortId());

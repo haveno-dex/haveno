@@ -44,7 +44,6 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
-import haveno.core.api.XmrConnectionService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.network.MessageState;
@@ -69,6 +68,7 @@ import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
@@ -76,14 +76,12 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.TorNetworkNode;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -135,19 +133,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * stored in the task model.
  */
 @Slf4j
-public abstract class Trade implements Tradable, Model {
+public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
+    @Getter
+    public final Object lock = new Object();
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long SYNC_EVERY_NUM_BLOCKS = 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
-    private final Object walletLock = new Object();
     private final Object pollLock = new Object();
-    private final LongProperty walletHeight = new SimpleLongProperty(0);
-    private MoneroWallet wallet;
-    private boolean wasWalletSynced;
     private boolean pollInProgress;
     private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
@@ -413,9 +409,6 @@ public abstract class Trade implements Tradable, Model {
     // Immutable
     @Getter
     transient final private XmrWalletService xmrWalletService;
-    @Getter
-    transient final private XmrConnectionService xmrConnectionService;
-
     transient final private DoubleProperty initProgressProperty = new SimpleDoubleProperty(0.0);
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
     transient final private ObjectProperty<Phase> phaseProperty = new SimpleObjectProperty<>(state.phase);
@@ -441,10 +434,6 @@ public abstract class Trade implements Tradable, Model {
     @Getter
     transient private boolean isInitialized;
     transient private boolean isFullyInitialized;
-    @Getter
-    transient private boolean isShutDownStarted;
-    @Getter
-    transient private boolean isShutDown;
 
     // Added in v1.2.0
     transient private ObjectProperty<BigInteger> tradeAmountProperty;
@@ -511,11 +500,12 @@ public abstract class Trade implements Tradable, Model {
                     @Nullable NodeAddress makerNodeAddress,
                     @Nullable NodeAddress takerNodeAddress,
                     @Nullable NodeAddress arbitratorNodeAddress) {
+        super();
         this.offer = offer;
         this.amount = tradeAmount.longValueExact();
         this.price = tradePrice;
         this.xmrWalletService = xmrWalletService;
-        this.xmrConnectionService = xmrWalletService.getConnectionService();
+        this.xmrConnectionService = xmrWalletService.getXmrConnectionService();
         this.processModel = processModel;
         this.uid = uid;
         this.takeOfferDate = new Date().getTime();
@@ -1512,13 +1502,13 @@ public abstract class Trade implements Tradable, Model {
 
             // repeatedly acquire lock to clear tasks
             for (int i = 0; i < 20; i++) {
-                synchronized (this) {
+                synchronized (getLock()) {
                     HavenoUtils.waitFor(10);
                 }
             }
 
             // shut down trade threads
-            synchronized (this) {
+            synchronized (getLock()) {
                 isInitialized = false;
                 isShutDown = true;
                 List<Runnable> shutDownThreads = new ArrayList<>();
@@ -2636,8 +2626,7 @@ public abstract class Trade implements Tradable, Model {
     private void syncWalletIfBehind() {
         if (isWalletBehind()) {
             synchronized (walletLock) {
-                xmrWalletService.syncWallet(wallet);
-                walletHeight.set(wallet.getHeight());
+                syncWithProgress();
             }
         }
     }
@@ -2812,7 +2801,7 @@ public abstract class Trade implements Tradable, Model {
                     if (!isInitialized || isShutDownStarted) return;
                     if (isWalletConnectedToDaemon()) {
                         e.printStackTrace();
-                        log.warn("Error polling idle trade for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getConnectionService().getConnection());
+                        log.warn("Error polling idle trade for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getXmrConnectionService().getConnection());
                     };
                 }
             }, getId());

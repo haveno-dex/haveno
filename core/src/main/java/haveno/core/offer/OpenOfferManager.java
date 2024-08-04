@@ -1085,7 +1085,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         BigInteger reserveAmount = openOffer.getOffer().getAmountNeeded();
         xmrWalletService.swapAddressEntryToAvailable(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING); // change funding subaddress in case funded with unsuitable output(s)
         MoneroTxWallet splitOutputTx = null;
-        synchronized (XmrWalletService.WALLET_LOCK) {
+        synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
             XmrAddressEntry entry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 long startTime = System.currentTimeMillis();

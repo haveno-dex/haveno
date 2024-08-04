@@ -28,7 +28,6 @@ import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
-import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
@@ -78,7 +77,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
 
             // create deposit tx and freeze inputs
             MoneroTxWallet depositTx = null;
-            synchronized (XmrWalletService.WALLET_LOCK) {
+            synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
 
                 // check for timeout
                 if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while getting lock to create deposit tx, tradeId=" + trade.getShortId());
