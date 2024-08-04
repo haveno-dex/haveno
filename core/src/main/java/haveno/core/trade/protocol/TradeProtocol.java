@@ -243,7 +243,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (!trade.isCompleted()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
 
         // initialize trade
-        synchronized (trade) {
+        synchronized (trade.getLock()) {
             trade.initialize(processModel.getProvider());
 
             // process mailbox messages
@@ -261,7 +261,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         ThreadUtils.execute(() -> {
             if (!trade.isDepositsConfirmed() || trade.isDepositsConfirmedAcked() || trade.isPayoutPublished() || depositsConfirmedTasksCalled) return;
             depositsConfirmedTasksCalled = true;
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 if (!trade.isInitialized() || trade.isShutDownStarted()) return; // skip if shutting down
                 latchTrade();
                 expect(new Condition(trade))
@@ -282,7 +282,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
         if (trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
 
                 // skip if no need to reprocess
                 if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished())) {
@@ -299,7 +299,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
 
                 // check trade
                 if (trade.hasFailed()) {
@@ -335,7 +335,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
 
                 // check trade
                 if (trade.hasFailed()) {
@@ -379,7 +379,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
 
                 // check trade
                 if (trade.hasFailed()) {
@@ -425,7 +425,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         System.out.println(getClass().getSimpleName() + ".handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 Validator.checkTradeId(processModel.getOfferId(), response);
                 latchTrade();
                 processModel.setTradeMessage(response);
@@ -455,7 +455,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender + " for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 if (!trade.isInitialized() || trade.isShutDown()) return;
                 latchTrade();
                 this.errorMessageHandler = null;
@@ -493,7 +493,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // a mailbox message with PaymentSentMessage.
             // TODO A better fix would be to add a listener for the wallet sync state and process
             // the mailbox msg once wallet is ready and trade state set.
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 if (!trade.isInitialized() || trade.isShutDown()) return;
                 if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
                     log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
@@ -542,7 +542,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
                 return;
             }
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 if (!trade.isInitialized() || trade.isShutDown()) return;
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
@@ -817,7 +817,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage) {
-        log.error("Task runner failed with error {}. Triggered from {}. Monerod={}" , errorMessage, source, trade.getXmrWalletService().getConnectionService().getConnection());
+        log.error("Task runner failed with error {}. Triggered from {}. Monerod={}" , errorMessage, source, trade.getXmrWalletService().getXmrConnectionService().getConnection());
 
         if (message != null) {
             sendAckMessage(ackReceiver, message, false, errorMessage);

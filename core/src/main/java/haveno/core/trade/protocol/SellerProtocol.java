@@ -70,7 +70,7 @@ public class SellerProtocol extends DisputeProtocol {
         // re-send payment received message if payout not published
         ThreadUtils.execute(() -> {
             if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
                 if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
                     latchTrade();
@@ -117,7 +117,7 @@ public class SellerProtocol extends DisputeProtocol {
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info("SellerProtocol.onPaymentReceived()");
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 SellerEvent event = SellerEvent.PAYMENT_RECEIVED;

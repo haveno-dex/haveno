@@ -28,6 +28,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
@@ -106,6 +107,7 @@ public class HavenoUtils {
     public static HavenoSetup havenoSetup;
     public static ArbitrationManager arbitrationManager;
     public static XmrWalletService xmrWalletService;
+    public static XmrConnectionService xmrConnectionService;
     public static OpenOfferManager openOfferManager;
 
     public static boolean isSeedNode() {

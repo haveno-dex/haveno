@@ -62,7 +62,7 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
                                        ErrorMessageHandler errorMessageHandler) {
         System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 expect(phase(Trade.Phase.INIT)

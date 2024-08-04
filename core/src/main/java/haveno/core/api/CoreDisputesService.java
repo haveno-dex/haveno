@@ -118,7 +118,7 @@ public class CoreDisputesService {
     }
 
     public Dispute createDisputeForTrade(Trade trade, Offer offer, PubKeyRing pubKey, boolean isMaker, boolean isSupportTicket) {
-        synchronized (trade) {
+        synchronized (trade.getLock()) {
             byte[] payoutTxSerialized = null;
             String payoutTxHashAsString = null;
 
@@ -163,7 +163,7 @@ public class CoreDisputesService {
         if (winningDisputeOptional.isPresent()) winningDispute = winningDisputeOptional.get();
         else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
 
-        synchronized (trade) {
+        synchronized (trade.getLock()) {
             try {
 
                 // create dispute result

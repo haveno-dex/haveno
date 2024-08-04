@@ -75,7 +75,7 @@ public class BuyerProtocol extends DisputeProtocol {
         // re-send payment sent message if not acked
         ThreadUtils.execute(() -> {
             if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
                 if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
                     latchTrade();
@@ -121,7 +121,7 @@ public class BuyerProtocol extends DisputeProtocol {
     public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         System.out.println("BuyerProtocol.onPaymentSent()");
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 BuyerEvent event = BuyerEvent.PAYMENT_SENT;

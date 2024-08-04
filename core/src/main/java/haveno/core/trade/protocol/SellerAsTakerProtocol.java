@@ -70,7 +70,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                             ErrorMessageHandler errorMessageHandler) {
         System.out.println(getClass().getSimpleName() + ".onTakeOffer()");
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 this.tradeResultHandler = tradeResultHandler;
                 this.errorMessageHandler = errorMessageHandler;
@@ -101,7 +101,7 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
                                        NodeAddress peer) {
         System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
         ThreadUtils.execute(() -> {
-            synchronized (trade) {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 expect(phase(Trade.Phase.INIT)
                         .with(message)

@@ -30,7 +30,6 @@ import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
-import haveno.core.xmr.wallet.XmrWalletService;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroOutput;
@@ -60,11 +59,11 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             }
 
             // verify monero connection
-            model.getXmrWalletService().getConnectionService().verifyConnection();
+            model.getXmrWalletService().getXmrConnectionService().verifyConnection();
 
             // create reserve tx
             MoneroTxWallet reserveTx = null;
-            synchronized (XmrWalletService.WALLET_LOCK) {
+            synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
 
                 // reset protocol timeout
                 verifyPending();
@@ -83,7 +82,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 try {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
                         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                            MoneroRpcConnection sourceConnection = model.getXmrWalletService().getConnectionService().getConnection();
+                            MoneroRpcConnection sourceConnection = model.getXmrWalletService().getXmrConnectionService().getConnection();
                             try {
                                 //if (true) throw new RuntimeException("Pretend error");
                                 reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
