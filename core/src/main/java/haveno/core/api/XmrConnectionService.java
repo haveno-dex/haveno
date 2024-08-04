@@ -273,7 +273,11 @@ public final class XmrConnectionService {
     }
 
     public synchronized boolean requestSwitchToNextBestConnection() {
-        log.warn("Requesting switch to next best monerod, current monerod={}", getConnection() == null ? null : getConnection().getUri());
+        return requestSwitchToNextBestConnection(null);
+    }
+
+    public synchronized boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
+        log.warn("Requesting switch to next best monerod, source monerod={}", sourceConnection == null ? getConnection() == null ? null : getConnection().getUri() : sourceConnection.getUri());
 
         // skip if shut down started
         if (isShutDownStarted) {
@@ -281,9 +285,15 @@ public final class XmrConnectionService {
             return false;
         }
 
+        // skip if connection is already switched
+        if (sourceConnection != null && sourceConnection != getConnection()) {
+            log.warn("Skipping switch to next best Monero connection because source connection is not current connection");
+            return false;
+        }
+
         // skip if connection is fixed
         if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
-            log.info("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
+            log.warn("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
             return false;
         }
 

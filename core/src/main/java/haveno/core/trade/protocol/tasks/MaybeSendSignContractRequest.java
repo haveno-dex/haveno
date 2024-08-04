@@ -31,6 +31,7 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
@@ -100,12 +101,14 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 try {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
                         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                            MoneroRpcConnection sourceConnection = trade.getXmrConnectionService().getConnection();
                             try {
                                 depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
                             } catch (Exception e) {
                                 log.warn("Error creating deposit tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
+                                trade.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                                if (trade.getXmrConnectionService().isConnected()) trade.getXmrWalletService().requestSwitchToNextBestConnection();
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                             }
             

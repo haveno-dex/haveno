@@ -78,6 +78,7 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.MessageListener;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroMultisigSignResult;
@@ -501,6 +502,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
         // submit fully signed payout tx to the network
         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+            MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
             try {
                 List<String> txHashes = multisigWallet.submitMultisigTxHex(disputeTxSet.getMultisigTxHex());
                 disputeTxSet.getTxs().get(0).setHash(txHashes.get(0)); // manually update hash which is known after signed
@@ -509,7 +511,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 if (trade.isPayoutPublished()) throw new IllegalStateException("Payout tx already published for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
                 log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                if (trade.getXmrConnectionService().isConnected()) trade.requestSwitchToNextBestConnection();
+                if (trade.getXmrConnectionService().isConnected()) trade.requestSwitchToNextBestConnection(sourceConnection);
                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
             }
         }

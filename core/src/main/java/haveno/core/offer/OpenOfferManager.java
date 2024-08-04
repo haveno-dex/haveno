@@ -110,6 +110,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javax.annotation.Nullable;
 import lombok.Getter;
+import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroIncomingTransfer;
@@ -1089,6 +1090,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 long startTime = System.currentTimeMillis();
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         log.info("Creating split output tx to fund offer {} at subaddress {}", openOffer.getShortId(), entry.getSubaddressIndex());
                         splitOutputTx = xmrWalletService.createTx(new MoneroTxConfig()
@@ -1101,8 +1103,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     } catch (Exception e) {
                         if (e.getMessage().contains("not enough")) throw e; // do not retry if not enough funds
                         log.warn("Error creating split output tx to fund offer, offerId={}, subaddress={}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        xmrWalletService.handleWalletError(e, sourceConnection);
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrConnectionService.isConnected()) xmrWalletService.requestSwitchToNextBestConnection();
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }

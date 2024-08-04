@@ -178,7 +178,7 @@ class CoreWalletsService {
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
         try {
-            return xmrWalletService.getWallet().relayTx(metadata);
+            return xmrWalletService.relayTx(metadata);
         } catch (Exception ex) {
             log.error("", ex);
             throw new IllegalStateException(ex);
