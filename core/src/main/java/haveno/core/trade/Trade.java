@@ -143,7 +143,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
-    private final Object pollLock = new Object();
+    protected final Object pollLock = new Object();
+    protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
     private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
@@ -1066,18 +1067,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void importMultisigHex() {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
-                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
-                    try {
-                        doImportMultisigHex();
-                        break;
-                    } catch (IllegalArgumentException | IllegalStateException e) {
-                        throw e;
-                    } catch (Exception e) {
-                        log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                        handleWalletError(e, sourceConnection);
-                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                synchronized (importMultisigLock) {
+                    for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                        MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+                        try {
+                            doImportMultisigHex();
+                            break;
+                        } catch (IllegalArgumentException | IllegalStateException e) {
+                            throw e;
+                        } catch (Exception e) {
+                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                            handleWalletError(e, sourceConnection);
+                            if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                            HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                        }
                     }
                 }
             }
