@@ -2412,13 +2412,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void syncWallet(boolean pollWallet) {
         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
         try {
-            if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
-            if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
-            if (isWalletBehind()) {
-                log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getShortId());
-                long startTime = System.currentTimeMillis();
-                syncWalletIfBehind();
-                log.info("Done syncing wallet for {} {} in {} ms", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime);
+            synchronized (walletLock) {
+                if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+                if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+                if (isWalletBehind()) {
+                    log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getShortId());
+                    long startTime = System.currentTimeMillis();
+                    syncWalletIfBehind();
+                    log.info("Done syncing wallet for {} {} in {} ms", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime);
+                }
             }
     
             // apply tor after wallet synced depending on configuration
@@ -2627,8 +2629,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void syncWalletIfBehind() {
-        if (isWalletBehind()) {
-            synchronized (walletLock) {
+        synchronized (walletLock) {
+            if (isWalletBehind()) {
                 syncWithProgress();
             }
         }
