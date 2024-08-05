@@ -187,10 +187,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     @Override
     public List<ChatMessage> getAllChatMessages(String tradeId) {
-        return getDisputeList().stream()
-                .filter(dispute -> dispute.getTradeId().equals(tradeId))
-                .flatMap(dispute -> dispute.getChatMessages().stream())
-                .collect(Collectors.toList());
+        synchronized (getDisputeList().getObservableList()) {
+            return getDisputeList().stream()
+                    .filter(dispute -> dispute.getTradeId().equals(tradeId))
+                    .flatMap(dispute -> dispute.getChatMessages().stream())
+                    .collect(Collectors.toList());
+        }
     }
 
     @Override
@@ -239,7 +241,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public ObservableList<Dispute> getDisputesAsObservableList() {
-        synchronized(disputeListService.getDisputeList()) {
+        synchronized(disputeListService.getDisputeList().getObservableList()) {
             return disputeListService.getObservableList();
         }
     }
@@ -249,7 +251,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     protected T getDisputeList() {
-        synchronized(disputeListService.getDisputeList()) {
+        synchronized(disputeListService.getDisputeList().getObservableList()) {
             return disputeListService.getDisputeList();
         }
     }
@@ -354,7 +356,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
-        synchronized (disputeList) {
+        synchronized (disputeList.getObservableList()) {
             if (disputeList.contains(dispute)) {
                 String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
                 log.warn(msg);

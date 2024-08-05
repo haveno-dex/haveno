@@ -192,17 +192,19 @@ public abstract class SupportManager {
                 if (ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName())) {
                     Trade trade = tradeManager.getTrade(ackMessage.getSourceId());
                     for (Dispute dispute : trade.getDisputes()) {
-                        for (ChatMessage chatMessage : dispute.getChatMessages()) {
-                            if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) {
-                                    if (dispute.isClosed()) dispute.reOpen();
-                                    trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-                                } else if (dispute.isClosed()) {
-                                    trade.pollWalletNormallyForMs(30000); // sync to check for payout
+                            synchronized (dispute.getChatMessages()) {
+                                for (ChatMessage chatMessage : dispute.getChatMessages()) {
+                                    if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
+                                        if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) {
+                                            if (dispute.isClosed()) dispute.reOpen();
+                                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                                        } else if (dispute.isClosed()) {
+                                            trade.pollWalletNormallyForMs(30000); // sync to check for payout
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
                 }
             } else {
                 log.warn("Received AckMessage with error state for {} with tradeId={}, sender={}, errorMessage={}",
@@ -212,12 +214,14 @@ public abstract class SupportManager {
                 if (ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName())) {
                     Trade trade = tradeManager.getTrade(ackMessage.getSourceId());
                     for (Dispute dispute : trade.getDisputes()) {
-                        for (ChatMessage chatMessage : dispute.getChatMessages()) {
-                            if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                if (trade.getDisputeState().isCloseRequested()) {
-                                    log.warn("DisputeCloseMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
-                                    dispute.setIsClosed();
-                                    trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                        synchronized (dispute.getChatMessages()) {
+                            for (ChatMessage chatMessage : dispute.getChatMessages()) {
+                                if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
+                                    if (trade.getDisputeState().isCloseRequested()) {
+                                        log.warn("DisputeCloseMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
+                                        dispute.setIsClosed();
+                                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                                    }
                                 }
                             }
                         }
