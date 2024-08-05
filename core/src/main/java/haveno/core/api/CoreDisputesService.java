@@ -275,10 +275,12 @@ public class CoreDisputesService {
                 disputeResult.summaryNotesProperty().get()
         );
 
-        if (reason == DisputeResult.Reason.OPTION_TRADE &&
+        synchronized (dispute.getChatMessages()) {
+            if (reason == DisputeResult.Reason.OPTION_TRADE &&
                 dispute.getChatMessages().size() > 1 &&
                 dispute.getChatMessages().get(1).isSystemMessage()) {
-            textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
+                textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
+            }
         }
 
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);

@@ -287,10 +287,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                     // set dispute state
                     cleanupRetryMap(uid);
-                    if (!dispute.getChatMessages().contains(chatMessage)) {
-                        dispute.addAndPersistChatMessage(chatMessage);
-                    } else {
-                        log.warn("We got a dispute mail msg that we have already stored. TradeId = " + chatMessage.getTradeId());
+                    synchronized (dispute.getChatMessages()) {
+                        if (!dispute.getChatMessages().contains(chatMessage)) {
+                            dispute.addAndPersistChatMessage(chatMessage);
+                        } else {
+                            log.warn("We got a dispute mail msg that we have already stored. TradeId = " + chatMessage.getTradeId());
+                        }
                     }
                     dispute.setIsClosed();
                     if (dispute.disputeResultProperty().get() != null) {
