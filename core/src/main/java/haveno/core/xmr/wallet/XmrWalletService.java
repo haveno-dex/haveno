@@ -1598,12 +1598,15 @@ public class XmrWalletService extends XmrWalletBase {
 
             // check if ignored
             if (wallet == null || isShutDownStarted) return;
-            if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) return;
+            if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
+                updatePollPeriod();
+                return;
+            }
+
+            // update connection
             String oldProxyUri = wallet == null || wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
             String newProxyUri = connection == null ? null : connection.getProxyUri();
             log.info("Setting daemon connection for main wallet, monerod={}, proxyUri={}", connection == null ? null : connection.getUri(), newProxyUri);
-
-            // update connection
             if (wallet instanceof MoneroWalletRpc) {
                 if (StringUtils.equals(oldProxyUri, newProxyUri)) {
                     wallet.setDaemonConnection(connection);
@@ -1722,14 +1725,14 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void updatePollPeriod() {
         if (isShutDownStarted) return;
-        setPollPeriod(getPollPeriod());
+        setPollPeriodMs(getPollPeriodMs());
     }
 
-    private long getPollPeriod() {
+    private long getPollPeriodMs() {
         return xmrConnectionService.getRefreshPeriodMs();
     }
 
-    private void setPollPeriod(long pollPeriodMs) {
+    private void setPollPeriodMs(long pollPeriodMs) {
         synchronized (walletLock) {
             if (this.isShutDownStarted) return;
             if (this.pollPeriodMs != null && this.pollPeriodMs == pollPeriodMs) return;
