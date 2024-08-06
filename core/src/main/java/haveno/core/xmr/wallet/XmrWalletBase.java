@@ -26,6 +26,7 @@ public class XmrWalletBase {
 
     // constants
     public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 60;
+    public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
 
     // inherited
     protected MoneroWallet wallet;
@@ -59,12 +60,17 @@ public class XmrWalletBase {
     }
 
     public void syncWithProgress() {
+        syncWithProgress(false);
+    }
+
+    public void syncWithProgress(boolean repeatSyncToLatestHeight) {
         synchronized (walletLock) {
 
             // set initial state
             isSyncingWithProgress = true;
             syncProgressError = null;
             updateSyncProgress(walletHeight.get());
+            long targetHeightAtStart = xmrConnectionService.getTargetHeight();
 
             // test connection changing on startup before wallet synced
             if (testReconnectOnStartup) {
@@ -106,7 +112,7 @@ public class XmrWalletBase {
                     return;
                 }
                 updateSyncProgress(height);
-                if (height >= xmrConnectionService.getTargetHeight()) {
+                if (height >= (repeatSyncToLatestHeight ? xmrConnectionService.getTargetHeight() : targetHeightAtStart)) {
                     setWalletSyncedWithProgress();
                     syncProgressLatch.countDown();
                 }

@@ -1358,7 +1358,7 @@ public class XmrWalletService extends XmrWalletBase {
                         long time = System.currentTimeMillis();
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
-                            syncWithProgress(); // blocking
+                            syncWithProgress(true); // repeat sync to latest target height
                         } catch (Exception e) {
                             log.warn("Error syncing wallet with progress on startup: " + e.getMessage());
                             forceCloseMainWallet();
@@ -1768,7 +1768,13 @@ public class XmrWalletService extends XmrWalletBase {
             // sync wallet if behind daemon
             if (walletHeight.get() < xmrConnectionService.getTargetHeight()) {
                 synchronized (walletLock) { // avoid long sync from blocking other operations
-                    syncWithProgress();
+
+                    // TODO: local tests have timing failures unless sync called directly
+                    if (xmrConnectionService.getTargetHeight() - walletHeight.get() < XmrWalletBase.DIRECT_SYNC_WITHIN_BLOCKS) {
+                        syncMainWallet();
+                    } else {
+                        syncWithProgress();
+                    }
                 }
             }
 
