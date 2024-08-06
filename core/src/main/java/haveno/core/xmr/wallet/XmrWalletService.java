@@ -1808,20 +1808,20 @@ public class XmrWalletService extends XmrWalletBase {
                 //e.printStackTrace();
             }
         } finally {
+            synchronized (pollLock) {
+                pollInProgress = false;
+            }
 
             // cache wallet info last
             synchronized (walletLock) {
                 if (wallet != null && !isShutDownStarted) {
                     try {
                         cacheWalletInfo();
+                        requestSaveMainWallet();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            }
-
-            synchronized (pollLock) {
-                pollInProgress = false;
             }
         }
     }
