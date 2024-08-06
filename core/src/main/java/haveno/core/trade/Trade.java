@@ -2350,7 +2350,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // check if ignored
             if (isShutDownStarted) return;
             if (getWallet() == null) return;
-            if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) return;
+            if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
+                updatePollPeriod();
+                return;
+            }
 
             // set daemon connection (must restart monero-wallet-rpc if proxy uri changed)
             String oldProxyUri = wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
