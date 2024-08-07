@@ -127,6 +127,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
+    private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
 
     private final User user;
     private final Preferences preferences;
@@ -150,7 +151,8 @@ public class XmrWalletService extends XmrWalletBase {
     private TaskLooper pollLooper;
     private boolean pollInProgress;
     private Long pollPeriodMs;
-    private Long lastLogPollErrorTimestamp;
+    private long lastLogPollErrorTimestamp;
+    private long lastPollTxsTimestamp; 
     private final Object pollLock = new Object();
     private Long cachedHeight;
     private BigInteger cachedBalance;
@@ -1789,14 +1791,15 @@ public class XmrWalletService extends XmrWalletBase {
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
                             cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
+                            lastPollTxsTimestamp = System.currentTimeMillis();
                         } catch (Exception e) { // fetch from pool can fail
                             if (!isShutDownStarted) {
 
                                 // throttle error handling
-                                if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
+                                if (System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
                                     log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
                                     lastLogPollErrorTimestamp = System.currentTimeMillis();
-                                    requestSwitchToNextBestConnection(sourceConnection);
+                                    if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) requestSwitchToNextBestConnection(sourceConnection);
                                 }
                             }
                         }
