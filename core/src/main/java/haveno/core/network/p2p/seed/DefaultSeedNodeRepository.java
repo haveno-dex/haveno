@@ -20,6 +20,7 @@ package haveno.core.network.p2p.seed;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.config.Config;
+import haveno.core.user.Preferences;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import java.io.BufferedReader;
@@ -44,10 +45,12 @@ public class DefaultSeedNodeRepository implements SeedNodeRepository {
     private static final String ENDING = ".seednodes";
     private final Collection<NodeAddress> cache = new HashSet<>();
     private final Config config;
+    private final Preferences preferences;
 
     @Inject
-    public DefaultSeedNodeRepository(Config config) {
+    public DefaultSeedNodeRepository(Config config, Preferences preferences) {
         this.config = config;
+        this.preferences = preferences;
     }
 
     private void reload() {
@@ -56,6 +59,13 @@ public class DefaultSeedNodeRepository implements SeedNodeRepository {
             if (!config.seedNodes.isEmpty()) {
                 cache.clear();
                 config.seedNodes.forEach(s -> cache.add(new NodeAddress(s)));
+
+                return;
+            }
+            //if not, see if there are seed nodes defined at initialization, and use those
+            if(!preferences.getSeedNodeList().isEmpty()) {
+                cache.clear();
+                preferences.getSeedNodeList().forEach(s -> cache.add(new NodeAddress(s)));
 
                 return;
             }
@@ -114,7 +124,11 @@ public class DefaultSeedNodeRepository implements SeedNodeRepository {
 
         return cache;
     }
-
+    public void reloadFromPrefs() {
+        reload();
+        log.info("ghastly.");
+        log.info(cache.toString());
+    }
     @Override
     public boolean isSeedNode(NodeAddress nodeAddress) {
         if (cache.isEmpty())

@@ -22,6 +22,7 @@ import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentManager;
+import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import java.util.List;
@@ -32,11 +33,12 @@ import lombok.extern.slf4j.Slf4j;
 public class RefundAgentManager extends DisputeAgentManager<RefundAgent> {
 
     @Inject
-    public RefundAgentManager(KeyRing keyRing,
+    public RefundAgentManager(Preferences preferences,
+                              KeyRing keyRing,
                               RefundAgentService refundAgentService,
                               User user,
                               FilterManager filterManager) {
-        super(keyRing, refundAgentService, user, filterManager);
+        super(preferences, keyRing, refundAgentService, user, filterManager);
     }
 
     @Override

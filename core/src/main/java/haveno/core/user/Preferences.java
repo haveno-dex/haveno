@@ -133,6 +133,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
 
+    private final List<String> pubKeyList;
+    private final List<String> seedNodeList;
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -145,7 +147,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.persistenceManager = persistenceManager;
         this.config = config;
         this.xmrNodesFromOptions = xmrNodesFromOptions;
-
+        this.pubKeyList = null;
+        this.seedNodeList = null;
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
             GlobalSettings.setUseAnimations(prefPayload.isUseAnimations());
@@ -395,6 +398,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setPubKeyList(List<String> pubKeyList) {
+        prefPayload.setPubKeyList(pubKeyList);
+        requestPersistence();
+    }
     public void setBsqAverageTrimThreshold(double bsqAverageTrimThreshold) {
         prefPayload.setBsqAverageTrimThreshold(bsqAverageTrimThreshold);
         requestPersistence();
@@ -834,7 +841,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         }
     }
 
-
+    public List<String> getPubKeyList() {
+        return prefPayload.getPubKeyList();
+    }
+    public List<String> getSeedNodeList() {
+        return prefPayload.getSeedNodeList();
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////

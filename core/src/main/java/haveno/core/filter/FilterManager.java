@@ -86,7 +86,7 @@ public class FilterManager {
     private final boolean ignoreDevMsg;
     private final ObjectProperty<Filter> filterProperty = new SimpleObjectProperty<>();
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
-    private final List<String> publicKeys;
+    private List<String> publicKeys;
     private ECKey filterSigningKey;
     private final Set<Filter> invalidFilters = new HashSet<>();
     private Consumer<String> filterWarningHandler;
@@ -115,11 +115,10 @@ public class FilterManager {
         this.ignoreDevMsg = ignoreDevMsg;
 
         publicKeys = useDevPrivilegeKeys ?
-                Collections.singletonList(DevEnv.DEV_PRIVILEGE_PUB_KEY) :
-                List.of("0358d47858acdc41910325fce266571540681ef83a0d6fedce312bef9810793a27",
-                        "029340c3e7d4bb0f9e651b5f590b434fecb6175aeaa57145c7804ff05d210e534f",
-                        "034dc7530bf66ffd9580aa98031ea9a18ac2d269f7c56c0e71eca06105b9ed69f9");
-
+                Collections.singletonList(DevEnv.DEV_PRIVILEGE_PUB_KEY) : preferences.getPubKeyList();
+                // List.of("0358d47858acdc41910325fce266571540681ef83a0d6fedce312bef9810793a27",
+                        // "029340c3e7d4bb0f9e651b5f590b434fecb6175aeaa57145c7804ff05d210e534f",
+                        // "034dc7530bf66ffd9580aa98031ea9a18ac2d269f7c56c0e71eca06105b9ed69f9");
         banFilter.setBannedNodePredicate(this::isNodeAddressBannedFromNetwork);
     }
 
@@ -590,6 +589,11 @@ public class FilterManager {
     }
 
     private boolean isPublicKeyInList(String pubKeyAsHex) {
+        if(publicKeys.isEmpty()){
+            publicKeys = preferences.getPubKeyList();
+            //updatePrefs(); //todo: this could loop indefinitely; fix
+        }
+
         boolean isPublicKeyInList = publicKeys.contains(pubKeyAsHex);
         if (!isPublicKeyInList) {
             log.info("pubKeyAsHex is not part of our pub key list (expected case for pre v1.3.9 filter). pubKeyAsHex={}, publicKeys={}", pubKeyAsHex, publicKeys);

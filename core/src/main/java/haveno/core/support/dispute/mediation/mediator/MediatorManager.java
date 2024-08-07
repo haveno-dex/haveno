@@ -22,6 +22,7 @@ import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentManager;
+import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import java.util.List;
@@ -30,11 +31,12 @@ import java.util.List;
 public class MediatorManager extends DisputeAgentManager<Mediator> {
 
     @Inject
-    public MediatorManager(KeyRing keyRing,
+    public MediatorManager(Preferences preferences,
+                           KeyRing keyRing,
                            MediatorService mediatorService,
                            User user,
                            FilterManager filterManager) {
-        super(keyRing, mediatorService, user, filterManager);
+        super(preferences, keyRing, mediatorService, user, filterManager);
     }
 
     @Override
