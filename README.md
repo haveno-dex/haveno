@@ -26,7 +26,7 @@ See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
 ## Status of the project
 
-Haveno can be used on Monero's main network by using a third party Haveno network. We do not officially endorse any networks at this time, but they can be found online.
+Haveno can be used on Monero's main network by using a third party Haveno network. We do not officially endorse any networks at this time.
 
 A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the network.
 
