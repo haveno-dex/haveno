@@ -1663,7 +1663,7 @@ public class XmrWalletService extends XmrWalletBase {
             });
         }
 
-        // excute tasks in parallel
+        // execute tasks in parallel
         ThreadUtils.awaitTasks(tasks, Math.min(10, 1 + trades.size()));
         log.info("Done changing all wallet passwords");
     }
