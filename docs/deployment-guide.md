@@ -90,7 +90,7 @@ For each seed node:
 2. [Start a local Monero node](#start-a-local-monero-node).
 3. Modify `./scripts/deployment/haveno-seednode.service` and `./scripts/deployment/haveno-seednode2.service` as needed.
 4. Copy `./scripts/deployment/haveno-seednode.service` to `/etc/systemd/system` (if you are the very first seed in a new network also copy `./scripts/deployment/haveno-seednode2.service` to `/etc/systemd/system`).
-5. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
+5. Run `sudo systemctl start haveno-seednode.service` to start the seednode and also run `sudo systemctl start haveno-seednode2.service` if you are the very first seed in a new network and copied haveno-seednode2.service to your systemd folder.
 6. Run `journalctl -u haveno-seednode.service -b -f` which will print the log and show the `.onion` address of the seed node. Press `Ctrl+C` to stop printing the log and record the `.onion` address given.
 7. Add the `.onion` address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:1002)`. Be careful to record full addresses correctly.
 8. Update all seed nodes, arbitrators, and user applications for the change to take effect.
@@ -115,7 +115,7 @@ Source: [Tor Project Support](https://support.torproject.org/apt/)
 7. Update repositories `sudo apt update`.
 8. Install tor and tor debian keyring `sudo apt install tor deb.torproject.org-keyring`.
 9. Replace torrc `sudo mv /etc/tor/torrc /etc/tor/torrc.default` then `sudo cp seednode/torrc /etc/tor/torrc`.
-10. stop tor `sudo systemctl stop tor`.
+10. Stop tor `sudo systemctl stop tor`.
 
 For each seed node:
 
@@ -129,7 +129,7 @@ For each seed node:
 > Replace `<user>` above with the user that will be running the seed node (step 6 above & step 4)
 7. Disconnect and reconnect SSH session or logout and back in.
 8. Run `sudo systemctl start tor`.
-9. Run `sudo systemctl start haveno-seednode` to start the seednode and also run `sudo systemctl start haveno-seednode2` if you are the very first seed in a new network and coppied haveno-seednode2.service to your systemd folder.
+9. Run `sudo systemctl start haveno-seednode` to start the seednode and also run `sudo systemctl start haveno-seednode2` if you are the very first seed in a new network and copied haveno-seednode2.service to your systemd folder.
 10. Add the `.onion` address from step 3 to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:2002)`. Be careful to record full addresses correctly.
 11. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
