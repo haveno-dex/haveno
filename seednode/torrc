@@ -137,6 +137,18 @@ HiddenServiceDir /var/lib/tor/haveno_seednode2
 HiddenServicePort 2003 127.0.0.1:2003
 HiddenServicePort 2003 [::1]:2003
 
+HiddenServiceEnableIntroDoSDefense 1
+#HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
+#HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
+#HiddenServiceNumIntroductionPoints 3           # (Default: 3)
+
+HiddenServicePoWDefensesEnabled 1
+HiddenServicePoWQueueRate 200          # (Default: 250)
+HiddenServicePoWQueueBurst 1000        # (Default: 2500)
+
+HiddenServiceMaxStreams 25
+#HiddenServiceMaxStreamsCloseCircuit 1
+
 #####################################################################
 
 LongLivedPorts 2002,2003
