@@ -317,9 +317,6 @@ configure(project(':common')) {
             exclude(module: 'animal-sniffer-annotations')
         }
 
-        // override transitive dependency version from 1.5 to the same version just identified by commit number.
-        // Remove this if transitive dependency is changed to something else than 1.5
-        implementation(group: 'com.github.JesusMcCloud', name: 'jtorctl') { version { strictly "[9b5ba2036b]" } }
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
     }
