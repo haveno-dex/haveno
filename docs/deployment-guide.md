@@ -219,6 +219,12 @@ For example, change "Haveno" to "HavenoX", which will use this application folde
 - macOS: ~/Library/Application Support/HavenoX/
 - Windows: ~\AppData\Roaming\HavenoX\
 
+## Change the P2P network version
+
+To avoid interference with other networks, change `P2P_NETWORK_VERSION` in [Version.java](https://github.com/haveno-dex/haveno/blob/a7e90395d24ec3d33262dd5d09c5faec61651a51/common/src/main/java/haveno/common/app/Version.java#L83).
+
+For example, change it to `"B"`.
+
 ## Set the network's release date
 
 Optionally set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.
