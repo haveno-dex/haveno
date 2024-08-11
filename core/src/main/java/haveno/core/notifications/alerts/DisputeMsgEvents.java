@@ -114,16 +114,18 @@ public class DisputeMsgEvents {
         // We check at every new message if it might be a message sent after the dispute had been closed. If that is the
         // case we revert the isClosed flag so that the UI can reopen the dispute and indicate that a new dispute
         // message arrived.
-        ObservableList<ChatMessage> chatMessages = dispute.getChatMessages();
-        // If last message is not a result message we re-open as we might have received a new message from the
-        // trader/mediator/arbitrator who has reopened the case
-        if (dispute.isClosed() && !chatMessages.isEmpty() && !chatMessages.get(chatMessages.size() - 1).isResultMessage(dispute)) {
-            dispute.reOpen();
-            if (dispute.getSupportType() == SupportType.MEDIATION) {
-                mediationManager.requestPersistence();
-            } else if (dispute.getSupportType() == SupportType.REFUND) {
-                refundManager.requestPersistence();
+        synchronized (dispute.getChatMessages()) {
+            ObservableList<ChatMessage> chatMessages = dispute.getChatMessages();
+            // If last message is not a result message we re-open as we might have received a new message from the
+            // trader/mediator/arbitrator who has reopened the case
+            if (dispute.isClosed() && !chatMessages.isEmpty() && !chatMessages.get(chatMessages.size() - 1).isResultMessage(dispute)) {
+                dispute.reOpen();
+                if (dispute.getSupportType() == SupportType.MEDIATION) {
+                    mediationManager.requestPersistence();
+                } else if (dispute.getSupportType() == SupportType.REFUND) {
+                    refundManager.requestPersistence();
+                }
             }
-        }
+        }   
     }
 }

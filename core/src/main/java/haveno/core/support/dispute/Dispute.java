@@ -77,6 +77,10 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         REOPENED,
         CLOSED;
 
+        public boolean isOpen() {
+            return this == NEW || this == OPEN || this == REOPENED;
+        }
+
         public static Dispute.State fromProto(protobuf.Dispute.State state) {
             return ProtoUtil.enumFromProto(Dispute.State.class, state.name());
         }
@@ -349,10 +353,12 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
-        if (!chatMessages.contains(chatMessage)) {
-            chatMessages.add(chatMessage);
-        } else {
-            log.error("disputeDirectMessage already exists");
+        synchronized (chatMessages) {
+            if (!chatMessages.contains(chatMessage)) {
+                chatMessages.add(chatMessage);
+            } else {
+                log.error("disputeDirectMessage already exists");
+            }
         }
     }
 
@@ -361,13 +367,15 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     }
 
     public boolean removeAllChatMessages() {
-        if (chatMessages.size() > 1) {
-            // removes all chat except the initial guidelines message.
-            String firstMessageUid = chatMessages.get(0).getUid();
-            chatMessages.removeIf((msg) -> !msg.getUid().equals(firstMessageUid));
-            return true;
+        synchronized (chatMessages) {
+            if (chatMessages.size() > 1) {
+                // removes all chat except the initial guidelines message.
+                String firstMessageUid = chatMessages.get(0).getUid();
+                chatMessages.removeIf((msg) -> !msg.getUid().equals(firstMessageUid));
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     public void maybeClearSensitiveData() {

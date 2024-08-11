@@ -101,6 +101,7 @@ public final class XmrConnectionService {
     private Long lastLogPollErrorTimestamp;
     private Long syncStartHeight = null;
     private TaskLooper daemonPollLooper;
+    private long lastRefreshPeriodMs = 0;
     @Getter
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
@@ -273,7 +274,11 @@ public final class XmrConnectionService {
     }
 
     public synchronized boolean requestSwitchToNextBestConnection() {
-        log.warn("Requesting switch to next best monerod, current monerod={}", getConnection() == null ? null : getConnection().getUri());
+        return requestSwitchToNextBestConnection(null);
+    }
+
+    public synchronized boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
+        log.warn("Requesting switch to next best monerod, source monerod={}", sourceConnection == null ? getConnection() == null ? null : getConnection().getUri() : sourceConnection.getUri());
 
         // skip if shut down started
         if (isShutDownStarted) {
@@ -281,9 +286,15 @@ public final class XmrConnectionService {
             return false;
         }
 
+        // skip if connection is already switched
+        if (sourceConnection != null && sourceConnection != getConnection()) {
+            log.warn("Skipping switch to next best Monero connection because source connection is not current connection");
+            return false;
+        }
+
         // skip if connection is fixed
         if (isFixedConnection() || !connectionManager.getAutoSwitch()) {
-            log.info("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
+            log.warn("Skipping switch to next best Monero connection because connection is fixed or auto switch is disabled");
             return false;
         }
 
@@ -343,7 +354,11 @@ public final class XmrConnectionService {
     }
 
     public long getRefreshPeriodMs() {
-        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs();
+        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs(false);
+    }
+
+    private long getInternalRefreshPeriodMs() {
+        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs(true);
     }
 
     public void verifyConnection() {
@@ -413,12 +428,16 @@ public final class XmrConnectionService {
         return connection != null && HavenoUtils.isLocalHost(connection.getUri());
     }
 
-    private long getDefaultRefreshPeriodMs() {
+    private long getDefaultRefreshPeriodMs(boolean internal) {
         MoneroRpcConnection connection = getConnection();
         if (connection == null) return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
         if (isConnectionLocalHost(connection)) {
-            if (lastInfo != null && (lastInfo.isBusySyncing() || (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight()))) return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
-            else return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
+            if (internal) return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
+            if (lastInfo != null && (lastInfo.getHeightWithoutBootstrap() != null && lastInfo.getHeightWithoutBootstrap() > 0 && lastInfo.getHeightWithoutBootstrap() < lastInfo.getHeight())) {
+                return REFRESH_PERIOD_HTTP_MS; // refresh slower if syncing or bootstrapped
+            } else {
+                return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
+            }
         } else if (isProxyApplied(connection)) {
             return REFRESH_PERIOD_ONION_MS;
         } else {
@@ -638,7 +657,7 @@ public final class XmrConnectionService {
         // update polling
         doPollDaemon();
         if (currentConnection != getConnection()) return; // polling can change connection
-        UserThread.runAfter(() -> updatePolling(), getRefreshPeriodMs() / 1000);
+        UserThread.runAfter(() -> updatePolling(), getInternalRefreshPeriodMs() / 1000);
 
         // notify listeners in parallel
         log.info("XmrConnectionService.onConnectionChanged() uri={}, connected={}", currentConnection == null ? null : currentConnection.getUri(), currentConnection == null ? "false" : isConnected);
@@ -658,7 +677,7 @@ public final class XmrConnectionService {
         synchronized (lock) {
             if (daemonPollLooper != null) daemonPollLooper.stop();
             daemonPollLooper = new TaskLooper(() -> pollDaemon());
-            daemonPollLooper.start(getRefreshPeriodMs());
+            daemonPollLooper.start(getInternalRefreshPeriodMs());
         }
     }
 
@@ -714,6 +733,13 @@ public final class XmrConnectionService {
 
                 // connected to daemon
                 isConnected = true;
+
+                // announce connection change if refresh period changes
+                if (getRefreshPeriodMs() != lastRefreshPeriodMs) {
+                    lastRefreshPeriodMs = getRefreshPeriodMs();
+                    onConnectionChanged(getConnection()); // causes new poll
+                    return;
+                }
 
                 // update properties on user thread
                 UserThread.execute(() -> {

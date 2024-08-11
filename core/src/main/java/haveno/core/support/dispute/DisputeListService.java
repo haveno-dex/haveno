@@ -90,12 +90,14 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void cleanupDisputes(@Nullable Consumer<String> closedDisputeHandler) {
-        disputeList.stream().forEach(dispute -> {
-            String tradeId = dispute.getTradeId();
-            if (dispute.isClosed() && closedDisputeHandler != null) {
-                closedDisputeHandler.accept(tradeId);
-            }
-        });
+        synchronized (disputeList.getObservableList()) {
+            disputeList.stream().forEach(dispute -> {
+                String tradeId = dispute.getTradeId();
+                if (dispute.isClosed() && closedDisputeHandler != null) {
+                    closedDisputeHandler.accept(tradeId);
+                }
+            });
+        }
     }
 
 
@@ -130,7 +132,9 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     }
 
     ObservableList<Dispute> getObservableList() {
-        return disputeList.getObservableList();
+        synchronized (disputeList.getObservableList()) {
+            return disputeList.getObservableList();
+        }
     }
 
 
@@ -151,10 +155,12 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
                     isAlerting -> {
                         // We get the event before the list gets updated, so we execute on next frame
                         UserThread.execute(() -> {
-                            int numAlerts = (int) disputeList.getList().stream()
-                                    .mapToLong(x -> x.getBadgeCountProperty().getValue())
-                                    .sum();
-                            numOpenDisputes.set(numAlerts);
+                            synchronized (disputeList.getObservableList()) {
+                                int numAlerts = (int) disputeList.getList().stream()
+                                        .mapToLong(x -> x.getBadgeCountProperty().getValue())
+                                        .sum();
+                                numOpenDisputes.set(numAlerts);
+                            }
                         });
                     });
             disputedTradeIds.add(dispute.getTradeId());

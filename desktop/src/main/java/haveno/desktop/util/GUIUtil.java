@@ -701,7 +701,7 @@ public class GUIUtil {
     }
 
     public static boolean isReadyForTxBroadcastOrShowPopup(XmrWalletService xmrWalletService) {
-        XmrConnectionService xmrConnectionService = xmrWalletService.getConnectionService();
+        XmrConnectionService xmrConnectionService = xmrWalletService.getXmrConnectionService();
         if (!xmrConnectionService.hasSufficientPeersForBroadcast()) {
             new Popup().information(Res.get("popup.warning.notSufficientConnectionsToXmrNetwork", xmrConnectionService.getMinBroadcastConnections())).show();
             return false;

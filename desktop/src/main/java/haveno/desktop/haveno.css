@@ -1201,16 +1201,16 @@ textfield */
 }
 
 .text-area-no-border {
-    -fx-border-color: -fx-control-inner-background;
+    -fx-border-color: -bs-background-color;
 }
 
 .text-area-no-border .content {
-    -fx-background-color: -fx-control-inner-background;
+    -fx-background-color: -bs-background-color;
 }
 
 .text-area-no-border:focused {
-    -fx-focus-color: -fx-control-inner-background;
-    -fx-faint-focus-color: -fx-control-inner-background;
+    -fx-focus-color: -bs-background-color;
+    -fx-faint-focus-color: -bs-background-color;
 }
 
 /*******************************************************************************

@@ -594,7 +594,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 // show confirmation
                 showPayoutTxConfirmation(contract,
                         payoutTx,
-                        () -> doClose(closeTicketButton, cancelButton));
+                        () -> doClose(closeTicketButton, cancelButton),
+                        () -> {
+                            closeTicketButton.setDisable(false);
+                            cancelButton.setDisable(false);
+                        });
             } else {
                 doClose(closeTicketButton, cancelButton);
             }
@@ -607,7 +611,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         });
     }
 
-    private void showPayoutTxConfirmation(Contract contract, MoneroTxWallet payoutTx, ResultHandler resultHandler) {
+    private void showPayoutTxConfirmation(Contract contract, MoneroTxWallet payoutTx, ResultHandler resultHandler, ResultHandler cancelHandler) {
 
         // get buyer and seller destinations (order not preserved)
         String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
@@ -641,6 +645,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     .actionButtonText(Res.get("shared.yes"))
                     .onAction(() -> resultHandler.handleResult())
                     .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> cancelHandler.handleResult())
                     .show();
         } else {
             // No payout will be made
@@ -649,6 +654,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     .actionButtonText(Res.get("shared.yes"))
                     .onAction(resultHandler::handleResult)
                     .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> cancelHandler.handleResult())
                     .show();
         }
     }

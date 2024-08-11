@@ -45,7 +45,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
       System.out.println("ArbitratorProtocol.handleInitTradeRequest()");
       ThreadUtils.execute(() -> {
-          synchronized (trade) {
+          synchronized (trade.getLock()) {
               latchTrade();
               this.errorMessageHandler = errorMessageHandler;
               processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
@@ -80,7 +80,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
     System.out.println("ArbitratorProtocol.handleDepositRequest() " + trade.getId());
     ThreadUtils.execute(() -> {
-        synchronized (trade) {
+        synchronized (trade.getLock()) {
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), request);
             processModel.setTradeMessage(request);

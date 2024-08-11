@@ -112,13 +112,13 @@ public class CoreDisputesService {
 
             // Sends the openNewDisputeMessage to arbitrator, who will then create 2 disputes
             // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
-            disputeManager.sendDisputeOpenedMessage(dispute, false, trade.getSelf().getUpdatedMultisigHex(), resultHandler, faultHandler);
+            disputeManager.sendDisputeOpenedMessage(dispute, resultHandler, faultHandler);
             tradeManager.requestPersistence();
         }, trade.getId());
     }
 
     public Dispute createDisputeForTrade(Trade trade, Offer offer, PubKeyRing pubKey, boolean isMaker, boolean isSupportTicket) {
-        synchronized (trade) {
+        synchronized (trade.getLock()) {
             byte[] payoutTxSerialized = null;
             String payoutTxHashAsString = null;
 
@@ -163,7 +163,7 @@ public class CoreDisputesService {
         if (winningDisputeOptional.isPresent()) winningDispute = winningDisputeOptional.get();
         else throw new IllegalStateException(format("dispute for tradeId '%s' not found", tradeId));
 
-        synchronized (trade) {
+        synchronized (trade.getLock()) {
             try {
 
                 // create dispute result
@@ -275,10 +275,12 @@ public class CoreDisputesService {
                 disputeResult.summaryNotesProperty().get()
         );
 
-        if (reason == DisputeResult.Reason.OPTION_TRADE &&
+        synchronized (dispute.getChatMessages()) {
+            if (reason == DisputeResult.Reason.OPTION_TRADE &&
                 dispute.getChatMessages().size() > 1 &&
                 dispute.getChatMessages().get(1).isSystemMessage()) {
-            textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
+                textToSign += "\n" + dispute.getChatMessages().get(1).getMessage() + "\n";
+            }
         }
 
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);

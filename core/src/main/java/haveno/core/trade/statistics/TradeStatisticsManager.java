@@ -110,35 +110,54 @@ public class TradeStatisticsManager {
         maybeDumpStatistics();
     }
 
-    private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> set) {
+    private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> tradeStats) {
 
-        // collect trades before May 31, 2024
-        Set<TradeStatistics3> tradesBeforeMay31_24 = set.stream()
-                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-05-31T00:00:00Z")))
+        // collect trades before August 7, 2024
+        Set<TradeStatistics3> earlyTrades = tradeStats.stream()
+                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-08-07T00:00:00Z")))
                 .collect(Collectors.toSet());
 
         // collect duplicated trades
-        Set<TradeStatistics3> duplicated = new HashSet<TradeStatistics3>();
-        Set<TradeStatistics3> deduplicated = new HashSet<TradeStatistics3>();
-        for (TradeStatistics3 tradeStatistics : tradesBeforeMay31_24) {
-            if (hasLenientDuplicate(tradeStatistics, deduplicated)) duplicated.add(tradeStatistics);
-            else deduplicated.add(tradeStatistics);
+        Set<TradeStatistics3> duplicates = new HashSet<TradeStatistics3>();
+        Set<TradeStatistics3> deduplicates = new HashSet<TradeStatistics3>();
+        Set<TradeStatistics3> usedAsDuplicate = new HashSet<TradeStatistics3>();
+        for (TradeStatistics3 tradeStatistic : earlyTrades) {
+            TradeStatistics3 fuzzyDuplicate = findFuzzyDuplicate(tradeStatistic, deduplicates, usedAsDuplicate);
+            if (fuzzyDuplicate == null) deduplicates.add(tradeStatistic);
+            else {
+                duplicates.add(tradeStatistic);
+                usedAsDuplicate.add(fuzzyDuplicate);
+            }
         }
 
         // remove duplicated trades
-        set.removeAll(duplicated);
+        tradeStats.removeAll(duplicates);
     }
 
-    private boolean hasLenientDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
-        return set.stream().anyMatch(e -> isLenientDuplicate(tradeStatistics, e));
+    private TradeStatistics3 findFuzzyDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set, Set<TradeStatistics3> excluded) {
+        return set.stream().filter(e -> !excluded.contains(e)).filter(e -> isFuzzyDuplicate(tradeStatistics, e)).findFirst().orElse(null);
     }
 
-    private boolean isLenientDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
-        boolean isWithin2Minutes = Math.abs(tradeStatistics1.getDate().getTime() - tradeStatistics2.getDate().getTime()) < 120000;
-        return isWithin2Minutes && 
-                tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency()) &&
-                tradeStatistics1.getAmount() == tradeStatistics2.getAmount() && 
-                tradeStatistics1.getPrice() == tradeStatistics2.getPrice();
+    private boolean isFuzzyDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
+        if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
+        if (tradeStatistics1.getPrice() != tradeStatistics2.getPrice()) return false;
+        return isFuzzyDuplicateV1(tradeStatistics1, tradeStatistics2) || isFuzzyDuplicateV2(tradeStatistics1, tradeStatistics2);
+    }
+
+    // bug caused all peers to publish same trade with similar timestamps
+    private boolean isFuzzyDuplicateV1(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        boolean isWithin2Minutes = Math.abs(tradeStatistics1.getDate().getTime() - tradeStatistics2.getDate().getTime()) <= TimeUnit.MINUTES.toMillis(2);
+        return isWithin2Minutes;
+    }
+
+    // bug caused sellers to re-publish their trades with randomized amounts
+    private static final double FUZZ_AMOUNT_PCT = 0.05;
+    private static final int FUZZ_DATE_HOURS = 24;
+    private boolean isFuzzyDuplicateV2(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        boolean isWithinFuzzedHours = Math.abs(tradeStatistics1.getDate().getTime() - tradeStatistics2.getDate().getTime()) <= TimeUnit.HOURS.toMillis(FUZZ_DATE_HOURS);
+        boolean isWithinFuzzedAmount = Math.abs(tradeStatistics1.getAmount() - tradeStatistics2.getAmount()) <= FUZZ_AMOUNT_PCT * tradeStatistics1.getAmount();
+        return isWithinFuzzedHours && isWithinFuzzedAmount;
     }
 
     public ObservableSet<TradeStatistics3> getObservableTradeStatisticsSet() {
@@ -206,13 +225,23 @@ public class TradeStatisticsManager {
 
             TradeStatistics3 tradeStatistics3 = null;
             try {
-                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode, false);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
+
+            TradeStatistics3 tradeStatistics3Fuzzed = null;
+            try {
+                tradeStatistics3Fuzzed = TradeStatistics3.from(trade, referralId, isTorNetworkNode, true);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
+
             boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
-            if (hasTradeStatistics3) {
+            boolean hasTradeStatistics3Fuzzed = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3Fuzzed.getHash()));
+            if (hasTradeStatistics3 || hasTradeStatistics3Fuzzed) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;

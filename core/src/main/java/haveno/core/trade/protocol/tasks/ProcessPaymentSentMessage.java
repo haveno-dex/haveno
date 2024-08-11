@@ -58,7 +58,6 @@ public class ProcessPaymentSentMessage extends TradeTask {
 
             // if seller, decrypt buyer's payment account payload
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
-            trade.requestPersistence();
 
             // update state
             trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);

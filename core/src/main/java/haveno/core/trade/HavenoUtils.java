@@ -28,6 +28,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
@@ -106,6 +107,7 @@ public class HavenoUtils {
     public static HavenoSetup havenoSetup;
     public static ArbitrationManager arbitrationManager;
     public static XmrWalletService xmrWalletService;
+    public static XmrConnectionService xmrConnectionService;
     public static OpenOfferManager openOfferManager;
 
     public static boolean isSeedNode() {
@@ -501,5 +503,21 @@ public class HavenoUtils {
         else if (Config.baseCurrencyNetwork().isTestnet()) return 28081;
         else if (Config.baseCurrencyNetwork().isStagenet()) return 38081;
         else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
+    }
+
+    public static void setTopError(String msg) {
+        havenoSetup.getTopErrorMsg().set(msg);
+    }
+
+    public static boolean isConnectionRefused(Exception e) {
+        return e != null && e.getMessage().contains("Connection refused");
+    }
+
+    public static boolean isReadTimeout(Exception e) {
+        return e != null && e.getMessage().contains("Read timed out");
+    }
+
+    public static boolean isUnresponsive(Exception e) {
+        return isConnectionRefused(e) || isReadTimeout(e);
     }
 }

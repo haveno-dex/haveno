@@ -44,6 +44,7 @@ import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.ClosedTradableManager;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
@@ -124,7 +125,7 @@ public class Balances {
 
     private void doUpdateBalances() {
         synchronized (this) {
-            synchronized (XmrWalletService.WALLET_LOCK) {
+            synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
 
                 // get wallet balances
                 BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getBalance();
