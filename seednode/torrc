@@ -124,8 +124,8 @@ HiddenServiceEnableIntroDoSDefense 1
 ## Proof of Work (PoW) before establishing Rendezvous Circuits
 ## The lower the queue and burst rates, the higher the puzzle effort tends to be for users.
 HiddenServicePoWDefensesEnabled 1
-HiddenServicePoWQueueRate 200          # (Default: 250)
-HiddenServicePoWQueueBurst 1000        # (Default: 2500)
+HiddenServicePoWQueueRate 50          # (Default: 250)
+HiddenServicePoWQueueBurst 250        # (Default: 2500)
 
 ## Stream limits in the established Rendezvous Circuits
 ## The maximum number of simultaneous streams (connections) per rendezvous circuit. The max value allowed is 65535. (0 = unlimited)
@@ -143,8 +143,8 @@ HiddenServiceEnableIntroDoSDefense 1
 #HiddenServiceNumIntroductionPoints 3           # (Default: 3)
 
 HiddenServicePoWDefensesEnabled 1
-HiddenServicePoWQueueRate 200          # (Default: 250)
-HiddenServicePoWQueueBurst 1000        # (Default: 2500)
+HiddenServicePoWQueueRate 50          # (Default: 250)
+HiddenServicePoWQueueBurst 250        # (Default: 2500)
 
 HiddenServiceMaxStreams 25
 #HiddenServiceMaxStreamsCloseCircuit 1
