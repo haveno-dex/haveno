@@ -316,7 +316,7 @@ configure(project(':common')) {
             exclude(module: 'guava')
             exclude(module: 'animal-sniffer-annotations')
         }
-
+        implementation(group: 'com.github.bisq-network', name: 'jtorctl') { version { strictly "[b2a172f44edcd8deaa5ed75d936dcbb007f0d774]" } }
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
     }
