@@ -242,8 +242,12 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         if (GUIUtil.isReadyForTxBroadcastOrShowPopup(xmrWalletService)) {
             try {
 
+                // collect tx fields to local variables
+                String withdrawToAddress = withdrawToTextField.getText();
+                boolean sendMax = this.sendMax;
+                BigInteger amount = this.amount;
+
                 // validate address
-                final String withdrawToAddress = withdrawToTextField.getText();
                 if (!MoneroUtils.isValidAddress(withdrawToAddress, XmrWalletService.getMoneroNetworkType())) {
                     throw new IllegalArgumentException(Res.get("validation.xmr.invalidAddress"));
                 }
@@ -298,7 +302,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
         BigInteger fee = tx.getFee();
         String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                HavenoUtils.formatXmr(amount, true),
+                HavenoUtils.formatXmr(receiverAmount.add(fee), true),
                 withdrawToAddress,
                 HavenoUtils.formatXmr(fee, true),
                 HavenoUtils.formatXmr(receiverAmount, true));
