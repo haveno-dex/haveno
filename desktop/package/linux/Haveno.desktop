@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Haveno
+Comment=Decentralized Exchange
+Exec=/app/bin/Haveno
+Icon=exchange.haveno.Haveno
+Terminal=false
+Type=Application
+Categories=Office;Finance;P2P;
+StartupWMClass=Haveno

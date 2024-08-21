@@ -80,8 +80,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
+public abstract class HavenoExecutable
+        implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
 
+    // TODO: find a less janky way to get the app name
+    // Don't edit the next line unless you're only editing inbetween the quotes.
     public static final String DEFAULT_APP_NAME = "Haveno";
 
     public static final int EXIT_SUCCESS = 0;
