@@ -1381,6 +1381,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 wallet.submitMultisigTxHex(payoutTxHex);
                 setPayoutStatePublished();
             } catch (Exception e) {
+                if (isPayoutPublished()) throw new IllegalStateException("Payout tx already published for " + getClass().getSimpleName() + " " + getShortId());
+                if (HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
                 throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId(), e);
             }
         }

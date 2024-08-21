@@ -511,6 +511,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 break;
             } catch (Exception e) {
                 if (trade.isPayoutPublished()) throw new IllegalStateException("Payout tx already published for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+                if (HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
                 log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                 if (trade.getXmrConnectionService().isConnected()) trade.requestSwitchToNextBestConnection(sourceConnection);
