@@ -1,6 +1,8 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 import java.time.LocalDateTime
+// import regex pattern
+import java.util.regex.Pattern
 
 task jpackageSanityChecks {
     description 'Interactive sanity checks on the version of the code that will be packaged'
