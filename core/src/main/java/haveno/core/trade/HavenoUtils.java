@@ -521,4 +521,8 @@ public class HavenoUtils {
     public static boolean isUnresponsive(Exception e) {
         return isConnectionRefused(e) || isReadTimeout(e);
     }
+
+    public static boolean isNotEnoughSigners(Exception e) {
+        return e != null && e.getMessage().contains("Not enough signers");
+    }
 }
