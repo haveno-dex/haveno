@@ -355,7 +355,7 @@ task packageInstallers {
             // and add a --filesystem=.local/share/${name} to the flatpak manifest
             def manifest = file(flatpakManifestFile)
             def newManifest = file('exchange.haveno.Haveno.yaml')
-            newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}"))
+            newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create"))
             flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
 
 
