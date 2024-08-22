@@ -41,7 +41,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y rpm flatpak
-          flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak --system remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Install WiX Toolset
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
