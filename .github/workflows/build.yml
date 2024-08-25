@@ -53,6 +53,20 @@ jobs:
           ./gradlew clean build --refresh-keys --refresh-dependencies
           ./gradlew packageInstallers
         working-directory: .
+
+      # get version from jar
+      - name: Set Version Unix
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
+        run: |
+          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -oP 'desktop-\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set Version Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        shell: powershell
+        
       - name: Move Release Files on Unix
         if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
         run: |
@@ -74,18 +88,6 @@ jobs:
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
         shell: powershell
 
-      # get version from jar
-      - name: Set Version Unix
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
-        run: |
-          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -oP 'desktop-\K[0-9]+\.[0-9]+\.[0-9]+')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-      - name: Set Version Windows
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-        shell: powershell
 
       # do all files manually and use version too
       # win
