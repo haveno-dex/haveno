@@ -58,13 +58,13 @@ jobs:
       - name: Set Version Unix
         if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
         run: |
-          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -oP 'desktop-\K[0-9]+\.[0-9]+\.[0-9]+')
+          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set Version Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
         shell: powershell
         
       - name: Move Release Files on Unix
