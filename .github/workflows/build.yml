@@ -71,7 +71,41 @@ jobs:
           Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
         shell: powershell
+
+      # get version from jar
+      - name: Set Version Unix
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
+        run: |
+          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -oP 'desktop-\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set Version Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        shell: powershell
+
+      # do all files manually and use version too
+      # win
       - uses: actions/upload-artifact@v3
         with:
-          name: HavenoInstaller-${{ matrix.os }}
-          path: ${{ github.workspace }}/release
+          name: windows-haveno-${{ env.VERSION }}.exe
+          path: ${{ github.workspace }}/release/Haveno-*.exe
+      # macos
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-haveno-${{ env.VERSION }}.dmg
+          path: ${{ github.workspace }}/release/Haveno-*.dmg
+      # linux
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-haveno-${{ env.VERSION }}.deb
+          path: ${{ github.workspace }}/release/haveno_*.deb
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-haveno-${{ env.VERSION }}.rpm
+          path: ${{ github.workspace }}/release/haveno-*.rpm
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-haveno-${{ env.VERSION }}.flatpak
+          path: ${{ github.workspace }}/release/*.flatpak
