@@ -92,24 +92,29 @@ jobs:
       # do all files manually and use version too
       # win
       - uses: actions/upload-artifact@v3
+        name: "Windows - exe artifact"
         with:
           name: windows-haveno-${{ env.VERSION }}.exe
           path: ${{ github.workspace }}/release/Haveno-*.exe
       # macos
       - uses: actions/upload-artifact@v3
+        name: "MacOS - dmg artifact"
         with:
           name: macos-haveno-${{ env.VERSION }}.dmg
           path: ${{ github.workspace }}/release/Haveno-*.dmg
       # linux
       - uses: actions/upload-artifact@v3
+        name: "Linux - deb artifact"
         with:
           name: linux-haveno-${{ env.VERSION }}.deb
           path: ${{ github.workspace }}/release/haveno_*.deb
       - uses: actions/upload-artifact@v3
+        name: "Linux - rpm artifact"
         with:
           name: linux-haveno-${{ env.VERSION }}.rpm
           path: ${{ github.workspace }}/release/haveno-*.rpm
       - uses: actions/upload-artifact@v3
+        name: "Linux - flatpak artifact"
         with:
           name: linux-haveno-${{ env.VERSION }}.flatpak
           path: ${{ github.workspace }}/release/*.flatpak
