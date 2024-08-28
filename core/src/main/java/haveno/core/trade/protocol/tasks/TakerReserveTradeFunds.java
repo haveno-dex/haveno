@@ -70,7 +70,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                             try {
                                 reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
                             } catch (Exception e) {
-                                log.warn("Error creating reserve tx, attempt={}/{}, tradeId={}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, trade.getShortId(), e.getMessage());
+                                log.warn("Error creating reserve tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                                 trade.getXmrWalletService().handleWalletError(e, sourceConnection);
                                 if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getShortId());
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
