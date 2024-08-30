@@ -151,6 +151,7 @@ public class XmrWalletService extends XmrWalletBase {
     private TaskLooper pollLooper;
     private boolean pollInProgress;
     private Long pollPeriodMs;
+    private long lastLogDaemonNotSyncedTimestamp;
     private long lastLogPollErrorTimestamp;
     private long lastPollTxsTimestamp; 
     private final Object pollLock = new Object();
@@ -1767,9 +1768,15 @@ public class XmrWalletService extends XmrWalletBase {
                 return;
             }
             if (!xmrConnectionService.isSyncedWithinTolerance()) {
-                log.warn("Monero daemon is not synced within tolerance, height={}, targetHeight={}", xmrConnectionService.chainHeightProperty().get(), xmrConnectionService.getTargetHeight());
+
+                // throttle warnings
+                if (System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {
+                    log.warn("Monero daemon is not synced within tolerance, height={}, targetHeight={}, monerod={}", xmrConnectionService.chainHeightProperty().get(), xmrConnectionService.getTargetHeight(), xmrConnectionService.getConnection() == null ? null : xmrConnectionService.getConnection().getUri());
+                    lastLogDaemonNotSyncedTimestamp = System.currentTimeMillis();
+                }
                 return;
             }
+
             // sync wallet if behind daemon
             if (walletHeight.get() < xmrConnectionService.getTargetHeight()) {
                 synchronized (walletLock) { // avoid long sync from blocking other operations
