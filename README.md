@@ -71,14 +71,16 @@ To bring Haveno to life, we need resources. If you have the possibility, please 
 
 ### Monero
 
-`42sjokkT9FmiWPqVzrWPFE5NCJXwt96bkBozHf4vgLR9hXyJDqKHEHKVscAARuD7in5wV1meEcSTJTanCTDzidTe2cFXS1F`
-
-![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/donate_monero.png)
+<p>
+  <img src="https://raw.githubusercontent.com/haveno-dex/haveno/master/media/donate_monero.png" alt="Donate Monero" width="150" height="150"><br>
+  <code>42sjokkT9FmiWPqVzrWPFE5NCJXwt96bkBozHf4vgLR9hXyJDqKHEHKVscAARuD7in5wV1meEcSTJTanCTDzidTe2cFXS1F</code>
+</p>
 
 If you are using a wallet that supports OpenAlias (like the 'official' CLI and GUI wallets), you can simply put `fund@haveno.exchange` as the "receiver" address.
 
 ### Bitcoin
 
-`1AKq3CE1yBAnxGmHXbNFfNYStcByNDc5gQ`
-
-![Qr code](https://raw.githubusercontent.com/haveno-dex/haveno/master/media/donate_bitcoin.png)
+<p>
+  <img src="https://raw.githubusercontent.com/haveno-dex/haveno/master/media/donate_bitcoin.png" alt="Donate Bitcoin" width="150" height="150"><br>
+  <code>1AKq3CE1yBAnxGmHXbNFfNYStcByNDc5gQ</code>
+</p>
