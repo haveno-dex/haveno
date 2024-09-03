@@ -136,7 +136,6 @@ public class XmrWalletService extends XmrWalletBase {
     private final WalletsSetup walletsSetup;
 
     private final File walletDir;
-    private final File xmrWalletFile;
     private final int rpcBindPort;
     private final boolean useNativeXmrWallet;
     protected final CopyOnWriteArraySet<XmrBalanceListener> balanceListeners = new CopyOnWriteArraySet<>();
@@ -180,7 +179,6 @@ public class XmrWalletService extends XmrWalletBase {
         this.walletDir = walletDir;
         this.rpcBindPort = rpcBindPort;
         this.useNativeXmrWallet = useNativeXmrWallet;
-        this.xmrWalletFile = new File(walletDir, MONERO_WALLET_NAME);
         HavenoUtils.xmrWalletService = this;
         HavenoUtils.xmrConnectionService = xmrConnectionService;
         this.xmrConnectionService = xmrConnectionService; // TODO: super's is null unless set here from injection
@@ -1326,7 +1324,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (wallet == null) {
                 MoneroDaemonRpc daemon = xmrConnectionService.getDaemon();
                 log.info("Initializing main wallet with monerod=" + (daemon == null ? "null" : daemon.getRpcConnection().getUri()));
-                if (MoneroUtils.walletExists(xmrWalletFile.getPath())) {
+                if (walletExists(MONERO_WALLET_NAME)) {
                     wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(wasWalletSynced));
                 } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
                     wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort);
@@ -1474,11 +1472,54 @@ public class XmrWalletService extends XmrWalletBase {
             MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
             if (!applyProxyUri) connection.setProxyUri(null);
 
-            // open wallet
+            // try opening wallet
             config.setNetworkType(getMoneroNetworkType());
             config.setServer(connection);
             log.info("Opening full wallet " + config.getPath() + " with monerod=" + connection.getUri() + ", proxyUri=" + connection.getProxyUri());
-            walletFull = MoneroWalletFull.openWallet(config);
+            try {
+                walletFull = MoneroWalletFull.openWallet(config);
+            } catch (Exception e) {
+                log.warn("Failed to open full wallet '{}', attempting to use backup cache, error={}", config.getPath(), e.getMessage());
+                boolean retrySuccessful = false;
+                try {
+                    
+                    // rename wallet cache to backup
+                    String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
+                    File originalCacheFile = new File(cachePath);
+                    if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
+
+                    // copy latest wallet cache backup to main folder
+                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
+                    if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
+
+                    // retry opening wallet without original cache
+                    try {
+                        walletFull = MoneroWalletFull.openWallet(config);
+                        log.info("Successfully opened full wallet using backup cache");
+                        retrySuccessful = true;
+                    } catch (Exception e2) {
+                        // ignore
+                    }
+
+                    // handle success or failure
+                    if (retrySuccessful) {
+                        originalCacheFile.delete(); // delete original wallet cache backup
+                    } else {
+
+                        // restore original wallet cache
+                        log.warn("Failed to open full wallet using backup cache, restoring original cache");
+                        File cacheFile = new File(cachePath);
+                        if (cacheFile.exists()) cacheFile.delete();
+                        File originalCacheBackup = new File(cachePath + ".backup");
+                        if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
+
+                        // throw exception
+                        throw e;
+                    }
+                } catch (Exception e2) {
+                    throw e; // throw original exception
+                }
+            }
             if (walletFull.getDaemonConnection() != null) walletFull.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done opening full wallet " + config.getPath());
             return walletFull;
@@ -1517,7 +1558,7 @@ public class XmrWalletService extends XmrWalletBase {
         } catch (Exception e) {
             e.printStackTrace();
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
-            throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.");
+            throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.");
         }
     }
 
@@ -1536,17 +1577,60 @@ public class XmrWalletService extends XmrWalletBase {
             MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
             if (!applyProxyUri) connection.setProxyUri(null);
 
-            // open wallet
+            // try opening wallet
             log.info("Opening RPC wallet " + config.getPath() + " with monerod=" + connection.getUri() + ", proxyUri=" + connection.getProxyUri());
             config.setServer(connection);
-            walletRpc.openWallet(config);
+            try {
+                walletRpc.openWallet(config);
+            } catch (Exception e) {
+                log.warn("Failed to open RPC wallet '{}', attempting to use backup cache, error={}", config.getPath(), e.getMessage());
+                boolean retrySuccessful = false;
+                try {
+                    
+                    // rename wallet cache to backup
+                    String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
+                    File originalCacheFile = new File(cachePath);
+                    if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
+
+                    // copy latest wallet cache backup to main folder
+                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
+                    if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
+
+                    // retry opening wallet without original cache
+                    try {
+                        walletRpc.openWallet(config);
+                        log.info("Successfully opened RPC wallet using backup cache");
+                        retrySuccessful = true;
+                    } catch (Exception e2) {
+                        // ignore
+                    }
+
+                    // handle success or failure
+                    if (retrySuccessful) {
+                        originalCacheFile.delete(); // delete original wallet cache backup
+                    } else {
+
+                        // restore original wallet cache
+                        log.warn("Failed to open RPC wallet using backup cache, restoring original cache");
+                        File cacheFile = new File(cachePath);
+                        if (cacheFile.exists()) cacheFile.delete();
+                        File originalCacheBackup = new File(cachePath + ".backup");
+                        if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
+
+                        // throw exception
+                        throw e;
+                    }
+                } catch (Exception e2) {
+                    throw e; // throw original exception
+                }
+            }
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             e.printStackTrace();
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
-            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes, and restart Haveno.\n\nError message: " + e.getMessage());
+            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage());
         }
     }
 
