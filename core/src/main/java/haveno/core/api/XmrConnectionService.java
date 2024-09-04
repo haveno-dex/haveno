@@ -99,9 +99,10 @@ public final class XmrConnectionService {
     @Getter
     private MoneroDaemonInfo lastInfo;
     private Long lastLogPollErrorTimestamp;
-    private Long syncStartHeight = null;
+    private long lastLogDaemonNotSyncedTimestamp;
+    private Long syncStartHeight;
     private TaskLooper daemonPollLooper;
-    private long lastRefreshPeriodMs = 0;
+    private long lastRefreshPeriodMs;
     @Getter
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
@@ -371,7 +372,6 @@ public final class XmrConnectionService {
         Long targetHeight = getTargetHeight();
         if (targetHeight == null) return false;
         if (targetHeight - chainHeight.get() <= 3) return true; // synced if within 3 blocks of target height
-        log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), targetHeight);
         return false;
     }
 
@@ -720,7 +720,7 @@ public final class XmrConnectionService {
                     }
 
                     // log error message periodically
-                    if ((lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS)) {
+                    if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
                         log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
                         if (DevEnv.isDevMode()) e.printStackTrace();
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
@@ -733,6 +733,12 @@ public final class XmrConnectionService {
 
                 // connected to daemon
                 isConnected = true;
+
+                // throttle warnings if daemon not synced
+                if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {
+                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), getTargetHeight());
+                    lastLogDaemonNotSyncedTimestamp = System.currentTimeMillis();
+                }
 
                 // announce connection change if refresh period changes
                 if (getRefreshPeriodMs() != lastRefreshPeriodMs) {

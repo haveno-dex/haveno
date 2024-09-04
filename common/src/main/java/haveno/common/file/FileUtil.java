@@ -40,10 +40,13 @@ import java.util.Scanner;
 
 @Slf4j
 public class FileUtil {
+
+    private static final String BACKUP_DIR = "backup";
+    
     public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
         if (numMaxBackupFiles <= 0) return;
         if (dir.exists()) {
-            File backupDir = new File(Paths.get(dir.getAbsolutePath(), "backup").toString());
+            File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
             if (!backupDir.exists())
                 if (!backupDir.mkdir())
                     log.warn("make dir failed.\nBackupDir=" + backupDir.getAbsolutePath());
@@ -72,8 +75,21 @@ public class FileUtil {
         }
     }
 
+    public static File getLatestBackupFile(File dir, String fileName) {
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
+        if (!backupDir.exists()) return null;
+        String dirName = "backups_" + fileName;
+        if (dirName.contains(".")) dirName = dirName.replace(".", "_");
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
+        if (!backupFileDir.exists()) return null;
+        File[] files = backupFileDir.listFiles();
+        if (files == null || files.length == 0) return null;
+        Arrays.sort(files, Comparator.comparing(File::getName));
+        return files[files.length - 1];
+    }
+
     public static void deleteRollingBackup(File dir, String fileName) {
-        File backupDir = new File(Paths.get(dir.getAbsolutePath(), "backup").toString());
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
         if (!backupDir.exists()) return;
         String dirName = "backups_" + fileName;
         if (dirName.contains(".")) dirName = dirName.replace(".", "_");

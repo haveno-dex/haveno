@@ -317,6 +317,8 @@ configure(project(':common')) {
             exclude(module: 'animal-sniffer-annotations')
         }
 
+        // override transitive dependency and use latest version from bisq
+        implementation(group: 'com.github.bisq-network', name: 'jtorctl') { version { strictly "[b2a172f44edcd8deaa5ed75d936dcbb007f0d774]" } }
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
     }
@@ -607,7 +609,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.0.10-SNAPSHOT'
+    version = '1.0.11-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,
