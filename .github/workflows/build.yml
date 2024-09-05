@@ -57,8 +57,18 @@ jobs:
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
+            # Separate RPM and DEB files into their own zip archives
+            mkdir ${{ github.workspace }}/release/rpm
+            mkdir ${{ github.workspace }}/release/deb
+
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release/rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release/deb
+
+            cd ${{ github.workspace }}/release/rpm
+            zip -r ${{ github.workspace }}/haveno_x86_64_rpm-latest.zip ./*
+
+            cd ${{ github.workspace }}/release/deb
+            zip -r ${{ github.workspace }}/haveno_amd64_deb-latest.zip ./*
           else
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
           fi
