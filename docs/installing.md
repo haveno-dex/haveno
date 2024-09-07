@@ -95,9 +95,11 @@ If you are a developer who wants to test Haveno in a more controlled way, follow
 
 #### Deploy
 
-If you are a *screen* user, simply run `make deploy`. This command will open all needed Haveno instances (seednode, user1, user2, arbitrator) using *screen*.
+If you are a *screen* user, simply run `make deploy-screen`. This command will open all needed Haveno instances (seednode, user1, user2, arbitrator) using *screen*.
 
-If you don't use *screen*, open 4 terminal windows and run in each one of them:
+If you are a *tmux* user, simply run `make deploy-tmux`. This command will open all needed Haveno instances (seednode, user1, user2, arbitrator) using *tmux* and attach them to splitted view.
+
+If you don't use *screen* or *tmux*, open 4 terminal windows and run in each one of them:
 
   1. `make seednode-local`
   2. `make user1-desktop-local` or if you want to run user1 as a daemon: `make user1-daemon-local`

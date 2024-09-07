@@ -28,7 +28,7 @@ haveno-apps:
 refresh-deps:
 	./gradlew --write-verification-metadata sha256 && ./gradlew build --refresh-keys --refresh-dependencies -x test -x checkstyleMain -x checkstyleTest
 
-deploy:
+deploy-screen:
 	# create a new screen session named 'localnet'
 	screen -dmS localnet
 	# deploy each node in its own named screen window
@@ -42,6 +42,19 @@ deploy:
 		done;
 	# give time to start
 	sleep 5
+
+deploy-tmux:
+	# Start a new tmux session named 'localnet' (detached)
+	tmux new-session -d -s localnet -n main "make seednode-local"
+	# Split the window into panes and run each node in its own pane
+	tmux split-window -h -t localnet "make user1-desktop-local"  # Split horizontally for user1
+	tmux split-window -v -t localnet:0.0 "make user2-desktop-local"  # Split vertically on the left for user2
+	tmux split-window -v -t localnet:0.1 "make arbitrator-desktop-local"  # Split vertically on the right for arbitrator
+	tmux select-layout -t localnet tiled
+	# give time to start
+	sleep 5
+	# Attach to the tmux session
+	tmux attach-session -t localnet
 
 .PHONY: build seednode localnet
 
