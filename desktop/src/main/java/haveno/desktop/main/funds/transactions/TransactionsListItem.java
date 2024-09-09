@@ -78,8 +78,8 @@ class TransactionsListItem {
     }
 
     TransactionsListItem(MoneroTxWallet tx,
-                         XmrWalletService xmrWalletService,
-                         TransactionAwareTradable transactionAwareTradable) {
+            XmrWalletService xmrWalletService,
+            TransactionAwareTradable transactionAwareTradable) {
         this.memo = tx.getNote();
         this.txId = tx.getHash();
         this.xmrWalletService = xmrWalletService;
@@ -95,8 +95,10 @@ class TransactionsListItem {
             addressString = ((MoneroIncomingTransfer) tx.getTransfers().get(0)).getAddress();
         } else {
             MoneroOutgoingTransfer transfer = (MoneroOutgoingTransfer) tx.getTransfers().get(0);
-            if (transfer.getDestinations() != null) addressString = transfer.getDestinations().get(0).getAddress();
-            else addressString = "unavailable";
+            if (transfer.getDestinations() != null)
+                addressString = transfer.getDestinations().get(0).getAddress();
+            else
+                addressString = "unavailable";
         }
 
         if (valueSentFromMe.compareTo(BigInteger.ZERO) == 0) {
@@ -144,9 +146,11 @@ class TransactionsListItem {
                             details = Res.get("funds.tx.refund", tradeId);
                         } else {
                             // We have spent the deposit tx outputs to the Haveno donation address to enable
-                            // the refund process (refund agent -> reimbursement). As the funds have left our wallet
+                            // the refund process (refund agent -> reimbursement). As the funds have left
+                            // our wallet
                             // already when funding the deposit tx we show 0 BTC as amount.
-                            // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds
+                            // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no
+                            // funds
                             // left our wallet nor we received funds. So we set indicator invisible.
                             amount = BigInteger.ZERO;
                             details = Res.get("funds.tx.collateralForRefund", tradeId);
@@ -169,17 +173,19 @@ class TransactionsListItem {
         dateString = DisplayUtils.formatDateTime(date);
 
         // confidence
-        lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
-            txConfidenceIndicator = new TxConfidenceIndicator();
-            txConfidenceIndicator.setId("funds-confidence");
-            tooltip = new Tooltip(Res.get("shared.notUsedYet"));
-            txConfidenceIndicator.setProgress(0);
-            txConfidenceIndicator.setTooltip(tooltip);
-            txConfidenceIndicator.setVisible(initialTxConfidenceVisibility);
+        lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {
+            {
+                txConfidenceIndicator = new TxConfidenceIndicator();
+                txConfidenceIndicator.setId("funds-confidence");
+                tooltip = new Tooltip(Res.get("shared.notUsedYet"));
+                txConfidenceIndicator.setProgress(0);
+                txConfidenceIndicator.setTooltip(tooltip);
+                txConfidenceIndicator.setVisible(initialTxConfidenceVisibility);
 
-            GUIUtil.updateConfidence(tx, tooltip, txConfidenceIndicator);
-            confirmations = tx.getNumConfirmations();
-        }});
+                GUIUtil.updateConfidence(tx, tooltip, txConfidenceIndicator);
+                confirmations = tx.getNumConfirmations();
+            }
+        });
     }
 
     public void cleanup() {
@@ -211,6 +217,10 @@ class TransactionsListItem {
 
     public String getTxId() {
         return txId;
+    }
+
+    public String getTotalTxFee() {
+        return HavenoUtils.formatXmr(getTradable().getTotalTxFee());
     }
 
     public boolean getReceived() {
