@@ -1,77 +1,152 @@
 #!/bin/bash
 
-#############################################################################
-# Written by BrandyJson, with heavy inspiration from bisq.wiki tails script #
-#############################################################################
-echo "Installing dpkg from persistent, (1.07-1, if this is out of date change the deb path in the script or manually install after running"
-dpkg -i "/home/amnesia/Persistent/haveno_1.0.7-1_amd64.deb"
-echo -e "Allowing amnesia to read tor control port cookie, only run this script when you actually want to use haveno\n\n!!! not secure !!!\n"
-chmod o+r /var/run/tor/control.authcookie
-echo "Updating apparmor-profile"
-echo "---
-- apparmor-profiles:
-    - '/opt/haveno/bin/Haveno'
-  users:
-    - 'amnesia'
-  commands:
-    AUTHCHALLENGE:
-      - 'SAFECOOKIE .*'
-    SETEVENTS:
-      - 'CIRC ORCONN INFO NOTICE WARN ERR HS_DESC HS_DESC_CONTENT'
-    GETINFO:
-      - pattern: 'status/bootstrap-phase'
-        response:
-          - pattern: '250-status/bootstrap-phase=*'
-            replacement: '250-status/bootstrap-phase=NOTICE BOOTSTRAP PROGRESS=100 TAG=done SUMMARY="Done"'
-      - 'net/listeners/socks'
-    ADD_ONION:
-      - pattern:     'NEW:(\S+) Port=9999,(\S+)'
-        replacement: 'NEW:{} Port=9999,{client-address}:{}'
-      - pattern:     '(\S+):(\S+) Port=9999,(\S+)'
-        replacement: '{}:{} Port=9999,{client-address}:{}'
-    DEL_ONION:
-      - '.+'
-    HSFETCH:
-      - '.+'
-  events:
-    CIRC:
-      suppress: true
-    ORCONN:
-      suppress: true
-    INFO:
-      suppress: true
-    NOTICE:
-      suppress: true
-    WARN:
-      suppress: true
-    ERR:
-      suppress: true
-    HS_DESC:
-      response:
-        - pattern:     '650 HS_DESC CREATED (\S+) (\S+) (\S+) \S+ (.+)'
-          replacement: '650 HS_DESC CREATED {} {} {} redacted {}'
-        - pattern:     '650 HS_DESC UPLOAD (\S+) (\S+) .*'
-          replacement: '650 HS_DESC UPLOAD {} {} redacted redacted'
-        - pattern:     '650 HS_DESC UPLOADED (\S+) (\S+) .+'
-          replacement: '650 HS_DESC UPLOADED {} {} redacted'
-        - pattern:     '650 HS_DESC REQUESTED (\S+) NO_AUTH'
-          replacement: '650 HS_DESC REQUESTED {} NO_AUTH'
-        - pattern:     '650 HS_DESC REQUESTED (\S+) NO_AUTH \S+ \S+'
-          replacement: '650 HS_DESC REQUESTED {} NO_AUTH redacted redacted'
-        - pattern:     '650 HS_DESC RECEIVED (\S+) NO_AUTH \S+ \S+'
-          replacement: '650 HS_DESC RECEIVED {} NO_AUTH redacted redacted'
-        - pattern:     '.*'
-          replacement: ''
-    HS_DESC_CONTENT:
-      suppress: true" > /etc/onion-grater.d/haveno.yml
-echo "Adding rule to iptables to allow for monero-wallet-rpc to work"
-iptables -I OUTPUT 2 -p tcp -d 127.0.0.1 -m tcp --dport 18081 -m owner --uid-owner 1855 -j ACCEPT
-echo "Updating torsocks to allow for inbound connection"
-sed -i 's/#AllowInbound/AllowInbound/g' /etc/tor/torsocks.conf 
 
-echo "Restarting onion-grater service"
+# This script facilitates the setup and installation of the Haveno application on Tails OS.
+#
+# FUNCTIONAL OVERVIEW:
+# - Creating necessary persistent directories and copying utility files.
+# - Downloading Haveno binary, signature file, and GPG key for verification.
+# - Importing and verifying the GPG key to ensure the authenticity of the download.
+# - Setting up desktop icons in both local and persistent directories.
 
-systemctl restart onion-grater.service
 
-echo "alias haveno-tails='torsocks /opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --useTorForXmr=ON --userDataDir=/home/amnesia/Persistent/'" >> /home/amnesia/.bashrc
-echo -e "Everything is set up just run\n\nsource ~/.bashrc\n\nThen you can start haveno using haveno-tails"
+# Function to print messages in blue
+echo_blue() {
+  echo -e "\033[1;34m$1\033[0m"
+}
+
+
+# Function to print error messages in red
+echo_red() {
+  echo -e "\033[0;31m$1\033[0m"
+}
+
+
+# Define version and file locations
+user_url=$1
+base_url=$(printf ${user_url} | awk -F'/' -v OFS='/' '{$NF=""}1')
+expected_fingerprint=$2
+binary_filename=$(awk -F'/' '{ print $NF }' <<< "$user_url")
+package_filename="haveno.deb"
+signature_filename="${binary_filename}.sig"
+key_filename="$(printf "$expected_fingerprint" | tr -d ' ' | sed -E 's/.*(................)/\1/' )".asc
+assets_dir="/tmp/assets"
+persistence_dir="/home/amnesia/Persistent"
+app_dir="${persistence_dir}/haveno/App"
+data_dir="${persistence_dir}/haveno/Data"
+install_dir="${persistence_dir}/haveno/Install"
+dotfiles_dir="/live/persistence/TailsData_unlocked/dotfiles"
+persistent_desktop_dir="$dotfiles_dir/.local/share/applications"
+local_desktop_dir="/home/amnesia/.local/share/applications"
+
+
+# Install dependencies
+echo_blue "Installing dependencies ..."
+sudo apt update && sudo apt install -y curl unzip
+
+
+# Remove stale resources
+rm -rf "${assets_dir}"
+
+
+# Create temp location for downloads
+echo_blue "Creating temporary directory for Haveno resources ..."
+mkdir "${assets_dir}" || { echo_red "Failed to create directory ${assets_dir}"; exit 1; }
+
+
+# Download resources
+echo_blue "Downloading resources for Haveno on Tails ..."
+curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/exec.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/exec.sh || { echo_red "Failed to download resource (exec.sh)."; exit 1; }
+curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/install.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/install.sh || { echo_red "Failed to download resource (install.sh)."; exit 1; }
+curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.desktop https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.desktop || { echo_red "Failed to resource (haveno.desktop)."; exit 1; }
+curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/icon.png https://raw.githubusercontent.com/haveno-dex/haveno/master/scripts/install_tails/assets/icon.png || { echo_red "Failed to download resource (icon.png)."; exit 1; }
+curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.yml https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.yml || { echo_red "Failed to download resource (haveno.yml)."; exit 1; }
+
+
+# Create persistent directory
+echo_blue "Creating persistent directory for Haveno ..."
+mkdir -p "${app_dir}" || { echo_red "Failed to create directory ${app_dir}"; exit 1; }
+
+
+# Copy utility files to persistent storage and make scripts executable
+echo_blue "Copying haveno utility files to persistent storage ..."
+rsync -av "${assets_dir}/" "${app_dir}/utils/" || { echo_red "Failed to rsync files to ${app_dir}/utils/"; exit 1; }
+find "${app_dir}/utils/" -type f -name "*.sh" -exec chmod +x {} \; || { echo_red "Failed to make scripts executable"; exit 1; }
+
+
+echo_blue "Creating desktop menu icon ..."
+# Create desktop directories
+mkdir -p "${local_desktop_dir}"
+mkdir -p "${persistent_desktop_dir}"
+
+
+# Copy .desktop file to persistent directory
+cp "${assets_dir}/haveno.desktop" "${persistent_desktop_dir}"  || { echo_red "Failed to copy .desktop file to persistent directory $persistent_desktop_dir"; exit 1; }
+
+
+# Create a symbolic link to it in the local .desktop directory, if it doesn't exist
+if [ ! -L "${local_desktop_dir}/haveno.desktop" ]; then
+    ln -s "${persistent_desktop_dir}/haveno.desktop" "${local_desktop_dir}/haveno.desktop" || { echo_red "Failed to create symbolic link for .desktop file"; exit 1; }
+fi
+
+
+# Download Haveno binary
+echo_blue "Downloading Haveno from URL provided ..."
+curl --retry 10 --retry-delay 5 -L -o "${binary_filename}" "${user_url}" || { echo_red "Failed to download Haveno binary."; exit 1; }
+
+
+# Download Haveno signature file
+echo_blue "Downloading Haveno signature ..."
+curl --retry 10 --retry-delay 5 -L -o "${signature_filename}" "${base_url}""${signature_filename}" || { echo_red "Failed to download Haveno signature."; exit 1; }
+
+
+# Download the GPG key
+echo_blue "Downloading signing GPG key ..."
+curl --retry 10 --retry-delay 5 -L -o "${key_filename}" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$(echo "$expected_fingerprint" | tr -d ' ')" || { echo_red "Failed to download GPG key."; exit 1; }
+
+
+# Import the GPG key
+echo_blue "Importing the GPG key ..."
+gpg --import "${key_filename}" || { echo_red "Failed to import GPG key."; exit 1; }
+
+
+# Extract imported fingerprints
+imported_fingerprints=$(gpg --with-colons --fingerprint | grep -A 1 'pub' | grep 'fpr' | cut -d: -f10 | tr -d '\n')
+
+
+# Remove spaces from the expected fingerprint for comparison
+formatted_expected_fingerprint=$(echo "${expected_fingerprint}" | tr -d ' ')
+
+
+# Check if the expected fingerprint is in the list of imported fingerprints
+if [[ ! "${imported_fingerprints}" =~ "${formatted_expected_fingerprint}" ]]; then
+  echo_red "The imported GPG key fingerprint does not match the expected fingerprint."
+  exit 1
+fi
+
+
+# Verify the downloaded binary with the signature
+echo_blue "Verifying the signature of the downloaded file ..."
+OUTPUT=$(gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_filename}" 2>&1)
+
+if ! echo "$OUTPUT" | grep -q "Good signature from"; then
+    echo_red "Verification failed: $OUTPUT"
+    exit 1;
+    else unzip "${binary_filename}" && mv haveno*.deb "${package_filename}"
+fi
+
+echo_blue "Haveno binaries have been successfully verified."
+
+
+# Move the binary and its signature to the persistent directory
+mkdir -p "${install_dir}"
+
+
+# Delete old Haveno binaries
+#rm -f "${install_dir}/"*.deb*
+mv "${binary_filename}" "${package_filename}" "${key_filename}" "${signature_filename}" "${install_dir}"
+echo_blue "Files moved to persistent directory ${install_dir}"
+
+
+# Completed confirmation
+echo_blue "Haveno installation setup completed successfully."
