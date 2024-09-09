@@ -3,7 +3,12 @@
 Install Haveno on Tails by following these steps:
 
 1. Enable persistent storage dotfiles and admin password before starting tails.
-2. Download [haveno-install.sh](haveno-install.sh).
+2. Download [haveno-install.sh](haveno-install.sh):
+    
+    ```
+    curl -fsSLO https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/haveno-install.sh
+    ```
+    
 3. Execute installation script:
     
     ```
