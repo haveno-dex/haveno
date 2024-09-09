@@ -111,8 +111,3 @@ jobs:
         with:
           name: linux-haveno-${{ env.VERSION }}.rpm
           path: ${{ github.workspace }}/release/haveno-*.rpm
-      - uses: actions/upload-artifact@v3
-        name: "Linux - flatpak artifact"
-        with:
-          name: linux-haveno-${{ env.VERSION }}.flatpak
-          path: ${{ github.workspace }}/release/*.flatpak
