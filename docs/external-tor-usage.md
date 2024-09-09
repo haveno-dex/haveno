@@ -1,5 +1,5 @@
 # Using External Tor with Haveno
-
+>Looking to setup external Tor for a seednode? Go [here](https://github.com/haveno-dex/haveno/blob/master/docs/deployment-guide.md#install-tor) for tailored instructions.
 ## Setting up Tor:
 
 ### 1. Download and Install Tor
@@ -37,6 +37,8 @@ CookieAuthFile <path to cookie auth file>
 ```Stop-Process -Name tor```
 ### 4. Start Tor
 ```tor```
+>On Linux/MacOS, the user running tor must be a member of the "tor" usergroup.
+
 ## Using External Tor with Haveno:
 Run the Haveno binary with the following extra flags:
 ```
