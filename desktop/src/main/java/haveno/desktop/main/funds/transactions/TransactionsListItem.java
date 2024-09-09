@@ -54,6 +54,7 @@ class TransactionsListItem {
     private boolean received;
     private boolean detailsAvailable;
     private BigInteger amount = BigInteger.ZERO;
+    private BigInteger tradeFee = BigInteger.ZERO;
     private String memo = "";
     private long confirmations = 0;
     @Getter
@@ -109,14 +110,28 @@ class TransactionsListItem {
             direction = Res.get("funds.tx.direction.sentTo");
         }
 
+        tradeFee = tx.getFee();
+        log.info("Tx trade fee: " + tradeFee);
+
         if (optionalTradable.isPresent()) {
             tradable = optionalTradable.get();
+            if(tradeFee.compareTo(BigInteger.ZERO) == 0) {
+                tradeFee = tradable.getTotalTxFee();
+                log.info("Total tradeable fee: " + tradeFee);
+            }
+            tradable.getTotalTxFee();
             detailsAvailable = true;
             String tradeId = tradable.getShortId();
             if (tradable instanceof OpenOffer) {
                 details = Res.get("funds.tx.createOfferFee", tradeId);
             } else if (tradable instanceof Trade) {
                 Trade trade = (Trade) tradable;
+
+                tradeFee = trade.getTotalTxFee();
+                log.info("Total trade fee: " + trade.getMakerFee()
+                        + " " + trade.getPayoutTxFee()
+                        + " " + trade.getTotalTxFee()
+                        + " " + trade.getTakerFee());
 
                 Offer offer = trade.getOffer();
                 if (trade.getSelf().getDepositTxHash() != null &&
@@ -199,6 +214,14 @@ class TransactionsListItem {
 
     public BigInteger getAmount() {
         return amount;
+    }
+
+    public BigInteger getTradeFee() {
+        return tradeFee;
+    }
+
+    public String getTradeFeeStr() {
+        return HavenoUtils.formatXmr(tradeFee);
     }
 
     public String getAddressString() {
