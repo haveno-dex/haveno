@@ -65,7 +65,7 @@ jobs:
           $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
           "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
         shell: powershell
-        
+
       - name: Move Release Files on Unix
         if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
         run: |
@@ -91,23 +91,27 @@ jobs:
       # win
       - uses: actions/upload-artifact@v3
         name: "Windows - exe artifact"
+        if: ${{ matrix.os == 'windows-latest' }}
         with:
           name: windows-haveno-${{ env.VERSION }}.exe
           path: ${{ github.workspace }}/release/Haveno-*.exe
       # macos
       - uses: actions/upload-artifact@v3
         name: "MacOS - dmg artifact"
+        if: ${{ matrix.os == 'macos-13' }}
         with:
           name: macos-haveno-${{ env.VERSION }}.dmg
           path: ${{ github.workspace }}/release/Haveno-*.dmg
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: linux-haveno-${{ env.VERSION }}.deb
           path: ${{ github.workspace }}/release/haveno_*.deb
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: linux-haveno-${{ env.VERSION }}.rpm
           path: ${{ github.workspace }}/release/haveno-*.rpm
