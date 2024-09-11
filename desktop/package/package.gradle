@@ -379,7 +379,7 @@ task packageInstallers {
                 }
 
                 project.exec {
-                    commandLine "${AppImageToolBinary}", appDir, "${binariesFolderPath}/Haveno.AppImage"
+                    commandLine "${AppImageToolBinary}", appDir, "${binariesFolderPath}/haveno-${appVersion}.AppImage"
                 }
             } else {
                 println "Your platform does not support AppImageTool ${AppImageToolVersion}"
