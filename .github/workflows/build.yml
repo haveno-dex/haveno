@@ -64,6 +64,7 @@ jobs:
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
+            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release
           else
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
           fi
