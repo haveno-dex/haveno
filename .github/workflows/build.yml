@@ -19,6 +19,7 @@ jobs:
         with:
           lfs: true
       - name: Install fuse dependencies
+        if: runner.os == 'Linux'
         run: |
             sudo apt-get update
             sudo apt-get install fuse
