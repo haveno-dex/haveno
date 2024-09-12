@@ -32,6 +32,7 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroMultisigInfo;
 import monero.wallet.model.MoneroMultisigInitResult;
 
 import java.util.Arrays;
@@ -118,8 +119,17 @@ public class ProcessInitMultisigRequest extends TradeTask {
           if (processModel.getMultisigAddress() == null && peers[0].getExchangedMultisigHex() != null && peers[1].getExchangedMultisigHex() != null) {
             log.info("Importing exchanged multisig hex for trade {}", trade.getId());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
+
+            // check multisig state
+            MoneroMultisigInfo multisigInfo = multisigWallet.getMultisigInfo();
+            if (!multisigInfo.isMultisig()) throw new RuntimeException("Multisig wallet is not multisig on completion");
+            if (!multisigInfo.isReady()) throw new RuntimeException("Multisig wallet is not ready on completion");
+            if (multisigInfo.getThreshold() != 2) throw new RuntimeException("Multisig wallet has unexpected threshold: " + multisigInfo.getThreshold());
+            if (multisigInfo.getNumParticipants() != 3) throw new RuntimeException("Multisig wallet has unexpected number of participants: " + multisigInfo.getNumParticipants());
+
+            // set final address and save
             processModel.setMultisigAddress(result.getAddress());
-            new Thread(() -> trade.saveWallet()).start(); // save multisig wallet off thread on completion
+            new Thread(() -> trade.saveWallet()).start(); // save off thread on completion
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
           }
 
