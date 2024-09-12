@@ -1051,7 +1051,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 MoneroTxWallet tx = wallet.createTx(txConfig);
                 exportMultisigHex();
-                requestSaveWallet();
+                saveWallet();
                 return tx;
             }
         }
@@ -1152,7 +1152,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     throw e;
                 }
             }
-            requestSaveWallet();
+            saveWallet();
         }
         log.info("Done importing multisig hexes for {} {} in {} ms, count={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size());
     }
@@ -1365,6 +1365,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // verify fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
             log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getId());
+            saveWallet(); // save wallet before creating fee estimate tx
             MoneroTxWallet feeEstimateTx = createPayoutTx();
             BigInteger feeEstimate = feeEstimateTx.getFee();
             double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
@@ -1373,6 +1374,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // save trade state
+        saveWallet();
         requestPersistence();
 
         // submit payout tx
