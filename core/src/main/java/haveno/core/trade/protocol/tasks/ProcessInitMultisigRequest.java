@@ -129,7 +129,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
 
             // set final address and save
             processModel.setMultisigAddress(result.getAddress());
-            new Thread(() -> trade.saveWallet()).start(); // save off thread on completion
+            trade.saveWallet();
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
           }
 
