@@ -2,7 +2,7 @@
 
 Install Haveno on Tails by following these steps:
 
-1. Enable persistent storage dotfiles and admin password before starting tails.
+1. Enable persistent storage dotfiles and admin password before starting Tails.
 2. Download [haveno-install.sh](haveno-install.sh):
     
     ```
@@ -22,3 +22,9 @@ Install Haveno on Tails by following these steps:
     ```
     
 4. Upon successful execution of the script (no errors), the Haveno release will be installed to persistent storage and can be launched via the desktop shortcut in the 'Other' section of the start menu.
+
+> [!note]
+> If you have already installed Haveno on Tails, we recommend moving your data directory (/home/amnesia/Persistent/Haveno-example) to the new default location (/home/amnesia/Persistent/haveno/Data/Haveno-example), to retain your history and for future support.
+
+> [!note]
+> Modern versions of Tails will invoke `curl` over Tor, but if your installation does not, then you can add `--socks5-hostname 127.0.0.1:9050` when invoking the install script.
