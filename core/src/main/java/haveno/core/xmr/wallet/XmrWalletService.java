@@ -1503,15 +1503,15 @@ public class XmrWalletService extends XmrWalletBase {
                     }
 
                     // handle success or failure
+                    File originalCacheBackup = new File(cachePath + ".backup");
                     if (retrySuccessful) {
-                        originalCacheFile.delete(); // delete original wallet cache backup
+                        if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
                     } else {
 
                         // restore original wallet cache
                         log.warn("Failed to open full wallet using backup cache, restoring original cache");
                         File cacheFile = new File(cachePath);
                         if (cacheFile.exists()) cacheFile.delete();
-                        File originalCacheBackup = new File(cachePath + ".backup");
                         if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
 
                         // throw exception
@@ -1607,15 +1607,15 @@ public class XmrWalletService extends XmrWalletBase {
                     }
 
                     // handle success or failure
+                    File originalCacheBackup = new File(cachePath + ".backup");
                     if (retrySuccessful) {
-                        originalCacheFile.delete(); // delete original wallet cache backup
+                        if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
                     } else {
 
                         // restore original wallet cache
                         log.warn("Failed to open RPC wallet using backup cache, restoring original cache");
                         File cacheFile = new File(cachePath);
                         if (cacheFile.exists()) cacheFile.delete();
-                        File originalCacheBackup = new File(cachePath + ".backup");
                         if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
 
                         // throw exception
