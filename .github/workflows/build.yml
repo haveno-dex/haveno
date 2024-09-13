@@ -88,20 +88,13 @@ jobs:
 
 
       # do all files manually and use version too
-      # win
+      # others
       - uses: actions/upload-artifact@v3
         name: "Windows - exe artifact"
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-latest' || matrix.os == 'macos-13'  }}
         with:
-          name: windows-haveno-${{ env.VERSION }}.exe
-          path: ${{ github.workspace }}/release/Haveno-*.exe
-      # macos
-      - uses: actions/upload-artifact@v3
-        name: "MacOS - dmg artifact"
-        if: ${{ matrix.os == 'macos-13' }}
-        with:
-          name: macos-haveno-${{ env.VERSION }}.dmg
-          path: ${{ github.workspace }}/release/Haveno-*.dmg
+          name: HavenoInstaller-${{ matrix.os }}
+          path: ${{ github.workspace }}/release
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
