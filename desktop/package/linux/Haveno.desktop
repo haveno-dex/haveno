@@ -1,6 +1,3 @@
-# If you want Haveno to appear in a Linux app launcher ("start menu"), install this by doing:
-# sudo desktop-file-install electrum-ltc.desktop
-
 [Desktop Entry]
 Comment=A decentralized, Tor-based, P2P Monero exchange network.
 Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; bin/Haveno %u"
