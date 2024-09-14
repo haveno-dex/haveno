@@ -70,7 +70,7 @@ public class Log {
         // not working as expected still.... damn logback...
         PatternLayoutEncoder errorEncoder = new PatternLayoutEncoder();
         errorEncoder.setContext(loggerContext);
-        errorEncoder.setPattern("%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{15}: %msg%n%ex");
+        errorEncoder.setPattern("%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger: %msg%n%ex");
         errorEncoder.start();
 
         RollingFileAppender<ILoggingEvent> errorAppender = new RollingFileAppender<>();
