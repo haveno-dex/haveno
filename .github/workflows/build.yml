@@ -71,10 +71,10 @@ jobs:
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release/Haveno-x86_64.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release/Haveno-x86_64.deb
           else
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-x86_64.dmg
           fi
           mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
         shell: bash
@@ -82,29 +82,34 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           mkdir ${{ github.workspace }}/release
-          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release/Haveno-x86_64.exe
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
         shell: powershell
 
-
-      # do all files manually and use version too
-      # others
+      # win
       - uses: actions/upload-artifact@v3
-        name: "Other artifacts"
-        if: ${{ matrix.os == 'windows-latest' || matrix.os == 'macos-13'  }}
+        name: "Windows artifacts"
+        if: ${{ matrix.os == 'windows-latest'}}
         with:
-          name: HavenoInstaller-${{ matrix.os }}
-          path: ${{ github.workspace }}/release
+          name: haveno-${{ env.VERSION }}-windows.zip
+          path: ${{ github.workspace }}/release/*.exe
+      # macos
+      - uses: actions/upload-artifact@v3
+        name: "macOS artifacts"
+        if: ${{ matrix.os == 'macos-13'  }}
+        with:
+          name: haveno-${{ env.VERSION }}-macos.zip
+          path: ${{ github.workspace }}/release/*.dmg
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
-          name: linux-haveno-${{ env.VERSION }}.deb
-          path: ${{ github.workspace }}/release/haveno_*.deb
+          name: haveno-${{ env.VERSION }}-linux-deb.deb
+          path: ${{ github.workspace }}/release/*.deb
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
-          name: linux-haveno-${{ env.VERSION }}.rpm
-          path: ${{ github.workspace }}/release/haveno-*.rpm
+          name: haveno-${{ env.VERSION }}-linux-rpm.rpm
+          path: ${{ github.workspace }}/release/*.rpm
