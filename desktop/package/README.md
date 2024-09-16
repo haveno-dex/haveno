@@ -1,6 +1,3 @@
-
-# Building installers
-
 Follow these instructions to create installers for the Haveno Java desktop application on each platform.
 
 > **Note**
@@ -15,7 +12,8 @@ From x86_64 machine:
 3. Confirm prompts.
 4. Path to installer is printed at the end. Execute to install: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
 
-Note: Please see [flatpak.md](../../docs/flatpak.md) for information on distributing Haveno via Flatpak.
+Note: Please see [flatpak.md](../../docs/flatpak.md) for information on
+distributing Haveno via Flatpak.
 
 Haveno data folder on Linux: `/home/<username>/.local/share/Haveno/`
 
@@ -102,7 +100,8 @@ sudo apt install flatpak flatpak-builder
 
 ### Building for macOS
 
-Svg was converted into a 1024x1024 pixel PNG using <https://webkul.github.io/myscale/>, then converted to icns for macosx
+Svg was converted into a 1024x1024 pixel PNG using
+<https://webkul.github.io/myscale/>, then converted to icns for macosx
 here <https://cloudconvert.com/png-to-icns>
 
 #### Known Issues
