@@ -67,7 +67,6 @@ public class Log {
         appender.start();
 
         // log errors in separate file
-        // not working as expected still.... damn logback...
         PatternLayoutEncoder errorEncoder = new PatternLayoutEncoder();
         errorEncoder.setContext(loggerContext);
         errorEncoder.setPattern("%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger: %msg%n%ex");
@@ -92,7 +91,7 @@ public class Log {
         errorTriggeringPolicy.start();
 
         ThresholdFilter thresholdFilter = new ThresholdFilter();
-        thresholdFilter.setLevel("WARN");
+        thresholdFilter.setLevel("ERROR");
         thresholdFilter.start();
 
         errorAppender.setRollingPolicy(errorRollingPolicy);
