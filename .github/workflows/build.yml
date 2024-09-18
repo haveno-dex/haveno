@@ -92,24 +92,32 @@ jobs:
         if: ${{ matrix.os == 'windows-latest'}}
         with:
           name: haveno-${{ env.VERSION }}-windows
-          path: ${{ github.workspace }}/release/*.exe
+          path: |
+              ${{ github.workspace }}/release/*.exe
+              desktop/build/temp-*/binaries/*.jar.SHA-256
       # macos
       - uses: actions/upload-artifact@v3
         name: "macOS artifacts"
         if: ${{ matrix.os == 'macos-13'  }}
         with:
           name: haveno-${{ env.VERSION }}-macos
-          path: ${{ github.workspace }}/release/*.dmg
+          path: |
+              ${{ github.workspace }}/release/*.dmg
+              desktop/build/temp-*/binaries/*.jar.SHA-256
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: haveno-${{ env.VERSION }}-linux-deb
-          path: ${{ github.workspace }}/release/*.deb
+          path: |
+              ${{ github.workspace }}/release/*.deb
+              desktop/build/temp-*/binaries/*.jar.SHA-256
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: haveno-${{ env.VERSION }}-linux-rpm
-          path: ${{ github.workspace }}/release/*.rpm
+          path: |
+              ${{ github.workspace }}/release/*.rpm
+              desktop/build/temp-*/binaries/*.jar.SHA-256
