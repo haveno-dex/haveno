@@ -366,8 +366,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.onShutDownStarted();
             } catch (Exception e) {
                 if (e.getMessage() != null && e.getMessage().contains("Connection reset")) return; // expected if shut down with ctrl+c
-                log.warn("Error notifying {} {} that shut down started {}", trade.getClass().getSimpleName(), trade.getId());
-                e.printStackTrace();
+                log.warn("Error notifying {} {} that shut down started: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
             }
         });
         try {
@@ -396,15 +395,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.shutDown();
             } catch (Exception e) {
                 if (e.getMessage() != null && (e.getMessage().contains("Connection reset") || e.getMessage().contains("Connection refused"))) return; // expected if shut down with ctrl+c
-                log.warn("Error closing {} {}", trade.getClass().getSimpleName(), trade.getId());
-                e.printStackTrace();
+                log.warn("Error closing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
             }
         });
         try {
             ThreadUtils.awaitTasks(tasks);
         } catch (Exception e) {
-            log.warn("Error shutting down trades: {}", e.getMessage());
-            e.printStackTrace();
+            log.warn("Error shutting down trades: {}\n", e.getMessage(), e);
         }
     }
 
@@ -462,8 +459,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         }
                     } catch (Exception e) {
                         if (!isShutDownStarted) {
-                            e.printStackTrace();
-                            log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                            log.warn("Error initializing {} {}: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
                             trade.setInitError(e);
                         }
                     }

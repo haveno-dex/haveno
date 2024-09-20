@@ -71,7 +71,7 @@ public class DisputeSummaryVerification {
             disputeAgent = arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
             checkNotNull(disputeAgent, "Dispute agent is null");
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("Error verifying signature: {}\n", e.getMessage(), e);
             throw new IllegalArgumentException(Res.get("support.sigCheck.popup.invalidFormat"));
         }
 
@@ -93,7 +93,7 @@ public class DisputeSummaryVerification {
                 throw new IllegalArgumentException(Res.get("support.sigCheck.popup.failed"));
             }
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("Error verifying signature with agent pub key ring: {}\n", e.getMessage(), e);
             throw new IllegalArgumentException(Res.get("support.sigCheck.popup.invalidFormat"));
         }
     }

@@ -91,7 +91,7 @@ public class Log {
         errorTriggeringPolicy.start();
 
         ThresholdFilter thresholdFilter = new ThresholdFilter();
-        thresholdFilter.setLevel("ERROR");
+        thresholdFilter.setLevel("WARN");
         thresholdFilter.start();
 
         errorAppender.setRollingPolicy(errorRollingPolicy);

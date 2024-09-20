@@ -57,6 +57,8 @@ import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import lombok.Getter;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
@@ -433,15 +435,12 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
                 @Override
                 public void onFailure(@NotNull Throwable throwable) {
-                    log.error(throwable.toString());
-                    throwable.printStackTrace();
+                    log.error(ExceptionUtils.getStackTrace(throwable));
                     sendDirectMessageListener.onFault(throwable.toString());
                 }
             }, MoreExecutors.directExecutor());
         } catch (CryptoException e) {
-            e.printStackTrace();
-            log.error(message.toString());
-            log.error(e.toString());
+            log.error("Error sending encrypted direct message, message={}, error={}\n", message.toString(), e.getMessage(), e);
             sendDirectMessageListener.onFault(e.toString());
         }
     }

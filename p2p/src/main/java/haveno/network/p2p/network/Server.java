@@ -97,11 +97,10 @@ class Server implements Runnable {
                 }
             } catch (IOException e) {
                 if (isServerActive())
-                    e.printStackTrace();
+                    log.error("Error executing server loop: {}\n", e.getMessage(), e);
             }
         } catch (Throwable t) {
-            log.error("Executing task failed. " + t.getMessage());
-            t.printStackTrace();
+            log.error("Executing task failed: {}\n", t.getMessage(), t);
         }
     }
 

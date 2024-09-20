@@ -78,7 +78,7 @@ public class ApiTestMain {
 
         } catch (Throwable ex) {
             err.println("Fault: An unexpected error occurred. " +
-                    "Please file a report at https://haveno.exchange/issues");
+                    "Please file a report at https://github.com/haveno-dex/haveno/issues");
             ex.printStackTrace(err);
             exit(EXIT_FAILURE);
         }

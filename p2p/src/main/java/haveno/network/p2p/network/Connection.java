@@ -91,6 +91,8 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -511,8 +513,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                         Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
                     } catch (Throwable t) {
-                        log.error(t.getMessage());
-                        t.printStackTrace();
+                        log.error(ExceptionUtils.getStackTrace(t));
                     } finally {
                         stopped = true;
                         ThreadUtils.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler), THREAD_ID);
@@ -537,16 +538,14 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         } catch (SocketException e) {
             log.trace("SocketException at shutdown might be expected {}", e.getMessage());
         } catch (IOException e) {
-            log.error("Exception at shutdown. " + e.getMessage());
-            e.printStackTrace();
+            log.error("Exception at shutdown. {}\n", e.getMessage(), e);
         } finally {
             capabilitiesListeners.clear();
 
             try {
                 protoInputStream.close();
             } catch (IOException e) {
-                log.error(e.getMessage());
-                e.printStackTrace();
+                log.error(ExceptionUtils.getStackTrace(e));
             }
 
             Utilities.shutdownAndAwaitTermination(executorService, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);

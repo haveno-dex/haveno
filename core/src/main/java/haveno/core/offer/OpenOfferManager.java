@@ -977,7 +977,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // handle result
                 resultHandler.handleResult(null);
             } catch (Exception e) {
-                if (!openOffer.isCanceled()) e.printStackTrace();
+                if (!openOffer.isCanceled()) log.error("Error processing pending offer: {}\n", e.getMessage(), e);
                 errorMessageHandler.handleErrorMessage(e.getMessage());
             }
         }).start();
@@ -1365,9 +1365,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
             result = true;
         } catch (Exception e) {
-            e.printStackTrace();
             errorMessage = "Exception at handleSignOfferRequest " + e.getMessage();
-            log.error(errorMessage);
+            log.error(errorMessage + "\n", e);
         } finally {
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
@@ -1519,8 +1518,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             result = true;
         } catch (Throwable t) {
             errorMessage = "Exception at handleRequestIsOfferAvailableMessage " + t.getMessage();
-            log.error(errorMessage);
-            t.printStackTrace();
+            log.error(errorMessage + "\n", t);
         } finally {
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }

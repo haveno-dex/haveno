@@ -123,7 +123,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 try {
                     ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("Error awaiting tasks to complete: {}\n", e.getMessage(), e);
                 }
 
                 JsonFileManager.shutDownAllInstances();
@@ -177,8 +177,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 }, 1);
             }
         } catch (Throwable t) {
-            log.debug("App shutdown failed with exception");
-            t.printStackTrace();
+            log.info("App shutdown failed with exception: {}\n", t.getMessage(), t);
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 resultHandler.handleResult();
                 log.info("Graceful shutdown resulted in an error. Exiting now.");

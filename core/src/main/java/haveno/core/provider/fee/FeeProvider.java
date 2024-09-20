@@ -59,8 +59,7 @@ public class FeeProvider extends HttpClientProvider {
             map.put(Config.BTC_TX_FEE, btcTxFee);
             map.put(Config.BTC_MIN_TX_FEE, btcMinTxFee);
         } catch (Throwable t) {
-            log.error(t.toString());
-            t.printStackTrace();
+            log.error("Error getting fees: {}\n", t.getMessage(), t);
         }
         return new Tuple2<>(tsMap, map);
     }

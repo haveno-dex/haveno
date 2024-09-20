@@ -24,6 +24,7 @@ import haveno.common.config.Config;
 import haveno.network.p2p.network.NetworkNode;
 import java.net.UnknownHostException;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,8 +97,7 @@ public class Socks5ProxyProvider {
                 try {
                     return new Socks5Proxy(tokens[0], Integer.valueOf(tokens[1]));
                 } catch (UnknownHostException e) {
-                    log.error(e.getMessage());
-                    e.printStackTrace();
+                    log.error(ExceptionUtils.getStackTrace(e));
                 }
             } else {
                 log.error("Incorrect format for socks5ProxyAddress. Should be: host:port.\n" +

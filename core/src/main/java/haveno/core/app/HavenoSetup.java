@@ -376,8 +376,7 @@ public class HavenoSetup {
                 moneroWalletRpcFile.setExecutable(true);
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            log.warn("Failed to install Monero binaries: " + e.toString());
+            log.warn("Failed to install Monero binaries: {}\n", e.getMessage(), e);
         }
     }
 
