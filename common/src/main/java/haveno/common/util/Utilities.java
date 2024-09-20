@@ -331,8 +331,7 @@ public class Utilities {
                 clipboard.setContent(clipboardContent);
             }
         } catch (Throwable e) {
-            log.error("copyToClipboard failed " + e.getMessage());
-            e.printStackTrace();
+            log.error("copyToClipboard failed: {}\n", e.getMessage(), e);
         }
     }
 

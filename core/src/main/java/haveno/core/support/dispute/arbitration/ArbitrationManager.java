@@ -94,6 +94,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
@@ -355,7 +357,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     requestPersistence(trade);
                 } catch (Exception e) {
                     log.warn("Error processing dispute closed message: {}", e.getMessage());
-                    e.printStackTrace();
+                    log.warn(ExceptionUtils.getStackTrace(e));
                     requestPersistence(trade);
 
                     // nack bad message and do not reprocess
@@ -489,8 +491,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             try {
                 feeEstimateTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
             } catch (Exception e) {
-                e.printStackTrace();
-                log.warn("Could not recreate dispute payout tx to verify fee: " + e.getMessage());
+                log.warn("Could not recreate dispute payout tx to verify fee: {}\n", e.getMessage(), e);
             }
             if (feeEstimateTx != null) {
                 BigInteger feeEstimate = feeEstimateTx.getFee();

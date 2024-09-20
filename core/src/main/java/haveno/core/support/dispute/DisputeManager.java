@@ -83,6 +83,9 @@ import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
 import javax.annotation.Nullable;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Instant;
@@ -523,7 +526,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress(), config);
                         //DisputeValidation.testIfDisputeTriesReplay(dispute, disputeList.getList());
                     } catch (DisputeValidation.ValidationException e) {
-                        e.printStackTrace();
+                        log.error(ExceptionUtils.getStackTrace(e));
                         validationExceptions.add(e);
                         throw e;
                     }
@@ -532,9 +535,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     try {
                         DisputeValidation.validatePaymentAccountPayload(dispute); // TODO: add field to dispute details: valid, invalid, missing
                     } catch (Exception e) {
-                        e.printStackTrace();
-                        log.warn(e.getMessage());
+                        log.error(ExceptionUtils.getStackTrace(e));
                         trade.prependErrorMessage(e.getMessage());
+                        throw e;
                     }
 
                     // get sender
@@ -606,9 +609,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error(ExceptionUtils.getStackTrace(e));
                     errorMessage = e.getMessage();
-                    log.warn(errorMessage);
                     if (trade != null) trade.setErrorMessage(errorMessage);
                 }
 

@@ -52,6 +52,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -204,7 +207,7 @@ public class CoreDisputesService {
                     throw new IllegalStateException(errMessage, err);
                 });
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error(ExceptionUtils.getStackTrace(e));
                 throw new IllegalStateException(e.getMessage() == null ? ("Error resolving dispute for trade " + trade.getId()) : e.getMessage());
             }
         }

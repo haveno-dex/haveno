@@ -70,7 +70,7 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
                         try {
                             trade.importMultisigHex();
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            log.warn("Error importing multisig hex on deposits confirmed for trade " + trade.getId() + ": " + e.getMessage() + "\n", e);
                         }
                     });
                 }

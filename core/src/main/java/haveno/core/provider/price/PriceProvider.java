@@ -68,8 +68,7 @@ public class PriceProvider extends HttpClientProvider {
                 long timestampSec = MathUtils.doubleToLong((Double) treeMap.get("timestampSec"));
                 marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
             } catch (Throwable t) {
-                log.error(t.toString());
-                t.printStackTrace();
+                log.error("Error getting all prices: {}\n", t.getMessage(), t);
             }
 
         });

@@ -999,8 +999,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     xmrWalletService.deleteWallet(getWalletName());
                     xmrWalletService.deleteWalletBackups(getWalletName());
                 } catch (Exception e) {
-                    log.warn(e.getMessage());
-                    e.printStackTrace();
+                    log.warn("Error deleting wallet for {} {}: {}\n", getClass().getSimpleName(), getId(), e.getMessage(), e);
                     setErrorMessage(e.getMessage());
                     processModel.getTradeManager().getNotificationService().sendErrorNotification("Error", e.getMessage());
                 }
@@ -1538,8 +1537,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         try {
             ThreadUtils.awaitTask(shutDownTask, SHUTDOWN_TIMEOUT_MS);
         } catch (Exception e) {
-            log.warn("Error shutting down {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
-            e.printStackTrace();
+            log.warn("Error shutting down {} {}: {}\n", getClass().getSimpleName(), getId(), e.getMessage(), e);
 
             // force close wallet
             forceCloseWallet();
@@ -2819,8 +2817,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     processing = false;
                     if (!isInitialized || isShutDownStarted) return;
                     if (isWalletConnectedToDaemon()) {
-                        e.printStackTrace();
-                        log.warn("Error polling idle trade for {} {}: {}. Monerod={}", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getXmrConnectionService().getConnection());
+                        log.warn("Error polling idle trade for {} {}: {}. Monerod={}\n", getClass().getSimpleName(), getId(), e.getMessage(), getXmrWalletService().getXmrConnectionService().getConnection(), e);
                     };
                 }
             }, getId());
