@@ -94,7 +94,7 @@ jobs:
           name: haveno-${{ env.VERSION }}-windows
           path: |
               ${{ github.workspace }}/release/*.exe
-              desktop/build/temp-*/binaries/*.jar.SHA-256
+              ${{ github.workspace }}/release/*.jar.SHA-256
       # macos
       - uses: actions/upload-artifact@v3
         name: "macOS artifacts"
@@ -103,7 +103,7 @@ jobs:
           name: haveno-${{ env.VERSION }}-macos
           path: |
               ${{ github.workspace }}/release/*.dmg
-              desktop/build/temp-*/binaries/*.jar.SHA-256
+              ${{ github.workspace }}/release/*.jar.SHA-256
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
@@ -112,7 +112,7 @@ jobs:
           name: haveno-${{ env.VERSION }}-linux-deb
           path: |
               ${{ github.workspace }}/release/*.deb
-              desktop/build/temp-*/binaries/*.jar.SHA-256
+              ${{ github.workspace }}/release/*.jar.SHA-256
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -120,4 +120,4 @@ jobs:
           name: haveno-${{ env.VERSION }}-linux-rpm
           path: |
               ${{ github.workspace }}/release/*.rpm
-              desktop/build/temp-*/binaries/*.jar.SHA-256
+              ${{ github.workspace }}/release/*.jar.SHA-256
