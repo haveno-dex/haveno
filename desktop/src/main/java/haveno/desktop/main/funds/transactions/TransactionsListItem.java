@@ -54,6 +54,7 @@ class TransactionsListItem {
     private boolean received;
     private boolean detailsAvailable;
     private BigInteger amount = BigInteger.ZERO;
+    private BigInteger txFee = BigInteger.ZERO;
     private String memo = "";
     private long confirmations = 0;
     @Getter
@@ -107,6 +108,7 @@ class TransactionsListItem {
             amount = valueSentFromMe.multiply(BigInteger.valueOf(-1));
             received = false;
             direction = Res.get("funds.tx.direction.sentTo");
+            txFee = tx.getFee().multiply(BigInteger.valueOf(-1));
         }
 
         if (optionalTradable.isPresent()) {
@@ -199,6 +201,14 @@ class TransactionsListItem {
 
     public BigInteger getAmount() {
         return amount;
+    }
+
+    public BigInteger getTxFee() {
+        return txFee;
+    }
+
+    public String getTxFeeStr() {
+        return txFee.equals(BigInteger.ZERO) ? "" : HavenoUtils.formatXmr(txFee);
     }
 
     public String getAddressString() {
