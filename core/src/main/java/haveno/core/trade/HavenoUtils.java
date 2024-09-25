@@ -510,19 +510,27 @@ public class HavenoUtils {
         havenoSetup.getTopErrorMsg().set(msg);
     }
 
-    public static boolean isConnectionRefused(Exception e) {
+    public static boolean isConnectionRefused(Throwable e) {
         return e != null && e.getMessage().contains("Connection refused");
     }
 
-    public static boolean isReadTimeout(Exception e) {
+    public static boolean isReadTimeout(Throwable e) {
         return e != null && e.getMessage().contains("Read timed out");
     }
 
-    public static boolean isUnresponsive(Exception e) {
+    public static boolean isUnresponsive(Throwable e) {
         return isConnectionRefused(e) || isReadTimeout(e);
     }
 
-    public static boolean isNotEnoughSigners(Exception e) {
+    public static boolean isNotEnoughSigners(Throwable e) {
         return e != null && e.getMessage().contains("Not enough signers");
+    }
+
+    public static boolean isTransactionRejected(Throwable e) {
+        return e != null && e.getMessage().contains("was rejected");
+    }
+
+    public static boolean isIllegal(Throwable e) {
+        return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
     }
 }
