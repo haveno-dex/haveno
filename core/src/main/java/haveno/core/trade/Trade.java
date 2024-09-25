@@ -1158,7 +1158,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void handleWalletError(Exception e, MoneroRpcConnection sourceConnection) {
         if (HavenoUtils.isUnresponsive(e)) forceCloseWallet(); // wallet can be stuck a while
-        if (xmrConnectionService.isConnected()) requestSwitchToNextBestConnection(sourceConnection);
+        if (!HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected()) requestSwitchToNextBestConnection(sourceConnection);
         getWallet(); // re-open wallet
     }
 
@@ -1278,7 +1278,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
                         handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -1350,14 +1350,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             try {
                 MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
                 if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
-                payoutTxHex = result.getSignedMultisigTxHex();
-                setPayoutTxHex(payoutTxHex);
+                setPayoutTxHex(result.getSignedMultisigTxHex());
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
 
             // describe result
-            describedTxSet = wallet.describeMultisigTxSet(payoutTxHex);
+            describedTxSet = wallet.describeMultisigTxSet(getPayoutTxHex());
             payoutTx = describedTxSet.getTxs().get(0);
             updatePayout(payoutTx);
 
@@ -1377,14 +1376,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         requestPersistence();
 
         // submit payout tx
-        if (publish) {
+        boolean doPublish = publish && !isPayoutPublished();
+        if (doPublish) {
             try {
-                wallet.submitMultisigTxHex(payoutTxHex);
+                wallet.submitMultisigTxHex(getPayoutTxHex());
                 setPayoutStatePublished();
             } catch (Exception e) {
-                if (isPayoutPublished()) throw new IllegalStateException("Payout tx already published for " + getClass().getSimpleName() + " " + getShortId());
-                if (HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
-                throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId(), e);
+                if (!isPayoutPublished()) {
+                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
+                    throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId() + ", error=" + e.getMessage(), e);
+                }
             }
         }
     }

@@ -854,7 +854,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             // the state, as that is displayed to the user and we only persist that msg
                             disputeResult.getChatMessage().setArrived(true);
                             trade.advanceDisputeState(Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG);
-                            trade.pollWalletNormallyForMs(30000);
+                            trade.pollWalletNormallyForMs(60000);
                             requestPersistence(trade);
                             resultHandler.handleResult();
                         }

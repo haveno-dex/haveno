@@ -361,7 +361,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     requestPersistence(trade);
 
                     // nack bad message and do not reprocess
-                    if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) {
+                    if (HavenoUtils.isIllegal(e)) {
                         trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
                         trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                         String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";

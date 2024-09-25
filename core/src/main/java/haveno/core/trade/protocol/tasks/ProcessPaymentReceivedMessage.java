@@ -120,7 +120,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
         } catch (Throwable t) {
 
             // do not reprocess illegal argument
-            if (t instanceof IllegalArgumentException) {
+            if (HavenoUtils.isIllegal(t)) {
                 trade.getSeller().setPaymentReceivedMessage(null); // do not reprocess
                 trade.requestPersistence();
             }
@@ -151,6 +151,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             boolean deferSignAndPublish = trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout();
             if (deferSignAndPublish) {
                 log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                trade.pollWalletNormallyForMs(60000);
                 for (int i = 0; i < 5; i++) {
                     if (trade.isPayoutPublished()) break;
                     HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
