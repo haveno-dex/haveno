@@ -143,7 +143,7 @@ public class HavenoSetup {
     private final StringProperty topErrorMsg = new SimpleStringProperty();
     @Setter
     @Nullable
-    private Consumer<Runnable> displayTacHandler;
+    private Consumer<Runnable> displayTacHandler, displaySplinterManagerHandler;
     @Setter
     @Nullable
     private Consumer<String> chainFileLockedExceptionHandler,
@@ -154,7 +154,7 @@ public class HavenoSetup {
             rejectedTxErrorMessageHandler;
     @Setter
     @Nullable
-    private Consumer<Boolean> displayTorNetworkSettingsHandler;
+    private Consumer<Boolean> displayTorNetworkSettingsHandler;//, displaySplinterManagerHandler;
     @Setter
     @Nullable
     private Runnable showFirstPopupIfResyncSPVRequestedHandler;
@@ -307,10 +307,11 @@ public class HavenoSetup {
         }
 
         persistHavenoVersion();
-        maybeShowTac(this::step2);
+        maybeShowTac(this::showSplinterManager);
     }
 
     private void step2() {
+        //showSplinterManager();
         readMapsFromResources(this::step3);
         checkForCorrectOSArchitecture();
         checkOSXVersion();
@@ -341,6 +342,22 @@ public class HavenoSetup {
     // Sub tasks
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    private void showSplinterManager() {
+        //todo: fix the if statement after debugging is done
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
+            if (displaySplinterManagerHandler != null){
+                    displaySplinterManagerHandler.accept(() -> {
+                    log.info("wearehere.jpg");
+                    log.info(preferences.getPubKeyList().toString());
+                    step2();
+                });
+                log.info("bioz");
+            } else {log.info("we aresoback.json");}
+        } else {
+            step2();
+        }
+            //displaySplinterManagerHandler.accept(true);
+    }
     private void maybeShowTac(Runnable nextStep) {
         if (!preferences.isTacAcceptedV120() && !DevEnv.isDevMode()) {
             if (displayTacHandler != null)

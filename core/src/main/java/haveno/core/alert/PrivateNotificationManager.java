@@ -29,6 +29,7 @@ import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.core.user.Preferences;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -59,6 +60,7 @@ import org.slf4j.LoggerFactory;
 public class PrivateNotificationManager implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(PrivateNotificationManager.class);
 
+    private final Preferences preferences;
     private final P2PService p2PService;
     private final MailboxMessageService mailboxMessageService;
     private final KeyRing keyRing;
@@ -77,12 +79,14 @@ public class PrivateNotificationManager implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public PrivateNotificationManager(P2PService p2PService,
+    public PrivateNotificationManager(Preferences preferences,
+                                      P2PService p2PService,
                                       NetworkNode networkNode,
                                       MailboxMessageService mailboxMessageService,
                                       KeyRing keyRing,
                                       @Named(Config.IGNORE_DEV_MSG) boolean ignoreDevMsg,
                                       @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
+        this.preferences = preferences;
         this.p2PService = p2PService;
         this.networkNode = networkNode;
         this.mailboxMessageService = mailboxMessageService;
@@ -108,7 +112,8 @@ public class PrivateNotificationManager implements MessageListener {
                     "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
                     "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
         case XMR_MAINNET:
-            return List.of();
+            return preferences.getPubKeyList();
+            //preland: add pubkey info
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }

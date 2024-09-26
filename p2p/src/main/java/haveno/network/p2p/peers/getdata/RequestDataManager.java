@@ -92,7 +92,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private final NetworkNode networkNode;
     private final P2PDataStorage dataStorage;
     private final PeerManager peerManager;
-    private final List<NodeAddress> seedNodeAddresses;
+    private final SeedNodeRepository seedNodeRepository;
+    private List<NodeAddress> seedNodeAddresses;
     private final List<ResponseListener> responseListeners = new CopyOnWriteArrayList<>();
 
     // As we use Guice injection we cannot set the listener in our constructor but the P2PService calls the setListener
@@ -125,6 +126,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         this.networkNode.addConnectionListener(this);
         this.peerManager.addListener(this);
 
+        this.seedNodeRepository = seedNodeRepository;
         this.seedNodeAddresses = new ArrayList<>(seedNodeRepository.getSeedNodeAddresses());
         // We shuffle only once so that we use the same seed nodes for preliminary and updated data requests.
         Collections.shuffle(seedNodeAddresses);
@@ -150,6 +152,11 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         closeAllHandlers();
     }
 
+    public void updateSeedNodes(){
+        seedNodeAddresses = new ArrayList<>(seedNodeRepository.getSeedNodeAddresses());
+        //not rly sure what this does but it is done is the initialization :shrug:
+        Collections.shuffle(seedNodeAddresses);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API

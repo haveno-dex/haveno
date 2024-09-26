@@ -1049,6 +1049,11 @@ public abstract class Overlay<T extends Overlay<T>> {
         closeHandlerOptional.ifPresent(Runnable::run);
     }
 
+    protected void doAction() {
+        //hide();
+        actionHandlerOptional.ifPresent(Runnable::run);
+    }
+
     protected void setTruncatedMessage() {
         if (message != null && message.length() > maxChar)
             truncatedMessage = StringUtils.abbreviate(message, maxChar);
