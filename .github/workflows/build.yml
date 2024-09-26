@@ -71,12 +71,13 @@ jobs:
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release/Haveno-x86_64.rpm
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release/Haveno-x86_64.deb
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-x86_64.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-x86_64.deb
           else
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-x86_64.dmg
           fi
-          mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-rpm
         shell: bash
       - name: Move Release Files on Windows
         if: ${{ matrix.os == 'windows-latest' }}
@@ -106,10 +107,10 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: haveno-${{ env.VERSION }}-linux-deb
-          path: ${{ github.workspace }}/release
+          path: ${{ github.workspace }}/release-deb
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: haveno-${{ env.VERSION }}-linux-rpm
-          path: ${{ github.workspace }}/release
+          path: ${{ github.workspace }}/release-rpm
