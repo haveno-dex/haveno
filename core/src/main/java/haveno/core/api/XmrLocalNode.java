@@ -150,16 +150,16 @@ public class XmrLocalNode {
     /**
      * Start a local Monero node from settings.
      */
-    public void startMoneroNode() throws IOException {
+    public void start() throws IOException {
         var settings = preferences.getXmrNodeSettings();
-        this.startNode(settings);
+        this.start(settings);
     }
 
     /**
      * Start local Monero node. Throws MoneroError if the node cannot be started.
      * Persist the settings to preferences if the node started successfully.
      */
-    public void startNode(XmrNodeSettings settings) throws IOException {
+    public void start(XmrNodeSettings settings) throws IOException {
         if (isDetected()) throw new IllegalStateException("Local Monero node already online");
 
         log.info("Starting local Monero node: " + settings);
@@ -177,6 +177,11 @@ public class XmrLocalNode {
             args.add("--bootstrap-daemon-address=" + bootstrapUrl);
         }
 
+        var syncBlockchain = settings.getSyncBlockchain();
+        if (syncBlockchain != null && !syncBlockchain) {
+            args.add("--no-sync");
+        }
+
         var flags = settings.getStartupFlags();
         if (flags != null) {
             args.addAll(flags);
@@ -191,7 +196,7 @@ public class XmrLocalNode {
      * Stop the current local Monero node if we own its process.
      * Does not remove the last XmrNodeSettings.
      */
-    public void stopNode() {
+    public void stop() {
         if (!isDetected()) throw new IllegalStateException("Local Monero node is not running");
         if (daemon.getProcess() == null || !daemon.getProcess().isAlive()) throw new IllegalStateException("Cannot stop local Monero node because we don't own its process"); // TODO (woodser): remove isAlive() check after monero-java 0.5.4 which nullifies internal process
         daemon.stopProcess();

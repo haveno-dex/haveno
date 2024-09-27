@@ -260,11 +260,11 @@ public class CoreApi {
     }
 
     public void startXmrNode(XmrNodeSettings settings) throws IOException {
-        xmrLocalNode.startNode(settings);
+        xmrLocalNode.start(settings);
     }
 
     public void stopXmrNode() {
-        xmrLocalNode.stopNode();
+        xmrLocalNode.stop();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
