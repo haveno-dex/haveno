@@ -1754,6 +1754,7 @@ message XmrNodeSettings {
     string blockchain_path = 1;
     string bootstrap_url = 2;
     repeated string startup_flags = 3;
+    bool sync_blockchain = 4;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

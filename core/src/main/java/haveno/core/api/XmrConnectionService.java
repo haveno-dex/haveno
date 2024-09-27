@@ -623,7 +623,7 @@ public final class XmrConnectionService {
         if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored()) {
             try {
                 log.info("Starting local node");
-                xmrLocalNode.startMoneroNode();
+                xmrLocalNode.start();
             } catch (Exception e) {
                 log.error("Unable to start local monero node, error={}\n", e.getMessage(), e);
             }
@@ -735,6 +735,12 @@ public final class XmrConnectionService {
 
                 // connected to daemon
                 isConnected = true;
+
+                // determine if blockchain is syncing locally
+                boolean blockchainSyncing = lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
+
+                // write sync status to preferences
+                preferences.getXmrNodeSettings().setSyncBlockchain(blockchainSyncing);
 
                 // throttle warnings if daemon not synced
                 if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {
