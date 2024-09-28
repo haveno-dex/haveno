@@ -64,6 +64,8 @@ import haveno.proto.grpc.StartCheckingConnectionRequest;
 import haveno.proto.grpc.StopCheckingConnectionReply;
 import haveno.proto.grpc.StopCheckingConnectionRequest;
 import haveno.proto.grpc.UrlConnection;
+import haveno.proto.grpc.XmrConnectionsGrpc.XmrConnectionsImplBase;
+
 import static haveno.proto.grpc.XmrConnectionsGrpc.XmrConnectionsImplBase;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getAddConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionMethod;
@@ -227,8 +229,9 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
     public void getAutoSwitch(GetAutoSwitchRequest request,
                               StreamObserver<GetAutoSwitchReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            coreApi.getXmrConnectionAutoSwitch();
-            return GetAutoSwitchReply.newBuilder().build();
+            GetAutoSwitchReply.Builder builder = GetAutoSwitchReply.newBuilder();
+                builder.setAutoSwitch(coreApi.getXmrConnectionAutoSwitch());
+            return builder.build();
         });
     }
 

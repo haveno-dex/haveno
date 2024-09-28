@@ -323,7 +323,7 @@ service XmrConnections {
     }
     rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
     }
-    rpc GetAutoSwitch(GetAutoSwitchRequest) returns (GetAutoSwitchRequest) {
+    rpc GetAutoSwitch(GetAutoSwitchRequest) returns (GetAutoSwitchReply) {
     }
 }
 
