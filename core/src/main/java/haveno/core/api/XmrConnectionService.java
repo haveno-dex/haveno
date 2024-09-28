@@ -349,6 +349,11 @@ public final class XmrConnectionService {
         connectionList.setAutoSwitch(autoSwitch);
     }
 
+    public boolean getAutoSwitch() {
+        accountService.checkAccountOpen();
+        return connectionManager.getAutoSwitch();
+    }
+
     public boolean isConnectionLocalHost() {
         return isConnectionLocalHost(getConnection());
     }
@@ -596,7 +601,7 @@ public final class XmrConnectionService {
             } else if (!isInitialized) {
 
                 // set connection from startup argument if given
-                connectionManager.setAutoSwitch(false);
+                connectionManager.setAutoSwitch(true);
                 MoneroRpcConnection connection = new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1);
                 if (isProxyApplied(connection)) connection.setProxyUri(getProxyUri());
                 connectionManager.setConnection(connection);
