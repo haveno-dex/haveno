@@ -71,6 +71,8 @@ jobs:
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
+            mkdir ${{ github.workspace }}/release-rpm
+            mkdir ${{ github.workspace }}/release-deb
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-x86_64.rpm
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-x86_64.deb
           else
