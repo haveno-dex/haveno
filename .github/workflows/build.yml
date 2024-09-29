@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-13, windows-latest]
+        os: [ubuntu-22.04, macos-13, windows-latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -37,7 +37,7 @@ jobs:
           name: cached-localnet
           path: .localnet
       - name: Install dependencies
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
           sudo apt update
           sudo apt install -y rpm
@@ -55,7 +55,7 @@ jobs:
 
       # get version from jar
       - name: Set Version Unix
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
         run: |
           export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -67,10 +67,10 @@ jobs:
         shell: powershell
 
       - name: Move Release Files on Unix
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
         run: |
           mkdir ${{ github.workspace }}/release
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+          if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-x86_64.rpm
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-x86_64.deb
           else
@@ -104,13 +104,13 @@ jobs:
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-${{ env.VERSION }}-linux-deb
           path: ${{ github.workspace }}/release-deb
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-${{ env.VERSION }}-linux-rpm
           path: ${{ github.workspace }}/release-rpm
