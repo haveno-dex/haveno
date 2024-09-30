@@ -27,7 +27,9 @@ import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
+import haveno.common.file.FileUtil;
 import haveno.common.util.Utilities;
+import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
@@ -36,9 +38,12 @@ import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
+import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
+
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -53,6 +58,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
+
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroOutput;
@@ -110,9 +122,16 @@ public class HavenoUtils {
     public static XmrWalletService xmrWalletService;
     public static XmrConnectionService xmrConnectionService;
     public static OpenOfferManager openOfferManager;
+    public static CoreNotificationService notificationService;
+    public static Preferences preferences;
 
     public static boolean isSeedNode() {
         return havenoSetup == null;
+    }
+
+    public static boolean isDaemon() {
+        if (isSeedNode()) return true;
+        return havenoSetup.getCoreContext().isApiUser();
     }
 
     @SuppressWarnings("unused")
@@ -532,5 +551,61 @@ public class HavenoUtils {
 
     public static boolean isIllegal(Throwable e) {
         return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
+    }
+    
+    public static void playChimeSound() {
+        playAudioFile("chime.wav");
+    }
+
+    public static void playCashRegisterSound() {
+        playAudioFile("cash_register.wav");
+    }
+
+    private static void playAudioFile(String fileName) {
+        if (isDaemon()) return; // ignore if running as daemon
+        if (!preferences.getUseSoundForNotificationsProperty().get()) return; // ignore if sounds disabled
+        new Thread(() -> {
+            try {
+
+                // get audio file
+                File wavFile = new File(havenoSetup.getConfig().appDataDir, fileName);
+                if (!wavFile.exists()) FileUtil.resourceToFile(fileName, wavFile);
+                AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(wavFile);
+    
+                // get original format
+                AudioFormat baseFormat = audioInputStream.getFormat();
+    
+                // set target format: PCM_SIGNED, 16-bit
+                AudioFormat targetFormat = new AudioFormat(
+                    AudioFormat.Encoding.PCM_SIGNED,
+                    baseFormat.getSampleRate(),
+                    16, // 16-bit instead of 32-bit float
+                    baseFormat.getChannels(),
+                    baseFormat.getChannels() * 2, // Frame size: 2 bytes per channel (16-bit)
+                    baseFormat.getSampleRate(),
+                    false // Little-endian
+                );
+    
+                // convert audio to target format
+                AudioInputStream convertedStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);
+    
+                // play audio
+                DataLine.Info info = new DataLine.Info(SourceDataLine.class, targetFormat);
+                SourceDataLine sourceLine = (SourceDataLine) AudioSystem.getLine(info);
+                sourceLine.open(targetFormat);
+                sourceLine.start();
+                byte[] buffer = new byte[1024];
+                int bytesRead = 0;
+                while ((bytesRead = convertedStream.read(buffer, 0, buffer.length)) != -1) {
+                    sourceLine.write(buffer, 0, bytesRead);
+                }
+                sourceLine.drain();
+                sourceLine.close();
+                convertedStream.close();
+                audioInputStream.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

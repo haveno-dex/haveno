@@ -53,6 +53,7 @@ import haveno.core.alert.Alert;
 import haveno.core.alert.AlertManager;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
+import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
@@ -131,7 +132,10 @@ public class HavenoSetup {
     private final Preferences preferences;
     private final User user;
     private final AlertManager alertManager;
+    @Getter
     private final Config config;
+    @Getter
+    private final CoreContext coreContext;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
     private final CoinFormatter formatter;
@@ -228,6 +232,7 @@ public class HavenoSetup {
                        User user,
                        AlertManager alertManager,
                        Config config,
+                       CoreContext coreContext,
                        AccountAgeWitnessService accountAgeWitnessService,
                        TorSetup torSetup,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
@@ -253,6 +258,7 @@ public class HavenoSetup {
         this.user = user;
         this.alertManager = alertManager;
         this.config = config;
+        this.coreContext = coreContext;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
         this.formatter = formatter;
@@ -263,6 +269,7 @@ public class HavenoSetup {
         this.arbitrationManager = arbitrationManager;
 
         HavenoUtils.havenoSetup = this;
+        HavenoUtils.preferences = preferences;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

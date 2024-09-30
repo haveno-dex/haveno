@@ -108,7 +108,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private ComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
 
     private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, sortMarketCurrenciesNumerically,
-            avoidStandbyMode, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
+            avoidStandbyMode, useSoundForNotifications, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
             notifyOnPreReleaseToggle;
     private int gridRow = 0;
     private int displayCurrenciesGridRowIndex = 0;
@@ -209,7 +209,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initializeGeneralOptions() {
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 7 : 6;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 8 : 7;
         TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
@@ -285,6 +285,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             avoidStandbyMode = addSlideToggleButton(root, ++gridRow,
                     Res.get("setting.preferences.avoidStandbyMode"));
         }
+
+        useSoundForNotifications = addSlideToggleButton(root, ++gridRow,
+                Res.get("setting.preferences.useSoundForNotifications"), Layout.GROUP_DISTANCE * -1); // TODO: why must negative value be used to place toggle consistently?
     }
 
     private void initializeSeparator() {
@@ -518,6 +521,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setHgrow(resetDontShowAgainButton, Priority.ALWAYS);
         GridPane.setColumnIndex(resetDontShowAgainButton, 0);
     }
+
     private void initializeAutoConfirmOptions() {
         GridPane autoConfirmGridPane = new GridPane();
         GridPane.setHgrow(autoConfirmGridPane, Priority.ALWAYS);
@@ -790,6 +794,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         } else {
             preferences.setUseStandbyMode(false);
         }
+
+        useSoundForNotifications.setSelected(preferences.isUseSoundForNotifications());
+        useSoundForNotifications.setOnAction(e -> preferences.setUseSoundForNotifications(useSoundForNotifications.isSelected()));
     }
 
     private void activateAutoConfirmPreferences() {
