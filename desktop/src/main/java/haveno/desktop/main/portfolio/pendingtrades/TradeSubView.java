@@ -153,8 +153,7 @@ public abstract class TradeSubView extends HBox {
             tradeStepView.setChatCallback(chatCallback);
             tradeStepView.activate();
         } catch (Exception e) {
-            log.error("Creating viewClass {} caused an error {}", viewClass, e.getMessage());
-            e.printStackTrace();
+            log.error("Creating viewClass {} caused an error {}\n", viewClass, e.getMessage(), e);
         }
     }
 

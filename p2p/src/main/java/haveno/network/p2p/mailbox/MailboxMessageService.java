@@ -335,8 +335,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 }
             }, MoreExecutors.directExecutor());
         } catch (CryptoException e) {
-            log.error("sendEncryptedMessage failed");
-            e.printStackTrace();
+            log.error("sendEncryptedMessage failed: {}\n", e.getMessage(), e);
             sendMailboxMessageListener.onFault("sendEncryptedMailboxMessage failed " + e);
         }
     }
@@ -644,8 +643,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 log.info("The mailboxEntry was already removed earlier.");
             }
         } catch (CryptoException e) {
-            e.printStackTrace();
-            log.error("Could not remove ProtectedMailboxStorageEntry from network. Error: {}", e.toString());
+            log.error("Could not remove ProtectedMailboxStorageEntry from network. Error: {}\n", e.toString(), e);
         }
     }
 

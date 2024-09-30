@@ -98,7 +98,7 @@ public class XmrBalanceInfo implements Payload {
     public String toString() {
         return "XmrBalanceInfo{" +
                 "balance=" + balance +
-                "unlockedBalance=" + availableBalance +
+                ", unlockedBalance=" + availableBalance +
                 ", lockedBalance=" + pendingBalance +
                 ", reservedOfferBalance=" + reservedOfferBalance +
                 ", reservedTradeBalance=" + reservedTradeBalance +

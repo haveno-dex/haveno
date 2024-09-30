@@ -127,7 +127,7 @@ public abstract class HavenoExecutable
             System.exit(EXIT_FAILURE);
         } catch (Throwable ex) {
             System.err.println("fault: An unexpected error occurred. " +
-                    "Please file a report at https://haveno.exchange/issues");
+                    "Please file a report at https://github.com/haveno-dex/haveno/issues");
             ex.printStackTrace(System.err);
             System.exit(EXIT_FAILURE);
         }
@@ -204,8 +204,7 @@ public abstract class HavenoExecutable
                     startApplication();
                 }
             } catch (InterruptedException | ExecutionException e) {
-                log.error("An error occurred: {}", e.getMessage());
-                e.printStackTrace();
+                log.error("An error occurred: {}\n", e.getMessage(), e);
             }
         });
     }
@@ -365,7 +364,7 @@ public abstract class HavenoExecutable
             try {
                 ThreadUtils.awaitTasks(tasks, tasks.size(), 90000l); // run in parallel with timeout
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Failed to notify all services to prepare for shutdown: {}\n", e.getMessage(), e);
             }
 
             injector.getInstance(TradeManager.class).shutDown();
@@ -400,8 +399,7 @@ public abstract class HavenoExecutable
                 });
             });
         } catch (Throwable t) {
-            log.error("App shutdown failed with exception {}", t.toString());
-            t.printStackTrace();
+            log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);
             completeShutdown(resultHandler, EXIT_FAILURE, systemExit);
         }
     }

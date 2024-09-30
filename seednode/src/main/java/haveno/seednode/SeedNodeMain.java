@@ -75,7 +75,7 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
                 seedNode = new SeedNode();
                 UserThread.execute(this::onApplicationLaunched);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Error launching seed node: {}\n", e.toString(), e);
             }
         });
     }

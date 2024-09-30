@@ -65,10 +65,10 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                             trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
                     } catch (IllegalArgumentException | IllegalStateException e) {
-                        log.warn("Illegal state or argument verifying, signing, and publishing payout tx for {} {}: {}. Creating new unsigned payout tx", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                        log.warn("Illegal state or argument verifying, signing, and publishing payout tx for {} {}: {}. Creating new unsigned payout tx", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
                         createUnsignedPayoutTx();
                     } catch (Exception e) {
-                        log.warn("Error verifying, signing, and publishing payout tx for trade {}: {}", trade.getId(), e.getMessage());
+                        log.warn("Error verifying, signing, and publishing payout tx for trade {}: {}", trade.getId(), e.getMessage(), e);
                         throw e;
                     }
                 }

@@ -62,7 +62,7 @@ public class MaybeResendDisputeClosedMessageWithPayout extends TradeTask {
                         HavenoUtils.arbitrationManager.closeDisputeTicket(dispute.getDisputeResultProperty().get(), dispute, dispute.getDisputeResultProperty().get().summaryNotesProperty().get(), () -> {
                             completeAux();
                         }, (errMessage, err) -> {
-                            err.printStackTrace();
+                            log.error("Failed to close dispute ticket for trade {}: {}\n", trade.getId(), errMessage, err);
                             failed(err);
                         });
                         ticketClosed = true;

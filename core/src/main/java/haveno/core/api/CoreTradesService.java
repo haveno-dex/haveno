@@ -66,6 +66,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bitcoinj.core.Coin;
 
 @Singleton
@@ -161,7 +163,7 @@ class CoreTradesService {
                     errorMessageHandler
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(ExceptionUtils.getStackTrace(e));
             errorMessageHandler.handleErrorMessage(e.getMessage());
         }
     }

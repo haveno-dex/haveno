@@ -199,7 +199,7 @@ public abstract class SupportManager {
                                             if (dispute.isClosed()) dispute.reOpen();
                                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                                         } else if (dispute.isClosed()) {
-                                            trade.pollWalletNormallyForMs(30000); // sync to check for payout
+                                            trade.pollWalletNormallyForMs(60000); // sync to check for payout
                                         }
                                     }
                                 }

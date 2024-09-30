@@ -29,6 +29,8 @@ import monero.daemon.model.MoneroTx;
 
 import java.math.BigInteger;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 /**
  * Arbitrator verifies reserve tx from maker or taker.
  *
@@ -73,7 +75,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                     request.getReserveTxKey(),
                     null);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error(ExceptionUtils.getStackTrace(e));
                 throw new RuntimeException("Error processing reserve tx from " + (isFromMaker ? "maker " : "taker ") + processModel.getTempTradePeerNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
 

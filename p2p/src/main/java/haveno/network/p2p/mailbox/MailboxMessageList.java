@@ -63,8 +63,7 @@ public class MailboxMessageList extends PersistableList<MailboxItem> {
                     try {
                         return MailboxItem.fromProto(e, networkProtoResolver);
                     } catch (ProtobufferException protobufferException) {
-                        protobufferException.printStackTrace();
-                        log.error("Error at MailboxItem.fromProto: {}", protobufferException.toString());
+                        log.error("Error at MailboxItem.fromProto: {}", protobufferException.toString(), protobufferException);
                         return null;
                     }
                 })
