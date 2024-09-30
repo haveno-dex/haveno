@@ -52,26 +52,68 @@ jobs:
           ./gradlew clean build --refresh-keys --refresh-dependencies
           ./gradlew packageInstallers
         working-directory: .
+
+      # get version from jar
+      - name: Set Version Unix
+        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+        run: |
+          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set Version Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
+          "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
+        shell: powershell
+
       - name: Move Release Files on Unix
         if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
         run: |
           mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release
+            mkdir ${{ github.workspace }}/release-rpm
+            mkdir ${{ github.workspace }}/release-deb
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-x86_64.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-x86_64.deb
           else
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}.dmg
           fi
-          mv desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-rpm
         shell: bash
       - name: Move Release Files on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           mkdir ${{ github.workspace }}/release
-          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}.exe
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
         shell: powershell
+
+      # win
       - uses: actions/upload-artifact@v3
+        name: "Windows artifacts"
+        if: ${{ matrix.os == 'windows-latest'}}
         with:
-          name: HavenoInstaller-${{ matrix.os }}
+          name: haveno-windows
           path: ${{ github.workspace }}/release
+      # macos
+      - uses: actions/upload-artifact@v3
+        name: "macOS artifacts"
+        if: ${{ matrix.os == 'macos-13'  }}
+        with:
+          name: haveno-macos
+          path: ${{ github.workspace }}/release
+      # linux
+      - uses: actions/upload-artifact@v3
+        name: "Linux - deb artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-deb
+          path: ${{ github.workspace }}/release-deb
+      - uses: actions/upload-artifact@v3
+        name: "Linux - rpm artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-rpm
+          path: ${{ github.workspace }}/release-rpm
