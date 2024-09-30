@@ -68,7 +68,6 @@ import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.Trade.DisputeState;
-import haveno.core.trade.Trade.Phase;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.DepositRequest;
@@ -134,7 +133,6 @@ import lombok.Setter;
 import monero.daemon.model.MoneroTx;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
-import org.fxmisc.easybind.EasyBind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,7 +256,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         failedTradesManager.setUnFailTradeCallback(this::unFailTrade);
 
-        xmrWalletService.setTradeManager(this);
+        // TODO: better way to set references
+        xmrWalletService.setTradeManager(this); // TODO: set reference in HavenoUtils for consistency
+        HavenoUtils.notificationService = notificationService;
     }
 
 
@@ -598,14 +598,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
             initTradeAndProtocol(trade, createTradeProtocol(trade));
             addTrade(trade);
-  
-            // notify on phase changes
-            // TODO (woodser): save subscription, bind on startup
-            EasyBind.subscribe(trade.statePhaseProperty(), phase -> {
-                if (phase == Phase.DEPOSITS_PUBLISHED) {
-                    notificationService.sendTradeNotification(trade, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
-                }
-            });
   
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {

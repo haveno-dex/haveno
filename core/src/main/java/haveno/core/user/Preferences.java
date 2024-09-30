@@ -132,6 +132,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final String xmrNodesFromOptions;
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
+    @Getter
+    private final BooleanProperty useSoundForNotificationsProperty = new SimpleBooleanProperty(prefPayload.isUseSoundForNotifications());
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -159,6 +161,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         useStandbyModeProperty.addListener((ov) -> {
             prefPayload.setUseStandbyMode(useStandbyModeProperty.get());
+            requestPersistence();
+        });
+
+        useSoundForNotificationsProperty.addListener((ov) -> {
+            prefPayload.setUseSoundForNotifications(useSoundForNotificationsProperty.get());
             requestPersistence();
         });
 
@@ -259,6 +266,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         // set all properties
         useAnimationsProperty.set(prefPayload.isUseAnimations());
         useStandbyModeProperty.set(prefPayload.isUseStandbyMode());
+        useSoundForNotificationsProperty.set(prefPayload.isUseSoundForNotifications());
         cssThemeProperty.set(prefPayload.getCssTheme());
 
 
@@ -697,6 +705,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.useStandbyModeProperty.set(useStandbyMode);
     }
 
+    public void setUseSoundForNotifications(boolean useSoundForNotifications) {
+        this.useSoundForNotificationsProperty.set(useSoundForNotifications);
+    }
+
     public void setTakeOfferSelectedPaymentAccountId(String value) {
         prefPayload.setTakeOfferSelectedPaymentAccountId(value);
         requestPersistence();
@@ -945,6 +957,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         long getWithdrawalTxFeeInVbytes();
 
         void setUseStandbyMode(boolean useStandbyMode);
+
+        void setUseSoundForNotifications(boolean useSoundForNotifications);
 
         void setTakeOfferSelectedPaymentAccountId(String value);
 

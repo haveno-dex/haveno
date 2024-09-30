@@ -1740,6 +1740,7 @@ message PreferencesPayload {
     string buy_screen_crypto_currency_code = 60;
     string sell_screen_crypto_currency_code = 61;
     bool split_offer_output = 62;
+    bool use_sound_for_notifications = 63;
 }
 
 message AutoConfirmSettings {

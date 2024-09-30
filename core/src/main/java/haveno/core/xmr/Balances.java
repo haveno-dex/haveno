@@ -111,6 +111,7 @@ public class Balances {
 
     public XmrBalanceInfo getBalances() {
         synchronized (this) {
+            if (availableBalance == null) return null;
             return new XmrBalanceInfo(availableBalance.longValue() + pendingBalance.longValue(),
                 availableBalance.longValue(),
                 pendingBalance.longValue(),
@@ -126,6 +127,9 @@ public class Balances {
     private void doUpdateBalances() {
         synchronized (this) {
             synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
+
+                // get non-trade balance before
+                BigInteger balanceSumBefore = getNonTradeBalanceSum();
 
                 // get wallet balances
                 BigInteger balance = xmrWalletService.getWallet() == null ? BigInteger.ZERO : xmrWalletService.getBalance();
@@ -160,8 +164,25 @@ public class Balances {
                 reservedBalance = reservedOfferBalance.add(reservedTradeBalance);
 
                 // notify balance update
-                UserThread.execute(() -> updateCounter.set(updateCounter.get() + 1));
+                UserThread.execute(() -> {
+
+                    // check if funds received
+                    boolean fundsReceived = balanceSumBefore != null && getNonTradeBalanceSum().compareTo(balanceSumBefore) > 0;
+                    if (fundsReceived) {
+                        HavenoUtils.playCashRegisterSound();
+                    }
+
+                    // increase counter to notify listeners
+                    updateCounter.set(updateCounter.get() + 1);
+                });
             }
+        }
+    }
+
+    private BigInteger getNonTradeBalanceSum() {
+        synchronized (this) {
+            if (availableBalance == null) return null;
+            return availableBalance.add(pendingBalance).add(reservedOfferBalance);
         }
     }
 }

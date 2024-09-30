@@ -649,6 +649,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             ThreadUtils.submitToPool(() -> {
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
+                if (newValue == Trade.Phase.PAYMENT_SENT) onPaymentSent();
                 if (isDepositsPublished() && !isPayoutUnlocked()) updatePollPeriod();
                 if (isPaymentReceived()) {
                     UserThread.execute(() -> {
@@ -2833,12 +2834,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // close open offer or reset address entries
         if (this instanceof MakerTrade) {
             processModel.getOpenOfferManager().closeOpenOffer(getOffer());
+            HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_PUBLISHED, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
         } else {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
         }
 
         // freeze outputs until spent
         ThreadUtils.submitToPool(() -> xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages()));
+    }
+
+    private void onPaymentSent() {
+        if (this instanceof SellerTrade) {
+            HavenoUtils.notificationService.sendTradeNotification(this, Phase.PAYMENT_SENT, "Payment Sent", "The buyer has sent the payment"); // TODO (woodser): use language translation
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
