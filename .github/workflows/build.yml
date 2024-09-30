@@ -78,6 +78,7 @@ jobs:
           else
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-x86_64.dmg
           fi
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-rpm
         shell: bash
