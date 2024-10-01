@@ -125,4 +125,4 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-appimage
-          path: ${{ github.workspace }}/release-appimg
+          path: ${{ github.workspace }}/release-appimage
