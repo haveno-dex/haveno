@@ -35,6 +35,8 @@ public class XmrNodeSettings implements PersistableEnvelope {
     String bootstrapUrl;
     @Nullable
     List<String> startupFlags;
+    @Nullable
+    Boolean syncBlockchain;
 
     public XmrNodeSettings() {
     }
@@ -43,7 +45,8 @@ public class XmrNodeSettings implements PersistableEnvelope {
         return new XmrNodeSettings(
                 proto.getBlockchainPath(),
                 proto.getBootstrapUrl(),
-                proto.getStartupFlagsList());
+                proto.getStartupFlagsList(),
+                proto.getSyncBlockchain());
     }
 
     @Override
@@ -52,6 +55,7 @@ public class XmrNodeSettings implements PersistableEnvelope {
         Optional.ofNullable(blockchainPath).ifPresent(e -> builder.setBlockchainPath(blockchainPath));
         Optional.ofNullable(bootstrapUrl).ifPresent(e -> builder.setBootstrapUrl(bootstrapUrl));
         Optional.ofNullable(startupFlags).ifPresent(e -> builder.addAllStartupFlags(startupFlags));
+        Optional.ofNullable(syncBlockchain).ifPresent(e -> builder.setSyncBlockchain(syncBlockchain));
         return builder.build();
     }
 }

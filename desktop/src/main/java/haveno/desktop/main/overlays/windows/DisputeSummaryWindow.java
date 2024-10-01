@@ -678,7 +678,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             closeTicketButton.disableProperty().unbind();
             hide();
         }, (errMessage, err) -> {
-            log.error(errMessage);
+            log.error("Error closing dispute ticket: " + errMessage + "\n", err);
             new Popup().error(err.toString()).show();
         });
     }

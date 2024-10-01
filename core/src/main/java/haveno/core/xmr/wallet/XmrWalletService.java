@@ -818,7 +818,7 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroFeeEstimate feeEstimates = getDaemon().getFeeEstimate();
         BigInteger baseFeeEstimate = feeEstimates.getFees().get(2); // get elevated fee per kB
         BigInteger qmask = feeEstimates.getQuantizationMask();
-        log.info("Monero base fee estimate={}, qmask={}: " + baseFeeEstimate, qmask);
+        log.info("Monero base fee estimate={}, qmask={}", baseFeeEstimate, qmask);
 
         // get tx base fee
         BigInteger baseFee = baseFeeEstimate.multiply(BigInteger.valueOf(txWeight));
@@ -922,8 +922,7 @@ public class XmrWalletService extends XmrWalletBase {
         try {
             ThreadUtils.awaitTask(shutDownTask, SHUTDOWN_TIMEOUT_MS);
         } catch (Exception e) {
-            log.warn("Error shutting down {}: {}", getClass().getSimpleName(), e.getMessage());
-            e.printStackTrace();
+            log.warn("Error shutting down {}: {}\n", getClass().getSimpleName(), e.getMessage(), e);
 
             // force close wallet
             forceCloseMainWallet();
@@ -945,8 +944,7 @@ public class XmrWalletService extends XmrWalletBase {
             List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
             if (!unusedAddressEntries.isEmpty()) return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(unusedAddressEntries.get(0), context, offerId);
         } catch (Exception e) {
-            log.warn("Error getting new address entry based on incoming transactions");
-            e.printStackTrace();
+            log.warn("Error getting new address entry based on incoming transactions: {}\n", e.getMessage(), e);
         }
 
         // create new entry
@@ -1172,8 +1170,7 @@ public class XmrWalletService extends XmrWalletBase {
                 try {
                     balanceListener.onBalanceChanged(balance);
                 } catch (Exception e) {
-                    log.warn("Failed to notify balance listener of change");
-                    e.printStackTrace();
+                    log.warn("Failed to notify balance listener of change: {}\n", e.getMessage(), e);
                 }
             });
         }
@@ -1309,8 +1306,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 doMaybeInitMainWallet(sync, MAX_SYNC_ATTEMPTS);
             } catch (Exception e) {
-                log.warn("Error initializing main wallet: " + e.getMessage());
-                e.printStackTrace();
+                log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
                 HavenoUtils.setTopError(e.getMessage());
                 throw e;
             }
@@ -1459,9 +1455,10 @@ public class XmrWalletService extends XmrWalletBase {
             log.info("Done creating full wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
             return walletFull;
         } catch (Exception e) {
-            e.printStackTrace();
+            String errorMsg = "Could not create wallet '" + config.getPath() + "': " + e.getMessage();
+            log.warn(errorMsg + "\n", e);
             if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
-            throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'");
+            throw new IllegalStateException(errorMsg);
         }
     }
 
@@ -1503,15 +1500,15 @@ public class XmrWalletService extends XmrWalletBase {
                     }
 
                     // handle success or failure
+                    File originalCacheBackup = new File(cachePath + ".backup");
                     if (retrySuccessful) {
-                        originalCacheFile.delete(); // delete original wallet cache backup
+                        if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
                     } else {
 
                         // restore original wallet cache
                         log.warn("Failed to open full wallet using backup cache, restoring original cache");
                         File cacheFile = new File(cachePath);
                         if (cacheFile.exists()) cacheFile.delete();
-                        File originalCacheBackup = new File(cachePath + ".backup");
                         if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
 
                         // throw exception
@@ -1525,9 +1522,10 @@ public class XmrWalletService extends XmrWalletBase {
             log.info("Done opening full wallet " + config.getPath());
             return walletFull;
         } catch (Exception e) {
-            e.printStackTrace();
+            String errorMsg = "Could not open full wallet '" + config.getPath() + "': " + e.getMessage();
+            log.warn(errorMsg + "\n", e);
             if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
-            throw new IllegalStateException("Could not open full wallet '" + config.getPath() + "'");
+            throw new IllegalStateException(errorMsg);
         }
     }
 
@@ -1557,7 +1555,7 @@ public class XmrWalletService extends XmrWalletBase {
             log.info("Done creating RPC wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
             return walletRpc;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Could not create wallet '" + config.getPath() + "': " + e.getMessage() + "\n", e);
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
             throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.");
         }
@@ -1607,15 +1605,15 @@ public class XmrWalletService extends XmrWalletBase {
                     }
 
                     // handle success or failure
+                    File originalCacheBackup = new File(cachePath + ".backup");
                     if (retrySuccessful) {
-                        originalCacheFile.delete(); // delete original wallet cache backup
+                        if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
                     } else {
 
                         // restore original wallet cache
                         log.warn("Failed to open RPC wallet using backup cache, restoring original cache");
                         File cacheFile = new File(cachePath);
                         if (cacheFile.exists()) cacheFile.delete();
-                        File originalCacheBackup = new File(cachePath + ".backup");
                         if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
 
                         // throw exception
@@ -1629,7 +1627,7 @@ public class XmrWalletService extends XmrWalletBase {
             log.info("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Could not open wallet '" + config.getPath() + "': " + e.getMessage() + "\n", e);
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
             throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage());
         }
@@ -1733,7 +1731,7 @@ public class XmrWalletService extends XmrWalletBase {
                 wallet.changePassword(oldPassword, newPassword);
                 saveMainWallet();
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Error changing main wallet password: " + e.getMessage() + "\n", e);
                 throw e;
             }
         });
@@ -1916,7 +1914,7 @@ public class XmrWalletService extends XmrWalletBase {
                         cacheWalletInfo();
                         requestSaveMainWallet();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.warn("Error caching wallet info: " + e.getMessage() + "\n", e);
                     }
                 }
             }

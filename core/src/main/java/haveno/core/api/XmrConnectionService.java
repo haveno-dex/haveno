@@ -41,6 +41,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -464,7 +467,7 @@ public final class XmrConnectionService {
                     log.info(getClass() + ".onAccountOpened() called");
                     initialize();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("Error initializing connection service after account opened, error={}\n", e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             }
@@ -620,10 +623,9 @@ public final class XmrConnectionService {
         if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored()) {
             try {
                 log.info("Starting local node");
-                xmrLocalNode.startMoneroNode();
+                xmrLocalNode.start();
             } catch (Exception e) {
-                log.warn("Unable to start local monero node: " + e.getMessage());
-                e.printStackTrace();
+                log.error("Unable to start local monero node, error={}\n", e.getMessage(), e);
             }
         }
     }
@@ -721,8 +723,8 @@ public final class XmrConnectionService {
 
                     // log error message periodically
                     if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                        log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
-                        if (DevEnv.isDevMode()) e.printStackTrace();
+                        log.warn("Failed to fetch daemon info, trying to switch to best connection, error={}", e.getMessage());
+                        if (DevEnv.isDevMode()) log.error(ExceptionUtils.getStackTrace(e));
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
                     }
 
@@ -733,6 +735,12 @@ public final class XmrConnectionService {
 
                 // connected to daemon
                 isConnected = true;
+
+                // determine if blockchain is syncing locally
+                boolean blockchainSyncing = lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
+
+                // write sync status to preferences
+                preferences.getXmrNodeSettings().setSyncBlockchain(blockchainSyncing);
 
                 // throttle warnings if daemon not synced
                 if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {

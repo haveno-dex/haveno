@@ -116,8 +116,7 @@ public abstract class StoreService<T extends PersistableEnvelope> {
                 log.debug("Could not find resourceFile " + resourceFileName + ". That is expected if none is provided yet.");
             } catch (Throwable e) {
                 log.error("Could not copy resourceFile " + resourceFileName + " to " +
-                        destinationFile.getAbsolutePath() + ".\n" + e.getMessage());
-                e.printStackTrace();
+                        destinationFile.getAbsolutePath() + ".\n", e);
             }
         } else {
             log.debug("No resource file was copied. {} exists already.", fileName);

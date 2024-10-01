@@ -68,8 +68,7 @@ public class FileUtil {
 
                     pruneBackup(backupFileDir, numMaxBackupFiles);
                 } catch (IOException e) {
-                    log.error("Backup key failed: " + e.getMessage());
-                    e.printStackTrace();
+                    log.error("Backup key failed: {}\n", e.getMessage(), e);
                 }
             }
         }
@@ -97,7 +96,7 @@ public class FileUtil {
         try {
             FileUtils.deleteDirectory(backupFileDir);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Delete backup key failed: {}\n", e.getMessage(), e);
         }
     }
 
@@ -173,8 +172,7 @@ public class FileUtil {
                 }
             }
         } catch (Throwable t) {
-            log.error(t.toString());
-            t.printStackTrace();
+            log.error("Could not delete file, error={}\n", t.getMessage(), t);
             throw new IOException(t);
         }
     }

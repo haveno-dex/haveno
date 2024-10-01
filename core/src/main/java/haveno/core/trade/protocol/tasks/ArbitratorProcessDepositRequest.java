@@ -68,7 +68,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             complete();
         } catch (Throwable t) {
             this.error = t;
-            t.printStackTrace();
+            log.error("Error processing deposit request for trade {}: {}\n", trade.getId(), t.getMessage(), t);
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
             failed(t);
         }
@@ -155,15 +155,14 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 log.info("Arbitrator published deposit txs for trade " + trade.getId());
                 trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
             } catch (Exception e) {
-                log.warn("Arbitrator error publishing deposit txs for trade {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), e.getMessage());
-                e.printStackTrace();
+                log.warn("Arbitrator error publishing deposit txs for trade {} {}: {}\n", trade.getClass().getSimpleName(), trade.getShortId(), e.getMessage(), e);
                 if (!depositTxsRelayed) {
 
                     // flush txs from pool
                     try {
                         daemon.flushTxPool(processModel.getMaker().getDepositTxHash(), processModel.getTaker().getDepositTxHash());
                     } catch (Exception e2) {
-                        e2.printStackTrace();
+                        log.warn("Error flushing deposit txs from pool for trade {}: {}\n", trade.getId(), e2.getMessage(), e2);
                     }
                 }
                 throw e;

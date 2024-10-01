@@ -70,7 +70,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @FXML
     TableView<TransactionsListItem> tableView;
     @FXML
-    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, memoColumn, confidenceColumn, revertTxColumn;
+    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, memoColumn, confidenceColumn, revertTxColumn;
     @FXML
     Label numItems;
     @FXML
@@ -89,7 +89,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private EventHandler<KeyEvent> keyEventEventHandler;
     private Scene scene;
 
-    private TransactionsUpdater transactionsUpdater = new TransactionsUpdater();
+    private final TransactionsUpdater transactionsUpdater = new TransactionsUpdater();
 
     private class TransactionsUpdater extends MoneroWalletListener {
         @Override
@@ -129,11 +129,12 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         transactionColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txId", Res.getBaseCurrencyCode())));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
+        txFeeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txFee", Res.getBaseCurrencyCode())));
         memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
         confidenceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations", Res.getBaseCurrencyCode())));
         revertTxColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.revert", Res.getBaseCurrencyCode())));
 
-        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
 
         setDateColumnCellFactory();
@@ -141,6 +142,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         setAddressColumnCellFactory();
         setTransactionColumnCellFactory();
         setAmountColumnCellFactory();
+        setTxFeeColumnCellFactory();
         setMemoColumnCellFactory();
         setConfidenceColumnCellFactory();
         setRevertTxColumnCellFactory();
@@ -156,7 +158,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         addressColumn.setComparator(Comparator.comparing(item -> item.getDirection() + item.getAddressString()));
         transactionColumn.setComparator(Comparator.comparing(TransactionsListItem::getTxId));
         amountColumn.setComparator(Comparator.comparing(TransactionsListItem::getAmount));
-        confidenceColumn.setComparator(Comparator.comparingLong(item -> item.getNumConfirmations()));
+        confidenceColumn.setComparator(Comparator.comparingLong(TransactionsListItem::getNumConfirmations));
         memoColumn.setComparator(Comparator.comparing(TransactionsListItem::getMemo));
 
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
@@ -216,8 +218,9 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                 columns[2] = item.getDirection() + " " + item.getAddressString();
                 columns[3] = item.getTxId();
                 columns[4] = item.getAmountStr();
-                columns[5] = item.getMemo() == null ? "" : item.getMemo();
-                columns[6] = String.valueOf(item.getNumConfirmations());
+                columns[5] = item.getTxFeeStr();
+                columns[6] = item.getMemo() == null ? "" : item.getMemo();
+                columns[7] = String.valueOf(item.getNumConfirmations());
                 return columns;
             };
 
@@ -405,6 +408,33 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
                                 if (item != null && !empty) {
                                     setGraphic(new AutoTooltipLabel(item.getAmountStr()));
+                                } else {
+                                    setGraphic(null);
+                                }
+                            }
+                        };
+                    }
+                });
+    }
+
+
+    private void setTxFeeColumnCellFactory() {
+        txFeeColumn.setCellValueFactory((addressListItem) ->
+                new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        txFeeColumn.setCellFactory(
+                new Callback<>() {
+
+                    @Override
+                    public TableCell<TransactionsListItem, TransactionsListItem> call(TableColumn<TransactionsListItem,
+                            TransactionsListItem> column) {
+                        return new TableCell<>() {
+
+                            @Override
+                            public void updateItem(final TransactionsListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+
+                                if (item != null && !empty) {
+                                    setGraphic(new AutoTooltipLabel(item.getTxFeeStr()));
                                 } else {
                                     setGraphic(null);
                                 }

@@ -49,7 +49,7 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '32.1.1-jre'
         guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.31'
+        moneroJavaVersion = '0.8.33'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
@@ -334,6 +334,7 @@ configure(project(':p2p')) {
         implementation "com.google.protobuf:protobuf-java:$protobufVersion"
         implementation "org.fxmisc.easybind:easybind:$easybindVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
+        implementation "org.apache.commons:commons-lang3:$langVersion"
         implementation("com.github.haveno-dex.netlayer:tor.external:$netlayerVersion") {
             exclude(module: 'slf4j-api')
         }

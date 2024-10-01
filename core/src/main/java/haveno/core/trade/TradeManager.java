@@ -68,7 +68,6 @@ import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.Trade.DisputeState;
-import haveno.core.trade.Trade.Phase;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.DepositRequest;
@@ -134,7 +133,6 @@ import lombok.Setter;
 import monero.daemon.model.MoneroTx;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
-import org.fxmisc.easybind.EasyBind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,7 +256,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         failedTradesManager.setUnFailTradeCallback(this::unFailTrade);
 
-        xmrWalletService.setTradeManager(this);
+        // TODO: better way to set references
+        xmrWalletService.setTradeManager(this); // TODO: set reference in HavenoUtils for consistency
+        HavenoUtils.notificationService = notificationService;
     }
 
 
@@ -366,8 +366,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.onShutDownStarted();
             } catch (Exception e) {
                 if (e.getMessage() != null && e.getMessage().contains("Connection reset")) return; // expected if shut down with ctrl+c
-                log.warn("Error notifying {} {} that shut down started {}", trade.getClass().getSimpleName(), trade.getId());
-                e.printStackTrace();
+                log.warn("Error notifying {} {} that shut down started: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
             }
         });
         try {
@@ -396,15 +395,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade.shutDown();
             } catch (Exception e) {
                 if (e.getMessage() != null && (e.getMessage().contains("Connection reset") || e.getMessage().contains("Connection refused"))) return; // expected if shut down with ctrl+c
-                log.warn("Error closing {} {}", trade.getClass().getSimpleName(), trade.getId());
-                e.printStackTrace();
+                log.warn("Error closing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
             }
         });
         try {
             ThreadUtils.awaitTasks(tasks);
         } catch (Exception e) {
-            log.warn("Error shutting down trades: {}", e.getMessage());
-            e.printStackTrace();
+            log.warn("Error shutting down trades: {}\n", e.getMessage(), e);
         }
     }
 
@@ -462,8 +459,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         }
                     } catch (Exception e) {
                         if (!isShutDownStarted) {
-                            e.printStackTrace();
-                            log.warn("Error initializing {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                            log.warn("Error initializing {} {}: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
                             trade.setInitError(e);
                         }
                     }
@@ -602,14 +598,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
             initTradeAndProtocol(trade, createTradeProtocol(trade));
             addTrade(trade);
-  
-            // notify on phase changes
-            // TODO (woodser): save subscription, bind on startup
-            EasyBind.subscribe(trade.statePhaseProperty(), phase -> {
-                if (phase == Phase.DEPOSITS_PUBLISHED) {
-                    notificationService.sendTradeNotification(trade, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
-                }
-            });
   
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {

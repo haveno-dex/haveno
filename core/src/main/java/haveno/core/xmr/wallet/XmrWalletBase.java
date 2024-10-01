@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
@@ -25,7 +27,7 @@ import monero.wallet.model.MoneroWalletListener;
 public class XmrWalletBase {
 
     // constants
-    public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 60;
+    public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 120;
     public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
 
     // inherited
@@ -106,7 +108,7 @@ public class XmrWalletBase {
                     height = wallet.getHeight(); // can get read timeout while syncing
                 } catch (Exception e) {
                     log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
-                    if (wallet != null && !isShutDownStarted) e.printStackTrace();
+                    if (wallet != null && !isShutDownStarted) log.warn(ExceptionUtils.getStackTrace(e));
 
                     // stop polling and release latch
                     syncProgressError = e;

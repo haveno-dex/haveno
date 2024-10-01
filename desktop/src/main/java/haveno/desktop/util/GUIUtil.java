@@ -28,7 +28,6 @@ import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
-import haveno.common.crypto.KeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistableEnvelope;
@@ -168,12 +167,11 @@ public class GUIUtil {
                                       Preferences preferences,
                                       Stage stage,
                                       PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler,
-                                      KeyRing keyRing) {
+                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
         if (!accounts.isEmpty()) {
             String directory = getDirectoryFromChooser(preferences, stage);
             if (!directory.isEmpty()) {
-                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, null);
                 PaymentAccountList paymentAccounts = new PaymentAccountList(accounts);
                 persistenceManager.initialize(paymentAccounts, fileName, PersistenceManager.Source.PRIVATE_LOW_PRIO);
                 persistenceManager.persistNow(() -> {
@@ -193,8 +191,7 @@ public class GUIUtil {
                                       Preferences preferences,
                                       Stage stage,
                                       PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler,
-                                      KeyRing keyRing) {
+                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
         FileChooser fileChooser = new FileChooser();
         File initDir = new File(preferences.getDirectoryChooserPath());
         if (initDir.isDirectory()) {
@@ -207,7 +204,7 @@ public class GUIUtil {
             if (Paths.get(path).getFileName().toString().equals(fileName)) {
                 String directory = Paths.get(path).getParent().toString();
                 preferences.setDirectoryChooserPath(directory);
-                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, null);
                 persistenceManager.readPersisted(fileName, persisted -> {
                             StringBuilder msg = new StringBuilder();
                             HashSet<PaymentAccount> paymentAccounts = new HashSet<>();

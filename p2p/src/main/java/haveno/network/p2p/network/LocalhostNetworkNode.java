@@ -76,8 +76,7 @@ public class LocalhostNetworkNode extends NetworkNode {
                 try {
                     startServer(new ServerSocket(servicePort));
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    log.error("Exception at startServer: " + e.getMessage());
+                    log.error("Exception at startServer: {}\n", e.getMessage(), e);
                 }
                 setupListeners.stream().forEach(SetupListener::onHiddenServicePublished);
             }, simulateTorDelayTorNode, TimeUnit.MILLISECONDS);
