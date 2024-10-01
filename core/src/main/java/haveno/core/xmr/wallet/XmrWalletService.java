@@ -1478,45 +1478,46 @@ public class XmrWalletService extends XmrWalletBase {
                 walletFull = MoneroWalletFull.openWallet(config);
             } catch (Exception e) {
                 log.warn("Failed to open full wallet '{}', attempting to use backup cache, error={}", config.getPath(), e.getMessage());
-                boolean retrySuccessful = false;
-                try {
+                throw e;
+                // boolean retrySuccessful = false;
+                // try {
                     
-                    // rename wallet cache to backup
-                    String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
-                    File originalCacheFile = new File(cachePath);
-                    if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
+                //     // rename wallet cache to backup
+                //     String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
+                //     File originalCacheFile = new File(cachePath);
+                //     if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
 
-                    // copy latest wallet cache backup to main folder
-                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
-                    if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
+                //     // copy latest wallet cache backup to main folder
+                //     File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
+                //     if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
 
-                    // retry opening wallet without original cache
-                    try {
-                        walletFull = MoneroWalletFull.openWallet(config);
-                        log.info("Successfully opened full wallet using backup cache");
-                        retrySuccessful = true;
-                    } catch (Exception e2) {
-                        // ignore
-                    }
+                //     // retry opening wallet without original cache
+                //     try {
+                //         walletFull = MoneroWalletFull.openWallet(config);
+                //         log.info("Successfully opened full wallet using backup cache");
+                //         retrySuccessful = true;
+                //     } catch (Exception e2) {
+                //         // ignore
+                //     }
 
-                    // handle success or failure
-                    File originalCacheBackup = new File(cachePath + ".backup");
-                    if (retrySuccessful) {
-                        if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
-                    } else {
+                //     // handle success or failure
+                //     File originalCacheBackup = new File(cachePath + ".backup");
+                //     if (retrySuccessful) {
+                //         if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
+                //     } else {
 
-                        // restore original wallet cache
-                        log.warn("Failed to open full wallet using backup cache, restoring original cache");
-                        File cacheFile = new File(cachePath);
-                        if (cacheFile.exists()) cacheFile.delete();
-                        if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
+                //         // restore original wallet cache
+                //         log.warn("Failed to open full wallet using backup cache, restoring original cache");
+                //         File cacheFile = new File(cachePath);
+                //         if (cacheFile.exists()) cacheFile.delete();
+                //         if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
 
-                        // throw exception
-                        throw e;
-                    }
-                } catch (Exception e2) {
-                    throw e; // throw original exception
-                }
+                //         // throw exception
+                //         throw e;
+                //     }
+                // } catch (Exception e2) {
+                //     throw e; // throw original exception
+                // }
             }
             if (walletFull.getDaemonConnection() != null) walletFull.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done opening full wallet " + config.getPath());
@@ -1583,45 +1584,46 @@ public class XmrWalletService extends XmrWalletBase {
                 walletRpc.openWallet(config);
             } catch (Exception e) {
                 log.warn("Failed to open RPC wallet '{}', attempting to use backup cache, error={}", config.getPath(), e.getMessage());
-                boolean retrySuccessful = false;
-                try {
+                throw e;
+                // boolean retrySuccessful = false;
+                // try {
                     
-                    // rename wallet cache to backup
-                    String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
-                    File originalCacheFile = new File(cachePath);
-                    if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
+                //     // rename wallet cache to backup
+                //     String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
+                //     File originalCacheFile = new File(cachePath);
+                //     if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
 
-                    // copy latest wallet cache backup to main folder
-                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
-                    if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
+                //     // copy latest wallet cache backup to main folder
+                //     File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
+                //     if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
 
-                    // retry opening wallet without original cache
-                    try {
-                        walletRpc.openWallet(config);
-                        log.info("Successfully opened RPC wallet using backup cache");
-                        retrySuccessful = true;
-                    } catch (Exception e2) {
-                        // ignore
-                    }
+                //     // retry opening wallet without original cache
+                //     try {
+                //         walletRpc.openWallet(config);
+                //         log.info("Successfully opened RPC wallet using backup cache");
+                //         retrySuccessful = true;
+                //     } catch (Exception e2) {
+                //         // ignore
+                //     }
 
-                    // handle success or failure
-                    File originalCacheBackup = new File(cachePath + ".backup");
-                    if (retrySuccessful) {
-                        if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
-                    } else {
+                //     // handle success or failure
+                //     File originalCacheBackup = new File(cachePath + ".backup");
+                //     if (retrySuccessful) {
+                //         if (originalCacheBackup.exists()) originalCacheBackup.delete(); // delete original wallet cache backup
+                //     } else {
 
-                        // restore original wallet cache
-                        log.warn("Failed to open RPC wallet using backup cache, restoring original cache");
-                        File cacheFile = new File(cachePath);
-                        if (cacheFile.exists()) cacheFile.delete();
-                        if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
+                //         // restore original wallet cache
+                //         log.warn("Failed to open RPC wallet using backup cache, restoring original cache");
+                //         File cacheFile = new File(cachePath);
+                //         if (cacheFile.exists()) cacheFile.delete();
+                //         if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
 
-                        // throw exception
-                        throw e;
-                    }
-                } catch (Exception e2) {
-                    throw e; // throw original exception
-                }
+                //         // throw exception
+                //         throw e;
+                //     }
+                // } catch (Exception e2) {
+                //     throw e; // throw original exception
+                // }
             }
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done opening RPC wallet " + config.getPath());
