@@ -40,7 +40,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
           sudo apt update
-          sudo apt install -y rpm
+          sudo apt install -y rpm fuse
       - name: Install WiX Toolset
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
@@ -73,14 +73,17 @@ jobs:
           if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
             mkdir ${{ github.workspace }}/release-rpm
             mkdir ${{ github.workspace }}/release-deb
+            mkdir ${{ github.workspace }}/release-appimage
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-x86_64.rpm
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-x86_64.deb
+            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-appimage/Haveno-${{ env.VERSION }}-x86_64.AppImage
           else
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}.dmg
           fi
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-rpm
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-appimage
         shell: bash
       - name: Move Release Files on Windows
         if: ${{ matrix.os == 'windows-latest' }}
@@ -117,3 +120,9 @@ jobs:
         with:
           name: haveno-linux-rpm
           path: ${{ github.workspace }}/release-rpm
+      - uses: actions/upload-artifact@v3
+        name: "Linux - AppImage artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-appimage
+          path: ${{ github.workspace }}/release-appimage
