@@ -541,6 +541,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            boolean useSavingsWallet,
                            long triggerPrice,
                            boolean reserveExactAmount,
+                           boolean resetAddressEntriesOnError,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
 
@@ -559,7 +560,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }, (errorMessage) -> {
                     if (!openOffer.isCanceled()) {
                         log.warn("Error processing pending offer {}: {}", openOffer.getId(), errorMessage);
-                        doCancelOffer(openOffer);
+                        doCancelOffer(openOffer, resetAddressEntriesOnError);
                     }
                     latch.countDown();
                     errorMessageHandler.handleErrorMessage(errorMessage);
@@ -715,14 +716,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    private void doCancelOffer(OpenOffer openOffer) {
+        doCancelOffer(openOffer, true);
+    }
+
     // remove open offer which thaws its key images
-    private void doCancelOffer(@NotNull OpenOffer openOffer) {
+    private void doCancelOffer(@NotNull OpenOffer openOffer, boolean resetAddressEntries) {
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
         removeOpenOffer(openOffer); 
         closedTradableManager.add(openOffer); // TODO: don't add these to closed tradables?
-        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        if (resetAddressEntries) xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
         xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
     }
