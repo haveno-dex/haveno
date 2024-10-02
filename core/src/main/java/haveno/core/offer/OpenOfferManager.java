@@ -934,6 +934,23 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     return;
                 }
 
+                // cancel offer if scheduled txs unavailable
+                if (openOffer.getScheduledTxHashes() != null) {
+                    boolean scheduledTxsAvailable = true;
+                    for (MoneroTxWallet tx : xmrWalletService.getTxs(openOffer.getScheduledTxHashes())) {
+                        if (!tx.isLocked() && !isOutputsAvailable(tx)) {
+                            scheduledTxsAvailable = false;
+                            break;
+                        }
+                    }
+                    if (!scheduledTxsAvailable) {
+                        log.warn("Canceling offer {} because scheduled txs are no longer available", openOffer.getId());
+                        doCancelOffer(openOffer);
+                        resultHandler.handleResult(null);
+                        return;
+                    }
+                }
+
                 // get amount needed to reserve offer
                 BigInteger amountNeeded = openOffer.getOffer().getAmountNeeded();
 
@@ -1138,25 +1155,31 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             throw new RuntimeException("Not enough money in Haveno wallet");
         }
 
-        // get locked txs
-        List<MoneroTxWallet> lockedTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsLocked(true));
-
-        // get earliest unscheduled txs with sufficient incoming amount
-        List<String> scheduledTxHashes = new ArrayList<String>();
+        // get earliest available or pending txs with sufficient incoming amount
         BigInteger scheduledAmount = BigInteger.ZERO;
-        for (MoneroTxWallet lockedTx : lockedTxs) {
-            if (isTxScheduledByOtherOffer(openOffers, openOffer, lockedTx.getHash())) continue;
-            if (lockedTx.getIncomingTransfers() == null || lockedTx.getIncomingTransfers().isEmpty()) continue;
-            scheduledTxHashes.add(lockedTx.getHash());
-            for (MoneroIncomingTransfer transfer : lockedTx.getIncomingTransfers()) {
-                if (transfer.getAccountIndex() == 0) scheduledAmount = scheduledAmount.add(transfer.getAmount());
+        Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
+        for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
+
+            // skip if outputs unavailable
+            if (tx.getIncomingTransfers() == null || tx.getIncomingTransfers().isEmpty()) continue;
+            if (!isOutputsAvailable(tx)) continue;
+            if (isTxScheduledByOtherOffer(openOffers, openOffer, tx.getHash())) continue;
+
+            // add scheduled tx
+            for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
+                if (transfer.getAccountIndex() == 0) {
+                    scheduledAmount = scheduledAmount.add(transfer.getAmount());
+                    scheduledTxs.add(tx);
+                }
             }
+
+            // break if sufficient funds
             if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
         }
         if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to schedule offer");
 
         // schedule txs
-        openOffer.setScheduledTxHashes(scheduledTxHashes);
+        openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));
         openOffer.setScheduledAmount(scheduledAmount.toString());
         openOffer.setState(OpenOffer.State.PENDING);
     }
@@ -1190,6 +1213,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
         }
         return false;
+    }
+
+    private boolean isOutputsAvailable(MoneroTxWallet tx) {
+        if (tx.getOutputsWallet() == null) return false;
+        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+            if (output.isSpent() || output.isFrozen()) return false;
+        }
+        return true;
     }
 
     private void signAndPostOffer(OpenOffer openOffer,
