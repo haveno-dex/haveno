@@ -74,11 +74,11 @@ jobs:
             mkdir ${{ github.workspace }}/release-rpm
             mkdir ${{ github.workspace }}/release-deb
             mkdir ${{ github.workspace }}/release-appimage
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-x86_64.rpm
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-x86_64.deb
-            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-appimage/Haveno-${{ env.VERSION }}-x86_64.AppImage
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-linux-x86_64-installer.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-linux-x86_64-installer.deb
+            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-appimage/Haveno-${{ env.VERSION }}-linux-x86_64.AppImage
           else
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}.dmg
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}-mac-installer.dmg
           fi
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
@@ -89,7 +89,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           mkdir ${{ github.workspace }}/release
-          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}.exe
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}-windows-installer.exe
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
         shell: powershell
 
