@@ -284,6 +284,7 @@ public class CoreOffersService {
                 useSavingsWallet,
                 triggerPriceAsLong,
                 reserveExactAmount,
+                true,
                 resultHandler::accept,
                 errorMessageHandler);
     }
