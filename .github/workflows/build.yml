@@ -40,7 +40,8 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
           sudo apt update
-          sudo apt install -y rpm fuse
+          sudo apt install -y rpm fuse flatpak flatpak-builder appstream
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Install WiX Toolset
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
@@ -76,6 +77,7 @@ jobs:
             mkdir ${{ github.workspace }}/release-appimage
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-linux-x86_64-installer.rpm
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-linux-x86_64-installer.deb
+            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-flat/Haveno-${{ env.VERSION }}-linux-x86_64.flatpak
             mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-appimage/Haveno-${{ env.VERSION }}-linux-x86_64.AppImage
           else
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}-mac-installer.dmg
@@ -84,6 +86,7 @@ jobs:
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-rpm
           cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-appimage
+          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-flat
         shell: bash
       - name: Move Release Files on Windows
         if: ${{ matrix.os == 'windows-latest' }}
@@ -126,3 +129,10 @@ jobs:
         with:
           name: haveno-linux-appimage
           path: ${{ github.workspace }}/release-appimage
+      - uses: actions/upload-artifact@v3
+        name: "Linux - flatpak artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+
+        with:
+          name: haveno-linux-flatpak
+          path: ${{ github.workspace }}/release-flat
