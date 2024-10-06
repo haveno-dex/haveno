@@ -42,7 +42,7 @@ import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
-class TransactionsListItem {
+public class TransactionsListItem {
     private String dateString;
     private final Date date;
     private final String txId;
@@ -61,6 +61,8 @@ class TransactionsListItem {
     private boolean initialTxConfidenceVisibility = true;
     private final Supplier<LazyFields> lazyFieldsSupplier;
     private XmrWalletService xmrWalletService;
+    @Getter
+    private MoneroTxWallet tx;
 
     private static class LazyFields {
         TxConfidenceIndicator txConfidenceIndicator;
@@ -81,6 +83,7 @@ class TransactionsListItem {
     TransactionsListItem(MoneroTxWallet tx,
                          XmrWalletService xmrWalletService,
                          TransactionAwareTradable transactionAwareTradable) {
+        this.tx = tx;
         this.memo = tx.getNote();
         this.txId = tx.getHash();
         this.xmrWalletService = xmrWalletService;

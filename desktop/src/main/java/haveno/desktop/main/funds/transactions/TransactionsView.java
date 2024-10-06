@@ -32,10 +32,10 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AddressWithIconAndDirection;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
+import haveno.desktop.main.overlays.windows.TxDetailsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
@@ -85,6 +85,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private final Preferences preferences;
     private final TradeDetailsWindow tradeDetailsWindow;
     private final OfferDetailsWindow offerDetailsWindow;
+    private final TxDetailsWindow txDetailsWindow;
 
     private EventHandler<KeyEvent> keyEventEventHandler;
     private Scene scene;
@@ -113,11 +114,13 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                              Preferences preferences,
                              TradeDetailsWindow tradeDetailsWindow,
                              OfferDetailsWindow offerDetailsWindow,
+                             TxDetailsWindow txDetailsWindow,
                              DisplayedTransactionsFactory displayedTransactionsFactory) {
         this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.offerDetailsWindow = offerDetailsWindow;
+        this.txDetailsWindow = txDetailsWindow;
         this.displayedTransactions = displayedTransactionsFactory.create();
         this.sortedDisplayedTransactions = displayedTransactions.asSortedList();
     }
@@ -253,6 +256,10 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
             tradeDetailsWindow.show((Trade) item.getTradable());
     }
 
+    private void openTxDetailPopup(TransactionsListItem item) {
+        txDetailsWindow.show(item);
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ColumnCellFactories
@@ -376,9 +383,9 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                 //noinspection Duplicates
                                 if (item != null && !empty) {
                                     String transactionId = item.getTxId();
-                                    hyperlinkWithIcon = new ExternalHyperlink(transactionId);
-                                    hyperlinkWithIcon.setOnAction(event -> openTxInBlockExplorer(item));
-                                    hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("tooltip.openBlockchainForTx", transactionId)));
+                                    hyperlinkWithIcon = new HyperlinkWithIcon(transactionId, AwesomeIcon.INFO_SIGN);
+                                    hyperlinkWithIcon.setOnAction(event -> openTxDetailPopup(item));
+                                    hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("txDetailsWindow.headline")));
                                     setGraphic(hyperlinkWithIcon);
                                 } else {
                                     setGraphic(null);
