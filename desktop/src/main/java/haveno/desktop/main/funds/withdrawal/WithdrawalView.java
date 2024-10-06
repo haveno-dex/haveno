@@ -51,7 +51,7 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.overlays.windows.TxDetails;
+import haveno.desktop.main.overlays.windows.TxWithdrawWindow;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
@@ -333,7 +333,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
             xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
             String key = "showTransactionSent";
             if (DontShowAgainLookup.showAgain(key)) {
-                new TxDetails(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
                         .dontShowAgainId(key)
                         .show();
             }
