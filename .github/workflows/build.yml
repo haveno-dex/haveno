@@ -40,7 +40,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
           sudo apt update
-          sudo apt install -y rpm fuse flatpak flatpak-builder appstream
+          sudo apt install -y rpm libfuse2 flatpak flatpak-builder appstream
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Install WiX Toolset
         if: ${{ matrix.os == 'windows-latest' }}
@@ -74,6 +74,7 @@ jobs:
           if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
             mkdir ${{ github.workspace }}/release-rpm
             mkdir ${{ github.workspace }}/release-deb
+            mkdir ${{ github.workspace }}/release-flat
             mkdir ${{ github.workspace }}/release-appimage
             mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-linux-x86_64-installer.rpm
             mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-linux-x86_64-installer.deb
@@ -123,16 +124,17 @@ jobs:
         with:
           name: haveno-linux-rpm
           path: ${{ github.workspace }}/release-rpm
+
       - uses: actions/upload-artifact@v3
         name: "Linux - AppImage artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-appimage
           path: ${{ github.workspace }}/release-appimage
+
       - uses: actions/upload-artifact@v3
         name: "Linux - flatpak artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
-
         with:
           name: haveno-linux-flatpak
           path: ${{ github.workspace }}/release-flat
