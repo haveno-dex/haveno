@@ -1,7 +1,6 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 import java.time.LocalDateTime
-// import regex pattern
 import java.util.regex.Pattern
 
 task jpackageSanityChecks {
@@ -423,9 +422,6 @@ task packageInstallers {
             newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create"))
             flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
 
-
-
-
             // Command to build the Flatpak
             exec {
                 commandLine 'flatpak-builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
@@ -467,8 +463,6 @@ task packageInstallers {
                 executeCmd("open " + envVariableSharedFolder)
             }
         }
-
-
 
         println "The binaries are ready:"
         binariesFolderPath.traverse {

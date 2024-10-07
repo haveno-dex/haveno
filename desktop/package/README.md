@@ -8,14 +8,11 @@ Follow these instructions to create installers for the Haveno Java desktop appli
 From x86_64 machine:
 
 1. `sudo apt-get update`
-2. `sudo apt install -y rpm fuse`
+2. `sudo apt install -y rpm fuse flatpak flatpak-builder`
 1. `./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
 2. `./gradlew packageInstallers`
 3. Confirm prompts.
 4. Path to installer is printed at the end. Execute to install, e.g.: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
-
-Note: Please see [flatpak.md](../../docs/flatpak.md) for information on
-distributing Haveno via Flatpak.
 
 Note: Please see [flatpak.md](../../docs/flatpak.md) for information on
 distributing Haveno via Flatpak.
@@ -85,9 +82,9 @@ On Ubuntu, resolve by running `sudo apt install rpm`. For deb, ensure dpkg is in
 
 ```sh
 Exception in thread "main" java.io.IOException: Failed to rename /tmp/Haveno-stripped15820156885694375398.tmp to /storage/src/haveno/desktop/build/libs/fatJar/desktop-1.0.0-SNAPSHOT-all.jar
- at haveno.tools.Utils.renameFile(Utils.java:36)
- at io.github.zlika.reproducible.StipZipFile.strip(StipZipFile.java:35)
- at haveno.tools.DeterministicBuildTool.main(DeterministicBuildTool.java:24)
+	at haveno.tools.Utils.renameFile(Utils.java:36)
+	at io.github.zlika.reproducible.StipZipFile.strip(StipZipFile.java:35)
+	at haveno.tools.DeterministicBuildTool.main(DeterministicBuildTool.java:24)
 
 ```
 
@@ -95,12 +92,6 @@ This may happen if the source folder is on a different hard drive than the syste
 
 ```sh
 export _JAVA_OPTIONS="-Djava.io.tmpdir=/storage/tmp"
-```
-
-You will also need `flatpak` and `flatpak-builder`. On Debian/Ubuntu:
-
-```sh
-sudo apt install flatpak flatpak-builder
 ```
 
 ### Building for macOS
