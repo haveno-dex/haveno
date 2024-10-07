@@ -115,6 +115,8 @@ task getJavaBinariesDownloadURLs {
             }
         }
 
+        ext.osKey = osKey
+
         ext.jdk21Binary_DownloadURL = jdk21Binaries[osKey]
         ext.jdk21Binary_SHA256Hash = jdk21Binaries[osKey + '-sha256']
     }
@@ -323,6 +325,69 @@ task packageInstallers {
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 
+            // Clean jpackage temp folder, needs to be empty for the next packaging step (AppImage)
+            jpackageTempDir.deleteDir()
+            jpackageTempDir.mkdirs()
+
+            executeCmd(jPackageFilePath + commonOpts +
+                    " --dest \"${jpackageTempDir}\"" +
+                    " --type app-image")
+
+            // Path to the app-image directory: THIS IS NOT THE ACTUAL .AppImage FILE.
+            // See JPackage documentation on --type app-image for more.
+            String appImagePath = new String(
+                    "\"${binariesFolderPath}/${appNameAndVendor}\""
+            )
+
+            // Which version of AppImageTool to use
+            String AppImageToolVersion = "13";
+
+            // Download AppImageTool
+            Map AppImageToolBinaries = [
+                    'linux'                 : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-x86_64.AppImage",
+                    'linux-aarch64'         : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-aarch64.AppImage",
+            ]
+
+            String osKey = getJavaBinariesDownloadURLs.property('osKey')
+
+            File appDir = new File("${jpackageTempDir}/Haveno")
+            File templateAppDir = new File("${project(':desktop').projectDir}/package/linux/Haveno.AppDir")
+            File jpackDir = appDir
+
+            appDir.mkdirs()
+
+            File AppImageToolBinary = new File("${jpackageTempDir}/appimagetool.AppImage")
+
+            // Adding a platform to the AppImageToolBinaries essentially adds it to the "supported" list of platforms able to make AppImages
+            // However, be warned that any platform that doesn't support unix `ln` and `chmod` will not work with the current method.
+            if (AppImageToolBinaries.containsKey(osKey)) {
+                println "Downloading ${AppImageToolBinaries[osKey]}"
+                ant.get(src: AppImageToolBinaries[osKey], dest: AppImageToolBinary)
+                println 'Download saved to ' + jpackageTempDir
+
+                project.exec {
+                    commandLine('chmod', '+x', AppImageToolBinary)
+                }
+
+                copy {
+                    from templateAppDir
+                    into appDir
+                    boolean includeEmptyDirs = true
+                }
+
+                project.exec {
+                    workingDir appDir
+                    commandLine 'ln', '-s', 'bin/Haveno', 'AppRun'
+                }
+
+                project.exec {
+                    commandLine "${AppImageToolBinary}", appDir, "${binariesFolderPath}/haveno_${appVersion}.AppImage"
+                }
+            } else {
+                println "Your platform does not support AppImageTool ${AppImageToolVersion}"
+            }
+
+
             // Clean jpackage temp folder, needs to be empty for the next packaging step (rpm)
             jpackageTempDir.deleteDir()
             jpackageTempDir.mkdirs()
@@ -398,6 +463,7 @@ task packageInstallers {
                     from binariesFolderPath
                     into envVariableSharedFolder
                 }
+
                 executeCmd("open " + envVariableSharedFolder)
             }
         }

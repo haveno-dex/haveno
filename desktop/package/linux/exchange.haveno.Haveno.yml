@@ -12,6 +12,17 @@ modules:
       - /usr/lib/sdk/openjdk21/install.sh
   - name: Haveno
     buildsystem: simple
+    sources:
+      # - type: git
+      #   url: https://github.com/haveno-dex/haveno
+      - type: dir
+        path: build
+      - type: file
+        path: package/linux/Haveno.desktop
+      - type: file
+        path: package/linux/exchange.haveno.Haveno.metainfo.xml
+      - type: file
+        path: package/linux/icon.png
     build-commands:
       - ls
       - pwd
@@ -24,20 +35,9 @@ modules:
       - mkdir -p /app/share/icons/hicolor/128x128/apps/
       - mkdir -p /app/share/applications/
       - mkdir -p /app/share/metainfo/
-      - mv task_bar_icon_windows.png /app/share/icons/hicolor/128x128/apps/exchange.haveno.Haveno.png
+      - mv icon.png /app/share/icons/hicolor/128x128/apps/haveno.png
       - mv Haveno.desktop /app/share/applications/exchange.haveno.Haveno.desktop
       - mv exchange.haveno.Haveno.metainfo.xml /app/share/metainfo/
-    sources:
-      # - type: git
-      #   url: https://github.com/haveno-dex/haveno
-      - type: dir
-        path: build
-      - type: file
-        path: package/linux/Haveno.desktop
-      - type: file
-        path: package/linux/exchange.haveno.Haveno.metainfo.xml
-      - type: file
-        path: src/main/resources/images/task_bar_icon_windows.png
 
 # TODO: xdg-open fails
 finish-args:

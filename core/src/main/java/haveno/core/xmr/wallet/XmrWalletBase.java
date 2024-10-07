@@ -27,7 +27,7 @@ import monero.wallet.model.MoneroWalletListener;
 public class XmrWalletBase {
 
     // constants
-    public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 60;
+    public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 120;
     public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
 
     // inherited

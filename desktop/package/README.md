@@ -7,10 +7,15 @@ Follow these instructions to create installers for the Haveno Java desktop appli
 
 From x86_64 machine:
 
+1. `sudo apt-get update`
+2. `sudo apt install -y rpm fuse`
 1. `./gradlew clean build --refresh-keys --refresh-dependencies` (or `make clean && skip-tests` after refreshed)
 2. `./gradlew packageInstallers`
 3. Confirm prompts.
-4. Path to installer is printed at the end. Execute to install: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
+4. Path to installer is printed at the end. Execute to install, e.g.: `sudo dpkg -i <path>.deb` or open `<path>.deb` with Software Install.
+
+Note: Please see [flatpak.md](../../docs/flatpak.md) for information on
+distributing Haveno via Flatpak.
 
 Note: Please see [flatpak.md](../../docs/flatpak.md) for information on
 distributing Haveno via Flatpak.
