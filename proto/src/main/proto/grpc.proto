@@ -323,6 +323,8 @@ service XmrConnections {
     }
     rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
     }
+    rpc GetAutoSwitch(GetAutoSwitchRequest) returns (GetAutoSwitchReply) {
+    }
 }
 
 message UrlConnection {
@@ -409,6 +411,12 @@ message SetAutoSwitchRequest {
 }
 
 message SetAutoSwitchReply {}
+
+message GetAutoSwitchRequest {}
+
+message GetAutoSwitchReply {
+    bool auto_switch = 1;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // XmrNode

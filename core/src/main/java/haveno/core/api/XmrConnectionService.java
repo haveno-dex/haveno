@@ -349,6 +349,11 @@ public final class XmrConnectionService {
         connectionList.setAutoSwitch(autoSwitch);
     }
 
+    public boolean getAutoSwitch() {
+        accountService.checkAccountOpen();
+        return connectionList.getAutoSwitch();
+    }
+
     public boolean isConnectionLocalHost() {
         return isConnectionLocalHost(getConnection());
     }
