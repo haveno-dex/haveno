@@ -45,6 +45,8 @@ import haveno.proto.grpc.CheckConnectionReply;
 import haveno.proto.grpc.CheckConnectionRequest;
 import haveno.proto.grpc.CheckConnectionsReply;
 import haveno.proto.grpc.CheckConnectionsRequest;
+import haveno.proto.grpc.GetAutoSwitchReply;
+import haveno.proto.grpc.GetAutoSwitchRequest;
 import haveno.proto.grpc.GetBestAvailableConnectionReply;
 import haveno.proto.grpc.GetBestAvailableConnectionRequest;
 import haveno.proto.grpc.GetConnectionReply;
@@ -218,6 +220,16 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
         handleRequest(responseObserver, () -> {
             coreApi.setXmrConnectionAutoSwitch(request.getAutoSwitch());
             return SetAutoSwitchReply.newBuilder().build();
+        });
+    }
+
+    @Override
+    public void getAutoSwitch(GetAutoSwitchRequest request,
+                              StreamObserver<GetAutoSwitchReply> responseObserver) {
+        handleRequest(responseObserver, () -> {
+            GetAutoSwitchReply.Builder builder = GetAutoSwitchReply.newBuilder();
+            builder.setAutoSwitch(coreApi.getXmrConnectionAutoSwitch());
+            return builder.build();
         });
     }
 
