@@ -415,7 +415,8 @@ task packageInstallers {
             } else {
                 throw new GradleException("DEFAULT_APP_NAME not found in HavenoExecutable.java")
             }
-            // copy the manifest to a new tmp one in the same place
+
+            // Copy the manifest to a new tmp one in the same place
             // and add a --filesystem=.local/share/${name} to the flatpak manifest
             def manifest = file(flatpakManifestFile)
             def newManifest = file('exchange.haveno.Haveno.yaml')

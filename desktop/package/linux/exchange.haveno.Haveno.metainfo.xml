@@ -31,7 +31,7 @@
   <description>
     <p>Haveno (pronounced ha‧ve‧no) is a platform for people who want to exchange Monero for fiat currencies like EUR, GBP, and USD or other cryptocurrencies like BTC, ETH, and BCH.</p>
     <ul>
-      <li>All communications are routed through  Tor, to preserve your privacy
+      <li>All communications are routed through Tor, to preserve your privacy
       </li>
       <li>Trades are peer-to-peer: trades on Haveno will happen between people only, there is no central authority.
       </li>
@@ -44,7 +44,7 @@
   </description>
   <screenshots>
     <screenshot type="default">
-      <image>https://files.catbox.moe/8pahgg.png</image>
+      <image>https://github.com/haveno-dex/haveno/blob/master/desktop/package/linux/preview.png</image>
       <caption>Recent Trades page</caption>
     </screenshot>
   </screenshots>
