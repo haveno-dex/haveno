@@ -29,5 +29,5 @@ use a web server, or something like
 [flat-manager](https://github.com/flatpak/flat-manager).
 
 An example Haveno flat-manager solution using `docker-compose` has been created
-and documented at <https://gitlab.com/Jabster28/flatman-haveno-test.git> if you
+and documented at <https://github.com/haveno-dex/flatman-haveno-test> if you
 want a quick way to get started. Note that this does require an always-on server.
