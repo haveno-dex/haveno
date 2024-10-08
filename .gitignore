@@ -37,3 +37,5 @@ deploy
 .vscode
 .vim/*
 */.factorypath
+.flatpak-builder
+exchange.haveno.Haveno.yaml
