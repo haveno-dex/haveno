@@ -39,7 +39,8 @@ public class PreferenceMakers {
     public static final Instantiator<Preferences> Preferences = lookup -> new Preferences(
             lookup.valueOf(storage, new SameValueDonor<PersistenceManager>(null)),
             lookup.valueOf(config, new SameValueDonor<Config>(null)),
-            lookup.valueOf(useTorFlagFromOptions, new SameValueDonor<String>(null))
+            lookup.valueOf(useTorFlagFromOptions, new SameValueDonor<String>(null)),
+            null
             );
 
     public static final Preferences empty = make(a(Preferences));
