@@ -109,6 +109,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean usePriceNotifications = true;
     private boolean useStandbyMode = false;
     private boolean useSoundForNotifications = true;
+    private boolean useSoundForNotificationsInitialized = false;
     @Nullable
     private String rpcUser;
     @Nullable
@@ -187,6 +188,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setUsePriceNotifications(usePriceNotifications)
                 .setUseStandbyMode(useStandbyMode)
                 .setUseSoundForNotifications(useSoundForNotifications)
+                .setUseSoundForNotificationsInitialized(useSoundForNotificationsInitialized)
                 .setBuyerSecurityDepositAsPercent(buyerSecurityDepositAsPercent)
                 .setIgnoreDustThreshold(ignoreDustThreshold)
                 .setClearDataAfterDays(clearDataAfterDays)
@@ -283,6 +285,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getUsePriceNotifications(),
                 proto.getUseStandbyMode(),
                 proto.getUseSoundForNotifications(),
+                proto.getUseSoundForNotificationsInitialized(),
                 proto.getRpcUser().isEmpty() ? null : proto.getRpcUser(),
                 proto.getRpcPw().isEmpty() ? null : proto.getRpcPw(),
                 proto.getTakeOfferSelectedPaymentAccountId().isEmpty() ? null : proto.getTakeOfferSelectedPaymentAccountId(),

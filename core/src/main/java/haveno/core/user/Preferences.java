@@ -314,6 +314,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
                     });
         }
 
+        // enable sounds by default for existing clients (protobuf does not express that new field is unset)
+        if (!prefPayload.isUseSoundForNotificationsInitialized()) {
+            prefPayload.setUseSoundForNotificationsInitialized(true);
+            setUseSoundForNotifications(true);
+        }
+
         initialReadDone = true;
         requestPersistence();
     }
