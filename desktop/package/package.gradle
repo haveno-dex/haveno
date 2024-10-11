@@ -263,26 +263,41 @@ task packageInstallers {
                         " --app-version ${appVersion}" +
                         " --copyright \"${appCopyright}\"" +
                         " --vendor ${appNameAndVendor}" +
-                        " --temp \"${jpackageTempDir}\"" +
+                        " --temp \"${jpackageTempDir}\""
+        )
 
-                        // Options for creating the application image
-                        " --input ${fatJarFolderPath}" +
+        // stores temporary app-image directory
+        File jpackageAppImageContainer = new File(tempRootDir, "jpackage-app-image")
+        File jpackageAppImage = new File(jpackageAppImageContainer, "Haveno")
+        jpackageAppImageContainer.mkdirs()
 
-                        // Options for creating the application launcher
-                        " --main-jar ${mainJarName}" +
-                        " --main-class haveno.desktop.app.HavenoAppMain" +
-                        " --java-options -Xss1280k" +
-                        " --java-options -XX:MaxRAM=4g" +
-                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED" +
-                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED" +
-                        " --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED" +
-                        " --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED" +
-                        " --java-options -Djava.net.preferIPv4Stack=true" +
-                        " --arguments --baseCurrencyNetwork=XMR_STAGENET"
+        // package generic app-image
+        executeCmd(jPackageFilePath + commonOpts +
+                // Options for creating the application launcher
+                " --main-jar ${mainJarName}" +
+                " --main-class haveno.desktop.app.HavenoAppMain" +
+                " --java-options -Xss1280k" +
+                " --java-options -XX:MaxRAM=4g" +
+                " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED" +
+                " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED" +
+                " --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED" +
+                " --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED" +
+                " --java-options -Djava.net.preferIPv4Stack=true" +
                 // Warning: this will cause guice reflection exceptions and lead to issues with the guice internal cache
                 // resulting in the UI not loading
-//              " --java-options -Djdk.module.illegalAccess=deny" +
-        )
+                // " --java-options -Djdk.module.illegalAccess=deny" +
+                " --arguments --baseCurrencyNetwork=XMR_STAGENET" +
+                " --input ${fatJarFolderPath}" +
+
+                " --dest \"${jpackageAppImageContainer}\"" +
+                " --type app-image")
+
+        // Clean jpackage temp folder, needs to be empty for the next packaging step.
+        jpackageTempDir.deleteDir()
+        jpackageTempDir.mkdirs()
+
+        // Make future packaging attempts use existing app-image
+        commonOpts += " --app-image \"${jpackageAppImage}\""
 
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
             String windowsOpts = new String(
@@ -328,12 +343,14 @@ task packageInstallers {
             jpackageTempDir.deleteDir()
             jpackageTempDir.mkdirs()
 
-            executeCmd(jPackageFilePath + commonOpts +
-                    " --dest \"${jpackageTempDir}\"" +
-                    " --type app-image")
+            // Copy over app-image for AppImage packaging
+            copy {
+                from jpackageAppImage
+                into new File(jpackageTempDir, "Haveno")
+            }
 
             // Path to the app-image directory: THIS IS NOT THE ACTUAL .AppImage FILE.
-            // See JPackage documentation on --type app-image for more.
+            // See JPackage documentation on `--type app-image` for more.
             String appImagePath = new String(
                     "\"${binariesFolderPath}/${appNameAndVendor}\""
             )
@@ -396,6 +413,9 @@ task packageInstallers {
                     " --linux-rpm-license-type AGPLv3" + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
                     " --type rpm")
 
+            // Clean jpackage temp folder, needs to be empty for the next packaging step (rpm)
+            jpackageTempDir.deleteDir()
+            jpackageTempDir.mkdirs()
 
 
             // Define Flatpak-related properties
