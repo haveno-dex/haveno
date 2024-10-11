@@ -84,7 +84,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // TODO: regular expression is used to parse application name for the flatpak manifest, a more stable approach would be nice
     // Don't edit the next line unless you're only editing in between the quotes.
-    public static final String DEFAULT_APP_NAME = "Haveno";
+    public static final String DEFAULT_APP_NAME = "Haveno-reto";
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
@@ -385,7 +385,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                     // shut down monero wallets and connections
                     log.info("Shutting down wallet and connection services");
                     injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
-                        
+
                         // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
