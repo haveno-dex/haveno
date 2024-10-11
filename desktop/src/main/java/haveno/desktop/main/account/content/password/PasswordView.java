@@ -39,6 +39,7 @@ import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addPasswordTextField;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.PasswordValidator;
 import javafx.beans.value.ChangeListener;
@@ -157,8 +158,9 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                 backupWalletAndResetFields();
                 walletsManager.clearBackup();
             } catch (Throwable t) {
+                log.error("Error applying password: {}\n", t.getMessage(), t);
                 new Popup()
-                        .warning(Res.get("password.walletEncryptionFailed"))
+                        .warning(Res.get("password.walletEncryptionFailed") + "\n\n" + ExceptionUtils.getStackTrace(t))
                         .show();
             }
         }
