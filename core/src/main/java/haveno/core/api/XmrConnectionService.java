@@ -499,7 +499,7 @@ public final class XmrConnectionService {
                 xmrLocalNode.addListener(new XmrLocalNodeListener() {
                     @Override
                     public void onNodeStarted(MoneroDaemonRpc daemon) {
-                        log.info("Local monero node started");
+                        log.info("Local monero node started, height={}", daemon.getHeight());
                     }
 
                     @Override
