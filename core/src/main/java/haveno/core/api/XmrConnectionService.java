@@ -588,7 +588,7 @@ public final class XmrConnectionService {
 
                 // restore auto switch
                 if (coreContext.isApiUser()) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
-                else connectionManager.setAutoSwitch(true);
+                else connectionManager.setAutoSwitch(true); // auto switch is always enabled on desktop ui
 
                 // start local node if applicable
                 maybeStartLocalNode();
