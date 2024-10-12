@@ -120,22 +120,18 @@ public class TradeStatisticsManager {
         // collect duplicated trades
         Set<TradeStatistics3> duplicates = new HashSet<TradeStatistics3>();
         Set<TradeStatistics3> deduplicates = new HashSet<TradeStatistics3>();
-        Set<TradeStatistics3> usedAsDuplicate = new HashSet<TradeStatistics3>();
         for (TradeStatistics3 tradeStatistic : earlyTrades) {
-            TradeStatistics3 fuzzyDuplicate = findFuzzyDuplicate(tradeStatistic, deduplicates, usedAsDuplicate);
+            TradeStatistics3 fuzzyDuplicate = findFuzzyDuplicate(tradeStatistic, deduplicates);
             if (fuzzyDuplicate == null) deduplicates.add(tradeStatistic);
-            else {
-                duplicates.add(tradeStatistic);
-                usedAsDuplicate.add(fuzzyDuplicate);
-            }
+            else duplicates.add(tradeStatistic);
         }
 
         // remove duplicated trades
         tradeStats.removeAll(duplicates);
     }
 
-    private TradeStatistics3 findFuzzyDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set, Set<TradeStatistics3> excluded) {
-        return set.stream().filter(e -> !excluded.contains(e)).filter(e -> isFuzzyDuplicate(tradeStatistics, e)).findFirst().orElse(null);
+    private TradeStatistics3 findFuzzyDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
+        return set.stream().filter(e -> isFuzzyDuplicate(tradeStatistics, e)).findFirst().orElse(null);
     }
 
     private boolean isFuzzyDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
