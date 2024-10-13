@@ -12,7 +12,7 @@ Install Haveno on Tails by following these steps:
     Replace the binary zip URL and PGP fingerprint for the network you're using. For example:
     
     ```
-    curl -x socks5h://127.0.0.1:9050 -fsSLO https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/haveno-install.sh && bash haveno-install.sh "https://github.com/havenoexample/haveno-example/releases/download/v1.0.11/haveno_amd64_deb-latest.zip" "FAA2 4D87 8B8D 36C9 0120 A897 CA02 DAC1 2DAE 2D0F"
+    curl -x socks5h://127.0.0.1:9050 -fsSLO https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/haveno-install.sh && bash haveno-install.sh "https://github.com/havenoexample/haveno-example/releases/download/v1.0.12/haveno-linux-deb.zip" "FAA2 4D87 8B8D 36C9 0120 A897 CA02 DAC1 2DAE 2D0F"
     ```
     
 3. Upon successful execution of the script (no errors), the Haveno release will be installed to persistent storage and can be launched via the desktop shortcut in the 'Other' section of the start menu.
