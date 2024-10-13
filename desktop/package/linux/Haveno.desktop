@@ -11,4 +11,3 @@ Terminal=false
 Type=Application
 MimeType=
 X-AppImage-Name=Haveno
-StartupWMClass=Haveno
