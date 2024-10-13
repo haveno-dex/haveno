@@ -161,11 +161,11 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // verify and publish payout tx
             if (!trade.isPayoutPublished()) {
-                if (isSigned) {
-                    log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
-                    trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
-                } else {
-                    try {
+                try {
+                    if (isSigned) {
+                        log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
+                        trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
+                    } else {
                         PaymentSentMessage paymentSentMessage = (trade.isArbitrator() ? trade.getBuyer() : trade.getArbitrator()).getPaymentSentMessage();
                         if (paymentSentMessage == null) throw new RuntimeException("Process model does not have payment sent message for " + trade.getClass().getSimpleName() + " " + trade.getId());
                         if (trade.getPayoutTxHex() == null) { // unsigned
@@ -175,12 +175,12 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                             log.info("{} {} re-verifying and publishing signed payout tx", trade.getClass().getSimpleName(), trade.getId());
                             trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
                         }
-                    } catch (Exception e) {
-                        HavenoUtils.waitFor(trade.getXmrConnectionService().getRefreshPeriodMs()); // wait to see published tx
-                        trade.syncAndPollWallet();
-                        if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
-                        else throw e;
                     }
+                } catch (Exception e) {
+                    HavenoUtils.waitFor(trade.getXmrConnectionService().getRefreshPeriodMs()); // wait to see published tx
+                    trade.syncAndPollWallet();
+                    if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
+                    else throw e;
                 }
             }
         } else {
