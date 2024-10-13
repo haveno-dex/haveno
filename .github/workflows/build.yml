@@ -70,30 +70,31 @@ jobs:
       - name: Move Release Files on Unix
         if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
         run: |
-          mkdir ${{ github.workspace }}/release
           if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
-            mkdir ${{ github.workspace }}/release-rpm
-            mkdir ${{ github.workspace }}/release-deb
-            mkdir ${{ github.workspace }}/release-flat
-            mkdir ${{ github.workspace }}/release-appimage
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-rpm/Haveno-${{ env.VERSION }}-linux-x86_64-installer.rpm
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-deb/Haveno-${{ env.VERSION }}-linux-x86_64-installer.deb
-            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-flat/Haveno-${{ env.VERSION }}-linux-x86_64.flatpak
-            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-appimage/Haveno-${{ env.VERSION }}-linux-x86_64.AppImage
+            mkdir ${{ github.workspace }}/release-linux-rpm
+            mkdir ${{ github.workspace }}/release-linux-deb
+            mkdir ${{ github.workspace }}/release-linux-flatpak
+            mkdir ${{ github.workspace }}/release-linux-appimage
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-x86_64-installer.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-x86_64-installer.deb
+            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-x86_64.flatpak
+            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-x86_64.AppImage
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-deb
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-rpm
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-appimage
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-flatpak
           else
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}-mac-installer.dmg
+            mkdir ${{ github.workspace }}/release-macos
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-macos
           fi
-          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-deb
-          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-rpm
-          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-appimage
-          cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-flat
         shell: bash
       - name: Move Release Files on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          mkdir ${{ github.workspace }}/release
-          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release/Haveno-${{ env.VERSION }}-windows-installer.exe
-          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release
+          mkdir ${{ github.workspace }}/release-windows
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
+          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
         shell: powershell
 
       # win
@@ -102,38 +103,38 @@ jobs:
         if: ${{ matrix.os == 'windows-latest'}}
         with:
           name: haveno-windows
-          path: ${{ github.workspace }}/release
+          path: ${{ github.workspace }}/release-windows
       # macos
       - uses: actions/upload-artifact@v3
         name: "macOS artifacts"
         if: ${{ matrix.os == 'macos-13'  }}
         with:
           name: haveno-macos
-          path: ${{ github.workspace }}/release
+          path: ${{ github.workspace }}/release-macos
       # linux
       - uses: actions/upload-artifact@v3
         name: "Linux - deb artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-deb
-          path: ${{ github.workspace }}/release-deb
+          path: ${{ github.workspace }}/release-linux-deb
       - uses: actions/upload-artifact@v3
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-rpm
-          path: ${{ github.workspace }}/release-rpm
+          path: ${{ github.workspace }}/release-linux-rpm
 
       - uses: actions/upload-artifact@v3
         name: "Linux - AppImage artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-appimage
-          path: ${{ github.workspace }}/release-appimage
+          path: ${{ github.workspace }}/release-linux-appimage
 
       - uses: actions/upload-artifact@v3
         name: "Linux - flatpak artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-flatpak
-          path: ${{ github.workspace }}/release-flat
+          path: ${{ github.workspace }}/release-linux-flatpak
