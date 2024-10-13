@@ -271,8 +271,7 @@ task packageInstallers {
         File jpackageAppImage = new File(jpackageAppImageContainer, "Haveno")
         jpackageAppImageContainer.mkdirs()
 
-        // package generic app-image
-        executeCmd(jPackageFilePath + commonOpts +
+        String buildingOpts = new String(
                 // Options for creating the application launcher
                 " --main-jar ${mainJarName}" +
                 " --main-class haveno.desktop.app.HavenoAppMain" +
@@ -287,16 +286,22 @@ task packageInstallers {
                 // resulting in the UI not loading
                 // " --java-options -Djdk.module.illegalAccess=deny" +
                 " --arguments --baseCurrencyNetwork=XMR_STAGENET" +
-                " --input ${fatJarFolderPath}" +
+                " --input ${fatJarFolderPath}"
+        )
 
-                " --dest \"${jpackageAppImageContainer}\"" +
-                " --type app-image")
+        // package generic app-image if not on macos
+        if (!Os.isFamily(Os.FAMILY_MAC)) {
+            executeCmd(jPackageFilePath + commonOpts + buildingOpts
+                    " --dest \"${jpackageAppImageContainer}\"" +
+                    " --type app-image")
+        }
 
         // Clean jpackage temp folder, needs to be empty for the next packaging step.
         jpackageTempDir.deleteDir()
         jpackageTempDir.mkdirs()
 
         // Make future packaging attempts use existing app-image
+        String originalCommonOpts = commonOpts;
         commonOpts += " --app-image \"${jpackageAppImage}\""
 
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
@@ -318,7 +323,7 @@ task packageInstallers {
                     " --resource-dir \"${project(':desktop').projectDir}/package/macosx\""
             )
 
-            executeCmd(jPackageFilePath + commonOpts + macOpts + " --type dmg")
+            executeCmd(jPackageFilePath + originalCommonOpts + macOpts + buildingOpts + " --type dmg")
         } else {
             String linuxOpts = new String(
                     " --icon ${project(':desktop').projectDir}/package/linux/icon.png" +
