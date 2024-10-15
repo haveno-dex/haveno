@@ -90,8 +90,12 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // sign account witness
             AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
             if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
-                accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
-                log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
+                try {
+                    accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
+                    log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
+                } catch (Exception e) {
+                    log.warn("Failed to sign and publish peer's account age witness for {} {}, error={}\n", getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                }
             }
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the

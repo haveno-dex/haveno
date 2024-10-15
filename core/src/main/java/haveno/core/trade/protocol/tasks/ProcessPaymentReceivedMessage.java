@@ -105,12 +105,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // advance state, arbitrator auto completes when payout published
             trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
 
-            // publish signed witness
+            // buyer republishes signed witness for resilience
             SignedWitness signedWitness = message.getBuyerSignedWitness();
             if (signedWitness != null && trade instanceof BuyerTrade) {
-                // We received the signedWitness from the seller and publish the data to the network.
-                // The signer has published it as well but we prefer to re-do it on our side as well to achieve higher
-                // resilience.
                 processModel.getAccountAgeWitnessService().publishOwnSignedWitness(signedWitness);
             }
 
