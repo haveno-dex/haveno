@@ -1080,6 +1080,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                             handleWalletError(e, sourceConnection);
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                            doPollWallet();
                         }
                     }
                 }
@@ -1254,6 +1255,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                        doPollWallet();
                     }
                 }
                 throw new RuntimeException("Failed to create payout tx for " + getClass().getSimpleName() + " " + getId());
@@ -1283,6 +1285,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                        doPollWallet();
                     } finally {
                         requestSaveWallet();
                         requestPersistence();
