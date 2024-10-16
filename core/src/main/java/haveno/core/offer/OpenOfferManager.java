@@ -1855,7 +1855,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private boolean preventedFromPublishing(OpenOffer openOffer) {
-        return openOffer.isDeactivated() || openOffer.isCanceled();
+        return openOffer.isDeactivated() || openOffer.isCanceled() || openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null;
     }
 
     private void startPeriodicRepublishOffersTimer() {
