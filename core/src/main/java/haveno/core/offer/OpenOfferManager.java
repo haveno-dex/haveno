@@ -62,6 +62,7 @@ import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.offer.placeoffer.PlaceOfferProtocol;
+import haveno.core.offer.placeoffer.tasks.ValidateOffer;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -931,6 +932,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // done processing if wallet not initialized
                 if (xmrWalletService.getWallet() == null) {
                     resultHandler.handleResult(null);
+                    return;
+                }
+
+                // validate offer
+                try {
+                    ValidateOffer.validateOffer(openOffer.getOffer(), accountAgeWitnessService, user);
+                } catch (Exception e) {
+                    errorMessageHandler.handleErrorMessage("Failed to validate offer: " + e.getMessage());
                     return;
                 }
 
