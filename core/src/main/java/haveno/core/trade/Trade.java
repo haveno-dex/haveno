@@ -1080,6 +1080,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                             handleWalletError(e, sourceConnection);
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                            doPollWallet();
                         }
                     }
                 }
@@ -1254,6 +1255,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                        doPollWallet();
                     }
                 }
                 throw new RuntimeException("Failed to create payout tx for " + getClass().getSimpleName() + " " + getId());
@@ -1283,6 +1285,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         handleWalletError(e, sourceConnection);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                        doPollWallet();
                     } finally {
                         requestSaveWallet();
                         requestPersistence();
@@ -2438,7 +2441,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
     
-            if (pollWallet) pollWallet();
+            if (pollWallet) doPollWallet();
         } catch (Exception e) {
             ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             throw e;
@@ -2500,10 +2503,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void doPollWallet() {
+
+        // skip if shut down started
         if (isShutDownStarted) return;
+
+        // set poll in progress
+        boolean pollInProgressSet = false;
         synchronized (pollLock) {
+            if (!pollInProgress) pollInProgressSet = true;
             pollInProgress = true;
         }
+
+        // poll wallet
         try {
 
             // skip if payout unlocked
@@ -2628,8 +2639,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
         } finally {
-            synchronized (pollLock) {
-                pollInProgress = false;
+            if (pollInProgressSet) {
+                synchronized (pollLock) {
+                    pollInProgress = false;
+                }
             }
             requestSaveWallet();
         }
