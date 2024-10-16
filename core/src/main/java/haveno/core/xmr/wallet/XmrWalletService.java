@@ -1837,10 +1837,18 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void doPollWallet(boolean updateTxs) {
+
+        // skip if shut down started
+        if (isShutDownStarted) return;
+
+        // set poll in progress
+        boolean pollInProgressSet = false;
         synchronized (pollLock) {
+            if (!pollInProgress) pollInProgressSet = true;
             pollInProgress = true;
         }
-        if (isShutDownStarted) return;
+
+        // poll wallet
         try {
 
             // skip if daemon not synced
@@ -1903,8 +1911,10 @@ public class XmrWalletService extends XmrWalletBase {
                 //e.printStackTrace();
             }
         } finally {
-            synchronized (pollLock) {
-                pollInProgress = false;
+            if (pollInProgressSet) {
+                synchronized (pollLock) {
+                    pollInProgress = false;
+                }
             }
 
             // cache wallet info last

@@ -2500,10 +2500,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void doPollWallet() {
+
+        // skip if shut down started
         if (isShutDownStarted) return;
+
+        // set poll in progress
+        boolean pollInProgressSet = false;
         synchronized (pollLock) {
+            if (!pollInProgress) pollInProgressSet = true;
             pollInProgress = true;
         }
+
+        // poll wallet
         try {
 
             // skip if payout unlocked
@@ -2628,8 +2636,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
         } finally {
-            synchronized (pollLock) {
-                pollInProgress = false;
+            if (pollInProgressSet) {
+                synchronized (pollLock) {
+                    pollInProgress = false;
+                }
             }
             requestSaveWallet();
         }
