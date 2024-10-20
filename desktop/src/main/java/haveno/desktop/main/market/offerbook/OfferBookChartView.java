@@ -207,16 +207,21 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
                         @Override
                         public String toString(Number object) {
-                            final double doubleValue = (double) object;
-                            if (CurrencyUtil.isCryptoCurrency(model.getCurrencyCode())) {
-                                final String withCryptoPrecision = FormattingUtils.formatRoundedDoubleWithPrecision(doubleValue, cryptoPrecision);
-                                if (withCryptoPrecision.startsWith("0.0")) {
-                                    return FormattingUtils.formatRoundedDoubleWithPrecision(doubleValue, 8).replaceFirst("0+$", "");
+                            try {
+                                final double doubleValue = (double) object;
+                                if (CurrencyUtil.isCryptoCurrency(model.getCurrencyCode())) {
+                                    final String withCryptoPrecision = FormattingUtils.formatRoundedDoubleWithPrecision(doubleValue, cryptoPrecision);
+                                    if (withCryptoPrecision.startsWith("0.0")) {
+                                        return FormattingUtils.formatRoundedDoubleWithPrecision(doubleValue, 8).replaceFirst("0+$", "");
+                                    } else {
+                                        return withCryptoPrecision.replaceFirst("0+$", "");
+                                    }
                                 } else {
-                                    return withCryptoPrecision.replaceFirst("0+$", "");
+                                    return df.format(Double.parseDouble(FormattingUtils.formatRoundedDoubleWithPrecision(doubleValue, 0)));
                                 }
-                            } else {
-                                return df.format(Double.parseDouble(FormattingUtils.formatRoundedDoubleWithPrecision(doubleValue, 0)));
+                            } catch (IllegalArgumentException e) {
+                                log.error("Error converting number to string, tradeCurrency={}, number={}\n", code, object, e);
+                                return "NaN"; // TODO: occasionally getting invalid number
                             }
                         }
 
