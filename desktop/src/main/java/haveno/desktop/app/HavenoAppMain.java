@@ -38,6 +38,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
@@ -228,6 +229,17 @@ public class HavenoAppMain extends HavenoExecutable {
                     return null;
                 }
             });
+
+            // Focus the password field when dialog is shown
+            Window window = getDialogPane().getScene().getWindow();
+            if (window instanceof Stage) {
+                Stage dialogStage = (Stage) window;
+                dialogStage.focusedProperty().addListener((observable, oldValue, newValue) -> {
+                    if (newValue) {
+                        passwordField.requestFocus();
+                    }
+                });
+            }
         }
     }
 }
