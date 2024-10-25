@@ -1064,6 +1064,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public void importMultisigHexIfNeeded() {
+        synchronized (walletLock) {
+            if (wallet.isMultisigImportNeeded()) {
+                importMultisigHex();
+            }
+        }
+    }
+
     public void importMultisigHex() {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
@@ -1183,6 +1191,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // create payout tx
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
+
+                // import multisig hex if needed
+                importMultisigHexIfNeeded();
+
+                // create payout tx
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
