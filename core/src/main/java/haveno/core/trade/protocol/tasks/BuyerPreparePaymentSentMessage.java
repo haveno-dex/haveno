@@ -36,6 +36,7 @@ package haveno.core.trade.protocol.tasks;
 
 import com.google.common.base.Preconditions;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
@@ -79,15 +80,21 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             // create payout tx if we have seller's updated multisig hex
             if (trade.getSeller().getUpdatedMultisigHex() != null) {
 
-                // import multisig hex
-                trade.importMultisigHex();
+                // synchronize on lock for wallet operations
+                synchronized (trade.getWalletLock()) {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
 
-                // create payout tx
-                log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
-                MoneroTxWallet payoutTx = trade.createPayoutTx();
-                trade.updatePayout(payoutTx);
-                trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
-                trade.requestPersistence();
+                        // import multisig hex
+                        trade.importMultisigHex();
+
+                        // create payout tx
+                        log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
+                        MoneroTxWallet payoutTx = trade.createPayoutTx();
+                        trade.updatePayout(payoutTx);
+                        trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                        trade.requestPersistence();
+                    }
+                }
             }
 
             complete();
