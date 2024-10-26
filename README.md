@@ -1,9 +1,8 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/haveno-dex/haveno-meta/721e52919b28b44d12b6e1e5dac57265f1c05cda/logo/haveno_logo_landscape.svg" alt="Haveno logo">
 
-  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/505405b43cb74d5a996f106a3371588e)](https://app.codacy.com/gh/haveno-dex/haveno/dashboard)
   ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/haveno-dex/haveno/build.yml?branch=master)
-  [![GitHub issues with bounty](https://img.shields.io/github/issues-search/haveno-dex/haveno?color=%23fef2c0&label=Issues%20with%20bounties&query=project%3Ahaveno-dex%2F2)](https://github.com/orgs/haveno-dex/projects/2) |
+  [![GitHub issues with bounty](https://img.shields.io/github/issues-search/haveno-dex/haveno?color=%23fef2c0&label=Issues%20with%20bounties&query=is%3Aopen+is%3Aissue+label%3A%F0%9F%92%B0bounty)](https://github.com/haveno-dex/haveno/issues?q=is%3Aopen+is%3Aissue+label%3A%F0%9F%92%B0bounty)
   [![Twitter Follow](https://img.shields.io/twitter/follow/HavenoDEX?style=social)](https://twitter.com/havenodex)
   [![Matrix rooms](https://img.shields.io/badge/Matrix%20room-%23haveno-blue)](https://matrix.to/#/#haveno:monero.social) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/haveno-dex/.github/blob/master/CODE_OF_CONDUCT.md)
 </div>
@@ -14,7 +13,7 @@ Haveno (pronounced ha‧ve‧no) is an open source platform to exchange [Monero]
 
 Main features:
 
-- All communications are routed through **Tor**, to preserve your privacy
+- Communications are routed through **Tor**, to preserve your privacy.
 
 - Trades are **peer-to-peer**: trades on Haveno happen between people only, there is no central authority.
 
@@ -24,24 +23,22 @@ Main features:
 
 See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
-## Status of the project
+## Running Haveno
 
-Haveno can be used on Monero's main network by using a third party Haveno network. We do not officially endorse any networks at this time.
+Haveno can be used on Monero's main network by using a third party installer and network. We do not endorse any networks at this time.
 
 A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the network.
 
 Note that Haveno is being actively developed. If you find issues or bugs, please let us know.
 
-Main repositories:
+## Main repositories
 
 - **[haveno](https://github.com/haveno-dex/haveno)** - This repository. The core of Haveno.
-- **[haveno-ui](https://github.com/haveno-dex/haveno-ui)** - The user interface.
 - **[haveno-ts](https://github.com/haveno-dex/haveno-ts)** - TypeScript library for using Haveno.
+- **[haveno-ui](https://github.com/haveno-dex/haveno-ui)** - A new user interface (WIP).
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
 
-If you wish to help, take a look at the repositories above and look for open issues. We run a bounty program to incentivize development. See [Bounties](#bounties)
-
-The PGP keys of the core team members are in `gpg_keys/`.
+If you wish to help, take a look at the repositories above and look for open issues. We run a bounty program to incentivize development. See [Bounties](#bounties).
 
 ## Keep in touch and help out!
 
@@ -63,7 +60,7 @@ If you are not able to contribute code and want to contribute development resour
 
 ## Bounties
 
-To incentivize development and reward contributors we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). Take a look at the issues eligible for a bounty on the [dedicated Kanban board](https://github.com/orgs/haveno-dex/projects/2) or look for [issues labelled '💰bounty'](https://github.com/haveno-dex/haveno/issues?q=is%3Aissue+is%3Aopen+label%3A%F0%9F%92%B0bounty) in the main `haveno` repository. [Details and conditions for receiving a bounty](docs/bounties.md).
+To incentivize development and reward contributors, we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). Take a look at the [issues labeled '💰bounty'](https://github.com/haveno-dex/haveno/issues?q=is%3Aopen+is%3Aissue+label%3A%F0%9F%92%B0bounty) in the main `haveno` repository. [Details and conditions for receiving a bounty](docs/bounties.md).
 
 ## Support and sponsorships
 
