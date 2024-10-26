@@ -23,11 +23,13 @@ Main features:
 
 See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
-## Running Haveno
+## Installing Haveno
 
-Haveno can be used on Monero's main network by using a third party installer and network. We do not endorse any networks at this time.
+Haveno can be installed on Linux, macOS, and Windows by using a third party installer and network. We do not endorse any networks at this time.
 
-A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the network.
+A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the test network.
+
+Alternatively, you can [start your own network](https://github.com/haveno-dex/haveno/blob/master/docs/create-mainnet.md).
 
 Note that Haveno is being actively developed. If you find issues or bugs, please let us know.
 
