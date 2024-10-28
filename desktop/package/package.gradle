@@ -7,40 +7,40 @@ task jpackageSanityChecks {
     description 'Interactive sanity checks on the version of the code that will be packaged'
 
     doLast {
-        if (!System.getenv("CI")) {
-            executeCmd("git --no-pager log -5 --oneline")
-            ant.input(message: "Above you see the current HEAD and its recent history.\n" +
-                    "Is this the right commit for packaging? (y=continue, n=abort)",
-                    addproperty: "sanity-check-1",
-                    validargs: "y,n")
+        if (!System.getenv('CI')) {
+            executeCmd('git --no-pager log -5 --oneline')
+            ant.input(message: 'Above you see the current HEAD and its recent history.\n' +
+                    'Is this the right commit for packaging? (y=continue, n=abort)',
+                    addproperty: 'sanity-check-1',
+                    validargs: 'y,n')
             if (ant.properties['sanity-check-1'] == 'n') {
                 ant.fail('Aborting')
             }
 
-            executeCmd("git status --short --branch")
-            ant.input(message: "Above you see any local changes that are not in the remote branch.\n" +
-                    "If you have any local changes, please abort, get them merged, get the latest branch and try again.\n" +
-                    "Continue with packaging? (y=continue, n=abort)",
-                    addproperty: "sanity-check-2",
-                    validargs: "y,n")
+            executeCmd('git status --short --branch')
+            ant.input(message: 'Above you see any local changes that are not in the remote branch.\n' +
+                    'If you have any local changes, please abort, get them merged, get the latest branch and try again.\n' +
+                    'Continue with packaging? (y=continue, n=abort)',
+                    addproperty: 'sanity-check-2',
+                    validargs: 'y,n')
             if (ant.properties['sanity-check-2'] == 'n') {
                 ant.fail('Aborting')
             }
 
             // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
-            executeCmd("java --version")
-            ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
-                    "Is this java version ok for that? (y=continue, n=abort)",
-                    addproperty: "sanity-check-3",
-                    validargs: "y,n")
+            executeCmd('java --version')
+            ant.input(message: 'Above you see the installed java version, which will be used to compile and build Haveno.\n' +
+                    'Is this java version ok for that? (y=continue, n=abort)',
+                    addproperty: 'sanity-check-3',
+                    validargs: 'y,n')
             if (ant.properties['sanity-check-3'] == 'n') {
                 ant.fail('Aborting')
             }
         } else {
-            println "CI environment detected, skipping interactive sanity checks"
-            executeCmd("git --no-pager log -5 --oneline")
-            executeCmd("git status --short --branch")
-            executeCmd("java --version")
+            println 'CI environment detected, skipping interactive sanity checks'
+            executeCmd('git --no-pager log -5 --oneline')
+            executeCmd('git status --short --branch')
+            executeCmd('java --version')
         }
     }
 }
@@ -57,9 +57,9 @@ task getJavaBinariesDownloadURLs {
         File tempRootDir = new File(project.buildDir, tempRootDirName)
         tempRootDir.mkdirs()
         ext.tempRootDir = tempRootDir
-        println "Created temp root folder " + tempRootDir
+        println 'Created temp root folder ' + tempRootDir
 
-        File binariesFolderPath = new File(tempRootDir, "binaries")
+        File binariesFolderPath = new File(tempRootDir, 'binaries')
         binariesFolderPath.mkdirs()
         ext.binariesFolderPath = binariesFolderPath
 
@@ -92,25 +92,25 @@ task getJavaBinariesDownloadURLs {
         ]
 
         String osKey
-        String architecture = System.getProperty("os.arch").toLowerCase()
+        String architecture = System.getProperty('os.arch').toLowerCase()
 
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-            if (architecture.contains("aarch64") || architecture.contains("arm")) {
-                osKey = "windows-aarch64"
+            if (architecture.contains('aarch64') || architecture.contains('arm')) {
+                osKey = 'windows-aarch64'
             } else {
-                osKey = "windows"
+                osKey = 'windows'
             }
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
-            if (architecture.contains("aarch64") || architecture.contains("arm")) {
-                osKey = "mac-aarch64"
+            if (architecture.contains('aarch64') || architecture.contains('arm')) {
+                osKey = 'mac-aarch64'
             } else {
-                osKey = "mac"
+                osKey = 'mac'
             }
         } else {
-            if (architecture.contains("aarch64") || architecture.contains("arm")) {
-                osKey = "linux-aarch64"
+            if (architecture.contains('aarch64') || architecture.contains('arm')) {
+                osKey = 'linux-aarch64'
             } else {
-                osKey = "linux"
+                osKey = 'linux'
             }
         }
 
@@ -126,10 +126,10 @@ task retrieveAndExtractJavaBinaries {
     dependsOn 'getJavaBinariesDownloadURLs'
 
     doLast {
-        File tempRootDir = getJavaBinariesDownloadURLs.property("tempRootDir") as File
+        File tempRootDir = getJavaBinariesDownloadURLs.property('tempRootDir') as File
 
         // Folder where the jpackage JDK archive will be downloaded and extracted
-        String jdkForJpackageDirName = "jdk-jpackage"
+        String jdkForJpackageDirName = 'jdk-jpackage'
         File jdkForJpackageDir = new File(tempRootDir, jdkForJpackageDirName)
         jdkForJpackageDir.mkdirs()
 
@@ -202,10 +202,10 @@ task packageInstallers {
         String jPackageFilePath = retrieveAndExtractJavaBinaries.property('jpackageFilePath')
         File binariesFolderPath = file(getJavaBinariesDownloadURLs.property('binariesFolderPath'))
 
-        File tempRootDir = getJavaBinariesDownloadURLs.property("tempRootDir") as File
+        File tempRootDir = getJavaBinariesDownloadURLs.property('tempRootDir') as File
         // The jpackageTempDir stores temp files used by jpackage for building the installers
         // It can be inspected in order to troubleshoot the packaging process
-        File jpackageTempDir = new File(tempRootDir, "jpackage-temp")
+        File jpackageTempDir = new File(tempRootDir, 'jpackage-temp')
         jpackageTempDir.mkdirs()
 
         // ALL contents of this folder will be included in the resulting installers
@@ -240,13 +240,13 @@ task packageInstallers {
 
         // Remove the -SNAPSHOT suffix from the version string (originally defined in build.gradle)
         // Having it in would have resulted in an invalid version property for several platforms (mac, linux/rpm)
-        String appVersion = version.replaceAll("-SNAPSHOT", "")
+        String appVersion = version.replaceAll('-SNAPSHOT', '')
         println "Packaging Haveno version ${appVersion}"
 
         // zip jar lib for Raspberry Pi only on macOS as there are path issues on Windows and it is only needed once
         // for the release
         if (Os.isFamily(Os.FAMILY_MAC)) {
-            println "Zipping jar lib for raspberry pi"
+            println 'Zipping jar lib for raspberry pi'
             ant.zip(basedir: "${project(':desktop').buildDir}/app/lib",
                     destfile: "${binariesFolderPath}/jar-lib-for-raspberry-pi-${appVersion}.zip")
         }
@@ -270,31 +270,31 @@ task packageInstallers {
 
                         // Options for creating the application launcher
                         " --main-jar ${mainJarName}" +
-                        " --main-class haveno.desktop.app.HavenoAppMain" +
-                        " --java-options -Xss1280k" +
-                        " --java-options -XX:MaxRAM=4g" +
-                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED" +
-                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED" +
-                        " --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED" +
-                        " --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED" +
-                        " --java-options -Djava.net.preferIPv4Stack=true" +
-                        " --arguments --baseCurrencyNetwork=XMR_STAGENET"
-                // Warning: this will cause guice reflection exceptions and lead to issues with the guice internal cache
-                // resulting in the UI not loading
-//              " --java-options -Djdk.module.illegalAccess=deny" +
+                        ' --main-class haveno.desktop.app.HavenoAppMain' +
+                        ' --java-options -Xss1280k' +
+                        ' --java-options -XX:MaxRAM=4g' +
+                        ' --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED' +
+                        ' --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED' +
+                        ' --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED' +
+                        ' --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED' +
+                        ' --java-options -Djava.net.preferIPv4Stack=true' +
+                        ' --arguments --baseCurrencyNetwork=XMR_STAGENET'
+        // Warning: this will cause guice reflection exceptions and lead to issues with the guice internal cache
+        // resulting in the UI not loading
+        //              " --java-options -Djdk.module.illegalAccess=deny" +
         )
 
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
             String windowsOpts = new String(
                     " --icon \"${project(':desktop').projectDir}/package/windows/Haveno.ico\"" +
                             " --resource-dir \"${project(':desktop').projectDir}/package/windows\"" +
-                            " --win-dir-chooser" +
-                            " --win-per-user-install" +
-                            " --win-menu" +
-                            " --win-shortcut"
+                            ' --win-dir-chooser' +
+                            ' --win-per-user-install' +
+                            ' --win-menu' +
+                            ' --win-shortcut'
             )
 
-            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --verbose > desktop/build/output.txt --type exe")
+            executeCmd(jPackageFilePath + commonOpts + windowsOpts + ' --verbose > desktop/build/output.txt --type exe')
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
             // See https://docs.oracle.com/en/java/javase/14/jpackage/override-jpackage-resources.html
             // for details of "--resource-dir"
@@ -303,26 +303,26 @@ task packageInstallers {
                     " --resource-dir \"${project(':desktop').projectDir}/package/macosx\""
             )
 
-            executeCmd(jPackageFilePath + commonOpts + macOpts + " --type dmg")
+            executeCmd(jPackageFilePath + commonOpts + macOpts + ' --type dmg')
         } else {
             String linuxOpts = new String(
                     " --icon ${project(':desktop').projectDir}/package/linux/icon.png" +
                             // This defines the first part of the resulting packages (the application name)
                             // deb requires lowercase letters, therefore the application name is written in lowercase
-                            " --linux-package-name haveno" +
+                            ' --linux-package-name haveno' +
 
                             // This represents the linux package version (revision)
                             // By convention, this is part of the deb/rpm package names, in addition to the software version
-                            " --linux-app-release 1" +
+                            ' --linux-app-release 1' +
 
-                            " --linux-menu-group Network" +
-                            " --linux-shortcut"
+                            ' --linux-menu-group Network' +
+                            ' --linux-shortcut'
             )
 
             // Package deb
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
-                    " --linux-deb-maintainer noreply@haveno.exchange" +
-                    " --type deb")
+                    ' --linux-deb-maintainer noreply@haveno.exchange' +
+                    ' --type deb')
 
             // Clean jpackage temp folder, needs to be empty for the next packaging step (AppImage)
             jpackageTempDir.deleteDir()
@@ -330,7 +330,7 @@ task packageInstallers {
 
             executeCmd(jPackageFilePath + commonOpts +
                     " --dest \"${jpackageTempDir}\"" +
-                    " --type app-image")
+                    ' --type app-image')
 
             // Path to the app-image directory: THIS IS NOT THE ACTUAL .AppImage FILE.
             // See JPackage documentation on --type app-image for more.
@@ -339,7 +339,7 @@ task packageInstallers {
             )
 
             // Which version of AppImageTool to use
-            String AppImageToolVersion = "13";
+            String AppImageToolVersion = '13'
 
             // Download AppImageTool
             Map AppImageToolBinaries = [
@@ -386,17 +386,14 @@ task packageInstallers {
                 println "Your platform does not support AppImageTool ${AppImageToolVersion}"
             }
 
-
             // Clean jpackage temp folder, needs to be empty for the next packaging step (rpm)
             jpackageTempDir.deleteDir()
             jpackageTempDir.mkdirs()
 
             // Package rpm
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
-                    " --linux-rpm-license-type AGPLv3" + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
-                    " --type rpm")
-
-
+                    ' --linux-rpm-license-type AGPLv3' + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
+                    ' --type rpm')
 
             // Define Flatpak-related properties
             String flatpakManifestFile = 'package/linux/exchange.haveno.Haveno.yml'
@@ -409,18 +406,26 @@ task packageInstallers {
             def filer = file('../core/src/main/java/haveno/core/app/HavenoExecutable.java')
             def content = filer.text
             def matcher = Pattern.compile(/public static final String DEFAULT_APP_NAME = "(.*?)";/).matcher(content)
-            def defaultAppName = "Haveno"
+            def defaultAppName = 'Haveno'
             if (matcher.find()) {
                 defaultAppName = matcher.group(1)
-            } else {
-                throw new GradleException("DEFAULT_APP_NAME not found in HavenoExecutable.java")
+        } else {
+                throw new GradleException('DEFAULT_APP_NAME not found in HavenoExecutable.java')
             }
 
-            // Copy the manifest to a new tmp one in the same place
-            // and add a --filesystem=.local/share/${name} to the flatpak manifest
+            // Copy the manifest to a new temp file and update it with version and icon information
             def manifest = file(flatpakManifestFile)
             def newManifest = file('exchange.haveno.Haveno.yaml')
-            newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create"))
+            def iconPath = "${project(':desktop').projectDir}/package/linux/icon.png"
+            newManifest.write(
+            manifest.text
+            .replace('- --share=network', "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create")
+            .replace('name: exchange.haveno.Haveno', """
+                name: exchange.haveno.Haveno
+                version: "${appVersion}"
+                icon: "${iconPath}"
+            """.stripIndent())
+        )
             flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
 
             // Command to build the Flatpak
@@ -438,7 +443,7 @@ task packageInstallers {
                 commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Haveno', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
             }
 
-            // delete the flatpak build directory
+            // Delete the Flatpak build directory
             delete(flatpakOutputDir)
             delete(flatpakExportDir)
             delete(flatpakManifestFile)
@@ -451,21 +456,21 @@ task packageInstallers {
         String envVariableSharedFolder = "$System.env.HAVENO_SHARED_FOLDER"
         println "Environment variable HAVENO_SHARED_FOLDER is: ${envVariableSharedFolder}"
 
-        if (envVariableSharedFolder != "null") {
-            ant.input(message: "Copy the created binary to a shared folder? (y=yes, n=no)",
-                    addproperty: "copy-to-shared-folder",
-                    validargs: "y,n")
+        if (envVariableSharedFolder != 'null') {
+            ant.input(message: 'Copy the created binary to a shared folder? (y=yes, n=no)',
+                    addproperty: 'copy-to-shared-folder',
+                    validargs: 'y,n')
             if (ant.properties['copy-to-shared-folder'] == 'y') {
                 copy {
                     from binariesFolderPath
                     into envVariableSharedFolder
                 }
 
-                executeCmd("open " + envVariableSharedFolder)
+                executeCmd('open ' + envVariableSharedFolder)
             }
         }
 
-        println "The binaries are ready:"
+        println 'The binaries are ready:'
         binariesFolderPath.traverse {
             println it.path
         }
