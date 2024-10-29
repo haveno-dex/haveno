@@ -47,6 +47,7 @@ import haveno.desktop.util.GUIUtil;
 import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 import haveno.network.p2p.NodeAddress;
 import java.text.DecimalFormat;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -564,6 +565,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                         };
                     }
                 });
+        amountColumn.setComparator(Comparator.comparing(OfferListItem::getAmount));
 
         boolean isSellOffer = model.isSellOffer(direction);
 

@@ -18,6 +18,7 @@
 package haveno.desktop.main.market.offerbook;
 
 import haveno.core.offer.Offer;
+import java.math.BigInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,5 +53,9 @@ public class OfferListItem {
         temp = Double.doubleToLongBits(accumulated);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
+    }
+    
+    public BigInteger getAmount() {
+    	return offer.getAmount();
     }
 }
