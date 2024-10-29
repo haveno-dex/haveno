@@ -1,7 +1,7 @@
 # INDEX
 ### Software index
-- [Get Started](docs/haveno-docs/get_started.md)
-- [Backup & Restoration](docs/haveno-docs/backup_and_restoration.md)
+- [Get Started](get_started.md)
+- [Backup & Restoration](backup_and_restoration.md)
 - [UX Tips](docs/haveno-docs/UX_tips.md)
 - [Security tips](docs/haveno-docs/security.md) / [Troubleshooting](docs/haveno-docs/troubleshooting.md)
 ### Trading index
