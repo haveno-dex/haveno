@@ -41,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SeedNodeMain extends ExecutableForAppWithP2p {
     private static final long CHECK_CONNECTION_LOSS_SEC = 30;
-    private static final String VERSION = "1.0.11";
+    private static final String VERSION = "1.0.12";
     private SeedNode seedNode;
     private Timer checkConnectionLossTime;
 
@@ -75,7 +75,7 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
                 seedNode = new SeedNode();
                 UserThread.execute(this::onApplicationLaunched);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Error launching seed node: {}\n", e.toString(), e);
             }
         });
     }

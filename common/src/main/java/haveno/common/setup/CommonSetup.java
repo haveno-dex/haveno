@@ -69,11 +69,7 @@ public class CommonSetup {
                     "The system tray is not supported on the current platform.".equals(throwable.getMessage())) {
                 log.warn(throwable.getMessage());
             } else {
-                log.error("Uncaught Exception from thread " + Thread.currentThread().getName());
-                log.error("throwableMessage= " + throwable.getMessage());
-                log.error("throwableClass= " + throwable.getClass());
-                log.error("Stack trace:\n" + ExceptionUtils.getStackTrace(throwable));
-                throwable.printStackTrace();
+                log.error("Uncaught Exception from thread {}, error={}\n", Thread.currentThread().getName(), throwable.getMessage(), throwable);
                 UserThread.execute(() -> uncaughtExceptionHandler.handleUncaughtException(throwable, false));
             }
         };
@@ -113,8 +109,7 @@ public class CommonSetup {
             if (!pathOfCodeSource.endsWith("classes"))
                 log.info("Path to Haveno jar file: " + pathOfCodeSource);
         } catch (URISyntaxException e) {
-            log.error(e.toString());
-            e.printStackTrace();
+            log.error(ExceptionUtils.getStackTrace(e));
         }
     }
 }

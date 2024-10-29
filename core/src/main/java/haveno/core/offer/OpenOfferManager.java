@@ -541,6 +541,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            boolean useSavingsWallet,
                            long triggerPrice,
                            boolean reserveExactAmount,
+                           boolean resetAddressEntriesOnError,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
 
@@ -559,7 +560,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }, (errorMessage) -> {
                     if (!openOffer.isCanceled()) {
                         log.warn("Error processing pending offer {}: {}", openOffer.getId(), errorMessage);
-                        doCancelOffer(openOffer);
+                        doCancelOffer(openOffer, resetAddressEntriesOnError);
                     }
                     latch.countDown();
                     errorMessageHandler.handleErrorMessage(errorMessage);
@@ -715,14 +716,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    private void doCancelOffer(OpenOffer openOffer) {
+        doCancelOffer(openOffer, true);
+    }
+
     // remove open offer which thaws its key images
-    private void doCancelOffer(@NotNull OpenOffer openOffer) {
+    private void doCancelOffer(@NotNull OpenOffer openOffer, boolean resetAddressEntries) {
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
         removeOpenOffer(openOffer); 
         closedTradableManager.add(openOffer); // TODO: don't add these to closed tradables?
-        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        if (resetAddressEntries) xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
         xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
     }
@@ -929,6 +934,23 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     return;
                 }
 
+                // cancel offer if scheduled txs unavailable
+                if (openOffer.getScheduledTxHashes() != null) {
+                    boolean scheduledTxsAvailable = true;
+                    for (MoneroTxWallet tx : xmrWalletService.getTxs(openOffer.getScheduledTxHashes())) {
+                        if (!tx.isLocked() && !isOutputsAvailable(tx)) {
+                            scheduledTxsAvailable = false;
+                            break;
+                        }
+                    }
+                    if (!scheduledTxsAvailable) {
+                        log.warn("Canceling offer {} because scheduled txs are no longer available", openOffer.getId());
+                        doCancelOffer(openOffer);
+                        resultHandler.handleResult(null);
+                        return;
+                    }
+                }
+
                 // get amount needed to reserve offer
                 BigInteger amountNeeded = openOffer.getOffer().getAmountNeeded();
 
@@ -977,7 +999,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // handle result
                 resultHandler.handleResult(null);
             } catch (Exception e) {
-                if (!openOffer.isCanceled()) e.printStackTrace();
+                if (!openOffer.isCanceled()) log.error("Error processing pending offer: {}\n", e.getMessage(), e);
                 errorMessageHandler.handleErrorMessage(e.getMessage());
             }
         }).start();
@@ -1133,25 +1155,31 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             throw new RuntimeException("Not enough money in Haveno wallet");
         }
 
-        // get locked txs
-        List<MoneroTxWallet> lockedTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsLocked(true));
-
-        // get earliest unscheduled txs with sufficient incoming amount
-        List<String> scheduledTxHashes = new ArrayList<String>();
+        // get earliest available or pending txs with sufficient incoming amount
         BigInteger scheduledAmount = BigInteger.ZERO;
-        for (MoneroTxWallet lockedTx : lockedTxs) {
-            if (isTxScheduledByOtherOffer(openOffers, openOffer, lockedTx.getHash())) continue;
-            if (lockedTx.getIncomingTransfers() == null || lockedTx.getIncomingTransfers().isEmpty()) continue;
-            scheduledTxHashes.add(lockedTx.getHash());
-            for (MoneroIncomingTransfer transfer : lockedTx.getIncomingTransfers()) {
-                if (transfer.getAccountIndex() == 0) scheduledAmount = scheduledAmount.add(transfer.getAmount());
+        Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
+        for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
+
+            // skip if outputs unavailable
+            if (tx.getIncomingTransfers() == null || tx.getIncomingTransfers().isEmpty()) continue;
+            if (!isOutputsAvailable(tx)) continue;
+            if (isTxScheduledByOtherOffer(openOffers, openOffer, tx.getHash())) continue;
+
+            // add scheduled tx
+            for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
+                if (transfer.getAccountIndex() == 0) {
+                    scheduledAmount = scheduledAmount.add(transfer.getAmount());
+                    scheduledTxs.add(tx);
+                }
             }
+
+            // break if sufficient funds
             if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
         }
         if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to schedule offer");
 
         // schedule txs
-        openOffer.setScheduledTxHashes(scheduledTxHashes);
+        openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));
         openOffer.setScheduledAmount(scheduledAmount.toString());
         openOffer.setState(OpenOffer.State.PENDING);
     }
@@ -1185,6 +1213,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
         }
         return false;
+    }
+
+    private boolean isOutputsAvailable(MoneroTxWallet tx) {
+        if (tx.getOutputsWallet() == null) return false;
+        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+            if (output.isSpent() || output.isFrozen()) return false;
+        }
+        return true;
     }
 
     private void signAndPostOffer(OpenOffer openOffer,
@@ -1365,9 +1401,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     });
             result = true;
         } catch (Exception e) {
-            e.printStackTrace();
             errorMessage = "Exception at handleSignOfferRequest " + e.getMessage();
-            log.error(errorMessage);
+            log.error(errorMessage + "\n", e);
         } finally {
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
@@ -1519,8 +1554,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             result = true;
         } catch (Throwable t) {
             errorMessage = "Exception at handleRequestIsOfferAvailableMessage " + t.getMessage();
-            log.error(errorMessage);
-            t.printStackTrace();
+            log.error(errorMessage + "\n", t);
         } finally {
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }

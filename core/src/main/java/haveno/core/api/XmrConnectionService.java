@@ -41,6 +41,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -346,6 +349,11 @@ public final class XmrConnectionService {
         connectionList.setAutoSwitch(autoSwitch);
     }
 
+    public boolean getAutoSwitch() {
+        accountService.checkAccountOpen();
+        return connectionList.getAutoSwitch();
+    }
+
     public boolean isConnectionLocalHost() {
         return isConnectionLocalHost(getConnection());
     }
@@ -464,7 +472,7 @@ public final class XmrConnectionService {
                     log.info(getClass() + ".onAccountOpened() called");
                     initialize();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("Error initializing connection service after account opened, error={}\n", e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             }
@@ -491,7 +499,7 @@ public final class XmrConnectionService {
                 xmrLocalNode.addListener(new XmrLocalNodeListener() {
                     @Override
                     public void onNodeStarted(MoneroDaemonRpc daemon) {
-                        log.info("Local monero node started");
+                        log.info("Local monero node started, height={}", daemon.getHeight());
                     }
 
                     @Override
@@ -580,7 +588,7 @@ public final class XmrConnectionService {
 
                 // restore auto switch
                 if (coreContext.isApiUser()) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
-                else connectionManager.setAutoSwitch(true);
+                else connectionManager.setAutoSwitch(true); // auto switch is always enabled on desktop ui
 
                 // start local node if applicable
                 maybeStartLocalNode();
@@ -620,10 +628,9 @@ public final class XmrConnectionService {
         if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored()) {
             try {
                 log.info("Starting local node");
-                xmrLocalNode.startMoneroNode();
+                xmrLocalNode.start();
             } catch (Exception e) {
-                log.warn("Unable to start local monero node: " + e.getMessage());
-                e.printStackTrace();
+                log.error("Unable to start local monero node, error={}\n", e.getMessage(), e);
             }
         }
     }
@@ -711,18 +718,23 @@ public final class XmrConnectionService {
                     // skip handling if shutting down
                     if (isShutDownStarted) return;
 
-                    // fallback to provided nodes if custom connection fails on startup
+                    // fallback to provided or public nodes if custom connection fails on startup
                     if (lastInfo == null && "".equals(config.xmrNode) && preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM) {
-                        log.warn("Failed to fetch daemon info from custom node on startup, falling back to provided nodes: " + e.getMessage());
-                        preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                        if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
+                            log.warn("Failed to fetch daemon info from custom node on startup, falling back to public nodes: " + e.getMessage());
+                            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
+                        } else {
+                            log.warn("Failed to fetch daemon info from custom node on startup, falling back to provided nodes: " + e.getMessage());
+                            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                        }
                         initializeConnections();
                         return;
                     }
 
                     // log error message periodically
                     if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                        log.warn("Failed to fetch daemon info, trying to switch to best connection: " + e.getMessage());
-                        if (DevEnv.isDevMode()) e.printStackTrace();
+                        log.warn("Failed to fetch daemon info, trying to switch to best connection, error={}", e.getMessage());
+                        if (DevEnv.isDevMode()) log.error(ExceptionUtils.getStackTrace(e));
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
                     }
 
@@ -733,6 +745,12 @@ public final class XmrConnectionService {
 
                 // connected to daemon
                 isConnected = true;
+
+                // determine if blockchain is syncing locally
+                boolean blockchainSyncing = lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
+
+                // write sync status to preferences
+                preferences.getXmrNodeSettings().setSyncBlockchain(blockchainSyncing);
 
                 // throttle warnings if daemon not synced
                 if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {

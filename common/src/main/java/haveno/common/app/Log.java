@@ -21,6 +21,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
@@ -52,11 +53,12 @@ public class Log {
 
         SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new SizeBasedTriggeringPolicy<>();
         triggeringPolicy.setMaxFileSize(FileSize.valueOf("10MB"));
+        triggeringPolicy.setContext(loggerContext);
         triggeringPolicy.start();
 
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setContext(loggerContext);
-        encoder.setPattern("%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{15}: %msg %xEx%n");
+        encoder.setPattern("%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{15}: %msg%n");
         encoder.start();
 
         appender.setEncoder(encoder);
@@ -64,25 +66,43 @@ public class Log {
         appender.setTriggeringPolicy(triggeringPolicy);
         appender.start();
 
-        logbackLogger = loggerContext.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-        logbackLogger.addAppender(appender);
-        logbackLogger.setLevel(Level.INFO);
-
         // log errors in separate file
-        // not working as expected still.... damn logback...
-       /* FileAppender errorAppender = new FileAppender();
-        errorAppender.setEncoder(encoder);
+        PatternLayoutEncoder errorEncoder = new PatternLayoutEncoder();
+        errorEncoder.setContext(loggerContext);
+        errorEncoder.setPattern("%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger: %msg%n%ex");
+        errorEncoder.start();
+
+        RollingFileAppender<ILoggingEvent> errorAppender = new RollingFileAppender<>();
+        errorAppender.setEncoder(errorEncoder);
         errorAppender.setName("Error");
         errorAppender.setContext(loggerContext);
         errorAppender.setFile(fileName + "_error.log");
-        LevelFilter levelFilter = new LevelFilter();
-        levelFilter.setLevel(Level.ERROR);
-        levelFilter.setOnMatch(FilterReply.ACCEPT);
-        levelFilter.setOnMismatch(FilterReply.DENY);
-        levelFilter.start();
-        errorAppender.addFilter(levelFilter);
+
+        FixedWindowRollingPolicy errorRollingPolicy = new FixedWindowRollingPolicy();
+        errorRollingPolicy.setContext(loggerContext);
+        errorRollingPolicy.setParent(errorAppender);
+        errorRollingPolicy.setFileNamePattern(fileName + "_error_%i.log");
+        errorRollingPolicy.setMinIndex(1);
+        errorRollingPolicy.setMaxIndex(20);
+        errorRollingPolicy.start();
+
+        SizeBasedTriggeringPolicy<ILoggingEvent> errorTriggeringPolicy = new SizeBasedTriggeringPolicy<>();
+        errorTriggeringPolicy.setMaxFileSize(FileSize.valueOf("10MB"));
+        errorTriggeringPolicy.start();
+
+        ThresholdFilter thresholdFilter = new ThresholdFilter();
+        thresholdFilter.setLevel("WARN");
+        thresholdFilter.start();
+
+        errorAppender.setRollingPolicy(errorRollingPolicy);
+        errorAppender.setTriggeringPolicy(errorTriggeringPolicy);
+        errorAppender.addFilter(thresholdFilter);
         errorAppender.start();
-        logbackLogger.addAppender(errorAppender);*/
+
+        logbackLogger = loggerContext.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        logbackLogger.addAppender(errorAppender);
+        logbackLogger.addAppender(appender);
+        logbackLogger.setLevel(Level.INFO);
     }
 
     public static void setCustomLogLevel(String pattern, Level logLevel) {

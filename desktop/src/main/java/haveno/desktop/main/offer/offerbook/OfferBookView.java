@@ -65,7 +65,6 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.editoffer.EditOfferView;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -1130,14 +1129,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     if (myOffer) {
                                         iconView.setId("image-remove");
                                         title = Res.get("shared.remove");
-                                        button.setId(null);
-                                        button.setStyle(CssTheme.isDarkTheme() ? "-fx-text-fill: white" : "-fx-text-fill: #444444");
                                         button.setOnAction(e -> onRemoveOpenOffer(offer));
 
                                         iconView2.setId("image-edit");
                                         button2.updateText(Res.get("shared.edit"));
-                                        button2.setId(null);
-                                        button2.setStyle(CssTheme.isDarkTheme() ? "-fx-text-fill: white" : "-fx-text-fill: #444444");
                                         button2.setOnAction(e -> onEditOpenOffer(offer));
                                         button2.setManaged(true);
                                         button2.setVisible(true);

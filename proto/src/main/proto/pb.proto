@@ -1740,6 +1740,8 @@ message PreferencesPayload {
     string buy_screen_crypto_currency_code = 60;
     string sell_screen_crypto_currency_code = 61;
     bool split_offer_output = 62;
+    bool use_sound_for_notifications = 63;
+    bool use_sound_for_notifications_initialized = 64;
 }
 
 message AutoConfirmSettings {
@@ -1754,6 +1756,7 @@ message XmrNodeSettings {
     string blockchain_path = 1;
     string bootstrap_url = 2;
     repeated string startup_flags = 3;
+    bool sync_blockchain = 4;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

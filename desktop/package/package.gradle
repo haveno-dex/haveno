@@ -1,6 +1,7 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 import java.time.LocalDateTime
+import java.util.regex.Pattern
 
 task jpackageSanityChecks {
     description 'Interactive sanity checks on the version of the code that will be packaged'
@@ -112,6 +113,8 @@ task getJavaBinariesDownloadURLs {
                 osKey = "linux"
             }
         }
+
+        ext.osKey = osKey
 
         ext.jdk21Binary_DownloadURL = jdk21Binaries[osKey]
         ext.jdk21Binary_SHA256Hash = jdk21Binaries[osKey + '-sha256']
@@ -321,6 +324,69 @@ task packageInstallers {
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 
+            // Clean jpackage temp folder, needs to be empty for the next packaging step (AppImage)
+            jpackageTempDir.deleteDir()
+            jpackageTempDir.mkdirs()
+
+            executeCmd(jPackageFilePath + commonOpts +
+                    " --dest \"${jpackageTempDir}\"" +
+                    " --type app-image")
+
+            // Path to the app-image directory: THIS IS NOT THE ACTUAL .AppImage FILE.
+            // See JPackage documentation on --type app-image for more.
+            String appImagePath = new String(
+                    "\"${binariesFolderPath}/${appNameAndVendor}\""
+            )
+
+            // Which version of AppImageTool to use
+            String AppImageToolVersion = "13";
+
+            // Download AppImageTool
+            Map AppImageToolBinaries = [
+                    'linux'                 : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-x86_64.AppImage",
+                    'linux-aarch64'         : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-aarch64.AppImage",
+            ]
+
+            String osKey = getJavaBinariesDownloadURLs.property('osKey')
+
+            File appDir = new File("${jpackageTempDir}/Haveno")
+            File templateAppDir = new File("${project(':desktop').projectDir}/package/linux/Haveno.AppDir")
+            File jpackDir = appDir
+
+            appDir.mkdirs()
+
+            File AppImageToolBinary = new File("${jpackageTempDir}/appimagetool.AppImage")
+
+            // Adding a platform to the AppImageToolBinaries essentially adds it to the "supported" list of platforms able to make AppImages
+            // However, be warned that any platform that doesn't support unix `ln` and `chmod` will not work with the current method.
+            if (AppImageToolBinaries.containsKey(osKey)) {
+                println "Downloading ${AppImageToolBinaries[osKey]}"
+                ant.get(src: AppImageToolBinaries[osKey], dest: AppImageToolBinary)
+                println 'Download saved to ' + jpackageTempDir
+
+                project.exec {
+                    commandLine('chmod', '+x', AppImageToolBinary)
+                }
+
+                copy {
+                    from templateAppDir
+                    into appDir
+                    boolean includeEmptyDirs = true
+                }
+
+                project.exec {
+                    workingDir appDir
+                    commandLine 'ln', '-s', 'bin/Haveno', 'AppRun'
+                }
+
+                project.exec {
+                    commandLine "${AppImageToolBinary}", appDir, "${binariesFolderPath}/haveno_${appVersion}.AppImage"
+                }
+            } else {
+                println "Your platform does not support AppImageTool ${AppImageToolVersion}"
+            }
+
+
             // Clean jpackage temp folder, needs to be empty for the next packaging step (rpm)
             jpackageTempDir.deleteDir()
             jpackageTempDir.mkdirs()
@@ -329,6 +395,55 @@ task packageInstallers {
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
                     " --linux-rpm-license-type AGPLv3" + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
                     " --type rpm")
+
+
+
+            // Define Flatpak-related properties
+            String flatpakManifestFile = 'package/linux/exchange.haveno.Haveno.yml'
+            String linuxDir = 'package/linux'
+            String flatpakOutputDir = 'package/linux/build'
+            String flatpakExportDir = "${binariesFolderPath}/fpexport"
+            String flatpakBundleFile = "${binariesFolderPath}/haveno.flatpak"
+
+            // Read the default app name from the HavenoExecutable.java file
+            def filer = file('../core/src/main/java/haveno/core/app/HavenoExecutable.java')
+            def content = filer.text
+            def matcher = Pattern.compile(/public static final String DEFAULT_APP_NAME = "(.*?)";/).matcher(content)
+            def defaultAppName = "Haveno"
+            if (matcher.find()) {
+                defaultAppName = matcher.group(1)
+            } else {
+                throw new GradleException("DEFAULT_APP_NAME not found in HavenoExecutable.java")
+            }
+
+            // Copy the manifest to a new tmp one in the same place
+            // and add a --filesystem=.local/share/${name} to the flatpak manifest
+            def manifest = file(flatpakManifestFile)
+            def newManifest = file('exchange.haveno.Haveno.yaml')
+            newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create"))
+            flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
+
+            // Command to build the Flatpak
+            exec {
+                commandLine 'flatpak-builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
+            }
+
+            // Command to export the Flatpak
+            exec {
+                commandLine 'flatpak', 'build-export', flatpakExportDir, flatpakOutputDir
+            }
+
+            // Command to create the Flatpak bundle
+            exec {
+                commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Haveno', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
+            }
+
+            // delete the flatpak build directory
+            delete(flatpakOutputDir)
+            delete(flatpakExportDir)
+            delete(flatpakManifestFile)
+
+            println "Flatpak package created at ${flatpakBundleFile}"
         }
 
         // Env variable can be set by calling "export HAVENO_SHARED_FOLDER='Some value'"
@@ -345,6 +460,7 @@ task packageInstallers {
                     from binariesFolderPath
                     into envVariableSharedFolder
                 }
+
                 executeCmd("open " + envVariableSharedFolder)
             }
         }

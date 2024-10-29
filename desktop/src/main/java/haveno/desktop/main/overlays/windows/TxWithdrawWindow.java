@@ -28,12 +28,12 @@ import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithC
 import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
-public class TxDetails extends Overlay<TxDetails> {
+public class TxWithdrawWindow extends Overlay<TxWithdrawWindow> {
 
     protected String txId, address, amount, fee, memo;
     protected TxIdTextField txIdTextField;
 
-    public TxDetails(String txId, String address, String amount, String fee, String memo) {
+    public TxWithdrawWindow(String txId, String address, String amount, String fee, String memo) {
         type = Type.Attention;
         this.txId = txId;
         this.address = address;
@@ -59,7 +59,7 @@ public class TxDetails extends Overlay<TxDetails> {
 
     protected void addContent() {
         GridPane.setColumnSpan(
-                addMultilineLabel(gridPane, ++rowIndex, Res.get("txDetailsWindow.xmr.note"), 0), 2);
+                addMultilineLabel(gridPane, ++rowIndex, Res.get("txDetailsWindow.xmr.noteSent"), 0), 2);
         Region spacer = new Region();
         spacer.setMinHeight(20);
         gridPane.add(spacer, 0, ++rowIndex);

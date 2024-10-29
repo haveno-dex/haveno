@@ -28,6 +28,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import javax.annotation.Nullable;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -48,8 +51,7 @@ public class TorSetup {
             if (resultHandler != null)
                 resultHandler.run();
         } catch (IOException e) {
-            e.printStackTrace();
-            log.error(e.toString());
+            log.error(ExceptionUtils.getStackTrace(e));
             if (errorMessageHandler != null)
                 errorMessageHandler.handleErrorMessage(e.toString());
         }

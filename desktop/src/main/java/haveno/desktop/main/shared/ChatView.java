@@ -65,6 +65,7 @@ import javafx.scene.text.TextAlignment;
 
 import javafx.geometry.Insets;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -565,12 +566,10 @@ public class ChatView extends AnchorPane {
                             inputTextArea.setText(inputTextArea.getText() + "\n[" + Res.get("support.attachment") + " " + result.getName() + "]");
                         }
                     } catch (java.io.IOException e) {
-                        e.printStackTrace();
-                        log.error(e.getMessage());
+                        log.error(ExceptionUtils.getStackTrace(e));
                     }
                 } catch (MalformedURLException e2) {
-                    e2.printStackTrace();
-                    log.error(e2.getMessage());
+                    log.error(ExceptionUtils.getStackTrace(e2));
                 }
             }
         } else {
@@ -593,8 +592,7 @@ public class ChatView extends AnchorPane {
                 inputTextArea.setText(inputTextArea.getText() + "\n[" + Res.get("support.attachment") + " " + name + "]");
             }
         } catch (Exception e) {
-            log.error(e.toString());
-            e.printStackTrace();
+            log.error(ExceptionUtils.getStackTrace(e));
         }
     }
 
@@ -629,8 +627,7 @@ public class ChatView extends AnchorPane {
             try (FileOutputStream fileOutputStream = new FileOutputStream(file.getAbsolutePath())) {
                 fileOutputStream.write(attachment.getBytes());
             } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println(e.getMessage());
+                log.error("Error opening attachment: {}\n", e.getMessage(), e);
             }
         }
     }

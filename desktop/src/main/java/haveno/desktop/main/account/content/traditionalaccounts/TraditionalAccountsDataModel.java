@@ -18,7 +18,6 @@
 package haveno.desktop.main.account.content.traditionalaccounts;
 
 import com.google.inject.Inject;
-import haveno.common.crypto.KeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -56,7 +55,6 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
     private final String accountsFileName = "FiatPaymentAccounts";
     private final PersistenceProtoResolver persistenceProtoResolver;
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
-    private final KeyRing keyRing;
 
     @Inject
     public TraditionalAccountsDataModel(User user,
@@ -65,8 +63,7 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
                                  TradeManager tradeManager,
                                  AccountAgeWitnessService accountAgeWitnessService,
                                  PersistenceProtoResolver persistenceProtoResolver,
-                                 CorruptedStorageFileHandler corruptedStorageFileHandler,
-                                 KeyRing keyRing) {
+                                 CorruptedStorageFileHandler corruptedStorageFileHandler) {
         this.user = user;
         this.preferences = preferences;
         this.openOfferManager = openOfferManager;
@@ -74,7 +71,6 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.persistenceProtoResolver = persistenceProtoResolver;
         this.corruptedStorageFileHandler = corruptedStorageFileHandler;
-        this.keyRing = keyRing;
         setChangeListener = change -> fillAndSortPaymentAccounts();
     }
 
@@ -159,12 +155,12 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
             ArrayList<PaymentAccount> accounts = new ArrayList<>(user.getPaymentAccounts().stream()
                     .filter(paymentAccount -> !(paymentAccount instanceof AssetAccount))
                     .collect(Collectors.toList()));
-            GUIUtil.exportAccounts(accounts, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+            GUIUtil.exportAccounts(accounts, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler);
         }
     }
 
     public void importAccounts(Stage stage) {
-        GUIUtil.importAccounts(user, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+        GUIUtil.importAccounts(user, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler);
     }
 
     public int getNumPaymentAccounts() {

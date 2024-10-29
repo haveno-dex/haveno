@@ -247,6 +247,10 @@ public class CoreApi {
         xmrConnectionService.setAutoSwitch(autoSwitch);
     }
 
+    public boolean getXmrConnectionAutoSwitch() {
+        return xmrConnectionService.getAutoSwitch();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Monero node
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -260,11 +264,11 @@ public class CoreApi {
     }
 
     public void startXmrNode(XmrNodeSettings settings) throws IOException {
-        xmrLocalNode.startNode(settings);
+        xmrLocalNode.start(settings);
     }
 
     public void stopXmrNode() {
-        xmrLocalNode.stopNode();
+        xmrLocalNode.stop();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

@@ -61,7 +61,7 @@ public abstract class TradeTask extends Task<Trade> {
 
     @Override
     protected void failed(Throwable t) {
-        t.printStackTrace();
+        log.error("Trade task failed, error={}\n", t.getMessage(), t);
         appendExceptionToErrorMessage(t);
         trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();

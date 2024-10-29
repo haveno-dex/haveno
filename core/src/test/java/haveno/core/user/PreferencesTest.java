@@ -58,7 +58,7 @@ public class PreferencesTest {
         Config config = new Config();
         XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences);
         preferences = new Preferences(
-                persistenceManager, config, null);
+                persistenceManager, config, null, null);
     }
 
     @Test

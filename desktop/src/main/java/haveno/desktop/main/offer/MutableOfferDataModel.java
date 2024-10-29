@@ -296,6 +296,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 useSavingsWallet,
                 triggerPrice,
                 reserveExactAmount,
+                false, // desktop ui resets address entries on cancel
                 resultHandler,
                 errorMessageHandler);
     }

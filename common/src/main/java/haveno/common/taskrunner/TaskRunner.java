@@ -25,6 +25,8 @@ import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 @Slf4j
 public class TaskRunner<T extends Model> {
     private final Queue<Class<? extends Task<T>>> tasks = new LinkedBlockingQueue<>();
@@ -67,8 +69,8 @@ public class TaskRunner<T extends Model> {
                     log.info("Run task: " + currentTask.getSimpleName());
                     currentTask.getDeclaredConstructor(TaskRunner.class, sharedModelClass).newInstance(this, sharedModel).run();
                 } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                    handleErrorMessage("Error at taskRunner: " + throwable.getMessage());
+                    log.error(ExceptionUtils.getStackTrace(throwable));
+                    handleErrorMessage("Error at taskRunner, error=" + throwable.getMessage());
                 }
             } else {
                 resultHandler.handleResult();

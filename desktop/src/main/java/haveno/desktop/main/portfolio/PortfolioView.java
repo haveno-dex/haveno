@@ -18,6 +18,7 @@
 package haveno.desktop.main.portfolio;
 
 import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
@@ -200,7 +201,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                     editOfferView.applyOpenOffer(openOffer);
                     editOpenOfferTab = new Tab(Res.get("portfolio.tab.editOpenOffer").toUpperCase());
                     editOfferView.setCloseHandler(() -> {
-                        root.getTabs().remove(editOpenOfferTab);
+                        UserThread.execute(() -> root.getTabs().remove(editOpenOfferTab));
                     });
                     root.getTabs().add(editOpenOfferTab);
                 }
@@ -220,7 +221,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 duplicateOfferView.initWithData((OfferPayload) data);
                 duplicateOfferTab = new Tab(Res.get("portfolio.tab.duplicateOffer").toUpperCase());
                 duplicateOfferView.setCloseHandler(() -> {
-                    root.getTabs().remove(duplicateOfferTab);
+                    UserThread.execute(() -> root.getTabs().remove(duplicateOfferTab));
                 });
                 root.getTabs().add(duplicateOfferTab);
             }
