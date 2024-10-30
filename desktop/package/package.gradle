@@ -395,75 +395,61 @@ task packageInstallers {
                     ' --linux-rpm-license-type AGPLv3' + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
                     ' --type rpm')
 
-		// Define Flatpak-related properties
-		String flatpakManifestFile = 'package/linux/exchange.haveno.Haveno.yml'
-		String linuxDir = 'package/linux'
-		String flatpakOutputDir = 'package/linux/build'
-		String flatpakExportDir = "${binariesFolderPath}/fpexport"
-		String flatpakBundleFile = "${binariesFolderPath}/haveno.flatpak"
+            // Define Flatpak-related properties
+            String flatpakManifestFile = 'package/linux/exchange.haveno.Haveno.yml'
+            String linuxDir = 'package/linux'
+            String flatpakOutputDir = 'package/linux/build'
+            String flatpakExportDir = "${binariesFolderPath}/fpexport"
+            String flatpakBundleFile = "${binariesFolderPath}/haveno.flatpak"
 
-		// Read the default app name from the HavenoExecutable.java file
-		def filer = file('../core/src/main/java/haveno/core/app/HavenoExecutable.java')
-		def content = filer.text
-		def matcher = Pattern.compile(/public static final String DEFAULT_APP_NAME = "(.*?)";/).matcher(content)
-		def defaultAppName = 'Haveno'
-		if (matcher.find()) {
-		    defaultAppName = matcher.group(1)
-		} else {
-		    throw new GradleException('DEFAULT_APP_NAME not found in HavenoExecutable.java')
-		}
+            // Read the default app name from the HavenoExecutable.java file
+            def filer = file('../core/src/main/java/haveno/core/app/HavenoExecutable.java')
+            def content = filer.text
+            def matcher = Pattern.compile(/public static final String DEFAULT_APP_NAME = "(.*?)";/).matcher(content)
+            def defaultAppName = 'Haveno'
+            if (matcher.find()) {
+                defaultAppName = matcher.group(1)
+        } else {
+                throw new GradleException('DEFAULT_APP_NAME not found in HavenoExecutable.java')
+            }
 
-		// Copy the manifest to a new temp file and update it with version and icon information
-		def manifest = file(flatpakManifestFile)
-		def newManifest = file('exchange.haveno.Haveno.yaml')
+            // Copy the manifest to a new temp file and update it with version and icon information
+            def manifest = file(flatpakManifestFile)
+            def newManifest = file('exchange.haveno.Haveno.yaml')
+            def iconPath = "${project(':desktop').projectDir}/package/linux/icon.png"
+            newManifest.write(
+            manifest.text
+            .replace('- --share=network', "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create")
+            .replace('name: exchange.haveno.Haveno', """
+                name: exchange.haveno.Haveno
+                version: "${appVersion}"
+                icon: "${iconPath}"
+            """.stripIndent())
+        )
+            flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
 
-		// Define the icon path to be copied into the Flatpak directory
-		def iconPath = "${project(':desktop').projectDir}/package/linux/icon.png"
-		def iconDestinationDir = "${flatpakOutputDir}/files/share/icons/hicolor/128x128/apps/"
-		def iconFileName = "exchange.haveno.Haveno.png"
+            // Command to build the Flatpak
+            exec {
+                commandLine 'flatpak-builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
+            }
 
-		// Ensure the icon destination directory exists, then copy the icon
-		file(iconDestinationDir).mkdirs()
-		copy {
-		    from iconPath
-		    into iconDestinationDir
-		    rename { iconFileName }
-		}
+            // Command to export the Flatpak
+            exec {
+                commandLine 'flatpak', 'build-export', flatpakExportDir, flatpakOutputDir
+            }
 
-		// Update the manifest with the version and icon path information
-		newManifest.write(
-		    manifest.text
-		    .replace('- --share=network', "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create")
-		    .replace('name: exchange.haveno.Haveno', """
-			name: exchange.haveno.Haveno
-			version: "${appVersion}"
-			icon: "exchange.haveno.Haveno"  // Flatpak expects icon name without extension
-		    """.stripIndent())
-		)
-		flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
+            // Command to create the Flatpak bundle
+            exec {
+                commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Haveno', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
+            }
 
-		// Command to build the Flatpak
-		exec {
-		    commandLine 'flatpak-builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
-		}
+            // Delete the Flatpak build directory
+            delete(flatpakOutputDir)
+            delete(flatpakExportDir)
+            delete(flatpakManifestFile)
 
-		// Command to export the Flatpak
-		exec {
-		    commandLine 'flatpak', 'build-export', flatpakExportDir, flatpakOutputDir
-		}
-
-		// Command to create the Flatpak bundle
-		exec {
-		    commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Haveno', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
-		}
-
-		// Delete the Flatpak build directory
-		delete(flatpakOutputDir)
-		delete(flatpakExportDir)
-		delete(flatpakManifestFile)
-
-		println "Flatpak package created at ${flatpakBundleFile}"
-
+            println "Flatpak package created at ${flatpakBundleFile}"
+        }
 
         // Env variable can be set by calling "export HAVENO_SHARED_FOLDER='Some value'"
         // This is to copy the final binary/ies to a shared folder for further processing if a VM is used.
