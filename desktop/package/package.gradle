@@ -429,8 +429,8 @@ task packageInstallers {
 			}            
 			newManifest.write(
 				manifest.text
-				.replace('name: exchange.haveno.Haveno', """
-					name: exchange.haveno.Haveno
+				.replace('command: /app/bin/Haveno', """
+					command: /app/bin/Haveno
 					version: "${appVersion}"  # Add version here
 					icon: "${iconPath}"  # Add icon path here
 				""".stripIndent())
