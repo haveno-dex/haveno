@@ -49,7 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProvidersRepository {
     private static final List<String> DEFAULT_NODES = Arrays.asList(
             "http://elaxlgigphpicy5q7pi5wkz2ko2vgjbq4576vic7febmx4xcxvk6deqd.onion/", // Haveno
-            "http://a66ulzwhhudtqy6k2efnhodj2n6wnc5mnzjs3ocqtf47lwtcuo4wxyqd.onion/" // Cake
+            "http://lrrgpezvdrbpoqvkavzobmj7dr2otxc5x6wgktrw337bk6mxsvfp5yid.onion/" // Cake
     );
 
     private final Config config;
