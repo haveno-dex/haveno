@@ -958,6 +958,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public void unregisterTrade(Trade trade) {
+        log.warn("Unregistering {} {}", trade.getClass().getSimpleName(), trade.getId());
         removeTrade(trade, true);
         removeFailedTrade(trade);
         requestPersistence();
