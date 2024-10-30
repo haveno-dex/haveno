@@ -436,6 +436,9 @@ task packageInstallers {
 				""".stripIndent())
 			)
             flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
+            
+            println "Modified manifest content:"
+			println newManifest.text
 
             // Command to build the Flatpak
             exec {
