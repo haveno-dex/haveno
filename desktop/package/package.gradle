@@ -457,7 +457,7 @@ task packageInstallers {
             delete(flatpakExportDir)
             delete(flatpakManifestFile)
 
-            println "Flatpak package created at ${flatpakBundleFile}"
+            println "Flatpak package version ${appVersion} created at ${flatpakBundleFile}"
         }
 
         // Env variable can be set by calling "export HAVENO_SHARED_FOLDER='Some value'"
