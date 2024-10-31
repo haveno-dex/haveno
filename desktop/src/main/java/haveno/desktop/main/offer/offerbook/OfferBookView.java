@@ -366,7 +366,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         matchingOffersToggle.disableProperty().bind(model.disableMatchToggle);
         matchingOffersToggle.setOnAction(e -> model.onShowOffersMatchingMyAccounts(matchingOffersToggle.isSelected()));
 
-        volumeColumn.sortableProperty().bind(model.showAllTradeCurrenciesProperty.not());
         model.getOfferList().comparatorProperty().bind(tableView.comparatorProperty());
 
         amountColumn.sortTypeProperty().addListener((observable, oldValue, newValue) -> {
@@ -775,6 +774,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> getAmountColumn() {
         AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.XMRMinMax"), Res.get("shared.amountHelp"));
         column.setMinWidth(100);
+        column.setSortable(true);
         column.getStyleClass().add("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
@@ -918,6 +918,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>("") {
             {
                 setMinWidth(125);
+                setSortable(true);
             }
         };
         column.getStyleClass().add("number-column");
