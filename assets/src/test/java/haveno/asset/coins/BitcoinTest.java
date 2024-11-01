@@ -33,6 +33,7 @@ public class BitcoinTest extends AbstractAssetTest {
         assertValidAddress("1111111111111111111114oLvT2");
         assertValidAddress("1BitcoinEaterAddressDontSendf59kuE");
         assertValidAddress("bc1qj89046x7zv6pm4n00qgqp505nvljnfp6xfznyw");
+        assertValidAddress("bc1pj3lm0ux0ppx04u2u4x9gcqnnjmcwz74trec2vfx676vpmsmkgj7qzc7uzt");
     }
 
     @Test
