@@ -11,8 +11,8 @@
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public
+ * License along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common;
@@ -29,12 +29,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-
 /**
- * Defines which thread is used as user thread. The user thread is the the main thread in the single threaded context.
- * For JavaFX it is usually the Platform::RunLater executor, for a headless application it is any single threaded
- * executor.
- * Additionally sets a timer class so JavaFX and headless applications can set different timers (UITimer for JavaFX
+ * Defines which thread is used as the user thread. The user thread is the main thread in the single-threaded context.
+ * For JavaFX it is usually the Platform::RunLater executor, for a headless application it is any single-threaded
+ * executor. Additionally sets a timer class so JavaFX and headless applications can set different timers (UITimer for JavaFX
  * otherwise we use the default FrameRateTimer).
  * <p>
  * Provides also methods for delayed and periodic executions.
@@ -47,26 +45,35 @@ public class UserThread {
     private static Executor executor;
     private static Thread USER_THREAD;
 
-    public static void setTimerClass(Class<? extends Timer> timerClass) {
-        UserThread.timerClass = timerClass;
-    }
-
     static {
-        // If not defined we use same thread as caller thread
         executor = MoreExecutors.directExecutor();
         timerClass = FrameRateTimer.class;
     }
 
+    public static void setTimerClass(Class<? extends Timer> timerClass) {
+        UserThread.timerClass = timerClass;
+    }
+
     public static void execute(Runnable command) {
+        if (command == null) {
+            throw new IllegalArgumentException("Command must not be null.");
+        }
         executor.execute(() -> {
-            synchronized (executor) {
+            synchronized (UserThread.class) {
                 USER_THREAD = Thread.currentThread();
-                command.run();
+                try {
+                    command.run();
+                } catch (Exception e) {
+                    log.error("Error executing command: ", e);
+                }
             }
         });
     }
 
     public static void await(Runnable command) {
+        if (command == null) {
+            throw new IllegalArgumentException("Command must not be null.");
+        }
         if (isUserThread(Thread.currentThread())) {
             command.run();
         } else {
@@ -75,7 +82,7 @@ public class UserThread {
                 try {
                     command.run();
                 } catch (Exception e) {
-                    throw e;
+                    log.error("Error executing await command: ", e);
                 } finally {
                     latch.countDown();
                 }
@@ -83,39 +90,46 @@ public class UserThread {
             try {
                 latch.await();
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                Thread.currentThread().interrupt(); // Restore interrupt status
+                log.error("Await was interrupted", e);
+                throw new RuntimeException("Await was interrupted", e);
             }
         }
     }
 
     public static boolean isUserThread(Thread thread) {
         return thread == USER_THREAD;
-
     }
 
-    // Prefer FxTimer if a delay is needed in a JavaFx class (gui module)
     public static Timer runAfterRandomDelay(Runnable runnable, long minDelayInSec, long maxDelayInSec) {
-        return UserThread.runAfterRandomDelay(runnable, minDelayInSec, maxDelayInSec, TimeUnit.SECONDS);
+        return runAfterRandomDelay(runnable, minDelayInSec, maxDelayInSec, TimeUnit.SECONDS);
     }
 
-    @SuppressWarnings("WeakerAccess")
     public static Timer runAfterRandomDelay(Runnable runnable, long minDelay, long maxDelay, TimeUnit timeUnit) {
-        return UserThread.runAfter(runnable, new Random().nextInt((int) (maxDelay - minDelay)) + minDelay, timeUnit);
+        validateDelayParameters(minDelay, maxDelay);
+        long randomDelay = new Random().nextLong(maxDelay - minDelay) + minDelay;
+        return runAfter(runnable, randomDelay, timeUnit);
     }
 
     public static Timer runAfter(Runnable runnable, long delayInSec) {
-        return UserThread.runAfter(runnable, delayInSec, TimeUnit.SECONDS);
+        return runAfter(runnable, delayInSec, TimeUnit.SECONDS);
     }
 
     public static Timer runAfter(Runnable runnable, long delay, TimeUnit timeUnit) {
+        if (runnable == null || delay < 0 || timeUnit == null) {
+            throw new IllegalArgumentException("Runnable must not be null, delay must be non-negative, and timeUnit must not be null.");
+        }
         return getTimer().runLater(Duration.ofMillis(timeUnit.toMillis(delay)), () -> execute(runnable));
     }
 
     public static Timer runPeriodically(Runnable runnable, long intervalInSec) {
-        return UserThread.runPeriodically(runnable, intervalInSec, TimeUnit.SECONDS);
+        return runPeriodically(runnable, intervalInSec, TimeUnit.SECONDS);
     }
 
     public static Timer runPeriodically(Runnable runnable, long interval, TimeUnit timeUnit) {
+        if (runnable == null || interval < 0 || timeUnit == null) {
+            throw new IllegalArgumentException("Runnable must not be null, interval must be non-negative, and timeUnit must not be null.");
+        }
         return getTimer().runPeriodically(Duration.ofMillis(timeUnit.toMillis(interval)), () -> execute(runnable));
     }
 
@@ -123,9 +137,15 @@ public class UserThread {
         try {
             return timerClass.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            String message = "Could not instantiate timer bsTimerClass=" + timerClass;
+            String message = "Could not instantiate timer timerClass=" + timerClass;
             log.error(message, e);
             throw new RuntimeException(message);
+        }
+    }
+
+    private static void validateDelayParameters(long minDelay, long maxDelay) {
+        if (minDelay < 0 || maxDelay < 0 || minDelay > maxDelay) {
+            throw new IllegalArgumentException("Min and max delays must be non-negative and min must be less than or equal to max.");
         }
     }
 }
