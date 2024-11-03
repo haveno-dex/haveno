@@ -425,14 +425,10 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         if (isSellOffer(direction)) {
             if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
-                preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
             }
         } else {
             if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
-                preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
             }
         }
     }

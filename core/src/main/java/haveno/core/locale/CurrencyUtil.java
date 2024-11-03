@@ -73,14 +73,6 @@ public class CurrencyUtil {
 
     private static String baseCurrencyCode = "XMR";
 
-    private static List<TraditionalCurrency> getTraditionalNonFiatCurrencies() {
-        return Arrays.asList(
-            new TraditionalCurrency("XAG", "Silver"),
-            new TraditionalCurrency("XAU", "Gold"),
-            new TraditionalCurrency("XGB", "Goldback")
-        );
-    }
-
     // Calls to isTraditionalCurrency and isCryptoCurrency are very frequent so we use a cache of the results.
     // The main improvement was already achieved with using memoize for the source maps, but
     // the caching still reduces performance costs by about 20% for isCryptoCurrency (1752 ms vs 2121 ms) and about 50%
@@ -122,6 +114,14 @@ public class CurrencyUtil {
 
     public static List<TradeCurrency> getAllTraditionalCurrencies() {
         return new ArrayList<>(traditionalCurrencyMapSupplier.get().values());
+    }
+
+    public static List<TraditionalCurrency> getTraditionalNonFiatCurrencies() {
+        return Arrays.asList(
+            new TraditionalCurrency("XAG", "Silver"),
+            new TraditionalCurrency("XAU", "Gold"),
+            new TraditionalCurrency("XGB", "Goldback")
+        );
     }
 
     public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies(Comparator comparator) {

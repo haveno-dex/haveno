@@ -49,23 +49,23 @@ import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-public class XmrOfferBookViewModel extends OfferBookViewModel {
+public class FiatOfferBookViewModel extends OfferBookViewModel {
 
     @Inject
-    public XmrOfferBookViewModel(User user,
-                                 OpenOfferManager openOfferManager,
-                                 OfferBook offerBook,
-                                 Preferences preferences,
-                                 WalletsSetup walletsSetup,
-                                 P2PService p2PService,
-                                 PriceFeedService priceFeedService,
-                                 ClosedTradableManager closedTradableManager,
-                                 AccountAgeWitnessService accountAgeWitnessService,
-                                 Navigation navigation,
-                                 PriceUtil priceUtil,
-                                 OfferFilterService offerFilterService,
-                                 @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                                 CoreApi coreApi) {
+    public FiatOfferBookViewModel(User user,
+                                    OpenOfferManager openOfferManager,
+                                    OfferBook offerBook,
+                                    Preferences preferences,
+                                    WalletsSetup walletsSetup,
+                                    P2PService p2PService,
+                                    PriceFeedService priceFeedService,
+                                    ClosedTradableManager closedTradableManager,
+                                    AccountAgeWitnessService accountAgeWitnessService,
+                                    Navigation navigation,
+                                    PriceUtil priceUtil,
+                                    OfferFilterService offerFilterService,
+                                    @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
+                                    CoreApi coreApi) {
         super(user, openOfferManager, offerBook, preferences, walletsSetup, p2PService, priceFeedService, closedTradableManager, accountAgeWitnessService, navigation, priceUtil, offerFilterService, btcFormatter, coreApi);
     }
 
@@ -141,9 +141,10 @@ public class XmrOfferBookViewModel extends OfferBookViewModel {
                             !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList());
             return sortedList.get(0);
         } else {
-            return CurrencyUtil.getMainTraditionalCurrencies().stream().sorted((o1, o2) ->
-                    Boolean.compare(!hasPaymentAccountForCurrency(o1),
-                            !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList()).get(0);
+            return CurrencyUtil.getMainTraditionalCurrencies().stream()
+                    .filter(withFiatCurrency())
+                    .sorted((o1, o2) -> Boolean.compare(!hasPaymentAccountForCurrency(o1), !hasPaymentAccountForCurrency(o2)))
+                    .collect(Collectors.toList()).get(0);
         }
     }
 

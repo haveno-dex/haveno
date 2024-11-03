@@ -165,8 +165,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             MainView.rootContainer.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
 
         ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market").toUpperCase());
-        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buy").toUpperCase());
-        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sell").toUpperCase());
+        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyXmr").toUpperCase());
+        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellXmr").toUpperCase());
         ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
         ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
