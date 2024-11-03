@@ -136,6 +136,7 @@ import haveno.desktop.util.FormBuilder;
 import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
 import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addLabel;
 import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -462,7 +463,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         paymentAccountsListView.getSelectionModel().clearSelection();
         removeAccountRows();
         addAccountButton.setDisable(true);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.FIRST_ROW_DISTANCE);
+        addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"), Layout.FIRST_ROW_DISTANCE);
         paymentMethodComboBox = FormBuilder.addAutocompleteComboBox(
             root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.FIRST_ROW_AND_GROUP_DISTANCE
         );
