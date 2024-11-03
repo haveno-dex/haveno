@@ -420,7 +420,22 @@ task packageInstallers {
             // and add a --filesystem=.local/share/${name} to the flatpak manifest
             def manifest = file(flatpakManifestFile)
             def newManifest = file('exchange.haveno.Haveno.yaml')
-            newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create"))
+            def iconPath = "${project(':desktop').projectDir}/package/linux/icon.png"
+            def iconDestinationDir = "${flatpakOutputDir}/files/share/icons/hicolor/128x128/apps/"
+            def iconFileName = "exchange.haveno.Haveno.png"
+            
+            file(iconDestinationDir).mkdirs()
+            copy {
+                from iconPath
+                into iconDestinationDir
+                rename { iconFileName }
+            }
+            
+            newManifest.write(
+                manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create").replace('command: /app/bin/Haveno', """
+            command: /app/bin/Haveno
+            icon: "${iconPath}"
+        """.stripIndent()))
             flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
 
             // Command to build the Flatpak
