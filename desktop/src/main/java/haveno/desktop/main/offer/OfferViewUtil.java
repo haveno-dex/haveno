@@ -22,16 +22,16 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.main.offer.offerbook.XmrOfferBookView;
+import haveno.desktop.main.offer.offerbook.FiatOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
+import haveno.desktop.main.offer.offerbook.CryptoOfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
-import haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
@@ -44,7 +44,6 @@ import monero.daemon.model.MoneroSubmitTxResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -90,10 +89,10 @@ public class OfferViewUtil {
 
     public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
         Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            offerBookViewClazz = XmrOfferBookView.class;
-        } else if (currencyCode.equals(GUIUtil.TOP_CRYPTO.getCode())) {
-            offerBookViewClazz = TopCryptoOfferBookView.class;
+        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
+            offerBookViewClazz = FiatOfferBookView.class;
+        } else if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            offerBookViewClazz = CryptoOfferBookView.class;
         } else {
             offerBookViewClazz = OtherOfferBookView.class;
         }
@@ -109,7 +108,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(String currencyCode, OfferDirection direction) {
-        return CurrencyUtil.isFiatCurrency(currencyCode) == (direction == OfferDirection.SELL);
+        return direction == OfferDirection.SELL;
     }
 
     public static boolean isShownAsBuyOffer(Offer offer) {
@@ -124,10 +123,18 @@ public class OfferViewUtil {
         return getMainCryptoCurrencies().findAny().get();
     }
 
+    public static TradeCurrency getAnyOfOtherCurrencies() {
+        return getOtherCurrencies().findAny().get();
+    }
+
     @NotNull
     public static Stream<CryptoCurrency> getMainCryptoCurrencies() {
-        return CurrencyUtil.getMainCryptoCurrencies().stream().filter(cryptoCurrency ->
-                !Objects.equals(cryptoCurrency.getCode(), GUIUtil.TOP_CRYPTO.getCode()));
+        return CurrencyUtil.getMainCryptoCurrencies().stream();
+    }
+
+    @NotNull
+    public static Stream<TraditionalCurrency> getOtherCurrencies() {
+        return CurrencyUtil.getTraditionalNonFiatCurrencies().stream();
     }
 
     public static void submitTransactionHex(XmrWalletService xmrWalletService,

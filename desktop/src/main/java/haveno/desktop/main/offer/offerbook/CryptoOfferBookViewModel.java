@@ -25,7 +25,6 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferFilterService;
@@ -40,6 +39,7 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.desktop.Navigation;
+import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.util.List;
@@ -47,34 +47,33 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import org.jetbrains.annotations.NotNull;
 
-public class OtherOfferBookViewModel extends OfferBookViewModel {
+public class CryptoOfferBookViewModel extends OfferBookViewModel {
 
     @Inject
-    public OtherOfferBookViewModel(User user,
-                                    OpenOfferManager openOfferManager,
-                                    OfferBook offerBook,
-                                    Preferences preferences,
-                                    WalletsSetup walletsSetup,
-                                    P2PService p2PService,
-                                    PriceFeedService priceFeedService,
-                                    ClosedTradableManager closedTradableManager,
-                                    AccountAgeWitnessService accountAgeWitnessService,
-                                    Navigation navigation,
-                                    PriceUtil priceUtil,
-                                    OfferFilterService offerFilterService,
-                                    @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                                    CoreApi coreApi) {
+    public CryptoOfferBookViewModel(User user,
+                                   OpenOfferManager openOfferManager,
+                                   OfferBook offerBook,
+                                   Preferences preferences,
+                                   WalletsSetup walletsSetup,
+                                   P2PService p2PService,
+                                   PriceFeedService priceFeedService,
+                                   ClosedTradableManager closedTradableManager,
+                                   AccountAgeWitnessService accountAgeWitnessService,
+                                   Navigation navigation,
+                                   PriceUtil priceUtil,
+                                   OfferFilterService offerFilterService,
+                                   @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
+                                   CoreApi coreApi) {
         super(user, openOfferManager, offerBook, preferences, walletsSetup, p2PService, priceFeedService, closedTradableManager, accountAgeWitnessService, navigation, priceUtil, offerFilterService, btcFormatter, coreApi);
     }
 
     @Override
     void saveSelectedCurrencyCodeInPreferences(OfferDirection direction, String code) {
         if (direction == OfferDirection.BUY) {
-            preferences.setBuyScreenOtherCurrencyCode(code);
+            preferences.setBuyScreenCryptoCurrencyCode(code);
         } else {
-            preferences.setBuyScreenOtherCurrencyCode(code);
+            preferences.setSellScreenCryptoCurrencyCode(code);
         }
     }
 
@@ -82,26 +81,21 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
     protected ObservableList<PaymentMethod> filterPaymentMethods(ObservableList<PaymentMethod> list,
                                                                  TradeCurrency selectedTradeCurrency) {
         return FXCollections.observableArrayList(list.stream().filter(paymentMethod -> {
-            if (paymentMethod.getSupportedAssetCodes() == null) return true;
-            for (String assetCode : paymentMethod.getSupportedAssetCodes()) {
-                if (!CurrencyUtil.isFiatCurrency(assetCode)) return true;
-            }
-            return false;
+            return paymentMethod.isBlockchain();
         }).collect(Collectors.toList()));
     }
 
     @Override
     void fillCurrencies(ObservableList<TradeCurrency> tradeCurrencies,
                         ObservableList<TradeCurrency> allCurrencies) {
+
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        tradeCurrencies.addAll(CurrencyUtil.getMainTraditionalCurrencies().stream()
-                .filter(withoutFiatCurrency())
+        tradeCurrencies.addAll(preferences.getCryptoCurrenciesAsObservable().stream()
                 .collect(Collectors.toList()));
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
 
         allCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        allCurrencies.addAll(CurrencyUtil.getMainTraditionalCurrencies().stream()
-                .filter(withoutFiatCurrency())
+        allCurrencies.addAll(CurrencyUtil.getAllSortedCryptoCurrencies().stream()
                 .collect(Collectors.toList()));
         allCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
     }
@@ -111,9 +105,10 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
                                                                TradeCurrency selectedTradeCurrency) {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
-            boolean directionResult = offer.getDirection() != direction;
-            boolean currencyResult = CurrencyUtil.isTraditionalCurrency(offer.getCurrencyCode()) && !CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) &&
-                    (showAllTradeCurrenciesProperty.get() || offer.getCurrencyCode().equals(selectedTradeCurrency.getCode()));
+            boolean directionResult = offer.getDirection() != direction; // offer to buy xmr appears as offer to sell in peer's offer book and vice versa
+            boolean currencyResult = CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode()) && 
+                    (showAllTradeCurrenciesProperty.get() ||
+                    offer.getCurrencyCode().equals(selectedTradeCurrency.getCode()));
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
@@ -125,8 +120,7 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
     TradeCurrency getDefaultTradeCurrency() {
         TradeCurrency defaultTradeCurrency = GlobalSettings.getDefaultTradeCurrency();
 
-        if (CurrencyUtil.isTraditionalCurrency(defaultTradeCurrency.getCode()) && 
-                !CurrencyUtil.isFiatCurrency(defaultTradeCurrency.getCode()) && 
+        if (CurrencyUtil.isCryptoCurrency(defaultTradeCurrency.getCode()) &&
                 hasPaymentAccountForCurrency(defaultTradeCurrency)) {
             return defaultTradeCurrency;
         }
@@ -140,24 +134,15 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
                             !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList());
             return sortedList.get(0);
         } else {
-            return CurrencyUtil.getMainTraditionalCurrencies().stream()
-                    .filter(withoutFiatCurrency())
-                    .sorted((o1, o2) -> Boolean.compare(!hasPaymentAccountForCurrency(o1), !hasPaymentAccountForCurrency(o2)))
-                    .collect(Collectors.toList()).get(0);
+            return OfferViewUtil.getMainCryptoCurrencies().sorted((o1, o2) ->
+                    Boolean.compare(!hasPaymentAccountForCurrency(o1),
+                            !hasPaymentAccountForCurrency(o2))).collect(Collectors.toList()).get(0);
         }
     }
 
     @Override
     String getCurrencyCodeFromPreferences(OfferDirection direction) {
-        // validate if previous stored currencies are Traditional ones
-        String currencyCode = direction == OfferDirection.BUY ? preferences.getBuyScreenOtherCurrencyCode() : preferences.getSellScreenOtherCurrencyCode();
-
-        return CurrencyUtil.isTraditionalCurrency(currencyCode) ? currencyCode : null;
-    }
-
-    @NotNull
-    private Predicate<TraditionalCurrency> withoutFiatCurrency() {
-        return fiatCurrency ->
-                        !CurrencyUtil.isFiatCurrency(fiatCurrency.getCode());
+        return direction == OfferDirection.BUY ? preferences.getBuyScreenCryptoCurrencyCode() :
+                preferences.getSellScreenCryptoCurrencyCode();
     }
 }

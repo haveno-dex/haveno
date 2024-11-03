@@ -1742,6 +1742,8 @@ message PreferencesPayload {
     bool split_offer_output = 62;
     bool use_sound_for_notifications = 63;
     bool use_sound_for_notifications_initialized = 64;
+    string buy_screen_other_currency_code = 65;
+    string sell_screen_other_currency_code = 66;
 }
 
 message AutoConfirmSettings {
