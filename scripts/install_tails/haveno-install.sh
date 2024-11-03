@@ -38,29 +38,21 @@ install_dir="${persistence_dir}/haveno/Install"
 dotfiles_dir="/live/persistence/TailsData_unlocked/dotfiles"
 persistent_desktop_dir="$dotfiles_dir/.local/share/applications"
 local_desktop_dir="/home/amnesia/.local/share/applications"
-
-
-# Install dependencies
-echo_blue "Installing dependencies ..."
-sudo apt update && sudo apt install -y curl unzip
-
-
-# Remove stale resources
-rm -rf "${assets_dir}"
+wget_flags="--tries=10 --timeout=10 --waitretry=5 --retry-connrefused --show-progress"
 
 
 # Create temp location for downloads
 echo_blue "Creating temporary directory for Haveno resources ..."
-mkdir "${assets_dir}" || { echo_red "Failed to create directory ${assets_dir}"; exit 1; }
+mkdir -p "${assets_dir}" || { echo_red "Failed to create directory ${assets_dir}"; exit 1; }
 
 
 # Download resources
 echo_blue "Downloading resources for Haveno on Tails ..."
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/exec.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/exec.sh || { echo_red "Failed to download resource (exec.sh)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/install.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/install.sh || { echo_red "Failed to download resource (install.sh)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.desktop https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.desktop || { echo_red "Failed to resource (haveno.desktop)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/icon.png https://raw.githubusercontent.com/haveno-dex/haveno/master/scripts/install_tails/assets/icon.png || { echo_red "Failed to download resource (icon.png)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.yml https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.yml || { echo_red "Failed to download resource (haveno.yml)."; exit 1; }
+wget "${wget_flags}" -cqP "${assets_dir}" https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/exec.sh || { echo_red "Failed to download resource (exec.sh)."; exit 1; }
+wget "${wget_flags}" -cqP "${assets_dir}" https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/install.sh || { echo_red "Failed to download resource (install.sh)."; exit 1; }
+wget "${wget_flags}" -cqP "${assets_dir}" https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.desktop || { echo_red "Failed to resource (haveno.desktop)."; exit 1; }
+wget "${wget_flags}" -cqP "${assets_dir}" https://raw.githubusercontent.com/haveno-dex/haveno/master/scripts/install_tails/assets/icon.png || { echo_red "Failed to download resource (icon.png)."; exit 1; }
+wget "${wget_flags}" -cqP "${assets_dir}" https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.yml || { echo_red "Failed to download resource (haveno.yml)."; exit 1; }
 
 
 # Create persistent directory
@@ -92,17 +84,17 @@ fi
 
 # Download Haveno binary
 echo_blue "Downloading Haveno from URL provided ..."
-curl --retry 10 --retry-delay 5 -L -o "${binary_filename}" "${user_url}" || { echo_red "Failed to download Haveno binary."; exit 1; }
+wget "${wget_flags}" -cq "${user_url}" || { echo_red "Failed to download Haveno binary."; exit 1; }
 
 
 # Download Haveno signature file
 echo_blue "Downloading Haveno signature ..."
-curl --retry 10 --retry-delay 5 -L -o "${signature_filename}" "${base_url}""${signature_filename}" || { echo_red "Failed to download Haveno signature."; exit 1; }
+wget "${wget_flags}" -cq "${base_url}""${signature_filename}" || { echo_red "Failed to download Haveno signature."; exit 1; }
 
 
 # Download the GPG key
 echo_blue "Downloading signing GPG key ..."
-curl --retry 10 --retry-delay 5 -L -o "${key_filename}" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$(echo "$expected_fingerprint" | tr -d ' ')" || { echo_red "Failed to download GPG key."; exit 1; }
+wget "${wget_flags}" -cqO "${key_filename}" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$(echo "$expected_fingerprint" | tr -d ' ')" || { echo_red "Failed to download GPG key."; exit 1; }
 
 
 # Import the GPG key
@@ -132,7 +124,7 @@ OUTPUT=$(gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_fil
 if ! echo "$OUTPUT" | grep -q "Good signature from"; then
     echo_red "Verification failed: $OUTPUT"
     exit 1;
-    else unzip "${binary_filename}" && mv haveno*.deb "${package_filename}"
+    else 7z x "${binary_filename}" && mv haveno*.deb "${package_filename}"
 fi
 
 echo_blue "Haveno binaries have been successfully verified."
@@ -146,6 +138,10 @@ mkdir -p "${install_dir}"
 #rm -f "${install_dir}/"*.deb*
 mv "${binary_filename}" "${package_filename}" "${key_filename}" "${signature_filename}" "${install_dir}"
 echo_blue "Files moved to persistent directory ${install_dir}"
+
+
+# Remove stale resources
+rm -rf "${assets_dir}"
 
 
 # Completed confirmation
