@@ -463,10 +463,10 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         paymentAccountsListView.getSelectionModel().clearSelection();
         removeAccountRows();
         addAccountButton.setDisable(true);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.FIRST_ROW_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
         addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"), Layout.FIRST_ROW_DISTANCE);
         paymentMethodComboBox = FormBuilder.addAutocompleteComboBox(
-            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.FIRST_ROW_AND_GROUP_DISTANCE
+            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE
         );
         paymentMethodComboBox.setVisibleRowCount(Math.min(paymentMethodComboBox.getItems().size(), 10));
         paymentMethodComboBox.setPrefWidth(250);
