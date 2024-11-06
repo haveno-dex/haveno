@@ -41,6 +41,7 @@ import haveno.desktop.main.offer.takeoffer.TakeOfferView;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import javafx.beans.value.ChangeListener;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import org.jetbrains.annotations.NotNull;
@@ -52,7 +53,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
     private OfferBookView<?, ?> fiatOfferBookView, cryptoOfferBookView, otherOfferBookView;
 
-    private Tab fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab;
+    private Tab labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab;
 
     private final ViewLoader viewLoader;
     private final Navigation navigation;
@@ -165,6 +166,8 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
     }
 
+    protected abstract String getOfferLabel();
+
     private void loadView(Class<? extends View> viewClass,
                           Class<? extends View> childViewClass,
                           @Nullable Object data) {
@@ -209,14 +212,24 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 tabPane.getSelectionModel().select(otherOfferBookTab);
             } else {
                 if (fiatOfferBookTab == null) {
+
+                    // add preceding label tab
+                    labelTab = new Tab();
+                    labelTab.setDisable(true);
+                    labelTab.setContent(new Label());
+                    labelTab.setClosable(false);
+                    Label offerLabel = new Label(getOfferLabel()); // use overlay for label for custom formatting
+                    offerLabel.getStyleClass().add("titled-group-bg-label");
+                    offerLabel.setStyle("-fx-font-size: 1.4em;");
+                    labelTab.setGraphic(offerLabel);
+
                     fiatOfferBookTab = new Tab(Res.get("shared.fiat").toUpperCase());
                     fiatOfferBookTab.setClosable(false);
                     cryptoOfferBookTab = new Tab(Res.get("shared.crypto").toUpperCase());
                     cryptoOfferBookTab.setClosable(false);
-                    otherOfferBookTab = new Tab(Res.get("shared.preciousMetals").toUpperCase());
+                    otherOfferBookTab = new Tab(Res.get("shared.other").toUpperCase());
                     otherOfferBookTab.setClosable(false);
-
-                    tabPane.getTabs().addAll(fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab);
+                    tabPane.getTabs().addAll(labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab);
                 }
                 if (viewClass == FiatOfferBookView.class) {
                     fiatOfferBookView = (FiatOfferBookView) viewLoader.load(FiatOfferBookView.class);
