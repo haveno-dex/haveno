@@ -1267,6 +1267,7 @@ textfield */
     -fx-padding: 14;
     -fx-font-size: 0.769em;
     -fx-font-weight: normal;
+    -fx-cursor: hand;
 }
 
 .jfx-tab-pane .depth-container {
