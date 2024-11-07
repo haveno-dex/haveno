@@ -1,33 +1,3 @@
-/*
- * This file is part of Bisq.
- *
- * Bisq is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at
- * your option) any later version.
- *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Affero General Public
- * License along with Bisq. If not, see <http://www.gnu.org/licenses/>.
- */
-
-package haveno.common;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
 public class ThreadUtils {
 
     private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
@@ -35,34 +5,42 @@ public class ThreadUtils {
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-    /**
-     * Execute the given command in a thread with the given id.
-     *
-     * @param command the command to execute
-     * @param threadId the thread id
-     * @return Future representing the pending results of the task
-     */
-    public static Future<?> execute(Runnable command, String threadId) {
-        validateThreadId(threadId);
-        synchronized (EXECUTORS) {
-            EXECUTORS.computeIfAbsent(threadId, id -> Executors.newFixedThreadPool(1));
-            return EXECUTORS.get(threadId).submit(() -> {
-                Thread currentThread = Thread.currentThread();
-                currentThread.setName(threadId);
-                try {
-                    command.run();
-                } finally {
-                    removeThreadIdMapping(threadId, currentThread);
-                }
-            });
+    // Validate thread ID to avoid null or empty values
+    private static void validateThreadId(String threadId) {
+        if (threadId == null || threadId.isEmpty()) {
+            throw new IllegalArgumentException("Thread ID cannot be null or empty");
         }
     }
 
     /**
-     * Awaits execution of the given command, but does not throw its exception.
+     * Execute the given command in a thread with the specified threadId.
      *
      * @param command the command to execute
-     * @param threadId the thread id
+     * @param threadId the thread ID to associate with this task
+     * @return a Future representing the execution of the command
+     */
+    public static Future<?> execute(Runnable command, String threadId) {
+        validateThreadId(threadId);  // Ensure valid threadId
+
+        ExecutorService executorService;
+        synchronized (EXECUTORS) {
+            executorService = EXECUTORS.computeIfAbsent(threadId, id -> Executors.newFixedThreadPool(1));
+        }
+
+        return executorService.submit(() -> {
+            Thread.currentThread().setName(threadId);
+            synchronized (THREADS) {
+                THREADS.put(threadId, Thread.currentThread());
+            }
+            command.run();
+        });
+    }
+
+    /**
+     * Awaits execution of the given command, blocking until it's finished, but does not throw its exception.
+     *
+     * @param command the command to execute
+     * @param threadId the thread ID to associate with this task
      */
     public static void await(Runnable command, String threadId) {
         try {
@@ -72,63 +50,134 @@ public class ThreadUtils {
         }
     }
 
+    /**
+     * Shuts down the executor associated with the given threadId.
+     *
+     * @param threadId the thread ID to shut down
+     */
     public static void shutDown(String threadId) {
         shutDown(threadId, null);
     }
 
+    /**
+     * Shuts down the executor associated with the given threadId, with a specific timeout.
+     *
+     * @param threadId the thread ID to shut down
+     * @param timeoutMs the timeout in milliseconds to wait for termination
+     */
     public static void shutDown(String threadId, Long timeoutMs) {
+        validateThreadId(threadId);  // Ensure valid threadId
+
         if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
-        ExecutorService pool;
+
+        ExecutorService pool = null;
         synchronized (EXECUTORS) {
-            pool = EXECUTORS.remove(threadId);
+            pool = EXECUTORS.get(threadId);
         }
-        if (pool == null) return; // Thread not found
+        if (pool == null) return; // Thread not found, no need to shut down
+
         pool.shutdown();
         try {
             if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) {
                 pool.shutdownNow();
             }
         } catch (InterruptedException e) {
+            // Preserve the interrupt status after handling the exception
+            Thread.currentThread().interrupt();
             pool.shutdownNow();
-            Thread.currentThread().interrupt(); // Restore interrupt status
+            throw new RuntimeException(e);
+        } finally {
+            remove(threadId);
         }
     }
 
+    /**
+     * Removes the executor and thread associated with the given threadId from the maps.
+     *
+     * @param threadId the thread ID to remove
+     */
+    public static void remove(String threadId) {
+        synchronized (EXECUTORS) {
+            EXECUTORS.remove(threadId);
+        }
+        synchronized (THREADS) {
+            THREADS.remove(threadId);
+        }
+    }
+
+    // TODO: consolidate and cleanup apis
+    
+    // Task submission to the default pool
     public static Future<?> submitToPool(Runnable task) {
         return submitToPool(Arrays.asList(task)).get(0);
     }
 
+    // Task submission to the default pool with a list of tasks
     public static List<Future<?>> submitToPool(List<Runnable> tasks) {
-        List<Future<?>> futures = new ArrayList<>(tasks.size());
+        List<Future<?>> futures = new ArrayList<>();
         for (Runnable task : tasks) {
             futures.add(POOL.submit(task));
         }
         return futures;
     }
 
+    /**
+     * Awaits the execution of a single task.
+     *
+     * @param task the task to execute
+     * @return the Future representing the task execution
+     */
     public static Future<?> awaitTask(Runnable task) {
         return awaitTask(task, null);
     }
 
+    /**
+     * Awaits the execution of a single task with an optional timeout.
+     *
+     * @param task the task to execute
+     * @param timeoutMs the timeout in milliseconds for waiting for the task to finish
+     * @return the Future representing the task execution
+     */
     public static Future<?> awaitTask(Runnable task, Long timeoutMs) {
         return awaitTasks(Arrays.asList(task), 1, timeoutMs).get(0);
     }
 
+    /**
+     * Awaits the execution of multiple tasks, blocking until all tasks are finished.
+     *
+     * @param tasks the tasks to execute
+     * @return a list of Futures representing the execution of each task
+     */
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks) {
         return awaitTasks(tasks, tasks.size());
     }
 
+    /**
+     * Awaits the execution of multiple tasks with a limit on concurrent executions.
+     *
+     * @param tasks the tasks to execute
+     * @param maxConcurrency the maximum number of concurrent tasks to run
+     * @return a list of Futures representing the execution of each task
+     */
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency) {
         return awaitTasks(tasks, maxConcurrency, null);
     }
 
+    /**
+     * Awaits the execution of multiple tasks with a limit on concurrent executions and an optional timeout.
+     *
+     * @param tasks the tasks to execute
+     * @param maxConcurrency the maximum number of concurrent tasks to run
+     * @param timeoutMs the timeout in milliseconds for waiting for the tasks to finish
+     * @return a list of Futures representing the execution of each task
+     */
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutMs) {
         if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
-        if (tasks.isEmpty()) return new ArrayList<>();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(maxConcurrency);
-        List<Future<?>> futures = new ArrayList<>(tasks.size());
+        if (tasks.isEmpty()) return new ArrayList<>();
+        ExecutorService executorService = Executors.newFixedThreadPool(Math.min(tasks.size(), maxConcurrency));
         try {
+            List<Future<?>> futures = new ArrayList<>();
             for (Runnable task : tasks) {
                 futures.add(executorService.submit(task));
             }
@@ -143,17 +192,17 @@ public class ThreadUtils {
         }
     }
 
-    private static void removeThreadIdMapping(String threadId, Thread currentThread) {
+    /**
+     * Checks whether the current thread is the one associated with the given threadId.
+     *
+     * @param thread the thread to check
+     * @param threadId the thread ID to check against
+     * @return true if the given thread is associated with the threadId
+     */
+    private static boolean isCurrentThread(Thread thread, String threadId) {
         synchronized (THREADS) {
-            if (currentThread == THREADS.get(threadId)) {
-                THREADS.remove(threadId);
-            }
-        }
-    }
-
-    private static void validateThreadId(String threadId) {
-        if (threadId == null || threadId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Thread ID must not be null or empty.");
+            if (!THREADS.containsKey(threadId)) return false;
+            return thread == THREADS.get(threadId);
         }
     }
 }
