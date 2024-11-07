@@ -1482,18 +1482,18 @@ public class XmrWalletService extends XmrWalletBase {
                 try {
                     
                     // rename wallet cache to backup
-                    String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
+                    String cachePath = walletDir.toString() + File.separator + getWalletName(config.getPath());
                     File originalCacheFile = new File(cachePath);
                     if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
 
                     // copy latest wallet cache backup to main folder
-                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
+                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, getWalletName(config.getPath()));
                     if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
 
                     // retry opening wallet without original cache
                     try {
                         walletFull = MoneroWalletFull.openWallet(config);
-                        log.info("Successfully opened full wallet using backup cache");
+                        log.warn("Successfully opened full wallet using backup cache");
                         retrySuccessful = true;
                     } catch (Exception e2) {
                         // ignore
@@ -1587,18 +1587,18 @@ public class XmrWalletService extends XmrWalletBase {
                 try {
                     
                     // rename wallet cache to backup
-                    String cachePath = walletDir.toString() + File.separator + MONERO_WALLET_NAME;
+                    String cachePath = walletDir.toString() + File.separator + config.getPath();
                     File originalCacheFile = new File(cachePath);
                     if (originalCacheFile.exists()) originalCacheFile.renameTo(new File(cachePath + ".backup"));
 
                     // copy latest wallet cache backup to main folder
-                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, MONERO_WALLET_NAME);
+                    File backupCacheFile = FileUtil.getLatestBackupFile(walletDir, config.getPath());
                     if (backupCacheFile != null) FileUtil.copyFile(backupCacheFile, new File(cachePath));
 
                     // retry opening wallet without original cache
                     try {
                         walletRpc.openWallet(config);
-                        log.info("Successfully opened RPC wallet using backup cache");
+                        log.warn("Successfully opened RPC wallet using backup cache");
                         retrySuccessful = true;
                     } catch (Exception e2) {
                         // ignore
