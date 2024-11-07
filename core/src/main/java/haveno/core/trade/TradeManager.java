@@ -450,6 +450,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             return;
                         }
 
+                        // skip if marked as failed
+                        if (failedTradesManager.getObservableList().contains(trade)) {
+                            log.warn("Skipping initialization of failed trade {} {}", trade.getClass().getSimpleName(), trade.getId());
+                            tradesToSkip.add(trade);
+                            return;
+                        }
+
                         // initialize trade
                         initPersistedTrade(trade);
 
@@ -1059,7 +1066,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void addTradeToPendingTrades(Trade trade) {
         if (!trade.isInitialized()) {
-            initPersistedTrade(trade);
+            try {
+                initPersistedTrade(trade);
+            } catch (Exception e) {
+                log.warn("Error initializing {} {} on move to pending trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
+            }
         }
         addTrade(trade);
     }
