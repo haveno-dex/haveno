@@ -937,6 +937,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (wallet == null) throw new RuntimeException("Trade wallet to close is not open for trade " + getId());
             stopPolling();
             xmrWalletService.closeWallet(wallet, true);
+            maybeBackupWallet();
             wallet = null;
             pollPeriodMs = null;
         }
@@ -1560,9 +1561,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // force close wallet
             forceCloseWallet();
         }
-
-        // backup trade wallet if applicable
-        maybeBackupWallet();
 
         // de-initialize
         if (idlePayoutSyncer != null) {
