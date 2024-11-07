@@ -393,8 +393,14 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 chatMessage.setSystemMessage(true);
                 dispute.addAndPersistChatMessage(chatMessage);
 
+                // export latest multisig hex
+                try {
+                    trade.exportMultisigHex();
+                } catch (Exception e) {
+                    log.error("Failed to export multisig hex", e);
+                }
+
                 // create dispute opened message
-                trade.exportMultisigHex();
                 NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
                 DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,
                         p2PService.getAddress(),
