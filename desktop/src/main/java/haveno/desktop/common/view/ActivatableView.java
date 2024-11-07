@@ -48,7 +48,4 @@
  
      protected void deactivate() {
      }
- }
-    protected void deactivate() {
-    }
 }
