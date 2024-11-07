@@ -15,35 +15,40 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.common.view;
+ package haveno.desktop.common.view;
 
-import javafx.scene.Node;
-
-public abstract class ActivatableView<R extends Node, M> extends InitializableView<R, M> {
-
-    public ActivatableView(M model) {
-        super(model);
-    }
-
-    public ActivatableView() {
-        this(null);
-    }
-
-    @Override
-    protected void prepareInitialize() {
-        if (root != null) {
-            root.sceneProperty().addListener((ov, oldValue, newValue) -> {
-                if (oldValue == null && newValue != null)
-                    activate();
-                else if (oldValue != null && newValue == null)
-                    deactivate();
-            });
-        }
-    }
-
-    protected void activate() {
-    }
-
+ import javafx.application.Platform;
+ import javafx.scene.Node;
+ 
+ public abstract class ActivatableView<R extends Node, M> extends InitializableView<R, M> {
+ 
+     public ActivatableView(M model) {
+         super(model);
+     }
+ 
+     public ActivatableView() {
+         this(null);
+     }
+ 
+     @Override
+     protected void prepareInitialize() {
+         if (root != null) {
+             root.sceneProperty().addListener((ov, oldValue, newValue) -> {
+                 if (oldValue == null && newValue != null) {
+                     Platform.runLater(this::activate);
+                 } else if (oldValue != null && newValue == null) {
+                     Platform.runLater(this::deactivate);
+                 }
+             });
+         }
+     }
+ 
+     protected void activate() {
+     }
+ 
+     protected void deactivate() {
+     }
+ }
     protected void deactivate() {
     }
 }
