@@ -47,76 +47,83 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package haveno.desktop.main.market.trades.charts.price;
+ package haveno.desktop.main.market.trades.charts.price;
 
-import haveno.desktop.main.market.trades.charts.CandleData;
-import javafx.scene.Group;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.Region;
-import javafx.scene.shape.Line;
-import javafx.util.StringConverter;
+ import haveno.desktop.main.market.trades.charts.CandleData;
+ import javafx.application.Platform;
+ import javafx.scene.Group;
+ import javafx.scene.control.Tooltip;
+ import javafx.scene.layout.Region;
+ import javafx.scene.shape.Line;
+ import javafx.util.StringConverter;
+ 
+ /**
+  * Candle node used for drawing a candle
+  */
+ public class Candle extends Group {
+     private String seriesStyleClass;
+     private String dataStyleClass;
+     private final CandleTooltip candleTooltip;
+     private final Line highLowLine = new Line();
+     private final Region bar = new Region();
+ 
+     private boolean openAboveClose = true;
+     private double closeOffset;
+     
+     public Candle(String seriesStyleClass, String dataStyleClass, StringConverter<Number> priceStringConverter) {
+         this.seriesStyleClass = seriesStyleClass;
+         this.dataStyleClass = dataStyleClass;
+ 
+         setAutoSizeChildren(false);
+         getChildren().addAll(highLowLine, bar);
+ 
+         getStyleClass().setAll("candlestick-candle", seriesStyleClass, dataStyleClass);
+         updateStyleClasses();
+ 
+         candleTooltip = new CandleTooltip(priceStringConverter);
+ 
+         Tooltip tooltip = new Tooltip();
+         tooltip.setGraphic(candleTooltip);
+         Tooltip.install(this, tooltip);
+     }
 
-/**
- * Candle node used for drawing a candle
- */
-public class Candle extends Group {
-    private String seriesStyleClass;
-    private String dataStyleClass;
-    private final CandleTooltip candleTooltip;
-    private final Line highLowLine = new Line();
-    private final Region bar = new Region();
+     public void setSeriesAndDataStyleClasses(String seriesStyleClass, String dataStyleClass) {
+         this.seriesStyleClass = seriesStyleClass;
+         this.dataStyleClass = dataStyleClass;
+         getStyleClass().setAll("candlestick-candle", seriesStyleClass, dataStyleClass);
+         updateStyleClasses();
+     }
 
-    private boolean openAboveClose = true;
-    private double closeOffset;
-
-    Candle(String seriesStyleClass, String dataStyleClass, StringConverter<Number> priceStringConverter) {
-        this.seriesStyleClass = seriesStyleClass;
-        this.dataStyleClass = dataStyleClass;
-
-        setAutoSizeChildren(false);
-        getChildren().addAll(highLowLine, bar);
-        getStyleClass().setAll("candlestick-candle", seriesStyleClass, dataStyleClass);
-        updateStyleClasses();
-
-        candleTooltip = new CandleTooltip(priceStringConverter);
-        Tooltip tooltip = new Tooltip();
-        tooltip.setGraphic(candleTooltip);
-        Tooltip.install(this, tooltip);
-    }
-
-    public void setSeriesAndDataStyleClasses(String seriesStyleClass, String dataStyleClass) {
-        this.seriesStyleClass = seriesStyleClass;
-        this.dataStyleClass = dataStyleClass;
-        getStyleClass().setAll("candlestick-candle", seriesStyleClass, dataStyleClass);
-        updateStyleClasses();
-    }
-
-    public void update(double closeOffset, double highOffset, double lowOffset, double candleWidth) {
-        this.closeOffset = closeOffset;
-        openAboveClose = closeOffset > 0;
-        updateStyleClasses();
-        highLowLine.setStartY(highOffset);
-        highLowLine.setEndY(lowOffset);
-        if (openAboveClose) {
-            bar.resizeRelocate(-candleWidth / 2, 0, candleWidth, Math.max(5, closeOffset));
-        } else {
-            bar.resizeRelocate(-candleWidth / 2, closeOffset, candleWidth, Math.max(5, closeOffset * -1));
-        }
-    }
-
-    public void updateTooltip(CandleData candleData) {
-        candleTooltip.update(candleData);
-    }
-
-    private void updateStyleClasses() {
-        String style = openAboveClose ? "open-above-close" : "close-above-open";
-        if (closeOffset == 0)
-            style = "empty";
-
-        highLowLine.getStyleClass().setAll("candlestick-line", seriesStyleClass, dataStyleClass,
-                style);
-
-        bar.getStyleClass().setAll("candlestick-bar", seriesStyleClass, dataStyleClass,
-                style);
-    }
-}
+     public void update(double closeOffset, double highOffset, double lowOffset, double candleWidth) {
+         this.closeOffset = closeOffset;
+         openAboveClose = closeOffset > 0;
+         updateStyleClasses();
+ 
+         highLowLine.setStartY(highOffset);
+         highLowLine.setEndY(lowOffset);
+ 
+         if (openAboveClose) {
+             bar.resizeRelocate(-candleWidth / 2, 0, candleWidth, Math.max(5, closeOffset));
+         } else {
+             bar.resizeRelocate(-candleWidth / 2, closeOffset, candleWidth, Math.max(5, closeOffset * -1));
+         }
+     }
+ 
+     public void updateTooltip(CandleData candleData) {
+         // Ensure UI updates are executed on the JavaFX Application Thread
+         Platform.runLater(() -> {
+             candleTooltip.update(candleData);
+         });
+     }
+ 
+     private void updateStyleClasses() {
+         String style = openAboveClose ? "open-above-close" : "close-above-open";
+         if (closeOffset == 0) {
+             style = "empty";
+         }
+ 
+         highLowLine.getStyleClass().setAll("candlestick-line", seriesStyleClass, dataStyleClass, style);
+         bar.getStyleClass().setAll("candlestick-bar", seriesStyleClass, dataStyleClass, style);
+     }
+ }
+ 
