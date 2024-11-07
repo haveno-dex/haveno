@@ -56,11 +56,11 @@ mkdir "${assets_dir}" || { echo_red "Failed to create directory ${assets_dir}"; 
 
 # Download resources
 echo_blue "Downloading resources for Haveno on Tails ..."
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/exec.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/exec.sh || { echo_red "Failed to download resource (exec.sh)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/install.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/install.sh || { echo_red "Failed to download resource (install.sh)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.desktop https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.desktop || { echo_red "Failed to resource (haveno.desktop)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/icon.png https://raw.githubusercontent.com/haveno-dex/haveno/master/scripts/install_tails/assets/icon.png || { echo_red "Failed to download resource (icon.png)."; exit 1; }
-curl --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.yml https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.yml || { echo_red "Failed to download resource (haveno.yml)."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -fsSLo /tmp/assets/exec.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/exec.sh || { echo_red "Failed to download resource (exec.sh)."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -fsSLo /tmp/assets/install.sh https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/install.sh || { echo_red "Failed to download resource (install.sh)."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.desktop https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.desktop || { echo_red "Failed to resource (haveno.desktop)."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -fsSLo /tmp/assets/icon.png https://raw.githubusercontent.com/haveno-dex/haveno/master/scripts/install_tails/assets/icon.png || { echo_red "Failed to download resource (icon.png)."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -fsSLo /tmp/assets/haveno.yml https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/assets/haveno.yml || { echo_red "Failed to download resource (haveno.yml)."; exit 1; }
 
 
 # Create persistent directory
@@ -92,17 +92,17 @@ fi
 
 # Download Haveno binary
 echo_blue "Downloading Haveno from URL provided ..."
-curl --retry 10 --retry-delay 5 -L -o "${binary_filename}" "${user_url}" || { echo_red "Failed to download Haveno binary."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -L -o "${binary_filename}" "${user_url}" || { echo_red "Failed to download Haveno binary."; exit 1; }
 
 
 # Download Haveno signature file
 echo_blue "Downloading Haveno signature ..."
-curl --retry 10 --retry-delay 5 -L -o "${signature_filename}" "${base_url}""${signature_filename}" || { echo_red "Failed to download Haveno signature."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -L -o "${signature_filename}" "${base_url}""${signature_filename}" || { echo_red "Failed to download Haveno signature."; exit 1; }
 
 
 # Download the GPG key
 echo_blue "Downloading signing GPG key ..."
-curl --retry 10 --retry-delay 5 -L -o "${key_filename}" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$(echo "$expected_fingerprint" | tr -d ' ')" || { echo_red "Failed to download GPG key."; exit 1; }
+curl --fail --retry 10 --retry-delay 5 -L -o "${key_filename}" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$(echo "$expected_fingerprint" | tr -d ' ')" || { echo_red "Failed to download GPG key."; exit 1; }
 
 
 # Import the GPG key
