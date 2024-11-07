@@ -59,7 +59,7 @@ public class UserThread {
             throw new IllegalArgumentException("Command must not be null.");
         }
         executor.execute(() -> {
-            synchronized (UserThread.class) {
+            synchronized (executor) {
                 USER_THREAD = Thread.currentThread();
                 try {
                     command.run();
