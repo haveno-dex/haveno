@@ -1420,6 +1420,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         }
         if (dispute.isClosed()) return Res.get("support.closed");
         switch (trade.getDisputeState()) {
+            case NO_DISPUTE:
+                return Res.get("shared.pending");
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
             default:
