@@ -19,7 +19,6 @@
 
  import com.google.inject.Inject;
  import com.google.inject.Singleton;
- import haveno.common.UserThread;
  import haveno.core.user.Preferences;
  import javafx.animation.FadeTransition;
  import javafx.animation.Interpolator;
