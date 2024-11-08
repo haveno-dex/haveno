@@ -121,7 +121,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
-    private static final int NUM_MAX_WALLET_BACKUPS = 1;
+    private static final int NUM_MAX_WALLET_BACKUPS = 2;
     private static final int MAX_SYNC_ATTEMPTS = 3;
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
