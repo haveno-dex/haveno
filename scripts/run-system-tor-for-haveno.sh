@@ -12,7 +12,7 @@ tor --RunAsDaemon 1 \
 --CookieAuthFile "$FOLDER_PATH/xmr_mainnet/tor/.tor/control_auth_cookie" \
 --ControlPort 9051 \
 --CookieAuthentication 1 \
---SOCKSPort 9050\
+--SOCKSPort 9050 \
 TORPID=$(cat "$FOLDER_PATH/xmr_mainnet/tor/pid")
 
 /opt/haveno/bin/Haveno --logLevel=ERROR \
