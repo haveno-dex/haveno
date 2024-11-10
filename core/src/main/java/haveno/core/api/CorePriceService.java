@@ -72,7 +72,7 @@ class CorePriceService {
      * @return Price per 1 XMR in the given currency (traditional or crypto)
      */
     public double getMarketPrice(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException, IllegalArgumentException {
-        var marketPrice = priceFeedService.requestAllPrices().get(currencyCode);
+        var marketPrice = priceFeedService.requestAllPrices().get(CurrencyUtil.getCurrencyCodeBase(currencyCode));
         if (marketPrice == null) {
             throw new IllegalArgumentException("Currency not found: " + currencyCode); // message sent to client
         }
