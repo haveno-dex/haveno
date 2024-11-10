@@ -37,6 +37,7 @@ package haveno.core.provider;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.config.Config;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ProvidersRepository {
+
+    private static final String DEFAULT_LOCAL_NODE = "http://localhost:8078/";
     private static final List<String> DEFAULT_NODES = Arrays.asList(
             "http://elaxlgigphpicy5q7pi5wkz2ko2vgjbq4576vic7febmx4xcxvk6deqd.onion/", // Haveno
             "http://lrrgpezvdrbpoqvkavzobmj7dr2otxc5x6wgktrw337bk6mxsvfp5yid.onion/" // Cake
@@ -78,19 +81,22 @@ public class ProvidersRepository {
         this.providersFromProgramArgs = providers;
         this.useLocalhostForP2P = useLocalhostForP2P;
 
-        Collections.shuffle(DEFAULT_NODES);
+        Collections.shuffle(DEFAULT_NODES); // randomize order of default nodes
 
         applyBannedNodes(config.bannedPriceRelayNodes);
     }
 
     public void applyBannedNodes(@Nullable List<String> bannedNodes) {
         this.bannedNodes = bannedNodes;
+
+        // fill provider list
         fillProviderList();
-        selectNextProviderBaseUrl();
+
+        // select next provider if current provider is null or banned
+        if (baseUrl == null || isBanned(baseUrl)) selectNextProviderBaseUrl();
 
         if (bannedNodes != null && !bannedNodes.isEmpty()) {
-            log.info("Excluded provider nodes from filter: nodes={}, selected provider baseUrl={}, providerList={}",
-                    bannedNodes, baseUrl, providerList);
+            log.info("Excluded provider nodes from filter: nodes={}, selected provider baseUrl={}, providerList={}", bannedNodes, baseUrl, providerList);
         }
     }
 
@@ -129,22 +135,30 @@ public class ProvidersRepository {
                 // If we run in localhost mode we don't have the tor node running, so we need a clearnet host
                 // Use localhost for using a locally running provider
                 providers = List.of(
-                    "http://localhost:8078/",
+                    DEFAULT_LOCAL_NODE,
                     "https://price.haveno.network/",
                     "http://173.230.142.36:8078/");
             } else {
-                providers = DEFAULT_NODES;
+                providers = new ArrayList<String>();
+                providers.add(DEFAULT_LOCAL_NODE); // try local provider first
+                providers.addAll(DEFAULT_NODES);
             }
         } else {
             providers = providersFromProgramArgs;
         }
         providerList = providers.stream()
-                .filter(e -> bannedNodes == null ||
-                        !bannedNodes.contains(e.replace("http://", "")
-                                .replace("/", "")
-                                .replace(".onion", "")))
+                .filter(e -> !isBanned(e))
                 .map(e -> e.endsWith("/") ? e : e + "/")
                 .map(e -> e.startsWith("http") ? e : "http://" + e)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isBanned(String provider) {
+        if (bannedNodes == null) return false;
+        return bannedNodes.stream()
+                .anyMatch(e -> provider.replace("http://", "")
+                        .replace("/", "")
+                        .replace(".onion", "")
+                        .equals(e));
     }
 }
