@@ -92,7 +92,6 @@ public class UserThread {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Restore interrupt status
                 log.error("Await was interrupted", e);
-                throw new RuntimeException("Await was interrupted", e);
             }
         }
     }
@@ -139,7 +138,6 @@ public class UserThread {
         } catch (InstantiationException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             String message = "Could not instantiate timer timerClass=" + timerClass;
             log.error(message, e);
-            throw new RuntimeException(message);
         }
     }
 
