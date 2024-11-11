@@ -200,7 +200,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
                 return null;
             }
         } else {
-            log.warn("We don't have a market price. " +
+            log.trace("We don't have a market price. " +
                     "That case could only happen if you don't have a price feed.");
             return null;
         }

@@ -93,7 +93,7 @@ public class ProvidersRepository {
         fillProviderList();
 
         // select next provider if current provider is null or banned
-        if (baseUrl == null || isBanned(baseUrl)) selectNextProviderBaseUrl();
+        if (baseUrl.isEmpty() || isBanned(baseUrl)) selectNextProviderBaseUrl();
 
         if (bannedNodes != null && !bannedNodes.isEmpty()) {
             log.info("Excluded provider nodes from filter: nodes={}, selected provider baseUrl={}, providerList={}", bannedNodes, baseUrl, providerList);
@@ -140,7 +140,7 @@ public class ProvidersRepository {
                     "http://173.230.142.36:8078/");
             } else {
                 providers = new ArrayList<String>();
-                providers.add(DEFAULT_LOCAL_NODE); // try local provider first
+                //providers.add(DEFAULT_LOCAL_NODE); // try local provider first
                 providers.addAll(DEFAULT_NODES);
             }
         } else {
