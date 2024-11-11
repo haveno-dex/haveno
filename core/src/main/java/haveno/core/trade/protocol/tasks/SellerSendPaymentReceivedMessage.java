@@ -103,6 +103,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, getReceiverNodeAddress());
+            boolean deferPublishPayout = trade.isPayoutPublished() || trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(); // informs receiver to expect payout so delay processing
             PaymentReceivedMessage message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
@@ -110,7 +111,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                     trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null, // unsigned // TODO: phase in after next update to clear old style trades
                     trade.getPayoutTxHex() == null ? null : trade.getPayoutTxHex(), // signed
                     trade.getSelf().getUpdatedMultisigHex(),
-                    trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(), // informs to expect payout
+                    deferPublishPayout,
                     trade.getTradePeer().getAccountAgeWitness(),
                     signedWitness,
                     getReceiver() == trade.getArbitrator() ? trade.getBuyer().getPaymentSentMessage() : null // buyer already has payment sent message

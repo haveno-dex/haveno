@@ -1085,11 +1085,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         } catch (IllegalArgumentException | IllegalStateException e) {
                             throw e;
                         } catch (Exception e) {
-                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection);
+                            doPollWallet();
+                            if (isPayoutPublished()) break;
+                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                            doPollWallet();
                         }
                     }
                 }
@@ -1205,8 +1206,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         handleWalletError(e, sourceConnection);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -1265,11 +1268,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         throw e;
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
-                        log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         handleWalletError(e, sourceConnection);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                        doPollWallet();
                     }
                 }
                 throw new RuntimeException("Failed to create payout tx for " + getClass().getSimpleName() + " " + getId());
@@ -1295,11 +1299,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
                         handleWalletError(e, sourceConnection);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                        doPollWallet();
                     } finally {
                         requestSaveWallet();
                         requestPersistence();
