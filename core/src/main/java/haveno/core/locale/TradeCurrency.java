@@ -19,19 +19,16 @@ package haveno.core.locale;
 
 import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.persistable.PersistablePayload;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-@EqualsAndHashCode
 @ToString
 @Getter
 @Slf4j
 public abstract class TradeCurrency implements PersistablePayload, Comparable<TradeCurrency> {
     protected final String code;
-    @EqualsAndHashCode.Exclude
     protected final String name;
 
     public TradeCurrency(String code, String name) {
@@ -82,4 +79,23 @@ public abstract class TradeCurrency implements PersistablePayload, Comparable<Tr
         return this.name.compareTo(other.name);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+        if (obj instanceof TradeCurrency) {
+            TradeCurrency other = (TradeCurrency) obj;
+            return code.equals(other.code);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return code.hashCode();
+    }
 }
