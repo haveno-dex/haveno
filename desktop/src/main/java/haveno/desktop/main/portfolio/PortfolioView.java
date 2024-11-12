@@ -140,8 +140,10 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     @Override
     protected void activate() {
         failedTradesManager.getObservableList().addListener((ListChangeListener<Trade>) c -> {
-            if (failedTradesManager.getObservableList().size() > 0 && root.getTabs().size() == 3)
-                root.getTabs().add(failedTradesTab);
+            UserThread.execute(() -> {
+                if (failedTradesManager.getObservableList().size() > 0 && root.getTabs().size() == 3)
+                    root.getTabs().add(failedTradesTab);
+            });
         });
         if (failedTradesManager.getObservableList().size() > 0 && root.getTabs().size() == 3)
             root.getTabs().add(failedTradesTab);

@@ -77,6 +77,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String buyScreenCryptoCurrencyCode;
     @Nullable
     private String sellScreenCryptoCurrencyCode;
+    @Nullable
+    private String buyScreenOtherCurrencyCode;
+    @Nullable
+    private String sellScreenOtherCurrencyCode;
     private int tradeStatisticsTickUnitIndex = 3;
     private boolean resyncSpvRequested;
     private boolean sortMarketCurrenciesNumerically = true;
@@ -212,6 +216,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(sellScreenCurrencyCode).ifPresent(builder::setSellScreenCurrencyCode);
         Optional.ofNullable(buyScreenCryptoCurrencyCode).ifPresent(builder::setBuyScreenCryptoCurrencyCode);
         Optional.ofNullable(sellScreenCryptoCurrencyCode).ifPresent(builder::setSellScreenCryptoCurrencyCode);
+        Optional.ofNullable(buyScreenOtherCurrencyCode).ifPresent(builder::setBuyScreenOtherCurrencyCode);
+        Optional.ofNullable(sellScreenOtherCurrencyCode).ifPresent(builder::setSellScreenOtherCurrencyCode);
         Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(
                 account -> builder.setSelectedPaymentAccountForCreateOffer(selectedPaymentAccountForCreateOffer.toProtoMessage()));
         Optional.ofNullable(bridgeAddresses).ifPresent(builder::addAllBridgeAddresses);
@@ -260,6 +266,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCryptoCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenCryptoCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenOtherCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenOtherCurrencyCode()),
                 proto.getTradeStatisticsTickUnitIndex(),
                 proto.getResyncSpvRequested(),
                 proto.getSortMarketCurrenciesNumerically(),

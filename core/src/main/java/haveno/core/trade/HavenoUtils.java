@@ -575,14 +575,14 @@ public class HavenoUtils {
                 // get original format
                 AudioFormat baseFormat = audioInputStream.getFormat();
     
-                // set target format: PCM_SIGNED, 16-bit
+                // set target format: PCM_SIGNED, 16-bit, 44100 Hz
                 AudioFormat targetFormat = new AudioFormat(
                     AudioFormat.Encoding.PCM_SIGNED,
-                    baseFormat.getSampleRate(),
+                    44100.0f,
                     16, // 16-bit instead of 32-bit float
                     baseFormat.getChannels(),
                     baseFormat.getChannels() * 2, // Frame size: 2 bytes per channel (16-bit)
-                    baseFormat.getSampleRate(),
+                    44100.0f,
                     false // Little-endian
                 );
     

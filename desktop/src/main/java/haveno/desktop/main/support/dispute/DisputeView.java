@@ -1415,11 +1415,13 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     private String getDisputeStateText(Dispute dispute) {
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
         if (trade == null) {
-            log.warn("Dispute's trade is null for trade {}", dispute.getTradeId());
+            log.warn("Dispute's trade is null for trade {}, defaulting to dispute state text 'closed'", dispute.getTradeId());
             return Res.get("support.closed");
         }
         if (dispute.isClosed()) return Res.get("support.closed");
         switch (trade.getDisputeState()) {
+            case NO_DISPUTE:
+                return Res.get("shared.pending");
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
             default:

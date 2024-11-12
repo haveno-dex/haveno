@@ -37,25 +37,25 @@ public class OtherOfferBookView extends OfferBookView<GridPane, OtherOfferBookVi
 
     @Inject
     OtherOfferBookView(OtherOfferBookViewModel model,
-                       Navigation navigation,
-                       OfferDetailsWindow offerDetailsWindow,
-                       @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                       PrivateNotificationManager privateNotificationManager,
-                       @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
-                       AccountAgeWitnessService accountAgeWitnessService,
-                       SignedWitnessService signedWitnessService) {
+                        Navigation navigation,
+                        OfferDetailsWindow offerDetailsWindow,
+                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                        PrivateNotificationManager privateNotificationManager,
+                        @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
+                        AccountAgeWitnessService accountAgeWitnessService,
+                        SignedWitnessService signedWitnessService) {
         super(model, navigation, offerDetailsWindow, formatter, privateNotificationManager, useDevPrivilegeKeys, accountAgeWitnessService, signedWitnessService);
     }
 
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", Res.get("shared.otherAssets"), Res.getBaseCurrencyCode()) :
-                Res.get("offerbook.availableOffersToSell", Res.get("shared.otherAssets"), Res.getBaseCurrencyCode());
+                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.otherAssets")) :
+                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.otherAssets"));
     }
 
     @Override
     String getTradeCurrencyCode() {
-        return model.showAllTradeCurrenciesProperty.get() ? "" : model.getSelectedTradeCurrency().getCode();
+        return Res.getBaseCurrencyCode();
     }
 }

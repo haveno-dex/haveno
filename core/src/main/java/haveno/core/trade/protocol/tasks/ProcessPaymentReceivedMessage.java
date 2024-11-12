@@ -105,12 +105,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // advance state, arbitrator auto completes when payout published
             trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
 
-            // publish signed witness
+            // buyer republishes signed witness for resilience
             SignedWitness signedWitness = message.getBuyerSignedWitness();
             if (signedWitness != null && trade instanceof BuyerTrade) {
-                // We received the signedWitness from the seller and publish the data to the network.
-                // The signer has published it as well but we prefer to re-do it on our side as well to achieve higher
-                // resilience.
                 processModel.getAccountAgeWitnessService().publishOwnSignedWitness(signedWitness);
             }
 
@@ -146,12 +143,10 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {
 
-            // wait to sign and publish payout tx if defer flag set (seller recently saw payout tx arrive at buyer)
-            boolean isSigned = message.getSignedPayoutTxHex() != null;
-            boolean deferSignAndPublish = trade instanceof ArbitratorTrade && !isSigned && message.isDeferPublishPayout();
-            if (deferSignAndPublish) {
-                log.info("Deferring signing and publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                trade.pollWalletNormallyForMs(60000);
+            // wait to publish payout tx if defer flag set from seller (payout is expected)
+            if (message.isDeferPublishPayout()) {
+                log.info("Deferring publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                if (trade instanceof ArbitratorTrade) trade.pollWalletNormallyForMs(60000); // stop idling arbitrator
                 for (int i = 0; i < 5; i++) {
                     if (trade.isPayoutPublished()) break;
                     HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
@@ -162,6 +157,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // verify and publish payout tx
             if (!trade.isPayoutPublished()) {
                 try {
+                    boolean isSigned = message.getSignedPayoutTxHex() != null;
                     if (isSigned) {
                         log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
                         trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);

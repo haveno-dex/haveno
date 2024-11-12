@@ -33,27 +33,25 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import javafx.scene.layout.GridPane;
 
 @FxmlView
-public class XmrOfferBookView extends OfferBookView<GridPane, XmrOfferBookViewModel> {
+public class CryptoOfferBookView extends OfferBookView<GridPane, CryptoOfferBookViewModel> {
 
     @Inject
-    XmrOfferBookView(XmrOfferBookViewModel model,
-                     Navigation navigation,
-                     OfferDetailsWindow offerDetailsWindow,
-                     @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                     PrivateNotificationManager privateNotificationManager,
-                     @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
-                     AccountAgeWitnessService accountAgeWitnessService,
-                     SignedWitnessService signedWitnessService) {
+    CryptoOfferBookView(CryptoOfferBookViewModel model,
+                        Navigation navigation,
+                        OfferDetailsWindow offerDetailsWindow,
+                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                        PrivateNotificationManager privateNotificationManager,
+                        @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
+                        AccountAgeWitnessService accountAgeWitnessService,
+                        SignedWitnessService signedWitnessService) {
         super(model, navigation, offerDetailsWindow, formatter, privateNotificationManager, useDevPrivilegeKeys, accountAgeWitnessService, signedWitnessService);
     }
 
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.fiat")) :
-                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.fiat"));
-
-
+                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.crypto")) :
+                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.crypto"));
     }
 
     @Override
