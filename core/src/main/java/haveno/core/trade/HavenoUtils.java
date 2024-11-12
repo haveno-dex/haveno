@@ -91,9 +91,9 @@ public class HavenoUtils {
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
-    public static final double PENALTY_FEE_PCT = 0.02; // 2%
     public static final double MAKER_FEE_PCT = 0.00; // 0%
     public static final double TAKER_FEE_PCT = 0.00; // 0%
+    public static final double PENALTY_FEE_PCT = 0.02; // 2%
     public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
 
     // other configuration
