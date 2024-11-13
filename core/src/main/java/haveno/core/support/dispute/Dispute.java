@@ -467,7 +467,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     }
 
     public boolean isOpen() {
-        return this.disputeState == State.OPEN || this.disputeState == State.REOPENED;
+        return isNew() || this.disputeState == State.OPEN || this.disputeState == State.REOPENED;
     }
 
     public boolean isClosed() {
