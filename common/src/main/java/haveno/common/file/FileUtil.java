@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -76,11 +77,11 @@ public class FileUtil {
 
     public static List<File> getBackupFiles(File dir, String fileName) {
         File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
-        if (!backupDir.exists()) return null;
+        if (!backupDir.exists()) return new ArrayList<File>();
         String dirName = "backups_" + fileName;
         if (dirName.contains(".")) dirName = dirName.replace(".", "_");
         File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
-        if (!backupFileDir.exists()) return null;
+        if (!backupFileDir.exists()) return new ArrayList<File>();
         File[] files = backupFileDir.listFiles();
         return Arrays.asList(files);
     }
