@@ -306,12 +306,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             takeOfferButton.setId("buy-button-big");
             nextButton.setId("buy-button");
             fundFromSavingsWalletButton.setId("buy-button");
-            takeOfferButton.updateText(getTakeOfferLabel(offer, Res.get("shared.buy")));
+            takeOfferButton.updateText(getTakeOfferLabel(offer, false));
         } else {
             takeOfferButton.setId("sell-button-big");
             nextButton.setId("sell-button");
             fundFromSavingsWalletButton.setId("sell-button");
-            takeOfferButton.updateText(getTakeOfferLabel(offer, Res.get("shared.sell")));
+            takeOfferButton.updateText(getTakeOfferLabel(offer, true));
         }
         priceAsPercentageDescription.setText(model.getPercentagePriceDescription());
 
@@ -1232,11 +1232,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     @NotNull
-    private String getTakeOfferLabel(Offer offer, String direction) {
+    private String getTakeOfferLabel(Offer offer, boolean isBuyOffer) {
         return offer.isTraditionalOffer() ?
-                Res.get("takeOffer.takeOfferButton", direction) :
+                Res.get("takeOffer.takeOfferButton", isBuyOffer ? Res.get("shared.sell") : Res.get("shared.buy")) :
                 Res.get("takeOffer.takeOfferButtonCrypto",
-                        direction,
+                        isBuyOffer ? Res.get("shared.buy") : Res.get("shared.sell"),
                         offer.getCurrencyCode());
     }
 
