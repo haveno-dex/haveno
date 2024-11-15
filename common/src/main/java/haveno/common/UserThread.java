@@ -51,12 +51,15 @@ public class UserThread {
     }
 
     public static void setTimerClass(Class<? extends Timer> timerClass) {
+        if (timerClass == null) {
+            throw new RuntimeException("timerClass must not be null.");
+        }
         UserThread.timerClass = timerClass;
     }
 
     public static void execute(Runnable command) {
         if (command == null) {
-            throw new IllegalArgumentException("Command must not be null.");
+            throw new RuntimeException("Command must not be null.");
         }
         executor.execute(() -> {
             synchronized (executor) {
@@ -65,6 +68,7 @@ public class UserThread {
                     command.run();
                 } catch (Exception e) {
                     log.error("Error executing command: ", e);
+                    throw new RuntimeException("Error executing command.", e);
                 }
             }
         });
@@ -72,7 +76,7 @@ public class UserThread {
 
     public static void await(Runnable command) {
         if (command == null) {
-            throw new IllegalArgumentException("Command must not be null.");
+            throw new RuntimeException("Command must not be null.");
         }
         if (isUserThread(Thread.currentThread())) {
             command.run();
@@ -83,6 +87,7 @@ public class UserThread {
                     command.run();
                 } catch (Exception e) {
                     log.error("Error executing await command: ", e);
+                    throw new RuntimeException("Error executing await command.", e);
                 } finally {
                     latch.countDown();
                 }
@@ -92,6 +97,7 @@ public class UserThread {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Restore interrupt status
                 log.error("Await was interrupted", e);
+                throw new RuntimeException("Await was interrupted.", e);
             }
         }
     }
@@ -116,7 +122,7 @@ public class UserThread {
 
     public static Timer runAfter(Runnable runnable, long delay, TimeUnit timeUnit) {
         if (runnable == null || delay < 0 || timeUnit == null) {
-            throw new IllegalArgumentException("Runnable must not be null, delay must be non-negative, and timeUnit must not be null.");
+            throw new RuntimeException("Runnable must not be null, delay must be non-negative, and timeUnit must not be null.");
         }
         return getTimer().runLater(Duration.ofMillis(timeUnit.toMillis(delay)), () -> execute(runnable));
     }
@@ -127,7 +133,7 @@ public class UserThread {
 
     public static Timer runPeriodically(Runnable runnable, long interval, TimeUnit timeUnit) {
         if (runnable == null || interval < 0 || timeUnit == null) {
-            throw new IllegalArgumentException("Runnable must not be null, interval must be non-negative, and timeUnit must not be null.");
+            throw new RuntimeException("Runnable must not be null, interval must be non-negative, and timeUnit must not be null.");
         }
         return getTimer().runPeriodically(Duration.ofMillis(timeUnit.toMillis(interval)), () -> execute(runnable));
     }
@@ -138,12 +144,13 @@ public class UserThread {
         } catch (InstantiationException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             String message = "Could not instantiate timer timerClass=" + timerClass;
             log.error(message, e);
+            throw new RuntimeException(message, e); // Ensure RuntimeException is thrown on failure
         }
     }
 
     private static void validateDelayParameters(long minDelay, long maxDelay) {
         if (minDelay < 0 || maxDelay < 0 || minDelay > maxDelay) {
-            throw new IllegalArgumentException("Min and max delays must be non-negative and min must be less than or equal to max.");
+            throw new RuntimeException("Min and max delays must be non-negative and min must be less than or equal to max.");
         }
     }
 }
