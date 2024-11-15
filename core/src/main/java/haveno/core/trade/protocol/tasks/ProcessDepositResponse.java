@@ -41,6 +41,7 @@ public class ProcessDepositResponse extends TradeTask {
           // throw if error
           DepositResponse message = (DepositResponse) processModel.getTradeMessage();
           if (message.getErrorMessage() != null) {
+            log.warn("Unregistering trade {} {} because deposit response has error message={}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
             processModel.getTradeManager().unregisterTrade(trade);
             throw new RuntimeException(message.getErrorMessage());

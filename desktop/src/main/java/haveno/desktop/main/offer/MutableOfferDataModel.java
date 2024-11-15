@@ -57,7 +57,6 @@ import java.util.Comparator;
 import static java.util.Comparator.comparing;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -257,10 +256,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private Optional<PaymentAccount> getAnyPaymentAccount() {
         if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
             return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.isFiat()).findAny();
+        } else if (CurrencyUtil.isCryptoCurrency(tradeCurrency.getCode())) {
+            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.isCryptoCurrency()).findAny();
         } else {
-            return paymentAccounts.stream().filter(paymentAccount1 -> !paymentAccount1.isFiat() &&
-                    paymentAccount1.getTradeCurrency().isPresent() &&
-                    !Objects.equals(paymentAccount1.getTradeCurrency().get().getCode(), GUIUtil.TOP_CRYPTO.getCode())).findAny();
+            return paymentAccounts.stream().filter(paymentAccount1 -> paymentAccount1.getTradeCurrency().isPresent()).findAny();
         }
     }
 

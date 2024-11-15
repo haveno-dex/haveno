@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import haveno.common.app.Version;
 import haveno.common.util.MathUtils;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.provider.HttpClientProvider;
 import haveno.network.http.HttpClient;
 import haveno.network.p2p.P2PService;
@@ -63,6 +64,7 @@ public class PriceProvider extends HttpClientProvider {
                 String baseCurrencyCode = (String) treeMap.get("baseCurrencyCode");
                 String counterCurrencyCode = (String) treeMap.get("counterCurrencyCode");
                 String currencyCode = baseCurrencyCode.equals("XMR") ? counterCurrencyCode : baseCurrencyCode;
+                currencyCode = CurrencyUtil.getCurrencyCodeBase(currencyCode);
                 double price = (Double) treeMap.get("price");
                 // json uses double for our timestampSec long value...
                 long timestampSec = MathUtils.doubleToLong((Double) treeMap.get("timestampSec"));

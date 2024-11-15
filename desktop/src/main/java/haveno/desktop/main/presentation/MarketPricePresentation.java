@@ -110,9 +110,19 @@ public class MarketPricePresentation {
     }
 
     private void fillPriceFeedComboBoxItems() {
-        List<PriceFeedComboBoxItem> currencyItems = preferences.getTradeCurrenciesAsObservable()
+
+        // collect unique currency code bases
+        List<String> uniqueCurrencyCodeBases = preferences.getTradeCurrenciesAsObservable()
                 .stream()
-                .map(tradeCurrency -> new PriceFeedComboBoxItem(tradeCurrency.getCode()))
+                .map(TradeCurrency::getCode)
+                .map(CurrencyUtil::getCurrencyCodeBase)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // create price feed items
+        List<PriceFeedComboBoxItem> currencyItems = uniqueCurrencyCodeBases
+                .stream()
+                .map(currencyCodeBase -> new PriceFeedComboBoxItem(currencyCodeBase))
                 .collect(Collectors.toList());
         priceFeedComboBoxItems.setAll(currencyItems);
     }
@@ -171,7 +181,7 @@ public class MarketPricePresentation {
 
     private Optional<PriceFeedComboBoxItem> findPriceFeedComboBoxItem(String currencyCode) {
         return priceFeedComboBoxItems.stream()
-                .filter(item -> item.currencyCode.equals(currencyCode))
+                .filter(item -> CurrencyUtil.getCurrencyCodeBase(item.currencyCode).equals(CurrencyUtil.getCurrencyCodeBase(currencyCode)))
                 .findAny();
     }
 

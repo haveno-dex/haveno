@@ -36,14 +36,12 @@ package haveno.core.locale;
 
 
 import com.google.protobuf.Message;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
 import java.util.Currency;
 import java.util.Locale;
 
-@EqualsAndHashCode(callSuper = true)
 @ToString
 @Getter
 public final class TraditionalCurrency extends TradeCurrency {

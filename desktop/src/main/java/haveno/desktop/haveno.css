@@ -1237,6 +1237,14 @@ textfield */
     -jfx-rippler-fill: -fx-accent;
 }
 
+.tab:disabled .jfx-rippler {
+    -jfx-rippler-fill: none !important;
+}
+
+.tab:disabled .tab-label {
+    -fx-cursor: default !important;
+}
+
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button > .jfx-svg-glyph {
     -fx-shape: "M810 274l-238 238 238 238-60 60-238-238-238 238-60-60 238-238-238-238 60-60 238 238 238-238z";
     -jfx-size: 9;
@@ -1267,6 +1275,7 @@ textfield */
     -fx-padding: 14;
     -fx-font-size: 0.769em;
     -fx-font-weight: normal;
+    -fx-cursor: hand;
 }
 
 .jfx-tab-pane .depth-container {

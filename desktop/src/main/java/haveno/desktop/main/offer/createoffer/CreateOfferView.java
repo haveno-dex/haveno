@@ -31,8 +31,6 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.offer.MutableOfferView;
 import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
-import haveno.desktop.util.GUIUtil;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -60,12 +58,12 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
     protected ObservableList<PaymentAccount> filterPaymentAccounts(ObservableList<PaymentAccount> paymentAccounts) {
         return FXCollections.observableArrayList(
                 paymentAccounts.stream().filter(paymentAccount -> {
-                    if (model.getTradeCurrency().equals(GUIUtil.TOP_CRYPTO)) {
-                        return Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
-                    } else if (CurrencyUtil.isFiatCurrency(model.getTradeCurrency().getCode())) {
+                    if (CurrencyUtil.isFiatCurrency(model.getTradeCurrency().getCode())) {
                         return paymentAccount.isFiat();
+                    } else if (CurrencyUtil.isCryptoCurrency(model.getTradeCurrency().getCode())) {
+                        return paymentAccount.isCryptoCurrency();
                     } else {
-                        return !paymentAccount.isFiat() && !Objects.equals(paymentAccount.getSingleTradeCurrency(), GUIUtil.TOP_CRYPTO);
+                        return !paymentAccount.isFiat() && !paymentAccount.isCryptoCurrency();
                     }
                 }).collect(Collectors.toList()));
     }

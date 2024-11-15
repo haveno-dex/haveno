@@ -139,6 +139,10 @@ public abstract class PaymentAccount implements PersistablePayload {
         return getSingleTradeCurrency() == null || CurrencyUtil.isFiatCurrency(getSingleTradeCurrency().getCode()); // TODO: check if trade currencies contain fiat
     }
 
+    public boolean isCryptoCurrency() {
+        return getSingleTradeCurrency() != null && CurrencyUtil.isCryptoCurrency(getSingleTradeCurrency().getCode());
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER

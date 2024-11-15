@@ -937,6 +937,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (wallet == null) throw new RuntimeException("Trade wallet to close is not open for trade " + getId());
             stopPolling();
             xmrWalletService.closeWallet(wallet, true);
+            maybeBackupWallet();
             wallet = null;
             pollPeriodMs = null;
         }
@@ -1064,6 +1065,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public void importMultisigHexIfNeeded() {
+        synchronized (walletLock) {
+            if (wallet.isMultisigImportNeeded()) {
+                importMultisigHex();
+            }
+        }
+    }
+
     public void importMultisigHex() {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
@@ -1076,8 +1085,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         } catch (IllegalArgumentException | IllegalStateException e) {
                             throw e;
                         } catch (Exception e) {
-                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection);
+                            doPollWallet();
+                            if (isPayoutPublished()) break;
+                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                         }
@@ -1183,6 +1194,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // create payout tx
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
+
+                // import multisig hex if needed
+                importMultisigHexIfNeeded();
+
+                // create payout tx
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
@@ -1190,8 +1206,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         handleWalletError(e, sourceConnection);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -1250,8 +1268,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         throw e;
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
-                        log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         handleWalletError(e, sourceConnection);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -1279,8 +1299,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
                         handleWalletError(e, sourceConnection);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     } finally {
@@ -1544,9 +1566,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // force close wallet
             forceCloseWallet();
         }
-
-        // backup trade wallet if applicable
-        maybeBackupWallet();
 
         // de-initialize
         if (idlePayoutSyncer != null) {
@@ -2438,7 +2457,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
     
-            if (pollWallet) pollWallet();
+            if (pollWallet) doPollWallet();
         } catch (Exception e) {
             ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             throw e;
@@ -2500,10 +2519,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void doPollWallet() {
+
+        // skip if shut down started
         if (isShutDownStarted) return;
+
+        // set poll in progress
+        boolean pollInProgressSet = false;
         synchronized (pollLock) {
+            if (!pollInProgress) pollInProgressSet = true;
             pollInProgress = true;
         }
+
+        // poll wallet
         try {
 
             // skip if payout unlocked
@@ -2628,8 +2655,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
         } finally {
-            synchronized (pollLock) {
-                pollInProgress = false;
+            if (pollInProgressSet) {
+                synchronized (pollLock) {
+                    pollInProgress = false;
+                }
             }
             requestSaveWallet();
         }

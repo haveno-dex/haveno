@@ -292,15 +292,16 @@ public class PriceFeedService {
     @Nullable
     public MarketPrice getMarketPrice(String currencyCode) {
         synchronized (cache) {
-            return cache.getOrDefault(currencyCode, null);
+            return cache.getOrDefault(CurrencyUtil.getCurrencyCodeBase(currencyCode), null);
         }
     }
 
     private void setHavenoMarketPrice(String currencyCode, Price price) {
         UserThread.execute(() -> {
+            String currencyCodeBase = CurrencyUtil.getCurrencyCodeBase(currencyCode);
             synchronized (cache) {
-                if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
-                    cache.put(currencyCode, new MarketPrice(currencyCode,
+                if (!cache.containsKey(currencyCodeBase) || !cache.get(currencyCodeBase).isExternallyProvidedPrice()) {
+                    cache.put(currencyCodeBase, new MarketPrice(currencyCodeBase,
                             MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
                             0,
                             false));

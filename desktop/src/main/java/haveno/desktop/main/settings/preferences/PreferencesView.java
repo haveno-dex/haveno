@@ -187,7 +187,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     @Override
     protected void activate() {
         // We want to have it updated in case an asset got removed
-        allCryptoCurrencies = FXCollections.observableArrayList(CurrencyUtil.getActiveSortedCryptoCurrencies( filterManager));
+        allCryptoCurrencies = FXCollections.observableArrayList(CurrencyUtil.getActiveSortedCryptoCurrencies(filterManager));
         allCryptoCurrencies.removeAll(cryptoCurrencies);
 
         activateGeneralOptions();
