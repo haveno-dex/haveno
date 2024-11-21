@@ -282,6 +282,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         };
         filterPropertyListener = (observable, oldValue, newValue) -> applyPreventPublicXmrNetwork();
 
+        // disable radio buttons if no nodes available
+        if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
+            useProvidedNodesRadio.setDisable(true);
+        }
+        usePublicNodesRadio.setDisable(isPublicNodesDisabled());
+
         //TODO sorting needs other NetworkStatisticListItem as columns type
        /* creationDateColumn.setComparator((o1, o2) ->
                 o1.statistic.getCreationDate().compareTo(o2.statistic.getCreationDate()));
@@ -433,7 +439,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void onMoneroPeersToggleSelected(boolean calledFromUser) {
-        usePublicNodesRadio.setDisable(isPreventPublicXmrNetwork());
+        usePublicNodesRadio.setDisable(isPublicNodesDisabled());
 
         XmrNodes.MoneroNodesOption currentMoneroNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
 
@@ -493,13 +499,17 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private void applyPreventPublicXmrNetwork() {
         final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
-        usePublicNodesRadio.setDisable(xmrLocalNode.shouldBeUsed() || preventPublicXmrNetwork);
+        usePublicNodesRadio.setDisable(isPublicNodesDisabled());
         if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
             selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
             preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
             selectMoneroPeersToggle();
             onMoneroPeersToggleSelected(false);
         }
+    }
+
+    private boolean isPublicNodesDisabled() {
+        return xmrNodes.getPublicXmrNodes().isEmpty() || isPreventPublicXmrNetwork();
     }
 
     private void updateP2PTable() {

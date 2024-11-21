@@ -18,6 +18,8 @@
 package haveno.desktop.main.offer;
 
 import com.google.inject.Inject;
+
+import haveno.core.locale.Res;
 import haveno.core.offer.OfferDirection;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -41,5 +43,10 @@ public class BuyOfferView extends OfferView {
                 user,
                 p2PService,
                 OfferDirection.BUY);
+    }
+
+    @Override
+    protected String getOfferLabel() {
+        return Res.get("offerbook.buyXmrWith");
     }
 }

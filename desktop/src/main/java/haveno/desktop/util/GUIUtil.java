@@ -134,8 +134,6 @@ public class GUIUtil {
 
     private static Preferences preferences;
 
-    public static TradeCurrency TOP_CRYPTO = CurrencyUtil.getTradeCurrency("BTC").get();
-
     public static void setPreferences(Preferences preferences) {
         GUIUtil.preferences = preferences;
     }
@@ -1032,13 +1030,5 @@ public class GUIUtil {
         ColumnConstraints columnConstraints2 = new ColumnConstraints();
         columnConstraints2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
-    }
-
-    public static void updateTopCrypto(Preferences preferences) {
-        TradeCurrency tradeCurrency = preferences.getPreferredTradeCurrency();
-        if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
-            return;
-        }
-        TOP_CRYPTO = tradeCurrency;
     }
 }

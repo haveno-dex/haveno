@@ -241,6 +241,10 @@
     -fx-border-width: 0 0 10 0;
 }
 
+#address-text-field.jfx-text-field:readonly {
+    -fx-background-color: derive(-bs-background-color, 15%);
+}
+
 .wallet-seed-words {
     -fx-text-fill: -bs-color-gray-6;
 }

@@ -52,7 +52,6 @@ import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.PeerInfoIconTrading;
-import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.cryptoaccounts.CryptoAccountsView;
@@ -67,7 +66,6 @@ import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.editoffer.EditOfferView;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
-import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -106,7 +104,6 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelAutoToolTipTextField;
 
 abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewModel> extends ActivatableViewAndModel<R, M> {
@@ -119,7 +116,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final SignedWitnessService signedWitnessService;
 
-    private TitledGroupBg titledGroupBg;
     protected AutocompleteComboBox<TradeCurrency> currencyComboBox;
     private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private AutoTooltipButton createOfferButton;
@@ -170,18 +166,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     public void initialize() {
         root.setPadding(new Insets(15, 15, 5, 15));
 
-        titledGroupBg = addTitledGroupBg(
-                root,
-                gridRow,
-                2,
-                ""
-        );
-        titledGroupBg.getStyleClass().add("last");
-
         HBox offerToolsBox = new HBox();
         offerToolsBox.setAlignment(Pos.BOTTOM_LEFT);
         offerToolsBox.setSpacing(10);
-        offerToolsBox.setPadding(new Insets(10, 0, 0, 0));
+        offerToolsBox.setPadding(new Insets(0, 0, 0, 0));
 
         Tuple3<VBox, Label, AutocompleteComboBox<TradeCurrency>> currencyBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByCurrency"));
@@ -202,7 +190,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         createOfferButton = new AutoTooltipButton("");
         createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
-
+        createOfferButton.setStyle("-fx-padding: 0 15 0 15;");
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         disabledCreateOfferButtonTooltip.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -225,7 +213,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
         GridPane.setColumnSpan(offerToolsBox, 2);
-        GridPane.setMargin(offerToolsBox, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 0));
+        GridPane.setMargin(offerToolsBox, new Insets(0, 0, 0, 0));
         root.getChildren().add(offerToolsBox);
 
         tableView = new TableView<>();
@@ -332,10 +320,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     @Override
     protected void activate() {
-        titledGroupBg.setText(getMarketTitle());
-        titledGroupBg.setHelpUrl(model.getDirection() == OfferDirection.SELL
-                ? "https://haveno.exchange/wiki/Introduction#In_a_nutshell"
-                : "https://haveno.exchange/wiki/Taking_an_offer");
 
         Map<String, Integer> offerCounts = OfferViewUtil.isShownAsBuyOffer(model.getDirection(), model.getSelectedTradeCurrency()) ? model.getSellOfferCounts() : model.getBuyOfferCounts();
         currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory(Res.get("shared.oneOffer"),
@@ -366,7 +350,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         matchingOffersToggle.disableProperty().bind(model.disableMatchToggle);
         matchingOffersToggle.setOnAction(e -> model.onShowOffersMatchingMyAccounts(matchingOffersToggle.isSelected()));
 
-        volumeColumn.sortableProperty().bind(model.showAllTradeCurrenciesProperty.not());
         model.getOfferList().comparatorProperty().bind(tableView.comparatorProperty());
 
         amountColumn.sortTypeProperty().addListener((observable, oldValue, newValue) -> {
@@ -775,6 +758,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> getAmountColumn() {
         AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.XMRMinMax"), Res.get("shared.amountHelp"));
         column.setMinWidth(100);
+        column.setSortable(true);
         column.getStyleClass().add("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
@@ -918,6 +902,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>("") {
             {
                 setMinWidth(125);
+                setSortable(true);
             }
         };
         column.getStyleClass().add("number-column");

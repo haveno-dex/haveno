@@ -19,7 +19,7 @@
 
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
-<GridPane fx:id="root" fx:controller="haveno.desktop.main.offer.offerbook.TopCryptoOfferBookView"
+<GridPane fx:id="root" fx:controller="haveno.desktop.main.offer.offerbook.FiatOfferBookView"
           hgap="5.0" vgap="5"
           xmlns:fx="http://javafx.com/fxml">
 

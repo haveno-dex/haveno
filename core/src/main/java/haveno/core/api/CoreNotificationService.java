@@ -3,6 +3,7 @@ package haveno.core.api;
 import com.google.inject.Singleton;
 import haveno.core.api.model.TradeInfo;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.SellerTrade;
@@ -54,6 +55,9 @@ public class CoreNotificationService {
 
         // play chime when maker's trade is taken
         if (trade instanceof MakerTrade && phase == Trade.Phase.DEPOSITS_PUBLISHED) HavenoUtils.playChimeSound();
+
+        // play chime when buyer can confirm payment sent
+        if (trade instanceof BuyerTrade && phase == Trade.Phase.DEPOSITS_UNLOCKED) HavenoUtils.playChimeSound();
 
         // play chime when seller sees buyer confirm payment sent
         if (trade instanceof SellerTrade && phase == Trade.Phase.PAYMENT_SENT) HavenoUtils.playChimeSound();

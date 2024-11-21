@@ -499,7 +499,7 @@ public final class XmrConnectionService {
                 xmrLocalNode.addListener(new XmrLocalNodeListener() {
                     @Override
                     public void onNodeStarted(MoneroDaemonRpc daemon) {
-                        log.info("Local monero node started");
+                        log.info("Local monero node started, height={}", daemon.getHeight());
                     }
 
                     @Override
@@ -588,7 +588,7 @@ public final class XmrConnectionService {
 
                 // restore auto switch
                 if (coreContext.isApiUser()) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
-                else connectionManager.setAutoSwitch(true);
+                else connectionManager.setAutoSwitch(true); // auto switch is always enabled on desktop ui
 
                 // start local node if applicable
                 maybeStartLocalNode();
@@ -718,10 +718,15 @@ public final class XmrConnectionService {
                     // skip handling if shutting down
                     if (isShutDownStarted) return;
 
-                    // fallback to provided nodes if custom connection fails on startup
+                    // fallback to provided or public nodes if custom connection fails on startup
                     if (lastInfo == null && "".equals(config.xmrNode) && preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM) {
-                        log.warn("Failed to fetch daemon info from custom node on startup, falling back to provided nodes: " + e.getMessage());
-                        preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                        if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
+                            log.warn("Failed to fetch daemon info from custom node on startup, falling back to public nodes: " + e.getMessage());
+                            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
+                        } else {
+                            log.warn("Failed to fetch daemon info from custom node on startup, falling back to provided nodes: " + e.getMessage());
+                            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                        }
                         initializeConnections();
                         return;
                     }

@@ -33,39 +33,31 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import javafx.scene.layout.GridPane;
 
 @FxmlView
-public class TopCryptoOfferBookView extends OfferBookView<GridPane, TopCryptoOfferBookViewModel> {
+public class FiatOfferBookView extends OfferBookView<GridPane, FiatOfferBookViewModel> {
 
     @Inject
-    TopCryptoOfferBookView(TopCryptoOfferBookViewModel model,
-                            Navigation navigation,
-                            OfferDetailsWindow offerDetailsWindow,
-                            @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                            PrivateNotificationManager privateNotificationManager,
-                            @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
-                            AccountAgeWitnessService accountAgeWitnessService,
-                            SignedWitnessService signedWitnessService) {
+    FiatOfferBookView(FiatOfferBookViewModel model,
+                        Navigation navigation,
+                        OfferDetailsWindow offerDetailsWindow,
+                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                        PrivateNotificationManager privateNotificationManager,
+                        @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
+                        AccountAgeWitnessService accountAgeWitnessService,
+                        SignedWitnessService signedWitnessService) {
         super(model, navigation, offerDetailsWindow, formatter, privateNotificationManager, useDevPrivilegeKeys, accountAgeWitnessService, signedWitnessService);
     }
 
     @Override
     protected String getMarketTitle() {
         return model.getDirection().equals(OfferDirection.BUY) ?
-                Res.get("offerbook.availableOffersToBuy", TopCryptoOfferBookViewModel.TOP_CRYPTO.getCode(), Res.getBaseCurrencyCode()) :
-                Res.get("offerbook.availableOffersToSell", TopCryptoOfferBookViewModel.TOP_CRYPTO.getCode(), Res.getBaseCurrencyCode());
-    }
+                Res.get("offerbook.availableOffersToBuy", Res.getBaseCurrencyCode(), Res.get("shared.fiat")) :
+                Res.get("offerbook.availableOffersToSell", Res.getBaseCurrencyCode(), Res.get("shared.fiat"));
 
-    @Override
-    protected void activate() {
-        model.onSetTradeCurrency(TopCryptoOfferBookViewModel.TOP_CRYPTO);
 
-        super.activate();
-
-        currencyComboBoxContainer.setVisible(false);
-        currencyComboBoxContainer.setManaged(false);
     }
 
     @Override
     String getTradeCurrencyCode() {
-        return TopCryptoOfferBookViewModel.TOP_CRYPTO.getCode();
+        return Res.getBaseCurrencyCode();
     }
 }

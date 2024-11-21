@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -74,17 +75,22 @@ public class FileUtil {
         }
     }
 
-    public static File getLatestBackupFile(File dir, String fileName) {
+    public static List<File> getBackupFiles(File dir, String fileName) {
         File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
-        if (!backupDir.exists()) return null;
+        if (!backupDir.exists()) return new ArrayList<File>();
         String dirName = "backups_" + fileName;
         if (dirName.contains(".")) dirName = dirName.replace(".", "_");
         File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
-        if (!backupFileDir.exists()) return null;
+        if (!backupFileDir.exists()) return new ArrayList<File>();
         File[] files = backupFileDir.listFiles();
-        if (files == null || files.length == 0) return null;
-        Arrays.sort(files, Comparator.comparing(File::getName));
-        return files[files.length - 1];
+        return Arrays.asList(files);
+    }
+
+    public static File getLatestBackupFile(File dir, String fileName) {
+        List<File> files = getBackupFiles(dir, fileName);
+        if (files.isEmpty()) return null;
+        files.sort(Comparator.comparing(File::getName));
+        return files.get(files.size() - 1);
     }
 
     public static void deleteRollingBackup(File dir, String fileName) {

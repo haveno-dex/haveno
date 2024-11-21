@@ -70,7 +70,7 @@ public abstract class DisputeSession extends SupportSession {
 
     @Override
     public boolean chatIsOpen() {
-        return dispute != null && !dispute.isClosed();
+        return dispute != null && dispute.isOpen();
     }
 
     @Override

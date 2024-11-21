@@ -38,6 +38,7 @@ import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import java.util.ArrayList;
@@ -130,6 +131,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final PersistenceManager<PreferencesPayload> persistenceManager;
     private final Config config;
     private final String xmrNodesFromOptions;
+    private final XmrNodes xmrNodes;
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
     @Getter
@@ -142,11 +144,13 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Inject
     public Preferences(PersistenceManager<PreferencesPayload> persistenceManager,
                        Config config,
-                       @Named(Config.XMR_NODES) String xmrNodesFromOptions) {
+                       @Named(Config.XMR_NODES) String xmrNodesFromOptions,
+                       XmrNodes xmrNodes) {
 
         this.persistenceManager = persistenceManager;
         this.config = config;
         this.xmrNodesFromOptions = xmrNodesFromOptions;
+        this.xmrNodes = xmrNodes;
 
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
@@ -283,6 +287,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         // Override settings with options if set
         if (config.useTorForXmrOptionSetExplicitly)
             setUseTorForXmr(config.useTorForXmr);
+
+        // switch to public nodes if no provided nodes available
+        if (getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
+            log.warn("No provided nodes available, switching to public nodes");
+            setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
+        }
 
         if (xmrNodesFromOptions != null && !xmrNodesFromOptions.isEmpty()) {
             if (getMoneroNodes() != null && !getMoneroNodes().equals(xmrNodesFromOptions)) {
@@ -553,6 +563,16 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public void setSellScreenCryptoCurrencyCode(String sellScreenCurrencyCode) {
         prefPayload.setSellScreenCryptoCurrencyCode(sellScreenCurrencyCode);
+        requestPersistence();
+    }
+
+    public void setBuyScreenOtherCurrencyCode(String buyScreenCurrencyCode) {
+        prefPayload.setBuyScreenOtherCurrencyCode(buyScreenCurrencyCode);
+        requestPersistence();
+    }
+
+    public void setSellScreenOtherCurrencyCode(String sellScreenCurrencyCode) {
+        prefPayload.setSellScreenOtherCurrencyCode(sellScreenCurrencyCode);
         requestPersistence();
     }
 
