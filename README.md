@@ -47,7 +47,7 @@ If you wish to help, take a look at the repositories above and look for open iss
 Haveno is a community-driven project. For it to be successful it's fundamental to have the support and help of the community. Join the community rooms on our Matrix server:
 
 - General discussions: **Haveno** ([#haveno:monero.social](https://matrix.to/#/#haveno:monero.social)) relayed on IRC/Libera (`#haveno`)
-- Development discussions: **Haveno Development** ([#haveno-dev:monero.social](https://matrix.to/#/#haveno-dev:monero.social)) relayed on IRC/Libera (`#haveno-dev`)
+- Development discussions: **Haveno Development** ([#haveno-development:monero.social](https://matrix.to/#/#haveno-development:monero.social)) relayed on IRC/Libera (`#haveno-development`)
 
 Email: contact@haveno.exchange
 Website: [haveno.exchange](https://haveno.exchange)

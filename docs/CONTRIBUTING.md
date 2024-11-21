@@ -1,6 +1,6 @@
 # Contributing to Haveno
 
-Thanks for wishing to help! Here there are some guidelines and information about the development process. We suggest you to join the [matrix](https://app.element.io/#/room/#haveno-dev:haveno.network) room `#haveno-dev` (relayed on [IRC/Libera](irc://irc.libera.chat/#haveno-dev)) and have a chat with the devs, so that we can help get you started.
+Thanks for wishing to help! Here there are some guidelines and information about the development process. We suggest you to join the [matrix](https://app.element.io/#/room/#haveno-development:monero.social) room `#haveno-development` (relayed on [IRC/Libera](irc://irc.libera.chat/#haveno-development)) and have a chat with the devs, so that we can help get you started.
 
 Issues are tracked on GitHub. We use [a label system](https://github.com/haveno-dex/haveno/issues/50) and GitHub's [project boards](https://github.com/haveno-dex/haveno/projects) to simplify development. Make sure to take a look at those and to follow the priorities suggested.
 
