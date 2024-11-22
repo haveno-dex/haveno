@@ -124,13 +124,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                                     Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
                                     TimeUnit.DAYS.toMillis(1);
 
-    // Default trade limits.
-    // We initialize very early before reading persisted data. We will apply later the limit from
-    // the DAO param (Param.MAX_TRADE_LIMIT) but that can be only done after the dao is initialized.
-    // The default values will be used for deriving the
-    // risk factor so the relation between the risk categories stays the same as with the default values.
-    // We must not change those values as it could lead to invalid offers if amount becomes lower then new trade limit.
-    // Increasing might be ok, but needs more thought as well...
+    // These values are not used except to derive the associated risk factor.
+    private static final BigInteger DEFAULT_TRADE_LIMIT_CRYPTO = HavenoUtils.xmrToAtomicUnits(200);
     private static final BigInteger DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = HavenoUtils.xmrToAtomicUnits(100);
     private static final BigInteger DEFAULT_TRADE_LIMIT_LOW_RISK = HavenoUtils.xmrToAtomicUnits(50);
     private static final BigInteger DEFAULT_TRADE_LIMIT_MID_RISK = HavenoUtils.xmrToAtomicUnits(25);
@@ -288,7 +283,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Global
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
-            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
+            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
             CASH_AT_ATM = new PaymentMethod(CASH_AT_ATM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAtAtmAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
@@ -497,17 +492,21 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         }
 
         // We use the class field maxTradeLimit only for mapping the risk factor.
+        // The actual trade limit is calculated by dividing TradeLimits.MAX_TRADE_LIMIT by the
+        // risk factor, and then further decreasing by chargeback risk, account signing, and age.
         long riskFactor;
-        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
+        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_CRYPTO.longValueExact())
             riskFactor = 1;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
-            riskFactor = 2;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
             riskFactor = 4;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
+            riskFactor = 11;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
+            riskFactor = 22;
         else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.longValueExact())
-            riskFactor = 8;
+            riskFactor = 44;
         else {
-            riskFactor = 8;
+            riskFactor = 44;
             log.warn("maxTradeLimit is not matching one of our default values. We use highest risk factor. " +
                             "maxTradeLimit={}. PaymentMethod={}", maxTradeLimit, this);
         }
