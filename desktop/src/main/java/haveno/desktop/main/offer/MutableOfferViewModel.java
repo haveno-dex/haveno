@@ -613,7 +613,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         dataModel.onPlaceOffer(offer, transaction -> {
             resultHandler.run();
-            placeOfferCompleted.set(true);
+            if (!createOfferCanceled) placeOfferCompleted.set(true);
             errorMessage.set(null);
         }, errMessage -> {
             createOfferRequested = false;
