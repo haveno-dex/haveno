@@ -3,6 +3,7 @@
   <id>exchange.haveno.Haveno</id>
   <!-- <icon type="stock">exchange.haveno.Haveno</icon> -->
   <launchable type="desktop-id">exchange.haveno.Haveno.desktop</launchable>
+  <launchable type="desktop-id">Haveno.desktop</launchable>
   <name>Haveno</name>
   <summary>Decentralized P2P exchange built on Monero and Tor</summary>
   <categories>
@@ -14,7 +15,6 @@
     <keyword>cryptocurrency</keyword>
     <keyword>monero</keyword>
   </keywords>
-
 
   <metadata_license>CC-BY-4.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
@@ -40,7 +40,6 @@
       <li>There is No token, because we don&#39;t need it. Transactions between traders are secured by non-custodial multisignature transactions on the Monero network.
       </li>
     </ul>
-
   </description>
   <screenshots>
     <screenshot type="default">
@@ -61,6 +60,7 @@
     <content_attribute id="money-purchasing">intense</content_attribute>
   </content_rating>
 
-
-  <launchable type="desktop-id">Haveno.desktop</launchable>
+  <releases>
+    <release version="1.0.14" date="2024-11-15"/>
+  </releases>
 </component>
