@@ -311,7 +311,7 @@ task packageInstallers {
                     " --dest \"${jpackageAppImageDir}\"" +
                     " --type app-image")
 
-            File appDir = new File("${jpackageAppImageDir}/Haveno")
+            File appDir = new File("${jpackageAppImageDir}/${appNameAndVendor}")
 
             String appImageOpts = new String(
                 " --name ${appNameAndVendor}" +
