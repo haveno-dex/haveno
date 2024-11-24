@@ -206,7 +206,9 @@ task packageInstallers {
         // The jpackageTempDir stores temp files used by jpackage for building the installers
         // It can be inspected in order to troubleshoot the packaging process
         File jpackageTempDir = new File(tempRootDir, "jpackage-temp")
+        File jpackageAppImageDir = new File(tempRootDir, "jpackage-appimage")
         jpackageTempDir.mkdirs()
+        jpackageAppImageDir.mkdirs()
 
         // ALL contents of this folder will be included in the resulting installers
         // However, the fat jar is the only one we need
@@ -305,6 +307,17 @@ task packageInstallers {
 
             executeCmd(jPackageFilePath + commonOpts + macOpts + " --type dmg")
         } else {
+            executeCmd(jPackageFilePath + commonOpts +
+                    " --dest \"${jpackageAppImageDir}\"" +
+                    " --type app-image")
+
+            File appDir = new File("${jpackageAppImageDir}/Haveno")
+
+            String appImageOpts = new String(
+                " --app-image ${appDir}" +
+                " --dest \"${binariesFolderPath}\""
+            )
+
             String linuxOpts = new String(
                     " --icon ${project(':desktop').projectDir}/package/linux/icon.png" +
                             // This defines the first part of the resulting packages (the application name)
@@ -320,17 +333,13 @@ task packageInstallers {
             )
 
             // Package deb
-            executeCmd(jPackageFilePath + commonOpts + linuxOpts +
+            executeCmd(jPackageFilePath + appImageOpts + linuxOpts +
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 
             // Clean jpackage temp folder, needs to be empty for the next packaging step (AppImage)
             jpackageTempDir.deleteDir()
             jpackageTempDir.mkdirs()
-
-            executeCmd(jPackageFilePath + commonOpts +
-                    " --dest \"${jpackageTempDir}\"" +
-                    " --type app-image")
 
             // Path to the app-image directory: THIS IS NOT THE ACTUAL .AppImage FILE.
             // See JPackage documentation on --type app-image for more.
@@ -349,7 +358,6 @@ task packageInstallers {
 
             String osKey = getJavaBinariesDownloadURLs.property('osKey')
 
-            File appDir = new File("${jpackageTempDir}/Haveno")
             File templateAppDir = new File("${project(':desktop').projectDir}/package/linux/Haveno.AppDir")
             File jpackDir = appDir
 
@@ -392,7 +400,7 @@ task packageInstallers {
             jpackageTempDir.mkdirs()
 
             // Package rpm
-            executeCmd(jPackageFilePath + commonOpts + linuxOpts +
+            executeCmd(jPackageFilePath + appImageOpts + linuxOpts +
                     " --linux-rpm-license-type AGPLv3" + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
                     " --type rpm")
 
