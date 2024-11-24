@@ -306,7 +306,7 @@ task packageInstallers {
             executeCmd(jPackageFilePath + commonOpts + macOpts + " --type dmg")
         } else {
             String linuxOpts = new String(
-                    " --icon ${project(':desktop').projectDir}/package/linux/exchange.haveno.Haveno.png" +
+                    " --icon ${project(':desktop').projectDir}/package/linux/icon.png" +
                             // This defines the first part of the resulting packages (the application name)
                             // deb requires lowercase letters, therefore the application name is written in lowercase
                             " --linux-package-name haveno" +
