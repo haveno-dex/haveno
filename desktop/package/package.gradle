@@ -314,8 +314,14 @@ task packageInstallers {
             File appDir = new File("${jpackageAppImageDir}/Haveno")
 
             String appImageOpts = new String(
-                " --app-image ${appDir}" +
-                " --dest \"${binariesFolderPath}\""
+                " --name ${appNameAndVendor}" +
+                //" --description \"${appDescription}\"" + // TODO: task managers show app description instead of name, so we disable it
+                " --app-version ${appVersion}" +
+                " --copyright \"${appCopyright}\"" +
+                " --vendor ${appNameAndVendor}" +
+                " --temp \"${jpackageTempDir}\"" +
+                " --dest \"${binariesFolderPath}\"" +
+                " --app-image ${appDir}"
             )
 
             String linuxOpts = new String(
