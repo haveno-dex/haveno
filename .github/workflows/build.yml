@@ -34,6 +34,7 @@ jobs:
       - name: cache nodes dependencies
         uses: actions/upload-artifact@v3
         with:
+          include-hidden-files: true
           name: cached-localnet
           path: .localnet
       - name: Install dependencies
