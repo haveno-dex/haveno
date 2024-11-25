@@ -1169,16 +1169,24 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
 
-            // skip if outputs unavailable
-            if (tx.getIncomingTransfers() == null || tx.getIncomingTransfers().isEmpty()) continue;
+            // skip if no funds available
+            BigInteger sentToSelfAmount = xmrWalletService.getAmountSentToSelf(tx); // amount sent to self always shows 0, so compute from destinations manually
+            if (sentToSelfAmount.equals(BigInteger.ZERO) && (tx.getIncomingTransfers() == null || tx.getIncomingTransfers().isEmpty())) continue;
             if (!isOutputsAvailable(tx)) continue;
             if (isTxScheduledByOtherOffer(openOffers, openOffer, tx.getHash())) continue;
 
-            // add scheduled tx
-            for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
-                if (transfer.getAccountIndex() == 0) {
-                    scheduledAmount = scheduledAmount.add(transfer.getAmount());
-                    scheduledTxs.add(tx);
+            // schedule transaction if funds sent to self, because they are not included in incoming transfers // TODO: fix in libraries?
+            if (sentToSelfAmount.compareTo(BigInteger.ZERO) > 0) {
+                scheduledAmount = scheduledAmount.add(sentToSelfAmount);
+                scheduledTxs.add(tx);
+            } else if (tx.getIncomingTransfers() != null) {
+
+                // schedule transaction if incoming tranfers to account 0
+                for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
+                    if (transfer.getAccountIndex() == 0) {
+                        scheduledAmount = scheduledAmount.add(transfer.getAmount());
+                        scheduledTxs.add(tx);
+                    }
                 }
             }
 
