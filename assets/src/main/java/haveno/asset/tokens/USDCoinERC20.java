@@ -19,9 +19,9 @@ package haveno.asset.tokens;
 
 import haveno.asset.Erc20Token;
 
-public class USDCoin extends Erc20Token {
+public class USDCoinERC20 extends Erc20Token {
 
-    public USDCoin() {
-        super("USD Coin", "USDC");
+    public USDCoinERC20() {
+        super("USD Coin (ERC20)", "USDC-ERC20");
     }
 }
