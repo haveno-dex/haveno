@@ -67,6 +67,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
@@ -106,7 +107,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         shutDownHandler = this::stop;
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // JavaFx Application implementation
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -139,11 +139,16 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     @Override
     public void stop() {
         if (!shutDownRequested) {
-            new Popup().headLine(Res.get("popup.shutDownInProgress.headline"))
-                    .backgroundInfo(Res.get("popup.shutDownInProgress.msg"))
-                    .hideCloseButton()
-                    .useAnimation(false)
-                    .show();
+            // Show shutdown popup on the UI thread using Platform.runLater()
+            Platform.runLater(() -> {
+                new Popup().headLine(Res.get("popup.shutDownInProgress.headline"))
+                        .backgroundInfo(Res.get("popup.shutDownInProgress.msg"))
+                        .hideCloseButton()
+                        .useAnimation(false)
+                        .show();
+            });
+
+            // Use a separate thread for graceful shutdown to avoid blocking UI
             new Thread(() -> {
                 gracefulShutDownHandler.gracefulShutDown(() -> {
                     log.info("App shutdown complete");
@@ -153,7 +158,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             shutDownRequested = true;
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // UncaughtExceptionHandler implementation
@@ -173,9 +177,12 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                 try {
                     if (!popupOpened) {
                         popupOpened = true;
-                        new Popup().error(Objects.requireNonNullElse(throwable.getMessage(), throwable.toString()))
-                                .onClose(() -> popupOpened = false)
-                                .show();
+                        // Show error popup on the UI thread
+                        Platform.runLater(() -> {
+                            new Popup().error(Objects.requireNonNullElse(throwable.getMessage(), throwable.toString()))
+                                    .onClose(() -> popupOpened = false)
+                                    .show();
+                        });
                     }
                 } catch (Throwable throwable3) {
                     log.error("Error at displaying Throwable.");
@@ -184,14 +191,13 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                 if (doShutDown)
                     stop();
             } catch (Throwable throwable2) {
-                // If printStackTrace cause a further exception we don't pass the throwable to the Popup.
+                // If printStackTrace causes a further exception, we don't pass the throwable to the Popup.
                 log.error(throwable2.toString());
                 if (doShutDown)
                     stop();
             }
         }
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
@@ -232,7 +238,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             event.consume();
             shutDownByUser();
         });
-
         // configure the primary stage
         String appName = injector.getInstance(Key.get(String.class, Names.named(Config.APP_NAME)));
         List<String> postFixes = new ArrayList<>();
@@ -312,7 +317,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                 } else if (Utilities.isAltOrCtrlPressed(KeyCode.F, keyEvent)) {
                     injector.getInstance(FilterWindow.class).show();
                 }
-		else if (Utilities.isAltOrCtrlPressed(KeyCode.T, keyEvent)) {
+        else if (Utilities.isAltOrCtrlPressed(KeyCode.T, keyEvent)) {
                     // Toggle between show tor logs and only show warnings. Helpful in case of connection problems
                     String pattern = "org.berndpruenster.netlayer";
                     Level logLevel = ((Logger) LoggerFactory.getLogger(pattern)).getLevel();
@@ -353,14 +358,16 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         if (issues.length() > 0) {
             String key = Utilities.encodeToHex(Hash.getSha256Hash(issues));
             if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-                new Popup().warning(issues)
-                        .actionButtonText(Res.get("shared.okWait"))
-                        .onAction(() -> resp.complete(false))
-                        .closeButtonText(Res.get("shared.closeAnywayDanger"))
-                        .onClose(() -> resp.complete(true))
-                        .dontShowAgainId(key)
-                        .width(800)
-                        .show();
+                Platform.runLater(() -> {
+                    new Popup().warning(issues)
+                            .actionButtonText(Res.get("shared.okWait"))
+                            .onAction(() -> resp.complete(false))
+                            .closeButtonText(Res.get("shared.closeAnywayDanger"))
+                            .onClose(() -> resp.complete(true))
+                            .dontShowAgainId(key)
+                            .width(800)
+                            .show();
+                });
                 return resp;
             }
         }
@@ -369,13 +376,15 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         if (injector.getInstance(OpenOfferManager.class).hasOpenOffers()) {
             String key = "showOpenOfferWarnPopupAtShutDown";
             if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-                new Popup().warning(Res.get("popup.info.shutDownWithOpenOffers"))
-                        .actionButtonText(Res.get("shared.shutDown"))
-                        .onAction(() -> resp.complete(true))
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .onClose(() -> resp.complete(false))
-                        .dontShowAgainId(key)
-                        .show();
+                Platform.runLater(() -> {
+                    new Popup().warning(Res.get("popup.info.shutDownWithOpenOffers"))
+                            .actionButtonText(Res.get("shared.shutDown"))
+                            .onAction(() -> resp.complete(true))
+                            .closeButtonText(Res.get("shared.cancel"))
+                            .onClose(() -> resp.complete(false))
+                            .dontShowAgainId(key)
+                            .show();
+                });
                 return resp;
             }
         }
@@ -383,13 +392,15 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         // if no warning popup has been shown yet, prompt user if they really intend to shut down
         String key = "popup.info.shutDownQuery";
         if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
-            new Popup().headLine(Res.get(key))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(() -> resp.complete(true))
-                    .closeButtonText(Res.get("shared.no"))
-                    .onClose(() -> resp.complete(false))
-                    .dontShowAgainId(key)
-                    .show();
+            Platform.runLater(() -> {
+                new Popup().headLine(Res.get(key))
+                        .actionButtonText(Res.get("shared.yes"))
+                        .onAction(() -> resp.complete(true))
+                        .closeButtonText(Res.get("shared.no"))
+                        .onClose(() -> resp.complete(false))
+                        .dontShowAgainId(key)
+                        .show();
+            });
         } else {
             resp.complete(true);
         }
@@ -397,18 +408,18 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     private String checkTradesAtShutdown() {
-       log.info("Checking trades at shutdown");
-       Instant fiveMinutesAgo = Instant.ofEpochSecond(Instant.now().getEpochSecond() - TimeUnit.MINUTES.toSeconds(5));
-       for (Trade trade : injector.getInstance(TradeManager.class).getObservableList()) {
-           if (trade.getPhase().equals(Trade.Phase.DEPOSIT_REQUESTED) &&
-                   trade.getTakeOfferDate().toInstant().isAfter(fiveMinutesAgo)) {
-               String tradeDateString = DisplayUtils.formatDateTime(trade.getTakeOfferDate());
-               String tradeInfo = Res.get("shared.tradeId") + ": " + trade.getShortId() + " " +
-                       Res.get("shared.dateTime") + ": " + tradeDateString;
-               return Res.get("popup.info.shutDownWithTradeInit", tradeInfo) + System.lineSeparator() + System.lineSeparator();
-           }
-       }
-       return "";
+        log.info("Checking trades at shutdown");
+        Instant fiveMinutesAgo = Instant.ofEpochSecond(Instant.now().getEpochSecond() - TimeUnit.MINUTES.toSeconds(5));
+        for (Trade trade : injector.getInstance(TradeManager.class).getObservableList()) {
+            if (trade.getPhase().equals(Trade.Phase.DEPOSIT_REQUESTED) &&
+                    trade.getTakeOfferDate().toInstant().isAfter(fiveMinutesAgo)) {
+                String tradeDateString = DisplayUtils.formatDateTime(trade.getTakeOfferDate());
+                String tradeInfo = Res.get("shared.tradeId") + ": " + trade.getShortId() + " " +
+                        Res.get("shared.dateTime") + ": " + tradeDateString;
+                return Res.get("popup.info.shutDownWithTradeInit", tradeInfo) + System.lineSeparator() + System.lineSeparator();
+            }
+        }
+        return "";
     }
 
     private String checkDisputesAtShutdown() {
@@ -428,7 +439,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         Parent parent = (Parent) debugView.getRoot();
         Stage stage = new Stage();
         stage.setScene(new Scene(parent));
-        stage.setTitle("Debug window"); // Don't translate, just for dev
+        stage.setTitle("Debug window");
         stage.initModality(Modality.NONE);
         stage.initStyle(StageStyle.UTILITY);
         stage.initOwner(scene.getWindow());

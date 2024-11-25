@@ -15,31 +15,36 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.common.view;
+ package haveno.desktop.common.view;
 
-import haveno.desktop.common.model.Activatable;
-import javafx.scene.Node;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
-public abstract class ActivatableViewAndModel<R extends Node, M extends Activatable> extends ActivatableView<R, M> {
-
-    public ActivatableViewAndModel(M model) {
-        super(checkNotNull(model, "Model must not be null"));
-    }
-
-    @Override
-    protected void prepareInitialize() {
-        if (root != null) {
-            root.sceneProperty().addListener((ov, oldValue, newValue) -> {
-                if (oldValue == null && newValue != null) {
-                    model._activate();
-                    activate();
-                } else if (oldValue != null && newValue == null) {
-                    model._deactivate();
-                    deactivate();
-                }
-            });
-        }
-    }
-}
+ import haveno.desktop.common.model.Activatable;
+ import javafx.application.Platform;
+ import javafx.scene.Node;
+ 
+ import static com.google.common.base.Preconditions.checkNotNull;
+ 
+ public abstract class ActivatableViewAndModel<R extends Node, M extends Activatable> extends ActivatableView<R, M> {
+ 
+     public ActivatableViewAndModel(M model) {
+         super(checkNotNull(model, "Model must not be null"));
+     }
+ 
+     @Override
+     protected void prepareInitialize() {
+         if (root != null) {
+             root.sceneProperty().addListener((ov, oldValue, newValue) -> {
+                 if (oldValue == null && newValue != null) {
+                     Platform.runLater(() -> {
+                         model._activate();
+                         activate();
+                     });
+                 } else if (oldValue != null && newValue == null) {
+                     Platform.runLater(() -> {
+                         model._deactivate();
+                         deactivate();
+                     });
+                 }
+             });
+         }
+     }
+ }

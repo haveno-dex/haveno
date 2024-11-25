@@ -24,6 +24,7 @@ import haveno.core.api.CoreNotificationService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -32,14 +33,14 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
 
 /**
- * We often need to wait until network and wallet is ready or other combination of startup states.
- * To avoid those repeated checks for the state or setting of listeners on different domains we provide here a
- * collection of useful states.
- */
+* We often need to wait until network and wallet is ready or other combination of startup states.
+* To avoid those repeated checks for the state or setting of listeners on different domains we provide here a
+* collection of useful states.
+*/
 @Slf4j
 @Singleton
 public class AppStartupState {
-    // Do not convert to local field as there have been issues observed that the object got GC'ed.
+
     private final MonadicBinding<Boolean> p2pNetworkAndWalletInitialized;
 
     private final BooleanProperty walletAndNetworkReady = new SimpleBooleanProperty();
@@ -52,57 +53,77 @@ public class AppStartupState {
 
     @Inject
     public AppStartupState(CoreNotificationService notificationService,
-                           XmrConnectionService xmrConnectionService,
-                           XmrWalletService xmrWalletService,
-                           P2PService p2PService) {
+                            XmrConnectionService xmrConnectionService,
+                            XmrWalletService xmrWalletService,
+                            P2PService p2PService) {
 
+         // Bootstrap listener for P2P service
         p2PService.addP2PServiceListener(new BootstrapListener() {
             @Override
             public void onDataReceived() {
-                updatedDataReceived.set(true);
+                // Ensure UI update is done on JavaFX thread
+                Platform.runLater(() -> updatedDataReceived.set(true));
             }
         });
 
+        // Listener for XMR connection service
         xmrConnectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrConnectionService.isDownloadComplete())
-                isBlockDownloadComplete.set(true);
+            if (xmrConnectionService.isDownloadComplete()) {
+                // Ensure UI update is done on JavaFX thread
+                Platform.runLater(() -> isBlockDownloadComplete.set(true));
+            }
         });
 
+         // Listener for XMR wallet service
         xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrWalletService.isDownloadComplete())
-                isWalletSynced.set(true);
+            if (xmrWalletService.isDownloadComplete()) {
+                // Ensure UI update is done on JavaFX thread
+                Platform.runLater(() -> isWalletSynced.set(true));
+            }
         });
 
+        // Listener for XMR connection service (numPeersProperty)
         xmrConnectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrConnectionService.hasSufficientPeersForBroadcast())
-                hasSufficientPeersForBroadcast.set(true);
+            if (xmrConnectionService.hasSufficientPeersForBroadcast()) {
+                // Ensure UI update is done on JavaFX thread
+                Platform.runLater(() -> hasSufficientPeersForBroadcast.set(true));
+            }
         });
 
+        // Combine multiple states into one MonadicBinding
         p2pNetworkAndWalletInitialized = EasyBind.combine(updatedDataReceived,
                 isBlockDownloadComplete,
                 isWalletSynced,
                 hasSufficientPeersForBroadcast, // TODO: consider sufficient number of peers?
                 allDomainServicesInitialized,
                 (a, b, c, d, e) -> {
-                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && isWalletSynced={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d && e), updatedDataReceived.get(), isBlockDownloadComplete.get(), isWalletSynced.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
+                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && isWalletSynced={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}",
+                            (a && b && c && d && e), updatedDataReceived.get(), isBlockDownloadComplete.get(), isWalletSynced.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
                     if (a && b && c) {
-                        walletAndNetworkReady.set(true);
+                        // Ensure UI update is done on JavaFX thread
+                        Platform.runLater(() -> walletAndNetworkReady.set(true));
                     }
                     return a && e; // app fully initialized before daemon connection and wallet by default
                 });
+
+        // Subscribe to p2pNetworkAndWalletInitialized
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
-                applicationFullyInitialized.set(true);
-                notificationService.sendAppInitializedNotification();
-                log.info("Application fully initialized");
+                // Ensure UI update is done on JavaFX thread
+                Platform.runLater(() -> {
+                    applicationFullyInitialized.set(true);
+                    notificationService.sendAppInitializedNotification();
+                    log.info("Application fully initialized");
+                });
             }
         });
     }
 
+    // Method to signal that all domain services have been initialized
     public void onDomainServicesInitialized() {
-        allDomainServicesInitialized.set(true);
+        // Ensure UI update is done on JavaFX thread
+        Platform.runLater(() -> allDomainServicesInitialized.set(true));
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
