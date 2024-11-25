@@ -3,7 +3,6 @@
   <id>exchange.haveno.Haveno</id>
   <!-- <icon type="stock">exchange.haveno.Haveno</icon> -->
   <launchable type="desktop-id">exchange.haveno.Haveno.desktop</launchable>
-  <launchable type="desktop-id">Haveno.desktop</launchable>
   <name>Haveno</name>
   <summary>Decentralized P2P exchange built on Monero and Tor</summary>
   <categories>
