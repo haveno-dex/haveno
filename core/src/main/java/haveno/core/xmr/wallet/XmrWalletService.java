@@ -1219,8 +1219,27 @@ public class XmrWalletService extends XmrWalletBase {
         return cachedAvailableBalance;
     }
 
+    public boolean hasAddress(String address) {
+        for (MoneroSubaddress subaddress : getSubaddresses()) {
+            if (subaddress.getAddress().equals(address)) return true;
+        }
+        return false;
+    }
+
     public List<MoneroSubaddress> getSubaddresses() {
         return cachedSubaddresses;
+    }
+
+    public BigInteger getAmountSentToSelf(MoneroTxWallet tx) {
+        BigInteger sentToSelfAmount = BigInteger.ZERO;
+        if (tx.getOutgoingTransfer() != null && tx.getOutgoingTransfer().getDestinations() != null) {
+            for (MoneroDestination destination : tx.getOutgoingTransfer().getDestinations()) {
+                if (hasAddress(destination.getAddress())) {
+                    sentToSelfAmount = sentToSelfAmount.add(destination.getAmount());
+                }
+            }
+        }
+        return sentToSelfAmount;
     }
 
     public List<MoneroOutputWallet> getOutputs(MoneroOutputQuery query) {
