@@ -154,6 +154,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             showTransactionPublishedScreenSubscription, showWarningInvalidBtcDecimalPlacesSubscription,
             isWaitingForFundsSubscription, offerWarningSubscription, errorMessageSubscription,
             isOfferAvailableSubscription;
+    private ChangeListener<BigInteger> missingCoinListener;
 
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
@@ -190,6 +191,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         addPaymentGroup();
         addAmountPriceGroup();
         addOptionsGroup();
+
+        createListeners();
 
         addButtons();
         addOfferAvailabilityLabel();
@@ -489,6 +492,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         }
 
+        updateQrCode();
+    }
+
+    private void updateQrCode() {
         final byte[] imageBytes = QRCode
                 .from(getMoneroURI())
                 .withSize(300, 300)
@@ -675,7 +682,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         });
 
-        balanceSubscription = EasyBind.subscribe(model.dataModel.getBalance(), balanceTextField::setBalance);
+        balanceSubscription = EasyBind.subscribe(model.dataModel.getAvailableBalance(), balanceTextField::setBalance);
     }
 
     private void removeSubscriptions() {
@@ -689,14 +696,24 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceSubscription.unsubscribe();
     }
 
+    private void createListeners() {
+        missingCoinListener = (observable, oldValue, newValue) -> {
+            if (!newValue.toString().equals("")) {
+                updateQrCode();
+            }
+        };
+    }
+
     private void addListeners() {
         amountTextField.focusedProperty().addListener(amountFocusedListener);
         model.dataModel.getShowWalletFundedNotification().addListener(getShowWalletFundedNotificationListener);
+        model.dataModel.getMissingCoin().addListener(missingCoinListener);
     }
 
     private void removeListeners() {
         amountTextField.focusedProperty().removeListener(amountFocusedListener);
         model.dataModel.getShowWalletFundedNotification().removeListener(getShowWalletFundedNotificationListener);
+        model.dataModel.getMissingCoin().removeListener(missingCoinListener);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
