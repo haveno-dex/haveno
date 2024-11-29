@@ -40,7 +40,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -64,7 +63,6 @@ import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
-import monero.daemon.model.MoneroPeer;
 
 @Slf4j
 @Singleton
@@ -85,9 +83,9 @@ public final class XmrConnectionService {
     private final XmrLocalNode xmrLocalNode;
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
-    private final ObjectProperty<List<MoneroPeer>> peers = new SimpleObjectProperty<>();
+    private final ObjectProperty<List<MoneroRpcConnection>> connections = new SimpleObjectProperty<>();
+    private final IntegerProperty numConnections = new SimpleIntegerProperty(0);
     private final ObjectProperty<MoneroRpcConnection> connectionProperty = new SimpleObjectProperty<>();
-    private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
     @Getter
@@ -390,12 +388,12 @@ public final class XmrConnectionService {
 
     // ----------------------------- APP METHODS ------------------------------
 
-    public ReadOnlyIntegerProperty numPeersProperty() {
-        return numPeers;
+    public ReadOnlyIntegerProperty numConnectionsProperty() {
+        return numConnections;
     }
 
-    public ReadOnlyObjectProperty<List<MoneroPeer>> peerConnectionsProperty() {
-        return peers;
+    public ReadOnlyObjectProperty<List<MoneroRpcConnection>> connectionsProperty() {
+        return connections;
     }
 
     public ReadOnlyObjectProperty<MoneroRpcConnection> connectionProperty() {
@@ -403,7 +401,7 @@ public final class XmrConnectionService {
     }
 
     public boolean hasSufficientPeersForBroadcast() {
-        return numPeers.get() >= getMinBroadcastConnections();
+        return numConnections.get() >= getMinBroadcastConnections();
     }
 
     public LongProperty chainHeightProperty() {
@@ -782,16 +780,15 @@ public final class XmrConnectionService {
                         downloadListener.progress(percent, blocksLeft, null);
                     }
 
-                    // set peer connections
-                    // TODO: peers often uknown due to restricted RPC call, skipping call to get peer connections
-                    // try {
-                    //     peers.set(getOnlinePeers());
-                    // } catch (Exception err) {
-                    //     // TODO: peers unknown due to restricted RPC call
-                    // }
-                    // numPeers.set(peers.get().size());
-                    numPeers.set(lastInfo.getNumOutgoingConnections() + lastInfo.getNumIncomingConnections());
-                    peers.set(new ArrayList<MoneroPeer>());
+                    // set available connections
+                    List<MoneroRpcConnection> availableConnections = new ArrayList<>();
+                    for (MoneroRpcConnection connection : connectionManager.getConnections()) {
+                        if (Boolean.TRUE.equals(connection.isOnline()) && Boolean.TRUE.equals(connection.isAuthenticated())) {
+                            availableConnections.add(connection);
+                        }
+                    }
+                    connections.set(availableConnections);
+                    numConnections.set(availableConnections.size());
 
                     // notify update
                     numUpdates.set(numUpdates.get() + 1);
@@ -819,12 +816,6 @@ public final class XmrConnectionService {
                 pollInProgress = false;
             }
         }
-    }
-
-    private List<MoneroPeer> getOnlinePeers() {
-        return daemon.getPeers().stream()
-                .filter(peer -> peer.isOnline())
-                .collect(Collectors.toList());
     }
 
     private boolean isFixedConnection() {
