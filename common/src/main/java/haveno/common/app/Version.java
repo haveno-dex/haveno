@@ -80,7 +80,7 @@ public class Version {
 
     // The version no. for the objects sent over the network. A change will break the serialization of old objects.
     // If objects are used for both network and database the network version is applied.
-    public static final String P2P_NETWORK_VERSION = "A";
+    public static final String P2P_NETWORK_VERSION = "X";
 
     // The version no. of the serialized data stored to disc. A change will break the serialization of old objects.
     // VERSION = 0.5.0 -> LOCAL_DB_VERSION = 1
