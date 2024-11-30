@@ -674,6 +674,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 }
             } else {
                 xmrInfoLabel.setId("footer-pane");
+                xmrInfoLabel.getStyleClass().remove("error-text");
                 if (xmrNetworkWarnMsgPopup != null)
                     xmrNetworkWarnMsgPopup.hide();
             }

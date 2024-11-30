@@ -120,7 +120,7 @@ public class WalletAppSetup {
               @Nullable Runnable showPopupIfInvalidBtcConfigHandler,
               Runnable downloadCompleteHandler,
               Runnable walletInitializedHandler) {
-        log.info("Initialize WalletAppSetup with monero-java version {}", MoneroUtils.getVersion());
+        log.info("Initialize WalletAppSetup with monero-java v{}", MoneroUtils.getVersion());
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
         xmrInfoBinding = EasyBind.combine(
