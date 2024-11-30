@@ -158,6 +158,9 @@ public class HavenoSetup {
             rejectedTxErrorMessageHandler;
     @Setter
     @Nullable
+    private Consumer<Boolean> displayMoneroConnectionFallbackHandler;        
+    @Setter
+    @Nullable
     private Consumer<Boolean> displayTorNetworkSettingsHandler;
     @Setter
     @Nullable
@@ -425,6 +428,12 @@ public class HavenoSetup {
         // reset startup timeout on progress
         getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
         getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
+
+        // listen for fallback handling
+        getConnectionServiceFallbackHandlerActive().addListener((observable, oldValue, newValue) -> {
+            if (displayMoneroConnectionFallbackHandler == null) return;
+            displayMoneroConnectionFallbackHandler.accept(newValue);
+        });
 
         log.info("Init P2P network");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
@@ -723,6 +732,10 @@ public class HavenoSetup {
 
     public StringProperty getConnectionServiceErrorMsg() {
         return xmrConnectionService.getConnectionServiceErrorMsg();
+    }
+
+    public BooleanProperty getConnectionServiceFallbackHandlerActive() {
+        return xmrConnectionService.getConnectionServiceFallbackHandlerActive();
     }
 
     public StringProperty getTopErrorMsg() {

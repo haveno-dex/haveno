@@ -75,6 +75,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
             log.info("onDisplayTacHandler: We accept the tacs automatically in headless mode");
             acceptedHandler.run();
         });
+        havenoSetup.setDisplayMoneroConnectionFallbackHandler(show -> log.info("onDisplayMoneroConnectionFallbackHandler: show={}", show));
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> log.info("onDisplayTorNetworkSettingsHandler: show={}", show));
         havenoSetup.setChainFileLockedExceptionHandler(msg -> log.error("onChainFileLockedExceptionHandler: msg={}", msg));
         tradeManager.setLockedUpFundsHandler(msg -> log.info("onLockedUpFundsHandler: msg={}", msg));
