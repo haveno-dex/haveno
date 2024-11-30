@@ -142,7 +142,7 @@ public final class XmrConnectionService {
         p2PService.addP2PServiceListener(new P2PServiceListener() {
             @Override
             public void onTorNodeReady() {
-                initialize();
+                ThreadUtils.submitToPool(() -> initialize());
             }
             @Override
             public void onHiddenServicePublished() {}
