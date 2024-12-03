@@ -28,6 +28,6 @@ package haveno.asset;
 public abstract class Erc20Token extends Token {
 
     public Erc20Token(String name, String tickerSymbol) {
-        super(name, tickerSymbol, new EtherAddressValidator());
+        super(name, tickerSymbol, new EVMAddressValidator());
     }
 }
