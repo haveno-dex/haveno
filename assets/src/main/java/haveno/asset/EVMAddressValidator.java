@@ -27,14 +27,16 @@ package haveno.asset;
  *
  * @author Chris Beams
  * @since 0.7.0
+ *
+ * Edit: renamed EVMAddressValidator for being used by all EVMs
  */
-public class EtherAddressValidator extends RegexAddressValidator {
+public class EVMAddressValidator extends RegexAddressValidator {
 
-    public EtherAddressValidator() {
+    public EVMAddressValidator() {
         super("^(0x)?[0-9a-fA-F]{40}$");
     }
 
-    public EtherAddressValidator(String errorMessageI18nKey) {
+    public EVMAddressValidator(String errorMessageI18nKey) {
         super("^(0x)?[0-9a-fA-F]{40}$", errorMessageI18nKey);
     }
 }
