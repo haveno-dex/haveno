@@ -20,6 +20,8 @@ package haveno.desktop.main.offer;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
@@ -176,7 +178,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         if (isTabSelected)
             priceFeedService.setCurrencyCode(tradeCurrencyCode.get());
 
-        updateBalance();
+        updateBalances();
     }
 
     @Override
@@ -205,7 +207,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                updateBalance();
+                updateBalances();
             }
         };
 
@@ -246,7 +248,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
         calculateVolume();
         calculateTotalToPay();
-        updateBalance();
+        updateBalances();
         setSuggestedSecurityDeposit(getPaymentAccount());
 
         return true;
@@ -271,6 +273,19 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.isTabSelected = isSelected;
         if (isTabSelected)
             priceFeedService.setCurrencyCode(tradeCurrencyCode.get());
+    }
+
+    protected void updateBalances() {
+        super.updateBalances();
+
+        // update remaining balance
+        UserThread.await(() -> {
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
+            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
+            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
+                showWalletFundedNotification.set(true);
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -393,11 +408,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     void fundFromSavingsWallet() {
         this.useSavingsWallet = true;
-        updateBalance();
-        if (!isXmrWalletFunded.get()) {
-            this.useSavingsWallet = false;
-            updateBalance();
-        }
+        updateBalances();
     }
 
     protected void setMarketPriceMarginPct(double marketPriceMargin) {
@@ -492,7 +503,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             }
         }
 
-        updateBalance();
+        updateBalances();
     }
 
     void calculateMinVolume() {
@@ -545,7 +556,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             BigInteger feeAndSecDeposit = getSecurityDeposit().add(makerFee);
             BigInteger total = isBuyOffer() ? feeAndSecDeposit : feeAndSecDeposit.add(amount.get());
             totalToPay.set(total);
-            updateBalance();
+            updateBalances();
         }
     }
 

@@ -65,29 +65,7 @@ public abstract class OfferDataModel extends ActivatableDataModel {
         this.offerUtil = offerUtil;
     }
 
-    protected void updateBalance() {
-        updateBalances();
-        UserThread.await(() -> {
-            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
-            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
-            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-                showWalletFundedNotification.set(true);
-            }
-        });
-    }
-
-    protected void updateAvailableBalance() {
-        updateBalances();
-        UserThread.await(() -> {
-            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), availableBalance.get()));
-            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
-            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-                showWalletFundedNotification.set(true);
-            }
-        });
-    }
-
-    private void updateBalances() {
+    protected void updateBalances() {
         BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         BigInteger tradeWalletAvailableBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
         BigInteger walletBalance = xmrWalletService.getBalance();
@@ -101,6 +79,8 @@ public abstract class OfferDataModel extends ActivatableDataModel {
                     availableBalance.set(totalToPay.get().min(totalAvailableBalance));
                 }
             } else {
+                totalBalance = tradeWalletBalance;
+                totalAvailableBalance = tradeWalletAvailableBalance;
                 balance.set(tradeWalletBalance);
                 availableBalance.set(tradeWalletAvailableBalance);
             }

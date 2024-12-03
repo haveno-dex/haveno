@@ -43,6 +43,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -50,6 +51,7 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -89,6 +91,8 @@ public final class XmrConnectionService {
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
     @Getter
+    private final BooleanProperty connectionServiceFallbackHandlerActive = new SimpleBooleanProperty();
+    @Getter
     private final StringProperty connectionServiceErrorMsg = new SimpleStringProperty();
     private final LongProperty numUpdates = new SimpleLongProperty(0);
     private Socks5ProxyProvider socks5ProxyProvider;
@@ -99,6 +103,7 @@ public final class XmrConnectionService {
     private Boolean isConnected = false;
     @Getter
     private MoneroDaemonInfo lastInfo;
+    private Long lastFallbackInvocation;
     private Long lastLogPollErrorTimestamp;
     private long lastLogDaemonNotSyncedTimestamp;
     private Long syncStartHeight;
@@ -115,6 +120,8 @@ public final class XmrConnectionService {
     private int numRequestsLastMinute;
     private long lastSwitchTimestamp;
     private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
+    private static final long FALLBACK_INVOCATION_PERIOD_MS = 1000 * 60 * 1; // offer to fallback up to once every minute
+    private boolean fallbackApplied;
 
     @Inject
     public XmrConnectionService(P2PService p2PService,
@@ -142,7 +149,7 @@ public final class XmrConnectionService {
         p2PService.addP2PServiceListener(new P2PServiceListener() {
             @Override
             public void onTorNodeReady() {
-                initialize();
+                ThreadUtils.submitToPool(() -> initialize());
             }
             @Override
             public void onHiddenServicePublished() {}
@@ -424,6 +431,19 @@ public final class XmrConnectionService {
         return numUpdates;
     }
 
+    public void fallbackToBestConnection() {
+        if (isShutDownStarted) return;
+        if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
+            log.warn("Falling back to public nodes");
+            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
+        } else {
+            log.warn("Falling back to provided nodes");
+            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+        }
+        fallbackApplied = true;
+        initializeConnections();
+    }
+
     // ------------------------------- HELPERS --------------------------------
 
     private void doneDownload() {
@@ -533,7 +553,7 @@ public final class XmrConnectionService {
             }
 
             // restore connections
-            if ("".equals(config.xmrNode)) {
+            if (!isFixedConnection()) {
 
                 // load previous or default connections
                 if (coreContext.isApiUser()) {
@@ -569,10 +589,7 @@ public final class XmrConnectionService {
                 }
 
                 // restore last connection
-                if (isFixedConnection()) {
-                    if (getConnections().size() != 1) throw new IllegalStateException("Expected connection list to have 1 fixed connection but was: " + getConnections().size());
-                    connectionManager.setConnection(getConnections().get(0));
-                } else if (connectionList.getCurrentConnectionUri().isPresent() && connectionManager.hasConnection(connectionList.getCurrentConnectionUri().get())) {
+                if (connectionList.getCurrentConnectionUri().isPresent() && connectionManager.hasConnection(connectionList.getCurrentConnectionUri().get())) {
                     if (!xmrLocalNode.shouldBeIgnored() || !xmrLocalNode.equalsUri(connectionList.getCurrentConnectionUri().get())) {
                         connectionManager.setConnection(connectionList.getCurrentConnectionUri().get());
                     }
@@ -592,7 +609,7 @@ public final class XmrConnectionService {
                 maybeStartLocalNode();
 
                 // update connection
-                if (!isFixedConnection() && (connectionManager.getConnection() == null || connectionManager.getAutoSwitch())) {
+                if (connectionManager.getConnection() == null || connectionManager.getAutoSwitch()) {
                     MoneroRpcConnection bestConnection = getBestAvailableConnection();
                     if (bestConnection != null) setConnection(bestConnection);
                 }
@@ -614,6 +631,7 @@ public final class XmrConnectionService {
         }
 
         // notify initial connection
+        lastRefreshPeriodMs = getRefreshPeriodMs();
         onConnectionChanged(connectionManager.getConnection());
     }
 
@@ -716,16 +734,14 @@ public final class XmrConnectionService {
                     // skip handling if shutting down
                     if (isShutDownStarted) return;
 
-                    // fallback to provided or public nodes if custom connection fails on startup
-                    if (lastInfo == null && "".equals(config.xmrNode) && preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM) {
-                        if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
-                            log.warn("Failed to fetch daemon info from custom node on startup, falling back to public nodes: " + e.getMessage());
-                            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
-                        } else {
-                            log.warn("Failed to fetch daemon info from custom node on startup, falling back to provided nodes: " + e.getMessage());
-                            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                    // invoke fallback handling on startup error
+                    boolean canFallback = isFixedConnection() || isCustomConnections();
+                    if (lastInfo == null && canFallback) {
+                        if (!connectionServiceFallbackHandlerActive.get() && (lastFallbackInvocation == null || System.currentTimeMillis() - lastFallbackInvocation > FALLBACK_INVOCATION_PERIOD_MS)) {
+                            log.warn("Failed to fetch daemon info from custom connection on startup: " + e.getMessage());
+                            lastFallbackInvocation = System.currentTimeMillis();
+                            connectionServiceFallbackHandlerActive.set(true);
                         }
-                        initializeConnections();
                         return;
                     }
 
@@ -819,6 +835,10 @@ public final class XmrConnectionService {
     }
 
     private boolean isFixedConnection() {
-        return !"".equals(config.xmrNode) || preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM;
+        return !"".equals(config.xmrNode) && !fallbackApplied;
+    }
+
+    private boolean isCustomConnections() {
+        return preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM;
     }
 }
