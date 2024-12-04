@@ -208,18 +208,18 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         });
 
 
-        Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> marketPriceBox = getMarketPriceBox();
-        ComboBox<PriceFeedComboBoxItem> priceComboBox = marketPriceBox.first;
+        //Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> marketPriceBox = getMarketPriceBox();
+        //ComboBox<PriceFeedComboBoxItem> priceComboBox = marketPriceBox.first;
 
-        priceComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-                model.setPriceFeedComboBoxItem(newValue));
-        ChangeListener<PriceFeedComboBoxItem> selectedPriceFeedItemListener = (observable, oldValue, newValue) -> {
-            if (newValue != null)
-                priceComboBox.getSelectionModel().select(newValue);
+        //priceComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
+                //model.setPriceFeedComboBoxItem(newValue));
+        //ChangeListener<PriceFeedComboBoxItem> selectedPriceFeedItemListener = (observable, oldValue, newValue) -> {
+            //if (newValue != null)
+                //priceComboBox.getSelectionModel().select(newValue);
 
-        };
-        model.getSelectedPriceFeedComboBoxItemProperty().addListener(selectedPriceFeedItemListener);
-        priceComboBox.setItems(model.getPriceFeedComboBoxItems());
+        //};
+        //model.getSelectedPriceFeedComboBoxItemProperty().addListener(selectedPriceFeedItemListener);
+        //priceComboBox.setItems(model.getPriceFeedComboBoxItems());
 
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
@@ -311,16 +311,16 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         secondaryNav.setAlignment(Pos.CENTER);
 
-        HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
-                getNavigationSeparator(), pendingBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
-        priceAndBalance.setMaxHeight(41);
+        //HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
+                //getNavigationSeparator(), pendingBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
+        //priceAndBalance.setMaxHeight(41);
 
-        priceAndBalance.setAlignment(Pos.CENTER);
-        priceAndBalance.setSpacing(9);
-        priceAndBalance.getStyleClass().add("nav-price-balance");
+        //priceAndBalance.setAlignment(Pos.CENTER);
+        //priceAndBalance.setSpacing(9);
+        //priceAndBalance.getStyleClass().add("nav-price-balance");
 
-        HBox navPane = new HBox(primaryNav, secondaryNav, getNavigationSpacer(),
-                priceAndBalance) {{
+        HBox navPane = new HBox(primaryNav, secondaryNav, getNavigationSpacer()
+                ) {{
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
             setTopAnchor(this, 0d);
@@ -437,35 +437,35 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         };
     }
 
-    private Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> getMarketPriceBox() {
-
-        VBox marketPriceBox = new VBox();
-        marketPriceBox.setAlignment(Pos.CENTER_LEFT);
-
-        ComboBox<PriceFeedComboBoxItem> priceComboBox = new JFXComboBox<>();
-        priceComboBox.setVisibleRowCount(12);
-        priceComboBox.setFocusTraversable(false);
-        priceComboBox.setId("price-feed-combo");
-        priceComboBox.setPadding(new Insets(0, -4, -4, 0));
-        priceComboBox.setCellFactory(p -> getPriceFeedComboBoxListCell());
-        ListCell<PriceFeedComboBoxItem> buttonCell = getPriceFeedComboBoxListCell();
-        buttonCell.setId("price-feed-combo");
-        priceComboBox.setButtonCell(buttonCell);
-
-        Label marketPriceLabel = new Label();
-
-        updateMarketPriceLabel(marketPriceLabel);
-
-        marketPriceLabel.getStyleClass().add("nav-balance-label");
-        marketPriceLabel.setPadding(new Insets(-2, 0, 4, 9));
-
-        marketPriceBox.getChildren().addAll(priceComboBox, marketPriceLabel);
-
-        model.getMarketPriceUpdated().addListener((observable, oldValue, newValue) ->
-                updateMarketPriceLabel(marketPriceLabel));
-
-        return new Tuple2<>(priceComboBox, marketPriceBox);
-    }
+    //private Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> getMarketPriceBox() {
+    //
+    //    VBox marketPriceBox = new VBox();
+    //    marketPriceBox.setAlignment(Pos.CENTER_LEFT);
+    //
+    //    ComboBox<PriceFeedComboBoxItem> priceComboBox = new JFXComboBox<>();
+    //    priceComboBox.setVisibleRowCount(12);
+    //    priceComboBox.setFocusTraversable(false);
+    //    priceComboBox.setId("price-feed-combo");
+    //    priceComboBox.setPadding(new Insets(0, -4, -4, 0));
+    //    priceComboBox.setCellFactory(p -> getPriceFeedComboBoxListCell());
+    //    ListCell<PriceFeedComboBoxItem> buttonCell = getPriceFeedComboBoxListCell();
+    //    buttonCell.setId("price-feed-combo");
+    //    priceComboBox.setButtonCell(buttonCell);
+    //
+    //    Label marketPriceLabel = new Label();
+    //
+    //    updateMarketPriceLabel(marketPriceLabel);
+    //
+    //    marketPriceLabel.getStyleClass().add("nav-balance-label");
+    //    marketPriceLabel.setPadding(new Insets(-2, 0, 4, 9));
+    //
+    //    marketPriceBox.getChildren().addAll(priceComboBox, marketPriceLabel);
+    //
+    //    model.getMarketPriceUpdated().addListener((observable, oldValue, newValue) ->
+    //            updateMarketPriceLabel(marketPriceLabel));
+    //
+    //    return new Tuple2<>(priceComboBox, marketPriceBox);
+    //}
 
     @NotNull
     private String getPriceProvider() {
