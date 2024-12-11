@@ -117,10 +117,14 @@ public class DisplayUtils {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
+        return getDirectionWithCode(direction, currencyCode, false);
+    }
+
+    public static String getDirectionWithCode(OfferDirection direction, String currencyCode, boolean isPrivate) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
+            return (direction == OfferDirection.BUY) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", Res.getBaseCurrencyCode());
         else
-            return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency", currencyCode) : Res.get("shared.sellCurrency", currencyCode);
+            return (direction == OfferDirection.SELL) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", currencyCode) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", currencyCode);
     }
 
     public static String getDirectionBothSides(OfferDirection direction) {

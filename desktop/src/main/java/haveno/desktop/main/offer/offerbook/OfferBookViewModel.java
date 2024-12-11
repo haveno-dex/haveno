@@ -130,6 +130,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     final IntegerProperty maxPlacesForMarketPriceMargin = new SimpleIntegerProperty();
     boolean showAllPaymentMethods = true;
     boolean useOffersMatchingMyAccountsFilter;
+    boolean showPrivateOffers;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -213,6 +214,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             disableMatchToggle.set(user.getPaymentAccounts() == null || user.getPaymentAccounts().isEmpty());
         }
         useOffersMatchingMyAccountsFilter = !disableMatchToggle.get() && isShowOffersMatchingMyAccounts();
+        showPrivateOffers = preferences.isShowPrivateOffers();
 
         fillCurrencies();
         updateSelectedTradeCurrency();
@@ -304,6 +306,12 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     void onShowOffersMatchingMyAccounts(boolean isSelected) {
         useOffersMatchingMyAccountsFilter = isSelected;
         preferences.setShowOffersMatchingMyAccounts(useOffersMatchingMyAccountsFilter);
+        filterOffers();
+    }
+
+    void onShowPrivateOffers(boolean isSelected) {
+        showPrivateOffers = isSelected;
+        preferences.setShowPrivateOffers(isSelected);
         filterOffers();
     }
 
@@ -570,6 +578,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         Predicate<OfferBookListItem> predicate = useOffersMatchingMyAccountsFilter ?
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
+
+        predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
 
         if (!filterText.isEmpty()) {
 

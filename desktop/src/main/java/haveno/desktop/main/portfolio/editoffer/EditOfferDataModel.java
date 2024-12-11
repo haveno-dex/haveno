@@ -211,7 +211,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getLowerClosePrice(),
                 offerPayload.getUpperClosePrice(),
                 offerPayload.isPrivateOffer(),
-                offerPayload.getHashOfChallenge(),
+                offerPayload.getPassphraseHash(),
                 offerPayload.getExtraDataMap(),
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),

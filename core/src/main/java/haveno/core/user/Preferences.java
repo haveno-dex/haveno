@@ -755,6 +755,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setShowPrivateOffers(boolean value) {
+        prefPayload.setShowPrivateOffers(value);
+        requestPersistence();
+    }
+
     public void setDenyApiTaker(boolean value) {
         prefPayload.setDenyApiTaker(value);
         requestPersistence();

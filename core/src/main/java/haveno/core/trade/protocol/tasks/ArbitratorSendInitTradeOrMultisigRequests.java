@@ -78,6 +78,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                         null,
                         null,
                         null,
+                        null,
                         null);
 
                 // send request to taker
@@ -118,7 +119,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
 
         // ensure arbitrator has reserve txs
         if (processModel.getMaker().getReserveTxHash() == null) throw new RuntimeException("Arbitrator does not have maker's reserve tx after initializing trade");
-        if (processModel.getTaker().getReserveTxHash() == null) throw new RuntimeException("Arbitrator does not have taker's reserve tx after initializing trade");
+        if (processModel.getTaker().getReserveTxHash() == null && !trade.hasBuyerAsTakerWithoutDeposit()) throw new RuntimeException("Arbitrator does not have taker's reserve tx after initializing trade");
 
         // create wallet for multisig
         MoneroWallet multisigWallet = trade.createWallet();

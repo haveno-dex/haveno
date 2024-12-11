@@ -561,6 +561,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             OpenOffer openOffer = openOfferOptional.get();
             if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
             Offer offer = openOffer.getOffer();
+
+            // validate passphrase
+            if (openOffer.getPassphrase() != null && !HavenoUtils.getPassphraseHash(openOffer.getPassphrase()).equals(HavenoUtils.getPassphraseHash(request.getPassphrase()))) {
+                log.warn("Ignoring InitTradeRequest to maker because passphrase is incorrect, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
   
             // ensure trade does not already exist
             Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
@@ -583,7 +589,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         UUID.randomUUID().toString(),
                         request.getMakerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress());
+                        request.getArbitratorNodeAddress(),
+                        openOffer.getPassphrase());
             else
                 trade = new SellerAsMakerTrade(offer,
                         BigInteger.valueOf(request.getTradeAmount()),
@@ -593,7 +600,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         UUID.randomUUID().toString(),
                         request.getMakerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress());
+                        request.getArbitratorNodeAddress(),
+                        openOffer.getPassphrase());
             trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId());
             trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
             trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
@@ -646,6 +654,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
 
+            // validate passphrase hash
+            if (offer.getPassphraseHash() != null && !offer.getPassphraseHash().equals(HavenoUtils.getPassphraseHash(request.getPassphrase()))) {
+                log.warn("Ignoring InitTradeRequest to arbitrator because passphrase hash is incorrect, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
             // handle trade
             Trade trade;
             Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
@@ -679,7 +693,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         UUID.randomUUID().toString(),
                         request.getMakerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress());
+                        request.getArbitratorNodeAddress(),
+                        request.getPassphrase());
 
                 // set reserve tx hash if available
                 Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getOfferId());
@@ -873,7 +888,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     UUID.randomUUID().toString(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),
-                    null);
+                    null,
+                    offer.getPassphrase());
         } else {
             trade = new BuyerAsTakerTrade(offer,
                     amount,
@@ -883,7 +899,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     UUID.randomUUID().toString(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),
-                    null);
+                    null,
+                    offer.getPassphrase());
         }
         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
         trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());

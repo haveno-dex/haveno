@@ -38,7 +38,8 @@ public abstract class BuyerTrade extends Trade {
                String uid,
                @Nullable NodeAddress takerNodeAddress,
                @Nullable NodeAddress makerNodeAddress,
-               @Nullable NodeAddress arbitratorNodeAddress) {
+               @Nullable NodeAddress arbitratorNodeAddress,
+               @Nullable String passphrase) {
         super(offer,
                 tradeAmount,
                 tradePrice,
@@ -47,7 +48,8 @@ public abstract class BuyerTrade extends Trade {
                 uid,
                 takerNodeAddress,
                 makerNodeAddress,
-                arbitratorNodeAddress);
+                arbitratorNodeAddress,
+                passphrase);
     }
 
     @Override

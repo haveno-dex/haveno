@@ -134,6 +134,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     // Added in 1.5.5
     private boolean hideNonAccountPaymentMethods;
     private boolean showOffersMatchingMyAccounts;
+    private boolean showPrivateOffers;
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
@@ -205,6 +206,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                         .collect(Collectors.toList()))
                 .setHideNonAccountPaymentMethods(hideNonAccountPaymentMethods)
                 .setShowOffersMatchingMyAccounts(showOffersMatchingMyAccounts)
+                .setShowPrivateOffers(showPrivateOffers)
                 .setDenyApiTaker(denyApiTaker)
                 .setNotifyOnPreRelease(notifyOnPreRelease);
 
@@ -310,6 +312,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                                 .collect(Collectors.toList())),
                 proto.getHideNonAccountPaymentMethods(),
                 proto.getShowOffersMatchingMyAccounts(),
+                proto.getShowPrivateOffers(),
                 proto.getDenyApiTaker(),
                 proto.getNotifyOnPreRelease(),
                 XmrNodeSettings.fromProto(proto.getXmrNodeSettings())

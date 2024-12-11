@@ -78,6 +78,9 @@ public class OfferInfo implements Payload {
     @Nullable
     private final String splitOutputTxHash;
     private final long splitOutputTxFee;
+    private final boolean isPrivateOffer;
+    private final String passphraseHash;
+    private final String passphrase;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -111,6 +114,9 @@ public class OfferInfo implements Payload {
         this.arbitratorSigner = builder.getArbitratorSigner();
         this.splitOutputTxHash = builder.getSplitOutputTxHash();
         this.splitOutputTxFee = builder.getSplitOutputTxFee();
+        this.isPrivateOffer = builder.isPrivateOffer();
+        this.passphraseHash = builder.getPassphraseHash();
+        this.passphrase = builder.getPassphrase();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -137,6 +143,7 @@ public class OfferInfo implements Payload {
                 .withIsActivated(isActivated)
                 .withSplitOutputTxHash(openOffer.getSplitOutputTxHash())
                 .withSplitOutputTxFee(openOffer.getSplitOutputTxFee())
+                .withPassphrase(openOffer.getPassphrase())
                 .build();
     }
 
@@ -177,7 +184,9 @@ public class OfferInfo implements Payload {
                 .withPubKeyRing(offer.getOfferPayload().getPubKeyRing().toString())
                 .withVersionNumber(offer.getOfferPayload().getVersionNr())
                 .withProtocolVersion(offer.getOfferPayload().getProtocolVersion())
-                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress());
+                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress())
+                .withIsPrivateOffer(offer.isPrivateOffer())
+                .withPassphraseHash(offer.getPassphraseHash());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -215,9 +224,12 @@ public class OfferInfo implements Payload {
                 .setPubKeyRing(pubKeyRing)
                 .setVersionNr(versionNumber)
                 .setProtocolVersion(protocolVersion)
-                .setSplitOutputTxFee(splitOutputTxFee);
+                .setSplitOutputTxFee(splitOutputTxFee)
+                .setIsPrivateOffer(isPrivateOffer);
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
         Optional.ofNullable(splitOutputTxHash).ifPresent(builder::setSplitOutputTxHash);
+        Optional.ofNullable(passphraseHash).ifPresent(builder::setPassphraseHash);
+        Optional.ofNullable(passphrase).ifPresent(builder::setPassphrase);
         return builder.build();
     }
 
@@ -255,6 +267,9 @@ public class OfferInfo implements Payload {
                 .withArbitratorSigner(proto.getArbitratorSigner())
                 .withSplitOutputTxHash(proto.getSplitOutputTxHash())
                 .withSplitOutputTxFee(proto.getSplitOutputTxFee())
+                .withIsPrivateOffer(proto.getIsPrivateOffer())
+                .withPassphraseHash(proto.getPassphraseHash())
+                .withPassphrase(proto.getPassphrase())
                 .build();
     }
 }

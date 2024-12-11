@@ -557,3 +557,12 @@
     -fx-text-fill: -bs-text-color;
     -fx-fill: -bs-text-color;
 }
+
+.toggle-button-no-slider {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toggle-button-no-slider:selected {
+    -fx-background-color: -bs-color-gray-ddd;
+}

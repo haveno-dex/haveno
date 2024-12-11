@@ -108,6 +108,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     // Percentage value of buyer security deposit. E.g. 0.01 means 1% of trade amount
     protected final DoubleProperty buyerSecurityDepositPct = new SimpleDoubleProperty();
+    protected final BooleanProperty noDepositFromBuyer = new SimpleBooleanProperty();
 
     protected final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
 
@@ -302,7 +303,9 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 useMarketBasedPrice.get(),
                 useMarketBasedPrice.get() ? marketPriceMargin : 0,
                 buyerSecurityDepositPct.get(),
-                paymentAccount);
+                paymentAccount,
+                noDepositFromBuyer.get(), // require password if no deposit from buyer
+                !noDepositFromBuyer.get());
     }
 
     void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -453,6 +456,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected void setUseMarketBasedPrice(boolean useMarketBasedPrice) {
         this.useMarketBasedPrice.set(useMarketBasedPrice);
         preferences.setUsePercentageBasedPrice(useMarketBasedPrice);
+    }
+
+    protected void setNoDepositFromBuyer(boolean noDepositFromBuyer) {
+        this.noDepositFromBuyer.set(noDepositFromBuyer);
     }
 
     public ObservableList<PaymentAccount> getPaymentAccounts() {
@@ -684,7 +691,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     public BigInteger getMaxMakerFee() {
-        return HavenoUtils.multiply(amount.get(), HavenoUtils.MAKER_FEE_PCT);
+        return HavenoUtils.multiply(amount.get(), noDepositFromBuyer.get() ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
     }
 
     boolean canPlaceOffer() {

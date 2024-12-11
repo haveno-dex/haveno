@@ -138,6 +138,7 @@ class GrpcTradesService extends TradesImplBase {
             coreApi.takeOffer(req.getOfferId(),
                     req.getPaymentAccountId(),
                     req.getAmount(),
+                    req.getPassphrase(),
                     trade -> {
                         TradeInfo tradeInfo = toTradeInfo(trade);
                         var reply = TakeOfferReply.newBuilder()
