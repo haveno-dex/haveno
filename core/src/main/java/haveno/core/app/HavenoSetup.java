@@ -361,30 +361,7 @@ public class HavenoSetup {
     }
 
     private void maybeInstallDependencies() {
-        try {
-
-            // install monerod
-            File monerodFile = new File(XmrLocalNode.MONEROD_PATH);
-            String monerodResourcePath = "bin/" + XmrLocalNode.MONEROD_NAME;
-            if (!monerodFile.exists() || !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile)) {
-                log.info("Installing monerod");
-                monerodFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile("bin/" + XmrLocalNode.MONEROD_NAME, monerodFile);
-                monerodFile.setExecutable(true);
-            }
-
-            // install monero-wallet-rpc
-            File moneroWalletRpcFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
-            String moneroWalletRpcResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
-            if (!moneroWalletRpcFile.exists() || !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile)) {
-                log.info("Installing monero-wallet-rpc");
-                moneroWalletRpcFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile);
-                moneroWalletRpcFile.setExecutable(true);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to install Monero binaries: {}\n", e.getMessage(), e);
-        }
+        // Do nothing
     }
 
     private void readMapsFromResources(Runnable completeHandler) {
