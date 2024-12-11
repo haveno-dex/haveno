@@ -525,6 +525,8 @@ message PostOfferRequest {
     string trigger_price = 9;
     bool reserve_exact_amount = 10;
     string payment_account_id = 11;
+    bool is_private_offer = 12;
+    bool require_buyer_as_taker_deposit = 13;
 }
 
 message PostOfferReply {
@@ -570,6 +572,9 @@ message OfferInfo {
     string arbitrator_signer = 29;
     string split_output_tx_hash = 30;
     uint64 split_output_tx_fee = 31 [jstype = JS_STRING];
+    bool is_private_offer = 32;
+    string passphrase_hash = 33;
+    string passphrase = 34;
 }
 
 message AvailabilityResultWithDescription {
@@ -785,6 +790,7 @@ message TakeOfferRequest {
     string offer_id = 1;
     string payment_account_id = 2;
     uint64 amount = 3 [jstype = JS_STRING];
+    string passphrase = 4;
 }
 
 message TakeOfferReply {

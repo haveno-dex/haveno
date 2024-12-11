@@ -63,6 +63,9 @@ public final class OfferInfoBuilder {
     private String arbitratorSigner;
     private String splitOutputTxHash;
     private long splitOutputTxFee;
+    private boolean isPrivateOffer;
+    private String passphraseHash;
+    private String passphrase;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -231,6 +234,21 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withSplitOutputTxFee(long splitOutputTxFee) {
         this.splitOutputTxFee = splitOutputTxFee;
+        return this;
+    }
+
+    public OfferInfoBuilder withIsPrivateOffer(boolean isPrivateOffer) {
+        this.isPrivateOffer = isPrivateOffer;
+        return this;
+    }
+
+    public OfferInfoBuilder withPassphraseHash(String passphraseHash) {
+        this.passphraseHash = passphraseHash;
+        return this;
+    }
+
+    public OfferInfoBuilder withPassphrase(String passphrase) {
+        this.passphrase = passphrase;
         return this;
     }
 

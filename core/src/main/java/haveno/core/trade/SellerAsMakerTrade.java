@@ -44,7 +44,8 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
                               String uid,
                               @Nullable NodeAddress makerNodeAddress,
                               @Nullable NodeAddress takerNodeAddress,
-                              @Nullable NodeAddress arbitratorNodeAddress) {
+                              @Nullable NodeAddress arbitratorNodeAddress,
+                              @Nullable String passphrase) {
         super(offer,
                 tradeAmount,
                 tradePrice,
@@ -53,7 +54,8 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
                 uid,
                 makerNodeAddress,
                 takerNodeAddress,
-                arbitratorNodeAddress);
+                arbitratorNodeAddress,
+                passphrase);
     }
 
 
@@ -87,7 +89,8 @@ public final class SellerAsMakerTrade extends SellerTrade implements MakerTrade 
                 uid,
                 proto.getProcessModel().getMaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getMaker().getNodeAddress()) : null,
                 proto.getProcessModel().getTaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getTaker().getNodeAddress()) : null,
-                proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null);
+                proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null,
+                ProtoUtil.stringOrNullFromProto(proto.getPassphrase()));
 
         trade.setPrice(proto.getPrice());
 

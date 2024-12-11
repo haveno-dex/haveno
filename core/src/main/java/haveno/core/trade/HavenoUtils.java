@@ -28,6 +28,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.file.FileUtil;
+import haveno.common.util.Base64;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
@@ -48,7 +49,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
@@ -87,9 +91,10 @@ public class HavenoUtils {
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
+    public static final double PENALTY_FEE_PCT = 0.02; // 2%
     public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
-    public static final double PENALTY_FEE_PCT = 0.02; // 2%
+    public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee for buyer as taker with no deposit
 
     // other configuration
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
@@ -285,6 +290,41 @@ public class HavenoUtils {
     }
 
     // ------------------------ SIGNING AND VERIFYING -------------------------
+
+    public static String generatePassphrase() {
+        try {
+
+            // load bip39 words
+            String fileName = "bip39_english.txt";
+            File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
+            if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
+            List<String> bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+
+            // select 8 words randomly
+            List<String> passphraseWords = new ArrayList<String>();
+            SecureRandom secureRandom = new SecureRandom();
+            for (int i = 0; i < 8; i++) {
+                passphraseWords.add(bip39Words.get(secureRandom.nextInt(bip39Words.size())));
+            }
+            return String.join(" ", passphraseWords);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to generate passphrase", e);
+        }
+    }
+
+    public static String getPassphraseHash(String passphrase) {
+        if (passphrase == null) return null;
+
+        // tokenize passphrase
+        String[] words = passphrase.toLowerCase().split(" ");
+
+        // collect first 4 letters of each word, which are unique in bip39
+        List<String> prefixes = new ArrayList<String>();
+        for (String word : words) prefixes.add(word.substring(0, Math.min(word.length(), 4)));
+
+        // hash the result
+        return Base64.encode(Hash.getSha256Hash(String.join(" ", prefixes).getBytes()));
+    }
 
     public static byte[] sign(KeyRing keyRing, String message) {
         return sign(keyRing.getSignatureKeyPair().getPrivate(), message);

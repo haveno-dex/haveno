@@ -452,7 +452,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
-        if (!DevEnv.isDevMode()) {
+        if (!DevEnv.isDevMode() && model.dataModel.hasTotalToPay()) {
             String tradeAmountText = model.isSeller() ? Res.get("takeOffer.takeOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
             String message = Res.get("takeOffer.takeOfferFundWalletInfo.msg",
                     model.getTotalToPayInfo(),
@@ -482,7 +482,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 model.getSecurityDepositWithCode(), model.getTakerFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
 
-        if (model.dataModel.getIsXmrWalletFunded().get()) {
+        if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay()) {
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
@@ -937,7 +937,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         cancelButton2.setOnAction(e -> {
             String key = "CreateOfferCancelAndFunded";
-            if (model.dataModel.getIsXmrWalletFunded().get() &&
+            if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay() && 
                     model.dataModel.preferences.showAgain(key)) {
                 new Popup().backgroundInfo(Res.get("takeOffer.alreadyFunded.askCancel"))
                         .closeButtonText(Res.get("shared.no"))

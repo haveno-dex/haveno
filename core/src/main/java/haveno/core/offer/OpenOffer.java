@@ -96,6 +96,9 @@ public final class OpenOffer implements Tradable {
     @Getter
     private String reserveTxKey;
     @Getter
+    @Setter
+    private String passphrase;
+    @Getter
     private final long triggerPrice;
     @Getter
     @Setter
@@ -107,7 +110,6 @@ public final class OpenOffer implements Tradable {
     @Getter
     @Setter
     transient int numProcessingAttempts = 0;
-
     public OpenOffer(Offer offer) {
         this(offer, 0, false);
     }
@@ -120,6 +122,7 @@ public final class OpenOffer implements Tradable {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
+        this.passphrase = offer.getPassphrase();
         state = State.PENDING;
     }
 
@@ -137,6 +140,7 @@ public final class OpenOffer implements Tradable {
         this.reserveTxHash = openOffer.reserveTxHash;
         this.reserveTxHex = openOffer.reserveTxHex;
         this.reserveTxKey = openOffer.reserveTxKey;
+        this.passphrase = openOffer.passphrase;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -153,7 +157,8 @@ public final class OpenOffer implements Tradable {
                       long splitOutputTxFee,
                       @Nullable String reserveTxHash,
                       @Nullable String reserveTxHex,
-                      @Nullable String reserveTxKey) {
+                      @Nullable String reserveTxKey,
+                      @Nullable String passphrase) {
         this.offer = offer;
         this.state = state;
         this.triggerPrice = triggerPrice;
@@ -164,6 +169,7 @@ public final class OpenOffer implements Tradable {
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
+        this.passphrase = passphrase;
 
         // reset reserved state to available
         if (this.state == State.RESERVED) setState(State.AVAILABLE);
@@ -184,6 +190,7 @@ public final class OpenOffer implements Tradable {
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
+        Optional.ofNullable(passphrase).ifPresent(e -> builder.setPassphrase(passphrase));
 
         return protobuf.Tradable.newBuilder().setOpenOffer(builder).build();
     }
@@ -199,7 +206,8 @@ public final class OpenOffer implements Tradable {
                 proto.getSplitOutputTxFee(),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
-                ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()),
+                ProtoUtil.stringOrNullFromProto(proto.getPassphrase()));
         return openOffer;
     }
 

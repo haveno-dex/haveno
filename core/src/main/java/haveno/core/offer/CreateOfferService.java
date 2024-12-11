@@ -102,9 +102,10 @@ public class CreateOfferService {
                                    Price fixedPrice,
                                    boolean useMarketBasedPrice,
                                    double marketPriceMargin,
-                                   double securityDepositAsDouble,
-                                   PaymentAccount paymentAccount) {
-
+                                   double securityDepositPct,
+                                   PaymentAccount paymentAccount,
+                                   boolean isPrivateOffer,
+                                   boolean requireBuyerAsTakerDeposit) {
         log.info("create and get offer with offerId={}, " +
                         "currencyCode={}, " +
                         "direction={}, " +
@@ -113,7 +114,9 @@ public class CreateOfferService {
                         "marketPriceMargin={}, " +
                         "amount={}, " +
                         "minAmount={}, " +
-                        "securityDeposit={}",
+                        "securityDepositPct={}, " +
+                        "isPrivateOffer={}, " +
+                        "requireBuyerAsTakerDeposit={}",
                 offerId,
                 currencyCode,
                 direction,
@@ -122,7 +125,16 @@ public class CreateOfferService {
                 marketPriceMargin,
                 amount,
                 minAmount,
-                securityDepositAsDouble);
+                securityDepositPct,
+                isPrivateOffer,
+                requireBuyerAsTakerDeposit);
+
+        
+        // verify buyer as taker security deposit
+        boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
+        if (!isBuyerMaker && !isPrivateOffer && !requireBuyerAsTakerDeposit) {
+            throw new IllegalArgumentException("Buyer as taker deposit is required for public offers");
+        }
 
         // verify fixed price xor market price with margin
         if (fixedPrice != null) {
@@ -162,23 +174,28 @@ public class CreateOfferService {
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
 
-        // reserved for future use cases
-        // Use null values if not set
-        boolean isPrivateOffer = false;
+        // generate one-time passphrase for private offer
+        String passphrase = null;
+        String passphraseHash = null;
+        if (isPrivateOffer) {
+            passphrase = HavenoUtils.generatePassphrase();
+            passphraseHash = HavenoUtils.getPassphraseHash(passphrase);
+        }
+
         boolean useAutoClose = false;
         boolean useReOpenAfterAutoClose = false;
         long lowerClosePrice = 0;
         long upperClosePrice = 0;
-        String hashOfChallenge = null;
         Map<String, String> extraDataMap = offerUtil.getExtraDataMap(paymentAccount,
                 currencyCode,
                 direction);
 
         offerUtil.validateOfferData(
-                securityDepositAsDouble,
+                securityDepositPct,
                 paymentAccount,
                 currencyCode);
 
+        boolean hasBuyerAsTakerWithoutDeposit = !isBuyerMaker && isPrivateOffer && !requireBuyerAsTakerDeposit;
         OfferPayload offerPayload = new OfferPayload(offerId,
                 creationTime,
                 makerAddress,
@@ -189,11 +206,11 @@ public class CreateOfferService {
                 useMarketBasedPriceValue,
                 amountAsLong,
                 minAmountAsLong,
-                HavenoUtils.MAKER_FEE_PCT,
-                HavenoUtils.TAKER_FEE_PCT,
+                hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT,
+                hasBuyerAsTakerWithoutDeposit ? 0d : HavenoUtils.TAKER_FEE_PCT,
                 HavenoUtils.PENALTY_FEE_PCT,
-                securityDepositAsDouble,
-                securityDepositAsDouble,
+                hasBuyerAsTakerWithoutDeposit ? 0d : securityDepositPct, // buyer as taker security deposit is optional for private offers
+                securityDepositPct,
                 baseCurrencyCode,
                 counterCurrencyCode,
                 paymentAccount.getPaymentMethod().getId(),
@@ -211,7 +228,7 @@ public class CreateOfferService {
                 upperClosePrice,
                 lowerClosePrice,
                 isPrivateOffer,
-                hashOfChallenge,
+                passphraseHash,
                 extraDataMap,
                 Version.TRADE_PROTOCOL_VERSION,
                 null,
@@ -219,6 +236,7 @@ public class CreateOfferService {
                 null);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
+        offer.setPassphrase(passphrase);
         return offer;
     }
 

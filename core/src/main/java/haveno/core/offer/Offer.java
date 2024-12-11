@@ -115,6 +115,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     @Setter
     transient private boolean isReservedFundsSpent;
 
+    @JsonExclude
+    @Getter
+    @Setter
+    @Nullable
+    transient private String passphrase;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -335,6 +341,14 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public double getSellerSecurityDepositPct() {
         return offerPayload.getSellerSecurityDepositPct();
+    }
+
+    public boolean isPrivateOffer() {
+        return offerPayload.isPrivateOffer();
+    }
+
+    public String getPassphraseHash() {
+        return offerPayload.getPassphraseHash();
     }
 
     public BigInteger getMaxTradeLimit() {
