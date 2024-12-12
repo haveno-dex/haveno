@@ -1,3 +1,3 @@
-# nodeaddress.onion:port [(@owner,@backup)]  # Not an endorsment, it's a functional mainnet with no trade offers. Will be removed is mainnet trades begin to occur - MAINNET Testing purposed ONLY - Add your own seednodes in the client
+# nodeaddress.onion:port [(@owner,@backup)]  # Not an endorsment, it's a functional mainnet with no trade offers. Will be removed is mainnet trades begin to occur - MAINNET Testing purposes ONLY - Add your own seednodes in the client, DEFAULT NODES MOST BE ADDED TO FUNCTION
 5i6blbmuflq4s4im6zby26a7g22oef6kyp7vbwyru6oq5e36akzo3ayd.onion:2001 (@externalAloha1)
 dx4ktxyiemjc354imehuaswbhqlidhy62b4ifzigk5p2rb37lxqbveqd.onion:2002 (@externalAloha2)
