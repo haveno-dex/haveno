@@ -175,9 +175,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // throttle logs of reported invalid requests
     private static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30 seconds
     private static long lastLoggedInvalidRequestReportTs = 0;
-    private static int numUnloggedInvalidRequestReports = 0;
+    private static int numThrottledInvalidRequestReports = 0;
     private static long lastLoggedWarningTs = 0;
-    private static int numUnloggedWarnings = 0;
+    private static int numThrottledWarnings = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -620,7 +620,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean logReport = System.currentTimeMillis() - lastLoggedInvalidRequestReportTs > LOG_THROTTLE_INTERVAL_MS;
 
         // count the number of unlogged reports since last log entry
-        if (!logReport) numUnloggedInvalidRequestReports++;
+        if (!logReport) numThrottledInvalidRequestReports++;
 
         // handle report
         if (logReport) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
@@ -654,8 +654,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
         if (logReport) {
-            if (numUnloggedInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numUnloggedInvalidRequestReports);
-            numUnloggedInvalidRequestReports = 0;
+            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numThrottledInvalidRequestReports);
+            numThrottledInvalidRequestReports = 0;
             lastLoggedInvalidRequestReportTs = System.currentTimeMillis();
         }
     }
@@ -940,11 +940,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
         if (logWarning) {
             log.warn(msg);
-            if (numUnloggedWarnings > 0) log.warn("We received {} other log warnings since the last log entry", numUnloggedWarnings);
-            numUnloggedWarnings = 0;
+            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            numThrottledWarnings = 0;
             lastLoggedWarningTs = System.currentTimeMillis();
         } else {
-            numUnloggedWarnings++;
+            numThrottledWarnings++;
         }
     }
 }
