@@ -994,7 +994,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (tradeOptional.isPresent()) {
             Trade trade = tradeOptional.get();
             trade.setDisputeState(disputeState);
-            onTradeCompleted(trade);
             xmrWalletService.resetAddressEntriesForTrade(trade.getId());
             requestPersistence();
         }
