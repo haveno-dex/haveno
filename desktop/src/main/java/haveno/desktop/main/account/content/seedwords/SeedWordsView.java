@@ -263,9 +263,12 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     private void generateAndDisplayQRCode(String seedWords) {
         Platform.runLater(() -> {
+            // Using cakewallet's QR Code format 
+            String formattedSeed = "monero-wallet:?seed=" + seedWords.replace(" ", "+");
+    
             // Generate QR Code using the net.glxn.qrgen library
             ByteArrayInputStream qrCodeStream = new ByteArrayInputStream(
-                QRCode.from(seedWords).to(ImageType.PNG).stream().toByteArray()
+                QRCode.from(formattedSeed).to(ImageType.PNG).stream().toByteArray()
             );
             Image qrCodeImage = new Image(qrCodeStream);
             qrCodeImageView.setImage(qrCodeImage);
