@@ -183,11 +183,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 rows++;
         }
 
-        if (trade.getPayoutTxId() != null)
-            rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
                 arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId() != null;
         if (showDisputedTx)
+            rows++;
+        else if (trade.getPayoutTxId() != null)
             rows++;
         if (trade.hasFailed())
             rows += 2;
@@ -244,16 +244,18 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getMaker().getDepositTxHash() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"),
                     trade.getMaker().getDepositTxHash());
-          if (trade.getTaker().getDepositTxHash() != null)
+        if (trade.getTaker().getDepositTxHash() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"),
                     trade.getTaker().getDepositTxHash());
 
-        if (trade.getPayoutTxId() != null && !trade.getPayoutTxId().isBlank())
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTxId());
-        if (showDisputedTx)
+
+        if (showDisputedTx) {
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
+        } else if (trade.getPayoutTxId() != null && !trade.getPayoutTxId().isBlank()) {
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
+                    trade.getPayoutTxId());
+        }
 
         if (trade.hasFailed()) {
             textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;
