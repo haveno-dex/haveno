@@ -341,7 +341,7 @@ class TakeOfferDataModel extends OfferDataModel {
     long getMaxTradeLimit() {
         if (paymentAccount != null) {
             return accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
-                    offer.getMirroredDirection());
+                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         } else {
             return 0;
         }

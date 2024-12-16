@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
 import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
-import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositAsPercent;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.stream;
@@ -157,8 +157,8 @@ public class MethodTest extends ApiTestCase {
         return haveno.core.payment.PaymentAccount.fromProto(paymentAccount, CORE_PROTO_RESOLVER);
     }
 
-    public static final Supplier<Double> defaultBuyerSecurityDepositPct = () -> {
-        var defaultPct = BigDecimal.valueOf(getDefaultBuyerSecurityDepositAsPercent());
+    public static final Supplier<Double> defaultSecurityDepositPct = () -> {
+        var defaultPct = BigDecimal.valueOf(getDefaultSecurityDepositAsPercent());
         if (defaultPct.precision() != 2)
             throw new IllegalStateException(format(
                     "Unexpected decimal precision, expected 2 but actual is %d%n."

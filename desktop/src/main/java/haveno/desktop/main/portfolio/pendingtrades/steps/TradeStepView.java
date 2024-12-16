@@ -326,32 +326,38 @@ public abstract class TradeStepView extends AnchorPane {
         GridPane.setColumnSpan(tradeInfoTitledGroupBg, 2);
 
         // self's deposit tx id
-        final Tuple3<Label, TxIdTextField, VBox> labelSelfTxIdTextFieldVBoxTuple3 =
-                addTopLabelTxIdTextField(gridPane, gridRow, Res.get("shared.yourDepositTransactionId"),
-                        Layout.COMPACT_FIRST_ROW_DISTANCE);
+        boolean showSelfTxId = model.dataModel.isMaker() || !trade.hasBuyerAsTakerWithoutDeposit();
+        if (showSelfTxId) {
+            final Tuple3<Label, TxIdTextField, VBox> labelSelfTxIdTextFieldVBoxTuple3 =
+            addTopLabelTxIdTextField(gridPane, gridRow, Res.get("shared.yourDepositTransactionId"),
+                    Layout.COMPACT_FIRST_ROW_DISTANCE);
 
-        GridPane.setColumnSpan(labelSelfTxIdTextFieldVBoxTuple3.third, 2);
-        selfTxIdTextField = labelSelfTxIdTextFieldVBoxTuple3.second;
+            GridPane.setColumnSpan(labelSelfTxIdTextFieldVBoxTuple3.third, 2);
+            selfTxIdTextField = labelSelfTxIdTextFieldVBoxTuple3.second;
 
-        String selfTxId = model.dataModel.isMaker() ? model.dataModel.makerTxId.get() : model.dataModel.takerTxId.get();
-        if (!selfTxId.isEmpty())
-            selfTxIdTextField.setup(selfTxId, trade);
-        else
-            selfTxIdTextField.cleanup();
+            String selfTxId = model.dataModel.isMaker() ? model.dataModel.makerTxId.get() : model.dataModel.takerTxId.get();
+            if (!selfTxId.isEmpty())
+                selfTxIdTextField.setup(selfTxId, trade);
+            else
+                selfTxIdTextField.cleanup();
+        }
 
         // peer's deposit tx id
-        final Tuple3<Label, TxIdTextField, VBox> labelPeerTxIdTextFieldVBoxTuple3 =
-                addTopLabelTxIdTextField(gridPane, ++gridRow, Res.get("shared.peerDepositTransactionId"),
-                        -Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
+        boolean showPeerTxId = !model.dataModel.isMaker() || !trade.hasBuyerAsTakerWithoutDeposit();
+        if (showPeerTxId) {
+            final Tuple3<Label, TxIdTextField, VBox> labelPeerTxIdTextFieldVBoxTuple3 =
+            addTopLabelTxIdTextField(gridPane, showSelfTxId ? ++gridRow : gridRow, Res.get("shared.peerDepositTransactionId"),
+                    showSelfTxId ? -Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR : Layout.COMPACT_FIRST_ROW_DISTANCE);
 
-        GridPane.setColumnSpan(labelPeerTxIdTextFieldVBoxTuple3.third, 2);
-        peerTxIdTextField = labelPeerTxIdTextFieldVBoxTuple3.second;
+            GridPane.setColumnSpan(labelPeerTxIdTextFieldVBoxTuple3.third, 2);
+            peerTxIdTextField = labelPeerTxIdTextFieldVBoxTuple3.second;
 
-        String peerTxId = model.dataModel.isMaker() ? model.dataModel.takerTxId.get() : model.dataModel.makerTxId.get();
-        if (!peerTxId.isEmpty())
-            peerTxIdTextField.setup(peerTxId, trade);
-        else
-            peerTxIdTextField.cleanup();
+            String peerTxId = model.dataModel.isMaker() ? model.dataModel.takerTxId.get() : model.dataModel.makerTxId.get();
+            if (!peerTxId.isEmpty())
+                peerTxIdTextField.setup(peerTxId, trade);
+            else
+                peerTxIdTextField.cleanup();
+        }
 
         if (model.dataModel.getTrade() != null) {
             checkNotNull(model.dataModel.getTrade().getOffer(), "Offer must not be null in TradeStepView");
@@ -648,7 +654,7 @@ public abstract class TradeStepView extends AnchorPane {
           model.dataModel.onMoveInvalidTradeToFailedTrades(trade);
           new Popup().warning(Res.get("portfolio.pending.mediationResult.error.depositTxNull")).show(); // TODO (woodser): separate error messages for maker/taker
           return;
-        } else if (trade instanceof TakerTrade && trade.getTakerDepositTx() == null) {
+        } else if (trade instanceof TakerTrade && trade.getTakerDepositTx() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
           log.error("trade.getTakerDepositTx() was null at openMediationResultPopup. " +
                   "We add the trade to failed trades. TradeId={}", trade.getId());
           //model.dataModel.addTradeToFailedTrades();

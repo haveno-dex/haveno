@@ -521,10 +521,12 @@ message PostOfferRequest {
     double market_price_margin_pct = 5;
     uint64 amount = 6 [jstype = JS_STRING];
     uint64 min_amount = 7 [jstype = JS_STRING];
-    double buyer_security_deposit_pct = 8;
+    double security_deposit_pct = 8;
     string trigger_price = 9;
     bool reserve_exact_amount = 10;
     string payment_account_id = 11;
+    bool is_private_offer = 12;
+    bool buyer_as_taker_without_deposit = 13;
 }
 
 message PostOfferReply {
@@ -570,6 +572,8 @@ message OfferInfo {
     string arbitrator_signer = 29;
     string split_output_tx_hash = 30;
     uint64 split_output_tx_fee = 31 [jstype = JS_STRING];
+    bool is_private_offer = 32;
+    string challenge = 33;
 }
 
 message AvailabilityResultWithDescription {
@@ -785,6 +789,7 @@ message TakeOfferRequest {
     string offer_id = 1;
     string payment_account_id = 2;
     uint64 amount = 3 [jstype = JS_STRING];
+    string challenge = 4;
 }
 
 message TakeOfferReply {

@@ -35,7 +35,9 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     private final String accountId;
     private final byte[] paymentAccountPayloadHash;
     private final String payoutAddress;
+    @Nullable
     private final String depositTxHash;
+    @Nullable
     private final byte[] accountAgeWitnessSignatureOfDepositHash;
 
     public SignContractRequest(String tradeId,
@@ -45,7 +47,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                      String accountId,
                                      byte[] paymentAccountPayloadHash,
                                      String payoutAddress,
-                                     String depositTxHash,
+                                     @Nullable String depositTxHash,
                                      @Nullable byte[] accountAgeWitnessSignatureOfDepositHash) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
@@ -68,10 +70,9 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 .setUid(uid)
                 .setAccountId(accountId)
                 .setPaymentAccountPayloadHash(ByteString.copyFrom(paymentAccountPayloadHash))
-                .setPayoutAddress(payoutAddress)
-                .setDepositTxHash(depositTxHash);
-
+                .setPayoutAddress(payoutAddress);
         Optional.ofNullable(accountAgeWitnessSignatureOfDepositHash).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfDepositHash(ByteString.copyFrom(e)));
+        Optional.ofNullable(depositTxHash).ifPresent(builder::setDepositTxHash);
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setSignContractRequest(builder).build();
@@ -87,7 +88,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 proto.getAccountId(),
                 proto.getPaymentAccountPayloadHash().toByteArray(),
                 proto.getPayoutAddress(),
-                proto.getDepositTxHash(),
+                ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfDepositHash()));
     }
 

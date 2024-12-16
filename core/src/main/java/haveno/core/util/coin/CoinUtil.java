@@ -47,35 +47,35 @@ public class CoinUtil {
     }
 
     /**
-     * @param value Btc amount to be converted to percent value. E.g. 0.01 BTC is 1% (of 1 BTC)
+     * @param value Xmr amount to be converted to percent value. E.g. 0.01 XMR is 1% (of 1 XMR)
      * @return The percentage value as double (e.g. 1% is 0.01)
      */
-    public static double getAsPercentPerBtc(BigInteger value) {
-        return getAsPercentPerBtc(value, HavenoUtils.xmrToAtomicUnits(1.0));
+    public static double getAsPercentPerXmr(BigInteger value) {
+        return getAsPercentPerXmr(value, HavenoUtils.xmrToAtomicUnits(1.0));
     }
 
     /**
-     * @param part Btc amount to be converted to percent value, based on total value passed.
-     *              E.g. 0.1 BTC is 25% (of 0.4 BTC)
-     * @param total Total Btc amount the percentage part is calculated from
+     * @param part Xmr amount to be converted to percent value, based on total value passed.
+     *              E.g. 0.1 XMR is 25% (of 0.4 XMR)
+     * @param total Total Xmr amount the percentage part is calculated from
      *
      * @return The percentage value as double (e.g. 1% is 0.01)
      */
-    public static double getAsPercentPerBtc(BigInteger part, BigInteger total) {
+    public static double getAsPercentPerXmr(BigInteger part, BigInteger total) {
         return MathUtils.roundDouble(HavenoUtils.divide(part == null ? BigInteger.ZERO : part, total == null ? BigInteger.valueOf(1) : total), 4);
     }
 
     /**
      * @param percent       The percentage value as double (e.g. 1% is 0.01)
      * @param amount        The amount as atomic units for the percentage calculation
-     * @return The percentage as atomic units (e.g. 1% of 1 BTC is 0.01 BTC)
+     * @return The percentage as atomic units (e.g. 1% of 1 XMR is 0.01 XMR)
      */
     public static BigInteger getPercentOfAmount(double percent, BigInteger amount) {
         if (amount == null) amount = BigInteger.ZERO;
         return BigDecimal.valueOf(percent).multiply(new BigDecimal(amount)).setScale(8, RoundingMode.DOWN).toBigInteger();
     }
 
-    public static BigInteger getRoundedAmount(BigInteger amount, Price price, long maxTradeLimit, String currencyCode, String paymentMethodId) {
+    public static BigInteger getRoundedAmount(BigInteger amount, Price price, Long maxTradeLimit, String currencyCode, String paymentMethodId) {
         if (PaymentMethod.isRoundedForAtmCash(paymentMethodId)) {
             return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
         } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode)) {
@@ -86,7 +86,7 @@ public class CoinUtil {
         return amount;
     }
 
-    public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, long maxTradeLimit) {
+    public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, Long maxTradeLimit) {
         return getAdjustedAmount(amount, price, maxTradeLimit, 10);
     }
 
@@ -99,11 +99,11 @@ public class CoinUtil {
      * @param maxTradeLimit     The max. trade limit of the users account, in atomic units.
      * @return The adjusted amount
      */
-    public static BigInteger getRoundedAmountUnit(BigInteger amount, Price price, long maxTradeLimit) {
+    public static BigInteger getRoundedAmountUnit(BigInteger amount, Price price, Long maxTradeLimit) {
         return getAdjustedAmount(amount, price, maxTradeLimit, 1);
     }
     
-    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Price price, long maxTradeLimit) {
+    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Price price, Long maxTradeLimit) {
         DecimalFormat decimalFormat = new DecimalFormat("#.####");
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
@@ -121,7 +121,7 @@ public class CoinUtil {
      * @return The adjusted amount
      */
     @VisibleForTesting
-    static BigInteger getAdjustedAmount(BigInteger amount, Price price, long maxTradeLimit, int factor) {
+    static BigInteger getAdjustedAmount(BigInteger amount, Price price, Long maxTradeLimit, int factor) {
         checkArgument(
                 amount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
                 "amount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr"
@@ -163,11 +163,13 @@ public class CoinUtil {
 
         // If we are above our trade limit we reduce the amount by the smallestUnitForAmount
         BigInteger smallestUnitForAmountUnadjusted = price.getAmountByVolume(smallestUnitForVolume);
-        while (adjustedAmount > maxTradeLimit) {
-            adjustedAmount -= smallestUnitForAmountUnadjusted.longValueExact();
+        if (maxTradeLimit != null) {
+            while (adjustedAmount > maxTradeLimit) {
+                adjustedAmount -= smallestUnitForAmountUnadjusted.longValueExact();
+            }
         }
         adjustedAmount = Math.max(minTradeAmount, adjustedAmount);
-        adjustedAmount = Math.min(maxTradeLimit, adjustedAmount);
+        if (maxTradeLimit != null) adjustedAmount = Math.min(maxTradeLimit, adjustedAmount);
         return BigInteger.valueOf(adjustedAmount);
     }
 }

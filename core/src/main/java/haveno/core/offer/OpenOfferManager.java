@@ -79,6 +79,7 @@ import haveno.core.util.JsonUtil;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrKeyImageListener;
 import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.core.xmr.wallet.TradeWalletService;
@@ -1307,7 +1308,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
             if (thisArbitrator == null || !thisArbitrator.getNodeAddress().equals(thisAddress)) {
               errorMessage = "Cannot sign offer because we are not a registered arbitrator";
-              log.info(errorMessage);
+              log.warn(errorMessage);
               sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
               return;
             }
@@ -1315,47 +1316,109 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // verify arbitrator is signer of offer payload
             if (!thisAddress.equals(request.getOfferPayload().getArbitratorSigner())) {
                 errorMessage = "Cannot sign offer because offer payload is for a different arbitrator";
-                log.info(errorMessage);
+                log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
 
-            // verify maker's trade fee
+            // private offers must have challenge hash
             Offer offer = new Offer(request.getOfferPayload());
-            if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
-                errorMessage = "Wrong maker fee for offer " + request.offerId;
-                log.info(errorMessage);
+            if (offer.isPrivateOffer() && (offer.getChallengeHash() == null || offer.getChallengeHash().length() == 0)) {
+                errorMessage = "Private offer must have challenge hash for offer " + request.offerId;
+                log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
 
-            // verify taker's trade fee
-            if (offer.getTakerFeePct() != HavenoUtils.TAKER_FEE_PCT) {
-                errorMessage = "Wrong taker fee for offer " + request.offerId;
-                log.info(errorMessage);
-                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
-                return;
+            // verify maker and taker fees
+            boolean hasBuyerAsTakerWithoutDeposit = offer.getDirection() == OfferDirection.SELL && offer.isPrivateOffer() && offer.getChallengeHash() != null && offer.getChallengeHash().length() > 0 && offer.getTakerFeePct() == 0;
+            if (hasBuyerAsTakerWithoutDeposit) {
+
+                // verify maker's trade fee
+                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId;
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // verify taker's trade fee
+                if (offer.getTakerFeePct() != 0) {
+                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected 0 but got " + offer.getTakerFeePct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // verify maker security deposit
+                if (offer.getSellerSecurityDepositPct() != Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
+                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // verify taker's security deposit
+                if (offer.getBuyerSecurityDepositPct() != 0) {
+                    errorMessage = "Wrong buyer security deposit for offer " + request.offerId + ". Expected 0 but got " + offer.getBuyerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+            } else {
+
+                // verify maker's trade fee
+                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId;
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // verify taker's trade fee
+                if (offer.getTakerFeePct() != HavenoUtils.TAKER_FEE_PCT) {
+                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + HavenoUtils.TAKER_FEE_PCT + " but got " + offer.getTakerFeePct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // verify seller's security deposit
+                if (offer.getSellerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
+                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // verify buyer's security deposit
+                if (offer.getBuyerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
+                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getBuyerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
+                // security deposits must be equal
+                if (offer.getBuyerSecurityDepositPct() != offer.getSellerSecurityDepositPct()) {
+                    errorMessage = "Buyer and seller security deposits are not equal for offer " + request.offerId + ": " + offer.getSellerSecurityDepositPct() + " vs " + offer.getBuyerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
             }
 
             // verify penalty fee
             if (offer.getPenaltyFeePct() != HavenoUtils.PENALTY_FEE_PCT) {
                 errorMessage = "Wrong penalty fee for offer " + request.offerId;
-                log.info(errorMessage);
-                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
-                return;
-            }
-
-            // verify security deposits are equal
-            if (offer.getBuyerSecurityDepositPct() != offer.getSellerSecurityDepositPct()) {
-                errorMessage = "Buyer and seller security deposits are not equal for offer " + request.offerId;
-                log.info(errorMessage);
+                log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.PENALTY_FEE_PCT);
-            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.MAKER_FEE_PCT);
+            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
             BigInteger sendTradeAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
             MoneroTx verifiedTx = xmrWalletService.verifyReserveTx(
@@ -1710,7 +1773,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getLowerClosePrice(),
                         originalOfferPayload.getUpperClosePrice(),
                         originalOfferPayload.isPrivateOffer(),
-                        originalOfferPayload.getHashOfChallenge(),
+                        originalOfferPayload.getChallengeHash(),
                         updatedExtraDataMap,
                         protocolVersion,
                         originalOfferPayload.getArbitratorSigner(),

@@ -87,4 +87,8 @@ public abstract class OfferDataModel extends ActivatableDataModel {
         });
 
     }
+
+    public boolean hasTotalToPay() {
+        return totalToPay.get() != null && totalToPay.get().compareTo(BigInteger.ZERO) > 0;
+    }
 }

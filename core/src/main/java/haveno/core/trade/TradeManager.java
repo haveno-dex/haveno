@@ -561,6 +561,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             OpenOffer openOffer = openOfferOptional.get();
             if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
             Offer offer = openOffer.getOffer();
+
+            // validate challenge
+            if (openOffer.getChallenge() != null && !HavenoUtils.getChallengeHash(openOffer.getChallenge()).equals(HavenoUtils.getChallengeHash(request.getChallenge()))) {
+                log.warn("Ignoring InitTradeRequest to maker because challenge is incorrect, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
   
             // ensure trade does not already exist
             Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
@@ -583,7 +589,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         UUID.randomUUID().toString(),
                         request.getMakerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress());
+                        request.getArbitratorNodeAddress(),
+                        openOffer.getChallenge());
             else
                 trade = new SellerAsMakerTrade(offer,
                         BigInteger.valueOf(request.getTradeAmount()),
@@ -593,7 +600,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         UUID.randomUUID().toString(),
                         request.getMakerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress());
+                        request.getArbitratorNodeAddress(),
+                        openOffer.getChallenge());
             trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId());
             trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
             trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
@@ -646,6 +654,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
 
+            // validate challenge hash
+            if (offer.getChallengeHash() != null && !offer.getChallengeHash().equals(HavenoUtils.getChallengeHash(request.getChallenge()))) {
+                log.warn("Ignoring InitTradeRequest to arbitrator because challenge hash is incorrect, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
             // handle trade
             Trade trade;
             Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
@@ -679,7 +693,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         UUID.randomUUID().toString(),
                         request.getMakerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress());
+                        request.getArbitratorNodeAddress(),
+                        request.getChallenge());
 
                 // set reserve tx hash if available
                 Optional<SignedOffer> signedOfferOptional = openOfferManager.getSignedOfferById(request.getOfferId());
@@ -873,7 +888,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     UUID.randomUUID().toString(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),
-                    null);
+                    null,
+                    offer.getChallenge());
         } else {
             trade = new BuyerAsTakerTrade(offer,
                     amount,
@@ -883,7 +899,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     UUID.randomUUID().toString(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),
-                    null);
+                    null,
+                    offer.getChallenge());
         }
         trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
         trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
@@ -1127,7 +1144,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                                 log.warn("We found a closed trade with locked up funds. " +
                                         "That should never happen. trade ID={} ID={}, state={}, payoutState={}, disputeState={}", trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
                             }
-                        } else {
+                        } else if (!trade.hasBuyerAsTakerWithoutDeposit()) {
                             log.warn("Closed trade with locked up funds missing taker deposit tx. {} ID={}, state={}, payoutState={}, disputeState={}", trade.getClass().getSimpleName(), trade.getId(), trade.getState(), trade.getPayoutState(), trade.getDisputeState());
                             tradeTxException.set(new TradeTxException(Res.get("error.closedTradeWithNoDepositTx", trade.getShortId())));
                         }
