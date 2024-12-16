@@ -616,14 +616,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setBuyerSecurityDepositAsPercent(double buyerSecurityDepositAsPercent, PaymentAccount paymentAccount) {
-        double max = Restrictions.getMaxBuyerSecurityDepositAsPercent();
-        double min = Restrictions.getMinBuyerSecurityDepositAsPercent();
+    public void setSecurityDepositAsPercent(double securityDepositAsPercent, PaymentAccount paymentAccount) {
+        double max = Restrictions.getMaxSecurityDepositAsPercent();
+        double min = Restrictions.getMinSecurityDepositAsPercent();
 
         if (PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount))
-            prefPayload.setBuyerSecurityDepositAsPercentForCrypto(Math.min(max, Math.max(min, buyerSecurityDepositAsPercent)));
+            prefPayload.setSecurityDepositAsPercentForCrypto(Math.min(max, Math.max(min, securityDepositAsPercent)));
         else
-            prefPayload.setBuyerSecurityDepositAsPercent(Math.min(max, Math.max(min, buyerSecurityDepositAsPercent)));
+            prefPayload.setSecurityDepositAsPercent(Math.min(max, Math.max(min, securityDepositAsPercent)));
         requestPersistence();
     }
 
@@ -755,6 +755,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setShowPrivateOffers(boolean value) {
+        prefPayload.setShowPrivateOffers(value);
+        requestPersistence();
+    }
+
     public void setDenyApiTaker(boolean value) {
         prefPayload.setDenyApiTaker(value);
         requestPersistence();
@@ -838,16 +843,16 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return prefPayload.isSplitOfferOutput();
     }
 
-    public double getBuyerSecurityDepositAsPercent(PaymentAccount paymentAccount) {
+    public double getSecurityDepositAsPercent(PaymentAccount paymentAccount) {
         double value = PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount) ?
-                prefPayload.getBuyerSecurityDepositAsPercentForCrypto() : prefPayload.getBuyerSecurityDepositAsPercent();
+                prefPayload.getSecurityDepositAsPercentForCrypto() : prefPayload.getSecurityDepositAsPercent();
 
-        if (value < Restrictions.getMinBuyerSecurityDepositAsPercent()) {
-            value = Restrictions.getMinBuyerSecurityDepositAsPercent();
-            setBuyerSecurityDepositAsPercent(value, paymentAccount);
+        if (value < Restrictions.getMinSecurityDepositAsPercent()) {
+            value = Restrictions.getMinSecurityDepositAsPercent();
+            setSecurityDepositAsPercent(value, paymentAccount);
         }
 
-        return value == 0 ? Restrictions.getDefaultBuyerSecurityDepositAsPercent() : value;
+        return value == 0 ? Restrictions.getDefaultSecurityDepositAsPercent() : value;
     }
 
     @Override

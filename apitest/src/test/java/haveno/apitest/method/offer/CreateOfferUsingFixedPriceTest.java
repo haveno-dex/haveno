@@ -49,7 +49,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 "36000",
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 audAccount.getId());
         log.debug("Offer #1:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -97,7 +97,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 "30000.1234",
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 usdAccount.getId());
         log.debug("Offer #2:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -145,7 +145,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 "29500.1234",
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 eurAccount.getId());
         log.debug("Offer #3:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());

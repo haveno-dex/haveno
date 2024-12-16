@@ -28,7 +28,7 @@ import java.text.DecimalFormat;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static haveno.apitest.method.offer.AbstractOfferTest.defaultBuyerSecurityDepositPct;
+import static haveno.apitest.method.offer.AbstractOfferTest.defaultSecurityDepositPct;
 import static haveno.cli.CurrencyFormat.formatInternalFiatPrice;
 import static haveno.cli.CurrencyFormat.formatSatoshis;
 import static haveno.common.util.MathUtils.scaleDownByPowerOf10;
@@ -119,7 +119,7 @@ public class RandomOffer {
                         amount,
                         minAmount,
                         priceMargin,
-                        defaultBuyerSecurityDepositPct.get(),
+                        defaultSecurityDepositPct.get(),
                         "0" /*no trigger price*/);
             } else {
                 this.offer = botClient.createOfferAtFixedPrice(paymentAccount,
@@ -128,7 +128,7 @@ public class RandomOffer {
                         amount,
                         minAmount,
                         fixedOfferPrice,
-                        defaultBuyerSecurityDepositPct.get());
+                        defaultSecurityDepositPct.get());
             }
             this.id = offer.getId();
             return this;

@@ -419,10 +419,12 @@ public class CoreApi {
                                    double marketPriceMargin,
                                    long amountAsLong,
                                    long minAmountAsLong,
-                                   double buyerSecurityDeposit,
+                                   double securityDepositPct,
                                    String triggerPriceAsString,
                                    boolean reserveExactAmount,
                                    String paymentAccountId,
+                                   boolean isPrivateOffer,
+                                   boolean buyerAsTakerWithoutDeposit,
                                    Consumer<Offer> resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
         coreOffersService.postOffer(currencyCode,
@@ -432,10 +434,12 @@ public class CoreApi {
                 marketPriceMargin,
                 amountAsLong,
                 minAmountAsLong,
-                buyerSecurityDeposit,
+                securityDepositPct,
                 triggerPriceAsString,
                 reserveExactAmount,
                 paymentAccountId,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -448,8 +452,10 @@ public class CoreApi {
                            double marketPriceMargin,
                            BigInteger amount,
                            BigInteger minAmount,
-                           double buyerSecurityDeposit,
-                           PaymentAccount paymentAccount) {
+                           double securityDepositPct,
+                           PaymentAccount paymentAccount,
+                           boolean isPrivateOffer,
+                           boolean buyerAsTakerWithoutDeposit) {
         return coreOffersService.editOffer(offerId,
                 currencyCode,
                 direction,
@@ -458,8 +464,10 @@ public class CoreApi {
                 marketPriceMargin,
                 amount,
                 minAmount,
-                buyerSecurityDeposit,
-                paymentAccount);
+                securityDepositPct,
+                paymentAccount,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
     }
 
     public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -535,9 +543,11 @@ public class CoreApi {
     public void takeOffer(String offerId,
                           String paymentAccountId,
                           long amountAsLong,
+                          String challenge,
                           Consumer<Trade> resultHandler,
                           ErrorMessageHandler errorMessageHandler) {
         Offer offer = coreOffersService.getOffer(offerId);
+        offer.setChallenge(challenge);
         coreTradesService.takeOffer(offer, paymentAccountId, amountAsLong, resultHandler, errorMessageHandler);
     }
 

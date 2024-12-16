@@ -58,7 +58,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
                     12_500_000L,
                     12_500_000L, // min-amount = amount
                     0.00,
-                    defaultBuyerSecurityDepositPct.get(),
+                    defaultSecurityDepositPct.get(),
                     alicesUsdAccount.getId(),
                     NO_TRIGGER_PRICE);
             var offerId = alicesOffer.getId();

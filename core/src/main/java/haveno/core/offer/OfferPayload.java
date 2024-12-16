@@ -156,7 +156,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Reserved for possible future use to support private trades where the taker needs to have an accessKey
     private final boolean isPrivateOffer;
     @Nullable
-    private final String hashOfChallenge;
+    private final String challengeHash;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -195,7 +195,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         long lowerClosePrice,
                         long upperClosePrice,
                         boolean isPrivateOffer,
-                        @Nullable String hashOfChallenge,
+                        @Nullable String challengeHash,
                         @Nullable Map<String, String> extraDataMap,
                         int protocolVersion,
                         @Nullable NodeAddress arbitratorSigner,
@@ -238,7 +238,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.lowerClosePrice = lowerClosePrice;
         this.upperClosePrice = upperClosePrice;
         this.isPrivateOffer = isPrivateOffer;
-        this.hashOfChallenge = hashOfChallenge;
+        this.challengeHash = challengeHash;
     }
 
     public byte[] getHash() {
@@ -284,7 +284,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             lowerClosePrice,
             upperClosePrice,
             isPrivateOffer,
-            hashOfChallenge,
+            challengeHash,
             extraDataMap,
             protocolVersion,
             arbitratorSigner,
@@ -328,12 +328,17 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     public BigInteger getBuyerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
         BigInteger securityDepositUnadjusted = HavenoUtils.multiply(tradeAmount, getBuyerSecurityDepositPct());
-        return Restrictions.getMinBuyerSecurityDeposit().max(securityDepositUnadjusted);
+        boolean isBuyerTaker = getDirection() == OfferDirection.SELL;
+        if (isPrivateOffer() && isBuyerTaker) {
+            return securityDepositUnadjusted;
+        } else {
+            return Restrictions.getMinSecurityDeposit().max(securityDepositUnadjusted);
+        }
     }
 
     public BigInteger getSellerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
         BigInteger securityDepositUnadjusted = HavenoUtils.multiply(tradeAmount, getSellerSecurityDepositPct());
-        return Restrictions.getMinSellerSecurityDeposit().max(securityDepositUnadjusted);
+        return Restrictions.getMinSecurityDeposit().max(securityDepositUnadjusted);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -376,7 +381,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
         Optional.ofNullable(acceptedBankIds).ifPresent(builder::addAllAcceptedBankIds);
         Optional.ofNullable(acceptedCountryCodes).ifPresent(builder::addAllAcceptedCountryCodes);
-        Optional.ofNullable(hashOfChallenge).ifPresent(builder::setHashOfChallenge);
+        Optional.ofNullable(challengeHash).ifPresent(builder::setChallengeHash);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
         Optional.ofNullable(arbitratorSigner).ifPresent(e -> builder.setArbitratorSigner(arbitratorSigner.toProtoMessage()));
         Optional.ofNullable(arbitratorSignature).ifPresent(e -> builder.setArbitratorSignature(ByteString.copyFrom(e)));
@@ -392,7 +397,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 null : new ArrayList<>(proto.getAcceptedCountryCodesList());
         List<String> reserveTxKeyImages = proto.getReserveTxKeyImagesList().isEmpty() ?
                 null : new ArrayList<>(proto.getReserveTxKeyImagesList());
-        String hashOfChallenge = ProtoUtil.stringOrNullFromProto(proto.getHashOfChallenge());
+        String challengeHash = ProtoUtil.stringOrNullFromProto(proto.getChallengeHash());
         Map<String, String> extraDataMapMap = CollectionUtils.isEmpty(proto.getExtraDataMap()) ?
                 null : proto.getExtraDataMap();
 
@@ -428,7 +433,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getLowerClosePrice(),
                 proto.getUpperClosePrice(),
                 proto.getIsPrivateOffer(),
-                hashOfChallenge,
+                challengeHash,
                 extraDataMapMap,
                 proto.getProtocolVersion(),
                 proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
@@ -475,7 +480,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     lowerClosePrice=" + lowerClosePrice +
                 ",\r\n     upperClosePrice=" + upperClosePrice +
                 ",\r\n     isPrivateOffer=" + isPrivateOffer +
-                ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
+                ",\r\n     challengeHash='" + challengeHash + '\'' +
                 ",\r\n     arbitratorSigner=" + arbitratorSigner +
                 ",\r\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
                 "\r\n} ";

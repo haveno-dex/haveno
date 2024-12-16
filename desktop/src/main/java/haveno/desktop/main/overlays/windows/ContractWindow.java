@@ -141,7 +141,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 DisplayUtils.formatDateTime(offer.getDate()) + " / " + DisplayUtils.formatDateTime(dispute.getTradeDate()));
         String currencyCode = offer.getCurrencyCode();
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.offerType"),
-                DisplayUtils.getDirectionBothSides(offer.getDirection()));
+                DisplayUtils.getDirectionBothSides(offer.getDirection(), offer.isPrivateOffer()));
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(contract.getPrice()));
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
