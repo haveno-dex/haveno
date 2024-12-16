@@ -71,7 +71,6 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -137,7 +136,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private TextField currencyTextField;
     private AddressTextField addressTextField;
     private BalanceTextField balanceTextField;
-    private CheckBox reserveExactAmountCheckbox;
+    private ToggleButton reserveExactAmountSlider;
     private ToggleButton buyerAsTakerWithoutDepositSlider;
     private FundsTextField totalToPayTextField;
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
@@ -175,6 +174,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     @Setter
     private OfferView.OfferActionHandler offerActionHandler;
+
+    private int heightAdjustment = -5;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -436,7 +437,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         qrCodeImageView.setVisible(true);
         balanceTextField.setVisible(true);
         cancelButton2.setVisible(true);
-        reserveExactAmountCheckbox.setVisible(true);
+        reserveExactAmountSlider.setVisible(true);
     }
 
     private void updateOfferElementsStyle() {
@@ -958,7 +959,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addPaymentGroup() {
-        paymentTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 1, Res.get("offerbook.createOffer"));
+        paymentTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 1, Res.get("offerbook.createOffer"), heightAdjustment);
         GridPane.setColumnSpan(paymentTitledGroupBg, 2);
 
         HBox paymentGroupBox = new HBox();
@@ -976,7 +977,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         GridPane.setRowIndex(paymentGroupBox, gridRow);
         GridPane.setColumnSpan(paymentGroupBox, 2);
-        GridPane.setMargin(paymentGroupBox, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 0));
+        GridPane.setMargin(paymentGroupBox, new Insets(Layout.FIRST_ROW_DISTANCE + heightAdjustment, 0, 0, 0));
         gridPane.getChildren().add(paymentGroupBox);
 
         tradingAccountBoxTuple.first.setMinWidth(800);
@@ -1012,7 +1013,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addAmountPriceGroup() {
         amountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
-                Res.get("createOffer.setAmountPrice"), 25);
+                Res.get("createOffer.setAmountPrice"), 25 + heightAdjustment);
         GridPane.setColumnSpan(amountTitledGroupBg, 2);
 
         addAmountPriceFields();
@@ -1021,7 +1022,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addOptionsGroup() {
         setDepositTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
-                Res.get("shared.advancedOptions"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("shared.advancedOptions"), 25 + heightAdjustment);
 
         securityDepositAndFeeBox = new HBox();
         securityDepositAndFeeBox.setSpacing(40);
@@ -1136,7 +1137,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void addFundingGroup() {
         // don't increase gridRow as we removed button when this gets visible
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("createOffer.fundsBox.title"), 25);
+                Res.get("createOffer.fundsBox.title"), 20 + heightAdjustment);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
@@ -1144,7 +1145,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
                 Res.get("shared.totalsNeeded"), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
         totalToPayTextField.setVisible(false);
-        GridPane.setMargin(totalToPayTextField, new Insets(65, 10, 0, 0));
+        GridPane.setMargin(totalToPayTextField, new Insets(60 + heightAdjustment, 10, 0, 0));
 
         qrCodeImageView = new ImageView();
         qrCodeImageView.setVisible(false);
@@ -1170,15 +1171,15 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 Res.get("shared.tradeWalletBalance"));
         balanceTextField.setVisible(false);
 
-        reserveExactAmountCheckbox = FormBuilder.addLabelCheckBox(gridPane, ++gridRow,
-                Res.get("shared.reserveExactAmount"));
-
-        GridPane.setHalignment(reserveExactAmountCheckbox, HPos.LEFT);
-
-        reserveExactAmountCheckbox.setVisible(false);
-        reserveExactAmountCheckbox.setSelected(preferences.getSplitOfferOutput());
-        reserveExactAmountCheckbox.setOnAction(event -> {
-            boolean selected = reserveExactAmountCheckbox.isSelected();
+        
+        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("shared.reserveExactAmount"), heightAdjustment);
+        GridPane.setHalignment(reserveExactAmountSlider, HPos.LEFT);
+        GridPane.setMargin(reserveExactAmountSlider, new Insets(-5, 0, -5, 0));
+        reserveExactAmountSlider.setPadding(new Insets(0, 0, 0, 0));
+        reserveExactAmountSlider.setVisible(false);
+        reserveExactAmountSlider.setSelected(preferences.getSplitOfferOutput());
+        reserveExactAmountSlider.setOnAction(event -> {
+            boolean selected = reserveExactAmountSlider.isSelected();
             if (selected != preferences.getSplitOfferOutput()) {
                 preferences.setSplitOfferOutput(selected);
                 model.dataModel.setReserveExactAmount(selected);
@@ -1338,7 +1339,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         firstRowHBox.getChildren().addAll(amountBox, xLabel, percentagePriceBox, resultLabel, volumeBox);
         GridPane.setColumnSpan(firstRowHBox, 2);
         GridPane.setRowIndex(firstRowHBox, gridRow);
-        GridPane.setMargin(firstRowHBox, new Insets(40, 10, 0, 0));
+        GridPane.setMargin(firstRowHBox, new Insets(40 + heightAdjustment, 10, 0, 0));
         gridPane.getChildren().add(firstRowHBox);
     }
 
