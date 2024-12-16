@@ -1,49 +1,48 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade.statistics;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
 import haveno.core.locale.CurrencyTuple;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
-import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableSet;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Named;
-import javax.inject.Singleton;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableSet;
+import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j
@@ -99,11 +98,62 @@ public class TradeStatisticsManager {
                 .map(e -> (TradeStatistics3) e)
                 .filter(TradeStatistics3::isValid)
                 .collect(Collectors.toSet());
+        
+
+        // remove duplicates in early trades due to bug
+        deduplicateEarlyTradeStatistics(set);
+
         synchronized (observableTradeStatisticsSet) {
             observableTradeStatisticsSet.addAll(set);
             priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsSet);
         }
         maybeDumpStatistics();
+    }
+
+    private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> tradeStats) {
+
+        // collect trades before August 7, 2024
+        Set<TradeStatistics3> earlyTrades = tradeStats.stream()
+                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-08-07T00:00:00Z")))
+                .collect(Collectors.toSet());
+
+        // collect duplicated trades
+        Set<TradeStatistics3> duplicates = new HashSet<TradeStatistics3>();
+        Set<TradeStatistics3> deduplicates = new HashSet<TradeStatistics3>();
+        for (TradeStatistics3 tradeStatistic : earlyTrades) {
+            TradeStatistics3 fuzzyDuplicate = findFuzzyDuplicate(tradeStatistic, deduplicates);
+            if (fuzzyDuplicate == null) deduplicates.add(tradeStatistic);
+            else duplicates.add(tradeStatistic);
+        }
+
+        // remove duplicated trades
+        tradeStats.removeAll(duplicates);
+    }
+
+    private TradeStatistics3 findFuzzyDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
+        return set.stream().filter(e -> isFuzzyDuplicate(tradeStatistics, e)).findFirst().orElse(null);
+    }
+
+    private boolean isFuzzyDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
+        if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
+        if (tradeStatistics1.getPrice() != tradeStatistics2.getPrice()) return false;
+        return isFuzzyDuplicateV1(tradeStatistics1, tradeStatistics2) || isFuzzyDuplicateV2(tradeStatistics1, tradeStatistics2);
+    }
+
+    // bug caused all peers to publish same trade with similar timestamps
+    private boolean isFuzzyDuplicateV1(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        boolean isWithin2Minutes = Math.abs(tradeStatistics1.getDate().getTime() - tradeStatistics2.getDate().getTime()) <= TimeUnit.MINUTES.toMillis(2);
+        return isWithin2Minutes;
+    }
+
+    // bug caused sellers to re-publish their trades with randomized amounts
+    private static final double FUZZ_AMOUNT_PCT = 0.05;
+    private static final int FUZZ_DATE_HOURS = 24;
+    private boolean isFuzzyDuplicateV2(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        boolean isWithinFuzzedHours = Math.abs(tradeStatistics1.getDate().getTime() - tradeStatistics2.getDate().getTime()) <= TimeUnit.HOURS.toMillis(FUZZ_DATE_HOURS);
+        boolean isWithinFuzzedAmount = Math.abs(tradeStatistics1.getAmount() - tradeStatistics2.getAmount()) <= FUZZ_AMOUNT_PCT * tradeStatistics1.getAmount();
+        return isWithinFuzzedHours && isWithinFuzzedAmount;
     }
 
     public ObservableSet<TradeStatistics3> getObservableTradeStatisticsSet() {
@@ -164,21 +214,30 @@ public class TradeStatisticsManager {
         long ts = System.currentTimeMillis();
         Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
         trades.forEach(trade -> {
-            if (trade instanceof BuyerTrade) {
-                log.debug("Trade: {} is a buyer trade, we only republish we have been seller.",
-                        trade.getShortId());
+            if (!trade.shouldPublishTradeStatistics()) {
+                log.debug("Trade: {} should not publish trade statistics", trade.getShortId());
                 return;
             }
 
             TradeStatistics3 tradeStatistics3 = null;
             try {
-                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode);
+                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode, false);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
+
+            TradeStatistics3 tradeStatistics3Fuzzed = null;
+            try {
+                tradeStatistics3Fuzzed = TradeStatistics3.from(trade, referralId, isTorNetworkNode, true);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
+
             boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
-            if (hasTradeStatistics3) {
+            boolean hasTradeStatistics3Fuzzed = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3Fuzzed.getHash()));
+            if (hasTradeStatistics3 || hasTradeStatistics3Fuzzed) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;

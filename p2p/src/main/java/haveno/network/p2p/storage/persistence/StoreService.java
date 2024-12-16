@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.storage.persistence;
@@ -109,18 +109,17 @@ public abstract class StoreService<T extends PersistableEnvelope> {
         File destinationFile = new File(Paths.get(absolutePathOfStorageDir, fileName).toString());
         if (!destinationFile.exists()) {
             try {
-                log.info("We copy resource to file: resourceFileName={}, destinationFile={}", resourceFileName, destinationFile);
+                log.debug("We copy resource to file: resourceFileName={}, destinationFile={}", resourceFileName, destinationFile);
                 FileUtil.resourceToFile(resourceFileName, destinationFile);
                 return true;
             } catch (ResourceNotFoundException e) {
-                log.info("Could not find resourceFile " + resourceFileName + ". That is expected if none is provided yet.");
+                log.debug("Could not find resourceFile " + resourceFileName + ". That is expected if none is provided yet.");
             } catch (Throwable e) {
                 log.error("Could not copy resourceFile " + resourceFileName + " to " +
-                        destinationFile.getAbsolutePath() + ".\n" + e.getMessage());
-                e.printStackTrace();
+                        destinationFile.getAbsolutePath() + ".\n", e);
             }
         } else {
-            log.info("No resource file was copied. {} exists already.", fileName);
+            log.debug("No resource file was copied. {} exists already.", fileName);
         }
         return false;
     }

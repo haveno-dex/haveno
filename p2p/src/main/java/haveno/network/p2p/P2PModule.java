@@ -1,26 +1,45 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p;
 
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
+import static com.google.inject.name.Names.named;
+import static com.google.inject.util.Providers.of;
 import haveno.common.app.AppModule;
 import haveno.common.config.Config;
+import static haveno.common.config.Config.BAN_LIST;
+import static haveno.common.config.Config.MAX_CONNECTIONS;
+import static haveno.common.config.Config.NODE_PORT;
+import static haveno.common.config.Config.HIDDEN_SERVICE_ADDRESS;
+import static haveno.common.config.Config.REPUBLISH_MAILBOX_ENTRIES;
+import static haveno.common.config.Config.SOCKS_5_PROXY_HTTP_ADDRESS;
+import static haveno.common.config.Config.SOCKS_5_PROXY_XMR_ADDRESS;
+import static haveno.common.config.Config.TORRC_FILE;
+import static haveno.common.config.Config.TORRC_OPTIONS;
+import static haveno.common.config.Config.TOR_CONTROL_COOKIE_FILE;
+import static haveno.common.config.Config.TOR_CONTROL_HOST;
+import static haveno.common.config.Config.TOR_CONTROL_PASSWORD;
+import static haveno.common.config.Config.TOR_CONTROL_PORT;
+import static haveno.common.config.Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH;
+import static haveno.common.config.Config.TOR_DIR;
+import static haveno.common.config.Config.TOR_STREAM_ISOLATION;
+import static haveno.common.config.Config.USE_LOCALHOST_FOR_P2P;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.http.HttpClient;
 import haveno.network.http.HttpClientImpl;
@@ -35,28 +54,9 @@ import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
-
 import java.io.File;
 import java.time.Clock;
 import java.util.List;
-
-import static com.google.inject.name.Names.named;
-import static com.google.inject.util.Providers.of;
-import static haveno.common.config.Config.BAN_LIST;
-import static haveno.common.config.Config.MAX_CONNECTIONS;
-import static haveno.common.config.Config.NODE_PORT;
-import static haveno.common.config.Config.REPUBLISH_MAILBOX_ENTRIES;
-import static haveno.common.config.Config.SOCKS_5_PROXY_BTC_ADDRESS;
-import static haveno.common.config.Config.SOCKS_5_PROXY_HTTP_ADDRESS;
-import static haveno.common.config.Config.TORRC_FILE;
-import static haveno.common.config.Config.TORRC_OPTIONS;
-import static haveno.common.config.Config.TOR_CONTROL_COOKIE_FILE;
-import static haveno.common.config.Config.TOR_CONTROL_PASSWORD;
-import static haveno.common.config.Config.TOR_CONTROL_PORT;
-import static haveno.common.config.Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH;
-import static haveno.common.config.Config.TOR_DIR;
-import static haveno.common.config.Config.TOR_STREAM_ISOLATION;
-import static haveno.common.config.Config.USE_LOCALHOST_FOR_P2P;
 
 public class P2PModule extends AppModule {
 
@@ -88,14 +88,16 @@ public class P2PModule extends AppModule {
         bind(File.class).annotatedWith(named(TOR_DIR)).toInstance(config.torDir);
 
         bind(int.class).annotatedWith(named(NODE_PORT)).toInstance(config.nodePort);
+        bind(String.class).annotatedWith(named(HIDDEN_SERVICE_ADDRESS)).toInstance(config.hiddenServiceAddress);
 
         bindConstant().annotatedWith(named(MAX_CONNECTIONS)).to(config.maxConnections);
 
         bind(new TypeLiteral<List<String>>(){}).annotatedWith(named(BAN_LIST)).toInstance(config.banList);
-        bindConstant().annotatedWith(named(SOCKS_5_PROXY_BTC_ADDRESS)).to(config.socks5ProxyBtcAddress);
+        bindConstant().annotatedWith(named(SOCKS_5_PROXY_XMR_ADDRESS)).to(config.socks5ProxyXmrAddress);
         bindConstant().annotatedWith(named(SOCKS_5_PROXY_HTTP_ADDRESS)).to(config.socks5ProxyHttpAddress);
         bind(File.class).annotatedWith(named(TORRC_FILE)).toProvider(of(config.torrcFile)); // allow null value
         bindConstant().annotatedWith(named(TORRC_OPTIONS)).to(config.torrcOptions);
+        bindConstant().annotatedWith(named(TOR_CONTROL_HOST)).to(config.torControlHost);
         bindConstant().annotatedWith(named(TOR_CONTROL_PORT)).to(config.torControlPort);
         bindConstant().annotatedWith(named(TOR_CONTROL_PASSWORD)).to(config.torControlPassword);
         bind(File.class).annotatedWith(named(TOR_CONTROL_COOKIE_FILE)).toProvider(of(config.torControlCookieFile));

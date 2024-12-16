@@ -1,0 +1,52 @@
+id: exchange.haveno.Haveno
+runtime: org.freedesktop.Platform
+runtime-version: "23.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.openjdk21
+command: /app/bin/Haveno
+modules:
+  - name: openjdk
+    buildsystem: simple
+    build-commands:
+      - /usr/lib/sdk/openjdk21/install.sh
+  - name: Haveno
+    buildsystem: simple
+    sources:
+      # - type: git
+      #   url: https://github.com/haveno-dex/haveno
+      - type: dir
+        path: build
+      - type: file
+        path: package/linux/Haveno.desktop
+      - type: file
+        path: package/linux/exchange.haveno.Haveno.metainfo.xml
+      - type: file
+        path: package/linux/icon.png
+    build-commands:
+      - ls
+      - pwd
+      # TODO: consider switching from reading from a deb to reading from jpackage's image
+      - mv temp-*/binaries/haveno_*.deb haveno.deb
+      - ar x haveno.deb
+      - tar xf data.tar.*
+      - cp -r opt/haveno/lib /app/lib
+      - install -D opt/haveno/bin/Haveno /app/bin/Haveno
+      - mkdir -p /app/share/icons/hicolor/128x128/apps/
+      - mkdir -p /app/share/applications/
+      - mkdir -p /app/share/metainfo/
+      - mv icon.png /app/share/icons/hicolor/128x128/apps/exchange.haveno.Haveno.png
+      - mv Haveno.desktop /app/share/applications/exchange.haveno.Haveno.desktop
+      - mv exchange.haveno.Haveno.metainfo.xml /app/share/metainfo/
+
+# TODO: xdg-open fails
+finish-args:
+  - --env=PATH=/app/jre/bin:/usr/bin:$PATH
+    # - --env=JAVA_HOME=/app/jre
+  - --env=JAVA_HOME=/usr/lib/sdk/openjdk21/
+  - --device=dri
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.secrets
+  - --share=network
+  - --share=ipc
+  - --socket=x11

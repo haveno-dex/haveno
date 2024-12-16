@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,9 @@
 
 package haveno.desktop.main.support;
 
+import com.google.inject.Inject;
+
+import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
@@ -37,8 +57,8 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
-import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.offer.signedoffer.SignedOfferView;
+import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
 import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
@@ -50,9 +70,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.MapChangeListener;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
 
 @FxmlView
 public class SupportView extends ActivatableView<TabPane, Void> {
@@ -127,7 +145,7 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
-                loadView(viewPath.tip());
+                UserThread.execute(() -> loadView(viewPath.tip()));
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {

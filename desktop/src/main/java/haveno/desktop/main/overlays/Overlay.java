@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.overlays;
@@ -33,13 +33,17 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
+import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import haveno.desktop.util.Transitions;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -48,12 +52,15 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.input.KeyCode;
@@ -84,6 +91,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static javafx.scene.input.MouseEvent.MOUSE_CLICKED;
 
 @Slf4j
 public abstract class Overlay<T extends Overlay<T>> {
@@ -158,7 +167,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected boolean useAnimation = true;
     protected boolean showScrollPane = false;
 
-    protected Label headlineIcon, headLineLabel, messageLabel;
+    protected TextArea messageTextArea;
+    protected Label headlineIcon, copyIcon, headLineLabel;
     protected String headLine, message, closeButtonText, actionButtonText,
             secondaryActionButtonText, dontShowAgainId, dontShowAgainText,
             truncatedMessage;
@@ -748,6 +758,23 @@ public abstract class Overlay<T extends Overlay<T>> {
 
 
         if (headLineLabel != null) {
+            if (copyIcon != null) {
+                copyIcon.getStyleClass().add("popup-icon-information");
+                copyIcon.setManaged(true);
+                copyIcon.setVisible(true);
+                FormBuilder.getIconForLabel(AwesomeIcon.COPY, copyIcon, "1.1em");
+                copyIcon.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
+                    if (message != null) {
+                        String forClipboard = headLineLabel.getText() + System.lineSeparator() + message
+                            + System.lineSeparator() + (messageHyperlinks == null ? "" : messageHyperlinks.toString());
+                        Utilities.copyToClipboard(forClipboard);
+                        Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                        Node node = (Node) mouseEvent.getSource();
+                        UserThread.runAfter(() -> tp.hide(), 1);
+                        tp.show(node, mouseEvent.getScreenX() + Layout.PADDING, mouseEvent.getScreenY() + Layout.PADDING);
+                    }
+                });
+            }
 
             switch (type) {
                 case Information:
@@ -802,7 +829,19 @@ public abstract class Overlay<T extends Overlay<T>> {
             if (headlineStyle != null)
                 headLineLabel.setStyle(headlineStyle);
 
-            hBox.getChildren().addAll(headlineIcon, headLineLabel);
+            if (message != null) {
+                copyIcon = new Label();
+                copyIcon.setManaged(false);
+                copyIcon.setVisible(false);
+                copyIcon.setPadding(new Insets(3));
+                copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+                final Pane spacer = new Pane();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                spacer.setMinSize(Layout.PADDING, 1);
+                hBox.getChildren().addAll(headlineIcon, headLineLabel, spacer, copyIcon);
+            } else {
+                hBox.getChildren().addAll(headlineIcon, headLineLabel);
+            }
 
             GridPane.setHalignment(hBox, HPos.LEFT);
             GridPane.setRowIndex(hBox, rowIndex);
@@ -813,20 +852,37 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void addMessage() {
         if (message != null) {
-            messageLabel = new AutoTooltipLabel(truncatedMessage);
-            messageLabel.setMouseTransparent(true);
-            messageLabel.setWrapText(true);
+            messageTextArea = new TextArea(truncatedMessage);
+            messageTextArea.setEditable(false);
+            messageTextArea.getStyleClass().add("text-area-no-border");
+            messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
+                if (newScene != null) {
+                    // avoid javafx css warning
+                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
+                    messageTextArea.applyCss();
+                    var text = messageTextArea.lookup(".text");
+
+                    messageTextArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
+                        return messageTextArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
+                    }, text.boundsInLocalProperty()));
+
+                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
+                        Platform.runLater(() -> messageTextArea.requestLayout());
+                    });
+                }
+            });
+            messageTextArea.setWrapText(true);
 
             Region messageRegion;
             if (showScrollPane) {
-                scrollPane = new ScrollPane(messageLabel);
+                scrollPane = new ScrollPane(messageTextArea);
                 scrollPane.setHbarPolicy(ScrollBarPolicy.NEVER);
                 scrollPane.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
                 scrollPane.setFitToWidth(true);
 
                 messageRegion = scrollPane;
             } else
-                messageRegion = messageLabel;
+                messageRegion = messageTextArea;
 
             GridPane.setHalignment(messageRegion, HPos.LEFT);
             GridPane.setHgrow(messageRegion, Priority.ALWAYS);
@@ -858,7 +914,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     private void addReportErrorButtons() {
-        messageLabel.setText(Res.get("popup.reportError", truncatedMessage));
+        messageTextArea.setText(Res.get("popup.reportError", truncatedMessage));
 
         Button logButton = new AutoTooltipButton(Res.get("popup.reportError.log"));
         GridPane.setMargin(logButton, new Insets(20, 0, 0, 0));
@@ -1002,7 +1058,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     // separate a popup message from optional hyperlinks.  [bisq-network/bisq/pull/4637]
     // hyperlinks are distinguished by [HYPERLINK:] tag
     // referenced in order from within the message via [1], [2] etc.
-    // e.g. [HYPERLINK:https://bisq.wiki]
+    // e.g. [HYPERLINK:https://haveno.exchange/wiki]
     private void preProcessMessage(String message) {
         Pattern pattern = Pattern.compile("\\[HYPERLINK:(.*?)\\]");
         Matcher matcher = pattern.matcher(message);

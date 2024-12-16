@@ -53,8 +53,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
             runInterceptHook();
 
             // skip if already acked by receiver
-            if (ackedByReceiver()) {
-                complete();
+            if (isAckedByReceiver()) {
+                if (!isCompleted()) complete();
                 return;
             }
 
@@ -76,8 +76,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
             // export multisig hex once
             if (trade.getSelf().getUpdatedMultisigHex() == null) {
-                trade.getSelf().setUpdatedMultisigHex(trade.getWallet().exportMultisigHex());
-                processModel.getTradeManager().requestPersistence();
+                trade.exportMultisigHex();
             }
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
@@ -125,8 +124,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
     private void tryToSendAgainLater() {
 
-        // skip if already acked
-        if (ackedByReceiver()) return;
+        // skip if already acked or payout published
+        if (isAckedByReceiver() || trade.isPayoutPublished()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
@@ -151,7 +150,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         resendCounter++;
     }
 
-    private boolean ackedByReceiver() {
+    private boolean isAckedByReceiver() {
         TradePeer peer = trade.getTradePeer(getReceiverNodeAddress());
         return peer.isDepositsConfirmedMessageAcked();
     }

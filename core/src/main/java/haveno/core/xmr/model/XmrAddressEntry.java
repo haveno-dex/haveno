@@ -37,12 +37,13 @@ import java.util.Optional;
 @EqualsAndHashCode
 @Slf4j
 public final class XmrAddressEntry implements PersistablePayload {
+
     public enum Context {
         ARBITRATOR,
         BASE_ADDRESS,
         AVAILABLE,
         OFFER_FUNDING,
-        TRADE_PAYOUT
+        TRADE_PAYOUT;
     }
 
     // keyPair can be null in case the object is created from deserialization as it is transient.

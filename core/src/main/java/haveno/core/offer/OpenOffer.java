@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,8 +34,6 @@
 
 package haveno.core.offer;
 
-import haveno.common.Timer;
-import haveno.common.UserThread;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.trade.Tradable;
 import javafx.beans.property.ObjectProperty;
@@ -27,7 +42,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -36,14 +50,10 @@ import java.util.List;
 import java.util.Optional;
 
 @EqualsAndHashCode
-@Slf4j
 public final class OpenOffer implements Tradable {
-    // Timeout for offer reservation during takeoffer process. If deposit tx is not completed in that time we reset the offer to AVAILABLE state.
-    private static final long TIMEOUT = 60;
-    transient private Timer timeoutTimer;
 
     public enum State {
-        SCHEDULED,
+        PENDING,
         AVAILABLE,
         RESERVED,
         CLOSED,
@@ -70,6 +80,9 @@ public final class OpenOffer implements Tradable {
     @Getter
     @Nullable
     String splitOutputTxHash;
+    @Getter
+    @Setter
+    long splitOutputTxFee;
     @Nullable
     @Setter
     @Getter
@@ -83,12 +96,20 @@ public final class OpenOffer implements Tradable {
     @Getter
     private String reserveTxKey;
     @Getter
+    @Setter
+    private String challenge;
+    @Getter
     private final long triggerPrice;
     @Getter
     @Setter
     transient private long mempoolStatus = -1;
     transient final private ObjectProperty<State> stateProperty = new SimpleObjectProperty<>(state);
-
+    @Getter
+    @Setter
+    transient boolean isProcessing = false;
+    @Getter
+    @Setter
+    transient int numProcessingAttempts = 0;
     public OpenOffer(Offer offer) {
         this(offer, 0, false);
     }
@@ -101,7 +122,8 @@ public final class OpenOffer implements Tradable {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
-        state = State.SCHEDULED;
+        this.challenge = offer.getChallenge();
+        state = State.PENDING;
     }
 
     public OpenOffer(Offer offer, long triggerPrice, OpenOffer openOffer) {
@@ -114,9 +136,11 @@ public final class OpenOffer implements Tradable {
         this.scheduledAmount = openOffer.scheduledAmount;
         this.scheduledTxHashes = openOffer.scheduledTxHashes == null ? null : new ArrayList<String>(openOffer.scheduledTxHashes);
         this.splitOutputTxHash = openOffer.splitOutputTxHash;
+        this.splitOutputTxFee = openOffer.splitOutputTxFee;
         this.reserveTxHash = openOffer.reserveTxHash;
         this.reserveTxHex = openOffer.reserveTxHex;
         this.reserveTxKey = openOffer.reserveTxKey;
+        this.challenge = openOffer.challenge;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -130,21 +154,25 @@ public final class OpenOffer implements Tradable {
                       @Nullable String scheduledAmount,
                       @Nullable List<String> scheduledTxHashes,
                       String splitOutputTxHash,
+                      long splitOutputTxFee,
                       @Nullable String reserveTxHash,
                       @Nullable String reserveTxHex,
-                      @Nullable String reserveTxKey) {
+                      @Nullable String reserveTxKey,
+                      @Nullable String challenge) {
         this.offer = offer;
         this.state = state;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
         this.scheduledTxHashes = scheduledTxHashes;
         this.splitOutputTxHash = splitOutputTxHash;
+        this.splitOutputTxFee = splitOutputTxFee;
         this.reserveTxHash = reserveTxHash;
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
+        this.challenge = challenge;
 
-        if (this.state == State.RESERVED)
-            setState(State.AVAILABLE);
+        // reset reserved state to available
+        if (this.state == State.RESERVED) setState(State.AVAILABLE);
     }
 
     @Override
@@ -153,6 +181,7 @@ public final class OpenOffer implements Tradable {
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
                 .setState(protobuf.OpenOffer.State.valueOf(state.name()))
+                .setSplitOutputTxFee(splitOutputTxFee)
                 .setReserveExactAmount(reserveExactAmount);
 
         Optional.ofNullable(scheduledAmount).ifPresent(e -> builder.setScheduledAmount(scheduledAmount));
@@ -161,6 +190,7 @@ public final class OpenOffer implements Tradable {
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
+        Optional.ofNullable(challenge).ifPresent(e -> builder.setChallenge(challenge));
 
         return protobuf.Tradable.newBuilder().setOpenOffer(builder).build();
     }
@@ -173,9 +203,11 @@ public final class OpenOffer implements Tradable {
                 proto.getScheduledAmount(),
                 proto.getScheduledTxHashesList(),
                 ProtoUtil.stringOrNullFromProto(proto.getSplitOutputTxHash()),
-                proto.getReserveTxHash(),
-                proto.getReserveTxHex(),
-                proto.getReserveTxKey());
+                proto.getSplitOutputTxFee(),
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()),
+                ProtoUtil.stringOrNullFromProto(proto.getChallenge()));
         return openOffer;
     }
 
@@ -202,21 +234,14 @@ public final class OpenOffer implements Tradable {
     public void setState(State state) {
         this.state = state;
         stateProperty.set(state);
-
-        // We keep it reserved for a limited time, if trade preparation fails we revert to available state
-        if (this.state == State.RESERVED) { // TODO (woodser): remove this?
-            startTimeout();
-        } else {
-            stopTimeout();
-        }
     }
 
     public ReadOnlyObjectProperty<State> stateProperty() {
         return stateProperty;
     }
 
-    public boolean isScheduled() {
-        return state == State.SCHEDULED;
+    public boolean isPending() {
+        return state == State.PENDING;
     }
 
     public boolean isAvailable() {
@@ -227,25 +252,9 @@ public final class OpenOffer implements Tradable {
         return state == State.DEACTIVATED;
     }
 
-    private void startTimeout() {
-        stopTimeout();
-
-        timeoutTimer = UserThread.runAfter(() -> {
-            log.debug("Timeout for resetting State.RESERVED reached");
-            if (state == State.RESERVED) {
-                // we do not need to persist that as at startup any RESERVED state would be reset to AVAILABLE anyway
-                setState(State.AVAILABLE);
-            }
-        }, TIMEOUT);
+    public boolean isCanceled() {
+        return state == State.CANCELED;
     }
-
-    private void stopTimeout() {
-        if (timeoutTimer != null) {
-            timeoutTimer.stop();
-            timeoutTimer = null;
-        }
-    }
-
 
     @Override
     public String toString() {
@@ -253,6 +262,9 @@ public final class OpenOffer implements Tradable {
                 ",\n     offer=" + offer +
                 ",\n     state=" + state +
                 ",\n     triggerPrice=" + triggerPrice +
+                ",\n     reserveExactAmount=" + reserveExactAmount +
+                ",\n     scheduledAmount=" + scheduledAmount +
+                ",\n     splitOutputTxFee=" + splitOutputTxFee +
                 "\n}";
     }
 }

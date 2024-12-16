@@ -1,17 +1,21 @@
 package haveno.core.api;
 
+import com.google.inject.Singleton;
 import haveno.core.api.model.TradeInfo;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.BuyerTrade;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.MakerTrade;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
+import haveno.core.trade.Trade.Phase;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationMessage.NotificationType;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Singleton;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j
@@ -47,7 +51,18 @@ public class CoreNotificationService {
                 .build());
     }
 
-    public void sendTradeNotification(Trade trade, String title, String message) {
+    public void sendTradeNotification(Trade trade, Phase phase, String title, String message) {
+
+        // play chime when maker's trade is taken
+        if (trade instanceof MakerTrade && phase == Trade.Phase.DEPOSITS_PUBLISHED) HavenoUtils.playChimeSound();
+
+        // play chime when buyer can confirm payment sent
+        if (trade instanceof BuyerTrade && phase == Trade.Phase.DEPOSITS_UNLOCKED) HavenoUtils.playChimeSound();
+
+        // play chime when seller sees buyer confirm payment sent
+        if (trade instanceof SellerTrade && phase == Trade.Phase.PAYMENT_SENT) HavenoUtils.playChimeSound();
+
+        // send notification
         sendNotification(NotificationMessage.newBuilder()
                 .setType(NotificationType.TRADE_UPDATE)
                 .setTrade(TradeInfo.toTradeInfo(trade).toProtoMessage())
@@ -58,10 +73,11 @@ public class CoreNotificationService {
     }
 
     public void sendChatNotification(ChatMessage chatMessage) {
+        HavenoUtils.playChimeSound();
         sendNotification(NotificationMessage.newBuilder()
                 .setType(NotificationType.CHAT_MESSAGE)
                 .setTimestamp(System.currentTimeMillis())
-                .setChatMessage(chatMessage.toProtoChatMessageBuilder())
+                .setChatMessage(chatMessage.toProtoNetworkEnvelope().getChatMessage())
                 .build());
     }
 

@@ -1,25 +1,23 @@
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import static haveno.proto.grpc.DisputeAgentsGrpc.DisputeAgentsImplBase;
+import static haveno.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
+import static haveno.proto.grpc.DisputeAgentsGrpc.getUnregisterDisputeAgentMethod;
 import haveno.proto.grpc.RegisterDisputeAgentReply;
 import haveno.proto.grpc.RegisterDisputeAgentRequest;
 import haveno.proto.grpc.UnregisterDisputeAgentReply;
 import haveno.proto.grpc.UnregisterDisputeAgentRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Optional;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.DisputeAgentsGrpc.DisputeAgentsImplBase;
-import static haveno.proto.grpc.DisputeAgentsGrpc.getRegisterDisputeAgentMethod;
-import static haveno.proto.grpc.DisputeAgentsGrpc.getUnregisterDisputeAgentMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class GrpcDisputeAgentsService extends DisputeAgentsImplBase {

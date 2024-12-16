@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -86,6 +86,8 @@ public class PaymentAccountFactory {
                 return new TransferwiseAccount();
             case PaymentMethod.TRANSFERWISE_USD_ID:
                 return new TransferwiseUsdAccount();
+            case PaymentMethod.PAYPAL_ID:
+                return new PayPalAccount();
             case PaymentMethod.PAYSERA_ID:
                 return new PayseraAccount();
             case PaymentMethod.PAXUM_ID:
@@ -130,15 +132,14 @@ public class PaymentAccountFactory {
                 return new AchTransferAccount();
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 return new DomesticWireTransferAccount();
-
-            // Cannot be deleted as it would break old trade history entries
-            case PaymentMethod.OK_PAY_ID:
-                return new OKPayAccount();
             case PaymentMethod.CASH_APP_ID:
                 return new CashAppAccount();
             case PaymentMethod.VENMO_ID:
                 return new VenmoAccount();
 
+            // Cannot be deleted as it would break old trade history entries
+            case PaymentMethod.OK_PAY_ID:
+                return new OKPayAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

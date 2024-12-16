@@ -41,7 +41,7 @@
     -bs-rd-green: #0b65da;
     -bs-rd-green-dark: #3EA34A;
     -bs-rd-nav-selected: #0b65da;
-    -bs-rd-nav-deselected: rgba(255, 255, 255, 0.59);
+    -bs-rd-nav-deselected: rgba(255, 255, 255, 0.75);
     -bs-rd-nav-background: #0c59bd;
     -bs-rd-nav-primary-background: #0b65da;
     -bs-rd-nav-primary-border: #0B65DA;
@@ -124,4 +124,9 @@
 
 .progress-bar > .secondary-bar {
     -fx-background-color: -bs-color-gray-3;
+}
+
+.toggle-button-no-slider {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
 }

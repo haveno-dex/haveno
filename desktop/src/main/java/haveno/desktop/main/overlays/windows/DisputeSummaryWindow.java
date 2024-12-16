@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.overlays.windows;
@@ -99,6 +99,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             reasonWasOtherRadioButton, reasonWasBankRadioButton, reasonWasOptionTradeRadioButton,
             reasonWasSellerNotRespondingRadioButton, reasonWasWrongSenderAccountRadioButton,
             reasonWasPeerWasLateRadioButton, reasonWasTradeAlreadySettledRadioButton;
+    private CoreDisputesService.PayoutSuggestion payoutSuggestion;
 
     // Dispute object of other trade peer. The dispute field is the one from which we opened the close dispute window.
     private Optional<Dispute> peersDisputeOptional;
@@ -211,11 +212,12 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         if (applyPeersDisputeResult) {
             // If the other peers dispute has been closed we apply the result to ourselves
             DisputeResult peersDisputeResult = peersDisputeOptional.get().getDisputeResultProperty().get();
-            disputeResult.setBuyerPayoutAmount(peersDisputeResult.getBuyerPayoutAmount());
-            disputeResult.setSellerPayoutAmount(peersDisputeResult.getSellerPayoutAmount());
+            disputeResult.setBuyerPayoutAmountBeforeCost(peersDisputeResult.getBuyerPayoutAmountBeforeCost());
+            disputeResult.setSellerPayoutAmountBeforeCost(peersDisputeResult.getSellerPayoutAmountBeforeCost());
             disputeResult.setWinner(peersDisputeResult.getWinner());
             disputeResult.setReason(peersDisputeResult.getReason());
             disputeResult.setSummaryNotes(peersDisputeResult.summaryNotesProperty().get());
+            disputeResult.setSubtractFeeFrom(peersDisputeResult.getSubtractFeeFrom());
 
             buyerGetsTradeAmountRadioButton.setDisable(true);
             buyerGetsAllRadioButton.setDisable(true);
@@ -285,11 +287,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.tradeFee"), tradeFee);
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(trade.getBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(trade.getBuyer().getSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(trade.getSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(trade.getSeller().getSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
     }
 
@@ -353,8 +355,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Contract contract = dispute.getContract();
         BigInteger tradeAmount = contract.getTradeAmount();
         BigInteger available = tradeAmount
-                .add(trade.getBuyerSecurityDeposit())
-                .add(trade.getSellerSecurityDeposit());
+                .add(trade.getBuyer().getSecurityDeposit())
+                .add(trade.getSeller().getSecurityDeposit());
         BigInteger totalAmount = buyerAmount.add(sellerAmount);
 
         boolean isRefundAgent = getDisputeManager(dispute) instanceof RefundManager;
@@ -363,7 +365,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             // be made
             return totalAmount.compareTo(available) <= 0;
         } else {
-            if (totalAmount.compareTo(BigInteger.valueOf(0)) <= 0) {
+            if (totalAmount.compareTo(BigInteger.ZERO) <= 0) {
                 return false;
             }
             return totalAmount.compareTo(available) == 0;
@@ -379,8 +381,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         Contract contract = dispute.getContract();
         BigInteger available = contract.getTradeAmount()
-                .add(trade.getBuyerSecurityDeposit())
-                .add(trade.getSellerSecurityDeposit());
+                .add(trade.getBuyer().getSecurityDeposit())
+                .add(trade.getSeller().getSecurityDeposit());
         BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
@@ -401,11 +403,10 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             buyerPayoutAmountInputTextField.setText(formattedCounterPartAmount);
         }
 
-        disputeResult.setBuyerPayoutAmount(buyerAmount);
-        disputeResult.setSellerPayoutAmount(sellerAmount);
-        disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ?
-                DisputeResult.Winner.BUYER :
-                DisputeResult.Winner.SELLER);
+        disputeResult.setBuyerPayoutAmountBeforeCost(buyerAmount);
+        disputeResult.setSellerPayoutAmountBeforeCost(sellerAmount);
+        disputeResult.setWinner(buyerAmount.compareTo(sellerAmount) > 0 ? DisputeResult.Winner.BUYER : DisputeResult.Winner.SELLER); // TODO: UI should allow selection of receiver of exact custom amount, otherwise defaulting to bigger receiver. could extend API to specify who pays payout tx fee: buyer, seller, or both
+        disputeResult.setSubtractFeeFrom(buyerAmount.compareTo(sellerAmount) > 0 ? DisputeResult.SubtractFeeFrom.SELLER_ONLY : DisputeResult.SubtractFeeFrom.BUYER_ONLY);
     }
 
     private void addPayoutAmountTextFields() {
@@ -581,21 +582,26 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Button cancelButton = tuple.second;
 
         closeTicketButton.setOnAction(e -> {
+            closeTicketButton.disableProperty().unbind();
+            closeTicketButton.setDisable(true);
             if (dispute.getSupportType() == SupportType.ARBITRATION &&
                     peersDisputeOptional.isPresent() &&
                     !peersDisputeOptional.get().isClosed() &&
                     !trade.isPayoutPublished()) {
 
                 // create payout tx
-                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
-                trade.getProcessModel().setUnsignedPayoutTx((MoneroTxWallet) payoutTx);
+                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
 
                 // show confirmation
                 showPayoutTxConfirmation(contract,
                         payoutTx,
-                        () -> doClose(closeTicketButton));
+                        () -> doClose(closeTicketButton, cancelButton),
+                        () -> {
+                            closeTicketButton.setDisable(false);
+                            cancelButton.setDisable(false);
+                        });
             } else {
-                doClose(closeTicketButton);
+                doClose(closeTicketButton, cancelButton);
             }
         });
 
@@ -606,30 +612,30 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         });
     }
 
-    private void showPayoutTxConfirmation(Contract contract, MoneroTxWallet payoutTx, ResultHandler resultHandler) {
+    private void showPayoutTxConfirmation(Contract contract, MoneroTxWallet payoutTx, ResultHandler resultHandler, ResultHandler cancelHandler) {
 
         // get buyer and seller destinations (order not preserved)
         String buyerPayoutAddressString = contract.getBuyerPayoutAddressString();
         String sellerPayoutAddressString = contract.getSellerPayoutAddressString();
         List<MoneroDestination> destinations = payoutTx.getOutgoingTransfer().getDestinations();
         boolean buyerFirst = destinations.get(0).getAddress().equals(buyerPayoutAddressString);
-        BigInteger buyerPayoutAmount = buyerFirst ? destinations.get(0).getAmount() : destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.valueOf(0);
-        BigInteger sellerPayoutAmount = buyerFirst ? (destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.valueOf(0)) : destinations.get(0).getAmount();
+        BigInteger buyerPayoutAmount = buyerFirst ? destinations.get(0).getAmount() : destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.ZERO;
+        BigInteger sellerPayoutAmount = buyerFirst ? (destinations.size() == 2 ? destinations.get(1).getAmount() : BigInteger.ZERO) : destinations.get(0).getAmount();
 
         String buyerDetails = "";
-        if (buyerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (buyerPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
             buyerDetails = Res.get("disputeSummaryWindow.close.txDetails.buyer",
                     HavenoUtils.formatXmr(buyerPayoutAmount, true),
                     buyerPayoutAddressString);
         }
         String sellerDetails = "";
-        if (sellerPayoutAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (sellerPayoutAmount.compareTo(BigInteger.ZERO) > 0) {
             sellerDetails = Res.get("disputeSummaryWindow.close.txDetails.seller",
                     HavenoUtils.formatXmr(sellerPayoutAmount, true),
                     sellerPayoutAddressString);
         }
         BigInteger outputAmount = buyerPayoutAmount.add(sellerPayoutAmount).add(payoutTx.getFee());
-        if (outputAmount.compareTo(BigInteger.valueOf(0)) > 0) {
+        if (outputAmount.compareTo(BigInteger.ZERO) > 0) {
             new Popup().width(900)
                     .headLine(Res.get("disputeSummaryWindow.close.txDetails.headline"))
                     .confirmation(Res.get("disputeSummaryWindow.close.txDetails",
@@ -640,6 +646,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     .actionButtonText(Res.get("shared.yes"))
                     .onAction(() -> resultHandler.handleResult())
                     .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> cancelHandler.handleResult())
                     .show();
         } else {
             // No payout will be made
@@ -648,11 +655,14 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     .actionButtonText(Res.get("shared.yes"))
                     .onAction(resultHandler::handleResult)
                     .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> cancelHandler.handleResult())
                     .show();
         }
     }
 
-    private void doClose(Button closeTicketButton) {
+    private void doClose(Button closeTicketButton, Button cancelButton) {
+        cancelButton.setDisable(true);
+
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         if (disputeManager == null) {
             return;
@@ -669,7 +679,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             closeTicketButton.disableProperty().unbind();
             hide();
         }, (errMessage, err) -> {
-            log.error(errMessage);
+            log.error("Error closing dispute ticket: " + errMessage + "\n", err);
             new Popup().error(err.toString()).show();
         });
     }
@@ -691,54 +701,51 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void applyPayoutAmountsToDisputeResult(Toggle selectedTradeAmountToggle) {
-        CoreDisputesService.DisputePayout payout;
         if (selectedTradeAmountToggle == buyerGetsTradeAmountRadioButton) {
-            payout = CoreDisputesService.DisputePayout.BUYER_GETS_TRADE_AMOUNT;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.BUYER_GETS_TRADE_AMOUNT;
             disputeResult.setWinner(DisputeResult.Winner.BUYER);
         } else if (selectedTradeAmountToggle == buyerGetsAllRadioButton) {
-            payout = CoreDisputesService.DisputePayout.BUYER_GETS_ALL;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.BUYER_GETS_ALL;
             disputeResult.setWinner(DisputeResult.Winner.BUYER);
         } else if (selectedTradeAmountToggle == sellerGetsTradeAmountRadioButton) {
-            payout = CoreDisputesService.DisputePayout.SELLER_GETS_TRADE_AMOUNT;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.SELLER_GETS_TRADE_AMOUNT;
             disputeResult.setWinner(DisputeResult.Winner.SELLER);
         } else if (selectedTradeAmountToggle == sellerGetsAllRadioButton) {
-            payout = CoreDisputesService.DisputePayout.SELLER_GETS_ALL;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.SELLER_GETS_ALL;
             disputeResult.setWinner(DisputeResult.Winner.SELLER);
         } else {
             // should not happen
             throw new IllegalStateException("Unknown radio button");
         }
-        disputesService.applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, -1);
-        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount()));
-        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount()));
+        disputesService.applyPayoutAmountsToDisputeResult(payoutSuggestion, dispute, disputeResult, -1);
+        buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost()));
+        sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost()));
     }
 
     private void applyTradeAmountRadioButtonStates() {
-        Contract contract = dispute.getContract();
-        BigInteger buyerSecurityDeposit = trade.getBuyerSecurityDeposit();
-        BigInteger sellerSecurityDeposit = trade.getSellerSecurityDeposit();
-        BigInteger tradeAmount = contract.getTradeAmount();
 
-        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
 
         buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(buyerPayoutAmount));
         sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(sellerPayoutAmount));
 
-        if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(sellerSecurityDeposit)) {
-            buyerGetsTradeAmountRadioButton.setSelected(true);
-        } else if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(BigInteger.valueOf(0))) {
-            buyerGetsAllRadioButton.setSelected(true);
-        } else if (sellerPayoutAmount.equals(tradeAmount.add(sellerSecurityDeposit))
-                && buyerPayoutAmount.equals(buyerSecurityDeposit)) {
-            sellerGetsTradeAmountRadioButton.setSelected(true);
-        } else if (sellerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit))
-                && buyerPayoutAmount.equals(BigInteger.valueOf(0))) {
-            sellerGetsAllRadioButton.setSelected(true);
-        } else {
-            customRadioButton.setSelected(true);
+        switch (payoutSuggestion) {
+            case BUYER_GETS_TRADE_AMOUNT:
+                buyerGetsTradeAmountRadioButton.setSelected(true);
+                break;
+            case BUYER_GETS_ALL:
+                buyerGetsAllRadioButton.setSelected(true);
+                break;
+            case SELLER_GETS_TRADE_AMOUNT:
+                sellerGetsTradeAmountRadioButton.setSelected(true);
+                break;
+            case SELLER_GETS_ALL:
+                sellerGetsAllRadioButton.setSelected(true);
+                break;
+            case CUSTOM:
+                customRadioButton.setSelected(true);
+                break;
         }
     }
 }

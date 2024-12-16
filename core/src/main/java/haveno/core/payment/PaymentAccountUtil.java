@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -66,6 +66,7 @@ import static haveno.core.payment.payload.PaymentMethod.NATIONAL_BANK_ID;
 import static haveno.core.payment.payload.PaymentMethod.NEFT_ID;
 import static haveno.core.payment.payload.PaymentMethod.NEQUI_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAXUM_ID;
+import static haveno.core.payment.payload.PaymentMethod.PAYPAL_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAYSERA_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAYTM_ID;
 import static haveno.core.payment.payload.PaymentMethod.PERFECT_MONEY_ID;
@@ -123,7 +124,7 @@ public class PaymentAccountUtil {
                                                 AccountAgeWitnessService accountAgeWitnessService) {
         boolean hasChargebackRisk = hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode());
         boolean hasValidAccountAgeWitness = accountAgeWitnessService.getMyTradeLimit(paymentAccount,
-                offer.getCurrencyCode(), offer.getMirroredDirection()) >= offer.getMinAmount().longValueExact();
+                offer.getCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()) >= offer.getMinAmount().longValueExact();
         return !hasChargebackRisk || hasValidAccountAgeWitness;
     }
 
@@ -214,6 +215,8 @@ public class PaymentAccountUtil {
                 return USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES;
             case VENMO_ID:
                 return VenmoAccount.SUPPORTED_CURRENCIES;
+            case PAYPAL_ID:
+                return PayPalAccount.SUPPORTED_CURRENCIES;
             case JAPAN_BANK_ID:
                 return JapanBankAccount.SUPPORTED_CURRENCIES;
             case WECHAT_PAY_ID:

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.api.model.builder;
@@ -38,9 +38,11 @@ public final class OfferInfoBuilder {
     private long minAmount;
     private String volume;
     private String minVolume;
-    private long makerFee;
-    private long buyerSecurityDeposit;
-    private long sellerSecurityDeposit;
+    private double makerFeePct;
+    private double takerFeePct;
+    private double penaltyFeePct;
+    private double buyerSecurityDepositPct;
+    private double sellerSecurityDepositPct;
     private String triggerPrice;
     private boolean isCurrencyForMakerFeeBtc;
     private String paymentAccountId;
@@ -59,6 +61,10 @@ public final class OfferInfoBuilder {
     private String versionNumber;
     private int protocolVersion;
     private String arbitratorSigner;
+    private String splitOutputTxHash;
+    private long splitOutputTxFee;
+    private boolean isPrivateOffer;
+    private String challenge;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -95,6 +101,31 @@ public final class OfferInfoBuilder {
         return this;
     }
 
+    public OfferInfoBuilder withMakerFeePct(double makerFeePct) {
+        this.makerFeePct = makerFeePct;
+        return this;
+    }
+
+    public OfferInfoBuilder withTakerFeePct(double takerFeePct) {
+        this.takerFeePct = takerFeePct;
+        return this;
+    }
+
+    public OfferInfoBuilder withPenaltyFeePct(double penaltyFeePct) {
+        this.penaltyFeePct = penaltyFeePct;
+        return this;
+    }
+
+    public OfferInfoBuilder withBuyerSecurityDepositPct(double buyerSecurityDepositPct) {
+        this.buyerSecurityDepositPct = buyerSecurityDepositPct;
+        return this;
+    }
+
+    public OfferInfoBuilder withSellerSecurityDepositPct(double sellerSecurityDepositPct) {
+        this.sellerSecurityDepositPct = sellerSecurityDepositPct;
+        return this;
+    }
+
     public OfferInfoBuilder withVolume(String volume) {
         this.volume = volume;
         return this;
@@ -102,21 +133,6 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withMinVolume(String minVolume) {
         this.minVolume = minVolume;
-        return this;
-    }
-
-    public OfferInfoBuilder withMakerFee(long makerFee) {
-        this.makerFee = makerFee;
-        return this;
-    }
-
-    public OfferInfoBuilder withBuyerSecurityDeposit(long buyerSecurityDeposit) {
-        this.buyerSecurityDeposit = buyerSecurityDeposit;
-        return this;
-    }
-
-    public OfferInfoBuilder withSellerSecurityDeposit(long sellerSecurityDeposit) {
-        this.sellerSecurityDeposit = sellerSecurityDeposit;
         return this;
     }
 
@@ -207,6 +223,26 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withArbitratorSigner(String arbitratorSigner) {
         this.arbitratorSigner = arbitratorSigner;
+        return this;
+    }
+    
+    public OfferInfoBuilder withSplitOutputTxHash(String splitOutputTxHash) {
+        this.splitOutputTxHash = splitOutputTxHash;
+        return this;
+    }
+
+    public OfferInfoBuilder withSplitOutputTxFee(long splitOutputTxFee) {
+        this.splitOutputTxFee = splitOutputTxFee;
+        return this;
+    }
+
+    public OfferInfoBuilder withIsPrivateOffer(boolean isPrivateOffer) {
+        this.isPrivateOffer = isPrivateOffer;
+        return this;
+    }
+
+    public OfferInfoBuilder withChallenge(String challenge) {
+        this.challenge = challenge;
         return this;
     }
 

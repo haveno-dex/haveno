@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.overlays.windows;
@@ -41,7 +41,7 @@ public class TacWindow extends Overlay<TacWindow> {
             this.width = primaryScreenBoundsWidth * 0.8;
             log.warn("Very small screen: primaryScreenBounds=" + primaryScreenBounds.toString());
         } else {
-            width = 1100;
+            width = 1250;
         }
     }
 
@@ -70,15 +70,14 @@ public class TacWindow extends Overlay<TacWindow> {
                 "accordance with the Haveno arbitration rules as at present in force. The arbitration is conducted online. " +
                 "The language to be used in the arbitration proceedings shall be English if not otherwise stated.\n\n" +
 
-                "6. The user confirms that they have read and agreed to the rules regarding the dispute process:\n" +
+                "6. The user confirms that they have read and agreed to the rules regarding the trade and dispute processes:\n" +
                 "    - You must complete trades within the maximum duration specified for each payment method.\n" +
                 "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'monero', 'XMR', or 'Haveno'.\n" +
-                "    - If the bank of the fiat sender charges fees, the sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
+                "    - If the bank of the fiat sender charges fees, the fiat sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
+                "    - If either trader opens a dispute, the arbitrator can settle the dispute and pay out trade funds accordingly.\n" +
                 "    - In case of arbitration, you must cooperate with the arbitrator and respond to each message within 48 hours.\n" +
-                "    - In case of arbitration, the decision of the arbitrator is final.\n" +
-                "    - The arbitrator may charge a small fee (max. the traders security deposit) as compensation for their work.\n";
+                "    - The arbitrator may penalize offer makers and traders for breaching Haveno rules and the principle of acting in good faith within the network, up to the value of the security deposit.\n";
         message(text);
-        showScrollPane();
         actionButtonText(Res.get("tacWindow.agree"));
         closeButtonText(Res.get("tacWindow.disagree"));
         onClose(HavenoApp.getShutDownHandler());
@@ -90,11 +89,11 @@ public class TacWindow extends Overlay<TacWindow> {
     protected void addMessage() {
         super.addMessage();
         String fontStyleClass = smallScreen ? "small-text" : "normal-text";
-        messageLabel.getStyleClass().add(fontStyleClass);
+        messageTextArea.getStyleClass().add(fontStyleClass);
 
         // TODO: link to the wiki
         // HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
-        //         "https://bisq.wiki/Dispute_resolution");
+        //         "https://haveno.exchange/wiki/Dispute_resolution");
         // hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
         // GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
     }

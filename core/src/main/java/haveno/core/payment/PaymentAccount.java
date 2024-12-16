@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -120,6 +137,10 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     public boolean isFiat() {
         return getSingleTradeCurrency() == null || CurrencyUtil.isFiatCurrency(getSingleTradeCurrency().getCode()); // TODO: check if trade currencies contain fiat
+    }
+
+    public boolean isCryptoCurrency() {
+        return getSingleTradeCurrency() != null && CurrencyUtil.isCryptoCurrency(getSingleTradeCurrency().getCode());
     }
 
 
@@ -399,7 +420,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case ANSWER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_NAME:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case BANK_ACCOUNT_NUMBER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_TYPE:
@@ -498,7 +520,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case NATIONAL_ACCOUNT_ID:
             throw new IllegalArgumentException("Not implemented");
         case PAYID:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case PIX_KEY:
             throw new IllegalArgumentException("Not implemented");
         case POSTAL_ADDRESS:
@@ -533,7 +556,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             Optional<List<TradeCurrency>> tradeCurrencies =  CurrencyUtil.getTradeCurrenciesInList(currencyCodes, getSupportedCurrencies());
             if (!tradeCurrencies.isPresent()) throw new IllegalArgumentException("No trade currencies were found in the " + getPaymentMethod().getDisplayString() + " account form");
             break;
-        case USER_NAME:
+        case USERNAME:
+            processValidationResult(new LengthValidator(3, 100).validate(value));
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_USERNAME:
+            processValidationResult(new LengthValidator(3, 100).validate(value));
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_CASHTAG:
             processValidationResult(new LengthValidator(3, 100).validate(value));
             break;
         case ADDRESS:
@@ -579,7 +608,11 @@ public abstract class PaymentAccount implements PersistablePayload {
         case ANSWER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_NAME:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.account.owner"));
+            field.setMinLength(2);
+            field.setMaxLength(100);
+            break;
         case BANK_ACCOUNT_NUMBER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_TYPE:
@@ -707,7 +740,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case NATIONAL_ACCOUNT_ID:
             throw new IllegalArgumentException("Not implemented");
         case PAYID:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.email.mobile"));
+            break;
         case PIX_KEY:
             throw new IllegalArgumentException("Not implemented");
         case POSTAL_ADDRESS:
@@ -743,9 +778,21 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setSupportedCurrencies(getSupportedCurrencies());
             field.setValue(String.join(",", getSupportedCurrencies().stream().map(TradeCurrency::getCode).collect(Collectors.toList())));
             break;
-        case USER_NAME:
+        case USERNAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.account.userName"));
+            field.setLabel(Res.get("payment.account.username"));
+            field.setMinLength(3);
+            field.setMaxLength(100);
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_USERNAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.email.mobile.username"));
+            field.setMinLength(3);
+            field.setMaxLength(100);
+            break;
+        case EMAIL_OR_MOBILE_NR_OR_CASHTAG:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.email.mobile.cashtag"));
             field.setMinLength(3);
             field.setMaxLength(100);
             break;

@@ -1,23 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.openoffer;
 
 import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.offer.Offer;
@@ -46,9 +47,8 @@ class OpenOffersDataModel extends ActivatableDataModel {
     public OpenOffersDataModel(OpenOfferManager openOfferManager, PriceFeedService priceFeedService) {
         this.openOfferManager = openOfferManager;
         this.priceFeedService = priceFeedService;
-
-        tradesListChangeListener = change -> applyList();
-        currenciesUpdateFlagPropertyListener = (observable, oldValue, newValue) -> applyList();
+        tradesListChangeListener = change -> UserThread.execute(() -> applyList());
+        currenciesUpdateFlagPropertyListener = (observable, oldValue, newValue) -> UserThread.execute(() -> applyList());
     }
 
     @Override
@@ -85,10 +85,10 @@ class OpenOffersDataModel extends ActivatableDataModel {
         return openOfferManager.isMyOffer(offer) ? offer.getDirection() : offer.getMirroredDirection();
     }
 
-    private void applyList() {
+    private synchronized void applyList() {
         list.clear();
 
-        list.addAll(openOfferManager.getObservableList().stream().map(OpenOfferListItem::new).collect(Collectors.toList()));
+        list.addAll(openOfferManager.getOpenOffers().stream().map(OpenOfferListItem::new).collect(Collectors.toList()));
 
         // we sort by date, earliest first
         list.sort((o1, o2) -> o2.getOffer().getDate().compareTo(o1.getOffer().getDate()));

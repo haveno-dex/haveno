@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.seller;
@@ -109,37 +109,37 @@ public class SellerStep3View extends TradeStepView {
                 timeoutTimer.stop();
 
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
+                busyAnimation.stop();
+                statusLabel.setText("");
                 showPopup();
             } else if (trade.isPaymentReceived()) {
-                switch (state) {
-                    case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+                if (trade.isCompleted()) {
+                    if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
+                    busyAnimation.stop();
+                    statusLabel.setText("");
+                } else switch (state) {
+                    case SELLER_CONFIRMED_PAYMENT_RECEIPT:
                         busyAnimation.play();
                         statusLabel.setText(Res.get("shared.preparingConfirmation"));
                         break;
                     case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                         busyAnimation.play();
                         statusLabel.setText(Res.get("shared.sendingConfirmation"));
-
                         timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                        }, 10);
-                        break;
-                    case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
-                        busyAnimation.stop();
-                        statusLabel.setText(Res.get("shared.messageArrived"));
+                        }, 30);
                         break;
                     case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
                         busyAnimation.stop();
                         statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
                         break;
+                    case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+                        busyAnimation.stop();
+                        statusLabel.setText(Res.get("shared.messageArrived"));
+                        break;
                     case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
                         // We get a popup and the trade closed, so we dont need to show anything here
-                        busyAnimation.stop();
-                        statusLabel.setText("");
-                        break;
-                    case TRADE_COMPLETED:
-                        if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
                         busyAnimation.stop();
                         statusLabel.setText("");
                         break;
@@ -203,10 +203,8 @@ public class SellerStep3View extends TradeStepView {
                     .orElse("");
 
             if (myPaymentAccountPayload instanceof AssetAccountPayload) {
-                if (myPaymentDetails.isEmpty()) {
-                    // Not expected
-                    myPaymentDetails = ((AssetAccountPayload) myPaymentAccountPayload).getAddress();
-                }
+                // for crypto always display the receiving address
+                myPaymentDetails = ((AssetAccountPayload) myPaymentAccountPayload).getAddress();
                 peersPaymentDetails = peersPaymentAccountPayload != null ?
                         ((AssetAccountPayload) peersPaymentAccountPayload).getAddress() : "NA";
                 myTitle = Res.get("portfolio.pending.step3_seller.yourAddress", currencyName);
@@ -291,7 +289,8 @@ public class SellerStep3View extends TradeStepView {
 
     private boolean confirmPaymentReceivedPermitted() {
         if (!trade.confirmPermitted()) return false;
-        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal();
+        if (trade.getState() == Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG) return true;
+        return trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -443,13 +442,13 @@ public class SellerStep3View extends TradeStepView {
     private void confirmPaymentReceived() {
         log.info("User pressed the [Confirm payment receipt] button for Trade {}", trade.getShortId());
         busyAnimation.play();
-        statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        statusLabel.setText(Res.get("shared.preparingConfirmation"));
         confirmButton.setDisable(true);
 
         model.dataModel.onPaymentReceived(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
-            new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentReceivedPermitted());
             UserThread.execute(() -> statusLabel.setText("Error confirming payment received."));
         });

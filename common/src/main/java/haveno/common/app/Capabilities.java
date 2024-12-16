@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common.app;
@@ -59,7 +59,11 @@ public class Capabilities {
     }
 
     public Capabilities(Collection<Capability> capabilities) {
-        this.capabilities.addAll(capabilities);
+        synchronized (capabilities) {
+            synchronized (this.capabilities) {
+                this.capabilities.addAll(capabilities);
+            }
+        }
     }
 
     public void set(Capability... capabilities) {
@@ -71,21 +75,36 @@ public class Capabilities {
     }
 
     public void set(Collection<Capability> capabilities) {
-        this.capabilities.clear();
-        this.capabilities.addAll(capabilities);
+        synchronized (capabilities) {
+            synchronized (this.capabilities) {
+                this.capabilities.clear();
+                this.capabilities.addAll(capabilities);
+            }
+        }
     }
 
     public void addAll(Capability... capabilities) {
-        this.capabilities.addAll(Arrays.asList(capabilities));
+        synchronized (this.capabilities) {
+            this.capabilities.addAll(Arrays.asList(capabilities));
+        }
     }
 
     public void addAll(Capabilities capabilities) {
-        if (capabilities != null)
-            this.capabilities.addAll(capabilities.capabilities);
+        if (capabilities != null) {
+            synchronized (capabilities.capabilities) {
+                synchronized (this.capabilities) {
+                    this.capabilities.addAll(capabilities.capabilities);
+                }
+            }
+        }
     }
 
     public boolean containsAll(final Set<Capability> requiredItems) {
-        return capabilities.containsAll(requiredItems);
+        synchronized(requiredItems) {
+            synchronized (this.capabilities) {
+                return capabilities.containsAll(requiredItems);
+            }
+        }
     }
 
     public boolean containsAll(final Capabilities capabilities) {
@@ -93,15 +112,21 @@ public class Capabilities {
     }
 
     public boolean containsAll(Capability... capabilities) {
-        return this.capabilities.containsAll(Arrays.asList(capabilities));
+        synchronized (this.capabilities) {
+            return this.capabilities.containsAll(Arrays.asList(capabilities));
+        }
     }
 
     public boolean contains(Capability capability) {
-        return this.capabilities.contains(capability);
+        synchronized (this.capabilities) {
+            return this.capabilities.contains(capability);
+        }
     }
 
     public boolean isEmpty() {
-        return capabilities.isEmpty();
+        synchronized (this.capabilities) {
+            return capabilities.isEmpty();
+        }
     }
 
 
@@ -112,7 +137,9 @@ public class Capabilities {
      * @return int list of Capability ordinals
      */
     public static List<Integer> toIntList(Capabilities capabilities) {
-        return capabilities.capabilities.stream().map(Enum::ordinal).sorted().collect(Collectors.toList());
+        synchronized (capabilities.capabilities) {
+            return capabilities.capabilities.stream().map(Enum::ordinal).sorted().collect(Collectors.toList());
+        }
     }
 
     /**
@@ -122,11 +149,13 @@ public class Capabilities {
      * @return a {@link Capabilities} object
      */
     public static Capabilities fromIntList(List<Integer> capabilities) {
-        return new Capabilities(capabilities.stream()
-                .filter(integer -> integer < Capability.values().length)
-                .filter(integer -> integer >= 0)
-                .map(integer -> Capability.values()[integer])
-                .collect(Collectors.toSet()));
+        synchronized (capabilities) {
+            return new Capabilities(capabilities.stream()
+                    .filter(integer -> integer < Capability.values().length)
+                    .filter(integer -> integer >= 0)
+                    .map(integer -> Capability.values()[integer])
+                    .collect(Collectors.toSet()));
+        }
     }
 
     /**
@@ -164,7 +193,9 @@ public class Capabilities {
     }
 
     public static boolean hasMandatoryCapability(Capabilities capabilities, Capability mandatoryCapability) {
-        return capabilities.capabilities.stream().anyMatch(c -> c == mandatoryCapability);
+        synchronized (capabilities.capabilities) {
+            return capabilities.capabilities.stream().anyMatch(c -> c == mandatoryCapability);
+        }
     }
 
     @Override
@@ -173,10 +204,12 @@ public class Capabilities {
     }
 
     public String prettyPrint() {
-        return capabilities.stream()
-                .sorted(Comparator.comparingInt(Enum::ordinal))
-                .map(e -> e.name() + " [" + e.ordinal() + "]")
-                .collect(Collectors.joining(", "));
+        synchronized (capabilities) {
+            return capabilities.stream()
+                    .sorted(Comparator.comparingInt(Enum::ordinal))
+                    .map(e -> e.name() + " [" + e.ordinal() + "]")
+                    .collect(Collectors.joining(", "));
+        }
     }
 
     public int size() {
@@ -192,8 +225,10 @@ public class Capabilities {
     // Neither would support removal of past capabilities, a use case we never had so far and which might have
     // backward compatibility issues, so we should treat capabilities as an append-only data structure.
     public int findHighestCapability(Capabilities capabilities) {
-        return (int) capabilities.capabilities.stream()
-                .mapToLong(e -> (long) e.ordinal())
-                .sum();
+        synchronized (capabilities.capabilities) {
+            return (int) capabilities.capabilities.stream()
+                    .mapToLong(e -> (long) e.ordinal())
+                    .sum();
+        }
     }
 }

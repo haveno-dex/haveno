@@ -48,8 +48,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
 
             // update state from message
-            processModel.setPaymentSentMessage(message);
-            trade.setPayoutTxHex(message.getPayoutTxHex());
+            trade.getBuyer().setPaymentSentMessage(message);
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
@@ -59,13 +58,6 @@ public class ProcessPaymentSentMessage extends TradeTask {
 
             // if seller, decrypt buyer's payment account payload
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
-            trade.requestPersistence();
-            
-            // import multisig hex
-            trade.importMultisigHex();
-
-            // save wallet
-            trade.saveWallet();
 
             // update state
             trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);

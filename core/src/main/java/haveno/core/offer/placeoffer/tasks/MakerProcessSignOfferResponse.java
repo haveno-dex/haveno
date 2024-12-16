@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer.placeoffer.tasks;
@@ -42,11 +42,14 @@ public class MakerProcessSignOfferResponse extends Task<PlaceOfferModel> {
             
             // validate arbitrator signature
             if (!HavenoUtils.isArbitratorSignatureValid(model.getSignOfferResponse().getSignedOfferPayload(), arbitrator)) {
-                throw new RuntimeException("Offer payload has invalid arbitrator signature");
+                throw new RuntimeException("Arbitrator's offer payload has invalid signature, offerId=" + offer.getId());
             }
             
             // set arbitrator signature for maker's offer
             offer.getOfferPayload().setArbitratorSignature(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature());
+            if (!HavenoUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator)) {
+                throw new RuntimeException("Maker's offer payload has invalid signature, offerId=" + offer.getId());
+            }
             offer.setState(Offer.State.AVAILABLE);
             complete();
         } catch (Exception e) {

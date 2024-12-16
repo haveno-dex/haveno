@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -28,13 +28,15 @@ import lombok.NonNull;
 
 import java.util.List;
 
-// Removed due too high chargeback risk
-// Cannot be deleted as it would break old trade history entries
-@Deprecated
 @EqualsAndHashCode(callSuper = true)
 public final class VenmoAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR_OR_USERNAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT);
 
     public VenmoAccount() {
         super(PaymentMethod.VENMO);
@@ -53,22 +55,15 @@ public final class VenmoAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
-    public void setVenmoUserName(String venmoUserName) {
-        ((VenmoAccountPayload) paymentAccountPayload).setVenmoUserName(venmoUserName);
+    public void setNameOrUsernameOrEmailOrMobileNr(String usernameOrEmailOrMobileNr) {
+        ((VenmoAccountPayload) paymentAccountPayload)
+                .setEmailOrMobileNrOrUsername(usernameOrEmailOrMobileNr);
     }
 
-    public String getVenmoUserName() {
-        return ((VenmoAccountPayload) paymentAccountPayload).getVenmoUserName();
-    }
-
-    public void setHolderName(String holderName) {
-        ((VenmoAccountPayload) paymentAccountPayload).setHolderName(holderName);
-    }
-
-    public String getHolderName() {
-        return ((VenmoAccountPayload) paymentAccountPayload).getHolderName();
+    public String getNameOrUsernameOrEmailOrMobileNr() {
+        return ((VenmoAccountPayload) paymentAccountPayload).getEmailOrMobileNrOrUsername();
     }
 }

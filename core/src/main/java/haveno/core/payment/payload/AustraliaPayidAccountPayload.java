@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment.payload;
@@ -38,6 +38,7 @@ import java.util.Map;
 public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
     private String payid = "";
     private String bankAccountName = "";
+    private String extraInfo = "";
 
     public AustraliaPayidAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -52,6 +53,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                                          String id,
                                          String payid,
                                          String bankAccountName,
+                                         String extraInfo,
                                          long maxTradePeriod,
                                          Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -61,6 +63,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
 
         this.payid = payid;
         this.bankAccountName = bankAccountName;
+        this.extraInfo = extraInfo;
     }
 
     @Override
@@ -70,6 +73,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                         protobuf.AustraliaPayidPayload.newBuilder()
                                 .setPayid(payid)
                                 .setBankAccountName(bankAccountName)
+                                .setExtraInfo(extraInfo)
                 ).build();
     }
 
@@ -79,6 +83,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                 proto.getId(),
                 AustraliaPayidPayload.getPayid(),
                 AustraliaPayidPayload.getBankAccountName(),
+                AustraliaPayidPayload.getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 CollectionUtils.isEmpty(proto.getExcludeFromJsonDataMap()) ? null : new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -97,7 +102,8 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
     public String getPaymentDetailsForTradePopup() {
         return
                 Res.get("payment.australia.payid") + ": " + payid + "\n" +
-                        Res.get("payment.account.owner") + ": " + bankAccountName;
+                        Res.get("payment.account.owner") + ": " + bankAccountName + "\n" +
+                        Res.get("payment.shared.extraInfo") + ": " + extraInfo;
     }
 
 

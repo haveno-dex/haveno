@@ -5,10 +5,10 @@
         <!-- See: https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html -->
 
         <key>CFBundleVersion</key>
-        <string>1.0.11</string>
+        <string>1.0.14</string>
 
         <key>CFBundleShortVersionString</key>
-        <string>1.0.11</string>
+        <string>1.0.14</string>
 
         <key>CFBundleExecutable</key>
         <string>Haveno</string>
@@ -26,7 +26,7 @@
         <string>public.app-category.finance</string>
 
         <key>NSHumanReadableCopyright</key>
-        <string>Copyright © 2023 - The Haveno developers</string>
+        <string>Copyright © 2024 - The Haveno developers</string>
 
          <!-- Only supported in older OSX versions.
               See: https://github.com/bitcoin/bitcoin/issues/11896#issuecomment-352148399-->

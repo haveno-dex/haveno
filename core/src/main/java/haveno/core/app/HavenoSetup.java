@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,9 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -33,7 +53,9 @@ import haveno.core.alert.Alert;
 import haveno.core.alert.AlertManager;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.CoreContext;
+import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AmazonGiftCardAccount;
@@ -46,15 +68,12 @@ import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.TradeTxException;
 import haveno.core.user.Preferences;
-import haveno.core.user.User;
 import haveno.core.user.Preferences.UseTorForXmr;
+import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.setup.WalletsSetup;
-import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.Socks5ProxyProvider;
@@ -62,24 +81,6 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.utils.Utils;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.collections.SetChangeListener;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -90,24 +91,37 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.SetChangeListener;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Slf4j
 @Singleton
 public class HavenoSetup {
     private static final String VERSION_FILE_NAME = "version";
 
-    private static final long STARTUP_TIMEOUT_MINUTES = 5;
+    private static final long STARTUP_TIMEOUT_MINUTES = 4;
 
     private final DomainInitialisation domainInitialisation;
     private final P2PNetworkSetup p2PNetworkSetup;
     private final WalletAppSetup walletAppSetup;
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
-    private final BtcWalletService btcWalletService;
+    private final XmrConnectionService xmrConnectionService;
     @Getter
     private final XmrWalletService xmrWalletService;
     private final P2PService p2PService;
@@ -118,15 +132,19 @@ public class HavenoSetup {
     private final Preferences preferences;
     private final User user;
     private final AlertManager alertManager;
+    @Getter
     private final Config config;
+    @Getter
+    private final CoreContext coreContext;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
     private final CoinFormatter formatter;
-    private final LocalMoneroNode localMoneroNode;
+    private final XmrLocalNode xmrLocalNode;
     private final AppStartupState appStartupState;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final ArbitrationManager arbitrationManager;
+    private final StringProperty topErrorMsg = new SimpleStringProperty();
     @Setter
     @Nullable
     private Consumer<Runnable> displayTacHandler;
@@ -138,6 +156,9 @@ public class HavenoSetup {
             wrongOSArchitectureHandler, displaySignedByArbitratorHandler,
             displaySignedByPeerHandler, displayPeerLimitLiftedHandler, displayPeerSignerHandler,
             rejectedTxErrorMessageHandler;
+    @Setter
+    @Nullable
+    private Consumer<Boolean> displayMoneroConnectionFallbackHandler;        
     @Setter
     @Nullable
     private Consumer<Boolean> displayTorNetworkSettingsHandler;
@@ -181,6 +202,7 @@ public class HavenoSetup {
     private boolean allBasicServicesInitialized;
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> p2pNetworkAndWalletInitialized;
+    private Timer startupTimeout;
     private final List<HavenoSetupListener> havenoSetupListeners = new ArrayList<>();
 
     public interface HavenoSetupListener {
@@ -202,8 +224,8 @@ public class HavenoSetup {
                        WalletAppSetup walletAppSetup,
                        WalletsManager walletsManager,
                        WalletsSetup walletsSetup,
+                       XmrConnectionService xmrConnectionService,
                        XmrWalletService xmrWalletService,
-                       BtcWalletService btcWalletService,
                        P2PService p2PService,
                        PrivateNotificationManager privateNotificationManager,
                        SignedWitnessStorageService signedWitnessStorageService,
@@ -213,10 +235,11 @@ public class HavenoSetup {
                        User user,
                        AlertManager alertManager,
                        Config config,
+                       CoreContext coreContext,
                        AccountAgeWitnessService accountAgeWitnessService,
                        TorSetup torSetup,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                       LocalMoneroNode localMoneroNode,
+                       XmrLocalNode xmrLocalNode,
                        AppStartupState appStartupState,
                        Socks5ProxyProvider socks5ProxyProvider,
                        MediationManager mediationManager,
@@ -227,8 +250,8 @@ public class HavenoSetup {
         this.walletAppSetup = walletAppSetup;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
+        this.xmrConnectionService = xmrConnectionService;
         this.xmrWalletService = xmrWalletService;
-        this.btcWalletService = btcWalletService;
         this.p2PService = p2PService;
         this.privateNotificationManager = privateNotificationManager;
         this.signedWitnessStorageService = signedWitnessStorageService;
@@ -238,16 +261,18 @@ public class HavenoSetup {
         this.user = user;
         this.alertManager = alertManager;
         this.config = config;
+        this.coreContext = coreContext;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
         this.formatter = formatter;
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         this.appStartupState = appStartupState;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.arbitrationManager = arbitrationManager;
 
         HavenoUtils.havenoSetup = this;
+        HavenoUtils.preferences = preferences;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -340,32 +365,54 @@ public class HavenoSetup {
 
     private void maybeInstallDependencies() {
         try {
-            File monerodFile = new File(LocalMoneroNode.MONEROD_PATH);
-            String monerodResourcePath = "bin/" + LocalMoneroNode.MONEROD_NAME;
+
+            // install monerod
+            File monerodFile = new File(XmrLocalNode.MONEROD_PATH);
+            String monerodResourcePath = "bin/" + XmrLocalNode.MONEROD_NAME;
             if (!monerodFile.exists() || !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile)) {
                 log.info("Installing monerod");
                 monerodFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile("bin/" + LocalMoneroNode.MONEROD_NAME, monerodFile);
+                FileUtil.resourceToFile("bin/" + XmrLocalNode.MONEROD_NAME, monerodFile);
                 monerodFile.setExecutable(true);
             }
 
-            File moneroWalletFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
-            String moneroWalletResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
-            if (!moneroWalletFile.exists() || !FileUtil.resourceEqualToFile(moneroWalletResourcePath, moneroWalletFile)) {
+            // install monero-wallet-rpc
+            File moneroWalletRpcFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
+            String moneroWalletRpcResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
+            if (!moneroWalletRpcFile.exists() || !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile)) {
                 log.info("Installing monero-wallet-rpc");
-                moneroWalletFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile(moneroWalletResourcePath, moneroWalletFile);
-                moneroWalletFile.setExecutable(true);
+                moneroWalletRpcFile.getParentFile().mkdirs();
+                FileUtil.resourceToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile);
+                moneroWalletRpcFile.setExecutable(true);
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error(e.toString());
+            log.warn("Failed to install Monero binaries: {}\n", e.getMessage(), e);
         }
     }
 
     private void readMapsFromResources(Runnable completeHandler) {
         String postFix = "_" + config.baseCurrencyNetwork.name();
         p2PService.getP2PDataStorage().readFromResources(postFix, completeHandler);
+    }
+
+    private synchronized void resetStartupTimeout() {
+        if (p2pNetworkAndWalletInitialized != null && p2pNetworkAndWalletInitialized.get()) return; // skip if already initialized
+        if (startupTimeout != null) startupTimeout.stop();
+        startupTimeout = UserThread.runAfter(() -> {
+            if (p2PNetworkSetup.p2pNetworkFailed.get() || walletsSetup.walletsSetupFailed.get()) {
+                // Skip this timeout action if the p2p network or wallet setup failed
+                // since an error prompt will be shown containing the error message
+                return;
+            }
+            log.warn("startupTimeout called");
+            if (displayTorNetworkSettingsHandler != null)
+                displayTorNetworkSettingsHandler.accept(true);
+
+            // log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
+            //         "Tor network connection issues");
+            // Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
+
+        }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
     }
 
     private void startP2pNetworkAndWallet(Runnable nextStep) {
@@ -375,24 +422,18 @@ public class HavenoSetup {
                 displayTorNetworkSettingsHandler.accept(true);
         };
 
-        Timer startupTimeout = UserThread.runAfter(() -> {
-            if (p2PNetworkSetup.p2pNetworkFailed.get() || walletsSetup.walletsSetupFailed.get()) {
-                // Skip this timeout action if the p2p network or wallet setup failed
-                // since an error prompt will be shown containing the error message
-                return;
-            }
-            log.warn("startupTimeout called");
-            //TODO (niyid) This has a part to play in the display of the password prompt
-//            if (walletsManager.areWalletsEncrypted())
-//                walletInitialized.addListener(walletInitializedListener);
-            if (displayTorNetworkSettingsHandler != null)
-                displayTorNetworkSettingsHandler.accept(true);
+        // start startup timeout
+        resetStartupTimeout();
 
-            // log.info("Set log level for org.berndpruenster.netlayer classes to DEBUG to show more details for " +
-            //         "Tor network connection issues");
-            // Log.setCustomLogLevel("org.berndpruenster.netlayer", Level.DEBUG);
+        // reset startup timeout on progress
+        getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
+        getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
 
-        }, STARTUP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        // listen for fallback handling
+        getConnectionServiceFallbackHandlerActive().addListener((observable, oldValue, newValue) -> {
+            if (displayMoneroConnectionFallbackHandler == null) return;
+            displayMoneroConnectionFallbackHandler.accept(newValue);
+        });
 
         log.info("Init P2P network");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
@@ -421,11 +462,7 @@ public class HavenoSetup {
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 showFirstPopupIfResyncSPVRequestedHandler,
                 showPopupIfInvalidBtcConfigHandler,
-                () -> {
-                    if (allBasicServicesInitialized) {
-                        checkForLockedUpFunds();
-                    }
-                },
+                () -> {},
                 () -> {});
     }
 
@@ -437,10 +474,6 @@ public class HavenoSetup {
                 filterWarningHandler,
                 revolutAccountsUpdateHandler,
                 amazonGiftCardAccountsUpdateHandler);
-
-        if (walletsSetup.downloadPercentageProperty().get() == 1) { // TODO: update for XMR
-            checkForLockedUpFunds();
-        }
 
         alertManager.alertMessageProperty().addListener((observable, oldValue, newValue) ->
                 displayAlertIfPresent(newValue, false));
@@ -455,32 +488,6 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void checkForLockedUpFunds() {
-        // We check if there are locked up funds in failed or closed trades
-        try {
-            Set<String> setOfAllTradeIds = tradeManager.getSetOfFailedOrClosedTradeIdsFromLockedInFunds();
-            btcWalletService.getAddressEntriesForTrade().stream()
-                    .filter(e -> setOfAllTradeIds.contains(e.getOfferId()) &&
-                            e.getContext() == AddressEntry.Context.MULTI_SIG)
-                    .forEach(e -> {
-                        Coin balance = e.getCoinLockedInMultiSigAsCoin();
-                        if (balance.isPositive()) {
-                            String message = Res.get("popup.warning.lockedUpFunds",
-                                    formatter.formatCoinWithCode(balance), e.getAddressString(), e.getOfferId());
-                            log.warn(message);
-                            if (lockedUpFundsHandler != null) {
-                                lockedUpFundsHandler.accept(message);
-                            }
-                        }
-                    });
-        } catch (TradeTxException e) {
-            log.warn(e.getMessage());
-            if (lockedUpFundsHandler != null) {
-                lockedUpFundsHandler.accept(e.getMessage());
-            }
-        }
-    }
 
     @Nullable
     public static String getLastHavenoVersion() {
@@ -622,7 +629,7 @@ public class HavenoSetup {
     }
 
     private void maybeShowLocalhostRunningInfo() {
-        maybeTriggerDisplayHandler("moneroLocalhostNode", displayLocalhostHandler, localMoneroNode.shouldBeUsed());
+        maybeTriggerDisplayHandler("xmrLocalNode", displayLocalhostHandler, xmrLocalNode.shouldBeUsed());
     }
 
     private void maybeShowAccountSigningStateInfo() {
@@ -715,12 +722,24 @@ public class HavenoSetup {
         return walletAppSetup.getXmrInfo();
     }
 
-    public DoubleProperty getXmrSyncProgress() {
-        return walletAppSetup.getXmrSyncProgress();
+    public DoubleProperty getXmrDaemonSyncProgress() {
+        return walletAppSetup.getXmrDaemonSyncProgress();
     }
 
-    public StringProperty getWalletServiceErrorMsg() {
-        return walletAppSetup.getWalletServiceErrorMsg();
+    public DoubleProperty getXmrWalletSyncProgress() {
+        return walletAppSetup.getXmrWalletSyncProgress();
+    }
+
+    public StringProperty getConnectionServiceErrorMsg() {
+        return xmrConnectionService.getConnectionServiceErrorMsg();
+    }
+
+    public BooleanProperty getConnectionServiceFallbackHandlerActive() {
+        return xmrConnectionService.getConnectionServiceFallbackHandlerActive();
+    }
+
+    public StringProperty getTopErrorMsg() {
+        return topErrorMsg;
     }
 
     public StringProperty getXmrSplashSyncIconId() {

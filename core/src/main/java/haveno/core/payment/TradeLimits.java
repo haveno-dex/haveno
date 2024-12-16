@@ -1,37 +1,38 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.util.MathUtils;
 import haveno.core.trade.HavenoUtils;
+import java.math.BigInteger;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.math.BigInteger;
 
 @Slf4j
 @Singleton
 public class TradeLimits {
-    private static final BigInteger MAX_TRADE_LIMIT = HavenoUtils.xmrToAtomicUnits(20.0); // max trade limit for lowest risk payment method. Others will get derived from that.
+    private static final BigInteger MAX_TRADE_LIMIT = HavenoUtils.xmrToAtomicUnits(528); // max trade limit for lowest risk payment method. Others will get derived from that.
+    private static final BigInteger MAX_TRADE_LIMIT_WITHOUT_BUYER_AS_TAKER_DEPOSIT = HavenoUtils.xmrToAtomicUnits(1); // max trade limit without deposit from buyer
+
     @Nullable
     @Getter
     private static TradeLimits INSTANCE;
@@ -56,6 +57,15 @@ public class TradeLimits {
      */
     public BigInteger getMaxTradeLimit() {
        return MAX_TRADE_LIMIT;
+    }
+
+    /**
+     * The maximum trade limit without a buyer deposit.
+     * 
+     * @return the maximum trade limit for a buyer without a deposit
+     */
+    public BigInteger getMaxTradeLimitBuyerAsTakerWithoutDeposit() {
+        return MAX_TRADE_LIMIT_WITHOUT_BUYER_AS_TAKER_DEPOSIT;
     }
 
     // We possibly rounded value for the first month gets multiplied by 4 to get the trade limit after the account

@@ -1,25 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main;
 
+import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXProgressBar;
 import haveno.common.HavenoException;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -55,6 +55,10 @@ import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Transitions;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.Locale;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -81,6 +85,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
+import static javafx.scene.layout.AnchorPane.setBottomAnchor;
+import static javafx.scene.layout.AnchorPane.setLeftAnchor;
+import static javafx.scene.layout.AnchorPane.setRightAnchor;
+import static javafx.scene.layout.AnchorPane.setTopAnchor;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -92,17 +100,6 @@ import javafx.util.Duration;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Date;
-import java.util.Locale;
-
-import static javafx.scene.layout.AnchorPane.setBottomAnchor;
-import static javafx.scene.layout.AnchorPane.setLeftAnchor;
-import static javafx.scene.layout.AnchorPane.setRightAnchor;
-import static javafx.scene.layout.AnchorPane.setTopAnchor;
 
 @FxmlView
 @Slf4j
@@ -168,8 +165,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             MainView.rootContainer.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
 
         ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market").toUpperCase());
-        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buy").toUpperCase());
-        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sell").toUpperCase());
+        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyXmr").toUpperCase());
+        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellXmr").toUpperCase());
         ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
         ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
@@ -226,7 +223,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
-        availableBalanceBox.first.setPrefWidth(105);
+        availableBalanceBox.first.setPrefWidth(112);
         availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
                 bind(model.getAvailableBalance());
@@ -355,23 +352,24 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         settingsButtonWithBadge.getStyleClass().add("new");
 
         navigation.addListener((viewPath, data) -> {
-            if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0)
-                return;
+            UserThread.await(() -> {
+                if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0) return;
 
-            Class<? extends View> viewClass = viewPath.tip();
-            View view = viewLoader.load(viewClass);
-            contentContainer.getChildren().setAll(view.getRoot());
+                Class<? extends View> viewClass = viewPath.tip();
+                View view = viewLoader.load(viewClass);
+                contentContainer.getChildren().setAll(view.getRoot());
 
-            try {
-                navButtons.getToggles().stream()
-                        .filter(toggle -> toggle instanceof NavButton)
-                        .filter(button -> viewClass == ((NavButton) button).viewClass)
-                        .findFirst()
-                        .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
-                        .setSelected(true);
-            } catch (HavenoException e) {
-                navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
-            }
+                try {
+                    navButtons.getToggles().stream()
+                            .filter(toggle -> toggle instanceof NavButton)
+                            .filter(button -> viewClass == ((NavButton) button).viewClass)
+                            .findFirst()
+                            .orElseThrow(() -> new HavenoException("No button matching %s found", viewClass))
+                            .setSelected(true);
+                } catch (HavenoException e) {
+                    navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
+                }
+            });
         });
 
         VBox splashScreen = createSplashScreen();
@@ -429,14 +427,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         return new ListCell<>() {
             @Override
             protected void updateItem(PriceFeedComboBoxItem item, boolean empty) {
-                UserThread.execute(() -> {
-                    super.updateItem(item, empty);
-                    if (!empty && item != null) {
-                        textProperty().bind(item.displayStringProperty);
-                    } else {
-                        textProperty().unbind();
-                    }
-                });
+                super.updateItem(item, empty);
+                if (!empty && item != null) {
+                    textProperty().bind(item.displayStringProperty);
+                } else {
+                    textProperty().unbind();
+                }
             }
         };
     }
@@ -521,9 +517,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             xmrSplashInfo.setId("splash-error-state-msg");
             xmrSplashInfo.getStyleClass().add("error-text");
         };
-        model.getWalletServiceErrorMsg().addListener(walletServiceErrorMsgListener);
+        model.getConnectionServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
-        xmrSyncIndicator = new JFXProgressBar();
+        xmrSyncIndicator = new ProgressBar();
         xmrSyncIndicator.setPrefWidth(305);
         xmrSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
@@ -536,8 +532,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             xmrSyncIcon.setVisible(true);
             xmrSyncIcon.setManaged(true);
 
-            xmrSyncIndicator.setVisible(false);
-            xmrSyncIndicator.setManaged(false);
+            // show progress bar until we have checkmark id
+            boolean inProgress = "".equals(newValue);
+            xmrSyncIndicator.setVisible(inProgress);
+            xmrSyncIndicator.setManaged(inProgress);
         };
         model.getXmrSplashSyncIconId().addListener(xmrSyncIconIdListener);
 
@@ -628,7 +626,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     }
 
     private void disposeSplashScreen() {
-        model.getWalletServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
+        model.getConnectionServiceErrorMsg().removeListener(walletServiceErrorMsgListener);
         model.getXmrSplashSyncIconId().removeListener(xmrSyncIconIdListener);
 
         model.getP2pNetworkWarnMsg().removeListener(splashP2PNetworkErrorMsgListener);
@@ -666,18 +664,26 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         //blockchainSyncIndicator.setMaxHeight(10);
         //blockchainSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
-        model.getWalletServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
+        model.getConnectionServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
                 xmrInfoLabel.setId("splash-error-state-msg");
                 xmrInfoLabel.getStyleClass().add("error-text");
-                // if (xmrNetworkWarnMsgPopup == null) {
-                //     xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
-                //     xmrNetworkWarnMsgPopup.show();
-                // }
+                if (xmrNetworkWarnMsgPopup == null) {
+                    xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
+                    xmrNetworkWarnMsgPopup.show();
+                }
             } else {
                 xmrInfoLabel.setId("footer-pane");
-                // if (xmrNetworkWarnMsgPopup != null)
-                //     xmrNetworkWarnMsgPopup.hide();
+                xmrInfoLabel.getStyleClass().remove("error-text");
+                if (xmrNetworkWarnMsgPopup != null)
+                    xmrNetworkWarnMsgPopup.hide();
+            }
+        });
+
+        model.getTopErrorMsg().addListener((ov, oldValue, newValue) -> {
+            log.warn("Top level warning: " + newValue);
+            if (newValue != null) {
+                new Popup().warning(newValue).show();
             }
         });
 
@@ -770,14 +776,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                p2PNetworkIcon.setOpacity(1);
-                p2pNetworkProgressBar.setProgress(0);
-            });
-        });
+        model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
+            p2PNetworkIcon.setOpacity(1);
+            p2pNetworkProgressBar.setProgress(0);
+        }));
 
-        p2pNetworkProgressBar = new JFXProgressBar(-1);
+        p2pNetworkProgressBar = new ProgressBar(-1);
         p2pNetworkProgressBar.setMaxHeight(2);
         p2pNetworkProgressBar.prefWidthProperty().bind(p2PNetworkLabel.widthProperty());
 
@@ -797,12 +801,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private void setupBadge(JFXBadge buttonWithBadge, StringProperty badgeNumber, BooleanProperty badgeEnabled) {
         buttonWithBadge.textProperty().bind(badgeNumber);
         buttonWithBadge.setEnabled(badgeEnabled.get());
-        badgeEnabled.addListener((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                buttonWithBadge.setEnabled(newValue);
-                buttonWithBadge.refreshBadge();
-            });
-        });
+        badgeEnabled.addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
+            buttonWithBadge.setEnabled(newValue);
+            buttonWithBadge.refreshBadge();
+        }));
 
         buttonWithBadge.setPosition(Pos.TOP_RIGHT);
         buttonWithBadge.setMinHeight(34);

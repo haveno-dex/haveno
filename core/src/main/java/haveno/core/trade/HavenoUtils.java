@@ -19,41 +19,62 @@ package haveno.core.trade;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
+
+import common.utils.GenUtils;
 import haveno.common.config.Config;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
+import haveno.common.file.FileUtil;
+import haveno.common.util.Base64;
 import haveno.common.util.Utilities;
+import haveno.core.api.CoreNotificationService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
+import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
+
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
+
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
+
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroOutput;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+
 import org.bitcoinj.core.Coin;
 
 /**
@@ -62,8 +83,37 @@ import org.bitcoinj.core.Coin;
 @Slf4j
 public class HavenoUtils {
 
-    // Use the US locale as a base for all DecimalFormats (commas should be omitted from number strings).
-    private static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
+    // configure release date
+    private static final String RELEASE_DATE = "25-05-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "25-05-2024 00:00:00"
+    public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
+    public static final int WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS = 182; // number of days to warn if sell offer exceeds unsigned buy limit
+    public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 60;
+
+    // configure fees
+    public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
+    public static final double PENALTY_FEE_PCT = 0.02; // 2%
+    public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
+    public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
+    public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
+
+    // other configuration
+    public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
+    public static final long LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
+    public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
+
+    // synchronize requests to the daemon
+    private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?
+    private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
+    private static Object DAEMON_LOCK = new Object();
+    public static Object getDaemonLock() {
+        return SYNC_DAEMON_REQUESTS ? DAEMON_LOCK : new Object();
+    }
+    public static Object getWalletFunctionLock() {
+        return SYNC_WALLET_REQUESTS ? getDaemonLock() : new Object();
+    }
+
+    // non-configurable
+    public static final DecimalFormatSymbols DECIMAL_FORMAT_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US); // use the US locale as a base for all DecimalFormats (commas should be omitted from number strings)
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
@@ -71,12 +121,49 @@ public class HavenoUtils {
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-    private static final int POOL_SIZE = 10;
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-    // TODO: better way to share references?
-    public static ArbitrationManager arbitrationManager;
+    // shared references TODO: better way to share references?
     public static HavenoSetup havenoSetup;
+    public static ArbitrationManager arbitrationManager;
+    public static XmrWalletService xmrWalletService;
+    public static XmrConnectionService xmrConnectionService;
+    public static OpenOfferManager openOfferManager;
+    public static CoreNotificationService notificationService;
+    public static Preferences preferences;
+
+    public static boolean isSeedNode() {
+        return havenoSetup == null;
+    }
+
+    public static boolean isDaemon() {
+        if (isSeedNode()) return true;
+        return havenoSetup.getCoreContext().isApiUser();
+    }
+
+    @SuppressWarnings("unused")
+    public static Date getReleaseDate() {
+        if (RELEASE_DATE == null) return null;
+        try {
+            return DATE_FORMAT.parse(RELEASE_DATE);
+        } catch (Exception e) {
+            log.error("Failed to parse release date: " + RELEASE_DATE, e);
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public static boolean isReleasedWithinDays(int days) {
+        Date releaseDate = getReleaseDate();
+        if (releaseDate == null) return false;
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(releaseDate);
+        calendar.add(Calendar.DATE, days);
+        Date releaseDatePlusDays = calendar.getTime();
+        return new Date().before(releaseDatePlusDays);
+    }
+
+    public static void waitFor(long waitMs) {
+        GenUtils.waitFor(waitMs);
+    }
 
     // ----------------------- CONVERSION UTILS -------------------------------
 
@@ -97,7 +184,7 @@ public class HavenoUtils {
     }
 
     public static long atomicUnitsToCentineros(long atomicUnits) {
-        return atomicUnits / CENTINEROS_AU_MULTIPLIER;
+        return atomicUnitsToCentineros(BigInteger.valueOf(atomicUnits));
     }
 
     public static long atomicUnitsToCentineros(BigInteger atomicUnits) {
@@ -121,7 +208,7 @@ public class HavenoUtils {
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return BigDecimal.valueOf(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+        return new BigDecimal(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
     }
 
     public static long xmrToCentineros(double xmr) {
@@ -133,7 +220,11 @@ public class HavenoUtils {
     }
 
     public static double divide(BigInteger auDividend, BigInteger auDivisor) {
-        return (double) atomicUnitsToCentineros(auDividend) / (double) atomicUnitsToCentineros(auDivisor);
+        return atomicUnitsToXmr(auDividend) / atomicUnitsToXmr(auDivisor);
+    }
+
+    public static BigInteger multiply(BigInteger amount1, double amount2) {
+        return amount1 == null ? null : new BigDecimal(amount1).multiply(BigDecimal.valueOf(amount2)).toBigInteger();
     }
 
     // ------------------------- FORMAT UTILS ---------------------------------
@@ -175,6 +266,10 @@ public class HavenoUtils {
         return applyDecimals(formatted, Math.max(2, decimalPlaces)) + (appendCode ? " XMR" : "");
     }
 
+    public static String formatPercent(double percent) {
+        return (percent * 100) + "%";
+    }
+
     private static String applyDecimals(String decimalStr, int decimalPlaces) {
         if (decimalStr.contains(".")) return decimalStr + getNumZeros(decimalPlaces - (decimalStr.length() - decimalStr.indexOf(".") - 1));
         else return decimalStr + "." + getNumZeros(decimalPlaces);
@@ -187,59 +282,50 @@ public class HavenoUtils {
     }
 
     public static BigInteger parseXmr(String input) {
-        if (input == null || input.length() == 0) return BigInteger.valueOf(0);
+        if (input == null || input.length() == 0) return BigInteger.ZERO;
         try {
-            return xmrToAtomicUnits(new BigDecimal(input).doubleValue());
+            return new BigDecimal(input).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
         } catch (Exception e) {
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
         }
-    }
-
-    // ------------------------------ FEE UTILS -------------------------------
-
-    @Nullable
-    public static BigInteger getMakerFee(@Nullable BigInteger amount) {
-        if (amount != null) {
-            BigInteger feePerXmr = getFeePerXmr(HavenoUtils.getMakerFeePerXmr(), amount);
-            return feePerXmr.max(HavenoUtils.getMinMakerFee());
-        } else {
-            return null;
-        }
-    }
-
-    @Nullable
-    public static BigInteger getTakerFee(@Nullable BigInteger amount) {
-        if (amount != null) {
-            BigInteger feePerXmr = HavenoUtils.getFeePerXmr(HavenoUtils.getTakerFeePerXmr(), amount);
-            return feePerXmr.max(HavenoUtils.getMinTakerFee());
-        } else {
-            return null;
-        }
-    }
-
-    private static BigInteger getMakerFeePerXmr() {
-        return HavenoUtils.xmrToAtomicUnits(0.001);
-    }
-
-    public static BigInteger getMinMakerFee() {
-        return HavenoUtils.xmrToAtomicUnits(0.00005);
-    }
-
-    private static BigInteger getTakerFeePerXmr() {
-        return HavenoUtils.xmrToAtomicUnits(0.003);
-    }
-
-    public static BigInteger getMinTakerFee() {
-        return HavenoUtils.xmrToAtomicUnits(0.00005);
-    }
-
-    public static BigInteger getFeePerXmr(BigInteger feePerXmr, BigInteger amount) {
-        BigDecimal feePerXmrAsDecimal = feePerXmr == null ? BigDecimal.valueOf(0) : new BigDecimal(feePerXmr);
-        BigDecimal amountMultiplier = BigDecimal.valueOf(divide(amount == null ? BigInteger.valueOf(0) : amount, HavenoUtils.xmrToAtomicUnits(1.0)));
-        return feePerXmrAsDecimal.multiply(amountMultiplier).toBigInteger();
     }
 
     // ------------------------ SIGNING AND VERIFYING -------------------------
+
+    public static String generateChallenge() {
+        try {
+
+            // load bip39 words
+            String fileName = "bip39_english.txt";
+            File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
+            if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
+            List<String> bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+
+            // select words randomly
+            List<String> passphraseWords = new ArrayList<String>();
+            SecureRandom secureRandom = new SecureRandom();
+            for (int i = 0; i < PRIVATE_OFFER_PASSPHRASE_NUM_WORDS; i++) {
+                passphraseWords.add(bip39Words.get(secureRandom.nextInt(bip39Words.size())));
+            }
+            return String.join(" ", passphraseWords);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to generate challenge", e);
+        }
+    }
+
+    public static String getChallengeHash(String challenge) {
+        if (challenge == null) return null;
+
+        // tokenize passphrase
+        String[] words = challenge.toLowerCase().split(" ");
+
+        // collect first 4 letters of each word, which are unique in bip39
+        List<String> prefixes = new ArrayList<String>();
+        for (String word : words) prefixes.add(word.substring(0, Math.min(word.length(), 4)));
+
+        // hash the result
+        return Base64.encode(Hash.getSha256Hash(String.join(" ", prefixes).getBytes()));
+    }
 
     public static byte[] sign(KeyRing keyRing, String message) {
         return sign(keyRing.getSignatureKeyPair().getPrivate(), message);
@@ -310,46 +396,6 @@ public class HavenoUtils {
     }
 
     /**
-     * Check if the maker signature for a trade request is valid.
-     *
-     * @param request is the trade request to check
-     * @return true if the maker's signature is valid for the trade request
-     */
-    public static boolean isMakerSignatureValid(InitTradeRequest request, byte[] signature, PubKeyRing makerPubKeyRing) {
-
-        // re-create trade request with signed fields
-        InitTradeRequest signedRequest = new InitTradeRequest(
-                request.getTradeId(),
-                request.getSenderNodeAddress(),
-                request.getPubKeyRing(),
-                request.getTradeAmount(),
-                request.getTradePrice(),
-                request.getTradeFee(),
-                request.getAccountId(),
-                request.getPaymentAccountId(),
-                request.getPaymentMethodId(),
-                request.getUid(),
-                request.getMessageVersion(),
-                request.getAccountAgeWitnessSignatureOfOfferId(),
-                request.getCurrentDate(),
-                request.getMakerNodeAddress(),
-                request.getTakerNodeAddress(),
-                null,
-                null,
-                null,
-                null,
-                request.getPayoutAddress(),
-                null
-                );
-
-        // get trade request as string
-        String tradeRequestAsJson = JsonUtil.objectToJson(signedRequest);
-
-        // verify maker signature
-        return isSignatureValid(makerPubKeyRing, tradeRequestAsJson, signature);
-    }
-
-    /**
      * Verify the buyer signature for a PaymentSentMessage.
      *
      * @param trade - the trade to verify
@@ -374,7 +420,7 @@ public class HavenoUtils {
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getOfferId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getOfferId());
     }
 
     /**
@@ -402,20 +448,15 @@ public class HavenoUtils {
         }
 
         // verify trade id
-        if (!trade.getId().equals(message.getTradeId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getTradeId());
+        if (!trade.getId().equals(message.getOfferId())) throw new IllegalArgumentException("The " + message.getClass().getSimpleName() + " has the wrong trade id, expected " + trade.getId() + " but was " + message.getOfferId());
 
         // verify buyer signature of payment sent message
-        verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
+        if (message.getPaymentSentMessage() != null) verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
     }
 
     // ----------------------------- OTHER UTILS ------------------------------
 
-    /**
-     * Get address to collect trade fees.
-     *
-     * @return the address which collects trade fees
-     */
-    public static String getTradeFeeAddress() {
+    public static String getGlobalTradeFeeAddress() {
         switch (Config.baseCurrencyNetwork()) {
         case XMR_LOCAL:
             return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
@@ -428,15 +469,48 @@ public class HavenoUtils {
         }
     }
 
+    public static String getBurnAddress() {
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
+        case XMR_STAGENET:
+            return "577XbZ8yGfrWJM3aAoCpHVgDCm5higshGVJBb4ZNpTYARp8rLcCdcA1J8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzmCbXF9hd";
+        case XMR_MAINNET:
+            return "46uVWiE1d4kWJM3aAoCpHVgDCm5higshGVJBb4ZNpTYARp8rLcCdcA1J8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzmCag5CXT";
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
+    }
+
     /**
      * Check if the given URI is on local host.
      */
-    public static boolean isLocalHost(String uri) {
+    public static boolean isLocalHost(String uriString) {
         try {
-            String host = new URI(uri).getHost();
+            String host = new URI(uriString).getHost();
             return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if the given URI is local or a private IP address.
+     */
+    public static boolean isPrivateIp(String uriString) {
+        if (isLocalHost(uriString)) return true;
+        try {
+
+            // get the host
+            URI uri = new URI(uriString);
+            String host = uri.getHost();
+
+            // check if private IP address
+            if (host == null) return false;
+            InetAddress inetAddress = InetAddress.getByName(host);
+            return inetAddress.isAnyLocalAddress() || inetAddress.isLoopbackAddress() || inetAddress.isSiteLocalAddress();
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -461,54 +535,6 @@ public class HavenoUtils {
         }
     }
 
-    /**
-     * Submit tasks to a global thread pool.
-     */
-    public static Future<?> submitTask(Runnable task) {
-        return POOL.submit(task);
-    }
-
-    public static List<Future<?>> submitTasks(List<Runnable> tasks) {
-        List<Future<?>> futures = new ArrayList<>();
-        for (Runnable task : tasks) futures.add(submitTask(task));
-        return futures;
-    }
-
-    // TODO: replace with GenUtils.executeTasks() once monero-java updated
-
-    public static void executeTasks(Collection<Runnable> tasks) {
-        executeTasks(tasks, tasks.size());
-    }
-
-    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency) {
-        executeTasks(tasks, maxConcurrency, null);
-    }
-
-    public static void executeTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutSeconds) {
-        if (tasks.isEmpty()) return;
-        ExecutorService pool = Executors.newFixedThreadPool(maxConcurrency);
-        List<Future<?>> futures = new ArrayList<>();
-        for (Runnable task : tasks) futures.add(pool.submit(task));
-        pool.shutdown();
-
-        // interrupt after timeout
-        if (timeoutSeconds != null) {
-            try {
-                if (!pool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) pool.shutdownNow();
-            } catch (InterruptedException e) {
-                pool.shutdownNow();
-                throw new RuntimeException(e);
-            }
-        }
-
-        // throw exception from any tasks
-        try {
-            for (Future<?> future : futures) future.get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static String toCamelCase(String underscore) {
         return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
     }
@@ -517,5 +543,110 @@ public class HavenoUtils {
         if (c1 == c2) return true;
         if (c1 == null) return false;
         return c1.equals(c2); // equality considers uri, username, and password
+    }
+
+    // TODO: move to monero-java MoneroTxWallet
+    public static MoneroDestination getDestination(String address, MoneroTxWallet tx) {
+        for (MoneroDestination destination : tx.getOutgoingTransfer().getDestinations()) {
+            if (address.equals(destination.getAddress())) return destination;
+        }
+        return null;
+    }
+
+    public static List<String> getInputKeyImages(MoneroTxWallet tx) {
+        List<String> inputKeyImages = new ArrayList<String>();
+        for (MoneroOutput input : tx.getInputs()) inputKeyImages.add(input.getKeyImage().getHex());
+        return inputKeyImages;
+    }
+
+    public static int getDefaultMoneroPort() {
+        if (Config.baseCurrencyNetwork().isMainnet()) return 18081;
+        else if (Config.baseCurrencyNetwork().isTestnet()) return 28081;
+        else if (Config.baseCurrencyNetwork().isStagenet()) return 38081;
+        else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
+    }
+
+    public static void setTopError(String msg) {
+        havenoSetup.getTopErrorMsg().set(msg);
+    }
+
+    public static boolean isConnectionRefused(Throwable e) {
+        return e != null && e.getMessage().contains("Connection refused");
+    }
+
+    public static boolean isReadTimeout(Throwable e) {
+        return e != null && e.getMessage().contains("Read timed out");
+    }
+
+    public static boolean isUnresponsive(Throwable e) {
+        return isConnectionRefused(e) || isReadTimeout(e);
+    }
+
+    public static boolean isNotEnoughSigners(Throwable e) {
+        return e != null && e.getMessage().contains("Not enough signers");
+    }
+
+    public static boolean isTransactionRejected(Throwable e) {
+        return e != null && e.getMessage().contains("was rejected");
+    }
+
+    public static boolean isIllegal(Throwable e) {
+        return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
+    }
+    
+    public static void playChimeSound() {
+        playAudioFile("chime.wav");
+    }
+
+    public static void playCashRegisterSound() {
+        playAudioFile("cash_register.wav");
+    }
+
+    private static void playAudioFile(String fileName) {
+        if (isDaemon()) return; // ignore if running as daemon
+        if (!preferences.getUseSoundForNotificationsProperty().get()) return; // ignore if sounds disabled
+        new Thread(() -> {
+            try {
+
+                // get audio file
+                File wavFile = new File(havenoSetup.getConfig().appDataDir, fileName);
+                if (!wavFile.exists()) FileUtil.resourceToFile(fileName, wavFile);
+                AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(wavFile);
+    
+                // get original format
+                AudioFormat baseFormat = audioInputStream.getFormat();
+    
+                // set target format: PCM_SIGNED, 16-bit, 44100 Hz
+                AudioFormat targetFormat = new AudioFormat(
+                    AudioFormat.Encoding.PCM_SIGNED,
+                    44100.0f,
+                    16, // 16-bit instead of 32-bit float
+                    baseFormat.getChannels(),
+                    baseFormat.getChannels() * 2, // Frame size: 2 bytes per channel (16-bit)
+                    44100.0f,
+                    false // Little-endian
+                );
+    
+                // convert audio to target format
+                AudioInputStream convertedStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);
+    
+                // play audio
+                DataLine.Info info = new DataLine.Info(SourceDataLine.class, targetFormat);
+                SourceDataLine sourceLine = (SourceDataLine) AudioSystem.getLine(info);
+                sourceLine.open(targetFormat);
+                sourceLine.start();
+                byte[] buffer = new byte[1024];
+                int bytesRead = 0;
+                while ((bytesRead = convertedStream.read(buffer, 0, buffer.length)) != -1) {
+                    sourceLine.write(buffer, 0, bytesRead);
+                }
+                sourceLine.drain();
+                sourceLine.close();
+                convertedStream.close();
+                audioInputStream.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

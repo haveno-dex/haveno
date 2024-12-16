@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.apitest.method.offer;
@@ -49,7 +49,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 "36000",
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 audAccount.getId());
         log.debug("Offer #1:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -64,7 +64,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3600", newOffer.getVolume());
         assertEquals("3600", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
@@ -80,7 +81,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3600", newOffer.getVolume());
         assertEquals("3600", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(audAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals("AUD", newOffer.getCounterCurrencyCode());
@@ -95,7 +97,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 "30000.1234",
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 usdAccount.getId());
         log.debug("Offer #2:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -110,7 +112,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3000", newOffer.getVolume());
         assertEquals("3000", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(USD, newOffer.getCounterCurrencyCode());
@@ -126,7 +129,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(10_000_000, newOffer.getMinAmount());
         assertEquals("3000", newOffer.getVolume());
         assertEquals("3000", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(USD, newOffer.getCounterCurrencyCode());
@@ -141,7 +145,7 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 "29500.1234",
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 eurAccount.getId());
         log.debug("Offer #3:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -156,7 +160,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(5_000_000, newOffer.getMinAmount());
         assertEquals("2950", newOffer.getVolume());
         assertEquals("1475", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(EUR, newOffer.getCounterCurrencyCode());
@@ -172,7 +177,8 @@ public class CreateOfferUsingFixedPriceTest extends AbstractOfferTest {
         assertEquals(5_000_000, newOffer.getMinAmount());
         assertEquals("2950", newOffer.getVolume());
         assertEquals("1475", newOffer.getMinVolume());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(eurAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(EUR, newOffer.getCounterCurrencyCode());

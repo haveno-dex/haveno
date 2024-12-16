@@ -1,3 +1,20 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package haveno.core.trade;
 
 import haveno.common.proto.ProtoUtil;
@@ -11,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.math.BigInteger;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 /**
  * Trade in the context of an arbitrator.
  */
@@ -19,19 +38,19 @@ public class ArbitratorTrade extends Trade {
 
   public ArbitratorTrade(Offer offer,
           BigInteger tradeAmount,
-          BigInteger takerFee,
           long tradePrice,
           XmrWalletService xmrWalletService,
           ProcessModel processModel,
           String uid,
           NodeAddress makerNodeAddress,
           NodeAddress takerNodeAddress,
-          NodeAddress arbitratorNodeAddress) {
-    super(offer, tradeAmount, takerFee, tradePrice, xmrWalletService, processModel, uid, makerNodeAddress, takerNodeAddress, arbitratorNodeAddress);
+          NodeAddress arbitratorNodeAddress,
+          @Nullable String challenge) {
+    super(offer, tradeAmount, tradePrice, xmrWalletService, processModel, uid, makerNodeAddress, takerNodeAddress, arbitratorNodeAddress, challenge);
   }
 
   @Override
-  public BigInteger getPayoutAmount() {
+  public BigInteger getPayoutAmountBeforeCost() {
     throw new RuntimeException("Arbitrator does not have a payout amount");
   }
 
@@ -59,14 +78,14 @@ public class ArbitratorTrade extends Trade {
       return fromProto(new ArbitratorTrade(
                       Offer.fromProto(proto.getOffer()),
                       BigInteger.valueOf(proto.getAmount()),
-                      BigInteger.valueOf(proto.getTakerFee()),
                       proto.getPrice(),
                       xmrWalletService,
                       processModel,
                       uid,
                       proto.getProcessModel().getMaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getMaker().getNodeAddress()) : null,
                       proto.getProcessModel().getTaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getTaker().getNodeAddress()) : null,
-                      proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null),
+                      proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null,
+                      ProtoUtil.stringOrNullFromProto(proto.getChallenge())),
               proto,
               coreProtoResolver);
   }

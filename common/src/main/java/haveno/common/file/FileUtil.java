@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common.file;
@@ -26,21 +26,28 @@ import org.apache.commons.io.IOUtils;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Scanner;
 
 @Slf4j
 public class FileUtil {
+
+    private static final String BACKUP_DIR = "backup";
+    
     public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
+        if (numMaxBackupFiles <= 0) return;
         if (dir.exists()) {
-            File backupDir = new File(Paths.get(dir.getAbsolutePath(), "backup").toString());
+            File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
             if (!backupDir.exists())
                 if (!backupDir.mkdir())
                     log.warn("make dir failed.\nBackupDir=" + backupDir.getAbsolutePath());
@@ -62,15 +69,32 @@ public class FileUtil {
 
                     pruneBackup(backupFileDir, numMaxBackupFiles);
                 } catch (IOException e) {
-                    log.error("Backup key failed: " + e.getMessage());
-                    e.printStackTrace();
+                    log.error("Backup key failed: {}\n", e.getMessage(), e);
                 }
             }
         }
     }
 
+    public static List<File> getBackupFiles(File dir, String fileName) {
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
+        if (!backupDir.exists()) return new ArrayList<File>();
+        String dirName = "backups_" + fileName;
+        if (dirName.contains(".")) dirName = dirName.replace(".", "_");
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
+        if (!backupFileDir.exists()) return new ArrayList<File>();
+        File[] files = backupFileDir.listFiles();
+        return Arrays.asList(files);
+    }
+
+    public static File getLatestBackupFile(File dir, String fileName) {
+        List<File> files = getBackupFiles(dir, fileName);
+        if (files.isEmpty()) return null;
+        files.sort(Comparator.comparing(File::getName));
+        return files.get(files.size() - 1);
+    }
+
     public static void deleteRollingBackup(File dir, String fileName) {
-        File backupDir = new File(Paths.get(dir.getAbsolutePath(), "backup").toString());
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
         if (!backupDir.exists()) return;
         String dirName = "backups_" + fileName;
         if (dirName.contains(".")) dirName = dirName.replace(".", "_");
@@ -78,7 +102,7 @@ public class FileUtil {
         try {
             FileUtils.deleteDirectory(backupFileDir);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Delete backup key failed: {}\n", e.getMessage(), e);
         }
     }
 
@@ -154,8 +178,7 @@ public class FileUtil {
                 }
             }
         } catch (Throwable t) {
-            log.error(t.toString());
-            t.printStackTrace();
+            log.error("Could not delete file, error={}\n", t.getMessage(), t);
             throw new IOException(t);
         }
     }
@@ -238,5 +261,15 @@ public class FileUtil {
         if (storageFile.exists()) {
             renameFile(storageFile, corruptedFile);
         }
+    }
+
+    public static boolean doesFileContainKeyword(File file, String keyword) throws FileNotFoundException {
+        Scanner s = new Scanner(file);
+        while (s.hasNextLine()) {
+            if (s.nextLine().contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

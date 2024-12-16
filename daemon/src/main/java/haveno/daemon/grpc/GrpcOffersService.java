@@ -1,22 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.OfferInfo;
@@ -24,6 +25,7 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.CancelOfferReply;
 import haveno.proto.grpc.CancelOfferRequest;
 import haveno.proto.grpc.GetMyOfferReply;
@@ -34,20 +36,6 @@ import haveno.proto.grpc.GetOfferReply;
 import haveno.proto.grpc.GetOfferRequest;
 import haveno.proto.grpc.GetOffersReply;
 import haveno.proto.grpc.GetOffersRequest;
-import haveno.proto.grpc.PostOfferReply;
-import haveno.proto.grpc.PostOfferRequest;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.OffersGrpc.OffersImplBase;
 import static haveno.proto.grpc.OffersGrpc.getCancelOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetMyOfferMethod;
@@ -55,8 +43,18 @@ import static haveno.proto.grpc.OffersGrpc.getGetMyOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getPostOfferMethod;
+import haveno.proto.grpc.PostOfferReply;
+import haveno.proto.grpc.PostOfferRequest;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class GrpcOffersService extends OffersImplBase {
@@ -142,11 +140,7 @@ class GrpcOffersService extends OffersImplBase {
     @Override
     public void postOffer(PostOfferRequest req,
                             StreamObserver<PostOfferReply> responseObserver) {
-        GrpcErrorMessageHandler errorMessageHandler =
-                new GrpcErrorMessageHandler(getPostOfferMethod().getFullMethodName(),
-                        responseObserver,
-                        exceptionHandler,
-                        log);
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getPostOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
             coreApi.postOffer(
                     req.getCurrencyCode(),
@@ -156,10 +150,12 @@ class GrpcOffersService extends OffersImplBase {
                     req.getMarketPriceMarginPct(),
                     req.getAmount(),
                     req.getMinAmount(),
-                    req.getBuyerSecurityDepositPct(),
+                    req.getSecurityDepositPct(),
                     req.getTriggerPrice(),
                     req.getReserveExactAmount(),
                     req.getPaymentAccountId(),
+                    req.getIsPrivateOffer(),
+                    req.getBuyerAsTakerWithoutDeposit(),
                     offer -> {
                         // This result handling consumer's accept operation will return
                         // the new offer to the gRPC client after async placement is done.
@@ -172,8 +168,7 @@ class GrpcOffersService extends OffersImplBase {
                         responseObserver.onCompleted();
                     },
                     errorMessage -> {
-                        if (!errorMessageHandler.isErrorHandled())
-                            errorMessageHandler.handleErrorMessage(errorMessage);
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
@@ -183,11 +178,15 @@ class GrpcOffersService extends OffersImplBase {
     @Override
     public void cancelOffer(CancelOfferRequest req,
                             StreamObserver<CancelOfferReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getCancelOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            coreApi.cancelOffer(req.getId());
-            var reply = CancelOfferReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            coreApi.cancelOffer(req.getId(), () -> {
+                var reply = CancelOfferReply.newBuilder().build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            }, errorMessage -> {
+                if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+            });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
@@ -205,9 +204,9 @@ class GrpcOffersService extends OffersImplBase {
                         new HashMap<>() {{
                             put(getGetOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
                             put(getGetMyOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
-                            put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
-                            put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getPostOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getGetOffersMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 30 : 1, SECONDS));
+                            put(getGetMyOffersMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 30 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getPostOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 30 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                             put(getCancelOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                         }}
                 )));

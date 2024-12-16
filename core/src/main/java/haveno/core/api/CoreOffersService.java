@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,8 +34,14 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import static haveno.common.util.MathUtils.exactMultiply;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
@@ -27,37 +50,30 @@ import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
+import static haveno.core.offer.OfferDirection.BUY;
 import haveno.core.offer.OfferFilterService;
 import haveno.core.offer.OfferFilterService.Result;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
+import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static java.lang.String.format;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import static java.util.Comparator.comparing;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static haveno.common.util.MathUtils.exactMultiply;
-import static haveno.common.util.MathUtils.roundDoubleToLong;
-import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.offer.OfferDirection.BUY;
-import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
-import static java.lang.String.format;
-import static java.util.Comparator.comparing;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Transaction;
 
 @Singleton
 @Slf4j
@@ -156,10 +172,12 @@ public class CoreOffersService {
                              double marketPriceMargin,
                              long amountAsLong,
                              long minAmountAsLong,
-                             double buyerSecurityDeposit,
+                             double securityDepositPct,
                              String triggerPriceAsString,
                              boolean reserveExactAmount,
                              String paymentAccountId,
+                             boolean isPrivateOffer,
+                             boolean buyerAsTakerWithoutDeposit,
                              Consumer<Offer> resultHandler,
                              ErrorMessageHandler errorMessageHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
@@ -183,8 +201,10 @@ public class CoreOffersService {
                 price,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
-                buyerSecurityDeposit,
-                paymentAccount);
+                securityDepositPct,
+                paymentAccount,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
 
@@ -207,8 +227,10 @@ public class CoreOffersService {
                     double marketPriceMargin,
                     BigInteger amount,
                     BigInteger minAmount,
-                    double buyerSecurityDeposit,
-                    PaymentAccount paymentAccount) {
+                    double securityDepositPct,
+                    PaymentAccount paymentAccount,
+                    boolean isPrivateOffer,
+                    boolean buyerAsTakerWithoutDeposit) {
         return createOfferService.createAndGetOffer(offerId,
                 direction,
                 currencyCode.toUpperCase(),
@@ -217,18 +239,15 @@ public class CoreOffersService {
                 price,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
-                buyerSecurityDeposit,
-                paymentAccount);
+                securityDepositPct,
+                paymentAccount,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
     }
 
-    void cancelOffer(String id) {
+    void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Offer offer = getMyOffer(id).getOffer();
-        openOfferManager.removeOffer(offer,
-                () -> {
-                },
-                errorMessage -> {
-                    throw new IllegalStateException(errorMessage);
-                });
+        openOfferManager.removeOffer(offer, resultHandler, errorMessageHandler);
     }
 
     // -------------------------- PRIVATE HELPERS -----------------------------
@@ -243,7 +262,7 @@ public class CoreOffersService {
                     for (Offer offer2 : offers) {
                         if (offer == offer2) continue;
                         if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                            log.warn("Key image {} belongs to multiple offers, seen in offer {}", keyImage, offer2.getId());
+                            log.warn("Key image {} belongs to multiple offers, seen in offer {} and {}", keyImage, offer.getId(), offer2.getId());
                             duplicateFundedOffers.add(offer2);
                         }
                     }
@@ -273,6 +292,7 @@ public class CoreOffersService {
                 useSavingsWallet,
                 triggerPriceAsLong,
                 reserveExactAmount,
+                true,
                 resultHandler::accept,
                 errorMessageHandler);
     }

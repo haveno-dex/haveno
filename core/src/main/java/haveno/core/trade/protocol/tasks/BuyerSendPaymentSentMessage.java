@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -28,6 +45,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.value.ChangeListener;
@@ -56,14 +74,29 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
         super(taskHandler, trade);
     }
 
-    protected abstract NodeAddress getReceiverNodeAddress();
+    protected abstract TradePeer getReceiver();
 
-    protected abstract PubKeyRing getReceiverPubKeyRing();
+    @Override
+    protected NodeAddress getReceiverNodeAddress() {
+        return getReceiver().getNodeAddress();
+    }
+
+    @Override
+    protected PubKeyRing getReceiverPubKeyRing() {
+        return getReceiver().getPubKeyRing();
+    }
 
     @Override
     protected void run() {
         try {
             runInterceptHook();
+
+            // skip if already acked by receiver
+            if (isAckedByReceiver()) {
+                if (!isCompleted()) complete();
+                return;
+            }
+
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -72,7 +105,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
-        if (processModel.getPaymentSentMessage() == null) {
+        if (getReceiver().getPaymentSentMessage() == null) {
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
             // peer does not respond with an ACK msg in a certain time interval. To avoid that we get dangling mailbox
@@ -87,7 +120,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                     trade.getCounterCurrencyTxId(),
                     trade.getCounterCurrencyExtraData(),
                     deterministicId,
-                    trade.getPayoutTxHex(),
+                    trade.getSelf().getUnsignedPayoutTxHex(),
                     trade.getSelf().getUpdatedMultisigHex(),
                     trade.getSelf().getPaymentAccountKey(),
                     trade.getTradePeer().getAccountAgeWitness()
@@ -98,13 +131,13 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
                 String messageAsJson = JsonUtil.objectToJson(message);
                 byte[] sig = HavenoUtils.sign(processModel.getP2PService().getKeyRing(), messageAsJson);
                 message.setBuyerSignature(sig);
-                processModel.setPaymentSentMessage(message);
+                getReceiver().setPaymentSentMessage(message);
                 trade.requestPersistence();
             } catch (Exception e) {
                 throw new RuntimeException (e);
             }
         }
-        return processModel.getPaymentSentMessage();
+        return getReceiver().getPaymentSentMessage();
     }
 
     @Override
@@ -144,7 +177,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
     private void tryToSendAgainLater() {
 
         // skip if already acked
-        if (trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) return;
+        if (isAckedByReceiver()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
@@ -176,4 +209,6 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             cleanup();
         }
     }
+
+    protected abstract boolean isAckedByReceiver();
 }

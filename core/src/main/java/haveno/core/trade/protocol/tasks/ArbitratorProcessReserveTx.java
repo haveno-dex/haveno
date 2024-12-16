@@ -18,9 +18,9 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
-import haveno.common.util.Tuple2;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.TradePeer;
@@ -28,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import monero.daemon.model.MoneroTx;
 
 import java.math.BigInteger;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
  * Arbitrator verifies reserve tx from maker or taker.
@@ -48,38 +50,47 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             runInterceptHook();
             Offer offer = trade.getOffer();
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
-            boolean isFromTaker = request.getSenderNodeAddress().equals(trade.getTaker().getNodeAddress());
-            boolean isFromBuyer = isFromTaker ? offer.getDirection() == OfferDirection.SELL : offer.getDirection() == OfferDirection.BUY;
+            TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+            boolean isFromMaker = sender == trade.getMaker();
+            boolean isFromBuyer = isFromMaker ? offer.getDirection() == OfferDirection.BUY : offer.getDirection() == OfferDirection.SELL;
+            sender = isFromMaker ? processModel.getMaker() : processModel.getTaker();
+            BigInteger securityDeposit = isFromMaker ? isFromBuyer ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit() : isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+            sender.setSecurityDeposit(securityDeposit);
 
-            // TODO (woodser): if signer online, should never be called by maker
+            // TODO (woodser): if signer online, should never be called by maker?
 
-            // process reserve tx with expected values
-            BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
-            BigInteger sendAmount =  isFromBuyer ? BigInteger.valueOf(0) : offer.getAmount();
-            BigInteger securityDeposit = isFromBuyer ? offer.getBuyerSecurityDeposit() : offer.getSellerSecurityDeposit();
-            Tuple2<MoneroTx, BigInteger> txResult;
-            try {
-                txResult = trade.getXmrWalletService().verifyTradeTx(
-                    offer.getId(),
-                    tradeFee,
-                    sendAmount,
-                    securityDeposit,
-                    request.getPayoutAddress(),
-                    request.getReserveTxHash(),
-                    request.getReserveTxHex(),
-                    request.getReserveTxKey(),
-                    null);
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException("Error processing reserve tx from " + (isFromTaker ? "taker " : "maker ") + request.getSenderNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+            // process reserve tx unless from buyer as taker without deposit
+            boolean isFromBuyerAsTakerWithoutDeposit = isFromBuyer && !isFromMaker && trade.hasBuyerAsTakerWithoutDeposit();
+            if (!isFromBuyerAsTakerWithoutDeposit) {
+
+                // process reserve tx with expected values
+                BigInteger penaltyFee = HavenoUtils.multiply(isFromMaker ? offer.getAmount() : trade.getAmount(), offer.getPenaltyFeePct());
+                BigInteger tradeFee = isFromMaker ? offer.getMaxMakerFee() : trade.getTakerFee();
+                BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
+                MoneroTx verifiedTx;
+                try {
+                    verifiedTx = trade.getXmrWalletService().verifyReserveTx(
+                        offer.getId(),
+                        penaltyFee,
+                        tradeFee,
+                        sendAmount,
+                        securityDeposit,
+                        request.getPayoutAddress(),
+                        request.getReserveTxHash(),
+                        request.getReserveTxHex(),
+                        request.getReserveTxKey(),
+                        null);
+                } catch (Exception e) {
+                    log.error(ExceptionUtils.getStackTrace(e));
+                    throw new RuntimeException("Error processing reserve tx from " + (isFromMaker ? "maker " : "taker ") + processModel.getTempTradePeerNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+                }
+
+                // save reserve tx to model
+                sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+                sender.setReserveTxHash(request.getReserveTxHash());
+                sender.setReserveTxHex(request.getReserveTxHex());
+                sender.setReserveTxKey(request.getReserveTxKey());
             }
-
-            // save reserve tx to model
-            TradePeer trader = isFromTaker ? processModel.getTaker() : processModel.getMaker();
-            trader.setReserveTxHash(request.getReserveTxHash());
-            trader.setReserveTxHex(request.getReserveTxHex());
-            trader.setReserveTxKey(request.getReserveTxKey());
-            trader.setSecurityDeposit(txResult.second);
 
             // persist trade
             processModel.getTradeManager().requestPersistence();

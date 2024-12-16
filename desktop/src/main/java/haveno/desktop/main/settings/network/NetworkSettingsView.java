@@ -1,29 +1,31 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.settings.network;
 
+import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
-import haveno.core.api.CoreMoneroConnectionsService;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.filter.Filter;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.validation.RegexValidator;
@@ -42,6 +44,9 @@ import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.Statistic;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -57,16 +62,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
-import monero.daemon.model.MoneroPeer;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.inject.Inject;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @FxmlView
 public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
@@ -80,7 +77,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     TextField onionAddress, sentDataTextField, receivedDataTextField, chainHeightTextField;
     @FXML
-    Label p2PPeersLabel, moneroPeersLabel;
+    Label p2PPeersLabel, moneroConnectionsLabel;
     @FXML
     RadioButton useTorForXmrAfterSyncRadio, useTorForXmrOffRadio, useTorForXmrOnRadio;
     @FXML
@@ -88,13 +85,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     TableView<P2pNetworkListItem> p2pPeersTableView;
     @FXML
-    TableView<MoneroNetworkListItem> moneroPeersTableView;
+    TableView<MoneroNetworkListItem> moneroConnectionsTableView;
     @FXML
     TableColumn<P2pNetworkListItem, String> onionAddressColumn, connectionTypeColumn, creationDateColumn,
             roundTripTimeColumn, sentBytesColumn, receivedBytesColumn, peerTypeColumn;
     @FXML
-    TableColumn<MoneroNetworkListItem, String> moneroPeerAddressColumn, moneroPeerVersionColumn,
-            moneroPeerSubVersionColumn, moneroPeerHeightColumn;
+    TableColumn<MoneroNetworkListItem, String> moneroConnectionAddressColumn, moneroConnectionConnectedColumn;
     @FXML
     Label rescanOutputsLabel;
     @FXML
@@ -103,12 +99,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final Preferences preferences;
     private final XmrNodes xmrNodes;
     private final FilterManager filterManager;
-    private final LocalMoneroNode localMoneroNode;
+    private final XmrLocalNode xmrLocalNode;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final ClockWatcher clockWatcher;
     private final WalletsSetup walletsSetup;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionManager;
+    private final XmrConnectionService connectionService;
 
     private final ObservableList<P2pNetworkListItem> p2pNetworkListItems = FXCollections.observableArrayList();
     private final SortedList<P2pNetworkListItem> p2pSortedList = new SortedList<>(p2pNetworkListItems);
@@ -117,7 +113,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final SortedList<MoneroNetworkListItem> moneroSortedList = new SortedList<>(moneroNetworkListItems);
 
     private Subscription numP2PPeersSubscription;
-    private Subscription moneroPeersSubscription;
+    private Subscription moneroConnectionsSubscription;
     private Subscription moneroBlockHeightSubscription;
     private Subscription nodeAddressSubscription;
     private ChangeListener<Boolean> xmrNodesInputTextFieldFocusListener;
@@ -132,42 +128,40 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @Inject
     public NetworkSettingsView(WalletsSetup walletsSetup,
                                P2PService p2PService,
-                               CoreMoneroConnectionsService connectionManager,
+                               XmrConnectionService connectionService,
                                Preferences preferences,
                                XmrNodes xmrNodes,
                                FilterManager filterManager,
-                               LocalMoneroNode localMoneroNode,
+                               XmrLocalNode xmrLocalNode,
                                TorNetworkSettingsWindow torNetworkSettingsWindow,
                                ClockWatcher clockWatcher) {
         super();
         this.walletsSetup = walletsSetup;
         this.p2PService = p2PService;
-        this.connectionManager = connectionManager;
+        this.connectionService = connectionService;
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
         this.filterManager = filterManager;
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
         this.clockWatcher = clockWatcher;
     }
 
     @Override
     public void initialize() {
-        btcHeader.setText(Res.get("settings.net.btcHeader"));
+        btcHeader.setText(Res.get("settings.net.xmrHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));
         xmrNodesLabel.setText(Res.get("settings.net.xmrNodesLabel"));
-        moneroPeersLabel.setText(Res.get("settings.net.moneroPeersLabel"));
+        moneroConnectionsLabel.setText(Res.get("settings.net.moneroPeersLabel"));
         useTorForXmrLabel.setText(Res.get("settings.net.useTorForXmrJLabel"));
         useTorForXmrAfterSyncRadio.setText(Res.get("settings.net.useTorForXmrAfterSyncRadio"));
         useTorForXmrOffRadio.setText(Res.get("settings.net.useTorForXmrOffRadio"));
         useTorForXmrOnRadio.setText(Res.get("settings.net.useTorForXmrOnRadio"));
         moneroNodesLabel.setText(Res.get("settings.net.moneroNodesLabel"));
-        moneroPeerAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
-        moneroPeerAddressColumn.getStyleClass().add("first-column");
-        moneroPeerVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.versionColumn")));
-        moneroPeerSubVersionColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.subVersionColumn")));
-        moneroPeerHeightColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.heightColumn")));
+        moneroConnectionAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
+        moneroConnectionAddressColumn.getStyleClass().add("first-column");
+        moneroConnectionConnectedColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.connection")));
         localhostXmrNodeInfoLabel.setText(Res.get("settings.net.localhostXmrNodeInfo"));
         useProvidedNodesRadio.setText(Res.get("settings.net.useProvidedNodesRadio"));
         useCustomNodesRadio.setText(Res.get("settings.net.useCustomNodesRadio"));
@@ -193,19 +187,19 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         rescanOutputsLabel.setVisible(false);
         rescanOutputsButton.setVisible(false);
 
-        GridPane.setMargin(moneroPeersLabel, new Insets(4, 0, 0, 0));
-        GridPane.setValignment(moneroPeersLabel, VPos.TOP);
+        GridPane.setMargin(moneroConnectionsLabel, new Insets(4, 0, 0, 0));
+        GridPane.setValignment(moneroConnectionsLabel, VPos.TOP);
 
         GridPane.setMargin(p2PPeersLabel, new Insets(4, 0, 0, 0));
         GridPane.setValignment(p2PPeersLabel, VPos.TOP);
 
-        moneroPeersTableView.setMinHeight(180);
-        moneroPeersTableView.setPrefHeight(180);
-        moneroPeersTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        moneroPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
-        moneroPeersTableView.getSortOrder().add(moneroPeerAddressColumn);
-        moneroPeerAddressColumn.setSortType(TableColumn.SortType.ASCENDING);
-
+        moneroConnectionAddressColumn.setSortType(TableColumn.SortType.ASCENDING);
+        moneroConnectionConnectedColumn.setSortType(TableColumn.SortType.DESCENDING);
+        moneroConnectionsTableView.setMinHeight(180);
+        moneroConnectionsTableView.setPrefHeight(180);
+        moneroConnectionsTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        moneroConnectionsTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
+        moneroConnectionsTableView.getSortOrder().add(moneroConnectionConnectedColumn);
 
         p2pPeersTableView.setMinHeight(180);
         p2pPeersTableView.setPrefHeight(180);
@@ -213,7 +207,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         p2pPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
         p2pPeersTableView.getSortOrder().add(creationDateColumn);
         creationDateColumn.setSortType(TableColumn.SortType.ASCENDING);
-        
+
         // use tor for xmr radio buttons
 
         useTorForXmrToggleGroup = new ToggleGroup();
@@ -236,7 +230,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 onUseTorForXmrToggleSelected(true);
             }
         };
-        
+
         // monero nodes radio buttons
 
         moneroPeersToggleGroup = new ToggleGroup();
@@ -268,7 +262,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             }
         };
 
-        xmrNodesInputTextField.setPromptText(Res.get("settings.net.ips"));
+        xmrNodesInputTextField.setPromptText(Res.get("settings.net.ips", "" + HavenoUtils.getDefaultMoneroPort()));
         RegexValidator regexValidator = RegexValidatorFactory.addressRegexValidator();
         xmrNodesInputTextField.setValidator(regexValidator);
         xmrNodesInputTextField.setErrorMessage(Res.get("validation.invalidAddressList"));
@@ -282,6 +276,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             }
         };
         filterPropertyListener = (observable, oldValue, newValue) -> applyPreventPublicXmrNetwork();
+
+        // disable radio buttons if no nodes available
+        if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
+            useProvidedNodesRadio.setDisable(true);
+        }
+        usePublicNodesRadio.setDisable(isPublicNodesDisabled());
 
         //TODO sorting needs other NetworkStatisticListItem as columns type
        /* creationDateColumn.setComparator((o1, o2) ->
@@ -304,11 +304,11 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
         rescanOutputsButton.setOnAction(event -> GUIUtil.rescanOutputs(preferences));
 
-        moneroPeersSubscription = EasyBind.subscribe(connectionManager.peerConnectionsProperty(),
-                this::updateMoneroPeersTable);
+        moneroConnectionsSubscription = EasyBind.subscribe(connectionService.connectionsProperty(),
+                connections -> updateMoneroConnectionsTable());
 
-        moneroBlockHeightSubscription = EasyBind.subscribe(connectionManager.chainHeightProperty(),
-                this::updateChainHeightTextField);
+        moneroBlockHeightSubscription = EasyBind.subscribe(connectionService.chainHeightProperty(),
+                height -> updateMoneroConnectionsTable());
 
         nodeAddressSubscription = EasyBind.subscribe(p2PService.getNetworkNode().nodeAddressProperty(),
                 nodeAddress -> onionAddress.setText(nodeAddress == null ?
@@ -328,8 +328,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 Statistic.numTotalReceivedMessagesPerSecProperty().get()),
                 Statistic.numTotalReceivedMessagesPerSecProperty()));
 
-        moneroSortedList.comparatorProperty().bind(moneroPeersTableView.comparatorProperty());
-        moneroPeersTableView.setItems(moneroSortedList);
+        moneroSortedList.comparatorProperty().bind(moneroConnectionsTableView.comparatorProperty());
+        moneroConnectionsTableView.setItems(moneroSortedList);
 
         p2pSortedList.comparatorProperty().bind(p2pPeersTableView.comparatorProperty());
         p2pPeersTableView.setItems(p2pSortedList);
@@ -350,8 +350,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         if (nodeAddressSubscription != null)
             nodeAddressSubscription.unsubscribe();
 
-        if (moneroPeersSubscription != null)
-            moneroPeersSubscription.unsubscribe();
+        if (moneroConnectionsSubscription != null)
+            moneroConnectionsSubscription.unsubscribe();
 
         if (moneroBlockHeightSubscription != null)
             moneroBlockHeightSubscription.unsubscribe();
@@ -374,7 +374,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
        return filterManager.getFilter() != null &&
                filterManager.getFilter().isPreventPublicXmrNetwork();
     }
-    
+
     private void selectUseTorForXmrToggle() {
         switch (selectedUseTorForXmr) {
             case OFF:
@@ -412,7 +412,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .useShutDownButton()
                 .show();
     }
-    
+
     private void onUseTorForXmrToggleSelected(boolean calledFromUser) {
         Preferences.UseTorForXmr currentUseTorForXmr = Preferences.UseTorForXmr.values()[preferences.getUseTorForXmrOrdinal()];
         if (currentUseTorForXmr != selectedUseTorForXmr) {
@@ -434,14 +434,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void onMoneroPeersToggleSelected(boolean calledFromUser) {
-        boolean localMoneroNodeShouldBeUsed = localMoneroNode.shouldBeUsed();
-        useTorForXmrLabel.setDisable(localMoneroNodeShouldBeUsed);
-        moneroNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
-        xmrNodesLabel.setDisable(localMoneroNodeShouldBeUsed);
-        xmrNodesInputTextField.setDisable(localMoneroNodeShouldBeUsed);
-        useProvidedNodesRadio.setDisable(localMoneroNodeShouldBeUsed);
-        useCustomNodesRadio.setDisable(localMoneroNodeShouldBeUsed);
-        usePublicNodesRadio.setDisable(localMoneroNodeShouldBeUsed || isPreventPublicXmrNetwork());
+        usePublicNodesRadio.setDisable(isPublicNodesDisabled());
 
         XmrNodes.MoneroNodesOption currentMoneroNodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
 
@@ -501,7 +494,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private void applyPreventPublicXmrNetwork() {
         final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
-        usePublicNodesRadio.setDisable(localMoneroNode.shouldBeUsed() || preventPublicXmrNetwork);
+        usePublicNodesRadio.setDisable(isPublicNodesDisabled());
         if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
             selectedMoneroNodesOption = XmrNodes.MoneroNodesOption.PROVIDED;
             preferences.setMoneroNodesOptionOrdinal(selectedMoneroNodesOption.ordinal());
@@ -510,7 +503,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         }
     }
 
+    private boolean isPublicNodesDisabled() {
+        return xmrNodes.getPublicXmrNodes().isEmpty() || isPreventPublicXmrNetwork();
+    }
+
     private void updateP2PTable() {
+        if (connectionService.isShutDownStarted()) return; // ignore if shutting down
         p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
         p2pNetworkListItems.clear();
         p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
@@ -518,13 +516,15 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 .collect(Collectors.toList()));
     }
 
-    private void updateMoneroPeersTable(List<MoneroPeer> peers) {
-        moneroNetworkListItems.clear();
-        if (peers != null) {
-            moneroNetworkListItems.setAll(peers.stream()
-                    .map(MoneroNetworkListItem::new)
+    private void updateMoneroConnectionsTable() {
+        UserThread.execute(() -> {
+            if (connectionService.isShutDownStarted()) return; // ignore if shutting down
+            moneroNetworkListItems.clear();
+            moneroNetworkListItems.setAll(connectionService.getConnections().stream()
+                    .map(connection -> new MoneroNetworkListItem(connection, Boolean.TRUE.equals(connection.isConnected()) && connection == connectionService.getConnection()))
                     .collect(Collectors.toList()));
-        }
+            updateChainHeightTextField(connectionService.chainHeightProperty().get());
+        });
     }
 
     private void updateChainHeightTextField(Number chainHeight) {

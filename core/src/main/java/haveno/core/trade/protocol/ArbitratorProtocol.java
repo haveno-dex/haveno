@@ -1,5 +1,6 @@
 package haveno.core.trade.protocol;
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Trade;
@@ -43,8 +44,8 @@ public class ArbitratorProtocol extends DisputeProtocol {
 
   public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
       System.out.println("ArbitratorProtocol.handleInitTradeRequest()");
-      new Thread(() -> {
-          synchronized (trade) {
+      ThreadUtils.execute(() -> {
+          synchronized (trade.getLock()) {
               latchTrade();
               this.errorMessageHandler = errorMessageHandler;
               processModel.setTradeMessage(message); // TODO (woodser): confirm these are null without being set
@@ -58,17 +59,17 @@ public class ArbitratorProtocol extends DisputeProtocol {
                               ArbitratorSendInitTradeOrMultisigRequests.class)
                       .using(new TradeTaskRunner(trade,
                               () -> {
-                                  startTimeout(TRADE_TIMEOUT);
+                                  startTimeout();
                                   handleTaskRunnerSuccess(peer, message);
                               },
                               errorMessage -> {
                                   handleTaskRunnerFault(peer, message, errorMessage);
                               }))
-                      .withTimeout(TRADE_TIMEOUT))
+                      .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
                       .executeTasks(true);
               awaitTradeLatch();
           }
-      }).start();
+      }, trade.getId());
   }
   
   @Override
@@ -78,12 +79,12 @@ public class ArbitratorProtocol extends DisputeProtocol {
   
   public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
     System.out.println("ArbitratorProtocol.handleDepositRequest() " + trade.getId());
-    new Thread(() -> {
-        synchronized (trade) {
+    ThreadUtils.execute(() -> {
+        synchronized (trade.getLock()) {
             latchTrade();
             Validator.checkTradeId(processModel.getOfferId(), request);
             processModel.setTradeMessage(request);
-            expect(phase(Trade.Phase.INIT)
+            expect(anyPhase(Trade.Phase.INIT, Trade.Phase.DEPOSIT_REQUESTED)
                 .with(request)
                 .from(sender))
                 .setup(tasks(
@@ -98,22 +99,30 @@ public class ArbitratorProtocol extends DisputeProtocol {
                         },
                         errorMessage -> {
                             handleTaskRunnerFault(sender, request, errorMessage);
-                        }))
-                .withTimeout(TRADE_TIMEOUT))
+                        })))
                 .executeTasks(true);
             awaitTradeLatch();
         }
-    }).start();
+    }, trade.getId());
   }
   
   @Override
   public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-      log.warn("Arbitrator ignoring DepositResponse for trade " + response.getTradeId());
+      log.warn("Arbitrator ignoring DepositResponse for trade " + response.getOfferId());
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public Class<? extends TradeTask>[] getDepositsConfirmedTasks() {
       return new Class[] { SendDepositsConfirmedMessageToBuyer.class, SendDepositsConfirmedMessageToSeller.class };
+  }
+
+  @Override
+  public void handleError(String errorMessage) {
+    // set trade state to send deposit responses with nack
+    if (trade instanceof ArbitratorTrade && trade.getState() == Trade.State.SAW_ARRIVED_PUBLISH_DEPOSIT_TX_REQUEST) {
+        trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
+    }
+    super.handleError(errorMessage);
   }
 }

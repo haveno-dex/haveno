@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.app;
@@ -38,6 +38,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
@@ -47,12 +48,10 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class HavenoAppMain extends HavenoExecutable {
 
-    public static final String DEFAULT_APP_NAME = "Haveno";
-
     private HavenoApp application;
 
     public HavenoAppMain() {
-        super("Haveno Desktop", "haveno-desktop", DEFAULT_APP_NAME, Version.VERSION);
+        super("Haveno Desktop", "haveno-desktop", HavenoExecutable.DEFAULT_APP_NAME, Version.VERSION);
     }
 
     public static void main(String[] args) {
@@ -230,6 +229,17 @@ public class HavenoAppMain extends HavenoExecutable {
                     return null;
                 }
             });
+
+            // Focus the password field when dialog is shown
+            Window window = getDialogPane().getScene().getWindow();
+            if (window instanceof Stage) {
+                Stage dialogStage = (Stage) window;
+                dialogStage.focusedProperty().addListener((observable, oldValue, newValue) -> {
+                    if (newValue) {
+                        passwordField.requestFocus();
+                    }
+                });
+            }
         }
     }
 }

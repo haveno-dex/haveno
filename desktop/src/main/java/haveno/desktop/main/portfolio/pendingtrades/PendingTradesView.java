@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXButton;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
@@ -54,7 +56,9 @@ import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.network.p2p.NodeAddress;
-import javafx.application.Platform;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -71,6 +75,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -80,7 +85,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -91,12 +95,6 @@ import javafx.stage.Window;
 import javafx.util.Callback;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
 
 @FxmlView
 public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTradesViewModel> {
@@ -119,6 +117,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @FXML
     TableColumn<PendingTradesListItem, PendingTradesListItem> priceColumn, volumeColumn, amountColumn, avatarColumn,
             marketColumn, roleColumn, paymentMethodColumn, tradeIdColumn, dateColumn, chatColumn, moveTradeToFailedColumn;
+    @FXML
+    ScrollPane scrollView;
     private FilteredList<PendingTradesListItem> filteredList;
     private SortedList<PendingTradesListItem> sortedList;
     private TradeSubView selectedSubView;
@@ -277,6 +277,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         sortedList = new SortedList<>(filteredList);
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
+        tableView.setPrefHeight(100);
+        tableView.setMaxHeight(200);
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.activate();
@@ -297,13 +299,13 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                     selectedSubView = model.dataModel.tradeManager.isBuyer(model.dataModel.getOffer()) ?
                             new BuyerSubView(model) : new SellerSubView(model);
 
-                    selectedSubView.setMinHeight(460);
-                    VBox.setVgrow(selectedSubView, Priority.ALWAYS);
+                    //selectedSubView.setMinHeight(460);
+                    //VBox.setVgrow(selectedSubView, Priority.SOMETIMES);
                     if (root.getChildren().size() == 2)
-                        root.getChildren().add(selectedSubView);
+                        root.getChildren().add(scrollView);
                     else if (root.getChildren().size() == 3)
-                        root.getChildren().set(2, selectedSubView);
-
+                        root.getChildren().set(2, scrollView);
+                    scrollView.setContent(selectedSubView);
                     // create and register a callback so we can be notified when the subview
                     // wants to open the chat window
                     ChatCallback chatCallback = this::openChat;
@@ -323,8 +325,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         selectedTableItemSubscription = EasyBind.subscribe(tableView.getSelectionModel().selectedItemProperty(),
                 selectedItem -> {
-                    if (selectedItem != null && !selectedItem.equals(model.dataModel.selectedItemProperty.get()))
+                    if (selectedItem != null && !selectedItem.equals(model.dataModel.selectedItemProperty.get())) {
+                        if (selectedSubView != null) selectedSubView.deactivate();
                         model.dataModel.onSelectItem(selectedItem);
+                    }
                 });
 
         updateTableSelection();
@@ -399,8 +403,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             return Res.get("portfolio.pending.failedTrade.missingDepositTx");
         }
 
-        if (trade.getTakerDepositTx() == null) {
-          return Res.get("portfolio.pending.failedTrade.missingDepositTx"); // TODO (woodser): use .missingTakerDepositTx, .missingMakerDepositTx
+        if (trade.getTakerDepositTx() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
+          return Res.get("portfolio.pending.failedTrade.missingDepositTx"); // TODO (woodser): use .missingTakerDepositTx, .missingMakerDepositTx, update translation to 2-of-3 multisig
         }
 
         if (trade.hasErrorMessage()) {
@@ -418,11 +422,13 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private void updateNewChatMessagesByTradeMap() {
         model.dataModel.list.forEach(t -> {
             Trade trade = t.getTrade();
-            newChatMessagesByTradeMap.put(trade.getId(),
-                    trade.getChatMessages().stream()
-                            .filter(m -> !m.isWasDisplayed())
-                            .filter(m -> !m.isSystemMessage())
-                            .count());
+            synchronized (trade.getChatMessages()) {
+                newChatMessagesByTradeMap.put(trade.getId(),
+                        trade.getChatMessages().stream()
+                                .filter(m -> !m.isWasDisplayed())
+                                .filter(m -> !m.isSystemMessage())
+                                .count());
+            }
         });
     }
 
@@ -439,7 +445,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         model.dataModel.getTradeManager().requestPersistence();
         tradeIdOfOpenChat = trade.getId();
 
-        ChatView chatView = new ChatView(traderChatManager, formatter, Res.get("offerbook.trader"));
+        ChatView chatView = new ChatView(traderChatManager, Res.get("offerbook.trader"));
         chatView.setAllowAttachments(false);
         chatView.setDisplayHeader(false);
         chatView.initialize();
@@ -931,11 +937,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null) {
                                     trade = newItem.getTrade();
-                                    listener = (observable, oldValue, newValue) -> Platform.runLater(new Runnable() {
-                                       @Override public void run() {
-                                           update();
-                                       }
-                                    });
+                                    listener = (observable, oldValue, newValue) -> UserThread.execute(() -> update());
                                     trade.stateProperty().addListener(listener);
                                     update();
                                 } else {

@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -280,10 +297,10 @@ message SendNotificationReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// MoneroConnections
+// XmrConnections
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service MoneroConnections {
+service XmrConnections {
     rpc AddConnection (AddConnectionRequest) returns (AddConnectionReply) {
     }
     rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionReply) {
@@ -298,13 +315,15 @@ service MoneroConnections {
     }
     rpc CheckConnections(CheckConnectionsRequest) returns (CheckConnectionsReply) {
     }
-    rpc StartCheckingConnections(StartCheckingConnectionsRequest) returns (StartCheckingConnectionsReply) {
+    rpc StartCheckingConnection(StartCheckingConnectionRequest) returns (StartCheckingConnectionReply) {
     }
-    rpc StopCheckingConnections(StopCheckingConnectionsRequest) returns (StopCheckingConnectionsReply) {
+    rpc StopCheckingConnection(StopCheckingConnectionRequest) returns (StopCheckingConnectionReply) {
     }
     rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
     }
     rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
+    }
+    rpc GetAutoSwitch(GetAutoSwitchRequest) returns (GetAutoSwitchReply) {
     }
 }
 
@@ -371,15 +390,15 @@ message CheckConnectionsReply {
     repeated UrlConnection connections = 1;
 }
 
-message StartCheckingConnectionsRequest {
+message StartCheckingConnectionRequest {
     int32 refresh_period = 1; // milliseconds
 }
 
-message StartCheckingConnectionsReply {}
+message StartCheckingConnectionReply {}
 
-message StopCheckingConnectionsRequest {}
+message StopCheckingConnectionRequest {}
 
-message StopCheckingConnectionsReply {}
+message StopCheckingConnectionReply {}
 
 message GetBestAvailableConnectionRequest {}
 
@@ -393,46 +412,52 @@ message SetAutoSwitchRequest {
 
 message SetAutoSwitchReply {}
 
+message GetAutoSwitchRequest {}
+
+message GetAutoSwitchReply {
+    bool auto_switch = 1;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
-// MoneroNode
+// XmrNode
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-service MoneroNode {
-    rpc IsMoneroNodeOnline (IsMoneroNodeOnlineRequest) returns (IsMoneroNodeOnlineReply) {
+service XmrNode {
+    rpc IsXmrNodeOnline (IsXmrNodeOnlineRequest) returns (IsXmrNodeOnlineReply) {
     }
-    rpc GetMoneroNodeSettings (GetMoneroNodeSettingsRequest) returns (GetMoneroNodeSettingsReply) {
+    rpc GetXmrNodeSettings (GetXmrNodeSettingsRequest) returns (GetXmrNodeSettingsReply) {
     }
-    rpc StartMoneroNode (StartMoneroNodeRequest) returns (StartMoneroNodeReply) {
+    rpc StartXmrNode (StartXmrNodeRequest) returns (StartXmrNodeReply) {
     }
-    rpc StopMoneroNode (StopMoneroNodeRequest) returns (StopMoneroNodeReply) {
+    rpc StopXmrNode (StopXmrNodeRequest) returns (StopXmrNodeReply) {
     }
 }
 
-message IsMoneroNodeOnlineRequest {
+message IsXmrNodeOnlineRequest {
 }
 
-message IsMoneroNodeOnlineReply {
+message IsXmrNodeOnlineReply {
     bool is_running = 1;
 }
 
-message GetMoneroNodeSettingsRequest {
+message GetXmrNodeSettingsRequest {
 }
 
-message GetMoneroNodeSettingsReply {
-    MoneroNodeSettings settings = 1; // pb.proto
+message GetXmrNodeSettingsReply {
+    XmrNodeSettings settings = 1; // pb.proto
 }
 
-message StartMoneroNodeRequest {
-    MoneroNodeSettings settings = 1;
+message StartXmrNodeRequest {
+    XmrNodeSettings settings = 1;
 }
 
-message StartMoneroNodeReply {
+message StartXmrNodeReply {
 }
 
-message StopMoneroNodeRequest {
+message StopXmrNodeRequest {
 }
 
-message StopMoneroNodeReply {
+message StopXmrNodeReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -496,10 +521,12 @@ message PostOfferRequest {
     double market_price_margin_pct = 5;
     uint64 amount = 6 [jstype = JS_STRING];
     uint64 min_amount = 7 [jstype = JS_STRING];
-    double buyer_security_deposit_pct = 8;
+    double security_deposit_pct = 8;
     string trigger_price = 9;
     bool reserve_exact_amount = 10;
     string payment_account_id = 11;
+    bool is_private_offer = 12;
+    bool buyer_as_taker_without_deposit = 13;
 }
 
 message PostOfferReply {
@@ -521,26 +548,32 @@ message OfferInfo {
     double market_price_margin_pct = 5;
     uint64 amount = 6 [jstype = JS_STRING];
     uint64 min_amount = 7 [jstype = JS_STRING];
-    string volume = 8;
-    string min_volume = 9;
-    uint64 buyer_security_deposit = 10 [jstype = JS_STRING];
-    string trigger_price = 11;
-    string payment_account_id = 12;
-    string payment_method_id = 13;
-    string payment_method_short_name = 14;
-    string base_currency_code = 15;
-    string counter_currency_code = 16;
-    uint64 date = 17;
-    string state = 18;
-    uint64 seller_security_deposit = 19 [jstype = JS_STRING];
-    uint64 maker_fee = 20 [jstype = JS_STRING];
-    bool is_activated = 21;
-    bool is_my_offer = 22;
-    string owner_node_address = 23;
-    string pub_key_ring = 24;
-    string version_nr = 25;
-    int32 protocol_version = 26;
-    string arbitrator_signer = 27;
+    double maker_fee_pct = 8;
+    double taker_fee_pct = 9;
+    double penalty_fee_pct = 10;
+    double buyer_security_deposit_pct = 11;
+    double seller_security_deposit_pct = 12;
+    string volume = 13;
+    string min_volume = 14;
+    string trigger_price = 15;
+    string payment_account_id = 16;
+    string payment_method_id = 17;
+    string payment_method_short_name = 18;
+    string base_currency_code = 19;
+    string counter_currency_code = 20;
+    uint64 date = 21;
+    string state = 22;
+    bool is_activated = 23;
+    bool is_my_offer = 24;
+    string owner_node_address = 25;
+    string pub_key_ring = 26;
+    string version_nr = 27;
+    int32 protocol_version = 28;
+    string arbitrator_signer = 29;
+    string split_output_tx_hash = 30;
+    uint64 split_output_tx_fee = 31 [jstype = JS_STRING];
+    bool is_private_offer = 32;
+    string challenge = 33;
 }
 
 message AvailabilityResultWithDescription {
@@ -564,6 +597,8 @@ service PaymentAccounts {
     rpc GetPaymentAccountFormAsJson (GetPaymentAccountFormAsJsonRequest) returns (GetPaymentAccountFormAsJsonReply) {
     }
     rpc CreateCryptoCurrencyPaymentAccount (CreateCryptoCurrencyPaymentAccountRequest) returns (CreateCryptoCurrencyPaymentAccountReply) {
+    }
+    rpc DeletePaymentAccount (DeletePaymentAccountRequest) returns (DeletePaymentAccountReply) {
     }
     rpc GetCryptoCurrencyPaymentMethods (GetCryptoCurrencyPaymentMethodsRequest) returns (GetCryptoCurrencyPaymentMethodsReply) {
     }
@@ -616,6 +651,13 @@ message CreateCryptoCurrencyPaymentAccountRequest {
     string currency_code = 2;
     string address = 3;
     bool trade_instant = 4;
+}
+
+message DeletePaymentAccountRequest {
+    string payment_account_id = 1;
+}
+
+message DeletePaymentAccountReply {
 }
 
 message CreateCryptoCurrencyPaymentAccountReply {
@@ -747,6 +789,7 @@ message TakeOfferRequest {
     string offer_id = 1;
     string payment_account_id = 2;
     uint64 amount = 3 [jstype = JS_STRING];
+    string challenge = 4;
 }
 
 message TakeOfferReply {
@@ -828,51 +871,56 @@ message TradeInfo {
     string short_id = 3;
     uint64 date = 4;
     string role = 5;
-    uint64 taker_fee = 6 [jstype = JS_STRING];
-    string taker_fee_tx_id = 7;
-    string payout_tx_id = 8;
-    uint64 amount = 9 [jstype = JS_STRING];
-    uint64 buyer_security_deposit = 10 [jstype = JS_STRING];
-    uint64 seller_security_deposit = 11 [jstype = JS_STRING];
-    string price = 12;
-    string arbitrator_node_address = 13;
-    string trade_peer_node_address = 14;
-    string state = 15;
-    string phase = 16;
-    string period_state = 17;
-    string payout_state = 18;
-    string dispute_state = 19;
-    bool is_deposits_published = 20;
-    bool is_deposits_confirmed = 21;
-    bool is_deposits_unlocked = 22;
-    bool is_payment_sent = 23;
-    bool is_payment_received = 24;
-    bool is_payout_published = 25;
-    bool is_payout_confirmed = 26;
-    bool is_payout_unlocked = 27;
-    bool is_completed = 28;
-    string contract_as_json = 29;
-    ContractInfo contract = 30;
-    string trade_volume = 31;
-    string maker_deposit_tx_id = 32;
-    string taker_deposit_tx_id = 33;
+    uint64 amount = 6 [jstype = JS_STRING];
+    uint64 maker_fee = 7 [jstype = JS_STRING];
+    uint64 taker_fee = 8 [jstype = JS_STRING];
+    uint64 buyer_security_deposit = 9 [jstype = JS_STRING];
+    uint64 seller_security_deposit = 10 [jstype = JS_STRING];
+    uint64 buyer_deposit_tx_fee = 11 [jstype = JS_STRING];
+    uint64 seller_deposit_tx_fee = 12 [jstype = JS_STRING];
+    uint64 buyer_payout_tx_fee = 13 [jstype = JS_STRING];
+    uint64 seller_payout_tx_fee = 14 [jstype = JS_STRING];
+    uint64 buyer_payout_amount = 15 [jstype = JS_STRING];
+    uint64 seller_payout_amount = 16 [jstype = JS_STRING];
+    string price = 17;
+    string arbitrator_node_address = 18;
+    string trade_peer_node_address = 19;
+    string state = 20;
+    string phase = 21;
+    string period_state = 22;
+    string payout_state = 23;
+    string dispute_state = 24;
+    bool is_deposits_published = 25;
+    bool is_deposits_confirmed = 26;
+    bool is_deposits_unlocked = 27;
+    bool is_payment_sent = 28;
+    bool is_payment_received = 29;
+    bool is_payout_published = 30;
+    bool is_payout_confirmed = 31;
+    bool is_payout_unlocked = 32;
+    bool is_completed = 33;
+    string contract_as_json = 34;
+    ContractInfo contract = 35;
+    string trade_volume = 36;
+    string maker_deposit_tx_id = 37;
+    string taker_deposit_tx_id = 38;
+    string payout_tx_id = 39;
 }
 
 message ContractInfo {
     string buyer_node_address = 1;
     string seller_node_address = 2;
-    reserved 3; // was mediator_node_address
-    reserved 4; // was refund_agent_node_address
-    bool is_buyer_maker_and_seller_taker = 5;
-    string maker_account_id = 6;
-    string taker_account_id = 7;
-    PaymentAccountPayload maker_payment_account_payload = 8;
-    PaymentAccountPayload taker_payment_account_payload = 9;
-    string maker_payout_address_string = 10;
-    string taker_payout_address_string = 11;
-    uint64 lock_time = 12;
-
-    string arbitrator_node_address = 100;
+    string arbitrator_node_address = 3;
+    reserved 4; // was mediator_node_address
+    reserved 5; // was refund_agent_node_address
+    bool is_buyer_maker_and_seller_taker = 6;
+    string maker_account_id = 7;
+    string taker_account_id = 8;
+    PaymentAccountPayload maker_payment_account_payload = 9;
+    PaymentAccountPayload taker_payment_account_payload = 10;
+    string maker_payout_address_string = 11;
+    string taker_payout_address_string = 12;
+    uint64 lock_time = 13;
 }
 
 

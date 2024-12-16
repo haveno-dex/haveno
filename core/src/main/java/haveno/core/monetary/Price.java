@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.monetary;
@@ -49,7 +49,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
     }
 
     /**
-     * Parse the Bitcoin {@code Price} given a {@code currencyCode} and {@code inputValue}.
+     * Parse the Monero {@code Price} given a {@code currencyCode} and {@code inputValue}.
      *
      * @param currencyCode The currency code to parse, e.g "USD" or "LTC".
      * @param input        The input value to parse as a String, e.g "2.54" or "-0.0001".
@@ -64,7 +64,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
     }
 
     /**
-     * Parse the Bitcoin {@code Price} given a {@code currencyCode} and {@code inputValue}.
+     * Parse the Monero {@code Price} given a {@code currencyCode} and {@code inputValue}.
      *
      * @param currencyCode The currency code to parse, e.g "USD" or "LTC".
      * @param value        The value to parse.
@@ -94,7 +94,7 @@ public class Price extends MonetaryWrapper implements Comparable<Price> {
         else if (monetary instanceof CryptoMoney && this.monetary instanceof CryptoMoney)
             return HavenoUtils.coinToAtomicUnits(new CryptoExchangeRate((CryptoMoney) this.monetary).cryptoToCoin((CryptoMoney) monetary));
         else
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
     }
 
     public String getCurrencyCode() {

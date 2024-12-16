@@ -1,24 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.editoffer;
 
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -45,8 +46,6 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
-
-import javax.inject.Named;
 import java.util.Optional;
 import java.util.Set;
 
@@ -96,7 +95,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         price.set(null);
         volume.set(null);
         minVolume.set(null);
-        buyerSecurityDepositPct.set(0);
+        securityDepositPct.set(0);
         paymentAccounts.clear();
         paymentAccount = null;
         marketPriceMargin = 0;
@@ -122,16 +121,18 @@ class EditOfferDataModel extends MutableOfferDataModel {
             else
                 paymentAccount.setSelectedTradeCurrency(selectedTradeCurrency);
         }
+        
+        // TODO: update for XMR to use percent as double?
 
         // If the security deposit got bounded because it was below the coin amount limit, it can be bigger
         // by percentage than the restriction. We can't determine the percentage originally entered at offer
         // creation, so just use the default value as it doesn't matter anyway.
-        double buyerSecurityDepositPercent = CoinUtil.getAsPercentPerBtc(offer.getBuyerSecurityDeposit(), offer.getAmount());
-        if (buyerSecurityDepositPercent > Restrictions.getMaxBuyerSecurityDepositAsPercent()
-                && offer.getBuyerSecurityDeposit().equals(Restrictions.getMinBuyerSecurityDeposit()))
-            buyerSecurityDepositPct.set(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
+        double securityDepositPercent = CoinUtil.getAsPercentPerXmr(offer.getMaxSellerSecurityDeposit(), offer.getAmount());
+        if (securityDepositPercent > Restrictions.getMaxSecurityDepositAsPercent()
+                && offer.getMaxSellerSecurityDeposit().equals(Restrictions.getMinSecurityDeposit()))
+            securityDepositPct.set(Restrictions.getDefaultSecurityDepositAsPercent());
         else
-            buyerSecurityDepositPct.set(buyerSecurityDepositPercent);
+            securityDepositPct.set(securityDepositPercent);
 
         allowAmountUpdate = false;
     }
@@ -188,6 +189,11 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 newOfferPayload.isUseMarketBasedPrice(),
                 offerPayload.getAmount(),
                 offerPayload.getMinAmount(),
+                offerPayload.getMakerFeePct(),
+                offerPayload.getTakerFeePct(),
+                offerPayload.getPenaltyFeePct(),
+                offerPayload.getBuyerSecurityDepositPct(),
+                offerPayload.getSellerSecurityDepositPct(),
                 newOfferPayload.getBaseCurrencyCode(),
                 newOfferPayload.getCounterCurrencyCode(),
                 newOfferPayload.getPaymentMethodId(),
@@ -198,9 +204,6 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 newOfferPayload.getAcceptedBankIds(),
                 offerPayload.getVersionNr(),
                 offerPayload.getBlockHeightAtOfferCreation(),
-                offerPayload.getMakerFee(),
-                offerPayload.getBuyerSecurityDeposit(),
-                offerPayload.getSellerSecurityDeposit(),
                 offerPayload.getMaxTradeLimit(),
                 offerPayload.getMaxTradePeriod(),
                 offerPayload.isUseAutoClose(),
@@ -208,7 +211,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getLowerClosePrice(),
                 offerPayload.getUpperClosePrice(),
                 offerPayload.isPrivateOffer(),
-                offerPayload.getHashOfChallenge(),
+                offerPayload.getChallengeHash(),
                 offerPayload.getExtraDataMap(),
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),

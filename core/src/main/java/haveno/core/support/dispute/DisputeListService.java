@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.dispute;
@@ -90,12 +90,14 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void cleanupDisputes(@Nullable Consumer<String> closedDisputeHandler) {
-        disputeList.stream().forEach(dispute -> {
-            String tradeId = dispute.getTradeId();
-            if (dispute.isClosed() && closedDisputeHandler != null) {
-                closedDisputeHandler.accept(tradeId);
-            }
-        });
+        synchronized (disputeList.getObservableList()) {
+            disputeList.stream().forEach(dispute -> {
+                String tradeId = dispute.getTradeId();
+                if (dispute.isClosed() && closedDisputeHandler != null) {
+                    closedDisputeHandler.accept(tradeId);
+                }
+            });
+        }
     }
 
 
@@ -130,7 +132,9 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     }
 
     ObservableList<Dispute> getObservableList() {
-        return disputeList.getObservableList();
+        synchronized (disputeList.getObservableList()) {
+            return disputeList.getObservableList();
+        }
     }
 
 
@@ -151,10 +155,12 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
                     isAlerting -> {
                         // We get the event before the list gets updated, so we execute on next frame
                         UserThread.execute(() -> {
-                            int numAlerts = (int) disputeList.getList().stream()
-                                    .mapToLong(x -> x.getBadgeCountProperty().getValue())
-                                    .sum();
-                            numOpenDisputes.set(numAlerts);
+                            synchronized (disputeList.getObservableList()) {
+                                int numAlerts = (int) disputeList.getList().stream()
+                                        .mapToLong(x -> x.getBadgeCountProperty().getValue())
+                                        .sum();
+                                numOpenDisputes.set(numAlerts);
+                            }
                         });
                     });
             disputedTradeIds.add(dispute.getTradeId());

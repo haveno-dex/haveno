@@ -1,7 +1,7 @@
 # docker run -it -p 9050 -p 2002 --restart-policy unless-stopped --name haveno-seednode haveno-seednode
 # TODO: image very heavy, but it's hard to significantly reduce the size without bins
 
-FROM openjdk:11
+FROM openjdk:21-jdk-bullseye
 
 RUN set -ex && \
     apt update && \

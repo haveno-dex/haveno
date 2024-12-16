@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.maker;
@@ -60,9 +60,11 @@ public class OfferMaker {
     public static final Property<Offer, PubKeyRing> pubKeyRing = newProperty();
     public static final Property<Offer, Long> blockHeight = newProperty();
     public static final Property<Offer, Long> txFee = newProperty();
-    public static final Property<Offer, Long> makerFee = newProperty();
-    public static final Property<Offer, Long> buyerSecurityDeposit = newProperty();
-    public static final Property<Offer, Long> sellerSecurityDeposit = newProperty();
+    public static final Property<Offer, Double> makerFeePct = newProperty();
+    public static final Property<Offer, Double> takerFeePct = newProperty();
+    public static final Property<Offer, Double> penaltyFeePct = newProperty();
+    public static final Property<Offer, Double> buyerSecurityDepositPct = newProperty();
+    public static final Property<Offer, Double> sellerSecurityDepositPct = newProperty();
     public static final Property<Offer, Long> tradeLimit = newProperty();
     public static final Property<Offer, Long> maxTradePeriod = newProperty();
     public static final Property<Offer, Long> lowerClosePrice = newProperty();
@@ -80,6 +82,11 @@ public class OfferMaker {
                     lookup.valueOf(useMarketBasedPrice, false),
                     lookup.valueOf(amount, 100000L),
                     lookup.valueOf(minAmount, 100000L),
+                    lookup.valueOf(makerFeePct, .0015),
+                    lookup.valueOf(takerFeePct, .0075),
+                    lookup.valueOf(penaltyFeePct, 0.03),
+                    lookup.valueOf(buyerSecurityDepositPct, .15),
+                    lookup.valueOf(sellerSecurityDepositPct, .15),
                     lookup.valueOf(baseCurrencyCode, "XMR"),
                     lookup.valueOf(counterCurrencyCode, "USD"),
                     lookup.valueOf(paymentMethodId, "SEPA"),
@@ -92,9 +99,6 @@ public class OfferMaker {
                     null,
                     "2",
                     lookup.valueOf(blockHeight, 700000L),
-                    lookup.valueOf(makerFee, 1000L),
-                    lookup.valueOf(buyerSecurityDeposit, 10000L),
-                    lookup.valueOf(sellerSecurityDeposit, 10000L),
                     lookup.valueOf(tradeLimit, 0L),
                     lookup.valueOf(maxTradePeriod, 0L),
                     false,

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.network;
@@ -38,6 +38,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import lombok.Getter;
 
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -48,6 +49,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +83,8 @@ public abstract class NetworkNode implements MessageListener {
     private final ListeningExecutorService sendMessageExecutor;
     private Server server;
 
-    private volatile boolean shutDownInProgress;
+    @Getter
+    private volatile boolean isShutDownStarted;
     // accessed from different threads
     private final CopyOnWriteArraySet<OutboundConnection> outBoundConnections = new CopyOnWriteArraySet<>();
     protected final ObjectProperty<NodeAddress> nodeAddressProperty = new SimpleObjectProperty<>();
@@ -120,6 +123,11 @@ public abstract class NetworkNode implements MessageListener {
 
     public SettableFuture<Connection> sendMessage(@NotNull NodeAddress peersNodeAddress,
             NetworkEnvelope networkEnvelope) {
+        return sendMessage(peersNodeAddress, networkEnvelope, null);
+    }
+
+    public SettableFuture<Connection> sendMessage(@NotNull NodeAddress peersNodeAddress,
+            NetworkEnvelope networkEnvelope, Integer timeoutSeconds) {
         log.debug("Send {} to {}. Message details: {}",
                 networkEnvelope.getClass().getSimpleName(), peersNodeAddress,
                 Utilities.toTruncatedString(networkEnvelope));
@@ -136,107 +144,109 @@ public abstract class NetworkNode implements MessageListener {
             log.debug("We have not found any connection for peerAddress {}.\n\t" +
                     "We will create a new outbound connection.", peersNodeAddress);
 
-            SettableFuture<Connection> resultFuture = SettableFuture.create();
-            ListenableFuture<Connection> future = connectionExecutor.submit(() -> {
-                Thread.currentThread().setName("NetworkNode.connectionExecutor:SendMessage-to-"
-                        + Utilities.toTruncatedString(peersNodeAddress.getFullAddress(), 15));
-                if (peersNodeAddress.equals(getNodeAddress())) {
-                    log.warn("We are sending a message to ourselves");
-                }
-
-                OutboundConnection outboundConnection;
-                // can take a while when using tor
-                long startTs = System.currentTimeMillis();
-
-                log.debug("Start create socket to peersNodeAddress {}", peersNodeAddress.getFullAddress());
-
-                Socket socket = createSocket(peersNodeAddress);
-                long duration = System.currentTimeMillis() - startTs;
-                log.info("Socket creation to peersNodeAddress {} took {} ms", peersNodeAddress.getFullAddress(),
-                        duration);
-
-                if (duration > CREATE_SOCKET_TIMEOUT)
-                    throw new TimeoutException("A timeout occurred when creating a socket.");
-
-                // Tor needs sometimes quite long to create a connection. To avoid that we get too many
-                // connections with the same peer we check again if we still don't have any connection for that node address.
-                Connection existingConnection = getInboundConnection(peersNodeAddress);
-                if (existingConnection == null)
-                    existingConnection = getOutboundConnection(peersNodeAddress);
-
-                if (existingConnection != null) {
-                    log.debug("We found in the meantime a connection for peersNodeAddress {}, " +
-                            "so we use that for sending the message.\n" +
-                            "That can happen if Tor needs long for creating a new outbound connection.\n" +
-                            "We might have got a new inbound or outbound connection.",
-                            peersNodeAddress.getFullAddress());
-
-                    try {
-                        socket.close();
-                    } catch (Throwable throwable) {
-                        if (!shutDownInProgress) {
-                            log.error("Error at closing socket " + throwable);
-                        }
+            SettableFuture<Connection> resultFuture = SettableFuture.create(); 
+            CompletableFuture<Connection> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    Thread.currentThread().setName("NetworkNode.connectionExecutor:SendMessage-to-"
+                            + Utilities.toTruncatedString(peersNodeAddress.getFullAddress(), 15));
+                    if (peersNodeAddress.equals(getNodeAddress())) {
+                        log.warn("We are sending a message to ourselves");
                     }
-                    existingConnection.sendMessage(networkEnvelope);
-                    return existingConnection;
-                } else {
-                    ConnectionListener connectionListener = new ConnectionListener() {
-                        @Override
-                        public void onConnection(Connection connection) {
-                            if (!connection.isStopped()) {
-                                outBoundConnections.add((OutboundConnection) connection);
-                                printOutBoundConnections();
-                                connectionListeners.forEach(e -> e.onConnection(connection));
+
+                    OutboundConnection outboundConnection;
+                    // can take a while when using tor
+                    long startTs = System.currentTimeMillis();
+
+                    log.debug("Start create socket to peersNodeAddress {}", peersNodeAddress.getFullAddress());
+
+                    Socket socket = createSocket(peersNodeAddress);
+                    long duration = System.currentTimeMillis() - startTs;
+                    log.info("Socket creation to peersNodeAddress {} took {} ms", peersNodeAddress.getFullAddress(),
+                            duration);
+
+                    if (duration > CREATE_SOCKET_TIMEOUT)
+                        throw new TimeoutException("A timeout occurred when creating a socket.");
+
+                    // Tor needs sometimes quite long to create a connection. To avoid that we get too many
+                    // connections with the same peer we check again if we still don't have any connection for that node address.
+                    Connection existingConnection = getInboundConnection(peersNodeAddress);
+                    if (existingConnection == null)
+                        existingConnection = getOutboundConnection(peersNodeAddress);
+
+                    if (existingConnection != null) {
+                        log.debug("We found in the meantime a connection for peersNodeAddress {}, " +
+                                "so we use that for sending the message.\n" +
+                                "That can happen if Tor needs long for creating a new outbound connection.\n" +
+                                "We might have got a new inbound or outbound connection.",
+                                peersNodeAddress.getFullAddress());
+
+                        try {
+                            socket.close();
+                        } catch (Throwable throwable) {
+                            if (!isShutDownStarted) {
+                                log.error("Error at closing socket " + throwable);
                             }
                         }
+                        existingConnection.sendMessage(networkEnvelope);
+                        return existingConnection;
+                    } else {
+                        ConnectionListener connectionListener = new ConnectionListener() {
+                            @Override
+                            public void onConnection(Connection connection) {
+                                if (!connection.isStopped()) {
+                                    outBoundConnections.add((OutboundConnection) connection);
+                                    printOutBoundConnections();
+                                    connectionListeners.forEach(e -> e.onConnection(connection));
+                                }
+                            }
 
-                        @Override
-                        public void onDisconnect(CloseConnectionReason closeConnectionReason,
-                                Connection connection) {
-                            // noinspection SuspiciousMethodCalls
-                            outBoundConnections.remove(connection);
-                            printOutBoundConnections();
-                            connectionListeners.forEach(e -> e.onDisconnect(closeConnectionReason, connection));
+                            @Override
+                            public void onDisconnect(CloseConnectionReason closeConnectionReason,
+                                    Connection connection) {
+                                // noinspection SuspiciousMethodCalls
+                                outBoundConnections.remove(connection);
+                                printOutBoundConnections();
+                                connectionListeners.forEach(e -> e.onDisconnect(closeConnectionReason, connection));
+                            }
+                        };
+                        outboundConnection = new OutboundConnection(socket,
+                                NetworkNode.this,
+                                connectionListener,
+                                peersNodeAddress,
+                                networkProtoResolver,
+                                banFilter);
+
+                        if (log.isDebugEnabled()) {
+                            log.debug("\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" +
+                                    "NetworkNode created new outbound connection:"
+                                    + "\nmyNodeAddress=" + getNodeAddress()
+                                    + "\npeersNodeAddress=" + peersNodeAddress
+                                    + "\nuid=" + outboundConnection.getUid()
+                                    + "\nmessage=" + networkEnvelope
+                                    + "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
                         }
-                    };
-                    outboundConnection = new OutboundConnection(socket,
-                            NetworkNode.this,
-                            connectionListener,
-                            peersNodeAddress,
-                            networkProtoResolver,
-                            banFilter);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" +
-                                "NetworkNode created new outbound connection:"
-                                + "\nmyNodeAddress=" + getNodeAddress()
-                                + "\npeersNodeAddress=" + peersNodeAddress
-                                + "\nuid=" + outboundConnection.getUid()
-                                + "\nmessage=" + networkEnvelope
-                                + "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+                        // can take a while when using tor
+                        outboundConnection.sendMessage(networkEnvelope);
+                        return outboundConnection;
                     }
-                    // can take a while when using tor
-                    outboundConnection.sendMessage(networkEnvelope);
-                    return outboundConnection;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
+            }, connectionExecutor);
+
+            // handle future with timeout
+            if (timeoutSeconds != null) future.orTimeout(timeoutSeconds, TimeUnit.SECONDS);
+            future.exceptionally(throwable -> {
+                log.debug("onFailure at sendMessage: peersNodeAddress={}\n\tmessage={}\n\tthrowable={}", peersNodeAddress, networkEnvelope.getClass().getSimpleName(), throwable.toString());
+                UserThread.execute(() -> {
+                    if (!resultFuture.setException(throwable)) {
+                        // In case the setException returns false we need to cancel the future.
+                        resultFuture.cancel(true);
+                    }
+                });
+                return null;
             });
-
-            Futures.addCallback(future, new FutureCallback<>() {
-                public void onSuccess(Connection connection) {
-                    UserThread.execute(() -> resultFuture.set(connection));
-                }
-
-                public void onFailure(@NotNull Throwable throwable) {
-                    log.debug("onFailure at sendMessage: peersNodeAddress={}\n\tmessage={}\n\tthrowable={}", peersNodeAddress, networkEnvelope.getClass().getSimpleName(), throwable.toString());
-                    UserThread.execute(() -> {
-                        if (!resultFuture.setException(throwable)) {
-                            // In case the setException returns false we need to cancel the future.
-                            resultFuture.cancel(true);
-                        }
-                    });
-                }
-            }, MoreExecutors.directExecutor());
+            future.thenAccept(resultFuture::set);
 
             return resultFuture;
         }
@@ -306,25 +316,23 @@ public abstract class NetworkNode implements MessageListener {
                 }
 
                 public void onFailure(@NotNull Throwable throwable) {
-                    UserThread.execute(() -> {
-                        if (!resultFuture.setException(throwable)) {
-                            // In case the setException returns false we need to cancel the future.
-                            resultFuture.cancel(true);
-                        }
-                    });
+                    UserThread.execute(() -> resolveWithException(resultFuture, throwable));
                 }
             }, MoreExecutors.directExecutor());
 
         } catch (RejectedExecutionException exception) {
-            log.error("RejectedExecutionException at sendMessage: ", exception);
-            UserThread.execute(() -> {
-                if (!resultFuture.setException(exception)) {
-                    // In case the setException returns false we need to cancel the future.
-                    resultFuture.cancel(true);
-                }
-            });
+            if (!executor.isShutdown()) {
+                log.error("RejectedExecutionException at sendMessage: ", exception);
+                UserThread.execute(() -> resolveWithException(resultFuture, exception));
+            }
         }
         return resultFuture;
+    }
+
+    private void resolveWithException(SettableFuture<?> future, Throwable exception) {
+        if (!future.setException(exception)) {
+            future.cancel(true); // In case the setException returns false we need to cancel the future.
+        }
     }
 
     public ReadOnlyObjectProperty<NodeAddress> nodeAddressProperty() {
@@ -355,8 +363,9 @@ public abstract class NetworkNode implements MessageListener {
     }
 
     public void shutDown(Runnable shutDownCompleteHandler) {
-        if (!shutDownInProgress) {
-            shutDownInProgress = true;
+        log.info("NetworkNode shutdown started");
+        if (!isShutDownStarted) {
+            isShutDownStarted = true;
             if (server != null) {
                 server.shutDown();
                 server = null;

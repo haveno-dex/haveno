@@ -2,7 +2,7 @@ gettrade
 
 NAME
 ----
-gettrade - get a buy or sell BTC trade
+gettrade - get a buy or sell XMR trade
 
 SYNOPSIS
 --------

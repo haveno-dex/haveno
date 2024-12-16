@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common.taskrunner;
@@ -24,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @Slf4j
 public class TaskRunner<T extends Model> {
@@ -67,8 +69,8 @@ public class TaskRunner<T extends Model> {
                     log.info("Run task: " + currentTask.getSimpleName());
                     currentTask.getDeclaredConstructor(TaskRunner.class, sharedModelClass).newInstance(this, sharedModel).run();
                 } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                    handleErrorMessage("Error at taskRunner: " + throwable.getMessage());
+                    log.error(ExceptionUtils.getStackTrace(throwable));
+                    handleErrorMessage("Error at taskRunner, error=" + throwable.getMessage());
                 }
             } else {
                 resultHandler.handleResult();
@@ -80,11 +82,16 @@ public class TaskRunner<T extends Model> {
         isCanceled = true;
     }
 
+    public boolean isCanceled() {
+        return isCanceled;
+    }
+
     void handleComplete() {
         next();
     }
 
     void handleErrorMessage(String errorMessage) {
+        if (isCanceled) return;
         log.error("Task failed: " + currentTask.getSimpleName() + " / errorMessage: " + errorMessage);
         failed = true;
         errorMessageHandler.handleErrorMessage(errorMessage);

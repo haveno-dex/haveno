@@ -1,26 +1,27 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.funds.transactions;
 
+import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.trade.Trade;
@@ -31,12 +32,14 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AddressWithIconAndDirection;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
+import haveno.desktop.main.overlays.windows.TxDetailsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.Comparator;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
@@ -60,10 +63,6 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import monero.wallet.model.MoneroWalletListener;
 
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.Comparator;
-
 @FxmlView
 public class TransactionsView extends ActivatableView<VBox, Void> {
 
@@ -71,7 +70,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @FXML
     TableView<TransactionsListItem> tableView;
     @FXML
-    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, memoColumn, confidenceColumn, revertTxColumn;
+    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, memoColumn, confidenceColumn, revertTxColumn;
     @FXML
     Label numItems;
     @FXML
@@ -86,11 +85,12 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private final Preferences preferences;
     private final TradeDetailsWindow tradeDetailsWindow;
     private final OfferDetailsWindow offerDetailsWindow;
+    private final TxDetailsWindow txDetailsWindow;
 
     private EventHandler<KeyEvent> keyEventEventHandler;
     private Scene scene;
 
-    private TransactionsUpdater transactionsUpdater = new TransactionsUpdater();
+    private final TransactionsUpdater transactionsUpdater = new TransactionsUpdater();
 
     private class TransactionsUpdater extends MoneroWalletListener {
         @Override
@@ -110,15 +110,17 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @Inject
     private TransactionsView(XmrWalletService xmrWalletService,
                              P2PService p2PService,
-                             CoreMoneroConnectionsService connectionService,
+                             XmrConnectionService xmrConnectionService,
                              Preferences preferences,
                              TradeDetailsWindow tradeDetailsWindow,
                              OfferDetailsWindow offerDetailsWindow,
+                             TxDetailsWindow txDetailsWindow,
                              DisplayedTransactionsFactory displayedTransactionsFactory) {
         this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.offerDetailsWindow = offerDetailsWindow;
+        this.txDetailsWindow = txDetailsWindow;
         this.displayedTransactions = displayedTransactionsFactory.create();
         this.sortedDisplayedTransactions = displayedTransactions.asSortedList();
     }
@@ -130,11 +132,12 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         transactionColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txId", Res.getBaseCurrencyCode())));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
+        txFeeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txFee", Res.getBaseCurrencyCode())));
         memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
         confidenceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations", Res.getBaseCurrencyCode())));
         revertTxColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.revert", Res.getBaseCurrencyCode())));
 
-        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
 
         setDateColumnCellFactory();
@@ -142,6 +145,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         setAddressColumnCellFactory();
         setTransactionColumnCellFactory();
         setAmountColumnCellFactory();
+        setTxFeeColumnCellFactory();
         setMemoColumnCellFactory();
         setConfidenceColumnCellFactory();
         setRevertTxColumnCellFactory();
@@ -157,9 +161,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         addressColumn.setComparator(Comparator.comparing(item -> item.getDirection() + item.getAddressString()));
         transactionColumn.setComparator(Comparator.comparing(TransactionsListItem::getTxId));
         amountColumn.setComparator(Comparator.comparing(TransactionsListItem::getAmount));
-        confidenceColumn.setComparator(Comparator.comparingLong(item -> item.getNumConfirmations()));
-        memoColumn.setComparator(Comparator.comparing(TransactionsListItem::getMemo));
-
+        confidenceColumn.setComparator(Comparator.comparingLong(TransactionsListItem::getNumConfirmations));
+        memoColumn.setComparator(Comparator.comparing(TransactionsListItem::getMemo, Comparator.nullsLast(Comparator.naturalOrder())));
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(dateColumn);
 
@@ -217,8 +220,9 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                 columns[2] = item.getDirection() + " " + item.getAddressString();
                 columns[3] = item.getTxId();
                 columns[4] = item.getAmountStr();
-                columns[5] = item.getMemo() == null ? "" : item.getMemo();
-                columns[6] = String.valueOf(item.getNumConfirmations());
+                columns[5] = item.getTxFeeStr();
+                columns[6] = item.getMemo() == null ? "" : item.getMemo();
+                columns[7] = String.valueOf(item.getNumConfirmations());
                 return columns;
             };
 
@@ -249,6 +253,10 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
             offerDetailsWindow.show(item.getTradable().getOffer());
         else if (item.getTradable() instanceof Trade)
             tradeDetailsWindow.show((Trade) item.getTradable());
+    }
+
+    private void openTxDetailPopup(TransactionsListItem item) {
+        txDetailsWindow.show(item);
     }
 
 
@@ -374,9 +382,9 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                 //noinspection Duplicates
                                 if (item != null && !empty) {
                                     String transactionId = item.getTxId();
-                                    hyperlinkWithIcon = new ExternalHyperlink(transactionId);
-                                    hyperlinkWithIcon.setOnAction(event -> openTxInBlockExplorer(item));
-                                    hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("tooltip.openBlockchainForTx", transactionId)));
+                                    hyperlinkWithIcon = new HyperlinkWithIcon(transactionId, AwesomeIcon.INFO_SIGN);
+                                    hyperlinkWithIcon.setOnAction(event -> openTxDetailPopup(item));
+                                    hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("txDetailsWindow.headline")));
                                     setGraphic(hyperlinkWithIcon);
                                 } else {
                                     setGraphic(null);
@@ -406,6 +414,33 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
                                 if (item != null && !empty) {
                                     setGraphic(new AutoTooltipLabel(item.getAmountStr()));
+                                } else {
+                                    setGraphic(null);
+                                }
+                            }
+                        };
+                    }
+                });
+    }
+
+
+    private void setTxFeeColumnCellFactory() {
+        txFeeColumn.setCellValueFactory((addressListItem) ->
+                new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        txFeeColumn.setCellFactory(
+                new Callback<>() {
+
+                    @Override
+                    public TableCell<TransactionsListItem, TransactionsListItem> call(TableColumn<TransactionsListItem,
+                            TransactionsListItem> column) {
+                        return new TableCell<>() {
+
+                            @Override
+                            public void updateItem(final TransactionsListItem item, boolean empty) {
+                                super.updateItem(item, empty);
+
+                                if (item != null && !empty) {
+                                    setGraphic(new AutoTooltipLabel(item.getTxFeeStr()));
                                 } else {
                                     setGraphic(null);
                                 }

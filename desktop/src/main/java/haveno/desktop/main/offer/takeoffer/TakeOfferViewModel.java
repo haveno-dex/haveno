@@ -1,22 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer.takeoffer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
@@ -35,7 +38,6 @@ import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.InputValidator;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
@@ -50,6 +52,8 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
+import java.math.BigInteger;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -62,14 +66,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
-
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> implements ViewModel {
     final TakeOfferDataModel dataModel;
@@ -267,7 +264,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     private void applyTakerFee() {
-        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionBTCOnly"));
+        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionXMROnly"));
         BigInteger takerFee = dataModel.getTakerFee();
         if (takerFee == null) {
             return;
@@ -292,7 +289,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             amountValidationResult.set(result);
             if (result.isValid) {
                 showWarningInvalidBtcDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, xmrFormatter));
-                // only allow max 4 decimal places for btc values
+                // only allow max 4 decimal places for xmr values
                 setAmountToModel();
                 // reformat input
                 amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
@@ -352,73 +349,79 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void applyOfferState(Offer.State state) {
-        offerWarning.set(null);
+        UserThread.execute(() -> {
+            offerWarning.set(null);
 
-        // We have 2 situations handled here:
-        // 1. when clicking take offer in the offerbook screen, we do the availability check
-        // 2. Before actually taking the offer in the take offer screen, we check again the availability as some time might have passed in the meantime
-        // So we use the takeOfferRequested flag to display different network_messages depending on the context.
-        switch (state) {
-            case UNKNOWN:
-                break;
-            case OFFER_FEE_RESERVED:
-                // irrelevant for taker
-                break;
-            case AVAILABLE:
-                isOfferAvailable.set(true);
-                updateButtonDisableState();
-                break;
-            case NOT_AVAILABLE:
-                if (takeOfferRequested)
-                    offerWarning.set(Res.get("takeOffer.failed.offerNotAvailable"));
-                else
-                    offerWarning.set(Res.get("takeOffer.failed.offerTaken"));
-                takeOfferRequested = false;
-                break;
-            case REMOVED:
-                if (!takeOfferRequested)
-                    offerWarning.set(Res.get("takeOffer.failed.offerRemoved"));
-
-                takeOfferRequested = false;
-                break;
-            case MAKER_OFFLINE:
-                if (takeOfferRequested)
-                    offerWarning.set(Res.get("takeOffer.failed.offererNotOnline"));
-                else
-                    offerWarning.set(Res.get("takeOffer.failed.offererOffline"));
-                takeOfferRequested = false;
-                break;
-            default:
-                log.error("Unhandled offer state: " + state);
-                break;
-        }
-
-        updateSpinnerInfo();
-
-        updateButtonDisableState();
+            // We have 2 situations handled here:
+            // 1. when clicking take offer in the offerbook screen, we do the availability check
+            // 2. Before actually taking the offer in the take offer screen, we check again the availability as some time might have passed in the meantime
+            // So we use the takeOfferRequested flag to display different network_messages depending on the context.
+            switch (state) {
+                case UNKNOWN:
+                    break;
+                case OFFER_FEE_RESERVED:
+                    // irrelevant for taker
+                    break;
+                case AVAILABLE:
+                    isOfferAvailable.set(true);
+                    updateButtonDisableState();
+                    break;
+                case NOT_AVAILABLE:
+                    if (takeOfferRequested)
+                        offerWarning.set(Res.get("takeOffer.failed.offerNotAvailable"));
+                    else
+                        offerWarning.set(Res.get("takeOffer.failed.offerTaken"));
+                    takeOfferRequested = false;
+                    break;
+                case INVALID:
+                    offerWarning.set(Res.get("takeOffer.failed.offerInvalid"));
+                    takeOfferRequested = false;
+                    break;
+                case REMOVED:
+                    // if (takeOfferRequested) // TODO: show any warning or removed is expected?
+                    //     offerWarning.set(Res.get("takeOffer.failed.offerRemoved"));
+    
+                    takeOfferRequested = false;
+                    break;
+                case MAKER_OFFLINE:
+                    if (takeOfferRequested)
+                        offerWarning.set(Res.get("takeOffer.failed.offererNotOnline"));
+                    else
+                        offerWarning.set(Res.get("takeOffer.failed.offererOffline"));
+                    takeOfferRequested = false;
+                    break;
+                default:
+                    log.error("Unhandled offer state: " + state);
+                    break;
+            }
+    
+            updateSpinnerInfo();
+    
+            updateButtonDisableState();
+        });
     }
 
     private void applyTradeErrorMessage(@Nullable String errorMessage) {
         if (errorMessage != null) {
             String appendMsg = "";
             if (trade != null) {
-                switch (trade.getState().getPhase()) {
-                case INIT:
-                    appendMsg = Res.get("takeOffer.error.noFundsLost");
-                    break;
-                case DEPOSIT_REQUESTED:
-                    appendMsg = Res.get("takeOffer.error.feePaid");
-                    break;
-                case DEPOSITS_PUBLISHED:
-                case PAYMENT_SENT:
-                case PAYMENT_RECEIVED:
-                    appendMsg = Res.get("takeOffer.error.depositPublished");
-                    break;
-                case COMPLETED:
-                    appendMsg = Res.get("takeOffer.error.payoutPublished");
-                    break;
-                default:
-                    break;
+                if (trade.isPayoutPublished()) appendMsg = Res.get("takeOffer.error.payoutPublished");
+                else {
+                    switch (trade.getState().getPhase()) {
+                    case INIT:
+                        appendMsg = Res.get("takeOffer.error.noFundsLost");
+                        break;
+                    case DEPOSIT_REQUESTED:
+                        appendMsg = Res.get("takeOffer.error.feePaid");
+                        break;
+                    case DEPOSITS_PUBLISHED:
+                    case PAYMENT_SENT:
+                    case PAYMENT_RECEIVED:
+                        appendMsg = Res.get("takeOffer.error.depositPublished");
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
             this.errorMessage.set(errorMessage + appendMsg);
@@ -490,6 +493,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         connectionListener = new ConnectionListener() {
             @Override
             public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
+                if (trade == null) return; // ignore if trade initializing
                 if (connection.getPeersNodeAddressOptional().isPresent() &&
                         connection.getPeersNodeAddressOptional().get().equals(offer.getMakerNodeAddress())) {
                     offerWarning.set(Res.get("takeOffer.warning.connectionToPeerLost"));
@@ -656,9 +660,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                 dataModel.getSecurityDeposit(),
                 dataModel.getAmount().get(),
-                xmrFormatter,
-                Restrictions.getMinBuyerSecurityDeposit()
-        );
+                xmrFormatter);
     }
 
     public String getSecurityDepositWithCode() {
@@ -669,8 +671,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                     dataModel.getTakerFee(),
                     dataModel.getAmount().get(),
-                    xmrFormatter,
-                    HavenoUtils.getMinMakerFee());
+                    xmrFormatter);
     }
 
     public String getTakerFeePercentage() {

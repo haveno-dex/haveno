@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main;
@@ -29,7 +29,7 @@ import haveno.common.util.Tuple2;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.alert.PrivateNotificationManager;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
@@ -44,6 +44,8 @@ import haveno.core.presentation.BalancePresentation;
 import haveno.core.presentation.SupportTicketsPresentation;
 import haveno.core.presentation.TradePresentation;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
@@ -102,7 +104,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener {
     private final HavenoSetup havenoSetup;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     private final User user;
     private final BalancePresentation balancePresentation;
     private final TradePresentation tradePresentation;
@@ -138,6 +140,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> tradesAndUIReady;
     private final Queue<Overlay<?>> popupQueue = new PriorityQueue<>(Comparator.comparing(Overlay::getDisplayOrderPriority));
+    private Popup moneroConnectionFallbackPopup;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -146,7 +149,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     @Inject
     public MainViewModel(HavenoSetup havenoSetup,
-                         CoreMoneroConnectionsService connectionService,
+                         XmrConnectionService xmrConnectionService,
                          XmrWalletService xmrWalletService,
                          User user,
                          BalancePresentation balancePresentation,
@@ -170,7 +173,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          CorruptedStorageFileHandler corruptedStorageFileHandler,
                          Navigation navigation) {
         this.havenoSetup = havenoSetup;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.user = user;
         this.balancePresentation = balancePresentation;
         this.tradePresentation = tradePresentation;
@@ -217,7 +220,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             if (newValue) {
                 tradeManager.applyTradePeriodState();
 
-                tradeManager.getObservableList().forEach(trade -> {
+                tradeManager.getOpenTrades().forEach(trade -> {
 
                     // check initialization error
                     if (trade.getInitError() != null) {
@@ -236,6 +239,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                             key = "displayHalfTradePeriodOver" + trade.getId();
                             if (DontShowAgainLookup.showAgain(key)) {
                                 DontShowAgainLookup.dontShowAgain(key, true);
+                                if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
                                 new Popup().warning(Res.get("popup.warning.tradePeriod.halfReached",
                                         trade.getShortId(),
                                         DisplayUtils.formatDateTime(maxTradePeriodDate)))
@@ -246,6 +250,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                             key = "displayTradePeriodOver" + trade.getId();
                             if (DontShowAgainLookup.showAgain(key)) {
                                 DontShowAgainLookup.dontShowAgain(key, true);
+                                if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
                                 new Popup().warning(Res.get("popup.warning.tradePeriod.ended",
                                         trade.getShortId(),
                                         DisplayUtils.formatDateTime(maxTradePeriodDate)))
@@ -270,12 +275,23 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // show welcome message if not mainnet
+        // show welcome message 
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET) {
-            String key = "welcome.test";
+            String key = "welcome.stagenet";
             if (DontShowAgainLookup.showAgain(key)) {
                 UserThread.runAfter(() -> {
-                    new Popup().attention(Res.get("popup.attention.welcome.test")).
+                    new Popup().attention(Res.get("popup.attention.welcome.stagenet")).
+                            dontShowAgainId(key)
+                            .closeButtonText(Res.get("shared.iUnderstand"))
+                            .show();
+                }, 1);
+            }
+        } else if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
+            String key = "welcome.mainnet";
+            boolean isReleaseLimited = HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
+            if (DontShowAgainLookup.showAgain(key)) {
+                UserThread.runAfter(() -> {
+                    new Popup().attention(Res.get(isReleaseLimited ? "popup.attention.welcome.mainnet.test" : "popup.attention.welcome.mainnet")).
                             dontShowAgainId(key)
                             .closeButtonText(Res.get("shared.iUnderstand"))
                             .show();
@@ -319,9 +335,38 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             tacWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
+        havenoSetup.setDisplayMoneroConnectionFallbackHandler(show -> {
+            if (moneroConnectionFallbackPopup == null) {
+                moneroConnectionFallbackPopup = new Popup()
+                    .headLine(Res.get("connectionFallback.headline"))
+                    .warning(Res.get("connectionFallback.msg"))
+                    .closeButtonText(Res.get("shared.no"))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(() -> {
+                        havenoSetup.getConnectionServiceFallbackHandlerActive().set(false);
+                        new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                    })
+                    .onClose(() -> {
+                        log.warn("User has declined to fallback to the next best available Monero node.");
+                        havenoSetup.getConnectionServiceFallbackHandlerActive().set(false);
+                    });
+            }
+            if (show) {
+                moneroConnectionFallbackPopup.show();
+            } else if (moneroConnectionFallbackPopup.isDisplayed()) {
+                moneroConnectionFallbackPopup.hide();
+            }
+        });
+        
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> {
             if (show) {
                 torNetworkSettingsWindow.show();
+
+                // bring connection fallback popup to front if displayed
+                if (moneroConnectionFallbackPopup != null && moneroConnectionFallbackPopup.isDisplayed()) {
+                    moneroConnectionFallbackPopup.hide();
+                    moneroConnectionFallbackPopup.show();
+                }
             } else if (torNetworkSettingsWindow.isDisplayed()) {
                 torNetworkSettingsWindow.hide();
             }
@@ -330,7 +375,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
                 .show());
-        havenoSetup.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
+        tradeManager.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
 
         havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))
@@ -356,7 +401,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setDisplaySecurityRecommendationHandler(key -> {});
         havenoSetup.setDisplayLocalhostHandler(key -> {
             if (!DevEnv.isDevMode()) {
-                Popup popup = new Popup().backgroundInfo(Res.get("popup.moneroLocalhostNode.msg"))
+                Popup popup = new Popup().backgroundInfo(Res.get("popup.xmrLocalNode.msg"))
                         .dontShowAgainId(key);
                 popup.setDisplayOrderPriority(5);
                 popupQueue.add(popup);
@@ -415,11 +460,8 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .useShutDownButton()
                 .show());
 
-        tradeManager.setTakeOfferRequestErrorMessageHandler(errorMessage -> new Popup()
-                .warning(Res.get("popup.error.takeOfferRequestFailed", errorMessage))
-                .show());
-
-        havenoSetup.getXmrSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrSyncProgress());
+        havenoSetup.getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrDaemonSyncProgress());
+        havenoSetup.getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrWalletSyncProgress());
 
         havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
@@ -437,7 +479,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         } else {
             p2PService.addP2PServiceListener(new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     setupInvalidOpenOffersHandler();
                 }
             });
@@ -496,7 +538,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     private void showPopupIfInvalidBtcConfig() {
         preferences.setMoneroNodesOptionOrdinal(0);
-        new Popup().warning(Res.get("settings.net.warn.invalidBtcConfig"))
+        new Popup().warning(Res.get("settings.net.warn.invalidXmrConfig"))
                 .hideCloseButton()
                 .useShutDownButton()
                 .show();
@@ -515,7 +557,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             } else {
                 p2PService.addP2PServiceListener(new BootstrapListener() {
                     @Override
-                    public void onUpdatedDataReceived() {
+                    public void onDataReceived() {
                         accountAgeWitnessService.publishMyAccountAgeWitness(aliPayAccount.getPaymentAccountPayload());
                     }
                 });
@@ -532,10 +574,18 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         }
     }
 
-    private void updateXmrSyncProgress() {
-        final DoubleProperty xmrSyncProgress = havenoSetup.getXmrSyncProgress();
-
-            combinedSyncProgress.set(xmrSyncProgress.doubleValue());
+    private void updateXmrDaemonSyncProgress() {
+        final DoubleProperty xmrDaemonSyncProgress = havenoSetup.getXmrDaemonSyncProgress();
+        UserThread.execute(() -> {
+            combinedSyncProgress.set(xmrDaemonSyncProgress.doubleValue());
+        });
+    }
+    
+    private void updateXmrWalletSyncProgress() {
+        final DoubleProperty xmrWalletSyncProgress = havenoSetup.getXmrWalletSyncProgress();
+        UserThread.execute(() -> {
+            combinedSyncProgress.set(xmrWalletSyncProgress.doubleValue());
+        });
     }
 
     private void setupInvalidOpenOffersHandler() {
@@ -621,8 +671,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return combinedSyncProgress;
     }
 
-    StringProperty getWalletServiceErrorMsg() {
-        return havenoSetup.getWalletServiceErrorMsg();
+    StringProperty getConnectionServiceErrorMsg() {
+        return havenoSetup.getConnectionServiceErrorMsg();
+    }
+
+    StringProperty getTopErrorMsg() {
+        return havenoSetup.getTopErrorMsg();
     }
 
     StringProperty getXmrSplashSyncIconId() {

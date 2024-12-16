@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer.placeoffer.tasks;
@@ -24,10 +24,12 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.availability.DisputeAgentSelection;
 import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.DecryptedDirectMessageListener;
@@ -46,8 +48,6 @@ import java.util.UUID;
 public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
     private static final Logger log = LoggerFactory.getLogger(MakerSendSignOfferRequest.class);
 
-    private boolean failed = false;
-
     @SuppressWarnings({"unused"})
     public MakerSendSignOfferRequest(TaskRunner taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
@@ -55,7 +55,8 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
 
     @Override
     protected void run() {
-        Offer offer = model.getOpenOffer().getOffer();
+        OpenOffer openOffer = model.getOpenOffer();
+        Offer offer = openOffer.getOffer();
         try {
             runInterceptHook();
 
@@ -70,9 +71,9 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     new Date().getTime(),
-                    model.getReserveTx().getHash(),
-                    model.getReserveTx().getFullHex(),
-                    model.getReserveTx().getKey(),
+                    openOffer.getReserveTxHash(),
+                    openOffer.getReserveTxHex(),
+                    openOffer.getReserveTxKey(),
                     offer.getOfferPayload().getReserveTxKeyImages(),
                     returnAddress);
 
@@ -80,8 +81,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             sendSignOfferRequests(request, () -> {
                 complete();
             }, (errorMessage) -> {
-                appendToErrorMessage("Error signing offer " + request.getOfferId() + ": " + errorMessage);
-                failed(errorMessage);
+                failed("Error signing offer " + request.getOfferId() + ": " + errorMessage);
             });
         } catch (Throwable t) {
             offer.setErrorMessage("An error occurred.\n" +
@@ -116,9 +116,10 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     model.getOpenOffer().getOffer().getOfferPayload().setArbitratorSigner(arbitratorNodeAddress);
                     model.getOpenOffer().getOffer().setState(Offer.State.OFFER_FEE_RESERVED);
                     resultHandler.handleResult();
-                 } else {
-                     errorMessageHandler.handleErrorMessage("Arbitrator nacked SignOfferRequest for offer " + request.getOfferId() + ": " + ackMessage.getErrorMessage());
-                 }
+                } else {
+                    model.getOpenOffer().getOffer().setState(Offer.State.INVALID);
+                    errorMessageHandler.handleErrorMessage("Arbitrator nacked SignOfferRequest for offer " + request.getOfferId() + ": " + ackMessage.getErrorMessage());
+                }
             }
         };
         model.getP2PService().addDecryptedDirectMessageListener(ackListener);
@@ -128,19 +129,31 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
             @Override
             public void onArrived() {
                 log.info("{} arrived at arbitrator: offerId={}", request.getClass().getSimpleName(), model.getOpenOffer().getId());
+                model.getProtocol().startTimeoutTimer(); // reset timeout
             }
 
             // if unavailable, try alternative arbitrator
             @Override
             public void onFault(String errorMessage) {
-                log.warn("Arbitrator {} unavailable: {}", arbitratorNodeAddress, errorMessage);
+                log.warn("Arbitrator unavailable: address={}, error={}", arbitratorNodeAddress, errorMessage);
                 excludedArbitrators.add(arbitratorNodeAddress);
+
+                // check if offer still pending
+                if (!model.getOpenOffer().isPending()) {
+                    errorMessageHandler.handleErrorMessage("Offer is no longer pending, offerId=" + model.getOpenOffer().getId());
+                    return;
+                }
+
+                // get alternative arbitrator
                 Arbitrator altArbitrator = DisputeAgentSelection.getRandomArbitrator(model.getArbitratorManager(), excludedArbitrators);
                 if (altArbitrator == null) {
                     errorMessageHandler.handleErrorMessage("Offer " + request.getOfferId() + " could not be signed by any arbitrator");
                     return;
                 }
+
+                // send request to alternative arbitrator
                 log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
+                model.getProtocol().startTimeoutTimer(); // reset timeout
                 sendSignOfferRequests(request, altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
             }
         });
@@ -159,7 +172,8 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                 arbitratorNodeAddress,
                 arbitrator.getPubKeyRing(),
                 request,
-                listener
+                listener,
+                HavenoUtils.ARBITRATOR_ACK_TIMEOUT_SECONDS
         );
     }
 }

@@ -1,37 +1,34 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.locale;
 
 import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.persistable.PersistablePayload;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-@EqualsAndHashCode
 @ToString
 @Getter
 @Slf4j
 public abstract class TradeCurrency implements PersistablePayload, Comparable<TradeCurrency> {
     protected final String code;
-    @EqualsAndHashCode.Exclude
     protected final String name;
 
     public TradeCurrency(String code, String name) {
@@ -82,4 +79,23 @@ public abstract class TradeCurrency implements PersistablePayload, Comparable<Tr
         return this.name.compareTo(other.name);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+        if (obj instanceof TradeCurrency) {
+            TradeCurrency other = (TradeCurrency) obj;
+            return code.equals(other.code);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return code.hashCode();
+    }
 }

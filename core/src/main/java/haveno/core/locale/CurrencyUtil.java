@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -56,14 +73,6 @@ public class CurrencyUtil {
 
     private static String baseCurrencyCode = "XMR";
 
-    private static List<TraditionalCurrency> getTraditionalNonFiatCurrencies() {
-        return Arrays.asList(
-            new TraditionalCurrency("XAG", "Gold"),
-            new TraditionalCurrency("XAU", "Silver"),
-            new TraditionalCurrency("XGB", "Goldback")
-        );
-    }
-
     // Calls to isTraditionalCurrency and isCryptoCurrency are very frequent so we use a cache of the results.
     // The main improvement was already achieved with using memoize for the source maps, but
     // the caching still reduces performance costs by about 20% for isCryptoCurrency (1752 ms vs 2121 ms) and about 50%
@@ -105,6 +114,14 @@ public class CurrencyUtil {
 
     public static List<TradeCurrency> getAllTraditionalCurrencies() {
         return new ArrayList<>(traditionalCurrencyMapSupplier.get().values());
+    }
+
+    public static List<TraditionalCurrency> getTraditionalNonFiatCurrencies() {
+        return Arrays.asList(
+            new TraditionalCurrency("XAG", "Silver"),
+            new TraditionalCurrency("XAU", "Gold"),
+            new TraditionalCurrency("XGB", "Goldback")
+        );
     }
 
     public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies(Comparator comparator) {
@@ -183,6 +200,8 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
+        result.add(new CryptoCurrency("USDT-ERC20", "Tether USD (ERC20)"));
+        result.add(new CryptoCurrency("USDC-ERC20", "USD Coin (ERC20)"));
         result.add(new CryptoCurrency("WOW", "Wownero"));
         result.sort(TradeCurrency::compareTo);
         return result;
@@ -279,6 +298,9 @@ public class CurrencyUtil {
         if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode.toUpperCase())) {
             return isCryptoCurrencyMap.get(currencyCode.toUpperCase());
         }
+        if (isCryptoCurrencyBase(currencyCode)) {
+            return true;
+        }
 
         boolean isCryptoCurrency;
         if (currencyCode == null) {
@@ -303,6 +325,20 @@ public class CurrencyUtil {
         }
 
         return isCryptoCurrency;
+    }
+
+    private static boolean isCryptoCurrencyBase(String currencyCode) {
+        if (currencyCode == null) return false;
+        currencyCode = currencyCode.toUpperCase();
+        return currencyCode.equals("USDT") || currencyCode.equals("USDC");
+    }
+
+    public static String getCurrencyCodeBase(String currencyCode) {
+        if (currencyCode == null) return null;
+        currencyCode = currencyCode.toUpperCase();
+        if (currencyCode.contains("USDT")) return "USDT";
+        if (currencyCode.contains("USDC")) return "USDC";
+        return currencyCode;
     }
 
     public static Optional<CryptoCurrency> getCryptoCurrency(String currencyCode) {

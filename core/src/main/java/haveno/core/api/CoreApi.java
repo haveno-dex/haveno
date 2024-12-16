@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
@@ -43,17 +62,8 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import haveno.proto.grpc.NotificationMessage;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
-import org.bitcoinj.core.Transaction;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -63,6 +73,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
+import org.bitcoinj.core.Transaction;
 
 /**
  * Provides high level interface to functionality of core Haveno features.
@@ -86,8 +102,8 @@ public class CoreApi {
     private final CoreWalletsService walletsService;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
-    private final CoreMoneroConnectionsService coreMoneroConnectionsService;
-    private final LocalMoneroNode coreMoneroNodeService;
+    private final XmrConnectionService xmrConnectionService;
+    private final XmrLocalNode xmrLocalNode;
 
     @Inject
     public CoreApi(Config config,
@@ -103,8 +119,8 @@ public class CoreApi {
                    CoreWalletsService walletsService,
                    TradeStatisticsManager tradeStatisticsManager,
                    CoreNotificationService notificationService,
-                   CoreMoneroConnectionsService coreMoneroConnectionsService,
-                   LocalMoneroNode coreMoneroNodeService) {
+                   XmrConnectionService xmrConnectionService,
+                   XmrLocalNode xmrLocalNode) {
         this.config = config;
         this.appStartupState = appStartupState;
         this.coreAccountService = coreAccountService;
@@ -118,8 +134,8 @@ public class CoreApi {
         this.walletsService = walletsService;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.notificationService = notificationService;
-        this.coreMoneroConnectionsService = coreMoneroConnectionsService;
-        this.coreMoneroNodeService = coreMoneroNodeService;
+        this.xmrConnectionService = xmrConnectionService;
+        this.xmrLocalNode = xmrLocalNode;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -183,72 +199,76 @@ public class CoreApi {
     // Monero Connections
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void addMoneroConnection(MoneroRpcConnection connection) {
-        coreMoneroConnectionsService.addConnection(connection);
+    public void addXmrConnection(MoneroRpcConnection connection) {
+        xmrConnectionService.addConnection(connection);
     }
 
-    public void removeMoneroConnection(String connectionUri) {
-        coreMoneroConnectionsService.removeConnection(connectionUri);
+    public void removeXmrConnection(String connectionUri) {
+        xmrConnectionService.removeConnection(connectionUri);
     }
 
-    public MoneroRpcConnection getMoneroConnection() {
-        return coreMoneroConnectionsService.getConnection();
+    public MoneroRpcConnection getXmrConnection() {
+        return xmrConnectionService.getConnection();
     }
 
-    public List<MoneroRpcConnection> getMoneroConnections() {
-        return coreMoneroConnectionsService.getConnections();
+    public List<MoneroRpcConnection> getXmrConnections() {
+        return xmrConnectionService.getConnections();
     }
 
-    public void setMoneroConnection(String connectionUri) {
-        coreMoneroConnectionsService.setConnection(connectionUri);
+    public void setXmrConnection(String connectionUri) {
+        xmrConnectionService.setConnection(connectionUri);
     }
 
-    public void setMoneroConnection(MoneroRpcConnection connection) {
-        coreMoneroConnectionsService.setConnection(connection);
+    public void setXmrConnection(MoneroRpcConnection connection) {
+        xmrConnectionService.setConnection(connection);
     }
 
-    public MoneroRpcConnection checkMoneroConnection() {
-        return coreMoneroConnectionsService.checkConnection();
+    public MoneroRpcConnection checkXmrConnection() {
+        return xmrConnectionService.checkConnection();
     }
 
-    public List<MoneroRpcConnection> checkMoneroConnections() {
-        return coreMoneroConnectionsService.checkConnections();
+    public List<MoneroRpcConnection> checkXmrConnections() {
+        return xmrConnectionService.checkConnections();
     }
 
-    public void startCheckingMoneroConnection(Long refreshPeriod) {
-        coreMoneroConnectionsService.startCheckingConnection(refreshPeriod);
+    public void startCheckingXmrConnection(Long refreshPeriod) {
+        xmrConnectionService.startCheckingConnection(refreshPeriod);
     }
 
-    public void stopCheckingMoneroConnection() {
-        coreMoneroConnectionsService.stopCheckingConnection();
+    public void stopCheckingXmrConnection() {
+        xmrConnectionService.stopCheckingConnection();
     }
 
-    public MoneroRpcConnection getBestAvailableMoneroConnection() {
-        return coreMoneroConnectionsService.getBestAvailableConnection();
+    public MoneroRpcConnection getBestAvailableXmrConnection() {
+        return xmrConnectionService.getBestAvailableConnection();
     }
 
-    public void setMoneroConnectionAutoSwitch(boolean autoSwitch) {
-        coreMoneroConnectionsService.setAutoSwitch(autoSwitch);
+    public void setXmrConnectionAutoSwitch(boolean autoSwitch) {
+        xmrConnectionService.setAutoSwitch(autoSwitch);
+    }
+
+    public boolean getXmrConnectionAutoSwitch() {
+        return xmrConnectionService.getAutoSwitch();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Monero node
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public boolean isMoneroNodeOnline() {
-        return coreMoneroNodeService.isDetected();
+    public boolean isXmrNodeOnline() {
+        return xmrLocalNode.isDetected();
     }
 
-    public MoneroNodeSettings getMoneroNodeSettings() {
-        return coreMoneroNodeService.getMoneroNodeSettings();
+    public XmrNodeSettings getXmrNodeSettings() {
+        return xmrLocalNode.getNodeSettings();
     }
 
-    public void startMoneroNode(MoneroNodeSettings settings) throws IOException {
-        coreMoneroNodeService.startMoneroNode(settings);
+    public void startXmrNode(XmrNodeSettings settings) throws IOException {
+        xmrLocalNode.start(settings);
     }
 
-    public void stopMoneroNode() {
-        coreMoneroNodeService.stopMoneroNode();
+    public void stopXmrNode() {
+        xmrLocalNode.stop();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -399,10 +419,12 @@ public class CoreApi {
                                    double marketPriceMargin,
                                    long amountAsLong,
                                    long minAmountAsLong,
-                                   double buyerSecurityDeposit,
+                                   double securityDepositPct,
                                    String triggerPriceAsString,
                                    boolean reserveExactAmount,
                                    String paymentAccountId,
+                                   boolean isPrivateOffer,
+                                   boolean buyerAsTakerWithoutDeposit,
                                    Consumer<Offer> resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
         coreOffersService.postOffer(currencyCode,
@@ -412,10 +434,12 @@ public class CoreApi {
                 marketPriceMargin,
                 amountAsLong,
                 minAmountAsLong,
-                buyerSecurityDeposit,
+                securityDepositPct,
                 triggerPriceAsString,
                 reserveExactAmount,
                 paymentAccountId,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -428,8 +452,10 @@ public class CoreApi {
                            double marketPriceMargin,
                            BigInteger amount,
                            BigInteger minAmount,
-                           double buyerSecurityDeposit,
-                           PaymentAccount paymentAccount) {
+                           double securityDepositPct,
+                           PaymentAccount paymentAccount,
+                           boolean isPrivateOffer,
+                           boolean buyerAsTakerWithoutDeposit) {
         return coreOffersService.editOffer(offerId,
                 currencyCode,
                 direction,
@@ -438,12 +464,14 @@ public class CoreApi {
                 marketPriceMargin,
                 amount,
                 minAmount,
-                buyerSecurityDeposit,
-                paymentAccount);
+                securityDepositPct,
+                paymentAccount,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
     }
 
-    public void cancelOffer(String id) {
-        coreOffersService.cancelOffer(id);
+    public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        coreOffersService.cancelOffer(id, resultHandler, errorMessageHandler);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -480,6 +508,10 @@ public class CoreApi {
                 tradeInstant);
     }
 
+    public void deletePaymentAccount(String paymentAccountId) {
+        paymentAccountsService.deletePaymentAccount(paymentAccountId);
+    }
+
     public List<PaymentMethod> getCryptoCurrencyPaymentMethods() {
         return paymentAccountsService.getCryptoCurrencyPaymentMethods();
     }
@@ -511,9 +543,11 @@ public class CoreApi {
     public void takeOffer(String offerId,
                           String paymentAccountId,
                           long amountAsLong,
+                          String challenge,
                           Consumer<Trade> resultHandler,
                           ErrorMessageHandler errorMessageHandler) {
         Offer offer = coreOffersService.getOffer(offerId);
+        offer.setChallenge(challenge);
         coreTradesService.takeOffer(offer, paymentAccountId, amountAsLong, resultHandler, errorMessageHandler);
     }
 
@@ -539,10 +573,6 @@ public class CoreApi {
 
     public List<Trade> getTrades() {
         return coreTradesService.getTrades();
-    }
-
-    public String getTradeRole(String tradeId) {
-        return coreTradesService.getTradeRole(tradeId);
     }
 
     public List<ChatMessage> getChatMessages(String tradeId) {

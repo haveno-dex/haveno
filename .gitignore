@@ -35,3 +35,7 @@ deploy
 .java-version
 .localnet
 .vscode
+.vim/*
+*/.factorypath
+.flatpak-builder
+exchange.haveno.Haveno.yaml

@@ -17,11 +17,11 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.network.MessageState;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.TradeMessage;
-import haveno.network.p2p.NodeAddress;
+import haveno.core.trade.protocol.TradePeer;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,12 +33,33 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
         super(taskHandler, trade);
     }
 
-    protected NodeAddress getReceiverNodeAddress() {
-        return trade.getSeller().getNodeAddress();
+    @Override
+    protected TradePeer getReceiver() {
+        return trade.getSeller();
+    }
+    
+    @Override
+    protected void setStateSent() {
+        trade.getProcessModel().setPaymentSentMessageState(MessageState.SENT);
+        super.setStateSent();
     }
 
-    protected PubKeyRing getReceiverPubKeyRing() {
-        return trade.getSeller().getPubKeyRing();
+    @Override
+    protected void setStateArrived() {
+        trade.getProcessModel().setPaymentSentMessageState(MessageState.ARRIVED);
+        super.setStateArrived();
+    }
+
+    @Override
+    protected void setStateStoredInMailbox() {
+        trade.getProcessModel().setPaymentSentMessageState(MessageState.STORED_IN_MAILBOX);
+        super.setStateStoredInMailbox();
+    }
+
+    @Override
+    protected void setStateFault() {
+        trade.getProcessModel().setPaymentSentMessageState(MessageState.FAILED);
+        super.setStateFault();
     }
 
     // continue execution on fault so payment sent message is sent to arbitrator
@@ -47,5 +68,10 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
         setStateFault();
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         complete();
+    }
+
+    @Override
+    protected boolean isAckedByReceiver() {
+        return trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal();
     }
 }

@@ -1,35 +1,39 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade.protocol;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
+import haveno.core.support.dispute.messages.DisputeClosedMessage;
+import haveno.core.trade.messages.PaymentReceivedMessage;
+import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.network.p2p.NodeAddress;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroTxWallet;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
@@ -52,7 +56,7 @@ public final class TradePeer implements PersistablePayload {
     @Setter
     @Nullable
     transient private byte[] preparedDepositTx;
-    transient private MoneroTx depositTx;
+    transient private MoneroTxWallet depositTx;
 
     // Persistable mutable
     @Nullable
@@ -79,6 +83,19 @@ public final class TradePeer implements PersistablePayload {
     private String contractAsJson;
     @Nullable
     private byte[] contractSignature;
+    @Nullable
+    @Setter
+    @Getter
+    private PaymentSentMessage paymentSentMessage;
+    @Nullable
+    @Setter
+    @Getter
+    private PaymentReceivedMessage paymentReceivedMessage;
+    @Nullable
+    @Setter
+    @Getter
+    private DisputeClosedMessage disputeClosedMessage;
+
 
     // added in v 0.6
     @Nullable
@@ -116,7 +133,13 @@ public final class TradePeer implements PersistablePayload {
     private String depositTxHex;
     @Nullable
     private String depositTxKey;
+    private long depositTxFee;
     private long securityDeposit;
+    @Nullable
+    @Setter
+    private String unsignedPayoutTxHex;
+    private long payoutTxFee;
+    private long payoutAmount;
     @Nullable
     private String updatedMultisigHex;
     @Getter
@@ -126,12 +149,36 @@ public final class TradePeer implements PersistablePayload {
     public TradePeer() {
     }
 
+    public BigInteger getDepositTxFee() {
+        return BigInteger.valueOf(depositTxFee);
+    }
+
+    public void setDepositTxFee(BigInteger depositTxFee) {
+        this.depositTxFee = depositTxFee.longValueExact();
+    }
+
     public BigInteger getSecurityDeposit() {
         return BigInteger.valueOf(securityDeposit);
     }
 
     public void setSecurityDeposit(BigInteger securityDeposit) {
         this.securityDeposit = securityDeposit.longValueExact();
+    }
+
+    public BigInteger getPayoutTxFee() {
+        return BigInteger.valueOf(payoutTxFee);
+    }
+
+    public void setPayoutTxFee(BigInteger payoutTxFee) {
+        this.payoutTxFee = payoutTxFee.longValueExact();
+    }
+
+    public BigInteger getPayoutAmount() {
+        return BigInteger.valueOf(payoutAmount);
+    }
+
+    public void setPayoutAmount(BigInteger payoutAmount) {
+        this.payoutAmount = payoutAmount.longValueExact();
     }
 
     @Override
@@ -154,6 +201,9 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitness).ifPresent(e -> builder.setAccountAgeWitness(accountAgeWitness.toProtoAccountAgeWitness()));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
+        Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
+        Optional.ofNullable(disputeClosedMessage).ifPresent(e -> builder.setDisputeClosedMessage(disputeClosedMessage.toProtoNetworkEnvelope().getDisputeClosedMessage()));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
@@ -161,11 +211,15 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(preparedMultisigHex).ifPresent(e -> builder.setPreparedMultisigHex(preparedMultisigHex));
         Optional.ofNullable(madeMultisigHex).ifPresent(e -> builder.setMadeMultisigHex(madeMultisigHex));
         Optional.ofNullable(exchangedMultisigHex).ifPresent(e -> builder.setExchangedMultisigHex(exchangedMultisigHex));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         Optional.ofNullable(depositTxHash).ifPresent(e -> builder.setDepositTxHash(depositTxHash));
         Optional.ofNullable(depositTxHex).ifPresent(e -> builder.setDepositTxHex(depositTxHex));
         Optional.ofNullable(depositTxKey).ifPresent(e -> builder.setDepositTxKey(depositTxKey));
+        Optional.ofNullable(depositTxFee).ifPresent(e -> builder.setDepositTxFee(depositTxFee));
         Optional.ofNullable(securityDeposit).ifPresent(e -> builder.setSecurityDeposit(securityDeposit));
-        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
+        Optional.ofNullable(unsignedPayoutTxHex).ifPresent(e -> builder.setUnsignedPayoutTxHex(unsignedPayoutTxHex));
+        Optional.ofNullable(payoutTxFee).ifPresent(e -> builder.setPayoutTxFee(payoutTxFee));
+        Optional.ofNullable(payoutAmount).ifPresent(e -> builder.setPayoutAmount(payoutAmount));
         builder.setDepositsConfirmedMessageAcked(depositsConfirmedMessageAcked);
 
         builder.setCurrentDate(currentDate);
@@ -196,6 +250,9 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setAccountAgeWitness(protoAccountAgeWitness.getHash().isEmpty() ? null : AccountAgeWitness.fromProto(protoAccountAgeWitness));
             tradePeer.setCurrentDate(proto.getCurrentDate());
             tradePeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
+            tradePeer.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
+            tradePeer.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
+            tradePeer.setDisputeClosedMessage(proto.hasDisputeClosedMessage() ? DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), Version.getP2PMessageVersion()) : null);
             tradePeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
             tradePeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
             tradePeer.setReserveTxKey(ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()));
@@ -203,12 +260,16 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setPreparedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()));
             tradePeer.setMadeMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()));
             tradePeer.setExchangedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()));
+            tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
+            tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());
             tradePeer.setDepositTxHash(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()));
             tradePeer.setDepositTxHex(ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()));
             tradePeer.setDepositTxKey(ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()));
+            tradePeer.setDepositTxFee(BigInteger.valueOf(proto.getDepositTxFee()));
             tradePeer.setSecurityDeposit(BigInteger.valueOf(proto.getSecurityDeposit()));
-            tradePeer.setUpdatedMultisigHex(ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));
-            tradePeer.setDepositsConfirmedMessageAcked(proto.getDepositsConfirmedMessageAcked());
+            tradePeer.setUnsignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getUnsignedPayoutTxHex()));
+            tradePeer.setPayoutTxFee(BigInteger.valueOf(proto.getPayoutTxFee()));
+            tradePeer.setPayoutAmount(BigInteger.valueOf(proto.getPayoutAmount()));
             return tradePeer;
         }
     }

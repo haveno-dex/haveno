@@ -1,22 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer;
 
+import haveno.common.UserThread;
 import haveno.core.offer.OfferUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -49,7 +50,7 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     @Getter
     protected final ObjectProperty<BigInteger> availableBalance = new SimpleObjectProperty<>();
     @Getter
-    protected final ObjectProperty<BigInteger> missingCoin = new SimpleObjectProperty<>(BigInteger.valueOf(0));
+    protected final ObjectProperty<BigInteger> missingCoin = new SimpleObjectProperty<>(BigInteger.ZERO);
     @Getter
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
     @Getter
@@ -64,43 +65,30 @@ public abstract class OfferDataModel extends ActivatableDataModel {
         this.offerUtil = offerUtil;
     }
 
-    protected void updateBalance() {
-        updateBalances();
-        if (useSavingsWallet) {
-            if (totalToPay.get() != null) {
-                balance.set(totalToPay.get().min(totalBalance));
-            }
-        }
-        missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
-        isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
-        if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-            showWalletFundedNotification.set(true);
-        }
-    }
-
-    protected void updateAvailableBalance() {
-        updateBalances();
-        if (useSavingsWallet) {
-            if (totalToPay.get() != null) {
-                availableBalance.set(totalToPay.get().min(totalAvailableBalance));
-            }
-        }
-        missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), availableBalance.get()));
-        isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
-        if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-            showWalletFundedNotification.set(true);
-        }
-    }
-
-    private void updateBalances() {
+    protected void updateBalances() {
         BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         BigInteger tradeWalletAvailableBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
-        if (useSavingsWallet) {
-            totalBalance = xmrWalletService.getBalance();;
-            totalAvailableBalance = xmrWalletService.getAvailableBalance();
-        } else {
-            balance.set(tradeWalletBalance);
-            availableBalance.set(tradeWalletAvailableBalance);
-        }
+        BigInteger walletBalance = xmrWalletService.getBalance();
+        BigInteger walletAvailableBalance = xmrWalletService.getAvailableBalance();
+        UserThread.await(() -> {
+            if (useSavingsWallet) {
+                totalBalance = walletBalance;
+                totalAvailableBalance = walletAvailableBalance;
+                if (totalToPay.get() != null) {
+                    balance.set(totalToPay.get().min(totalBalance));
+                    availableBalance.set(totalToPay.get().min(totalAvailableBalance));
+                }
+            } else {
+                totalBalance = tradeWalletBalance;
+                totalAvailableBalance = tradeWalletAvailableBalance;
+                balance.set(tradeWalletBalance);
+                availableBalance.set(tradeWalletAvailableBalance);
+            }
+        });
+
+    }
+
+    public boolean hasTotalToPay() {
+        return totalToPay.get() != null && totalToPay.get().compareTo(BigInteger.ZERO) > 0;
     }
 }

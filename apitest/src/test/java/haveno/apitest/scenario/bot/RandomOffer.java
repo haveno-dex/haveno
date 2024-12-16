@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.apitest.scenario.bot;
@@ -28,7 +28,7 @@ import java.text.DecimalFormat;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static haveno.apitest.method.offer.AbstractOfferTest.defaultBuyerSecurityDepositPct;
+import static haveno.apitest.method.offer.AbstractOfferTest.defaultSecurityDepositPct;
 import static haveno.cli.CurrencyFormat.formatInternalFiatPrice;
 import static haveno.cli.CurrencyFormat.formatSatoshis;
 import static haveno.common.util.MathUtils.scaleDownByPowerOf10;
@@ -119,7 +119,7 @@ public class RandomOffer {
                         amount,
                         minAmount,
                         priceMargin,
-                        defaultBuyerSecurityDepositPct.get(),
+                        defaultSecurityDepositPct.get(),
                         "0" /*no trigger price*/);
             } else {
                 this.offer = botClient.createOfferAtFixedPrice(paymentAccount,
@@ -128,7 +128,7 @@ public class RandomOffer {
                         amount,
                         minAmount,
                         fixedOfferPrice,
-                        defaultBuyerSecurityDepositPct.get());
+                        defaultSecurityDepositPct.get());
             }
             this.id = offer.getId();
             return this;

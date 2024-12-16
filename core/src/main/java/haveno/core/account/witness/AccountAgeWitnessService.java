@@ -1,23 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.account.witness;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
@@ -38,6 +40,7 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.ChargeBackRisk;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.TradeLimits;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.support.dispute.Dispute;
@@ -51,12 +54,6 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-
-import javax.inject.Inject;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.time.Clock;
@@ -74,8 +71,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 
 @Slf4j
 public class AccountAgeWitnessService {
@@ -202,7 +201,7 @@ public class AccountAgeWitnessService {
         } else {
             p2PService.addP2PServiceListener(new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     onBootStrapped();
                 }
             });
@@ -433,10 +432,12 @@ public class AccountAgeWitnessService {
             limit = BigInteger.valueOf(MathUtils.roundDoubleToLong(maxTradeLimit.longValueExact() * factor));
         }
 
-        log.debug("limit={}, factor={}, accountAgeWitnessHash={}",
-                limit,
-                factor,
-                Utilities.bytesAsHexString(accountAgeWitness.getHash()));
+        if (accountAgeWitness != null) {
+            log.debug("limit={}, factor={}, accountAgeWitnessHash={}",
+            limit,
+            factor,
+            Utilities.bytesAsHexString(accountAgeWitness.getHash()));
+        }
         return limit;
     }
 
@@ -498,9 +499,14 @@ public class AccountAgeWitnessService {
         return getAccountAge(getMyWitness(paymentAccountPayload), new Date());
     }
 
-    public long getMyTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferDirection direction) {
+    public long getMyTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferDirection direction, boolean buyerAsTakerWithoutDeposit) {
         if (paymentAccount == null)
             return 0;
+
+        if (buyerAsTakerWithoutDeposit) {
+            TradeLimits tradeLimits = new TradeLimits();
+            return tradeLimits.getMaxTradeLimitBuyerAsTakerWithoutDeposit().longValueExact();
+        }
 
         AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccount.getPaymentAccountPayload());
         BigInteger maxTradeLimit = paymentAccount.getPaymentMethod().getMaxTradeLimit(currencyCode);
@@ -516,6 +522,15 @@ public class AccountAgeWitnessService {
                 accountAgeCategory,
                 direction,
                 paymentAccount.getPaymentMethod()).longValueExact();
+    }
+
+    public long getUnsignedTradeLimit(PaymentMethod paymentMethod, String currencyCode, OfferDirection direction) {
+        return getTradeLimit(paymentMethod.getMaxTradeLimit(currencyCode),
+                currencyCode,
+                null,
+                AccountAge.UNVERIFIED,
+                direction,
+                paymentMethod).longValueExact();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -728,14 +743,13 @@ public class AccountAgeWitnessService {
     }
 
     public Optional<SignedWitness> traderSignAndPublishPeersAccountAgeWitness(Trade trade) {
-        AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
-        BigInteger tradeAmount = trade.getAmount();
         checkNotNull(trade.getTradePeer().getPubKeyRing(), "Peer must have a keyring");
         PublicKey peersPubKey = trade.getTradePeer().getPubKeyRing().getSignaturePubKey();
-        checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade {}",
-                trade.toString());
-        checkNotNull(tradeAmount, "Trade amount must not be null");
         checkNotNull(peersPubKey, "Peers pub key must not be null");
+        AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
+        checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade " + trade.toString());
+        BigInteger tradeAmount = trade.getAmount();
+        checkNotNull(tradeAmount, "Trade amount must not be null");
 
         try {
             return signedWitnessService.signAndPublishAccountAgeWitness(tradeAmount, peersWitness, peersPubKey);
@@ -844,7 +858,7 @@ public class AccountAgeWitnessService {
     }
 
     public SignState getSignState(Trade trade) {
-        if (trade instanceof ArbitratorTrade) return SignState.UNSIGNED;  // TODO (woodser): arbitrator has two peers
+        if (trade instanceof ArbitratorTrade) return SignState.UNSIGNED;
         return findTradePeerWitness(trade)
                 .map(this::getSignState)
                 .orElse(SignState.UNSIGNED);

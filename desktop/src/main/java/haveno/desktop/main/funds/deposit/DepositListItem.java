@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.funds.deposit;
@@ -23,7 +23,6 @@ import com.google.common.base.Suppliers;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
@@ -45,7 +44,6 @@ class DepositListItem {
     private final XmrWalletService xmrWalletService;
     private BigInteger balanceAsBI;
     private String usage = "-";
-    private XmrBalanceListener balanceListener;
     private int numTxsWithOutputs = 0;
     private final Supplier<LazyFields> lazyFieldsSupplier;
 
@@ -58,24 +56,14 @@ class DepositListItem {
         return lazyFieldsSupplier.get();
     }
 
-    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter, List<MoneroTxWallet> cachedTxs) {
+    DepositListItem(XmrAddressEntry addressEntry, XmrWalletService xmrWalletService, CoinFormatter formatter) {
         this.xmrWalletService = xmrWalletService;
         this.addressEntry = addressEntry;
-
-        balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                DepositListItem.this.balanceAsBI = balance;
-                DepositListItem.this.balance.set(HavenoUtils.formatXmr(balanceAsBI));
-                updateUsage(addressEntry.getSubaddressIndex(), null);
-            }
-        };
-        xmrWalletService.addBalanceListener(balanceListener);
 
         balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         balance.set(HavenoUtils.formatXmr(balanceAsBI));
 
-        updateUsage(addressEntry.getSubaddressIndex(), cachedTxs);
+        updateUsage(addressEntry.getSubaddressIndex());
 
         // confidence
         lazyFieldsSupplier = Suppliers.memoize(() -> new LazyFields() {{
@@ -84,7 +72,7 @@ class DepositListItem {
             tooltip = new Tooltip(Res.get("shared.notUsedYet"));
             txConfidenceIndicator.setProgress(0);
             txConfidenceIndicator.setTooltip(tooltip);
-            MoneroTx tx = getTxWithFewestConfirmations(cachedTxs);
+            MoneroTx tx = getTxWithFewestConfirmations();
             if (tx == null) {
                 txConfidenceIndicator.setVisible(false);
             } else {
@@ -94,8 +82,8 @@ class DepositListItem {
         }});
     }
 
-    private void updateUsage(int subaddressIndex, List<MoneroTxWallet> cachedTxs) {
-        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), cachedTxs);
+    private void updateUsage(int subaddressIndex) {
+        numTxsWithOutputs = xmrWalletService.getNumTxsWithIncomingOutputs(addressEntry.getSubaddressIndex());
         switch (addressEntry.getContext()) {
             case BASE_ADDRESS:
                 usage = Res.get("funds.deposit.baseAddress");
@@ -115,7 +103,6 @@ class DepositListItem {
     }
 
     public void cleanup() {
-        xmrWalletService.removeBalanceListener(balanceListener);
     }
 
     public TxConfidenceIndicator getTxConfidenceIndicator() {
@@ -150,15 +137,15 @@ class DepositListItem {
         return numTxsWithOutputs;
     }
 
-    public long getNumConfirmationsSinceFirstUsed(List<MoneroTxWallet> incomingTxs) {
-        MoneroTx tx = getTxWithFewestConfirmations(incomingTxs);
+    public long getNumConfirmationsSinceFirstUsed() {
+        MoneroTx tx = getTxWithFewestConfirmations();
         return tx == null ? 0 : tx.getNumConfirmations();
     }
 
-    private MoneroTxWallet getTxWithFewestConfirmations(List<MoneroTxWallet> allIncomingTxs) {
+    private MoneroTxWallet getTxWithFewestConfirmations() {
 
         // get txs with incoming outputs to subaddress index
-        List<MoneroTxWallet> txs = xmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex(), allIncomingTxs);
+        List<MoneroTxWallet> txs = xmrWalletService.getTxsWithIncomingOutputs(addressEntry.getSubaddressIndex());
         
         // get tx with fewest confirmations
         MoneroTxWallet highestTx = null;

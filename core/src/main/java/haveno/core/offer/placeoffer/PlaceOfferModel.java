@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer.placeoffer;
@@ -23,6 +23,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
@@ -35,7 +36,6 @@ import haveno.network.p2p.P2PService;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.model.MoneroTxWallet;
 import org.bitcoinj.core.Transaction;
 
 import java.math.BigInteger;
@@ -61,6 +61,8 @@ public class PlaceOfferModel implements Model {
     private final FilterManager filterManager;
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
+    @Getter
+    private final OpenOfferManager openOfferManager;
 
     // Mutable
     @Setter
@@ -68,9 +70,10 @@ public class PlaceOfferModel implements Model {
     @Setter
     private Transaction transaction;
     @Setter
-    private MoneroTxWallet reserveTx;
-    @Setter
     private SignOfferResponse signOfferResponse;
+    @Setter
+    @Getter
+    protected PlaceOfferProtocol protocol;
 
     public PlaceOfferModel(OpenOffer openOffer,
                            BigInteger reservedFundsForOffer,
@@ -86,7 +89,8 @@ public class PlaceOfferModel implements Model {
                            User user,
                            KeyRing keyRing,
                            FilterManager filterManager,
-                           AccountAgeWitnessService accountAgeWitnessService) {
+                           AccountAgeWitnessService accountAgeWitnessService,
+                           OpenOfferManager openOfferManager) {
         this.openOffer = openOffer;
         this.reservedFundsForOffer = reservedFundsForOffer;
         this.useSavingsWallet = useSavingsWallet;
@@ -102,6 +106,7 @@ public class PlaceOfferModel implements Model {
         this.keyRing = keyRing;
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
+        this.openOfferManager = openOfferManager;
     }
 
     @Override

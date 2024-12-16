@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -34,13 +51,13 @@ import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeSession;
 import haveno.core.support.dispute.agent.DisputeAgentLookupMap;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
@@ -51,9 +68,12 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.PeerInfoIconDispute;
+import haveno.desktop.components.PeerInfoIconMap;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ContractWindow;
 import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
+import haveno.desktop.main.overlays.windows.SendLogFilesWindow;
 import haveno.desktop.main.overlays.windows.SendPrivateNotificationWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.overlays.windows.VerifyDisputeResultSignatureWindow;
@@ -85,7 +105,6 @@ import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import lombok.Getter;
-import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -104,7 +123,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static haveno.desktop.util.FormBuilder.getIconForLabel;
 import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
-public abstract class DisputeView extends ActivatableView<VBox, Void> {
+public abstract class DisputeView extends ActivatableView<VBox, Void> implements DisputeChatPopup.ChatCallback {
     public enum FilterResult {
         NO_MATCH("No Match"),
         NO_FILTER("No filter text"),
@@ -166,6 +185,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
     private Map<String, Button> chatButtonByDispute = new HashMap<>();
     private Map<String, JFXBadge> chatBadgeByDispute = new HashMap<>();
     private Map<String, JFXBadge> newBadgeByDispute = new HashMap<>();
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+    private final PeerInfoIconMap avatarMap = new PeerInfoIconMap();
     protected DisputeChatPopup chatPopup;
 
 
@@ -197,8 +218,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.arbitratorManager = arbitratorManager;
         this.useDevPrivilegeKeys = useDevPrivilegeKeys;
-        DisputeChatPopup.ChatCallback chatCallback = this::handleOnProcessDispute;
-        chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, chatCallback);
+        chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, this);
     }
 
     @Override
@@ -208,6 +228,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         HBox.setHgrow(label, Priority.NEVER);
 
         filterTextField = new InputTextField();
+        filterTextField.setPromptText(Res.get("support.filter.prompt"));
         Tooltip tooltip = new Tooltip();
         tooltip.setShowDelay(Duration.millis(100));
         tooltip.setShowDuration(Duration.seconds(10));
@@ -367,7 +388,9 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 ObservableList<ChatMessage> chatMessages = dispute.getChatMessages();
                 // If last message is not a result message we re-open as we might have received a new message from the
                 // trader/mediator/arbitrator who has reopened the case
-                if (!chatMessages.isEmpty() && !chatMessages.get(chatMessages.size() - 1).isResultMessage(dispute)) {
+                if (!chatMessages.isEmpty() &&
+                        !chatMessages.get(chatMessages.size() - 1).isResultMessage(dispute) &&
+                        dispute.unreadMessageCount(senderFlag()) > 0) {
                     onSelectDispute(dispute);
                     reOpenDispute();
                 }
@@ -413,7 +436,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
 
         // For open filter we do not want to continue further as json data would cause a match
         if (filter.equalsIgnoreCase("open")) {
-            return !dispute.isClosed() ? FilterResult.OPEN_DISPUTES : FilterResult.NO_MATCH;
+            return !dispute.isClosed() || dispute.unreadMessageCount(senderFlag()) > 0 ?
+                    FilterResult.OPEN_DISPUTES : FilterResult.NO_MATCH;
         }
 
         if (dispute.getTradeId().toLowerCase().contains(filter)) {
@@ -640,10 +664,9 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 String sellersRole = contract.isBuyerMakerAndSellerTaker() ? "Seller as taker" : "Seller as maker";
                 String opener = firstDispute.isDisputeOpenerIsBuyer() ? buyersRole : sellersRole;
                 DisputeResult disputeResult = firstDispute.getDisputeResultProperty().get();
-                String winner = disputeResult != null &&
-                        disputeResult.getWinner() == DisputeResult.Winner.BUYER ? "Buyer" : "Seller";
-                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true) : "";
-                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true) : "";
+                String winner = disputeResult != null && disputeResult.getWinner() == DisputeResult.Winner.BUYER ? "Buyer" : "Seller";
+                String buyerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost(), true) : "";
+                String sellerPayoutAmount = disputeResult != null ? HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost(), true) : "";
 
                 int index = disputeIndex.incrementAndGet();
                 String tradeDateString = dateFormatter.format(firstDispute.getTradeDate());
@@ -691,8 +714,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 String paymentMethod = Res.get(contract.getPaymentMethodId());
                 String currency = CurrencyUtil.getNameAndCode(contract.getOfferPayload().getCurrencyCode());
                 String tradeAmount = HavenoUtils.formatXmr(contract.getTradeAmount(), true);
-                String buyerDeposit = Coin.valueOf(contract.getOfferPayload().getBuyerSecurityDeposit()).toFriendlyString();
-                String sellerDeposit = Coin.valueOf(contract.getOfferPayload().getSellerSecurityDeposit()).toFriendlyString();
+                String buyerDeposit = HavenoUtils.formatXmr(contract.getOfferPayload().getBuyerSecurityDepositForTradeAmount(contract.getTradeAmount()), true);
+                String sellerDeposit = HavenoUtils.formatXmr(contract.getOfferPayload().getSellerSecurityDepositForTradeAmount(contract.getTradeAmount()), true);
                 stringBuilder.append("Payment method: ")
                         .append(paymentMethod)
                         .append("\n")
@@ -702,7 +725,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                         .append("Trade amount: ")
                         .append(tradeAmount)
                         .append("\n")
-                        .append("Buyer/seller security deposit: ")
+                        .append("Buyer/seller security deposit %: ")
                         .append(buyerDeposit)
                         .append("/")
                         .append(sellerDeposit)
@@ -904,6 +927,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         buyerOnionAddressColumn.setComparator(Comparator.comparing(this::getBuyerOnionAddressColumnLabel));
         sellerOnionAddressColumn.setComparator(Comparator.comparing(this::getSellerOnionAddressColumnLabel));
         marketColumn.setComparator((o1, o2) -> CurrencyUtil.getCurrencyPair(o1.getContract().getOfferPayload().getCurrencyCode()).compareTo(o2.getContract().getOfferPayload().getCurrencyCode()));
+        stateColumn.setComparator(Comparator.comparing(this::getDisputeStateText));
 
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(dateColumn);
@@ -1069,7 +1093,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
     private TableColumn<Dispute, Dispute> getDateColumn() {
         TableColumn<Dispute, Dispute> column = new AutoTooltipTableColumn<>(Res.get("shared.date")) {
             {
-                setMinWidth(180);
+                setMinWidth(100);
+                setPrefWidth(150);
             }
         };
         column.setCellValueFactory((dispute) -> new ReadOnlyObjectWrapper<>(dispute.getValue()));
@@ -1095,7 +1120,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
     private TableColumn<Dispute, Dispute> getTradeIdColumn() {
         TableColumn<Dispute, Dispute> column = new AutoTooltipTableColumn<>(Res.get("shared.tradeId")) {
             {
-                setMinWidth(110);
+                setMinWidth(50);
+                setPrefWidth(100);
             }
         };
         column.setCellValueFactory((dispute) -> new ReadOnlyObjectWrapper<>(dispute.getValue()));
@@ -1117,10 +1143,14 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         field.setMouseTransparent(false);
                                         field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                         field.setOnAction(event -> tradeDetailsWindow.show(tradeOptional.get()));
+                                        setGraphic(field);
+                                        setText("");
                                     } else {
                                         setText(item.getShortTradeId());
+                                        setGraphic(null);
+                                        if (field != null)
+                                            field.setOnAction(null);
                                     }
-                                    setGraphic(field);
                                 } else {
                                     setGraphic(null);
                                     setText("");
@@ -1149,10 +1179,14 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                             @Override
                             public void updateItem(final Dispute item, boolean empty) {
                                 super.updateItem(item, empty);
-                                if (item != null && !empty)
+                                if (item != null && !empty) {
                                     setText(getBuyerOnionAddressColumnLabel(item));
-                                else
+                                    PeerInfoIconDispute peerInfoIconDispute = createAvatar(tableRowProperty().get().getIndex(), item, true);
+                                    setGraphic(peerInfoIconDispute);
+                                } else {
                                     setText("");
+                                    setGraphic(null);
+                                }
                             }
                         };
                     }
@@ -1175,10 +1209,14 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                             @Override
                             public void updateItem(final Dispute item, boolean empty) {
                                 super.updateItem(item, empty);
-                                if (item != null && !empty)
+                                if (item != null && !empty) {
                                     setText(getSellerOnionAddressColumnLabel(item));
-                                else
+                                    PeerInfoIconDispute peerInfoIconDispute = createAvatar(tableRowProperty().get().getIndex(), item, false);
+                                    setGraphic(peerInfoIconDispute);
+                                } else {
                                     setText("");
+                                    setGraphic(null);
+                                }
                             }
                         };
                     }
@@ -1196,7 +1234,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 long accountAge = accountAgeWitnessService.getAccountAge(item.getBuyerPaymentAccountPayload(), contract.getBuyerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
                 String postFix = CurrencyUtil.isTraditionalCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
-                return buyerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
+                return buyerNodeAddress.getAddressForDisplay() + " (" + nrOfDisputes + postFix + ")";
             } else
                 return Res.get("shared.na");
         } else {
@@ -1213,7 +1251,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                 long accountAge = accountAgeWitnessService.getAccountAge(item.getSellerPaymentAccountPayload(), contract.getSellerPubKeyRing());
                 String age = DisplayUtils.formatAccountAge(accountAge);
                 String postFix = CurrencyUtil.isTraditionalCurrency(item.getContract().getOfferPayload().getCurrencyCode()) ? " / " + age : "";
-                return sellerNodeAddress.getHostNameWithoutPostFix() + " (" + nrOfDisputes + postFix + ")";
+                return sellerNodeAddress.getAddressForDisplay() + " (" + nrOfDisputes + postFix + ")";
             } else
                 return Res.get("shared.na");
         } else {
@@ -1296,8 +1334,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         return;
                                     }
 
-                                    String keyBaseUserName = DisputeAgentLookupMap.getMatrixUserName(agentNodeAddress.getFullAddress());
-                                    setText(keyBaseUserName);
+                                    String MatrixUserName = DisputeAgentLookupMap.getMatrixUserName(agentNodeAddress.getFullAddress());
+                                    setText(MatrixUserName);
                                 } else {
                                     setText("");
                                 }
@@ -1355,7 +1393,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
                                         // subscribe to trade's dispute state
                                         Trade trade = tradeManager.getTrade(item.getTradeId());
                                         if (trade == null) log.warn("Dispute's trade is null for trade {}", item.getTradeId());
-                                        else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(disputeState)));
+                                        else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(item)));
                                     } else {
                                         if (closedProperty != null) {
                                             closedProperty.removeListener(listener);
@@ -1375,28 +1413,18 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         return column;
     }
 
-    private String getDisputeStateText(DisputeState disputeState) {
-        switch (disputeState) {
-            case DISPUTE_REQUESTED:
-                return Res.get("support.requested");
-            case DISPUTE_CLOSED:
-                return Res.get("support.closed");
-            default:
-                return Res.get("support.open");
-        }
-    }
-
     private String getDisputeStateText(Dispute dispute) {
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
         if (trade == null) {
-            log.warn("Dispute's trade is null for trade {}", dispute.getTradeId());
+            log.warn("Dispute's trade is null for trade {}, defaulting to dispute state text 'closed'", dispute.getTradeId());
             return Res.get("support.closed");
         }
+        if (dispute.isClosed()) return Res.get("support.closed");
         switch (trade.getDisputeState()) {
+            case NO_DISPUTE:
+                return Res.get("shared.pending");
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
-            case DISPUTE_CLOSED:
-                return Res.get("support.closed");
             default:
                 return Res.get("support.open");
         }
@@ -1441,5 +1469,37 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> {
         } else {
             return (disputeManager instanceof MediationManager) ? Res.get("shared.mediator") : Res.get("shared.refundAgent");
         }
+    }
+
+    private PeerInfoIconDispute createAvatar(Integer tableRowId, Dispute dispute, boolean isBuyer) {
+        NodeAddress nodeAddress = isBuyer ? dispute.getContract().getBuyerNodeAddress() : dispute.getContract().getSellerNodeAddress();
+        String key = tableRowId + nodeAddress.getAddressForDisplay() + (isBuyer ? "BUYER" : "SELLER");
+        Long accountAge = isBuyer ?
+                accountAgeWitnessService.getAccountAge(dispute.getBuyerPaymentAccountPayload(), dispute.getContract().getBuyerPubKeyRing()) :
+                accountAgeWitnessService.getAccountAge(dispute.getSellerPaymentAccountPayload(), dispute.getContract().getSellerPubKeyRing());
+        PeerInfoIconDispute peerInfoIcon = new PeerInfoIconDispute(
+                nodeAddress,
+                disputeManager.getNrOfDisputes(isBuyer, dispute.getContract()),
+                accountAge,
+                preferences);
+        avatarMap.put(key, peerInfoIcon); // TODO
+        return peerInfoIcon;
+    }
+
+    @Override
+    public void onCloseDisputeFromChatWindow(Dispute dispute) {
+        if (dispute.getDisputeState() == Dispute.State.NEW || dispute.getDisputeState().isOpen()) {
+            handleOnProcessDispute(dispute);
+        } else {
+            closeDisputeFromButton();
+        }
+    }
+
+    @Override
+    public void onSendLogsFromChatWindow(Dispute dispute) {
+        if (!(disputeManager instanceof ArbitrationManager))
+            return;
+        ArbitrationManager arbitrationManager = (ArbitrationManager) disputeManager;
+        new SendLogFilesWindow(dispute.getTradeId(), dispute.getTraderId(), arbitrationManager).show();
     }
 }

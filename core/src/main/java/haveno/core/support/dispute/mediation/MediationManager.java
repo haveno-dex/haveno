@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.dispute.mediation;
@@ -26,7 +26,7 @@ import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -71,7 +71,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
     public MediationManager(P2PService p2PService,
                             TradeWalletService tradeWalletService,
                             XmrWalletService walletService,
-                            CoreMoneroConnectionsService connectionService,
+                            XmrConnectionService xmrConnectionService,
                             CoreNotificationService notificationService,
                             TradeManager tradeManager,
                             ClosedTradableManager closedTradableManager,
@@ -80,7 +80,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
                             MediationDisputeListService mediationDisputeListService,
                             Config config,
                             PriceFeedService priceFeedService) {
-        super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
+        super(p2PService, tradeWalletService, walletService, xmrConnectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, mediationDisputeListService, config, priceFeedService);
     }
 
@@ -188,8 +188,8 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
             Trade trade = tradeOptional.get();
             if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_REQUESTED ||
                     trade.getDisputeState() == Trade.DisputeState.MEDIATION_STARTED_BY_PEER) {
-                trade.getProcessModel().setBuyerPayoutAmountFromMediation(disputeResult.getBuyerPayoutAmount().longValueExact());
-                trade.getProcessModel().setSellerPayoutAmountFromMediation(disputeResult.getSellerPayoutAmount().longValueExact());
+                trade.getProcessModel().setBuyerPayoutAmountFromMediation(disputeResult.getBuyerPayoutAmountBeforeCost().longValueExact());
+                trade.getProcessModel().setSellerPayoutAmountFromMediation(disputeResult.getSellerPayoutAmountBeforeCost().longValueExact());
 
                 trade.setDisputeState(Trade.DisputeState.MEDIATION_CLOSED);
 
@@ -222,8 +222,8 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
         Optional<Dispute> optionalDispute = findDispute(tradeId);
         checkArgument(optionalDispute.isPresent(), "dispute must be present");
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
-        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmount();
-        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmount();
+        BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
+        BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
         ProcessModel processModel = trade.getProcessModel();
         processModel.setBuyerPayoutAmountFromMediation(buyerPayoutAmount.longValueExact());
         processModel.setSellerPayoutAmountFromMediation(sellerPayoutAmount.longValueExact());

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.apitest.method;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 import static haveno.apitest.config.ApiTestConfig.BTC;
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
 import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
-import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositAsPercent;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.stream;
@@ -157,8 +157,8 @@ public class MethodTest extends ApiTestCase {
         return haveno.core.payment.PaymentAccount.fromProto(paymentAccount, CORE_PROTO_RESOLVER);
     }
 
-    public static final Supplier<Double> defaultBuyerSecurityDepositPct = () -> {
-        var defaultPct = BigDecimal.valueOf(getDefaultBuyerSecurityDepositAsPercent());
+    public static final Supplier<Double> defaultSecurityDepositPct = () -> {
+        var defaultPct = BigDecimal.valueOf(getDefaultSecurityDepositAsPercent());
         if (defaultPct.precision() != 2)
             throw new IllegalStateException(format(
                     "Unexpected decimal precision, expected 2 but actual is %d%n."

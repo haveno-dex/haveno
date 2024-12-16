@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade.statistics;
@@ -54,6 +54,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.Random;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -67,10 +69,13 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     @JsonExclude
     private transient static final ZoneId ZONE_ID = ZoneId.systemDefault();
+    private static final double FUZZ_AMOUNT_PCT = 0.05;
+    private static final int FUZZ_DATE_HOURS = 24;
 
     public static TradeStatistics3 from(Trade trade,
                                         @Nullable String referralId,
-                                        boolean isTorNetworkNode) {
+                                        boolean isTorNetworkNode,
+                                        boolean isFuzzed) {
         Map<String, String> extraDataMap = new HashMap<>();
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
@@ -88,11 +93,28 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
                 trade.getPrice().getValue(),
-                trade.getAmount().longValueExact(),
+                isFuzzed ? fuzzTradeAmountReproducibly(trade) : trade.getAmount().longValueExact(),
                 offer.getPaymentMethod().getId(),
-                trade.getTakeOfferDate().getTime(),
+                isFuzzed ? fuzzTradeDateReproducibly(trade) : trade.getTakeOfferDate().getTime(),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);
+    }
+
+    private static long fuzzTradeAmountReproducibly(Trade trade) { //  randomize completed trade info #1099
+        long originalTimestamp = trade.getTakeOfferDate().getTime();
+        long exactAmount = trade.getAmount().longValueExact();
+        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
+        long adjustedAmount = (long) random.nextDouble(exactAmount * (1.0 - FUZZ_AMOUNT_PCT), exactAmount * (1 + FUZZ_AMOUNT_PCT));
+        log.debug("trade {} fuzzed trade amount for tradeStatistics is {}", trade.getShortId(), adjustedAmount);
+        return adjustedAmount;
+    }
+
+    private static long fuzzTradeDateReproducibly(Trade trade) { //  randomize completed trade info #1099
+        long originalTimestamp = trade.getTakeOfferDate().getTime();
+        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
+        long adjustedTimestamp = random.nextLong(originalTimestamp - TimeUnit.HOURS.toMillis(FUZZ_DATE_HOURS), originalTimestamp);
+        log.debug("trade {} fuzzed trade datestamp for tradeStatistics is {}", trade.getShortId(), new Date(adjustedTimestamp));
+        return adjustedTimestamp;
     }
 
     // This enum must not change the order as we use the ordinal for storage to reduce data size.
@@ -155,7 +177,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         TIKKIE,
         TRANSFERWISE_USD,
         ACH_TRANSFER,
-        DOMESTIC_WIRE_TRANSFER
+        DOMESTIC_WIRE_TRANSFER,
+        PAYPAL
     }
 
     @Getter

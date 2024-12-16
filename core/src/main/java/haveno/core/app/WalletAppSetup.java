@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,10 +34,12 @@
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.TradeManager;
@@ -31,28 +50,24 @@ import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.exceptions.RejectedTxException;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.daemon.model.MoneroDaemonInfo;
-
+import monero.common.MoneroUtils;
 import org.bitcoinj.core.RejectMessage;
-import org.bitcoinj.core.VersionMessage;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.ChainFileLockedException;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 @Slf4j
 @Singleton
@@ -61,7 +76,8 @@ public class WalletAppSetup {
     private final CoreContext coreContext;
     private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
+    private final XmrWalletService xmrWalletService;
     private final Config config;
     private final Preferences preferences;
 
@@ -69,9 +85,9 @@ public class WalletAppSetup {
     private MonadicBinding<String> xmrInfoBinding;
 
     @Getter
-    private final DoubleProperty xmrSyncProgress = new SimpleDoubleProperty(-1);
+    private final DoubleProperty xmrDaemonSyncProgress = new SimpleDoubleProperty(-1);
     @Getter
-    private final StringProperty walletServiceErrorMsg = new SimpleStringProperty();
+    private final DoubleProperty xmrWalletSyncProgress = new SimpleDoubleProperty(-1);
     @Getter
     private final StringProperty xmrSplashSyncIconId = new SimpleStringProperty();
     @Getter
@@ -85,13 +101,15 @@ public class WalletAppSetup {
     public WalletAppSetup(CoreContext coreContext,
                           WalletsManager walletsManager,
                           WalletsSetup walletsSetup,
-                          CoreMoneroConnectionsService connectionService,
+                          XmrConnectionService xmrConnectionService,
+                          XmrWalletService xmrWalletService,
                           Config config,
                           Preferences preferences) {
         this.coreContext = coreContext;
         this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
+        this.xmrWalletService = xmrWalletService;
         this.config = config;
         this.preferences = preferences;
         this.useTorForXmr.set(preferences.getUseTorForXmr());
@@ -102,57 +120,73 @@ public class WalletAppSetup {
               @Nullable Runnable showPopupIfInvalidBtcConfigHandler,
               Runnable downloadCompleteHandler,
               Runnable walletInitializedHandler) {
-        log.info("Initialize WalletAppSetup with BitcoinJ version {} and hash of BitcoinJ commit {}",
-                VersionMessage.BITCOINJ_VERSION, "2a80db4");
+        log.info("Initialize WalletAppSetup with monero-java v{}", MoneroUtils.getVersion());
 
         ObjectProperty<Throwable> walletServiceException = new SimpleObjectProperty<>();
-        xmrInfoBinding = EasyBind.combine(connectionService.downloadPercentageProperty(), // TODO (woodser): update to XMR
-                connectionService.chainHeightProperty(),
+        xmrInfoBinding = EasyBind.combine(
+                xmrConnectionService.numUpdatesProperty(), // receives notification of any connection update
+                xmrWalletService.downloadPercentageProperty(),
+                xmrWalletService.walletHeightProperty(),
                 walletServiceException,
-                getWalletServiceErrorMsg(),
-                (downloadPercentage, chainHeight, exception, errorMsg) -> {
+                xmrConnectionService.getConnectionServiceErrorMsg(),
+                (numConnectionUpdates, walletDownloadPercentage, walletHeight, exception, errorMsg) -> {
                     String result;
                     if (exception == null && errorMsg == null) {
-                        double percentage = (double) downloadPercentage;
-                        xmrSyncProgress.set(percentage);
-                        MoneroDaemonInfo lastInfo = connectionService.getLastInfo();
-                        Long bestChainHeight = lastInfo == null ? null : lastInfo.getHeight();
-                        String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ?
-                                String.valueOf(bestChainHeight) :
-                                "";
-                        if (percentage == 1) {
-                            String synchronizedWith = Res.get("mainView.footer.xmrInfo.synchronizedWith",
-                                    getXmrNetworkAsString(), chainHeightAsString);
-                            String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
-                            result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
-                            getXmrSplashSyncIconId().set("image-connection-synced");
-                            downloadCompleteHandler.run();
-                        } else if (percentage > 0.0) {
-                            String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith",
-                                    getXmrNetworkAsString(), chainHeightAsString,
-                                    FormattingUtils.formatToPercentWithSymbol(percentage));
-                            result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                        
+                        // update daemon sync progress
+                        double chainDownloadPercentageD = xmrConnectionService.downloadPercentageProperty().doubleValue();
+                        Long bestChainHeight = xmrConnectionService.chainHeightProperty().get();
+                        String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
+                        if (chainDownloadPercentageD < 1) {
+                            xmrDaemonSyncProgress.set(chainDownloadPercentageD);
+                            if (chainDownloadPercentageD > 0.0) {
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
+                                result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                            } else {
+                                result = Res.get("mainView.footer.xmrInfo",
+                                        Res.get("mainView.footer.xmrInfo.connectingTo"),
+                                        getXmrDaemonNetworkAsString());
+                            }
                         } else {
-                            result = Res.get("mainView.footer.xmrInfo",
-                                    Res.get("mainView.footer.xmrInfo.connectingTo"),
-                                    getXmrNetworkAsString());
+
+                            // update wallet sync progress
+                            double walletDownloadPercentageD = (double) walletDownloadPercentage;
+                            xmrWalletSyncProgress.set(walletDownloadPercentageD);
+                            Long bestWalletHeight = walletHeight == null ? null : (Long) walletHeight;
+                            String walletHeightAsString = bestWalletHeight != null && bestWalletHeight > 0 ? String.valueOf(bestWalletHeight) : "";
+                            if (walletDownloadPercentageD == 1) {
+                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.syncedWith", getXmrWalletNetworkAsString(), walletHeightAsString);
+                                String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
+                                result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
+                                getXmrSplashSyncIconId().set("image-connection-synced");
+                                downloadCompleteHandler.run();
+                            } else if (walletDownloadPercentageD >= 0) {
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWalletWith", getXmrWalletNetworkAsString(), walletHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(walletDownloadPercentageD));
+                                result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
+                                getXmrSplashSyncIconId().set(""); // clear synced icon
+                            } else {
+                                String synchronizedWith = Res.get("mainView.footer.xmrInfo.connectedTo", getXmrDaemonNetworkAsString(), chainHeightAsString);
+                                String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
+                                result = Res.get("mainView.footer.xmrInfo", synchronizedWith, feeInfo);
+                                getXmrSplashSyncIconId().set("image-connection-synced");
+                            }
                         }
                     } else {
                         result = Res.get("mainView.footer.xmrInfo",
                                 Res.get("mainView.footer.xmrInfo.connectionFailed"),
-                                getXmrNetworkAsString());
+                                getXmrDaemonNetworkAsString());
                         if (exception != null) {
                             if (exception instanceof TimeoutException) {
-                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
+                                xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.timeout"));
                             } else if (exception.getCause() instanceof BlockStoreException) {
                                 if (exception.getCause().getCause() instanceof ChainFileLockedException && chainFileLockedExceptionHandler != null) {
                                     chainFileLockedExceptionHandler.accept(Res.get("popup.warning.startupFailed.twoInstances"));
                                 }
                             } else if (exception instanceof RejectedTxException) {
                                 rejectedTxException.set((RejectedTxException) exception);
-                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
+                                xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.rejectedTxException", exception.getMessage()));
                             } else {
-                                getWalletServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
+                                xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                             }
                         }
                     }
@@ -234,14 +268,25 @@ public class WalletAppSetup {
         });
     }
 
-    private String getXmrNetworkAsString() {
+    private String getXmrDaemonNetworkAsString() {
         String postFix;
-        if (config.ignoreLocalXmrNode)
-            postFix = " " + Res.get("mainView.footer.localhostBitcoinNode");
-        else if (preferences.getUseTorForXmr().isUseTorForXmr())
+        if (xmrConnectionService.isConnectionLocalHost())
+            postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
+        else if (xmrConnectionService.isProxyApplied())
             postFix = " " + Res.get("mainView.footer.usingTor");
         else
             postFix = "";
+        return Res.get(config.baseCurrencyNetwork.name()) + postFix;
+    }
+
+    private String getXmrWalletNetworkAsString() {
+        String postFix;
+        if (xmrConnectionService.isConnectionLocalHost())
+            postFix = " " + Res.get("mainView.footer.localhostMoneroNode");
+        else if (xmrWalletService.isProxyApplied())
+            postFix = " " + Res.get("mainView.footer.usingTor");
+        else
+            postFix = " " + Res.get("mainView.footer.clearnet");
         return Res.get(config.baseCurrencyNetwork.name()) + postFix;
     }
 }

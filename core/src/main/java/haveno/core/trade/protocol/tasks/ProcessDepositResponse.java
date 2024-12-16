@@ -18,6 +18,8 @@
 package haveno.core.trade.protocol.tasks;
 
 
+import java.math.BigInteger;
+
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositResponse;
@@ -39,14 +41,22 @@ public class ProcessDepositResponse extends TradeTask {
           // throw if error
           DepositResponse message = (DepositResponse) processModel.getTradeMessage();
           if (message.getErrorMessage() != null) {
+            log.warn("Unregistering trade {} {} because deposit response has error message={}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
+            processModel.getTradeManager().unregisterTrade(trade);
             throw new RuntimeException(message.getErrorMessage());
           }
 
+          // record security deposits
+          trade.getBuyer().setSecurityDeposit(BigInteger.valueOf(message.getBuyerSecurityDeposit()));
+          trade.getSeller().setSecurityDeposit(BigInteger.valueOf(message.getSellerSecurityDeposit()));
+
           // set success state
           trade.setStateIfValidTransitionTo(Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS);
-          trade.addInitProgressStep();
           processModel.getTradeManager().requestPersistence();
+
+          // update balances
+          trade.getXmrWalletService().updateBalanceListeners();
           complete();
         } catch (Throwable t) {
           failed(t);

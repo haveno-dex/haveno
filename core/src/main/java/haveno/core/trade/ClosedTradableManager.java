@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade;
@@ -216,8 +216,8 @@ public class ClosedTradableManager implements PersistedDataHost {
 
     public BigInteger getXmrTradeFee(Tradable tradable) {
         return isMaker(tradable) ?
-                tradable.getOptionalMakerFee().orElse(BigInteger.valueOf(0)) :
-                tradable.getOptionalTakerFee().orElse(BigInteger.valueOf(0));
+                tradable.getOptionalMakerFee().orElse(BigInteger.ZERO) :
+                tradable.getOptionalTakerFee().orElse(BigInteger.ZERO);
     }
 
     public boolean isMaker(Tradable tradable) {
@@ -226,5 +226,13 @@ public class ClosedTradableManager implements PersistedDataHost {
 
     private void requestPersistence() {
         persistenceManager.requestPersistence();
+    }
+
+    public void removeTrade(Trade trade) {
+        synchronized (closedTradables) {
+            if (closedTradables.remove(trade)) {
+                requestPersistence();
+            }
+        }
     }
 }

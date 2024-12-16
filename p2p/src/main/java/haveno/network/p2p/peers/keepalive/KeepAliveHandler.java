@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.peers.keepalive;
@@ -40,8 +40,10 @@ import java.util.concurrent.TimeUnit;
 
 class KeepAliveHandler implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(KeepAliveHandler.class);
-
     private static final int DELAY_MS = 10_000;
+    private static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging warnings to once every 60 seconds
+    private static long lastLoggedWarningTs = 0;
+    private static int numThrottledWarnings = 0;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -147,9 +149,8 @@ class KeepAliveHandler implements MessageListener {
                     cleanup();
                     listener.onComplete();
                 } else {
-                    log.warn("Nonce not matching. That should never happen.\n\t" +
-                                    "We drop that message. nonce={} / requestNonce={}",
-                            nonce, pong.getRequestNonce());
+                    throttleWarn("Nonce not matching. That should never happen.\n" + 
+                            "\tWe drop that message. nonce=" + nonce + ", requestNonce=" + pong.getRequestNonce() + ", peerNodeAddress=" + connection.getPeersNodeAddressOptional().orElseGet(null));
                 }
             } else {
                 log.trace("We have stopped already. We ignore that onMessage call.");
@@ -165,6 +166,18 @@ class KeepAliveHandler implements MessageListener {
         if (delayTimer != null) {
             delayTimer.stop();
             delayTimer = null;
+        }
+    }
+
+    private synchronized void throttleWarn(String msg) {
+        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (logWarning) {
+            log.warn(msg);
+            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            numThrottledWarnings = 0;
+            lastLoggedWarningTs = System.currentTimeMillis();
+        } else {
+            numThrottledWarnings++;
         }
     }
 }

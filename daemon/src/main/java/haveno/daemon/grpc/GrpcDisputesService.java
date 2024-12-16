@@ -1,5 +1,6 @@
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.common.config.Config;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.api.CoreApi;
@@ -7,7 +8,13 @@ import haveno.core.support.dispute.Attachment;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.DisputesGrpc.DisputesImplBase;
+import static haveno.proto.grpc.DisputesGrpc.getGetDisputeMethod;
+import static haveno.proto.grpc.DisputesGrpc.getGetDisputesMethod;
+import static haveno.proto.grpc.DisputesGrpc.getOpenDisputeMethod;
+import static haveno.proto.grpc.DisputesGrpc.getResolveDisputeMethod;
+import static haveno.proto.grpc.DisputesGrpc.getSendDisputeChatMessageMethod;
 import haveno.proto.grpc.GetDisputeReply;
 import haveno.proto.grpc.GetDisputeRequest;
 import haveno.proto.grpc.GetDisputesReply;
@@ -20,21 +27,12 @@ import haveno.proto.grpc.SendDisputeChatMessageReply;
 import haveno.proto.grpc.SendDisputeChatMessageRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.DisputesGrpc.getGetDisputeMethod;
-import static haveno.proto.grpc.DisputesGrpc.getGetDisputesMethod;
-import static haveno.proto.grpc.DisputesGrpc.getOpenDisputeMethod;
-import static haveno.proto.grpc.DisputesGrpc.getResolveDisputeMethod;
-import static haveno.proto.grpc.DisputesGrpc.getSendDisputeChatMessageMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GrpcDisputesService extends DisputesImplBase {
@@ -140,9 +138,9 @@ public class GrpcDisputesService extends DisputesImplBase {
                         new HashMap<>() {{
                             put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
                             put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
-                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
-                            put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
-                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 2, SECONDS));
+                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 40 : 1, SECONDS));
+                            put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
+                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 40 : 2, SECONDS));
                         }}
                 )));
     }

@@ -1,22 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -29,17 +32,12 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
-import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.AmountValidator4Decimals;
+import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton
@@ -196,10 +194,9 @@ public class PriceUtil {
         return FormattingUtils.formatRoundedDoubleWithPrecision(priceAsDouble, precision);
     }
 
-    public static String formatMarketPrice(long price, String currencyCode) {
-        int marketPricePrecision = getMarketPricePrecision(currencyCode);
-        double scaled = MathUtils.scaleDownByPowerOf10(price, marketPricePrecision);
-        return FormattingUtils.formatMarketPrice(scaled, marketPricePrecision);
+    public static String formatMarketPrice(long priceAsLong, String currencyCode) {
+        Price price = Price.valueOf(currencyCode, priceAsLong);
+        return FormattingUtils.formatPrice(price);
     }
 
     public static int getMarketPricePrecision(String currencyCode) {

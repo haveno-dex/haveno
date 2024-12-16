@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -23,7 +40,6 @@ import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AchTransferAccount;
 import haveno.core.payment.AdvancedCashAccount;
 import haveno.core.payment.AliPayAccount;
@@ -31,8 +47,10 @@ import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BizumAccount;
 import haveno.core.payment.CapitualAccount;
+import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
 import haveno.core.payment.ZelleAccount;
@@ -73,6 +91,7 @@ import haveno.core.payment.TransferwiseUsdAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.UpholdAccount;
 import haveno.core.payment.UpiAccount;
+import haveno.core.payment.VenmoAccount;
 import haveno.core.payment.VerseAccount;
 import haveno.core.payment.WeChatPayAccount;
 import haveno.core.payment.WesternUnionAccount;
@@ -105,13 +124,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                                     Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
                                     TimeUnit.DAYS.toMillis(1);
 
-    // Default trade limits.
-    // We initialize very early before reading persisted data. We will apply later the limit from
-    // the DAO param (Param.MAX_TRADE_LIMIT) but that can be only done after the dao is initialized.
-    // The default values will be used for deriving the
-    // risk factor so the relation between the risk categories stays the same as with the default values.
-    // We must not change those values as it could lead to invalid offers if amount becomes lower then new trade limit.
-    // Increasing might be ok, but needs more thought as well...
+    // These values are not used except to derive the associated risk factor.
+    private static final BigInteger DEFAULT_TRADE_LIMIT_CRYPTO = HavenoUtils.xmrToAtomicUnits(200);
     private static final BigInteger DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = HavenoUtils.xmrToAtomicUnits(100);
     private static final BigInteger DEFAULT_TRADE_LIMIT_LOW_RISK = HavenoUtils.xmrToAtomicUnits(50);
     private static final BigInteger DEFAULT_TRADE_LIMIT_MID_RISK = HavenoUtils.xmrToAtomicUnits(25);
@@ -174,14 +188,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String SWIFT_ID = "SWIFT";
     public static final String ACH_TRANSFER_ID = "ACH_TRANSFER";
     public static final String DOMESTIC_WIRE_TRANSFER_ID = "DOMESTIC_WIRE_TRANSFER";
-
-    // Cannot be deleted as it would break old trade history entries
     @Deprecated
-    public static final String OK_PAY_ID = "OK_PAY";
-    @Deprecated
-    public static final String CASH_APP_ID = "CASH_APP"; // Removed due too high chargeback risk
-    @Deprecated
-    public static final String VENMO_ID = "VENMO";  // Removed due too high chargeback risk
+    public static final String OK_PAY_ID = "OK_PAY"; // Cannot be deleted as it would break old trade history entries
+    public static final String CASH_APP_ID = "CASH_APP";
+    public static final String VENMO_ID = "VENMO";
+    public static final String PAYPAL_ID = "PAYPAL";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -238,14 +249,13 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod ACH_TRANSFER;
     public static PaymentMethod DOMESTIC_WIRE_TRANSFER;
     public static PaymentMethod BSQ_SWAP;
+    public static PaymentMethod PAYPAL;
+    public static PaymentMethod CASH_APP;
+    public static PaymentMethod VENMO;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
     public static PaymentMethod OK_PAY = getDummyPaymentMethod(OK_PAY_ID);
-    @Deprecated
-    public static PaymentMethod CASH_APP = getDummyPaymentMethod(CASH_APP_ID); // Removed due too high chargeback risk
-    @Deprecated
-    public static PaymentMethod VENMO = getDummyPaymentMethod(VENMO_ID); // Removed due too high chargeback risk
 
     // The limit and duration assignment must not be changed as that could break old offers (if amount would be higher
     // than new trade limit) and violate the maker expectation when he created the offer (duration).
@@ -264,16 +274,16 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
-
             POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
+            VENMO = new PaymentMethod(VENMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VenmoAccount.SUPPORTED_CURRENCIES)),
 
             // Canada
             INTERAC_E_TRANSFER = new PaymentMethod(INTERAC_E_TRANSFER_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(InteracETransferAccount.SUPPORTED_CURRENCIES)),
 
             // Global
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
-            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
+            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
             CASH_AT_ATM = new PaymentMethod(CASH_AT_ATM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAtAtmAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
@@ -292,24 +302,26 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             TRANSFERWISE_USD = new PaymentMethod(TRANSFERWISE_USD_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(TransferwiseUsdAccount.SUPPORTED_CURRENCIES)),
             PAYSERA = new PaymentMethod(PAYSERA_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayseraAccount.SUPPORTED_CURRENCIES)),
             PAXUM = new PaymentMethod(PAXUM_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PaxumAccount.SUPPORTED_CURRENCIES)),
-            NEFT = new PaymentMethod(NEFT_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.02), getAssetCodes(NeftAccount.SUPPORTED_CURRENCIES)),
+            NEFT = new PaymentMethod(NEFT_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NeftAccount.SUPPORTED_CURRENCIES)),
             RTGS = new PaymentMethod(RTGS_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(RtgsAccount.SUPPORTED_CURRENCIES)),
             IMPS = new PaymentMethod(IMPS_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ImpsAccount.SUPPORTED_CURRENCIES)),
-            UPI = new PaymentMethod(UPI_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.05), getAssetCodes(UpiAccount.SUPPORTED_CURRENCIES)),
-            PAYTM = new PaymentMethod(PAYTM_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.05), getAssetCodes(PaytmAccount.SUPPORTED_CURRENCIES)),
+            UPI = new PaymentMethod(UPI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(UpiAccount.SUPPORTED_CURRENCIES)),
+            PAYTM = new PaymentMethod(PAYTM_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PaytmAccount.SUPPORTED_CURRENCIES)),
             NEQUI = new PaymentMethod(NEQUI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NequiAccount.SUPPORTED_CURRENCIES)),
-            BIZUM = new PaymentMethod(BIZUM_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.04), getAssetCodes(BizumAccount.SUPPORTED_CURRENCIES)),
+            BIZUM = new PaymentMethod(BIZUM_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(BizumAccount.SUPPORTED_CURRENCIES)),
             PIX = new PaymentMethod(PIX_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PixAccount.SUPPORTED_CURRENCIES)),
             CAPITUAL = new PaymentMethod(CAPITUAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CapitualAccount.SUPPORTED_CURRENCIES)),
             CELPAY = new PaymentMethod(CELPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CelPayAccount.SUPPORTED_CURRENCIES)),
             MONESE = new PaymentMethod(MONESE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MoneseAccount.SUPPORTED_CURRENCIES)),
             SATISPAY = new PaymentMethod(SATISPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SatispayAccount.SUPPORTED_CURRENCIES)),
-            TIKKIE = new PaymentMethod(TIKKIE_ID, DAY, HavenoUtils.xmrToAtomicUnits(0.05), getAssetCodes(TikkieAccount.SUPPORTED_CURRENCIES)),
+            TIKKIE = new PaymentMethod(TIKKIE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(TikkieAccount.SUPPORTED_CURRENCIES)),
             VERSE = new PaymentMethod(VERSE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VerseAccount.SUPPORTED_CURRENCIES)),
             STRIKE = new PaymentMethod(STRIKE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(StrikeAccount.SUPPORTED_CURRENCIES)),
             SWIFT = new PaymentMethod(SWIFT_ID, 7 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(SwiftAccount.SUPPORTED_CURRENCIES)),
             ACH_TRANSFER = new PaymentMethod(ACH_TRANSFER_ID, 5 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(AchTransferAccount.SUPPORTED_CURRENCIES)),
             DOMESTIC_WIRE_TRANSFER = new PaymentMethod(DOMESTIC_WIRE_TRANSFER_ID, 3 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(DomesticWireTransferAccount.SUPPORTED_CURRENCIES)),
+            PAYPAL = new PaymentMethod(PAYPAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayPalAccount.SUPPORTED_CURRENCIES)),
+            CASH_APP = new PaymentMethod(CASH_APP_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAppAccount.SUPPORTED_CURRENCIES)),
 
             // Japan
             JAPAN_BANK = new PaymentMethod(JAPAN_BANK_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(JapanBankAccount.SUPPORTED_CURRENCIES)),
@@ -325,9 +337,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             PROMPT_PAY = new PaymentMethod(PROMPT_PAY_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PromptPayAccount.SUPPORTED_CURRENCIES)),
 
             // Cryptos
-            BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
+            BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList()),
+            
             // Cryptos with 1 hour trade period
-            BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
+            BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList())
     );
 
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
@@ -347,7 +360,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SWIFT_ID,
                 TRANSFERWISE_ID,
                 UPHOLD_ID,
-                ZELLE_ID);
+                ZELLE_ID,
+                AUSTRALIA_PAYID_ID,
+                CASH_APP_ID,
+                PAYPAL_ID,
+                VENMO_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -368,7 +385,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static PaymentMethod getDummyPaymentMethod(String id) {
-        return new PaymentMethod(id, 0, BigInteger.valueOf(0), Arrays.asList());
+        return new PaymentMethod(id, 0, BigInteger.ZERO, Arrays.asList());
     }
 
 
@@ -418,7 +435,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     // Used for dummy entries in payment methods list (SHOW_ALL)
     private PaymentMethod(String id) {
-        this(id, 0, BigInteger.valueOf(0), new ArrayList<String>());
+        this(id, 0, BigInteger.ZERO, new ArrayList<String>());
     }
 
 
@@ -475,17 +492,21 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         }
 
         // We use the class field maxTradeLimit only for mapping the risk factor.
+        // The actual trade limit is calculated by dividing TradeLimits.MAX_TRADE_LIMIT by the
+        // risk factor, and then further decreasing by chargeback risk, account signing, and age.
         long riskFactor;
-        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
+        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_CRYPTO.longValueExact())
             riskFactor = 1;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
-            riskFactor = 2;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
             riskFactor = 4;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
+            riskFactor = 11;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
+            riskFactor = 22;
         else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.longValueExact())
-            riskFactor = 8;
+            riskFactor = 44;
         else {
-            riskFactor = 8;
+            riskFactor = 44;
             log.warn("maxTradeLimit is not matching one of our default values. We use highest risk factor. " +
                             "maxTradeLimit={}. PaymentMethod={}", maxTradeLimit, this);
         }
@@ -494,13 +515,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         TradeLimits tradeLimits = new TradeLimits();
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().longValueExact();
         long riskBasedTradeLimit = tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor);
-
-        // if traditional and stagenet, cap offer amounts to avoid offers which cannot be taken
-        boolean isTraditional = CurrencyUtil.isTraditionalCurrency(currencyCode);
-        boolean isStagenet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET;
-        if (isTraditional && isStagenet && riskBasedTradeLimit > OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-            riskBasedTradeLimit = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact();
-        }
         return BigInteger.valueOf(riskBasedTradeLimit);
     }
 
@@ -554,9 +568,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static boolean hasChargebackRisk(String id, String currencyCode) {
-        if (CurrencyUtil.getMatureMarketCurrencies().stream()
-                .noneMatch(c -> c.getCode().equals(currencyCode)))
-            return false;
+
+        // TODO: bisq indicates no chargeback risk for non-"mature" currencies, but they have chargeback risk too, so we disable
+        // if (CurrencyUtil.getMatureMarketCurrencies().stream()
+        //         .noneMatch(c -> c.getCode().equals(currencyCode)))
+        //     return false;
 
         return id.equals(PaymentMethod.SEPA_ID) ||
                 id.equals(PaymentMethod.SEPA_INSTANT_ID) ||
@@ -569,7 +585,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.CHASE_QUICK_PAY_ID) ||
                 id.equals(PaymentMethod.POPMONEY_ID) ||
                 id.equals(PaymentMethod.MONEY_BEAM_ID) ||
-                id.equals(PaymentMethod.UPHOLD_ID);
+                id.equals(PaymentMethod.UPHOLD_ID) ||
+                id.equals(PaymentMethod.CASH_APP_ID) ||
+                id.equals(PaymentMethod.PAYPAL_ID) ||
+                id.equals(PaymentMethod.VENMO_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {

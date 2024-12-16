@@ -1,24 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.duplicateoffer;
 
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
@@ -39,8 +40,6 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
-
-import javax.inject.Named;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +52,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
     DuplicateOfferDataModel(CreateOfferService createOfferService,
                        OpenOfferManager openOfferManager,
                        OfferUtil offerUtil,
-                       XmrWalletService btcWalletService,
+                       XmrWalletService xmrWalletService,
                        Preferences preferences,
                        User user,
                        P2PService p2PService,
@@ -66,7 +65,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         super(createOfferService,
                 openOfferManager,
                 offerUtil,
-                btcWalletService,
+                xmrWalletService,
                 preferences,
                 user,
                 p2PService,
@@ -86,20 +85,21 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
+        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
 
-        setBuyerSecurityDeposit(getBuyerSecurityAsPercent(offer));
+        setSecurityDepositPct(getSecurityAsPercent(offer));
 
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
     }
 
-    private double getBuyerSecurityAsPercent(Offer offer) {
-        BigInteger offerBuyerSecurityDeposit = getBoundedBuyerSecurityDeposit(offer.getBuyerSecurityDeposit());
-        double offerBuyerSecurityDepositAsPercent = CoinUtil.getAsPercentPerBtc(offerBuyerSecurityDeposit,
+    private double getSecurityAsPercent(Offer offer) {
+        BigInteger offerSellerSecurityDeposit = getBoundedSecurityDeposit(offer.getMaxSellerSecurityDeposit());
+        double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
                 offer.getAmount());
-        return Math.min(offerBuyerSecurityDepositAsPercent,
-                Restrictions.getMaxBuyerSecurityDepositAsPercent());
+        return Math.min(offerSellerSecurityDepositAsPercent,
+                Restrictions.getMaxSecurityDepositAsPercent());
     }
 
     @Override

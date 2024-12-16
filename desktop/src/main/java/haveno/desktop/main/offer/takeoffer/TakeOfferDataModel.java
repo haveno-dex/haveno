@@ -1,23 +1,26 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer.takeoffer;
 
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -129,7 +132,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         addListeners();
 
-        updateAvailableBalance();
+        updateBalances();
 
         // TODO In case that we have funded but restarted, or canceled but took again the offer we would need to
         // store locally the result when we received the funding tx(s).
@@ -147,7 +150,12 @@ class TakeOfferDataModel extends OfferDataModel {
                     this.amount.get(),
                     () -> {
                     },
-                    errorMessage -> new Popup().warning(errorMessage).show());
+                    errorMessage -> {
+                        log.warn(errorMessage);
+                        if (offer.getState() != Offer.State.NOT_AVAILABLE && offer.getState() != Offer.State.INVALID) { // handled elsewhere in UI
+                            new Popup().warning(errorMessage).show();
+                        }
+                    });
         }
     }
 
@@ -177,9 +185,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         this.amount.set(offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit())));
 
-        securityDeposit = offer.getDirection() == OfferDirection.SELL ?
-                getBuyerSecurityDeposit() :
-                getSellerSecurityDeposit();
+        updateSecurityDeposit();
 
         calculateVolume();
         calculateTotalToPay();
@@ -187,7 +193,7 @@ class TakeOfferDataModel extends OfferDataModel {
         balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                updateAvailableBalance();
+                updateBalances();
             }
         };
 
@@ -218,7 +224,21 @@ class TakeOfferDataModel extends OfferDataModel {
             offerBook.removeOffer(checkNotNull(offer));
         }
 
-        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        // reset address entries off thread
+        ThreadUtils.submitToPool(() -> xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId()));
+    }
+
+    protected void updateBalances() {
+        super.updateBalances();
+
+        // update remaining balance
+        UserThread.await(() -> {
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
+            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
+            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
+                showWalletFundedNotification.set(true);
+            }
+        });
     }
 
 
@@ -226,8 +246,6 @@ class TakeOfferDataModel extends OfferDataModel {
     // UI actions
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // errorMessageHandler is used only in the check availability phase. As soon we have a trade we write the error msg in the trade object as we want to
-    // have it persisted as well.
     void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler) {
         checkNotNull(getTakerFee(), "takerFee must not be null");
 
@@ -235,21 +253,21 @@ class TakeOfferDataModel extends OfferDataModel {
         if (isBuyOffer())
             fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
 
+        String errorMsg = null;
         if (filterManager.isCurrencyBanned(offer.getCurrencyCode())) {
-            new Popup().warning(Res.get("offerbook.warning.currencyBanned")).show();
+            errorMsg = Res.get("offerbook.warning.currencyBanned");
         } else if (filterManager.isPaymentMethodBanned(offer.getPaymentMethod())) {
-            new Popup().warning(Res.get("offerbook.warning.paymentMethodBanned")).show();
+            errorMsg = Res.get("offerbook.warning.paymentMethodBanned");
         } else if (filterManager.isOfferIdBanned(offer.getId())) {
-            new Popup().warning(Res.get("offerbook.warning.offerBlocked")).show();
+            errorMsg = Res.get("offerbook.warning.offerBlocked");
         } else if (filterManager.isNodeAddressBanned(offer.getMakerNodeAddress())) {
-            new Popup().warning(Res.get("offerbook.warning.nodeBlocked")).show();
+            errorMsg = Res.get("offerbook.warning.nodeBlocked");
         } else if (filterManager.requireUpdateToNewVersionForTrading()) {
-            new Popup().warning(Res.get("offerbook.warning.requireUpdateToNewVersion")).show();
+            errorMsg = Res.get("offerbook.warning.requireUpdateToNewVersion");
         } else if (tradeManager.wasOfferAlreadyUsedInTrade(offer.getId())) {
-            new Popup().warning(Res.get("offerbook.warning.offerWasAlreadyUsedInTrade")).show();
+            errorMsg = Res.get("offerbook.warning.offerWasAlreadyUsedInTrade");
         } else {
             tradeManager.onTakeOffer(amount.get(),
-                    getTakerFee(),
                     fundsNeededForTrade,
                     offer,
                     paymentAccount.getId(),
@@ -261,6 +279,12 @@ class TakeOfferDataModel extends OfferDataModel {
                         errorMessageHandler.handleErrorMessage(errorMessage);
                     }
             );
+        }
+
+        // handle error
+        if (errorMsg != null) {
+            new Popup().warning(errorMsg).show();
+            errorMessageHandler.handleErrorMessage(errorMsg);
         }
     }
 
@@ -277,11 +301,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     void fundFromSavingsWallet() {
         useSavingsWallet = true;
-        updateAvailableBalance();
-        if (!isXmrWalletFunded.get()) {
-            this.useSavingsWallet = false;
-            updateAvailableBalance();
-        }
+        updateBalances();
     }
 
 
@@ -321,7 +341,7 @@ class TakeOfferDataModel extends OfferDataModel {
     long getMaxTradeLimit() {
         if (paymentAccount != null) {
             return accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
-                    offer.getMirroredDirection());
+                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         } else {
             return 0;
         }
@@ -353,23 +373,24 @@ class TakeOfferDataModel extends OfferDataModel {
     void calculateVolume() {
         if (tradePrice != null && offer != null &&
                 amount.get() != null &&
-                amount.get().compareTo(BigInteger.valueOf(0)) != 0) {
+                amount.get().compareTo(BigInteger.ZERO) != 0) {
             Volume volumeByAmount = tradePrice.getVolumeByAmount(amount.get());
             volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
 
             volume.set(volumeByAmount);
 
-            updateAvailableBalance();
+            updateBalances();
         }
     }
 
     void applyAmount(BigInteger amount) {
         this.amount.set(amount.min(BigInteger.valueOf(getMaxTradeLimit())));
-
         calculateTotalToPay();
     }
 
     void calculateTotalToPay() {
+        updateSecurityDeposit();
+
         // Taker pays 2 times the tx fee because the mining fee might be different when maker created the offer
         // and reserved his funds, so that would not work well with dynamic fees.
         // The mining fee for the takeOfferFee tx is deducted from the createOfferFee and not visible to the trader
@@ -380,7 +401,7 @@ class TakeOfferDataModel extends OfferDataModel {
                 totalToPay.set(feeAndSecDeposit.add(amount.get()));
             else
                 totalToPay.set(feeAndSecDeposit);
-            updateAvailableBalance();
+            updateBalances();
             log.debug("totalToPay {}", totalToPay.get());
         }
     }
@@ -399,7 +420,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @Nullable
     BigInteger getTakerFee() {
-        return HavenoUtils.getTakerFee(this.amount.get());
+        return HavenoUtils.multiply(this.amount.get(), offer.getTakerFeePct());
     }
 
     public void swapTradeToSavings() {
@@ -459,12 +480,18 @@ class TakeOfferDataModel extends OfferDataModel {
         return securityDeposit;
     }
 
-    public BigInteger getBuyerSecurityDeposit() {
-        return offer.getBuyerSecurityDeposit();
+    private void updateSecurityDeposit() {
+        securityDeposit = offer.getDirection() == OfferDirection.SELL ?
+                getBuyerSecurityDeposit() :
+                getSellerSecurityDeposit();
     }
 
-    public BigInteger getSellerSecurityDeposit() {
-        return offer.getSellerSecurityDeposit();
+    private BigInteger getBuyerSecurityDeposit() {
+        return offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(amount.get());
+    }
+
+    private BigInteger getSellerSecurityDeposit() {
+        return offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(amount.get());
     }
 
     public boolean isRoundedForAtmCash() {

@@ -1,24 +1,26 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.market.offerbook;
 
 import com.google.common.math.LongMath;
 import com.google.inject.Inject;
+
+import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
@@ -135,10 +137,12 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         currenciesUpdatedListener = (observable, oldValue, newValue) -> {
             if (!isAnyPriceAbsent()) {
-                offerBook.fillOfferBookListItems();
-                updateChartData();
-                var self = this;
-                priceFeedService.updateCounterProperty().removeListener(self.currenciesUpdatedListener);
+                UserThread.execute(() -> {
+                    offerBook.fillOfferBookListItems();
+                    updateChartData();
+                    var self = this;
+                    priceFeedService.updateCounterProperty().removeListener(self.currenciesUpdatedListener);
+                });
             }
         };
 
@@ -147,16 +151,18 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void fillTradeCurrencies() {
         // Don't use a set as we need all entries
-        List<TradeCurrency> tradeCurrencyList = offerBookListItems.stream()
-                .map(e -> {
-                    String currencyCode = e.getOffer().getCurrencyCode();
-                    Optional<TradeCurrency> tradeCurrencyOptional = CurrencyUtil.getTradeCurrency(currencyCode);
-                    return tradeCurrencyOptional.orElse(null);
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        synchronized (offerBookListItems) {
+            List<TradeCurrency> tradeCurrencyList = offerBookListItems.stream()
+                    .map(e -> {
+                        String currencyCode = e.getOffer().getCurrencyCode();
+                        Optional<TradeCurrency> tradeCurrencyOptional = CurrencyUtil.getTradeCurrency(currencyCode);
+                        return tradeCurrencyOptional.orElse(null);
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
-        currencyListItems.updateWithCurrencies(tradeCurrencyList, null);
+            currencyListItems.updateWithCurrencies(tradeCurrencyList, null);
+        }
     }
 
     @Override
@@ -206,7 +212,10 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public boolean isSellOffer(OfferDirection direction) {
-        return direction == OfferDirection.SELL;
+        // for cryptocurrency, buy direction is to buy XMR, so we need sell offers
+        // for traditional currency, buy direction is to sell XMR, so we need buy offers
+        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
+        return isCryptoCurrency ? direction == OfferDirection.BUY : direction == OfferDirection.SELL;
     }
 
     public boolean isMyOffer(Offer offer) {
@@ -417,16 +426,20 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void updateScreenCurrencyInPreferences(OfferDirection direction) {
         if (isSellOffer(direction)) {
-            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
+            } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
+            } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+                preferences.setBuyScreenOtherCurrencyCode(getCurrencyCode());
             }
         } else {
-            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCurrencyCode(getCurrencyCode());
-            } else if (!getCurrencyCode().equals(GUIUtil.TOP_CRYPTO.getCode())) {
+            } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
+            } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+                preferences.setSellScreenOtherCurrencyCode(getCurrencyCode());
             }
         }
     }

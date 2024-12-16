@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.xmr.setup;
@@ -29,7 +29,7 @@ import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.handlers.ExceptionHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.exceptions.InvalidHostException;
 import haveno.core.xmr.model.AddressEntry;
@@ -42,13 +42,7 @@ import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.network.Socks5MultiDiscovery;
 import haveno.network.Socks5ProxyProvider;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleLongProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -100,16 +94,13 @@ public class WalletsSetup {
     private final Preferences preferences;
     private final Socks5ProxyProvider socks5ProxyProvider;
     private final Config config;
-    private final LocalMoneroNode localMoneroNode;
+    private final XmrLocalNode xmrLocalNode;
     private final XmrNodes xmrNodes;
     private final int numConnectionsForBtc;
     private final String userAgent;
     private final NetworkParameters params;
     private final File walletDir;
     private final int socks5DiscoverMode;
-    private final IntegerProperty numPeers = new SimpleIntegerProperty(0);
-    private final LongProperty chainHeight = new SimpleLongProperty(0);
-    private final DownloadListener downloadListener = new DownloadListener();
     private final List<Runnable> setupTaskHandlers = new ArrayList<>();
     private final List<Runnable> setupCompletedHandlers = new ArrayList<>();
     public final BooleanProperty shutDownComplete = new SimpleBooleanProperty();
@@ -126,7 +117,7 @@ public class WalletsSetup {
                         Preferences preferences,
                         Socks5ProxyProvider socks5ProxyProvider,
                         Config config,
-                        LocalMoneroNode localMoneroNode,
+                        XmrLocalNode xmrLocalNode,
                         XmrNodes xmrNodes,
                         @Named(Config.USER_AGENT) String userAgent,
                         @Named(Config.WALLET_DIR) File walletDir,
@@ -138,7 +129,7 @@ public class WalletsSetup {
         this.preferences = preferences;
         this.socks5ProxyProvider = socks5ProxyProvider;
         this.config = config;
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         this.xmrNodes = xmrNodes;
         this.numConnectionsForBtc = numConnectionsForBtc;
         this.useAllProvidedNodes = useAllProvidedNodes;
@@ -172,12 +163,12 @@ public class WalletsSetup {
         backupWallets();
 
         final Socks5Proxy socks5Proxy = socks5ProxyProvider.getSocks5Proxy();
-        log.info("Socks5Proxy for bitcoinj: socks5Proxy=" + socks5Proxy);
+        log.info("Using Socks5Proxy: " + socks5Proxy);
 
         walletConfig = new WalletConfig(params, walletDir, "haveno") {
+
             @Override
             protected void onSetupCompleted() {
-                //We are here in the btcj thread Thread[ STARTING,5,main]
                 super.onSetupCompleted();
 
                 // run external startup handlers
@@ -195,7 +186,7 @@ public class WalletsSetup {
         };
         walletConfig.setSocks5Proxy(socks5Proxy);
         walletConfig.setConfig(config);
-        walletConfig.setLocalMoneroNodeService(localMoneroNode); // TODO: adapt to xmr or remove
+        walletConfig.setXmrLocalNode(xmrLocalNode); // TODO: adapt to xmr or remove
         walletConfig.setUserAgent(userAgent, Version.VERSION);
         walletConfig.setNumConnectionsForBtc(numConnectionsForBtc);
 
@@ -230,12 +221,12 @@ public class WalletsSetup {
                     return;
                 }
             }
-        } else if (localMoneroNode.shouldBeUsed()) {
+        } else if (xmrLocalNode.shouldBeUsed()) {
             walletConfig.setMinBroadcastConnections(1);
             walletConfig.connectToLocalHost();
         } else {
             try {
-                //configPeerNodes(socks5Proxy);
+                configPeerNodes(socks5Proxy);
             } catch (IllegalArgumentException e) {
                 timeoutTimer.stop();
                 walletsSetupFailed.set(true);
@@ -243,8 +234,6 @@ public class WalletsSetup {
                 return;
             }
         }
-
-        walletConfig.setDownloadListener(downloadListener);
 
         // If seed is non-null it means we are restoring from backup.
         if (seed != null) {
@@ -430,26 +419,6 @@ public class WalletsSetup {
         return walletConfig;
     }
 
-    public ReadOnlyIntegerProperty numPeersProperty() {
-        return numPeers;
-    }
-
-    public LongProperty chainHeightProperty() {
-        return chainHeight;
-    }
-
-    public ReadOnlyDoubleProperty downloadPercentageProperty() {
-        return downloadListener.percentageProperty();
-    }
-
-    public boolean isDownloadComplete() {
-        return downloadPercentageProperty().get() == 1d;
-    }
-
-    public boolean isChainHeightSyncedWithinTolerance() {
-        throw new RuntimeException("WalletsSetup.isChainHeightSyncedWithinTolerance() not implemented for BTC");
-    }
-
     public Set<Address> getAddressesByContext(@SuppressWarnings("SameParameterValue") AddressEntry.Context context) {
         return addressEntryList.getAddressEntriesAsListImmutable().stream()
                 .filter(addressEntry -> addressEntry.getContext() == context)
@@ -461,10 +430,6 @@ public class WalletsSetup {
         return addressEntries.stream()
                 .map(AddressEntry::getAddress)
                 .collect(Collectors.toSet());
-    }
-
-    public boolean hasSufficientPeersForBroadcast() {
-        return numPeers.get() >= getMinBroadcastConnections();
     }
 
     public int getMinBroadcastConnections() {

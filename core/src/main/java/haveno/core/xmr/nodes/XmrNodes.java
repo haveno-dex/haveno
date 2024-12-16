@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -18,6 +35,7 @@
 package haveno.core.xmr.nodes;
 
 import haveno.common.config.Config;
+import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -65,13 +83,15 @@ public class XmrNodes {
                 );
             case XMR_MAINNET:
                 return Arrays.asList(
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 18081, 1, "@local"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-eu.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-usa-east.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "xmr-node-uk.cakewallet.com", 18081, 2, "@cakewallet"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "127.0.0.1", 18081, 1, "@local"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr-node.cakewallet.com", 18081, 2, "@cakewallet"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.community.rino.io", 18081, 2, "@RINOwallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 3, "@sethforprivacy")
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodes.hashvault.pro", 18080, 2, "@HashVault"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "p2pmd.xmrvsbeast.com", 18080, 2, "@xmrvsbeast"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.monerodevs.org", 18089, 2, "@monerodevs.org"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodex.monerujo.io", 18081, 2, "@monerujo.io"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "rucknium.me", 18081, 2, "@Rucknium"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy")
                 );
             default:
                 throw new IllegalStateException("Unexpected base currency network: " + Config.baseCurrencyNetwork());
@@ -84,6 +104,10 @@ public class XmrNodes {
 
     public List<XmrNode> getPublicXmrNodes() {
         return getXmrNodes(MoneroNodesOption.PUBLIC);
+    }
+
+    public List<XmrNode> getCustomXmrNodes() {
+        return getXmrNodes(MoneroNodesOption.CUSTOM);
     }
 
     private List<XmrNode>  getXmrNodes(MoneroNodesOption type) {
@@ -102,7 +126,6 @@ public class XmrNodes {
     @EqualsAndHashCode
     @Getter
     public static class XmrNode {
-        private static final int DEFAULT_PORT = Config.baseCurrencyNetworkParameters().getPort();
 
         private final MoneroNodesOption type;
         @Nullable
@@ -113,7 +136,7 @@ public class XmrNodes {
         private final String operator; // null in case the user provides a list of custom btc nodes
         @Nullable
         private final String address; // IPv4 address
-        private int port = DEFAULT_PORT;
+        private int port = HavenoUtils.getDefaultMoneroPort();
         private int priority = 0;
 
         /**
@@ -124,11 +147,11 @@ public class XmrNodes {
             String[] parts = fullAddress.split("]");
             checkArgument(parts.length > 0);
             String host = "";
-            int port = DEFAULT_PORT;
+            int port = HavenoUtils.getDefaultMoneroPort();
             if (parts[0].contains("[") && parts[0].contains(":")) {
                 // IPv6 address and optional port number
                 // address part delimited by square brackets e.g. [2a01:123:456:789::2]:8333
-                host = parts[0].replace("[", "").replace("]", "");
+                host = parts[0] + "]";  // keep the square brackets per RFC-2732
                 if (parts.length == 2)
                     port = Integer.parseInt(parts[1].replace(":", ""));
             } else if (parts[0].contains(":") && !parts[0].contains(".")) {

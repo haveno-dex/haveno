@@ -1,22 +1,42 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.storage;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import com.google.protobuf.ByteString;
+import haveno.common.Timer;
+import haveno.common.UserThread;
+import haveno.common.app.Capabilities;
+import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Hash;
+import haveno.common.crypto.Sig;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.GetDataResponsePriority;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkPayload;
+import haveno.common.proto.persistable.PersistablePayload;
+import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.util.Hex;
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -54,43 +74,9 @@ import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
-
-import haveno.common.Timer;
-import haveno.common.UserThread;
-import haveno.common.app.Capabilities;
-import haveno.common.crypto.CryptoException;
-import haveno.common.crypto.Hash;
-import haveno.common.crypto.Sig;
-import haveno.common.persistence.PersistenceManager;
-import haveno.common.proto.network.GetDataResponsePriority;
-import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.proto.network.NetworkPayload;
-import haveno.common.proto.persistable.PersistablePayload;
-import haveno.common.proto.persistable.PersistedDataHost;
-import haveno.common.util.Hex;
-import haveno.common.util.Tuple2;
-import haveno.common.util.Utilities;
-
-import com.google.protobuf.ByteString;
-
-import com.google.inject.name.Named;
-
-import javax.inject.Inject;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-
 import java.security.KeyPair;
 import java.security.PublicKey;
-
 import java.time.Clock;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -111,14 +97,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Slf4j
 public class P2PDataStorage implements MessageListener, ConnectionListener, PersistedDataHost {
@@ -247,7 +235,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             appendOnlyDataStoreService.readFromResourcesSync(postFix);
             protectedDataStoreService.readFromResourcesSync(postFix);
             resourceDataStoreService.readFromResourcesSync(postFix);
-    
+
             map.putAll(protectedDataStoreService.getMap());
         }
     }
@@ -831,9 +819,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         synchronized (map) {
             ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
             ByteArray hashOfPayload = get32ByteHashAsByteArray(protectedStoragePayload);
-    
+
             //log.trace("## call addProtectedStorageEntry hash={}, map={}", hashOfPayload, printMap());
-    
+
             // We do that check early as it is a very common case for returning, so we return early
             // If we have seen a more recent operation for this payload and we have a payload locally, ignore it
             ProtectedStorageEntry storedEntry = map.get(hashOfPayload);
@@ -841,13 +829,13 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                 log.trace("## hasSequenceNrIncreased is false. hash={}", hashOfPayload);
                 return false;
             }
-    
+
             if (hasAlreadyRemovedAddOncePayload(protectedStoragePayload, hashOfPayload)) {
                 log.trace("## We have already removed that AddOncePayload by a previous removeDataMessage. " +
                         "We ignore that message. ProtectedStoragePayload: {}", protectedStoragePayload.toString());
                 return false;
             }
-    
+
             // To avoid that expired data get stored and broadcast we check for expire date.
             if (protectedStorageEntry.isExpired(clock)) {
                 String peer = sender != null ? sender.getFullAddress() : "sender is null";
@@ -855,7 +843,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                         peer, protectedStorageEntry.getProtectedStoragePayload().getClass().getSimpleName());
                 return false;
             }
-    
+
             // We want to allow add operations for equal sequence numbers if we don't have the payload locally. This is
             // the case for non-persistent Payloads that need to be reconstructed from peer and seed nodes each startup.
             MapValue sequenceNumberMapValue = sequenceNumberMap.get(hashOfPayload);
@@ -864,36 +852,36 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                 log.trace("## sequenceNr too low hash={}", hashOfPayload);
                 return false;
             }
-    
+
             // Verify the ProtectedStorageEntry is well formed and valid for the add operation
             if (!protectedStorageEntry.isValidForAddOperation()) {
                 log.trace("## !isValidForAddOperation hash={}", hashOfPayload);
                 return false;
             }
-    
+
             // If we have already seen an Entry with the same hash, verify the metadata is equal
             if (storedEntry != null && !protectedStorageEntry.matchesRelevantPubKey(storedEntry)) {
                 log.trace("## !matchesRelevantPubKey hash={}", hashOfPayload);
                 return false;
             }
-    
+
             // Test against filterPredicate set from FilterManager
             if (filterPredicate != null &&
                     !filterPredicate.test(protectedStorageEntry.getProtectedStoragePayload())) {
                 log.debug("filterPredicate test failed. hashOfPayload={}", hashOfPayload);
                 return false;
             }
-    
+
             // This is an updated entry. Record it and signal listeners.
             map.put(hashOfPayload, protectedStorageEntry);
             hashMapChangedListeners.forEach(e -> e.onAdded(Collections.singletonList(protectedStorageEntry)));
-    
+
             // Record the updated sequence number and persist it. Higher delay so we can batch more items.
             sequenceNumberMap.put(hashOfPayload, new MapValue(protectedStorageEntry.getSequenceNumber(), this.clock.millis()));
             requestPersistence();
-    
+
             //log.trace("## ProtectedStorageEntry added to map. hash={}, map={}", hashOfPayload, printMap());
-    
+
             // Optionally, broadcast the add/update depending on the calling environment
             if (allowBroadcast) {
                 broadcaster.broadcast(new AddDataMessage(protectedStorageEntry), sender, listener);
@@ -902,7 +890,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             // Persist ProtectedStorageEntries carrying PersistablePayload payloads
             if (protectedStoragePayload instanceof PersistablePayload)
                 protectedDataStoreService.put(hashOfPayload, protectedStorageEntry);
-    
+
             return true;
         }
     }
@@ -951,13 +939,13 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             try {
                 ByteArray hashOfPayload = new ByteArray(refreshTTLMessage.getHashOfPayload());
                 ProtectedStorageEntry storedData = map.get(hashOfPayload);
-    
+
                 if (storedData == null) {
                     log.debug("We don't have data for that refresh message in our map. That is expected if we missed the data publishing.");
-    
+
                     return false;
                 }
-    
+
                 ProtectedStorageEntry storedEntry = map.get(hashOfPayload);
                 ProtectedStorageEntry updatedEntry = new ProtectedStorageEntry(
                         storedEntry.getProtectedStoragePayload(),
@@ -965,29 +953,28 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                         refreshTTLMessage.getSequenceNumber(),
                         refreshTTLMessage.getSignature(),
                         this.clock);
-    
-    
+
+
                 // If we have seen a more recent operation for this payload, we ignore the current one
                 if (!hasSequenceNrIncreased(updatedEntry.getSequenceNumber(), hashOfPayload))
                     return false;
-    
+
                 // Verify the updated ProtectedStorageEntry is well formed and valid for update
                 if (!updatedEntry.isValidForAddOperation())
                     return false;
-    
+
                 // Update the hash map with the updated entry
                 map.put(hashOfPayload, updatedEntry);
-    
+
                 // Record the latest sequence number and persist it
                 sequenceNumberMap.put(hashOfPayload, new MapValue(updatedEntry.getSequenceNumber(), this.clock.millis()));
                 requestPersistence();
-    
+
                 // Always broadcast refreshes
                 broadcaster.broadcast(refreshTTLMessage, sender);
-    
+
             } catch (IllegalArgumentException e) {
-                log.error("refreshTTL failed, missing data: {}", e.toString());
-                e.printStackTrace();
+                log.error("refreshTTL failed, missing data: {}\n", e.toString(), e);
                 return false;
             }
             return true;
@@ -1007,29 +994,29 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         synchronized (map) {
             ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
             ByteArray hashOfPayload = get32ByteHashAsByteArray(protectedStoragePayload);
-    
+
             // If we have seen a more recent operation for this payload, ignore this one
             if (!hasSequenceNrIncreased(protectedStorageEntry.getSequenceNumber(), hashOfPayload))
                 return false;
-    
+
             // Verify the ProtectedStorageEntry is well formed and valid for the remove operation
             if (!protectedStorageEntry.isValidForRemoveOperation())
                 return false;
-    
+
             // If we have already seen an Entry with the same hash, verify the metadata is the same
             ProtectedStorageEntry storedEntry = map.get(hashOfPayload);
             if (storedEntry != null && !protectedStorageEntry.matchesRelevantPubKey(storedEntry))
                 return false;
-    
+
             // Record the latest sequence number and persist it
             sequenceNumberMap.put(hashOfPayload, new MapValue(protectedStorageEntry.getSequenceNumber(), this.clock.millis()));
             requestPersistence();
-    
+
             // Update that we have seen this AddOncePayload so the next time it is seen it fails verification
             if (protectedStoragePayload instanceof AddOncePayload) {
                 removedPayloadsService.addHash(hashOfPayload);
             }
-    
+
             if (storedEntry != null) {
                 // Valid remove entry, do the remove and signal listeners
                 removeFromMapAndDataStore(protectedStorageEntry, hashOfPayload);
@@ -1039,13 +1026,13 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                 // broadcast the remove to peers so they can update their state appropriately
             } */
             printData("after remove");
-    
+
             if (protectedStorageEntry instanceof ProtectedMailboxStorageEntry) {
                 broadcaster.broadcast(new RemoveMailboxDataMessage((ProtectedMailboxStorageEntry) protectedStorageEntry), sender);
             } else {
                 broadcaster.broadcast(new RemoveDataMessage(protectedStorageEntry), sender);
             }
-    
+
             return true;
         }
     }

@@ -1,24 +1,27 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.app;
 
-import haveno.core.api.CoreMoneroConnectionsService;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import javafx.beans.property.BooleanProperty;
@@ -27,9 +30,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * We often need to wait until network and wallet is ready or other combination of startup states.
@@ -47,40 +47,48 @@ public class AppStartupState {
     private final BooleanProperty applicationFullyInitialized = new SimpleBooleanProperty();
     private final BooleanProperty updatedDataReceived = new SimpleBooleanProperty();
     private final BooleanProperty isBlockDownloadComplete = new SimpleBooleanProperty();
+    private final BooleanProperty isWalletSynced = new SimpleBooleanProperty();
     private final BooleanProperty hasSufficientPeersForBroadcast = new SimpleBooleanProperty();
 
     @Inject
     public AppStartupState(CoreNotificationService notificationService,
-                           CoreMoneroConnectionsService connectionsService,
+                           XmrConnectionService xmrConnectionService,
+                           XmrWalletService xmrWalletService,
                            P2PService p2PService) {
 
         p2PService.addP2PServiceListener(new BootstrapListener() {
             @Override
-            public void onUpdatedDataReceived() {
+            public void onDataReceived() {
                 updatedDataReceived.set(true);
             }
         });
 
-        connectionsService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (connectionsService.isDownloadComplete())
+        xmrConnectionService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrConnectionService.isDownloadComplete())
                 isBlockDownloadComplete.set(true);
         });
 
-        connectionsService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
-            if (connectionsService.hasSufficientPeersForBroadcast())
+        xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrWalletService.isDownloadComplete())
+                isWalletSynced.set(true);
+        });
+
+        xmrConnectionService.numConnectionsProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrConnectionService.hasSufficientPeersForBroadcast())
                 hasSufficientPeersForBroadcast.set(true);
         });
 
         p2pNetworkAndWalletInitialized = EasyBind.combine(updatedDataReceived,
                 isBlockDownloadComplete,
+                isWalletSynced,
                 hasSufficientPeersForBroadcast, // TODO: consider sufficient number of peers?
                 allDomainServicesInitialized,
-                (a, b, c, d) -> {
-                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d), updatedDataReceived.get(), isBlockDownloadComplete.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
-                    if (a && b) {
+                (a, b, c, d, e) -> {
+                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && isWalletSynced={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d && e), updatedDataReceived.get(), isBlockDownloadComplete.get(), isWalletSynced.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
+                    if (a && b && c) {
                         walletAndNetworkReady.set(true);
                     }
-                    return a && d; // app fully initialized before daemon connection and wallet by default // TODO: rename variable
+                    return a && e; // app fully initialized before daemon connection and wallet by default
                 });
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
@@ -134,6 +142,10 @@ public class AppStartupState {
 
     public boolean isBlockDownloadComplete() {
         return isBlockDownloadComplete.get();
+    }
+
+    public boolean isWalletSynced() {
+        return isWalletSynced.get();
     }
 
     public ReadOnlyBooleanProperty isBlockDownloadCompleteProperty() {

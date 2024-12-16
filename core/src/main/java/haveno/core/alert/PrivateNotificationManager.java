@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.alert;
@@ -22,6 +22,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -37,25 +39,22 @@ import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.math.BigInteger;
 import java.security.SignatureException;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Consumer;
-
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javax.annotation.Nullable;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import static org.bitcoinj.core.Utils.HEX;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PrivateNotificationManager implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(PrivateNotificationManager.class);
@@ -64,9 +63,7 @@ public class PrivateNotificationManager implements MessageListener {
     private final MailboxMessageService mailboxMessageService;
     private final KeyRing keyRing;
     private final ObjectProperty<PrivateNotificationPayload> privateNotificationMessageProperty = new SimpleObjectProperty<>();
-
-    // Pub key for developer global privateNotification message
-    private final String pubKeyAsHex;
+    private final boolean useDevPrivilegeKeys;
 
     private ECKey privateNotificationSigningKey;
     @Nullable
@@ -90,14 +87,31 @@ public class PrivateNotificationManager implements MessageListener {
         this.networkNode = networkNode;
         this.mailboxMessageService = mailboxMessageService;
         this.keyRing = keyRing;
+        this.useDevPrivilegeKeys = useDevPrivilegeKeys;
 
         if (!ignoreDevMsg) {
             this.p2PService.addDecryptedDirectMessageListener(this::handleMessage);
             this.mailboxMessageService.addDecryptedMailboxListener(this::handleMessage);
         }
-        pubKeyAsHex = useDevPrivilegeKeys ?
-                DevEnv.DEV_PRIVILEGE_PUB_KEY :
-                "02ba7c5de295adfe57b60029f3637a2c6b1d0e969a8aaefb9e0ddc3a7963f26925";
+    }
+
+    protected List<String> getPubKeyList() {
+        if (useDevPrivilegeKeys) return List.of(DevEnv.DEV_PRIVILEGE_PUB_KEY);
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return List.of(
+                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
+                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492");
+        case XMR_STAGENET:
+            return List.of(
+                    "02ba7c5de295adfe57b60029f3637a2c6b1d0e969a8aaefb9e0ddc3a7963f26925",
+                    "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
+                    "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
+        case XMR_MAINNET:
+            return List.of();
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
     }
 
     private void handleMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress senderNodeAddress) {
@@ -157,7 +171,7 @@ public class PrivateNotificationManager implements MessageListener {
     private boolean isKeyValid(String privKeyString) {
         try {
             privateNotificationSigningKey = ECKey.fromPrivate(new BigInteger(1, HEX.decode(privKeyString)));
-            return pubKeyAsHex.equals(Utils.HEX.encode(privateNotificationSigningKey.getPubKey()));
+            return getPubKeyList().contains(Utils.HEX.encode(privateNotificationSigningKey.getPubKey()));
         } catch (Throwable t) {
             return false;
         }
@@ -171,13 +185,16 @@ public class PrivateNotificationManager implements MessageListener {
 
     private boolean verifySignature(PrivateNotificationPayload privateNotification) {
         String privateNotificationMessageAsHex = Utils.HEX.encode(privateNotification.getMessage().getBytes(Charsets.UTF_8));
-        try {
-            ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(privateNotificationMessageAsHex, privateNotification.getSignatureAsBase64());
-            return true;
-        } catch (SignatureException e) {
-            log.warn("verifySignature failed");
-            return false;
+        for (String pubKeyAsHex : getPubKeyList()) {
+            try {
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(privateNotificationMessageAsHex, privateNotification.getSignatureAsBase64());
+                return true;
+            } catch (SignatureException e) {
+                // ignore
+            }
         }
+        log.warn("verifySignature failed");
+        return false;
     }
 
     public void sendPing(NodeAddress peersNodeAddress, Consumer<String> resultHandler) {
@@ -193,7 +210,7 @@ public class PrivateNotificationManager implements MessageListener {
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
-                String errorMessage = "Sending ping to " + peersNodeAddress.getHostNameForDisplay() +
+                String errorMessage = "Sending ping to " + peersNodeAddress.getAddressForDisplay() +
                         " failed. That is expected if the peer is offline.\n\tping=" + ping +
                         ".\n\tException=" + throwable.getMessage();
                 log.info(errorMessage);

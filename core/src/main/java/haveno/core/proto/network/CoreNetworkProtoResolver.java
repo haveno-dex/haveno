@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.proto.network;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.network.NetworkEnvelope;
@@ -53,6 +55,7 @@ import haveno.core.trade.messages.SignContractResponse;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.CloseConnectionMessage;
+import haveno.network.p2p.FileTransferPart;
 import haveno.network.p2p.PrefixedSealedAndSignedMessage;
 import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
 import haveno.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
@@ -69,11 +72,8 @@ import haveno.network.p2p.storage.messages.RemoveMailboxDataMessage;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.time.Clock;
+import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j
@@ -178,6 +178,9 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return GetInventoryRequest.fromProto(proto.getGetInventoryRequest(), messageVersion);
                 case GET_INVENTORY_RESPONSE:
                     return GetInventoryResponse.fromProto(proto.getGetInventoryResponse(), messageVersion);
+
+                case FILE_TRANSFER_PART:
+                    return FileTransferPart.fromProto(proto.getFileTransferPart(), messageVersion);
 
                 default:
                     throw new ProtobufferException("Unknown proto message case (PB.NetworkEnvelope). messageCase=" +

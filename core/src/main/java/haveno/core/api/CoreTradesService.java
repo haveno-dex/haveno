@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,8 @@
 
 package haveno.core.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.offer.Offer;
@@ -38,20 +57,18 @@ import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.BtcAddressValidator;
 import haveno.core.xmr.model.AddressEntry;
+import static haveno.core.xmr.model.AddressEntry.Context.TRADE_PAYOUT;
 import haveno.core.xmr.wallet.BtcWalletService;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import static java.lang.String.format;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 
-import static haveno.core.xmr.model.AddressEntry.Context.TRADE_PAYOUT;
-import static java.lang.String.format;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bitcoinj.core.Coin;
 
 @Singleton
 @Slf4j
@@ -115,7 +132,7 @@ class CoreTradesService {
             // adjust amount for fixed-price offer (based on TakeOfferViewModel)
             String currencyCode = offer.getCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
-            long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
+            long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
             if (offer.getPrice() != null) {
                 if (PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId())) {
                     amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), maxTradeLimit);
@@ -128,18 +145,15 @@ class CoreTradesService {
             }
 
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
-            BigInteger takerFee;
             BigInteger fundsNeededForTrade;
             synchronized (takeOfferModel) {
                 takeOfferModel.initModel(offer, paymentAccount, amount, useSavingsWallet);
-                takerFee = takeOfferModel.getTakerFee();
                 fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
-                log.info("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
+                log.debug("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
             }
 
             // take offer
             tradeManager.onTakeOffer(amount,
-                    takerFee,
                     fundsNeededForTrade,
                     offer,
                     paymentAccountId,
@@ -149,7 +163,7 @@ class CoreTradesService {
                     errorMessageHandler
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(ExceptionUtils.getStackTrace(e));
             errorMessageHandler.handleErrorMessage(e.getMessage());
         }
     }

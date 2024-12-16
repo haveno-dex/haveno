@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -18,6 +35,8 @@
 package haveno.core.api;
 
 import com.google.common.math.LongMath;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.api.model.MarketDepthInfo;
 import haveno.core.api.model.MarketPriceInfo;
 import haveno.core.locale.CurrencyUtil;
@@ -27,16 +46,13 @@ import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Singleton
@@ -56,7 +72,7 @@ class CorePriceService {
      * @return Price per 1 XMR in the given currency (traditional or crypto)
      */
     public double getMarketPrice(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException, IllegalArgumentException {
-        var marketPrice = priceFeedService.requestAllPrices().get(currencyCode);
+        var marketPrice = priceFeedService.requestAllPrices().get(CurrencyUtil.getCurrencyCodeBase(currencyCode));
         if (marketPrice == null) {
             throw new IllegalArgumentException("Currency not found: " + currencyCode); // message sent to client
         }

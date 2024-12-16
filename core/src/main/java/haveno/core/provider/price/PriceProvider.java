@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.provider.price;
@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import haveno.common.app.Version;
 import haveno.common.util.MathUtils;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.provider.HttpClientProvider;
 import haveno.network.http.HttpClient;
 import haveno.network.p2p.P2PService;
@@ -63,13 +64,13 @@ public class PriceProvider extends HttpClientProvider {
                 String baseCurrencyCode = (String) treeMap.get("baseCurrencyCode");
                 String counterCurrencyCode = (String) treeMap.get("counterCurrencyCode");
                 String currencyCode = baseCurrencyCode.equals("XMR") ? counterCurrencyCode : baseCurrencyCode;
+                currencyCode = CurrencyUtil.getCurrencyCodeBase(currencyCode);
                 double price = (Double) treeMap.get("price");
                 // json uses double for our timestampSec long value...
                 long timestampSec = MathUtils.doubleToLong((Double) treeMap.get("timestampSec"));
                 marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
             } catch (Throwable t) {
-                log.error(t.toString());
-                t.printStackTrace();
+                log.error("Error getting all prices: {}\n", t.getMessage(), t);
             }
 
         });

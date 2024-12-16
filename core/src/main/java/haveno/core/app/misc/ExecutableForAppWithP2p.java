@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -18,6 +35,8 @@
 package haveno.core.app.misc;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -26,12 +45,15 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.util.Profiler;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
+import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -93,14 +115,23 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
         try {
             if (injector != null) {
 
-                // notify trade protocols and wallets to prepare for shut down before shutting down
+                // notify trade protocols and wallets to prepare for shut down
                 Set<Runnable> tasks = new HashSet<Runnable>();
                 tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
-                tasks.add(() -> injector.getInstance(CoreMoneroConnectionsService.class).onShutDownStarted());
-                HavenoUtils.executeTasks(tasks); // notify in parallel
+                tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
+                tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
+                try {
+                    ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
+                } catch (Exception e) {
+                    log.error("Error awaiting tasks to complete: {}\n", e.getMessage(), e);
+                }
 
                 JsonFileManager.shutDownAllInstances();
+                injector.getInstance(TradeManager.class).shutDown();
+                injector.getInstance(PriceFeedService.class).shutDown();
                 injector.getInstance(ArbitratorManager.class).shutDown();
+                injector.getInstance(TradeStatisticsManager.class).shutDown();
+                injector.getInstance(AvoidStandbyModeService.class).shutDown();
 
                 // shut down open offer manager
                 log.info("Shutting down OpenOfferManager, OfferBookService, and P2PService");
@@ -111,20 +142,22 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
 
                     // shut down p2p service
                     injector.getInstance(P2PService.class).shutDown(() -> {
-                        log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
                         // shut down monero wallets and connections
+                        log.info("Shutting down wallet and connection services");
                         injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
                             module.close(injector);
                             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
-                                resultHandler.handleResult();
+
+                                // done shutting down
                                 log.info("Graceful shutdown completed. Exiting now.");
+                                resultHandler.handleResult();
                                 UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                             });
                         });
                         injector.getInstance(BtcWalletService.class).shutDown();
                         injector.getInstance(XmrWalletService.class).shutDown();
-                        injector.getInstance(CoreMoneroConnectionsService.class).shutDown();
+                        injector.getInstance(XmrConnectionService.class).shutDown();
                         injector.getInstance(WalletsSetup.class).shutDown();
                     });
                 });
@@ -144,8 +177,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 }, 1);
             }
         } catch (Throwable t) {
-            log.debug("App shutdown failed with exception");
-            t.printStackTrace();
+            log.info("App shutdown failed with exception: {}\n", t.getMessage(), t);
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 resultHandler.handleResult();
                 log.info("Graceful shutdown resulted in an error. Exiting now.");

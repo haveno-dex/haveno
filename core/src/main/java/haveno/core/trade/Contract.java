@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -19,6 +36,7 @@ package haveno.core.trade;
 
 import com.google.protobuf.ByteString;
 import haveno.common.crypto.PubKeyRing;
+import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
@@ -36,6 +54,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.math.BigInteger;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -62,6 +81,7 @@ public final class Contract implements NetworkPayload {
     private final String makerPayoutAddressString;
     private final String takerPayoutAddressString;
     private final String makerDepositTxHash;
+    @Nullable
     private final String takerDepositTxHash;
 
     public Contract(OfferPayload offerPayload,
@@ -82,7 +102,7 @@ public final class Contract implements NetworkPayload {
                     String makerPayoutAddressString,
                     String takerPayoutAddressString,
                     String makerDepositTxHash,
-                    String takerDepositTxHash) {
+                    @Nullable String takerDepositTxHash) {
         this.offerPayload = offerPayload;
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
@@ -117,6 +137,31 @@ public final class Contract implements NetworkPayload {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    @Override
+    public protobuf.Contract toProtoMessage() {
+        protobuf.Contract.Builder builder = protobuf.Contract.newBuilder()
+                .setOfferPayload(offerPayload.toProtoMessage().getOfferPayload())
+                .setTradeAmount(tradeAmount)
+                .setTradePrice(tradePrice)
+                .setBuyerNodeAddress(buyerNodeAddress.toProtoMessage())
+                .setSellerNodeAddress(sellerNodeAddress.toProtoMessage())
+                .setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage())
+                .setIsBuyerMakerAndSellerTaker(isBuyerMakerAndSellerTaker)
+                .setMakerAccountId(makerAccountId)
+                .setTakerAccountId(takerAccountId)
+                .setMakerPaymentMethodId(makerPaymentMethodId)
+                .setTakerPaymentMethodId(takerPaymentMethodId)
+                .setMakerPaymentAccountPayloadHash(ByteString.copyFrom(makerPaymentAccountPayloadHash))
+                .setTakerPaymentAccountPayloadHash(ByteString.copyFrom(takerPaymentAccountPayloadHash))
+                .setMakerPubKeyRing(makerPubKeyRing.toProtoMessage())
+                .setTakerPubKeyRing(takerPubKeyRing.toProtoMessage())
+                .setMakerPayoutAddressString(makerPayoutAddressString)
+                .setTakerPayoutAddressString(takerPayoutAddressString)
+                .setMakerDepositTxHash(makerDepositTxHash);
+        Optional.ofNullable(takerDepositTxHash).ifPresent(builder::setTakerDepositTxHash);
+        return builder.build();
+    }
+
     public static Contract fromProto(protobuf.Contract proto, CoreProtoResolver coreProtoResolver) {
         return new Contract(OfferPayload.fromProto(proto.getOfferPayload()),
                 proto.getTradeAmount(),
@@ -136,32 +181,7 @@ public final class Contract implements NetworkPayload {
                 proto.getMakerPayoutAddressString(),
                 proto.getTakerPayoutAddressString(),
                 proto.getMakerDepositTxHash(),
-                proto.getTakerDepositTxHash());
-    }
-
-    @Override
-    public protobuf.Contract toProtoMessage() {
-        return protobuf.Contract.newBuilder()
-                .setOfferPayload(offerPayload.toProtoMessage().getOfferPayload())
-                .setTradeAmount(tradeAmount)
-                .setTradePrice(tradePrice)
-                .setBuyerNodeAddress(buyerNodeAddress.toProtoMessage())
-                .setSellerNodeAddress(sellerNodeAddress.toProtoMessage())
-                .setArbitratorNodeAddress(arbitratorNodeAddress.toProtoMessage())
-                .setIsBuyerMakerAndSellerTaker(isBuyerMakerAndSellerTaker)
-                .setMakerAccountId(makerAccountId)
-                .setTakerAccountId(takerAccountId)
-                .setMakerPaymentMethodId(makerPaymentMethodId)
-                .setTakerPaymentMethodId(takerPaymentMethodId)
-                .setMakerPaymentAccountPayloadHash(ByteString.copyFrom(makerPaymentAccountPayloadHash))
-                .setTakerPaymentAccountPayloadHash(ByteString.copyFrom(takerPaymentAccountPayloadHash))
-                .setMakerPubKeyRing(makerPubKeyRing.toProtoMessage())
-                .setTakerPubKeyRing(takerPubKeyRing.toProtoMessage())
-                .setMakerPayoutAddressString(makerPayoutAddressString)
-                .setTakerPayoutAddressString(takerPayoutAddressString)
-                .setMakerDepositTxHash(makerDepositTxHash)
-                .setTakerDepositTxHash(takerDepositTxHash)
-                .build();
+                ProtoUtil.stringOrNullFromProto(proto.getTakerDepositTxHash()));
     }
 
 
@@ -246,7 +266,13 @@ public final class Contract implements NetworkPayload {
 
     // edits a contract json string
     public static String sanitizeContractAsJson(String contractAsJson) {
-        return contractAsJson; // TODO: anything to sanitize?
+        return contractAsJson
+                .replaceAll(
+                        "\"takerPaymentAccountPayload\": \\{[^}]*}",
+                        "\"takerPaymentAccountPayload\": null")
+                .replaceAll(
+                        "\"makerPaymentAccountPayload\": \\{[^}]*}",
+                        "\"makerPaymentAccountPayload\": null");
     }
 
     public void printDiff(@Nullable String peersContractAsJson) {

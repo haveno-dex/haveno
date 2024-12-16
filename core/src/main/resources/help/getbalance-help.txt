@@ -11,7 +11,7 @@ getbalance
 
 DESCRIPTION
 -----------
-Returns full balance information for Haveno BTC wallets.
+Returns full balance information for Haveno XMR wallets.
 
 OPTIONS
 -------
@@ -20,11 +20,11 @@ OPTIONS
 
 EXAMPLES
 --------
-Show full BTC wallet balance information:
+Show full XMR wallet balance information:
 $ ./haveno-cli --password=xyz --port=9998 getbalance
 
 Show full wallet balance information:
 $ ./haveno-cli --password=xyz --port=9998 getbalance --currency-code=bsq
 
-Show full BTC wallet balance information:
+Show full XMR wallet balance information:
 $ ./haveno-cli --password=xyz --port=9998 getbalance --currency-code=btc

@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer;
 
+import haveno.common.ThreadUtils;
+import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -37,6 +39,7 @@ import haveno.core.offer.availability.OfferAvailabilityProtocol;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ObjectProperty;
@@ -78,7 +81,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
         AVAILABLE,
         NOT_AVAILABLE,
         REMOVED,
-        MAKER_OFFLINE
+        MAKER_OFFLINE,
+        INVALID
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +114,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     @Getter
     @Setter
     transient private boolean isReservedFundsSpent;
+
+    @JsonExclude
+    @Getter
+    @Setter
+    @Nullable
+    transient private String challenge;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -152,7 +162,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
                     log.error(errorMessage);
                     errorMessageHandler.handleErrorMessage(errorMessage);
                 });
-        availabilityProtocol.sendOfferAvailabilityRequest();
+        ThreadUtils.submitToPool((() -> {
+            availabilityProtocol.sendOfferAvailabilityRequest();
+        }));
     }
 
     public void cancelAvailabilityRequest() {
@@ -204,23 +216,23 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getPrice();
     }
 
-    public void verifyTakersTradePrice(long takersTradePrice) throws TradePriceOutOfToleranceException,
+    public void verifyTradePrice(long price) throws TradePriceOutOfToleranceException,
             MarketPriceNotAvailableException, IllegalArgumentException {
         if (!isUseMarketBasedPrice()) {
-            checkArgument(takersTradePrice == getFixedPrice(),
+            checkArgument(price == getFixedPrice(),
                     "Takers price does not match offer price. " +
-                            "Takers price=" + takersTradePrice + "; offer price=" + getFixedPrice());
+                            "Takers price=" + price + "; offer price=" + getFixedPrice());
             return;
         }
 
-        Price tradePrice = Price.valueOf(getCurrencyCode(), takersTradePrice);
+        Price tradePrice = Price.valueOf(getCurrencyCode(), price);
         Price offerPrice = getPrice();
         if (offerPrice == null)
             throw new MarketPriceNotAvailableException("Market price required for calculating trade price is not available.");
 
-        checkArgument(takersTradePrice > 0, "takersTradePrice must be positive");
+        checkArgument(price > 0, "takersTradePrice must be positive");
 
-        double relation = (double) takersTradePrice / (double) offerPrice.getValue();
+        double relation = (double) price / (double) offerPrice.getValue();
         // We allow max. 2 % difference between own offerPayload price calculation and takers calculation.
         // Market price might be different at maker's and takers side so we need a bit of tolerance.
         // The tolerance will get smaller once we have multiple price feeds avoiding fast price fluctuations
@@ -228,7 +240,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
         double deviation = Math.abs(1 - relation);
         log.info("Price at take-offer time: id={}, currency={}, takersPrice={}, makersPrice={}, deviation={}",
-                getShortId(), getCurrencyCode(), takersTradePrice, offerPrice.getValue(),
+                getShortId(), getCurrencyCode(), price, offerPrice.getValue(),
                 deviation * 100 + "%");
         if (deviation > PRICE_TOLERANCE) {
             String msg = "Taker's trade price is too far away from our calculated price based on the market price.\n" +
@@ -261,7 +273,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setState(Offer.State state) {
-        stateProperty().set(state);
+        stateProperty.set(state);
     }
 
     public ObjectProperty<Offer.State> stateProperty() {
@@ -269,7 +281,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public void setErrorMessage(String errorMessage) {
-        this.errorMessageProperty.set(errorMessage);
+        UserThread.await(() -> errorMessageProperty.set(errorMessage));
     }
 
 
@@ -277,24 +289,70 @@ public class Offer implements NetworkPayload, PersistablePayload {
     // Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // get the amount needed for the maker to reserve the offer
-    public BigInteger getReserveAmount() {
-        BigInteger reserveAmount = getDirection() == OfferDirection.BUY ? getBuyerSecurityDeposit() : getSellerSecurityDeposit();
-        if (getDirection() == OfferDirection.SELL) reserveAmount = reserveAmount.add(getAmount());
-        reserveAmount = reserveAmount.add(getMakerFee());
-        return reserveAmount;
+    // amount needed for the maker to reserve the offer
+    public BigInteger getAmountNeeded() {
+        BigInteger amountNeeded = getDirection() == OfferDirection.BUY ? getMaxBuyerSecurityDeposit() : getMaxSellerSecurityDeposit();
+        if (getDirection() == OfferDirection.SELL) amountNeeded = amountNeeded.add(getAmount());
+        amountNeeded = amountNeeded.add(getMaxMakerFee());
+        return amountNeeded;
     }
 
-    public BigInteger getMakerFee() {
-        return BigInteger.valueOf(offerPayload.getMakerFee());
+    // amount reserved for offer
+    public BigInteger getReservedAmount() {
+        if (offerPayload.getReserveTxKeyImages() == null) return null;
+        return HavenoUtils.xmrWalletService.getOutputsAmount(offerPayload.getReserveTxKeyImages());
     }
 
-    public BigInteger getBuyerSecurityDeposit() {
-        return BigInteger.valueOf(offerPayload.getBuyerSecurityDeposit());
+    public BigInteger getMaxMakerFee() {
+        return offerPayload.getMaxMakerFee();
     }
 
-    public BigInteger getSellerSecurityDeposit() {
-        return BigInteger.valueOf(offerPayload.getSellerSecurityDeposit());
+    public BigInteger getMaxBuyerSecurityDeposit() {
+        return offerPayload.getMaxBuyerSecurityDeposit();
+    }
+
+    public BigInteger getMaxSellerSecurityDeposit() {
+        return offerPayload.getMaxSellerSecurityDeposit();
+    }
+
+    public double getMakerFeePct() {
+        return offerPayload.getMakerFeePct();
+    }
+
+    public double getTakerFeePct() {
+        return offerPayload.getTakerFeePct();
+    }
+
+    public double getPenaltyFeePct() {
+        return offerPayload.getPenaltyFeePct();
+    }
+
+    public BigInteger getMakerFee(BigInteger tradeAmount) {
+        return HavenoUtils.multiply(tradeAmount, getMakerFeePct());
+    }
+
+    public BigInteger getTakerFee(BigInteger tradeAmount) {
+        return HavenoUtils.multiply(tradeAmount, getTakerFeePct());
+    }
+
+    public double getBuyerSecurityDepositPct() {
+        return offerPayload.getBuyerSecurityDepositPct();
+    }
+
+    public double getSellerSecurityDepositPct() {
+        return offerPayload.getSellerSecurityDepositPct();
+    }
+
+    public boolean isPrivateOffer() {
+        return offerPayload.isPrivateOffer();
+    }
+
+    public String getChallengeHash() {
+        return offerPayload.getChallengeHash();
+    }
+
+    public boolean hasBuyerAsTakerWithoutDeposit() {
+        return getDirection() == OfferDirection.SELL && getBuyerSecurityDepositPct() == 0;
     }
 
     public BigInteger getMaxTradeLimit() {
@@ -368,6 +426,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return getExtraDataMap().get(OfferPayload.F2F_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.PAY_BY_MAIL_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.PAY_BY_MAIL_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.PAYPAL_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.PAYPAL_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASHAPP_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.CASHAPP_EXTRA_INFO);
         else
             return "";
     }

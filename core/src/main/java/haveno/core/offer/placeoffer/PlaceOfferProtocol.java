@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer.placeoffer;
@@ -41,6 +41,7 @@ public class PlaceOfferProtocol {
     private Timer timeoutTimer;
     private final TransactionResultHandler resultHandler;
     private final ErrorMessageHandler errorMessageHandler;
+    private TaskRunner<PlaceOfferModel> taskRunner;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -51,6 +52,7 @@ public class PlaceOfferProtocol {
                               TransactionResultHandler resultHandler,
                               ErrorMessageHandler errorMessageHandler) {
         this.model = model;
+        this.model.setProtocol(this);
         this.resultHandler = resultHandler;
         this.errorMessageHandler = errorMessageHandler;
     }
@@ -62,12 +64,13 @@ public class PlaceOfferProtocol {
 
     public void placeOffer() {
 
-        timeoutTimer = UserThread.runAfter(() -> {
-            handleError(Res.get("createOffer.timeoutAtPublishing"));
-        }, TradeProtocol.TRADE_TIMEOUT);
+        startTimeoutTimer();
 
-        TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
+        taskRunner = new TaskRunner<>(model,
                 () -> {
+
+                    // reset timer if response not yet received
+                    if (model.getSignOfferResponse() == null) startTimeoutTimer();
                 },
                 (errorMessage) -> {
                     handleError(errorMessage);
@@ -81,53 +84,68 @@ public class PlaceOfferProtocol {
 
         taskRunner.run();
     }
+
+    public void cancelOffer() {
+        handleError("Offer was canceled: " + model.getOpenOffer().getOffer().getId()); // cancel is treated as error for callers to handle
+    }
     
     // TODO (woodser): switch to fluent
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
-      log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
-      model.setSignOfferResponse(response);
+        log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
+        model.setSignOfferResponse(response);
 
-      if (!model.getOpenOffer().getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
-          log.warn("Ignoring sign offer response from different sender");
-          return;
-      }
+        // ignore if unexpected signer
+        if (!model.getOpenOffer().getOffer().getOfferPayload().getArbitratorSigner().equals(sender)) {
+            log.warn("Ignoring sign offer response from different sender");
+            return;
+        }
 
-      // ignore if timer already stopped
-      if (timeoutTimer == null) {
-          log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
-          return;
-      }
+        // ignore if payloads have different timestamps
+        if (model.getOpenOffer().getOffer().getOfferPayload().getDate() != response.getSignedOfferPayload().getDate()) {
+            log.warn("Ignoring sign offer response from arbitrator for offer payload with different timestamp");
+            return;
+        }
 
-      // reset timer
-      stopTimeoutTimer();
-      timeoutTimer = UserThread.runAfter(() -> {
-          handleError(Res.get("createOffer.timeoutAtPublishing"));
-      }, TradeProtocol.TRADE_TIMEOUT);
+        // ignore if timer already stopped
+        if (timeoutTimer == null) {
+            log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
+            return;
+        }
 
-      TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
-              () -> {
-                  log.debug("sequence at handleSignOfferResponse completed");
-                  stopTimeoutTimer();
-                  resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
-              },
-              (errorMessage) -> {
-                  if (model.isOfferAddedToOfferBook()) {
-                      model.getOfferBookService().removeOffer(model.getOpenOffer().getOffer().getOfferPayload(),
-                              () -> {
-                                  model.setOfferAddedToOfferBook(false);
-                                  log.debug("OfferPayload removed from offer book.");
-                              },
-                              log::error);
-                  }
-                  handleError(errorMessage);
-              }
-      );
-      taskRunner.addTasks(
-              MakerProcessSignOfferResponse.class,
-              AddToOfferBook.class
-      );
+        // reset timer
+        startTimeoutTimer();
 
-      taskRunner.run();
+        TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
+                () -> {
+                    log.debug("sequence at handleSignOfferResponse completed");
+                    stopTimeoutTimer();
+                    resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
+                },
+                (errorMessage) -> {
+                    if (model.isOfferAddedToOfferBook()) {
+                        model.getOfferBookService().removeOffer(model.getOpenOffer().getOffer().getOfferPayload(),
+                                () -> {
+                                    model.setOfferAddedToOfferBook(false);
+                                    log.debug("OfferPayload removed from offer book.");
+                                },
+                                log::error);
+                    }
+                    handleError(errorMessage);
+                }
+        );
+        taskRunner.addTasks(
+                MakerProcessSignOfferResponse.class,
+                AddToOfferBook.class
+        );
+
+        taskRunner.run();
+    }
+
+    public void startTimeoutTimer() {
+        stopTimeoutTimer();
+        timeoutTimer = UserThread.runAfter(() -> {
+            handleError(Res.get("createOffer.timeoutAtPublishing"));
+        }, TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
     }
 
     private void stopTimeoutTimer() {
@@ -139,9 +157,11 @@ public class PlaceOfferProtocol {
 
     private void handleError(String errorMessage) {
         if (timeoutTimer != null) {
-            log.error(errorMessage);
+            taskRunner.cancel();
+            if (!model.getOpenOffer().isCanceled()) {
+                model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
+            }
             stopTimeoutTimer();
-            model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
             errorMessageHandler.handleErrorMessage(errorMessage);
         }
     }

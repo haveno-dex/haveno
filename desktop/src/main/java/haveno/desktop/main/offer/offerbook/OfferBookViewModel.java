@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer.offerbook;
@@ -121,6 +121,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     PaymentMethod selectedPaymentMethod = getShowAllEntryForPaymentMethod();
 
     boolean isTabSelected;
+    String filterText = "";
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(true);
     final BooleanProperty disableMatchToggle = new SimpleBooleanProperty();
     final IntegerProperty maxPlacesForAmount = new SimpleIntegerProperty();
@@ -129,6 +130,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     final IntegerProperty maxPlacesForMarketPriceMargin = new SimpleIntegerProperty();
     boolean showAllPaymentMethods = true;
     boolean useOffersMatchingMyAccountsFilter;
+    boolean showPrivateOffers;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -212,6 +214,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             disableMatchToggle.set(user.getPaymentAccounts() == null || user.getPaymentAccounts().isEmpty());
         }
         useOffersMatchingMyAccountsFilter = !disableMatchToggle.get() && isShowOffersMatchingMyAccounts();
+        showPrivateOffers = preferences.isShowPrivateOffers();
 
         fillCurrencies();
         updateSelectedTradeCurrency();
@@ -269,6 +272,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         }
     }
 
+    void onFilterKeyTyped(String filterText) {
+        this.filterText = filterText;
+        filterOffers();
+    }
+
     abstract void saveSelectedCurrencyCodeInPreferences(OfferDirection direction, String code);
 
     protected void onSetPaymentMethod(PaymentMethod paymentMethod) {
@@ -298,6 +306,12 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     void onShowOffersMatchingMyAccounts(boolean isSelected) {
         useOffersMatchingMyAccountsFilter = isSelected;
         preferences.setShowOffersMatchingMyAccounts(useOffersMatchingMyAccountsFilter);
+        filterOffers();
+    }
+
+    void onShowPrivateOffers(boolean isSelected) {
+        showPrivateOffers = isSelected;
+        preferences.setShowPrivateOffers(isSelected);
         filterOffers();
     }
 
@@ -396,9 +410,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public Optional<Double> getMarketBasedPrice(Offer offer) {
-        OfferDirection displayDirection = offer.isTraditionalOffer() ? direction :
-                direction.equals(OfferDirection.BUY) ? OfferDirection.SELL : OfferDirection.BUY;
-        return priceUtil.getMarketBasedPrice(offer, displayDirection);
+        return priceUtil.getMarketBasedPrice(offer, direction);
     }
 
     String formatMarketPriceMarginPct(Offer offer) {
@@ -553,6 +565,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     boolean canCreateOrTakeOffer() {
         return GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation) &&
+                GUIUtil.isWalletSyncedWithinToleranceOrShowPopup(openOfferManager.getXmrWalletService()) &&
                 GUIUtil.isBootstrappedOrShowPopup(p2PService);
     }
 
@@ -565,7 +578,27 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         Predicate<OfferBookListItem> predicate = useOffersMatchingMyAccountsFilter ?
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
-        filteredItems.setPredicate(predicate);
+
+        predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+
+        if (!filterText.isEmpty()) {
+
+            // filter node address
+            Predicate<OfferBookListItem> nextPredicate = offerBookListItem ->
+                    offerBookListItem.getOffer().getOfferPayload().getOwnerNodeAddress().getFullAddress().toLowerCase().contains(filterText.toLowerCase());
+
+            // filter offer id
+            nextPredicate = nextPredicate.or(offerBookListItem ->
+                    offerBookListItem.getOffer().getId().toLowerCase().contains(filterText.toLowerCase()));
+
+            // filter payment method
+            nextPredicate = nextPredicate.or(offerBookListItem ->
+                    Res.get(offerBookListItem.getOffer().getPaymentMethod().getId()).toLowerCase().contains(filterText.toLowerCase()));
+
+            filteredItems.setPredicate(predicate.and(nextPredicate));
+        } else {
+            filteredItems.setPredicate(predicate);
+        }
     }
 
     abstract Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,
@@ -617,13 +650,9 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return true;
     }
 
-    public String getMakerFeeAsString(Offer offer) {
-        return HavenoUtils.formatXmr(offer.getMakerFee(), true);
-    }
-
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
+            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
         else
             return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
     }

@@ -1,24 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.account.content.traditionalaccounts;
 
 import com.google.inject.Inject;
-import haveno.common.crypto.KeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -56,7 +55,6 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
     private final String accountsFileName = "FiatPaymentAccounts";
     private final PersistenceProtoResolver persistenceProtoResolver;
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
-    private final KeyRing keyRing;
 
     @Inject
     public TraditionalAccountsDataModel(User user,
@@ -65,8 +63,7 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
                                  TradeManager tradeManager,
                                  AccountAgeWitnessService accountAgeWitnessService,
                                  PersistenceProtoResolver persistenceProtoResolver,
-                                 CorruptedStorageFileHandler corruptedStorageFileHandler,
-                                 KeyRing keyRing) {
+                                 CorruptedStorageFileHandler corruptedStorageFileHandler) {
         this.user = user;
         this.preferences = preferences;
         this.openOfferManager = openOfferManager;
@@ -74,7 +71,6 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.persistenceProtoResolver = persistenceProtoResolver;
         this.corruptedStorageFileHandler = corruptedStorageFileHandler;
-        this.keyRing = keyRing;
         setChangeListener = change -> fillAndSortPaymentAccounts();
     }
 
@@ -108,6 +104,7 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
         TradeCurrency singleTradeCurrency = paymentAccount.getSingleTradeCurrency();
         List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
         if (singleTradeCurrency != null) {
+            paymentAccount.setSelectedTradeCurrency(singleTradeCurrency);
             if (singleTradeCurrency instanceof TraditionalCurrency)
                 preferences.addTraditionalCurrency((TraditionalCurrency) singleTradeCurrency);
             else
@@ -127,6 +124,7 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
         }
 
         user.addPaymentAccount(paymentAccount);
+        paymentAccount.onPersistChanges();
 
         accountAgeWitnessService.publishMyAccountAgeWitness(paymentAccount.getPaymentAccountPayload());
         accountAgeWitnessService.signAndPublishSameNameAccounts();
@@ -157,12 +155,12 @@ class TraditionalAccountsDataModel extends ActivatableDataModel {
             ArrayList<PaymentAccount> accounts = new ArrayList<>(user.getPaymentAccounts().stream()
                     .filter(paymentAccount -> !(paymentAccount instanceof AssetAccount))
                     .collect(Collectors.toList()));
-            GUIUtil.exportAccounts(accounts, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+            GUIUtil.exportAccounts(accounts, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler);
         }
     }
 
     public void importAccounts(Stage stage) {
-        GUIUtil.importAccounts(user, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+        GUIUtil.importAccounts(user, accountsFileName, preferences, stage, persistenceProtoResolver, corruptedStorageFileHandler);
     }
 
     public int getNumPaymentAccounts() {

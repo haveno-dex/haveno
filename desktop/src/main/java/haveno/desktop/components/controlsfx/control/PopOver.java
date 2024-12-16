@@ -507,19 +507,30 @@ public class PopOver extends PopupControl {
         }
 
         if (isShowing()) {
-            if (isAnimated()) {
-                // Fade Out
-                Node skinNode = getSkin().getNode();
+            super.hide();
 
-                FadeTransition fadeOut = new FadeTransition(fadeOutDuration,
-                        skinNode);
-                fadeOut.setFromValue(skinNode.getOpacity());
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(evt -> { if (super.isShowing()) super.hide(); });
-                fadeOut.play();
-            } else {
-                super.hide();
-            }
+            // TODO: getting error "The window has already been closed" with animation which freezes application.
+            // To recreate: create multiple payment methods, edit offer, go to payment method drop down, hover over info box, then quickly select another payment method
+            // if (isAnimated()) {
+            //     // Fade Out
+            //     Node skinNode = getSkin().getNode();
+
+            //     FadeTransition fadeOut = new FadeTransition(fadeOutDuration,
+            //             skinNode);
+            //     fadeOut.setFromValue(skinNode.getOpacity());
+            //     fadeOut.setToValue(0);
+            //     fadeOut.setOnFinished(evt -> {
+            //         try {
+            //             super.hide();
+            //         } catch (IllegalStateException e) {
+            //             log.warn("Error hiding PopOver: " + e.getMessage());
+            //             e.printStackTrace();
+            //         }
+            //     });
+            //     fadeOut.play();
+            // } else {
+            //     super.hide();
+            // }
         }
     }
 

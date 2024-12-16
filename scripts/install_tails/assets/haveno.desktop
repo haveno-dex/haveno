@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Haveno
+Comment=A decentralized monero exchange network.
+Exec=/home/amnesia/Persistent/haveno/App/utils/exec.sh
+Icon=/home/amnesia/Persistent/haveno/App/utils/icon.png
+Terminal=false
+Type=Application
+Categories=Other
+MimeType=

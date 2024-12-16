@@ -1,10 +1,9 @@
 package haveno.core.payment.validation;
 
+import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.RegexValidator;
-
-import javax.inject.Inject;
 
 public class InteracETransferQuestionValidator extends InputValidator {
     private LengthValidator lengthValidator;
@@ -14,7 +13,7 @@ public class InteracETransferQuestionValidator extends InputValidator {
     public InteracETransferQuestionValidator(LengthValidator lengthValidator, RegexValidator regexValidator) {
 
         lengthValidator.setMinLength(1);
-        lengthValidator.setMaxLength(40);
+        lengthValidator.setMaxLength(160);
         this.lengthValidator = lengthValidator;
 
         regexValidator.setPattern("[A-Za-z0-9\\-\\_\\'\\,\\.\\? ]+");

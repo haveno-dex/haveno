@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,7 @@
 
 package haveno.core.trade.protocol;
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.trade.SellerTrade;
@@ -50,26 +68,30 @@ public class SellerProtocol extends DisputeProtocol {
         super.onInitialized();
 
         // re-send payment received message if payout not published
-        synchronized (trade) {
-            if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
-                latchTrade();
-                given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
-                    .with(SellerEvent.STARTUP))
-                    .setup(tasks(
-                            SellerSendPaymentReceivedMessageToBuyer.class,
-                            SellerSendPaymentReceivedMessageToArbitrator.class)
-                    .using(new TradeTaskRunner(trade,
-                            () -> {
-                                unlatchTrade();
-                            },
-                            (errorMessage) -> {
-                                log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
-                                unlatchTrade();
-                            })))
-                    .executeTasks();
-                awaitTradeLatch();
+        ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            synchronized (trade.getLock()) {
+                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+                if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
+                    latchTrade();
+                    given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
+                        .with(SellerEvent.STARTUP))
+                        .setup(tasks(
+                                SellerSendPaymentReceivedMessageToBuyer.class,
+                                SellerSendPaymentReceivedMessageToArbitrator.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    unlatchTrade();
+                                },
+                                (errorMessage) -> {
+                                    log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
+                                    unlatchTrade();
+                                })))
+                        .executeTasks();
+                    awaitTradeLatch();
+                }
             }
-        }
+        }, trade.getId());
     }
 
     @Override
@@ -94,8 +116,8 @@ public class SellerProtocol extends DisputeProtocol {
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info("SellerProtocol.onPaymentReceived()");
-        new Thread(() -> {
-            synchronized (trade) {
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 SellerEvent event = SellerEvent.PAYMENT_RECEIVED;
@@ -109,13 +131,16 @@ public class SellerProtocol extends DisputeProtocol {
                                     SellerSendPaymentReceivedMessageToBuyer.class,
                                     SellerSendPaymentReceivedMessageToArbitrator.class)
                             .using(new TradeTaskRunner(trade, () -> {
+                                stopTimeout();
                                 this.errorMessageHandler = null;
                                 handleTaskRunnerSuccess(event);
                                 resultHandler.handleResult();
                             }, (errorMessage) -> {
+                                log.warn("Error confirming payment received, reverting state to {}, error={}", Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, errorMessage);
+                                trade.setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
-                            .run(() -> trade.setState(Trade.State.SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT))
+                            .run(() -> trade.advanceState(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment received: " + e.getMessage());
@@ -123,7 +148,7 @@ public class SellerProtocol extends DisputeProtocol {
                 }
                 awaitTradeLatch();
             }
-        }).start();
+        }, trade.getId());
     }
 
     @SuppressWarnings("unchecked")

@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -18,7 +35,6 @@
 package haveno.core.trade.protocol;
 
 import com.google.protobuf.ByteString;
-import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -34,12 +50,9 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
-import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.messages.PaymentReceivedMessage;
-import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
@@ -101,7 +114,7 @@ public class ProcessModel implements Model, PersistablePayload {
     private byte[] payoutTxSignature;
     @Nullable
     @Setter
-    private byte[] preparedDepositTx;
+    private byte[] preparedDepositTx; // TODO: remove this unused field
     @Setter
     private boolean useSavingsWallet;
     @Setter
@@ -111,7 +124,7 @@ public class ProcessModel implements Model, PersistablePayload {
     // After successful verified we copy that over to the trade.tradePeerAddress
     @Nullable
     @Setter
-    private NodeAddress tempTradePeerNodeAddress; // TODO (woodser): remove entirely?
+    private NodeAddress tempTradePeerNodeAddress;
 
     // Added in v.1.1.6
     @Nullable
@@ -123,8 +136,6 @@ public class ProcessModel implements Model, PersistablePayload {
     private long sellerPayoutAmountFromMediation;
 
     // Added for XMR integration
-    @Getter
-    transient private MoneroTxWallet takeOfferFeeTx; // TODO (woodser): remove
     @Setter
     transient private TradeMessage tradeMessage;
     @Getter
@@ -136,32 +147,26 @@ public class ProcessModel implements Model, PersistablePayload {
     transient private MoneroTxWallet reserveTx;
     @Getter
     @Setter
-    transient private MoneroTxWallet depositTxXmr;
-    @Getter
-    @Setter
     transient private MoneroTxWallet unsignedPayoutTx;
     @Nullable
     @Getter
     @Setter
+    private String tradeFeeAddress;
+    @Getter
+    @Setter
     private String multisigAddress;
-    @Nullable
-    @Setter
     @Getter
-    private PaymentSentMessage paymentSentMessage;
-    @Nullable
     @Setter
-    @Getter
-    private PaymentReceivedMessage paymentReceivedMessage;
-    @Nullable
-    @Setter
-    @Getter
-    private DisputeClosedMessage disputeClosedMessage;
+    private long tradeProtocolErrorHeight;
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
     // To enable that even after restart we persist the state.
     @Setter
     private ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Setter
+    private ObjectProperty<MessageState> paymentSentMessageStatePropertyArbitrator = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    private ObjectProperty<Boolean> paymentAccountDecryptedProperty = new SimpleObjectProperty<>(false);
 
     public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing) {
         this(offerId, accountId, pubKeyRing, new TradePeer(), new TradePeer(), new TradePeer());
@@ -199,8 +204,10 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setUseSavingsWallet(useSavingsWallet)
                 .setFundsNeededForTrade(fundsNeededForTrade)
                 .setPaymentSentMessageState(paymentSentMessageStateProperty.get().name())
+                .setPaymentSentMessageStateArbitrator(paymentSentMessageStatePropertyArbitrator.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
-                .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation);
+                .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
+                .setTradeProtocolErrorHeight(tradeProtocolErrorHeight);
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
@@ -208,10 +215,8 @@ public class ProcessModel implements Model, PersistablePayload {
         Optional.ofNullable(tempTradePeerNodeAddress).ifPresent(e -> builder.setTempTradePeerNodeAddress(tempTradePeerNodeAddress.toProtoMessage()));
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(makerSignature).ifPresent(e -> builder.setMakerSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(tradeFeeAddress).ifPresent(e -> builder.setTradeFeeAddress(tradeFeeAddress));
         Optional.ofNullable(multisigAddress).ifPresent(e -> builder.setMultisigAddress(multisigAddress));
-        Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
-        Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
-        Optional.ofNullable(disputeClosedMessage).ifPresent(e -> builder.setDisputeClosedMessage(disputeClosedMessage.toProtoNetworkEnvelope().getDisputeClosedMessage()));
         return builder.build();
     }
 
@@ -225,21 +230,24 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setFundsNeededForTrade(proto.getFundsNeededForTrade());
         processModel.setBuyerPayoutAmountFromMediation(proto.getBuyerPayoutAmountFromMediation());
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
+        processModel.setTradeProtocolErrorHeight(proto.getTradeProtocolErrorHeight());
 
         // nullable
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));
         processModel.setTempTradePeerNodeAddress(proto.hasTempTradePeerNodeAddress() ? NodeAddress.fromProto(proto.getTempTradePeerNodeAddress()) : null);
         processModel.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
         processModel.setMakerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMakerSignature()));
+        processModel.setTradeFeeAddress(ProtoUtil.stringOrNullFromProto(proto.getTradeFeeAddress()));
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
 
         String paymentSentMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageState());
         MessageState paymentSentMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateString);
         processModel.setPaymentSentMessageState(paymentSentMessageState);
 
-        processModel.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
-        processModel.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
-        processModel.setDisputeClosedMessage(proto.hasDisputeClosedMessage() ? DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), Version.getP2PMessageVersion()) : null);
+        String paymentSentMessageStateArbitratorString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageStateArbitrator());
+        MessageState paymentSentMessageStateArbitrator = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateArbitratorString);
+        processModel.setPaymentSentMessageStateArbitrator(paymentSentMessageStateArbitrator);
+
         return processModel;
     }
 
@@ -273,8 +281,22 @@ public class ProcessModel implements Model, PersistablePayload {
         setPaymentSentMessageState(messageState);
     }
 
+    void setPaymentSentAckMessageArbitrator(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.FAILED;
+        setPaymentSentMessageStateArbitrator(messageState);
+    }
+
     public void setPaymentSentMessageState(MessageState paymentSentMessageStateProperty) {
         this.paymentSentMessageStateProperty.set(paymentSentMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    public void setPaymentSentMessageStateArbitrator(MessageState paymentSentMessageStateProperty) {
+        this.paymentSentMessageStatePropertyArbitrator.set(paymentSentMessageStateProperty);
         if (tradeManager != null) {
             tradeManager.requestPersistence();
         }

@@ -1,41 +1,41 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.messages;
 
-import haveno.common.app.Version;
-import haveno.common.util.Utilities;
+import haveno.core.locale.Res;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Attachment;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
+
 import haveno.network.p2p.NodeAddress;
+
+import haveno.common.UserThread;
+import haveno.common.app.Version;
+import haveno.common.util.Utilities;
+
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,13 +44,22 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import java.lang.ref.WeakReference;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.Nullable;
+
 /* Message for direct communication between two nodes. Originally built for trader to
  * arbitrator communication as no other direct communication was allowed. Arbitrator is
  * considered as the server and trader as the client in arbitration chats
  *
  * For trader to trader communication the maker is considered to be the server
  * and the taker is considered as the client.
- * */
+ */
 @EqualsAndHashCode(callSuper = true) // listener is transient and therefore excluded anyway
 @Getter
 @Slf4j
@@ -84,14 +93,14 @@ public final class ChatMessage extends SupportMessage {
     private final StringProperty sendMessageErrorProperty;
     private final StringProperty ackErrorProperty;
 
-    transient private Listener listener;
+    transient private WeakReference<Listener> listener;
 
     public ChatMessage(SupportType supportType,
-                       String tradeId,
-                       int traderId,
-                       boolean senderIsTrader,
-                       String message,
-                       NodeAddress senderNodeAddress) {
+                    String tradeId,
+                    int traderId,
+                    boolean senderIsTrader,
+                    String message,
+                    NodeAddress senderNodeAddress) {
         this(supportType,
                 tradeId,
                 traderId,
@@ -111,12 +120,12 @@ public final class ChatMessage extends SupportMessage {
     }
 
     public ChatMessage(SupportType supportType,
-                       String tradeId,
-                       int traderId,
-                       boolean senderIsTrader,
-                       String message,
-                       NodeAddress senderNodeAddress,
-                       ArrayList<Attachment> attachments) {
+                    String tradeId,
+                    int traderId,
+                    boolean senderIsTrader,
+                    String message,
+                    NodeAddress senderNodeAddress,
+                    ArrayList<Attachment> attachments) {
         this(supportType,
                 tradeId,
                 traderId,
@@ -136,12 +145,12 @@ public final class ChatMessage extends SupportMessage {
     }
 
     public ChatMessage(SupportType supportType,
-                       String tradeId,
-                       int traderId,
-                       boolean senderIsTrader,
-                       String message,
-                       NodeAddress senderNodeAddress,
-                       long date) {
+                    String tradeId,
+                    int traderId,
+                    boolean senderIsTrader,
+                    String message,
+                    NodeAddress senderNodeAddress,
+                    long date) {
         this(supportType,
                 tradeId,
                 traderId,
@@ -198,7 +207,9 @@ public final class ChatMessage extends SupportMessage {
         notifyChangeListener();
     }
 
-    public protobuf.ChatMessage.Builder toProtoChatMessageBuilder() {
+    // We cannot rename protobuf definition because it would break backward compatibility
+    @Override
+    public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.ChatMessage.Builder builder = protobuf.ChatMessage.newBuilder()
                 .setType(SupportType.toProtoMessage(supportType))
                 .setTradeId(tradeId)
@@ -216,14 +227,6 @@ public final class ChatMessage extends SupportMessage {
                 .setWasDisplayed(wasDisplayed);
         Optional.ofNullable(sendMessageErrorProperty.get()).ifPresent(builder::setSendMessageError);
         Optional.ofNullable(ackErrorProperty.get()).ifPresent(builder::setAckError);
-
-        return builder;
-    }
-
-    // We cannot rename protobuf definition because it would break backward compatibility
-    @Override
-    public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-        protobuf.ChatMessage.Builder builder = toProtoChatMessageBuilder();
         return getNetworkEnvelopeBuilder()
                 .setChatMessage(builder)
                 .build();
@@ -296,6 +299,16 @@ public final class ChatMessage extends SupportMessage {
         notifyChangeListener();
     }
 
+    // each chat message notifies the user if an ACK is not received in time
+    public void startAckTimer() {
+        UserThread.runAfter(() -> {
+            if (!this.getAcknowledgedProperty().get() && !this.getStoredInMailboxProperty().get()) {
+                this.setArrived(false);
+                this.setAckError(Res.get("support.errorTimeout"));
+            }
+        }, 60, TimeUnit.SECONDS);
+    }
+
     public ReadOnlyBooleanProperty acknowledgedProperty() {
         return acknowledgedProperty;
     }
@@ -327,12 +340,8 @@ public final class ChatMessage extends SupportMessage {
         return Utilities.getShortId(tradeId);
     }
 
-    public void addChangeListener(Listener listener) {
-        this.listener = listener;
-    }
-
-    public void removeChangeListener() {
-        this.listener = null;
+    public void addWeakMessageStateListener(Listener listener) {
+        this.listener = new WeakReference<>(listener);
     }
 
     public boolean isResultMessage(Dispute dispute) {
@@ -352,7 +361,10 @@ public final class ChatMessage extends SupportMessage {
 
     private void notifyChangeListener() {
         if (listener != null) {
-            listener.onMessageStateChanged();
+            Listener listener = this.listener.get();
+            if (listener != null) {
+                listener.onMessageStateChanged();
+            }
         }
     }
 

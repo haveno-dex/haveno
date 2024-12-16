@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>exchange.haveno.Haveno</id>
+  <!-- <icon type="stock">exchange.haveno.Haveno</icon> -->
+  <launchable type="desktop-id">exchange.haveno.Haveno.desktop</launchable>
+  <name>Haveno</name>
+  <summary>Decentralized P2P exchange built on Monero and Tor</summary>
+  <categories>
+    <category>Office</category>
+    <category>Finance</category>
+    <category>P2P</category>
+  </categories>
+  <keywords>
+    <keyword>cryptocurrency</keyword>
+    <keyword>monero</keyword>
+  </keywords>
+
+  <metadata_license>CC-BY-4.0</metadata_license>
+  <project_license>AGPL-3.0-only</project_license>
+  <branding>
+    <color type="primary" scheme_preference="light">#e5a29f</color>
+    <color type="primary" scheme_preference="dark">#562c63</color>
+  </branding>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+
+  <description>
+    <p>Haveno (pronounced ha‧ve‧no) is a platform for people who want to exchange Monero for fiat currencies like EUR, GBP, and USD or other cryptocurrencies like BTC, ETH, and BCH.</p>
+    <ul>
+      <li>All communications are routed through Tor, to preserve your privacy
+      </li>
+      <li>Trades are peer-to-peer: trades on Haveno will happen between people only, there is no central authority.
+      </li>
+      <li>Trades are non-custodial: Haveno provides arbitration in case something goes wrong during the trade, but we will never have access to your funds.
+      </li>
+      <li>There is No token, because we don&#39;t need it. Transactions between traders are secured by non-custodial multisignature transactions on the Monero network.
+      </li>
+    </ul>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://github.com/haveno-dex/haveno/blob/master/desktop/package/linux/preview.png</image>
+      <caption>Recent Trades page</caption>
+    </screenshot>
+  </screenshots>
+
+  <developer id="exchange.haveno">
+    <name>woodser</name>
+  </developer>
+  <url type="homepage">https://haveno.exchange</url>
+  <url type="bugtracker">https://github.com/haveno-dex/haveno/issues</url>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">moderate</content_attribute>
+    <content_attribute id="social-info">moderate</content_attribute>
+    <content_attribute id="social-contacts">intense</content_attribute>
+    <content_attribute id="money-purchasing">intense</content_attribute>
+  </content_rating>
+
+  <releases>
+    <release version="1.0.14" date="2024-11-15"/>
+  </releases>
+</component>

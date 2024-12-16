@@ -1,24 +1,28 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 import haveno.common.util.MathUtils;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
@@ -32,6 +36,8 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.FiatVolumeValidator;
@@ -47,8 +53,8 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.AmountValidator4Decimals;
+import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
 import haveno.core.xmr.wallet.Restrictions;
@@ -62,6 +68,13 @@ import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -77,13 +90,6 @@ import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
-
-import static javafx.beans.binding.Bindings.createStringBinding;
 
 @Slf4j
 public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> extends ActivatableWithDataModel<M> {
@@ -103,12 +109,13 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private String addressAsString;
     private final String paymentLabel;
     private boolean createOfferRequested;
+    public boolean createOfferCanceled;
 
     public final StringProperty amount = new SimpleStringProperty();
     public final StringProperty minAmount = new SimpleStringProperty();
-    protected final StringProperty buyerSecurityDeposit = new SimpleStringProperty();
-    final StringProperty buyerSecurityDepositInBTC = new SimpleStringProperty();
-    final StringProperty buyerSecurityDepositLabel = new SimpleStringProperty();
+    protected final StringProperty securityDeposit = new SimpleStringProperty();
+    final StringProperty securityDepositInXMR = new SimpleStringProperty();
+    final StringProperty securityDepositLabel = new SimpleStringProperty();
 
     // Price in the viewModel is always dependent on fiat/crypto: Fiat Fiat/BTC, for cryptos we use inverted price.
     // The domain (dataModel) uses always the same price model (otherCurrencyBTC)
@@ -144,14 +151,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final BooleanProperty showPayFundsScreenDisplayed = new SimpleBooleanProperty();
     private final BooleanProperty showTransactionPublishedScreen = new SimpleBooleanProperty();
     final BooleanProperty isWaitingForFunds = new SimpleBooleanProperty();
-    final BooleanProperty isMinBuyerSecurityDeposit = new SimpleBooleanProperty();
+    final BooleanProperty isMinSecurityDeposit = new SimpleBooleanProperty();
 
     final ObjectProperty<InputValidator.ValidationResult> amountValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> minAmountValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> priceValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> triggerPriceValidationResult = new SimpleObjectProperty<>(new InputValidator.ValidationResult(true));
     final ObjectProperty<InputValidator.ValidationResult> volumeValidationResult = new SimpleObjectProperty<>();
-    final ObjectProperty<InputValidator.ValidationResult> buyerSecurityDepositValidationResult = new SimpleObjectProperty<>();
+    final ObjectProperty<InputValidator.ValidationResult> securityDepositValidationResult = new SimpleObjectProperty<>();
 
     private ChangeListener<String> amountStringListener;
     private ChangeListener<String> minAmountStringListener;
@@ -164,6 +171,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private ChangeListener<Price> priceListener;
     private ChangeListener<Volume> volumeListener;
     private ChangeListener<Number> securityDepositAsDoubleListener;
+    private ChangeListener<Boolean> buyerAsTakerWithoutDepositListener;
 
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<String> errorMessageListener;
@@ -210,9 +218,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         paymentLabel = Res.get("createOffer.fundsBox.paymentLabel", dataModel.shortOfferId);
 
-        if (dataModel.getAddressEntry() != null) {
-            addressAsString = dataModel.getAddressEntry().getAddressString();
-        }
         createListeners();
     }
 
@@ -264,7 +269,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     dataModel.getTradeCurrencyCode()));
         }
         volumePromptLabel.bind(createStringBinding(
-                () -> Res.get("createOffer.volume.prompt", dataModel.getTradeCurrencyCode().get()),
+                () -> Res.get("createOffer.volume.prompt", CurrencyUtil.getCurrencyCodeBase(dataModel.getTradeCurrencyCode().get())),
                 dataModel.getTradeCurrencyCode()));
 
         totalToPay.bind(createStringBinding(() -> HavenoUtils.formatXmr(dataModel.totalToPayAsProperty().get(), true),
@@ -299,7 +304,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     dataModel.calculateVolume();
                     dataModel.calculateTotalToPay();
                 }
-                updateBuyerSecurityDeposit();
+                updateSecurityDeposit();
                 updateButtonDisableState();
             }
         };
@@ -415,34 +420,36 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 updateButtonDisableState();
             }
         };
+
         securityDepositStringListener = (ov, oldValue, newValue) -> {
             if (!ignoreSecurityDepositStringListener) {
                 if (securityDepositValidator.validate(newValue).isValid) {
-                    setBuyerSecurityDepositToModel();
+                    setSecurityDepositToModel();
                     dataModel.calculateTotalToPay();
                 }
                 updateButtonDisableState();
             }
         };
 
-
         amountListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
                 amount.set(HavenoUtils.formatXmr(newValue));
-                buyerSecurityDepositInBTC.set(HavenoUtils.formatXmr(dataModel.getBuyerSecurityDeposit(), true));
+                securityDepositInXMR.set(HavenoUtils.formatXmr(dataModel.getSecurityDeposit(), true));
             } else {
                 amount.set("");
-                buyerSecurityDepositInBTC.set("");
+                securityDepositInXMR.set("");
             }
 
             applyMakerFee();
         };
+
         minAmountListener = (ov, oldValue, newValue) -> {
             if (newValue != null)
                 minAmount.set(HavenoUtils.formatXmr(newValue));
             else
                 minAmount.set("");
         };
+
         priceListener = (ov, oldValue, newValue) -> {
             ignorePriceStringListener = true;
             if (newValue != null)
@@ -453,6 +460,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             ignorePriceStringListener = false;
             applyMakerFee();
         };
+
         volumeListener = (ov, oldValue, newValue) -> {
             ignoreVolumeStringListener = true;
             if (newValue != null)
@@ -466,17 +474,26 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         securityDepositAsDoubleListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
-                buyerSecurityDeposit.set(FormattingUtils.formatToPercent((double) newValue));
+                securityDeposit.set(FormattingUtils.formatToPercent((double) newValue));
                 if (dataModel.getAmount().get() != null) {
-                    buyerSecurityDepositInBTC.set(HavenoUtils.formatXmr(dataModel.getBuyerSecurityDeposit(), true));
+                    securityDepositInXMR.set(HavenoUtils.formatXmr(dataModel.getSecurityDeposit(), true));
                 }
-                updateBuyerSecurityDeposit();
+                updateSecurityDeposit();
             } else {
-                buyerSecurityDeposit.set("");
-                buyerSecurityDepositInBTC.set("");
+                securityDeposit.set("");
+                securityDepositInXMR.set("");
             }
         };
 
+        buyerAsTakerWithoutDepositListener = (ov, oldValue, newValue) -> {
+            if (dataModel.paymentAccount != null) xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
+            xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+            if (amount.get() != null) amountValidationResult.set(isXmrInputValid(amount.get()));
+            updateSecurityDeposit();
+            applyMakerFee();
+            dataModel.calculateTotalToPay();
+            updateButtonDisableState();
+        };
 
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
        /* feeFromFundingTxListener = (ov, oldValue, newValue) -> {
@@ -491,9 +508,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     private void applyMakerFee() {
         tradeFeeCurrencyCode.set(Res.getBaseCurrencyCode());
-        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionBTCOnly"));
+        tradeFeeDescription.set(Res.get("createOffer.tradeFee.descriptionXMROnly"));
 
-        BigInteger makerFee = dataModel.getMakerFee();
+        BigInteger makerFee = dataModel.getMaxMakerFee();
         if (makerFee == null) {
             return;
         }
@@ -501,7 +518,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         isTradeFeeVisible.setValue(true);
         tradeFee.set(HavenoUtils.formatXmr(makerFee));
         tradeFeeInXmrWithFiat.set(OfferViewModelUtil.getTradeFeeWithFiatEquivalent(offerUtil,
-                dataModel.getMakerFee(),
+                dataModel.getMaxMakerFee(),
                 btcFormatter));
     }
 
@@ -521,14 +538,15 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         marketPriceMargin.addListener(marketPriceMarginStringListener);
         dataModel.getUseMarketBasedPrice().addListener(useMarketBasedPriceListener);
         volume.addListener(volumeStringListener);
-        buyerSecurityDeposit.addListener(securityDepositStringListener);
+        securityDeposit.addListener(securityDepositStringListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().addListener(amountListener);
         dataModel.getMinAmount().addListener(minAmountListener);
         dataModel.getPrice().addListener(priceListener);
         dataModel.getVolume().addListener(volumeListener);
-        dataModel.getBuyerSecurityDepositPct().addListener(securityDepositAsDoubleListener);
+        dataModel.getSecurityDepositPct().addListener(securityDepositAsDoubleListener);
+        dataModel.getBuyerAsTakerWithoutDeposit().addListener(buyerAsTakerWithoutDepositListener);
 
         // dataModel.feeFromFundingTxProperty.addListener(feeFromFundingTxListener);
         dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
@@ -543,14 +561,15 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         marketPriceMargin.removeListener(marketPriceMarginStringListener);
         dataModel.getUseMarketBasedPrice().removeListener(useMarketBasedPriceListener);
         volume.removeListener(volumeStringListener);
-        buyerSecurityDeposit.removeListener(securityDepositStringListener);
+        securityDeposit.removeListener(securityDepositStringListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().removeListener(amountListener);
         dataModel.getMinAmount().removeListener(minAmountListener);
         dataModel.getPrice().removeListener(priceListener);
         dataModel.getVolume().removeListener(volumeListener);
-        dataModel.getBuyerSecurityDepositPct().removeListener(securityDepositAsDoubleListener);
+        dataModel.getSecurityDepositPct().removeListener(securityDepositAsDoubleListener);
+        dataModel.getBuyerAsTakerWithoutDeposit().removeListener(buyerAsTakerWithoutDepositListener);
 
         //dataModel.feeFromFundingTxProperty.removeListener(feeFromFundingTxListener);
         dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
@@ -568,6 +587,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
         boolean result = dataModel.initWithData(direction, tradeCurrency);
+        if (dataModel.getAddressEntry() != null) {
+            addressAsString = dataModel.getAddressEntry().getAddressString();
+        }
         if (dataModel.paymentAccount != null)
             xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
         xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
@@ -586,9 +608,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);
-        validateAndSetBuyerSecurityDepositToModel();
-        buyerSecurityDeposit.set(FormattingUtils.formatToPercent(dataModel.getBuyerSecurityDepositPct().get()));
-        buyerSecurityDepositLabel.set(getSecurityDepositLabel());
+        validateAndSetSecurityDepositToModel();
+        securityDeposit.set(FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get()));
+        securityDepositLabel.set(getSecurityDepositLabel());
 
         applyMakerFee();
         return result;
@@ -602,24 +624,51 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     void onPlaceOffer(Offer offer, Runnable resultHandler) {
         errorMessage.set(null);
         createOfferRequested = true;
+        createOfferCanceled = false;
 
         dataModel.onPlaceOffer(offer, transaction -> {
             resultHandler.run();
-            placeOfferCompleted.set(true);
+            if (!createOfferCanceled) placeOfferCompleted.set(true);
             errorMessage.set(null);
         }, errMessage -> {
             createOfferRequested = false;
             if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
             else errorMessage.set(errMessage);
 
-            updateButtonDisableState();
-            updateSpinnerInfo();
-
-            resultHandler.run();
+            UserThread.execute(() -> {
+                updateButtonDisableState();
+                updateSpinnerInfo();
+                resultHandler.run();
+            });
         });
 
         updateButtonDisableState();
         updateSpinnerInfo();
+    }
+
+    public void onCancelOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        createOfferRequested = false;
+        createOfferCanceled = true;
+        OpenOfferManager openOfferManager = HavenoUtils.openOfferManager;
+        Optional<OpenOffer> openOffer = openOfferManager.getOpenOfferById(offer.getId());
+        if (openOffer.isPresent()) {
+            openOfferManager.cancelOpenOffer(openOffer.get(), () -> {
+                UserThread.execute(() -> {
+                    updateButtonDisableState();
+                    updateSpinnerInfo();
+                });
+                if (resultHandler != null) resultHandler.handleResult();
+            }, errorMessage -> {
+                UserThread.execute(() -> {
+                    updateButtonDisableState();
+                    updateSpinnerInfo();
+                    if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
+                });
+            });
+        } else {
+            if (resultHandler != null) resultHandler.handleResult();
+            return;
+        }
     }
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
@@ -687,16 +736,37 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
             } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-                if (Double.parseDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())) {
+                if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())) {
                     amountValidationResult.set(result);
                 } else {
                     amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
                     boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
-                    new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                                    HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
-                                    Res.get("offerbook.warning.newVersionAnnouncement")))
-                            .width(900)
-                            .show();
+                    boolean isSellerWithinReleaseWindow = !isBuy && HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
+                    if (isSellerWithinReleaseWindow) {
+
+                        // format release date plus days
+                        Date releaseDate = HavenoUtils.getReleaseDate();
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(releaseDate);
+                        c.add(Calendar.DATE, HavenoUtils.RELEASE_LIMIT_DAYS);
+                        Date releaseDatePlusDays = c.getTime();
+                        SimpleDateFormat formatter = new SimpleDateFormat("MMMM d, yyyy");
+                        String releaseDatePlusDaysAsString = formatter.format(releaseDatePlusDays);
+
+                        // popup temporary restriction
+                        new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller.releaseLimit",
+                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
+                                releaseDatePlusDaysAsString,
+                                Res.get("offerbook.warning.newVersionAnnouncement")))
+                        .width(900)
+                        .show();
+                    } else {
+                        new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
+                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
+                                Res.get("offerbook.warning.newVersionAnnouncement")))
+                        .width(900)
+                        .show();
+                    }
                 }
             }
             // We want to trigger a recalculation of the volume
@@ -877,14 +947,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
     }
 
-    void onFocusOutBuyerSecurityDepositTextField(boolean oldValue, boolean newValue) {
+    void onFocusOutSecurityDepositTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
-            InputValidator.ValidationResult result = securityDepositValidator.validate(buyerSecurityDeposit.get());
-            buyerSecurityDepositValidationResult.set(result);
+            InputValidator.ValidationResult result = securityDepositValidator.validate(securityDeposit.get());
+            securityDepositValidationResult.set(result);
             if (result.isValid) {
-                double defaultSecurityDeposit = Restrictions.getDefaultBuyerSecurityDepositAsPercent();
+                double defaultSecurityDeposit = Restrictions.getDefaultSecurityDepositAsPercent();
                 String key = "buyerSecurityDepositIsLowerAsDefault";
-                double depositAsDouble = ParsingUtils.parsePercentStringToDouble(buyerSecurityDeposit.get());
+                double depositAsDouble = ParsingUtils.parsePercentStringToDouble(securityDeposit.get());
                 if (preferences.showAgain(key) && depositAsDouble < defaultSecurityDeposit) {
                     String postfix = dataModel.isBuyOffer() ?
                             Res.get("createOffer.tooLowSecDeposit.makerIsBuyer") :
@@ -895,26 +965,26 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             .width(800)
                             .actionButtonText(Res.get("createOffer.resetToDefault"))
                             .onAction(() -> {
-                                dataModel.setBuyerSecurityDeposit(defaultSecurityDeposit);
+                                dataModel.setSecurityDepositPct(defaultSecurityDeposit);
                                 ignoreSecurityDepositStringListener = true;
-                                buyerSecurityDeposit.set(FormattingUtils.formatToPercent(dataModel.getBuyerSecurityDepositPct().get()));
+                                securityDeposit.set(FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get()));
                                 ignoreSecurityDepositStringListener = false;
                             })
                             .closeButtonText(Res.get("createOffer.useLowerValue"))
-                            .onClose(this::applyBuyerSecurityDepositOnFocusOut)
+                            .onClose(this::applySecurityDepositOnFocusOut)
                             .dontShowAgainId(key)
                             .show();
                 } else {
-                    applyBuyerSecurityDepositOnFocusOut();
+                    applySecurityDepositOnFocusOut();
                 }
             }
         }
     }
 
-    private void applyBuyerSecurityDepositOnFocusOut() {
-        setBuyerSecurityDepositToModel();
+    private void applySecurityDepositOnFocusOut() {
+        setSecurityDepositToModel();
         ignoreSecurityDepositStringListener = true;
-        buyerSecurityDeposit.set(FormattingUtils.formatToPercent(dataModel.getBuyerSecurityDepositPct().get()));
+        securityDeposit.set(FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get()));
         ignoreSecurityDepositStringListener = false;
     }
 
@@ -969,21 +1039,22 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     public String getSecurityDepositLabel() {
-        return Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? Res.get("createOffer.setDepositForBothTraders") :
+        return dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer() ? Res.get("createOffer.myDeposit") :
+                Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? Res.get("createOffer.setDepositForBothTraders") :
                 dataModel.isBuyOffer() ? Res.get("createOffer.setDepositAsBuyer") : Res.get("createOffer.setDeposit");
     }
 
-    public String getSecurityDepositPopOverLabel(String depositInBTC) {
-        return dataModel.isBuyOffer() ? Res.get("createOffer.securityDepositInfoAsBuyer", depositInBTC) :
-                Res.get("createOffer.securityDepositInfo", depositInBTC);
+    public String getSecurityDepositPopOverLabel(String depositInXMR) {
+        return dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer() ? Res.get("createOffer.myDepositInfo", depositInXMR) :
+                dataModel.isBuyOffer() ? Res.get("createOffer.securityDepositInfoAsBuyer", depositInXMR) :
+                Res.get("createOffer.securityDepositInfo", depositInXMR);
     }
 
     public String getSecurityDepositInfo() {
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
                 dataModel.getSecurityDeposit(),
                 dataModel.getAmount().get(),
-                btcFormatter,
-                Restrictions.getMinBuyerSecurityDeposit()
+                btcFormatter
         );
     }
 
@@ -994,14 +1065,13 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public String getTradeFee() {
         return OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil,
-                dataModel.getMakerFee(),
+                dataModel.getMaxMakerFee(),
                 dataModel.getAmount().get(),
-                btcFormatter,
-                HavenoUtils.getMinMakerFee());
+                btcFormatter);
     }
 
     public String getMakerFeePercentage() {
-        final BigInteger makerFee = dataModel.getMakerFee();
+        final BigInteger makerFee = dataModel.getMaxMakerFee();
         return GUIUtil.getPercentage(makerFee, dataModel.getAmount().get());
     }
 
@@ -1140,19 +1210,19 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
     }
 
-    private void setBuyerSecurityDepositToModel() {
-        if (buyerSecurityDeposit.get() != null && !buyerSecurityDeposit.get().isEmpty()) {
-            dataModel.setBuyerSecurityDeposit(ParsingUtils.parsePercentStringToDouble(buyerSecurityDeposit.get()));
+    private void setSecurityDepositToModel() {
+        if (!(dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer()) && securityDeposit.get() != null && !securityDeposit.get().isEmpty()) {
+            dataModel.setSecurityDepositPct(ParsingUtils.parsePercentStringToDouble(securityDeposit.get()));
         } else {
-            dataModel.setBuyerSecurityDeposit(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
+            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
         }
     }
 
-    private void validateAndSetBuyerSecurityDepositToModel() {
+    private void validateAndSetSecurityDepositToModel() {
         // If the security deposit in the model is not valid percent
-        String value = FormattingUtils.formatToPercent(dataModel.getBuyerSecurityDepositPct().get());
+        String value = FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get());
         if (!securityDepositValidator.validate(value).isValid) {
-            dataModel.setBuyerSecurityDeposit(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
+            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
         }
     }
 
@@ -1210,15 +1280,17 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         isWaitingForFunds.set(!waitingForFundsText.get().isEmpty());
     }
 
-    private void updateBuyerSecurityDeposit() {
-        isMinBuyerSecurityDeposit.set(dataModel.isMinBuyerSecurityDeposit());
-
-        if (dataModel.isMinBuyerSecurityDeposit()) {
-            buyerSecurityDepositLabel.set(Res.get("createOffer.minSecurityDepositUsed"));
-            buyerSecurityDeposit.set(HavenoUtils.formatXmr(Restrictions.getMinBuyerSecurityDeposit()));
+    private void updateSecurityDeposit() {
+        isMinSecurityDeposit.set(dataModel.isMinSecurityDeposit());
+        if (dataModel.isMinSecurityDeposit()) {
+            securityDepositLabel.set(Res.get("createOffer.minSecurityDepositUsed"));
+            securityDeposit.set(HavenoUtils.formatXmr(Restrictions.getMinSecurityDeposit()));
         } else {
-            buyerSecurityDepositLabel.set(getSecurityDepositLabel());
-            buyerSecurityDeposit.set(FormattingUtils.formatToPercent(dataModel.getBuyerSecurityDepositPct().get()));
+            securityDepositLabel.set(getSecurityDepositLabel());
+            boolean hasBuyerAsTakerWithoutDeposit = dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer();
+            securityDeposit.set(FormattingUtils.formatToPercent(hasBuyerAsTakerWithoutDeposit ?
+                    Restrictions.getDefaultSecurityDepositAsPercent() : // use default percent if no deposit from buyer
+                    dataModel.getSecurityDepositPct().get()));
         }
     }
 
@@ -1240,8 +1312,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
 
         // validating the percentage deposit value only makes sense if it is actually used
-        if (!dataModel.isMinBuyerSecurityDeposit()) {
-            inputDataValid = inputDataValid && securityDepositValidator.validate(buyerSecurityDeposit.get()).isValid;
+        if (!dataModel.isMinSecurityDeposit()) {
+            inputDataValid = inputDataValid && securityDepositValidator.validate(securityDeposit.get()).isValid;
         }
 
         isNextButtonDisabled.set(!inputDataValid);

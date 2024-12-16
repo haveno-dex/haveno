@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -65,7 +82,7 @@ public class VolumeUtil {
     }
 
     public static Volume getRoundedVolumePrecise(Volume volumeByAmount) {
-        DecimalFormat decimalFormat = new DecimalFormat("#.####");
+        DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
         double roundedVolume = Double.parseDouble(decimalFormat.format(Double.parseDouble(volumeByAmount.toString())));
         return Volume.parse(String.valueOf(roundedVolume), volumeByAmount.getCurrencyCode());
     }
@@ -151,11 +168,11 @@ public class VolumeUtil {
     }
 
     public static String formatVolume(Volume volume, boolean appendCode) {
-        return formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()), appendCode);
+        return formatVolume(volume, volume == null ? null : getMonetaryFormat(volume.getCurrencyCode()), appendCode);
     }
 
     public static String formatAverageVolumeWithCode(Volume volume) {
-        return formatVolume(volume, getMonetaryFormat(volume.getCurrencyCode()).minDecimals(2), true);
+        return formatVolume(volume, volume == null ? null : getMonetaryFormat(volume.getCurrencyCode()).minDecimals(2), true);
     }
 
     public static String formatVolumeLabel(String currencyCode) {

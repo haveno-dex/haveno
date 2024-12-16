@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,12 +34,15 @@
 
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.core.api.CoreApi;
 import haveno.core.api.model.AddressBalanceInfo;
+import static haveno.core.api.model.XmrTx.toXmrTx;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.CreateXmrTxReply;
 import haveno.proto.grpc.CreateXmrTxRequest;
 import haveno.proto.grpc.GetAddressBalanceReply;
@@ -50,21 +70,6 @@ import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletReply;
 import haveno.proto.grpc.UnlockWalletRequest;
 import haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
-import io.grpc.ServerInterceptor;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-import monero.wallet.model.MoneroDestination;
-import monero.wallet.model.MoneroTxWallet;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static haveno.core.api.model.XmrTx.toXmrTx;
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static haveno.proto.grpc.WalletsGrpc.getGetAddressBalanceMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetBalancesMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetFundingAddressesMethod;
@@ -72,7 +77,17 @@ import static haveno.proto.grpc.WalletsGrpc.getLockWalletMethod;
 import static haveno.proto.grpc.WalletsGrpc.getRemoveWalletPasswordMethod;
 import static haveno.proto.grpc.WalletsGrpc.getSetWalletPasswordMethod;
 import static haveno.proto.grpc.WalletsGrpc.getUnlockWalletMethod;
+import io.grpc.ServerInterceptor;
+import io.grpc.stub.StreamObserver;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
 class GrpcWalletsService extends WalletsImplBase {

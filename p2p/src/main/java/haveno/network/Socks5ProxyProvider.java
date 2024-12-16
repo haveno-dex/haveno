@@ -1,43 +1,43 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.config.Config;
 import haveno.network.p2p.network.NetworkNode;
+import java.net.UnknownHostException;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import javax.inject.Named;
-import java.net.UnknownHostException;
-
 /**
- * Provides Socks5Proxies for the bitcoin network and http requests
+ * Provides Socks5Proxies for the monero network and http requests
  * <p/>
- * By default there is only used the haveno internal Tor proxy, which is used for the P2P network, Btc network
- * (if Tor for btc is enabled) and http requests (if Tor for http requests is enabled).
+ * By default there is only used the haveno internal Tor proxy, which is used for the P2P network, xmr network
+ * (if Tor for xmr is enabled) and http requests (if Tor for http requests is enabled).
  * If the user provides a socks5ProxyHttpAddress it will be used for http requests.
- * If the user provides a socks5ProxyBtcAddress, this will be used for the btc network.
- * If socks5ProxyBtcAddress is present but no socks5ProxyHttpAddress the socks5ProxyBtcAddress will be used for http
+ * If the user provides a socks5ProxyXmrAddress, this will be used for the xmr network.
+ * If socks5ProxyXmrAddress is present but no socks5ProxyHttpAddress the socks5ProxyXmrAddress will be used for http
  * requests.
- * If no socks5ProxyBtcAddress and no socks5ProxyHttpAddress is defined (default) we use socks5ProxyInternal.
+ * If no socks5ProxyXmrAddress and no socks5ProxyHttpAddress is defined (default) we use socks5ProxyInternal.
  */
 public class Socks5ProxyProvider {
     private static final Logger log = LoggerFactory.getLogger(Socks5ProxyProvider.class);
@@ -47,23 +47,23 @@ public class Socks5ProxyProvider {
 
     // proxy used for btc network
     @Nullable
-    private final Socks5Proxy socks5ProxyBtc;
+    private final Socks5Proxy socks5ProxyXmr;
 
     // if defined proxy used for http requests
     @Nullable
     private final Socks5Proxy socks5ProxyHttp;
 
     @Inject
-    public Socks5ProxyProvider(@Named(Config.SOCKS_5_PROXY_BTC_ADDRESS) String socks5ProxyBtcAddress,
+    public Socks5ProxyProvider(@Named(Config.SOCKS_5_PROXY_XMR_ADDRESS) String socks5ProxyXmrAddress,
                                @Named(Config.SOCKS_5_PROXY_HTTP_ADDRESS) String socks5ProxyHttpAddress) {
-        socks5ProxyBtc = getProxyFromAddress(socks5ProxyBtcAddress);
+        socks5ProxyXmr = getProxyFromAddress(socks5ProxyXmrAddress);
         socks5ProxyHttp = getProxyFromAddress(socks5ProxyHttpAddress);
     }
 
     @Nullable
     public Socks5Proxy getSocks5Proxy() {
-        if (socks5ProxyBtc != null)
-            return socks5ProxyBtc;
+        if (socks5ProxyXmr != null)
+            return socks5ProxyXmr;
         else if (socks5ProxyInternalFactory != null)
             return getSocks5ProxyInternal();
         else
@@ -71,8 +71,8 @@ public class Socks5ProxyProvider {
     }
 
     @Nullable
-    public Socks5Proxy getSocks5ProxyBtc() {
-        return socks5ProxyBtc;
+    public Socks5Proxy getSocks5ProxyXmr() {
+        return socks5ProxyXmr;
     }
 
     @Nullable
@@ -97,8 +97,7 @@ public class Socks5ProxyProvider {
                 try {
                     return new Socks5Proxy(tokens[0], Integer.valueOf(tokens[1]));
                 } catch (UnknownHostException e) {
-                    log.error(e.getMessage());
-                    e.printStackTrace();
+                    log.error(ExceptionUtils.getStackTrace(e));
                 }
             } else {
                 log.error("Incorrect format for socks5ProxyAddress. Should be: host:port.\n" +

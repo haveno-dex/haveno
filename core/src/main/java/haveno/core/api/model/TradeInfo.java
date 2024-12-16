@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.api.model;
@@ -21,6 +21,7 @@ import haveno.common.Payload;
 import haveno.core.api.model.builder.TradeInfoV1Builder;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
+import haveno.core.trade.TradeUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -64,13 +65,20 @@ public class TradeInfo implements Payload {
     private final String shortId;
     private final long date;
     private final String role;
-    private final long takerFee;
     private final String makerDepositTxId;
     private final String takerDepositTxId;
     private final String payoutTxId;
     private final long amount;
+    private final long makerFee;
+    private final long takerFee;
     private final long buyerSecurityDeposit;
     private final long sellerSecurityDeposit;
+    private final long buyerDepositTxFee;
+    private final long sellerDepositTxFee;
+    private final long buyerPayoutTxFee;
+    private final long sellerPayoutTxFee;
+    private final long buyerPayoutAmount;
+    private final long sellerPayoutAmount;
     private final String price;
     private final String volume;
     private final String arbitratorNodeAddress;
@@ -98,13 +106,20 @@ public class TradeInfo implements Payload {
         this.shortId = builder.getShortId();
         this.date = builder.getDate();
         this.role = builder.getRole();
-        this.takerFee = builder.getTakerFee();
         this.makerDepositTxId = builder.getMakerDepositTxId();
         this.takerDepositTxId = builder.getTakerDepositTxId();
         this.payoutTxId = builder.getPayoutTxId();
         this.amount = builder.getAmount();
+        this.makerFee = builder.getMakerFee();
+        this.takerFee = builder.getTakerFee();
         this.buyerSecurityDeposit = builder.getBuyerSecurityDeposit();
         this.sellerSecurityDeposit = builder.getSellerSecurityDeposit();
+        this.buyerDepositTxFee = builder.getBuyerDepositTxFee();
+        this.sellerDepositTxFee = builder.getSellerDepositTxFee();
+        this.buyerPayoutTxFee = builder.getBuyerPayoutTxFee();
+        this.sellerPayoutTxFee = builder.getSellerPayoutTxFee();
+        this.buyerPayoutAmount = builder.getBuyerPayoutAmount();
+        this.sellerPayoutAmount = builder.getSellerPayoutAmount();
         this.price = builder.getPrice();
         this.volume = builder.getVolume();
         this.arbitratorNodeAddress = builder.getArbitratorNodeAddress();
@@ -128,10 +143,7 @@ public class TradeInfo implements Payload {
     }
 
     public static TradeInfo toTradeInfo(Trade trade) {
-        return toTradeInfo(trade, null);
-    }
-
-    public static TradeInfo toTradeInfo(Trade trade, String role) {
+        String role = TradeUtil.getRole(trade);
         ContractInfo contractInfo;
         if (trade.getContract() != null) {
             Contract contract = trade.getContract();
@@ -154,13 +166,21 @@ public class TradeInfo implements Payload {
                 .withShortId(trade.getShortId())
                 .withDate(trade.getDate().getTime())
                 .withRole(role == null ? "" : role)
-                .withTakerFee(trade.getTakerFee().longValueExact())
                 .withMakerDepositTxId(trade.getMaker().getDepositTxHash())
                 .withTakerDepositTxId(trade.getTaker().getDepositTxHash())
                 .withPayoutTxId(trade.getPayoutTxId())
                 .withAmount(trade.getAmount().longValueExact())
-                .withBuyerSecurityDeposit(trade.getBuyerSecurityDeposit() == null ? -1 : trade.getBuyerSecurityDeposit().longValueExact())
-                .withSellerSecurityDeposit(trade.getSellerSecurityDeposit() == null ? -1 : trade.getSellerSecurityDeposit().longValueExact())
+                .withMakerFee(trade.getMakerFee().longValueExact())
+                .withTakerFee(trade.getTakerFee().longValueExact())
+                .withBuyerSecurityDeposit(trade.getBuyer().getSecurityDeposit().longValueExact())
+                .withSellerSecurityDeposit(trade.getSeller().getSecurityDeposit().longValueExact())
+                .withBuyerDepositTxFee(trade.getBuyer().getDepositTxFee().longValueExact())
+                .withSellerDepositTxFee(trade.getSeller().getDepositTxFee().longValueExact())
+                .withBuyerPayoutTxFee(trade.getBuyer().getPayoutTxFee().longValueExact())
+                .withSellerPayoutTxFee(trade.getSeller().getPayoutTxFee().longValueExact())
+                .withBuyerPayoutAmount(trade.getBuyer().getPayoutAmount().longValueExact())
+                .withSellerPayoutAmount(trade.getSeller().getPayoutAmount().longValueExact())
+                .withTotalTxFee(trade.getTotalTxFee().longValueExact())
                 .withPrice(toPreciseTradePrice.apply(trade))
                 .withVolume(toRoundedVolume.apply(trade))
                 .withArbitratorNodeAddress(toArbitratorNodeAddress.apply(trade))
@@ -197,13 +217,20 @@ public class TradeInfo implements Payload {
                 .setShortId(shortId)
                 .setDate(date)
                 .setRole(role)
-                .setTakerFee(takerFee)
                 .setMakerDepositTxId(makerDepositTxId == null ? "" : makerDepositTxId)
                 .setTakerDepositTxId(takerDepositTxId == null ? "" : takerDepositTxId)
                 .setPayoutTxId(payoutTxId == null ? "" : payoutTxId)
                 .setAmount(amount)
+                .setMakerFee(makerFee)
+                .setTakerFee(takerFee)
                 .setBuyerSecurityDeposit(buyerSecurityDeposit)
                 .setSellerSecurityDeposit(sellerSecurityDeposit)
+                .setBuyerDepositTxFee(buyerDepositTxFee)
+                .setSellerDepositTxFee(sellerDepositTxFee)
+                .setBuyerPayoutTxFee(buyerPayoutTxFee)
+                .setSellerPayoutTxFee(sellerPayoutTxFee)
+                .setBuyerPayoutAmount(buyerPayoutAmount)
+                .setSellerPayoutAmount(sellerPayoutAmount)
                 .setPrice(price)
                 .setTradeVolume(volume)
                 .setArbitratorNodeAddress(arbitratorNodeAddress)
@@ -234,13 +261,20 @@ public class TradeInfo implements Payload {
                 .withShortId(proto.getShortId())
                 .withDate(proto.getDate())
                 .withRole(proto.getRole())
-                .withTakerFee(proto.getTakerFee())
                 .withMakerDepositTxId(proto.getMakerDepositTxId())
                 .withTakerDepositTxId(proto.getTakerDepositTxId())
                 .withPayoutTxId(proto.getPayoutTxId())
                 .withAmount(proto.getAmount())
+                .withMakerFee(proto.getMakerFee())
+                .withTakerFee(proto.getTakerFee())
                 .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
                 .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
+                .withBuyerDepositTxFee(proto.getBuyerDepositTxFee())
+                .withSellerDepositTxFee(proto.getSellerDepositTxFee())
+                .withBuyerPayoutTxFee(proto.getBuyerPayoutTxFee())
+                .withSellerPayoutTxFee(proto.getSellerPayoutTxFee())
+                .withBuyerPayoutAmount(proto.getBuyerPayoutAmount())
+                .withSellerPayoutAmount(proto.getSellerPayoutAmount())
                 .withPrice(proto.getPrice())
                 .withVolume(proto.getTradeVolume())
                 .withPeriodState(proto.getPeriodState())
@@ -271,13 +305,20 @@ public class TradeInfo implements Payload {
                 ", shortId='" + shortId + '\'' + "\n" +
                 ", date='" + date + '\'' + "\n" +
                 ", role='" + role + '\'' + "\n" +
-                ", takerFee='" + takerFee + '\'' + "\n" +
                 ", makerDepositTxId='" + makerDepositTxId + '\'' + "\n" +
                 ", takerDepositTxId='" + takerDepositTxId + '\'' + "\n" +
                 ", payoutTxId='" + payoutTxId + '\'' + "\n" +
                 ", amount='" + amount + '\'' + "\n" +
+                ", makerFee='" + makerFee + '\'' + "\n" +
+                ", takerFee='" + takerFee + '\'' + "\n" +
                 ", buyerSecurityDeposit='" + buyerSecurityDeposit + '\'' + "\n" +
                 ", sellerSecurityDeposit='" + sellerSecurityDeposit + '\'' + "\n" +
+                ", buyerDepositTxFee='" + buyerDepositTxFee + '\'' + "\n" +
+                ", sellerDepositTxFee='" + sellerDepositTxFee + '\'' + "\n" +
+                ", buyerPayoutTxFee='" + buyerPayoutTxFee + '\'' + "\n" +
+                ", sellerPayoutTxFee='" + sellerPayoutTxFee + '\'' + "\n" +
+                ", buyerPayoutAmount='" + buyerPayoutAmount + '\'' + "\n" +
+                ", sellerPayoutAmount='" + sellerPayoutAmount + '\'' + "\n" +
                 ", price='" + price + '\'' + "\n" +
                 ", arbitratorNodeAddress='" + arbitratorNodeAddress + '\'' + "\n" +
                 ", tradePeerNodeAddress='" + tradePeerNodeAddress + '\'' + "\n" +

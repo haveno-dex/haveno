@@ -262,7 +262,6 @@
 .table-view .table-cell:selected {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
-    -fx-border-color: -fx-selection-bar;
 }
 
 .number-column.table-cell {
@@ -1201,6 +1200,19 @@ textfield */
     -fx-border-color: -bs-background-gray;
 }
 
+.text-area-no-border {
+    -fx-border-color: -bs-background-color;
+}
+
+.text-area-no-border .content {
+    -fx-background-color: -bs-background-color;
+}
+
+.text-area-no-border:focused {
+    -fx-focus-color: -bs-background-color;
+    -fx-faint-focus-color: -bs-background-color;
+}
+
 /*******************************************************************************
  *                                                                             *
  * Tab pane                                                                    *
@@ -1223,6 +1235,14 @@ textfield */
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button .jfx-rippler {
     -jfx-rippler-fill: -fx-accent;
+}
+
+.tab:disabled .jfx-rippler {
+    -jfx-rippler-fill: none !important;
+}
+
+.tab:disabled .tab-label {
+    -fx-cursor: default !important;
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button > .jfx-svg-glyph {
@@ -1255,6 +1275,7 @@ textfield */
     -fx-padding: 14;
     -fx-font-size: 0.769em;
     -fx-font-weight: normal;
+    -fx-cursor: hand;
 }
 
 .jfx-tab-pane .depth-container {

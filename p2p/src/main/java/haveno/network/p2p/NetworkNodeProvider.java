@@ -1,40 +1,38 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.name.Named;
+import haveno.common.config.Config;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import haveno.network.p2p.network.LocalhostNetworkNode;
-import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.NewTor;
 import haveno.network.p2p.network.RunningTor;
+import haveno.network.p2p.network.DirectBindTor;
 import haveno.network.p2p.network.TorMode;
-import haveno.network.p2p.network.TorNetworkNode;
-
-import haveno.common.config.Config;
-import haveno.common.proto.network.NetworkProtoResolver;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Provider;
-
+import haveno.network.p2p.network.TorNetworkNodeDirectBind;
+import haveno.network.p2p.network.TorNetworkNodeNetlayer;
 import java.io.File;
-
 import javax.annotation.Nullable;
 
 public class NetworkNodeProvider implements Provider<NetworkNode> {
@@ -48,9 +46,11 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             @Named(Config.MAX_CONNECTIONS) int maxConnections,
             @Named(Config.USE_LOCALHOST_FOR_P2P) boolean useLocalhostForP2P,
             @Named(Config.NODE_PORT) int port,
+            @Named(Config.HIDDEN_SERVICE_ADDRESS) String hiddenServiceAddress,
             @Named(Config.TOR_DIR) File torDir,
             @Nullable @Named(Config.TORRC_FILE) File torrcFile,
             @Named(Config.TORRC_OPTIONS) String torrcOptions,
+            @Named(Config.TOR_CONTROL_HOST) String controlHost,
             @Named(Config.TOR_CONTROL_PORT) int controlPort,
             @Named(Config.TOR_CONTROL_PASSWORD) String password,
             @Nullable @Named(Config.TOR_CONTROL_COOKIE_FILE) File cookieFile,
@@ -63,11 +63,17 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
                     torDir,
                     torrcFile,
                     torrcOptions,
+                    controlHost,
                     controlPort,
+                    hiddenServiceAddress,
                     password,
                     cookieFile,
                     useSafeCookieAuthentication);
-            networkNode = new TorNetworkNode(port, networkProtoResolver, streamIsolation, torMode, banFilter, maxConnections);
+            if (torMode instanceof NewTor || torMode instanceof RunningTor) {
+                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, controlHost);
+            } else {
+                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
+            }
         }
     }
 
@@ -75,13 +81,19 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             File torDir,
             @Nullable File torrcFile,
             String torrcOptions,
+            String controlHost,
             int controlPort,
+            String hiddenServiceAddress,
             String password,
             @Nullable File cookieFile,
             boolean useSafeCookieAuthentication) {
-        return controlPort != Config.UNSPECIFIED_PORT ?
-                new RunningTor(torDir, controlPort, password, cookieFile, useSafeCookieAuthentication) :
-                new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
+        if (!hiddenServiceAddress.equals("")) {
+            return new DirectBindTor();
+        } else if (controlPort != Config.UNSPECIFIED_PORT) {
+            return new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication);
+        } else {
+            return new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
+        }
     }
 
     @Override

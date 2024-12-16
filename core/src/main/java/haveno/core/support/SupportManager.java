@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support;
@@ -21,7 +21,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.network.NetworkEnvelope;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.Dispute;
@@ -29,8 +29,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.trade.protocol.TradeProtocol.MailboxMessageComparator;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
@@ -39,10 +38,10 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
+import haveno.network.p2p.mailbox.MailboxMessageService.DecryptedMessageWithPubKeyComparator;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +51,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public abstract class SupportManager {
     protected final P2PService p2PService;
     protected final TradeManager tradeManager;
-    protected final CoreMoneroConnectionsService connectionService;
+    protected final XmrConnectionService xmrConnectionService;
+    protected final XmrWalletService xmrWalletService;
     protected final CoreNotificationService notificationService;
     protected final Map<String, Timer> delayMsgMap = new HashMap<>();
     private final Object lock = new Object();
@@ -67,20 +67,22 @@ public abstract class SupportManager {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public SupportManager(P2PService p2PService,
-                          CoreMoneroConnectionsService connectionService,
+                          XmrConnectionService xmrConnectionService,
+                          XmrWalletService xmrWalletService,
                           CoreNotificationService notificationService,
                           TradeManager tradeManager) {
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
+        this.xmrWalletService = xmrWalletService;
         this.mailboxMessageService = p2PService.getMailboxMessageService();
         this.notificationService = notificationService;
         this.tradeManager = tradeManager;
 
         // We get first the message handler called then the onBootstrapped
         p2PService.addDecryptedDirectMessageListener((decryptedMessageWithPubKey, senderAddress) -> {
-            if (isReady()) applyDirectMessage(decryptedMessageWithPubKey);
-            else {
-                synchronized (lock) {
+            synchronized (lock) {
+                if (isReady()) applyDirectMessage(decryptedMessageWithPubKey);
+                else {
                     // As decryptedDirectMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
                     decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
                     tryApplyMessages();
@@ -88,9 +90,9 @@ public abstract class SupportManager {
             }
         });
         mailboxMessageService.addDecryptedMailboxListener((decryptedMessageWithPubKey, senderAddress) -> {
-            if (isReady()) applyMailboxMessage(decryptedMessageWithPubKey);
-            else {
-                synchronized (lock) {
+            synchronized (lock) {
+                if (isReady()) applyMailboxMessage(decryptedMessageWithPubKey);
+                else {
                     // As decryptedMailboxMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
                     decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
                     tryApplyMessages();
@@ -184,24 +186,47 @@ public abstract class SupportManager {
     private void onAckMessage(AckMessage ackMessage) {
         if (ackMessage.getSourceType() == getAckMessageSourceType()) {
             if (ackMessage.isSuccess()) {
-                log.info("Received AckMessage for {} with tradeId {} and uid {}",
-                        ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+                log.info("Received AckMessage for {} with tradeId {} and uid {}", ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
 
                 // ack message on chat message received when dispute is opened and closed
                 if (ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName())) {
                     Trade trade = tradeManager.getTrade(ackMessage.getSourceId());
                     for (Dispute dispute : trade.getDisputes()) {
-                        for (ChatMessage chatMessage : dispute.getChatMessages()) {
-                            if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                if (dispute.isClosed()) trade.syncWalletNormallyForMs(30000); // sync to check for payout
-                                else trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                            synchronized (dispute.getChatMessages()) {
+                                for (ChatMessage chatMessage : dispute.getChatMessages()) {
+                                    if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
+                                        if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) {
+                                            if (dispute.isClosed()) dispute.reOpen();
+                                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                                        } else if (dispute.isClosed()) {
+                                            trade.pollWalletNormallyForMs(60000); // sync to check for payout
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                }
+            } else {
+                log.warn("Received AckMessage with error state for {} with tradeId={}, sender={}, errorMessage={}",
+                        ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSenderNodeAddress(), ackMessage.getErrorMessage());
+
+                // nack message on chat message received when dispute closed message is nacked
+                if (ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName())) {
+                    Trade trade = tradeManager.getTrade(ackMessage.getSourceId());
+                    for (Dispute dispute : trade.getDisputes()) {
+                        synchronized (dispute.getChatMessages()) {
+                            for (ChatMessage chatMessage : dispute.getChatMessages()) {
+                                if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
+                                    if (trade.getDisputeState().isCloseRequested()) {
+                                        log.warn("DisputeCloseMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
+                                        dispute.setIsClosed();
+                                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            } else {
-                log.warn("Received AckMessage with error state for {} with tradeId {} and errorMessage={}",
-                        ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getErrorMessage());
             }
 
             getAllChatMessages(ackMessage.getSourceId()).stream()
@@ -332,8 +357,9 @@ public abstract class SupportManager {
     private boolean isReady() {
         return allServicesInitialized &&
                 p2PService.isBootstrapped() &&
-                connectionService.isDownloadComplete() &&
-                connectionService.hasSufficientPeersForBroadcast();
+                xmrConnectionService.isDownloadComplete() &&
+                xmrConnectionService.hasSufficientPeersForBroadcast() &&
+                xmrWalletService.isDownloadComplete();
     }
 
 
@@ -388,24 +414,6 @@ public abstract class SupportManager {
             AckMessage ackMessage = (AckMessage) networkEnvelope;
             onAckMessage(ackMessage);
             mailboxMessageService.removeMailboxMsg(ackMessage);
-        }
-    }
-
-    private static class DecryptedMessageWithPubKeyComparator implements Comparator<DecryptedMessageWithPubKey> {
-
-        MailboxMessageComparator mailboxMessageComparator;
-        public DecryptedMessageWithPubKeyComparator() {
-            mailboxMessageComparator = new TradeProtocol.MailboxMessageComparator();
-        }
-
-        @Override
-        public int compare(DecryptedMessageWithPubKey m1, DecryptedMessageWithPubKey m2) {
-            if (m1.getNetworkEnvelope() instanceof MailboxMessage) {
-                if (m2.getNetworkEnvelope() instanceof MailboxMessage) return mailboxMessageComparator.compare((MailboxMessage) m1.getNetworkEnvelope(), (MailboxMessage) m2.getNetworkEnvelope());
-                else return 1;
-            } else {
-                return m2.getNetworkEnvelope() instanceof MailboxMessage ? -1 : 0;
-            }
         }
     }
 }

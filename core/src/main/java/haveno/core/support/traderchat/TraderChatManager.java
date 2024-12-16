@@ -1,26 +1,28 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.traderchat;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
-import haveno.core.api.CoreMoneroConnectionsService;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportManager;
 import haveno.core.support.SupportType;
@@ -28,17 +30,15 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import java.util.List;
+import java.util.Optional;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Singleton
@@ -52,11 +52,12 @@ public class TraderChatManager extends SupportManager {
 
     @Inject
     public TraderChatManager(P2PService p2PService,
-                             CoreMoneroConnectionsService connectionService,
+                             XmrConnectionService xmrConnectionService,
+                             XmrWalletService xmrWalletService,
                              CoreNotificationService notificationService,
                              TradeManager tradeManager,
                              PubKeyRingProvider pubKeyRingProvider) {
-        super(p2PService, connectionService, notificationService, tradeManager);
+        super(p2PService, xmrConnectionService, xmrWalletService, notificationService, tradeManager);
         this.pubKeyRingProvider = pubKeyRingProvider;
     }
 

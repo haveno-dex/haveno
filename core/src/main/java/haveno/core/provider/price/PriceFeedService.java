@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.provider.price;
@@ -33,7 +33,6 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.provider.PriceHttpClient;
 import haveno.core.provider.ProvidersRepository;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.user.Preferences;
 import haveno.network.http.HttpClient;
@@ -116,6 +115,7 @@ public class PriceFeedService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void shutDown() {
+        log.info("Shutting down {}", getClass().getSimpleName());
         if (requestTimer != null) {
             requestTimer.stop();
             requestTimer = null;
@@ -137,8 +137,29 @@ public class PriceFeedService {
         request(false);
     }
 
-    public boolean hasPrices() {
-        return !cache.isEmpty();
+    /**
+     * Awaits prices to be available, but does not request them.
+     */
+    public void awaitExternalPrices() {
+        CountDownLatch latch = new CountDownLatch(1);
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { 
+            if (hasExternalPrices()) UserThread.execute(() -> latch.countDown());
+        };
+        UserThread.execute(() -> updateCounter.addListener(listener));
+        if (hasExternalPrices()) UserThread.execute(() -> latch.countDown());
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            UserThread.execute(() -> updateCounter.removeListener(listener));
+        }
+    }
+
+    public boolean hasExternalPrices() {
+        synchronized (cache) {
+            return cache.values().stream().anyMatch(MarketPrice::isExternallyProvidedPrice);
+        }
     }
 
     public void startRequestingPrices() {
@@ -223,7 +244,7 @@ public class PriceFeedService {
                 if (baseUrlOfRespondingProvider == null) {
                     final String oldBaseUrl = priceProvider.getBaseUrl();
                     setNewPriceProvider();
-                    log.warn("We did not received a response from provider {}. " +
+                    log.warn("We did not receive a response from provider {}. " +
                             "We select the new provider {} and use that for a new request.", oldBaseUrl, priceProvider.getBaseUrl());
                 }
                 request(true);
@@ -258,27 +279,36 @@ public class PriceFeedService {
 
     // returns true if provider selection loops back to beginning
     private boolean setNewPriceProvider() {
+        httpClient.cancelPendingRequest();
         boolean looped = providersRepository.selectNextProviderBaseUrl();
-        if (!providersRepository.getBaseUrl().isEmpty())
+        if (!providersRepository.getBaseUrl().isEmpty()) {
             priceProvider = new PriceProvider(httpClient, providersRepository.getBaseUrl());
-        else
+        } else {
             log.warn("We cannot create a new priceProvider because new base url is empty.");
-            return looped;
+        }
+        return looped;
     }
 
     @Nullable
     public MarketPrice getMarketPrice(String currencyCode) {
-        return cache.getOrDefault(currencyCode, null);
+        synchronized (cache) {
+            return cache.getOrDefault(CurrencyUtil.getCurrencyCodeBase(currencyCode), null);
+        }
     }
 
     private void setHavenoMarketPrice(String currencyCode, Price price) {
-        if (!cache.containsKey(currencyCode) || !cache.get(currencyCode).isExternallyProvidedPrice()) {
-            cache.put(currencyCode, new MarketPrice(currencyCode,
-                    MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
-                    0,
-                    false));
-            updateCounter.set(updateCounter.get() + 1);
-        }
+        UserThread.execute(() -> {
+            String currencyCodeBase = CurrencyUtil.getCurrencyCodeBase(currencyCode);
+            synchronized (cache) {
+                if (!cache.containsKey(currencyCodeBase) || !cache.get(currencyCodeBase).isExternallyProvidedPrice()) {
+                    cache.put(currencyCodeBase, new MarketPrice(currencyCodeBase,
+                            MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
+                            0,
+                            false));
+                }
+                updateCounter.set(updateCounter.get() + 1);
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -286,12 +316,13 @@ public class PriceFeedService {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setCurrencyCode(String currencyCode) {
-        if (this.currencyCode == null || !this.currencyCode.equals(currencyCode)) {
-            this.currencyCode = currencyCode;
-            currencyCodeProperty.set(currencyCode);
-            if (priceConsumer != null)
-                applyPriceToConsumer();
-        }
+        UserThread.await(() -> {
+            if (this.currencyCode == null || !this.currencyCode.equals(currencyCode)) {
+                this.currencyCode = currencyCode;
+                currencyCodeProperty.set(currencyCode);
+                if (priceConsumer != null) applyPriceToConsumer();
+            }
+        });
     }
 
 
@@ -348,17 +379,21 @@ public class PriceFeedService {
      */
     public synchronized Map<String, MarketPrice> requestAllPrices() throws ExecutionException, InterruptedException, TimeoutException, CancellationException {
         CountDownLatch latch = new CountDownLatch(1);
-        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> { latch.countDown(); };
-        updateCounter.addListener(listener);
+        ChangeListener<? super Number> listener = (observable, oldValue, newValue) -> latch.countDown();
+        UserThread.execute(() -> updateCounter.addListener(listener));
         requestAllPricesError = null;
         requestPrices();
         UserThread.runAfter(() -> {
-            if (latch.getCount() == 0) return;
-            requestAllPricesError = "Timeout fetching market prices within 20 seconds";
-            latch.countDown();
+            if (latch.getCount() > 0) requestAllPricesError = "Timeout fetching market prices within 20 seconds";
+            UserThread.execute(() -> latch.countDown());
         }, 20);
-        HavenoUtils.awaitLatch(latch);
-        updateCounter.removeListener(listener);
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            UserThread.execute(() -> updateCounter.removeListener(listener));
+        }
         if (requestAllPricesError != null) throw new RuntimeException(requestAllPricesError);
         return cache;
     }
@@ -416,7 +451,7 @@ public class PriceFeedService {
                 faultHandler.handleFault(errorMessage, new PriceRequestException(errorMessage));
         }
 
-        updateCounter.set(updateCounter.get() + 1);
+        UserThread.execute(() -> updateCounter.set(updateCounter.get() + 1));
 
         return result;
     }
@@ -441,7 +476,9 @@ public class PriceFeedService {
 
                     Map<String, MarketPrice> priceMap = result;
 
-                    cache.putAll(priceMap);
+                    synchronized (cache) {
+                        cache.putAll(priceMap);
+                    }
 
                     resultHandler.run();
                 });

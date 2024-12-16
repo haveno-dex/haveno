@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.apitest.method.offer;
@@ -47,7 +47,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         100000000000L, // exceeds amount limit
                         100000000000L,
                         "10000.0000",
-                        defaultBuyerSecurityDepositPct.get(),
+                        defaultSecurityDepositPct.get(),
                         usdAccount.getId()));
         assertEquals("UNKNOWN: An error occurred at task: ValidateOffer", exception.getMessage());
     }
@@ -63,7 +63,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         10000000L,
                         10000000L,
                         "40000.0000",
-                        defaultBuyerSecurityDepositPct.get(),
+                        defaultSecurityDepositPct.get(),
                         chfAccount.getId()));
         String expectedError = format("UNKNOWN: cannot create EUR offer with payment account %s", chfAccount.getId());
         assertEquals(expectedError, exception.getMessage());
@@ -80,7 +80,7 @@ public class ValidateCreateOfferTest extends AbstractOfferTest {
                         10000000L,
                         10000000L,
                         "63000.0000",
-                        defaultBuyerSecurityDepositPct.get(),
+                        defaultSecurityDepositPct.get(),
                         audAccount.getId()));
         String expectedError = format("UNKNOWN: cannot create CAD offer with payment account %s", audAccount.getId());
         assertEquals(expectedError, exception.getMessage());

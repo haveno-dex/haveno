@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.dispute;
@@ -30,8 +30,13 @@ import haveno.core.locale.Res;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.SupportType;
+import haveno.core.support.dispute.mediation.FileTransferReceiver;
+import haveno.core.support.dispute.mediation.FileTransferSender;
+import haveno.core.support.dispute.mediation.FileTransferSession;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Contract;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.NetworkNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -49,6 +54,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,6 +76,10 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         OPEN,
         REOPENED,
         CLOSED;
+
+        public boolean isOpen() {
+            return this == NEW || this == OPEN || this == REOPENED;
+        }
 
         public static Dispute.State fromProto(protobuf.Dispute.State state) {
             return ProtoUtil.enumFromProto(Dispute.State.class, state.name());
@@ -150,6 +161,25 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
 
     private transient final BooleanProperty isClosedProperty = new SimpleBooleanProperty();
     private transient final IntegerProperty badgeCountProperty = new SimpleIntegerProperty();
+
+    private transient FileTransferReceiver fileTransferSession = null;
+
+    public FileTransferReceiver createOrGetFileTransferReceiver(NetworkNode networkNode,
+                                                                NodeAddress peerNodeAddress,
+                                                                FileTransferSession.FtpCallback callback) throws IOException {
+        // the receiver stores its state temporarily here in the dispute
+        // this method gets called to retrieve the session each time a part of the log files is received
+        if (fileTransferSession == null) {
+            fileTransferSession = new FileTransferReceiver(networkNode, peerNodeAddress, this.tradeId, this.traderId, this.getRoleStringForLogFile(), callback);
+        }
+        return fileTransferSession;
+    }
+
+    public FileTransferSender createFileTransferSender(NetworkNode networkNode,
+                                                       NodeAddress peerNodeAddress,
+                                                       FileTransferSession.FtpCallback callback) {
+        return new FileTransferSender(networkNode, peerNodeAddress, this.tradeId, this.traderId, this.getRoleStringForLogFile(), false, callback);
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -323,10 +353,12 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
-        if (!chatMessages.contains(chatMessage)) {
-            chatMessages.add(chatMessage);
-        } else {
-            log.error("disputeDirectMessage already exists");
+        synchronized (chatMessages) {
+            if (!chatMessages.contains(chatMessage)) {
+                chatMessages.add(chatMessage);
+            } else {
+                log.error("disputeDirectMessage already exists");
+            }
         }
     }
 
@@ -335,13 +367,15 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     }
 
     public boolean removeAllChatMessages() {
-        if (chatMessages.size() > 1) {
-            // removes all chat except the initial guidelines message.
-            String firstMessageUid = chatMessages.get(0).getUid();
-            chatMessages.removeIf((msg) -> !msg.getUid().equals(firstMessageUid));
-            return true;
+        synchronized (chatMessages) {
+            if (chatMessages.size() > 1) {
+                // removes all chat except the initial guidelines message.
+                String firstMessageUid = chatMessages.get(0).getUid();
+                chatMessages.removeIf((msg) -> !msg.getUid().equals(firstMessageUid));
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     public void maybeClearSensitiveData() {
@@ -432,6 +466,10 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
         return this.disputeState == State.NEW;
     }
 
+    public boolean isOpen() {
+        return isNew() || this.disputeState == State.OPEN || this.disputeState == State.REOPENED;
+    }
+
     public boolean isClosed() {
         return this.disputeState == State.CLOSED;
     }
@@ -476,6 +514,11 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
             else
                 return Res.get(isOpener() ? "support.sellerTaker" : "support.buyerMaker");
         }
+    }
+
+    public String getRoleStringForLogFile() {
+        return (disputeOpenerIsBuyer ? "BUYER" : "SELLER") + "_"
+                + (disputeOpenerIsMaker ? "MAKER" : "TAKER");
     }
 
     @Nullable

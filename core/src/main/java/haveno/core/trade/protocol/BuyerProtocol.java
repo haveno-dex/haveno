@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,7 @@
 
 package haveno.core.trade.protocol;
 
+import haveno.common.ThreadUtils;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.trade.BuyerTrade;
@@ -28,6 +46,7 @@ import haveno.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
 import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToArbitrator;
 import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToSeller;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
+import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToSeller;
 import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
@@ -54,26 +73,30 @@ public class BuyerProtocol extends DisputeProtocol {
         super.onInitialized();
 
         // re-send payment sent message if not acked
-        synchronized (trade) {
-            if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
-                latchTrade();
-                given(anyPhase(Trade.Phase.PAYMENT_SENT)
-                    .with(BuyerEvent.STARTUP))
-                    .setup(tasks(
-                            BuyerSendPaymentSentMessageToSeller.class,
-                            BuyerSendPaymentSentMessageToArbitrator.class)
-                    .using(new TradeTaskRunner(trade,
-                            () -> {
-                                unlatchTrade();
-                            },
-                            (errorMessage) -> {
-                                log.warn("Error sending PaymentSentMessage on startup: " + errorMessage);
-                                unlatchTrade();
-                            })))
-                    .executeTasks();
-                awaitTradeLatch();
+        ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            synchronized (trade.getLock()) {
+                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+                if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
+                    latchTrade();
+                    given(anyPhase(Trade.Phase.PAYMENT_SENT)
+                        .with(BuyerEvent.STARTUP))
+                        .setup(tasks(
+                                BuyerSendPaymentSentMessageToSeller.class,
+                                BuyerSendPaymentSentMessageToArbitrator.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    unlatchTrade();
+                                },
+                                (errorMessage) -> {
+                                    log.warn("Error sending PaymentSentMessage on startup: " + errorMessage);
+                                    unlatchTrade();
+                                })))
+                        .executeTasks();
+                    awaitTradeLatch();
+                }
             }
-        }
+        }, trade.getId());
     }
 
     @Override
@@ -97,8 +120,8 @@ public class BuyerProtocol extends DisputeProtocol {
 
     public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         System.out.println("BuyerProtocol.onPaymentSent()");
-        new Thread(() -> {
-            synchronized (trade) {
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 BuyerEvent event = BuyerEvent.PAYMENT_SENT;
@@ -112,14 +135,17 @@ public class BuyerProtocol extends DisputeProtocol {
                                     BuyerSendPaymentSentMessageToArbitrator.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
+                                        stopTimeout();
                                         this.errorMessageHandler = null;
                                         resultHandler.handleResult();
                                         handleTaskRunnerSuccess(event);
                                     },
                                     (errorMessage) -> {
+                                        log.warn("Error confirming payment sent, reverting state to {}, error={}", Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN, errorMessage);
+                                        trade.setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
                                         handleTaskRunnerFault(event, errorMessage);
                                     })))
-                            .run(() -> trade.setState(Trade.State.BUYER_CONFIRMED_IN_UI_PAYMENT_SENT))
+                            .run(() -> trade.advanceState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment sent: " + e.getMessage());
@@ -127,12 +153,12 @@ public class BuyerProtocol extends DisputeProtocol {
                 }
                 awaitTradeLatch();
             }
-        }).start();
+        }, trade.getId());
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public Class<? extends TradeTask>[] getDepositsConfirmedTasks() {
-        return new Class[] { SendDepositsConfirmedMessageToArbitrator.class };
+        return new Class[] { SendDepositsConfirmedMessageToSeller.class, SendDepositsConfirmedMessageToArbitrator.class };
     }
 }

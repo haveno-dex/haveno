@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.apitest.method.offer;
@@ -66,7 +66,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 usdAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #1:\n{}", toOfferTable.apply(newOffer));
@@ -80,7 +80,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals(USD, newOffer.getCounterCurrencyCode());
@@ -94,7 +95,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(usdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals(USD, newOffer.getCounterCurrencyCode());
@@ -112,7 +114,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 nzdAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #2:\n{}", toOfferTable.apply(newOffer));
@@ -126,7 +128,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(nzdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals("NZD", newOffer.getCounterCurrencyCode());
@@ -140,7 +143,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(10_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(nzdAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals("NZD", newOffer.getCounterCurrencyCode());
@@ -158,7 +162,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 gbpAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #3:\n{}", toOfferTable.apply(newOffer));
@@ -172,7 +176,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(5_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(gbpAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals("GBP", newOffer.getCounterCurrencyCode());
@@ -186,7 +191,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(5_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(gbpAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals("GBP", newOffer.getCounterCurrencyCode());
@@ -204,7 +210,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 brlAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #4:\n{}", toOfferTable.apply(newOffer));
@@ -218,7 +224,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(5_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(brlAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals("BRL", newOffer.getCounterCurrencyCode());
@@ -232,7 +239,8 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
         assertEquals(priceMarginPctInput, newOffer.getMarketPriceMarginPct());
         assertEquals(10_000_000, newOffer.getAmount());
         assertEquals(5_000_000, newOffer.getMinAmount());
-        assertEquals(1_500_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(brlAccount.getId(), newOffer.getPaymentAccountId());
         assertEquals(BTC, newOffer.getBaseCurrencyCode());
         assertEquals("BRL", newOffer.getCounterCurrencyCode());
@@ -251,7 +259,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 0.0,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 usdAccount.getId(),
                 triggerPrice);
         assertTrue(newOffer.getIsMyOffer());

@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -20,6 +37,9 @@ package haveno.core.api;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.core.api.model.AddressBalanceInfo;
@@ -29,13 +49,22 @@ import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.app.AppStartupState;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
+import static haveno.core.util.ParsingUtils.parseToCoin;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.Balances;
 import haveno.core.xmr.model.AddressEntry;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
+import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
+import static java.lang.String.format;
+import java.util.List;
+import java.util.Optional;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
@@ -46,20 +75,6 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static haveno.core.util.ParsingUtils.parseToCoin;
-import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
-import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Singleton
 @Slf4j
@@ -118,7 +133,6 @@ class CoreWalletsService {
         verifyWalletCurrencyCodeIsValid(currencyCode);
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
-        if (balances.getAvailableBalance().get() == null) throw new IllegalStateException("balance is not yet available");
 
         switch (currencyCode.trim().toUpperCase()) {
             case "":
@@ -144,7 +158,7 @@ class CoreWalletsService {
 
     List<MoneroTxWallet> getXmrTxs() {
         accountService.checkAccountOpen();
-        return xmrWalletService.getWallet().getTxs();
+        return xmrWalletService.getTxs();
     }
 
     MoneroTxWallet createXmrTx(List<MoneroDestination> destinations) {
@@ -164,7 +178,7 @@ class CoreWalletsService {
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
         try {
-            return xmrWalletService.getWallet().relayTx(metadata);
+            return xmrWalletService.relayTx(metadata);
         } catch (Exception ex) {
             log.error("", ex);
             throw new IllegalStateException(ex);
@@ -403,28 +417,8 @@ class CoreWalletsService {
     private XmrBalanceInfo getXmrBalances() {
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
-
-        var availableBalance = balances.getAvailableBalance().get();
-        if (availableBalance == null)
-            throw new IllegalStateException("available balance is not yet available");
-
-        var pendingBalance = balances.getPendingBalance().get();
-        if (pendingBalance == null)
-            throw new IllegalStateException("locked balance is not yet available");
-
-        var reservedOfferBalance = balances.getReservedOfferBalance().get();
-        if (reservedOfferBalance == null)
-            throw new IllegalStateException("reserved offer balance is not yet available");
-
-        var reservedTradeBalance = balances.getReservedTradeBalance().get();
-        if (reservedTradeBalance == null)
-            throw new IllegalStateException("reserved trade balance is not yet available");
-
-        return new XmrBalanceInfo(availableBalance.longValue() + pendingBalance.longValue(),
-                availableBalance.longValue(),
-                pendingBalance.longValue(),
-                reservedOfferBalance.longValue(),
-                reservedTradeBalance.longValue());
+        if (balances.getAvailableBalance() == null) throw new IllegalStateException("Balances are not yet available");
+        return balances.getBalances();
     }
 
     // Returns a Coin for the transfer amount string, or a RuntimeException if invalid.

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p;
@@ -74,19 +74,27 @@ public final class NodeAddress implements PersistablePayload, NetworkPayload, Us
         return hostName + ":" + port;
     }
 
-    public String getHostNameWithoutPostFix() {
+    public String getAddressForDisplay() {
+        if (hostName.endsWith(".onion")) return getHostNameForDisplay();
+        else return shortenAddressForDisplay(getFullAddress());
+    }
+
+    private String getHostNameWithoutPostFix() {
         return hostName.replace(".onion", "");
     }
 
     // tor v3 onions are too long to display for example in a table grid, so this convenience method
     // produces a display-friendly format which includes [first 7]..[last 7] characters.
     // tor v2 and localhost will be displayed in full, as they are 16 chars or fewer.
-    public String getHostNameForDisplay() {
-        String work = getHostNameWithoutPostFix();
-        if (work.length() > 16) {
-            return work.substring(0, 7) + ".." + work.substring(work.length() - 7);
+    private String getHostNameForDisplay() {
+        return shortenAddressForDisplay(getHostNameWithoutPostFix());
+    }
+
+    private String shortenAddressForDisplay(String address) {
+        if (address.length() > 16) {
+            return address.substring(0, 7) + ".." + address.substring(address.length() - 7);
         }
-        return work;
+        return address;
     }
 
     // We use just a few chars from the full address to blur the potential receiver for sent network_messages

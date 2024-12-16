@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade.messages;
@@ -63,7 +63,7 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
         return getNetworkEnvelopeBuilder()
                 .setMediatedPayoutTxSignatureMessage(protobuf.MediatedPayoutTxSignatureMessage.newBuilder()
                         .setTxSignature(ByteString.copyFrom(txSignature))
-                        .setTradeId(tradeId)
+                        .setTradeId(offerId)
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                         .setUid(uid))
                 .build();
@@ -79,8 +79,8 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
     }
 
     @Override
-    public String getTradeId() {
-        return tradeId;
+    public String getOfferId() {
+        return offerId;
     }
 
 
@@ -88,7 +88,7 @@ public class MediatedPayoutTxSignatureMessage extends TradeMailboxMessage {
     public String toString() {
         return "MediatedPayoutSignatureMessage{" +
                 "\n     txSignature=" + Utilities.bytesAsHexString(txSignature) +
-                ",\n     tradeId='" + tradeId + '\'' +
+                ",\n     tradeId='" + offerId + '\'' +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 "\n} " + super.toString();
     }

@@ -1,23 +1,26 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.peers;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkArgument;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -37,12 +40,6 @@ import haveno.network.p2p.network.RuleViolation;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.seed.SeedNodeRepository;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -56,8 +53,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import javax.annotation.Nullable;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class PeerManager implements ConnectionListener, PersistedDataHost {
@@ -79,6 +77,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     private static final boolean PRINT_REPORTED_PEERS_DETAILS = true;
     private Timer printStatisticsTimer;
     private boolean shutDownRequested;
+    private int numOnConnections;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -169,7 +168,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         };
         clockWatcher.addListener(clockWatcherListener);
 
-        printStatisticsTimer = UserThread.runPeriodically(this::printStatistics, TimeUnit.MINUTES.toSeconds(5));
+        printStatisticsTimer = UserThread.runPeriodically(this::printStatistics, TimeUnit.MINUTES.toSeconds(60));
     }
 
     public void shutDown() {
@@ -211,6 +210,8 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         doHouseKeeping();
 
+        numOnConnections++;
+
         if (lostAllConnections) {
             lostAllConnections = false;
             stopped = false;
@@ -226,14 +227,15 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
     @Override
     public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
-        log.info("onDisconnect called: nodeAddress={}, closeConnectionReason={}",
+        log.debug("onDisconnect called: nodeAddress={}, closeConnectionReason={}",
                 connection.getPeersNodeAddressOptional(), closeConnectionReason);
         handleConnectionFault(connection);
 
         boolean previousLostAllConnections = lostAllConnections;
         lostAllConnections = networkNode.getAllConnections().isEmpty();
 
-        if (lostAllConnections) {
+        // At start-up we ignore if we would lose a connection and would fall back to no connections
+        if (lostAllConnections && numOnConnections > 2) {
             stopped = true;
 
             if (!shutDownRequested) {
@@ -365,19 +367,21 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         // We check if the reported msg is not violating our rules
         if (peers.size() <= (MAX_REPORTED_PEERS + maxConnectionsAbsolute + 10)) {
-            reportedPeers.addAll(peers);
-            purgeReportedPeersIfExceeds();
+            synchronized (reportedPeers) {
+                reportedPeers.addAll(peers);
+                purgeReportedPeersIfExceeds();
 
-            getPersistedPeers().addAll(peers);
-            purgePersistedPeersIfExceeds();
-            requestPersistence();
+                getPersistedPeers().addAll(peers);
+                purgePersistedPeersIfExceeds();
+                requestPersistence();
 
-            printReportedPeers();
+                printReportedPeers();
+            }
         } else {
             // If a node is trying to send too many list we treat it as rule violation.
             // Reported list include the connected list. We use the max value and give some extra headroom.
             // Will trigger a shutdown after 2nd time sending too much
-            connection.reportInvalidRequest(RuleViolation.TOO_MANY_REPORTED_PEERS_SENT);
+            connection.reportInvalidRequest(RuleViolation.TOO_MANY_REPORTED_PEERS_SENT, "Too many reported peers sent");
         }
     }
 
@@ -553,7 +557,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         if (!candidates.isEmpty()) {
             Connection connection = candidates.remove(0);
-            log.info("checkMaxConnections: Num candidates for shut down={}. We close oldest connection to peer {}",
+            log.info("checkMaxConnections: Num candidates (inbound/peer) for shut down={}. We close oldest connection to peer {}",
                     candidates.size(), connection.getPeersNodeAddressOptional());
             if (!connection.isStopped()) {
                 connection.shutDown(CloseConnectionReason.TOO_MANY_CONNECTIONS_OPEN,
@@ -589,8 +593,11 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void removeReportedPeer(Peer reportedPeer) {
-        reportedPeers.remove(reportedPeer);
-        printReportedPeers();
+        synchronized (reportedPeers) {
+            reportedPeers.remove(reportedPeer);
+            printReportedPeers();
+        }
+
     }
 
     private void removeReportedPeer(NodeAddress nodeAddress) {
@@ -611,35 +618,39 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
 
     private void purgeReportedPeersIfExceeds() {
-        int size = reportedPeers.size();
-        if (size > MAX_REPORTED_PEERS) {
-            log.info("We have already {} reported peers which exceeds our limit of {}." +
-                    "We remove random peers from the reported peers list.", size, MAX_REPORTED_PEERS);
-            int diff = size - MAX_REPORTED_PEERS;
-            List<Peer> list = new ArrayList<>(reportedPeers);
-            // we don't use sorting by lastActivityDate to keep it more random
-            for (int i = 0; i < diff; i++) {
-                if (!list.isEmpty()) {
-                    Peer toRemove = list.remove(new Random().nextInt(list.size()));
-                    removeReportedPeer(toRemove);
+        synchronized (reportedPeers) {
+            int size = reportedPeers.size();
+            if (size > MAX_REPORTED_PEERS) {
+                log.info("We have already {} reported peers which exceeds our limit of {}." +
+                        "We remove random peers from the reported peers list.", size, MAX_REPORTED_PEERS);
+                int diff = size - MAX_REPORTED_PEERS;
+                List<Peer> list = new ArrayList<>(reportedPeers);
+                // we don't use sorting by lastActivityDate to keep it more random
+                for (int i = 0; i < diff; i++) {
+                    if (!list.isEmpty()) {
+                        Peer toRemove = list.remove(new Random().nextInt(list.size()));
+                        removeReportedPeer(toRemove);
+                    }
                 }
+            } else {
+                log.trace("No need to purge reported peers.\n\tWe don't have more then {} reported peers yet.", MAX_REPORTED_PEERS);
             }
-        } else {
-            log.trace("No need to purge reported peers.\n\tWe don't have more then {} reported peers yet.", MAX_REPORTED_PEERS);
         }
     }
 
     private void printReportedPeers() {
-        if (!reportedPeers.isEmpty()) {
-            if (PRINT_REPORTED_PEERS_DETAILS) {
-                StringBuilder result = new StringBuilder("\n\n------------------------------------------------------------\n" +
-                        "Collected reported peers:");
-                List<Peer> reportedPeersClone = new ArrayList<>(reportedPeers);
-                reportedPeersClone.forEach(e -> result.append("\n").append(e));
-                result.append("\n------------------------------------------------------------\n");
-                log.trace(result.toString());
+        synchronized (reportedPeers) {
+            if (!reportedPeers.isEmpty()) {
+                if (PRINT_REPORTED_PEERS_DETAILS) {
+                    StringBuilder result = new StringBuilder("\n\n------------------------------------------------------------\n" +
+                            "Collected reported peers:");
+                    List<Peer> reportedPeersClone = new ArrayList<>(reportedPeers);
+                    reportedPeersClone.forEach(e -> result.append("\n").append(e));
+                    result.append("\n------------------------------------------------------------\n");
+                    log.trace(result.toString());
+                }
+                log.debug("Number of reported peers: {}", reportedPeers.size());
             }
-            log.debug("Number of reported peers: {}", reportedPeers.size());
         }
     }
 
@@ -765,7 +776,9 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                         // If not found in connection we look up if we got the Capabilities set from any of the
                         // reported or persisted peers
                         Set<Peer> persistedAndReported = new HashSet<>(getPersistedPeers());
-                        persistedAndReported.addAll(getReportedPeers());
+                        synchronized (reportedPeers) {
+                            persistedAndReported.addAll(reportedPeers);
+                        }
                         Optional<Peer> candidate = persistedAndReported.stream()
                                 .filter(peer -> peer.getNodeAddress().equals(peersNodeAddress))
                                 .filter(peer -> !peer.getCapabilities().isEmpty())

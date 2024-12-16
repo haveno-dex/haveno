@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.storage.persistence;
@@ -79,7 +79,7 @@ public abstract class HistoricalDataStoreService<T extends PersistableNetworkPay
                             "As our historical store is a newer version we add the data to our result map." :
                             "As the requester version is not older as our historical store we do not " +
                                     "add the data to the result map.";
-                    log.info("The requester had version {}. Our historical data store has version {}.\n{}",
+                    log.trace("The requester had version {}. Our historical data store has version {}.\n{}",
                             requestersVersion, storeVersion, details);
                     return newVersion;
                 })
@@ -141,7 +141,7 @@ public abstract class HistoricalDataStoreService<T extends PersistableNetworkPay
     @Override
     protected void readFromResources(String postFix, Runnable completeHandler) {
         readStore(persisted -> {
-            log.info("We have created the {} store for the live data and filled it with {} entries from the persisted data.",
+            log.debug("We have created the {} store for the live data and filled it with {} entries from the persisted data.",
                     getFileName(), getMapOfLiveData().size());
 
             // Now we add our historical data stores.
@@ -181,7 +181,7 @@ public abstract class HistoricalDataStoreService<T extends PersistableNetworkPay
         persistenceManager.readPersisted(fileName, persisted -> {
                     storesByVersion.put(version, persisted);
                     allHistoricalPayloads.putAll(persisted.getMap());
-                    log.info("We have read from {} {} historical items.", fileName, persisted.getMap().size());
+                    log.debug("We have read from {} {} historical items.", fileName, persisted.getMap().size());
                     pruneStore(persisted, version);
                     completeHandler.run();
                 },
@@ -195,11 +195,11 @@ public abstract class HistoricalDataStoreService<T extends PersistableNetworkPay
         mapOfLiveData.keySet().removeAll(historicalStore.getMap().keySet());
         int postLive = mapOfLiveData.size();
         if (preLive > postLive) {
-            log.info("We pruned data from our live data store which are already contained in the historical data store with version {}. " +
+            log.debug("We pruned data from our live data store which are already contained in the historical data store with version {}. " +
                             "The live map had {} entries before pruning and has {} entries afterwards.",
                     version, preLive, postLive);
         } else {
-            log.info("No pruning from historical data store with version {} was applied", version);
+            log.debug("No pruning from historical data store with version {} was applied", version);
         }
         requestPersistence();
     }

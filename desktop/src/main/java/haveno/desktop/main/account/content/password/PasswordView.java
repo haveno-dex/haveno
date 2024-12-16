@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.account.content.password;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import com.google.inject.Inject;
 import com.jfoenix.validation.RequiredFieldValidator;
 import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
@@ -33,6 +35,11 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.backup.BackupView;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addPasswordTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.PasswordValidator;
 import javafx.beans.value.ChangeListener;
@@ -40,14 +47,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-
-import javax.inject.Inject;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addPasswordTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 @FxmlView
 public class PasswordView extends ActivatableView<GridPane, Void> {
@@ -159,8 +158,9 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                 backupWalletAndResetFields();
                 walletsManager.clearBackup();
             } catch (Throwable t) {
+                log.error("Error applying password: {}\n", t.getMessage(), t);
                 new Popup()
-                        .warning(Res.get("password.walletEncryptionFailed"))
+                        .warning(Res.get("password.walletEncryptionFailed") + "\n\n" + ExceptionUtils.getStackTrace(t))
                         .show();
             }
         }

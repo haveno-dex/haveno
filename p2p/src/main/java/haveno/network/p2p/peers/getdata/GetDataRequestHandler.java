@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.peers.getdata;
@@ -37,16 +37,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class GetDataRequestHandler {
-    private static final long TIMEOUT = 180;
+    private static final long TIMEOUT = 240;
 
-    private static final int MAX_ENTRIES = 10000;
+    private static final int MAX_ENTRIES = 5000;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listener
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public interface Listener {
-        void onComplete();
+        void onComplete(int serializedSize);
 
         void onFault(String errorMessage, Connection connection);
     }
@@ -94,15 +94,11 @@ public class GetDataRequestHandler {
                 connection.getCapabilities());
 
         if (wasPersistableNetworkPayloadsTruncated.get()) {
-            log.warn("The getData request from peer with {} caused too much PersistableNetworkPayload " +
-                            "entries to get delivered. We limited the entries for the response to {} entries",
-                    connectionInfo, MAX_ENTRIES);
+            log.info("The getDataResponse for peer {} got truncated.", connectionInfo);
         }
 
         if (wasProtectedStorageEntriesTruncated.get()) {
-            log.warn("The getData request from peer with {} caused too much ProtectedStorageEntry " +
-                            "entries to get delivered. We limited the entries for the response to {} entries",
-                    connectionInfo, MAX_ENTRIES);
+            log.info("The getDataResponse for peer {} got truncated.", connectionInfo);
         }
 
         log.info("The getDataResponse to peer with {} contains {} ProtectedStorageEntries and {} PersistableNetworkPayloads",
@@ -126,8 +122,8 @@ public class GetDataRequestHandler {
                 if (!stopped) {
                     log.trace("Send DataResponse to {} succeeded. getDataResponse={}",
                             connection.getPeersNodeAddressOptional(), getDataResponse);
+                    listener.onComplete(getDataResponse.toProtoNetworkEnvelope().getSerializedSize());
                     cleanup();
-                    listener.onComplete();
                 } else {
                     log.trace("We have stopped already. We ignore that networkNode.sendMessage.onSuccess call.");
                 }
@@ -136,7 +132,7 @@ public class GetDataRequestHandler {
             @Override
             public void onFailure(@NotNull Throwable throwable) {
                 if (!stopped) {
-                    String errorMessage = "Sending getDataRequest to " + connection +
+                    String errorMessage = "Sending getDataResponse to " + connection +
                             " failed. That is expected if the peer is offline. getDataResponse=" + getDataResponse + "." +
                             "Exception: " + throwable.getMessage();
                     handleFault(errorMessage, CloseConnectionReason.SEND_MSG_FAILURE, connection);

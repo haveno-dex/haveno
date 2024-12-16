@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.peers.getdata;
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 class RequestDataHandler implements MessageListener {
-    private static final long TIMEOUT = 180;
+    private static final long TIMEOUT = 240;
 
     private NodeAddress peersNodeAddress;
     private String getDataRequestType;
@@ -69,7 +69,7 @@ class RequestDataHandler implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public interface Listener {
-        void onComplete();
+        void onComplete(boolean wasTruncated);
 
         @SuppressWarnings("UnusedParameters")
         void onFault(String errorMessage, @SuppressWarnings("SameParameterValue") @Nullable Connection connection);
@@ -138,35 +138,40 @@ class RequestDataHandler implements MessageListener {
             }
 
             getDataRequestType = getDataRequest.getClass().getSimpleName();
-            log.info("We send a {} to peer {}. ", getDataRequestType, nodeAddress);
+            log.info("\n\n>> We send a {} to peer {}\n", getDataRequestType, nodeAddress);
             networkNode.addMessageListener(this);
-            SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getDataRequest);
-            //noinspection UnstableApiUsage
-            Futures.addCallback(future, new FutureCallback<>() {
-                @Override
-                public void onSuccess(Connection connection) {
-                    if (!stopped) {
-                        log.trace("Send {} to {} succeeded.", getDataRequest, nodeAddress);
-                    } else {
-                        log.trace("We have stopped already. We ignore that networkNode.sendMessage.onSuccess call." +
-                                "Might be caused by a previous timeout.");
-                    }
-                }
 
-                @Override
-                public void onFailure(@NotNull Throwable throwable) {
-                    if (!stopped) {
-                        String errorMessage = "Sending getDataRequest to " + nodeAddress +
-                                " failed. That is expected if the peer is offline.\n\t" +
-                                "getDataRequest=" + getDataRequest + "." +
-                                "\n\tException=" + throwable.getMessage();
-                        handleFault(errorMessage, nodeAddress, CloseConnectionReason.SEND_MSG_FAILURE);
-                    } else {
-                        log.trace("We have stopped already. We ignore that networkNode.sendMessage.onFailure call. " +
-                                "Might be caused by a previous timeout.");
+            try {
+                SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getDataRequest);
+                //noinspection UnstableApiUsage
+                Futures.addCallback(future, new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(Connection connection) {
+                        if (!stopped) {
+                            log.trace("Send {} to {} succeeded.", getDataRequest, nodeAddress);
+                        } else {
+                            log.trace("We have stopped already. We ignore that networkNode.sendMessage.onSuccess call." +
+                                    "Might be caused by a previous timeout.");
+                        }
                     }
-                }
-            }, MoreExecutors.directExecutor());
+    
+                    @Override
+                    public void onFailure(@NotNull Throwable throwable) {
+                        if (!stopped) {
+                            String errorMessage = "Sending getDataRequest to " + nodeAddress +
+                                    " failed. That is expected if the peer is offline.\n\t" +
+                                    "getDataRequest=" + getDataRequest + "." +
+                                    "\n\tException=" + throwable.getMessage();
+                            handleFault(errorMessage, nodeAddress, CloseConnectionReason.SEND_MSG_FAILURE);
+                        } else {
+                            log.trace("We have stopped already. We ignore that networkNode.sendMessage.onFailure call. " +
+                                    "Might be caused by a previous timeout.");
+                        }
+                    }
+                }, MoreExecutors.directExecutor());
+            } catch (Exception e) {
+                if (!networkNode.isShutDownStarted()) throw e;
+            }
         } else {
             log.warn("We have stopped already. We ignore that requestData call.");
         }
@@ -197,8 +202,7 @@ class RequestDataHandler implements MessageListener {
                                 connection.getPeersNodeAddressOptional().get());
 
                         cleanup();
-                        listener.onComplete();
-                        // firstRequest = false;
+                        listener.onComplete(getDataResponse.isWasTruncated());
                     } else {
                         log.warn("Nonce not matching. That can happen rarely if we get a response after a canceled " +
                                         "handshake (timeout causes connection close but peer might have sent a msg before " +
@@ -239,7 +243,7 @@ class RequestDataHandler implements MessageListener {
         StringBuilder sb = new StringBuilder();
         String sep = System.lineSeparator();
         sb.append(sep).append("#################################################################").append(sep);
-        sb.append("Connected to node: ").append(peersNodeAddress.getFullAddress()).append(sep);
+        sb.append("Data provided by node: ").append(peersNodeAddress.getFullAddress()).append(sep);
         int items = dataSet.size() + persistableNetworkPayloadSet.size();
         sb.append("Received ").append(items).append(" instances from a ")
                 .append(getDataRequestType).append(sep);
@@ -249,7 +253,7 @@ class RequestDataHandler implements MessageListener {
                 .append(" / ")
                 .append(Utilities.readableFileSize(value.second.get()))
                 .append(sep));
-        sb.append("#################################################################");
+        sb.append("#################################################################\n");
         log.info(sb.toString());
     }
 

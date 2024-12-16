@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
@@ -22,7 +22,6 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
-import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
@@ -52,8 +51,10 @@ import haveno.desktop.components.paymentmethods.AssetsForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
+import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
+import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
@@ -94,6 +95,7 @@ import haveno.desktop.components.paymentmethods.TransferwiseUsdForm;
 import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
+import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
@@ -101,8 +103,10 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -147,45 +151,43 @@ public class BuyerStep2View extends TradeStepView {
                     timeoutTimer.stop();
 
                 if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
+                    busyAnimation.stop();
+                    statusLabel.setText("");
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
                     switch (state) {
-                        case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT:
+                        case BUYER_CONFIRMED_PAYMENT_SENT:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.preparingConfirmation"));
                             break;
                         case BUYER_SENT_PAYMENT_SENT_MSG:
-                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                             busyAnimation.play();
                             statusLabel.setText(Res.get("shared.sendingConfirmation"));
-                            model.setMessageStateProperty(MessageState.SENT);
                             timeoutTimer = UserThread.runAfter(() -> {
                                 busyAnimation.stop();
                                 statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
-                            }, 10);
+                            }, 30);
                             break;
                         case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
-                            model.setMessageStateProperty(MessageState.STORED_IN_MAILBOX);
                             break;
+                        case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                         case SELLER_RECEIVED_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.messageArrived"));
-                            model.setMessageStateProperty(MessageState.ARRIVED);
                             break;
                         case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                             // We get a popup and the trade closed, so we dont need to show anything here
                             busyAnimation.stop();
                             statusLabel.setText("");
-                            model.setMessageStateProperty(MessageState.FAILED);
                             break;
                         default:
                             log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
                             busyAnimation.stop();
                             statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
                             break;
-                        }
+                    }
                 }
             });
         }
@@ -222,8 +224,9 @@ public class BuyerStep2View extends TradeStepView {
 
         addTradeInfoBlock();
 
+
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
-        String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "<missing payment account payload>";
+        String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "<pending>";
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 4,
                 Res.get("portfolio.pending.step2_buyer.startPaymentUsing", Res.get(paymentMethodId)),
                 Layout.COMPACT_GROUP_DISTANCE);
@@ -232,6 +235,14 @@ public class BuyerStep2View extends TradeStepView {
                 model.getFiatVolume(),
                 Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
         field.setCopyWithoutCurrencyPostFix(true);
+
+        //preland: this fixes a textarea layout glitch
+        TextArea uiHack = new TextArea();
+        uiHack.setMaxHeight(1);
+        GridPane.setRowIndex(uiHack, 1);
+        GridPane.setMargin(uiHack, new Insets(0, 0, 0, 0));
+        uiHack.setVisible(false);
+        gridPane.getChildren().add(uiHack);
 
         switch (paymentMethodId) {
             case PaymentMethod.UPHOLD_ID:
@@ -397,6 +408,15 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 gridRow = DomesticWireTransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
+            case PaymentMethod.CASH_APP_ID:
+                gridRow = CashAppForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.PAYPAL_ID:
+                gridRow = PayPalForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.VENMO_ID:
+                gridRow = VenmoForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);
         }
@@ -436,7 +456,8 @@ public class BuyerStep2View extends TradeStepView {
 
     private boolean confirmPaymentSentPermitted() {
         if (!trade.confirmPermitted()) return false;
-        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal();
+        if (trade.getState() == Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG) return true;
+        return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -573,13 +594,13 @@ public class BuyerStep2View extends TradeStepView {
 
     private void confirmPaymentSent() {
         busyAnimation.play();
-        statusLabel.setText(Res.get("shared.sendingConfirmation"));
+        statusLabel.setText(Res.get("shared.preparingConfirmation"));
         confirmButton.setDisable(true);
 
         model.dataModel.onPaymentSent(() -> {
         }, errorMessage -> {
             busyAnimation.stop();
-            new Popup().warning(Res.get("popup.warning.sendMsgFailed")).show();
+            new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentSentPermitted());
             UserThread.execute(() -> statusLabel.setText("Error confirming payment sent."));
         });

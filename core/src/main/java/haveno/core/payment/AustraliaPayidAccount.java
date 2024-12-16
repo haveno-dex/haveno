@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -36,6 +36,14 @@ public final class AustraliaPayidAccount extends PaymentAccount {
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+        PaymentAccountFormField.FieldId.BANK_ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.PAYID,
+        PaymentAccountFormField.FieldId.EXTRA_INFO,
+        PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+        PaymentAccountFormField.FieldId.SALT
+    );
+
     @Override
     protected PaymentAccountPayload createPayload() {
         return new AustraliaPayidAccountPayload(paymentMethod.getId(), id);
@@ -48,7 +56,7 @@ public final class AustraliaPayidAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public String getPayid() {
@@ -67,5 +75,13 @@ public final class AustraliaPayidAccount extends PaymentAccount {
     public void setBankAccountName(String bankAccountName) {
         if (bankAccountName == null) bankAccountName = "";
         ((AustraliaPayidAccountPayload) paymentAccountPayload).setBankAccountName(bankAccountName);
+    }
+
+    public void setExtraInfo(String extraInfo) {
+        ((AustraliaPayidAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((AustraliaPayidAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }

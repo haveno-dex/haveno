@@ -1,22 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.account.content.traditionalaccounts;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -26,18 +28,21 @@ import haveno.core.locale.Res;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
+import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
-import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.CashDepositAccount;
-import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.MoneyGramAccount;
+import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
+import haveno.core.payment.VenmoAccount;
 import haveno.core.payment.WesternUnionAccount;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.AdvancedCashValidator;
 import haveno.core.payment.validation.AliPayValidator;
@@ -46,6 +51,8 @@ import haveno.core.payment.validation.BICValidator;
 import haveno.core.payment.validation.CapitualValidator;
 import haveno.core.payment.validation.ChaseQuickPayValidator;
 import haveno.core.payment.validation.EmailOrMobileNrValidator;
+import haveno.core.payment.validation.EmailOrMobileNrOrCashtagValidator;
+import haveno.core.payment.validation.EmailOrMobileNrOrUsernameValidator;
 import haveno.core.payment.validation.F2FValidator;
 import haveno.core.payment.validation.HalCashValidator;
 import haveno.core.payment.validation.InteracETransferValidator;
@@ -65,6 +72,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.paymentmethods.AchTransferForm;
 import haveno.desktop.components.paymentmethods.AdvancedCashForm;
@@ -73,12 +81,11 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
+import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
-import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
-import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
@@ -93,6 +100,8 @@ import haveno.desktop.components.paymentmethods.NationalBankForm;
 import haveno.desktop.components.paymentmethods.NeftForm;
 import haveno.desktop.components.paymentmethods.NequiForm;
 import haveno.desktop.components.paymentmethods.PaxumForm;
+import haveno.desktop.components.paymentmethods.PayByMailForm;
+import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
 import haveno.desktop.components.paymentmethods.PayseraForm;
 import haveno.desktop.components.paymentmethods.PaytmForm;
@@ -116,35 +125,33 @@ import haveno.desktop.components.paymentmethods.TransferwiseUsdForm;
 import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
+import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
+import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.main.account.content.PaymentAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 
 @FxmlView
 public class TraditionalAccountsView extends PaymentAccountsView<GridPane, TraditionalAccountsViewModel> {
@@ -160,6 +167,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
     private final EmailOrMobileNrValidator zelleValidator;
+    private final EmailOrMobileNrOrUsernameValidator paypalValidator;
+    private final EmailOrMobileNrOrUsernameValidator venmoValidator;
+    private final EmailOrMobileNrOrCashtagValidator cashAppValidator;
     private final ChaseQuickPayValidator chaseQuickPayValidator;
     private final InteracETransferValidator interacETransferValidator;
     private final JapanBankTransferValidator japanBankTransferValidator;
@@ -172,7 +182,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final AdvancedCashValidator advancedCashValidator;
     private final TransferwiseValidator transferwiseValidator;
     private final CoinFormatter formatter;
-    private ComboBox<PaymentMethod> paymentMethodComboBox;
+    private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private PaymentMethodForm paymentMethodForm;
     private TitledGroupBg accountTitledGroupBg;
     private Button saveNewAccountButton;
@@ -191,6 +201,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
                             EmailOrMobileNrValidator zelleValidator,
+                            EmailOrMobileNrOrCashtagValidator cashAppValidator,
+                            EmailOrMobileNrOrUsernameValidator emailMobileUsernameValidator,
                             ChaseQuickPayValidator chaseQuickPayValidator,
                             InteracETransferValidator interacETransferValidator,
                             JapanBankTransferValidator japanBankTransferValidator,
@@ -219,6 +231,9 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         this.perfectMoneyValidator = perfectMoneyValidator;
         this.swishValidator = swishValidator;
         this.zelleValidator = zelleValidator;
+        this.paypalValidator = emailMobileUsernameValidator;
+        this.venmoValidator = emailMobileUsernameValidator;
+        this.cashAppValidator = cashAppValidator;
         this.chaseQuickPayValidator = chaseQuickPayValidator;
         this.interacETransferValidator = interacETransferValidator;
         this.japanBankTransferValidator = japanBankTransferValidator;
@@ -260,7 +275,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             new Popup().information(Res.get("payment.f2f.info"))
                     .width(700)
                     .closeButtonText(Res.get("payment.f2f.info.openURL"))
-                    .onClose(() -> GUIUtil.openWebPage("https://bisq.wiki/Face-to-face_(payment_method)"))
+                    .onClose(() -> GUIUtil.openWebPage("https://docs.haveno.exchange/the-project/payment_methods/F2F"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
                     .show();
@@ -364,6 +379,27 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                                     .actionButtonText(Res.get("shared.iUnderstand"))
                                     .onAction(() -> doSaveNewAccount(paymentAccount))
                                     .show();
+                        } else if (paymentAccount instanceof CashAppAccount) {
+                            new Popup().warning(Res.get("payment.cashapp.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
+                        } else if (paymentAccount instanceof VenmoAccount) {
+                            new Popup().warning(Res.get("payment.venmo.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
+                        } else if (paymentAccount instanceof PayPalAccount) {
+                            new Popup().warning(Res.get("payment.paypal.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
                         } else {
                             doSaveNewAccount(paymentAccount);
                         }
@@ -428,14 +464,17 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         removeAccountRows();
         addAccountButton.setDisable(true);
         accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
-        paymentMethodComboBox = FormBuilder.addComboBox(root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
-        paymentMethodComboBox.setVisibleRowCount(11);
+        addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"), Layout.COMPACT_FIRST_ROW_DISTANCE);
+        paymentMethodComboBox = FormBuilder.addAutocompleteComboBox(
+            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE + Layout.PADDING
+        );
+        paymentMethodComboBox.setVisibleRowCount(Math.min(paymentMethodComboBox.getItems().size(), 10));
         paymentMethodComboBox.setPrefWidth(250);
         List<PaymentMethod> list = PaymentMethod.paymentMethods.stream()
                 .filter(PaymentMethod::isTraditional)
                 .sorted()
                 .collect(Collectors.toList());
-        paymentMethodComboBox.setItems(FXCollections.observableArrayList(list));
+        paymentMethodComboBox.setAutocompleteItems(FXCollections.observableArrayList(list));
         paymentMethodComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(PaymentMethod paymentMethod) {
@@ -444,10 +483,15 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
 
             @Override
             public PaymentMethod fromString(String s) {
-                return null;
+                if (s.isEmpty())
+                    return null;
+
+                return paymentMethodComboBox.getItems().stream()
+                                            .filter(item -> Res.get(item.getId()).equals(s))
+                                            .findAny().orElse(null);
             }
         });
-        paymentMethodComboBox.setOnAction(e -> {
+        paymentMethodComboBox.setOnChangeConfirmed(e -> {
             if (paymentMethodForm != null) {
                 FormBuilder.removeRowsFromGridPane(root, 3, paymentMethodForm.getGridRow() + 1);
                 GridPane.setRowSpan(accountTitledGroupBg, paymentMethodForm.getRowSpan() + 1);
@@ -515,6 +559,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     }
 
     private PaymentMethodForm getPaymentMethodForm(PaymentMethod paymentMethod) {
+        if (paymentMethod == null) return null;
         final PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(paymentMethod);
         paymentAccount.init();
         return getPaymentMethodForm(paymentMethod, paymentAccount);
@@ -626,6 +671,12 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new AchTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
                 return new DomesticWireTransferForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYPAL_ID:
+                return new PayPalForm(paymentAccount, accountAgeWitnessService, paypalValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.VENMO_ID:
+                return new VenmoForm(paymentAccount, accountAgeWitnessService, venmoValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CASH_APP_ID:
+                return new CashAppForm(paymentAccount, accountAgeWitnessService, cashAppValidator, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
@@ -671,4 +722,3 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     }
 
 }
-

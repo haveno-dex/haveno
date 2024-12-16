@@ -1,23 +1,27 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.closedtrades;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
+import com.jfoenix.controls.JFXButton;
+import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -43,8 +47,11 @@ import haveno.desktop.main.overlays.windows.ClosedTradesSummaryWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
+import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
+import java.util.Comparator;
+import java.util.function.Function;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -70,13 +77,6 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.Comparator;
-import java.util.function.Function;
-
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
-
 @FxmlView
 public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTradesViewModel> {
     private final boolean useDevPrivilegeKeys;
@@ -91,8 +91,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         VOLUME(Res.get("shared.amount")),
         VOLUME_CURRENCY(Res.get("shared.currency")),
         TX_FEE(Res.get("shared.txFee")),
-        TRADE_FEE_BTC(Res.get("shared.tradeFee") + " BTC"),
-        TRADE_FEE_BSQ(Res.get("shared.tradeFee") + " BSQ"),
+        TRADE_FEE(Res.get("shared.tradeFee")),
         BUYER_SEC(Res.get("shared.buyerSecurityDeposit")),
         SELLER_SEC(Res.get("shared.sellerSecurityDeposit")),
         OFFER_TYPE(Res.get("shared.offerType")),
@@ -115,7 +114,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @FXML
     TableColumn<ClosedTradesListItem, ClosedTradesListItem> priceColumn, deviationColumn, amountColumn, volumeColumn,
             tradeFeeColumn, buyerSecurityDepositColumn, sellerSecurityDepositColumn,
-            marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn,
+            marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn, removeTradeColumn,
             duplicateColumn, avatarColumn;
     @FXML
     FilterBox filterBox;
@@ -158,7 +157,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @Override
     public void initialize() {
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
-        tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE_BTC.toString().replace(" BTC", "")));
+        tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE.toString().replace(" BTC", "")));
         buyerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.BUYER_SEC.toString()));
         sellerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.SELLER_SEC.toString()));
         priceColumn.setGraphic(new AutoTooltipLabel(ColumnNames.PRICE.toString()));
@@ -189,6 +188,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         setDateColumnCellFactory();
         setMarketColumnCellFactory();
         setStateColumnCellFactory();
+        setRemoveTradeColumnCellFactory();
         setDuplicateColumnCellFactory();
         setAvatarColumnCellFactory();
 
@@ -210,10 +210,10 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
             return "BTC" + tradeFee;
         }, Comparator.nullsFirst(Comparator.naturalOrder())));
         buyerSecurityDepositColumn.setComparator(nullsFirstComparing(o ->
-                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getBuyerSecurityDeposit() : null
+                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getMaxBuyerSecurityDeposit() : null
         ));
         sellerSecurityDepositColumn.setComparator(nullsFirstComparing(o ->
-                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getSellerSecurityDeposit() : null
+                o.getTradable().getOffer() != null ? o.getTradable().getOffer().getMaxSellerSecurityDeposit() : null
         ));
         stateColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getState));
 
@@ -275,11 +275,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                 columns[ColumnNames.VOLUME_CURRENCY.ordinal()] = item.getVolumeCurrencyAsString();
                 columns[ColumnNames.TX_FEE.ordinal()] = item.getTxFeeAsString();
                 if (model.dataModel.isCurrencyForTradeFeeBtc(item.getTradable())) {
-                    columns[ColumnNames.TRADE_FEE_BTC.ordinal()] = item.getTradeFeeAsString(false);
-                    columns[ColumnNames.TRADE_FEE_BSQ.ordinal()] = "";
+                    columns[ColumnNames.TRADE_FEE.ordinal()] = item.getTradeFeeAsString(false);
                 } else {
-                    columns[ColumnNames.TRADE_FEE_BTC.ordinal()] = "";
-                    columns[ColumnNames.TRADE_FEE_BSQ.ordinal()] = item.getTradeFeeAsString(false);
+                    columns[ColumnNames.TRADE_FEE.ordinal()] = "";
                 }
                 columns[ColumnNames.BUYER_SEC.ordinal()] = item.getBuyerSecurityDepositAsString();
                 columns[ColumnNames.SELLER_SEC.ordinal()] = item.getSellerSecurityDepositAsString();
@@ -445,7 +443,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
                                 if (item != null && !empty && isMyOfferAsMaker(item.getTradable().getOffer().getOfferPayload())) {
                                     if (button == null) {
-                                        button = getRegularIconButton(MaterialDesignIcon.CONTENT_COPY);
+                                        button = FormBuilder.getRegularIconButton(MaterialDesignIcon.CONTENT_COPY);
                                         button.setTooltip(new Tooltip(Res.get("shared.duplicateOffer")));
                                         setGraphic(button);
                                     }
@@ -675,6 +673,54 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                         };
                     }
                 });
+    }
+
+    private TableColumn<ClosedTradesListItem, ClosedTradesListItem> setRemoveTradeColumnCellFactory() {
+        removeTradeColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        removeTradeColumn.setCellFactory(
+                new Callback<>() {
+                    @Override
+                    public TableCell<ClosedTradesListItem, ClosedTradesListItem> call(TableColumn<ClosedTradesListItem,
+                    ClosedTradesListItem> column) {
+                        return new TableCell<>() {
+
+                            @Override
+                            public void updateItem(ClosedTradesListItem newItem, boolean empty) {
+                                if (newItem == null || !(newItem.getTradable() instanceof Trade)) {
+                                    setGraphic(null);
+                                    return;
+                                }
+
+                                Trade trade = (Trade) newItem.getTradable();
+                                super.updateItem(newItem, empty);
+                                if (!empty && newItem != null && !trade.isPayoutConfirmed()) {
+                                    Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
+                                    JFXButton iconButton = new JFXButton("", icon);
+                                    iconButton.setStyle("-fx-cursor: hand;");
+                                    iconButton.getStyleClass().add("hidden-icon-button");
+                                    iconButton.setTooltip(new Tooltip(Res.get("portfolio.failed.revertToPending")));
+                                    iconButton.setOnAction(e -> onRevertTrade(trade));
+                                    setGraphic(iconButton);
+                                } else {
+                                    setGraphic(null);
+                                }
+                            }
+                        };
+                    }
+                });
+        return removeTradeColumn;
+    }
+
+    private void onRevertTrade(Trade trade) {
+        new Popup().attention(Res.get("portfolio.failed.revertToPending.popup"))
+                .onAction(() -> onMoveTradeToPendingTrades(trade))
+                .actionButtonText(Res.get("shared.yes"))
+                .closeButtonText(Res.get("shared.no"))
+                .show();
+    }
+
+    private void onMoveTradeToPendingTrades(Trade trade) {
+        model.dataModel.onMoveTradeToPendingTrades(trade);
     }
 
     private void onDuplicateOffer(Offer offer) {

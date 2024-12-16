@@ -1,46 +1,44 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer.takeoffer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import haveno.common.taskrunner.Model;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
+import static haveno.core.offer.OfferDirection.SELL;
 import haveno.core.offer.OfferUtil;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
+import static haveno.core.xmr.model.XmrAddressEntry.Context.OFFER_FUNDING;
 import haveno.core.xmr.wallet.XmrWalletService;
+import java.math.BigInteger;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.util.Objects;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.core.offer.OfferDirection.SELL;
-import static haveno.core.xmr.model.XmrAddressEntry.Context.OFFER_FUNDING;
 
 @Slf4j
 public class TakeOfferModel implements Model {
@@ -66,7 +64,7 @@ public class TakeOfferModel implements Model {
     @Getter
     private BigInteger totalToPay;
     @Getter
-    private BigInteger missingCoin = BigInteger.valueOf(0);
+    private BigInteger missingCoin = BigInteger.ZERO;
     @Getter
     private BigInteger totalAvailableBalance;
     @Getter
@@ -100,9 +98,9 @@ public class TakeOfferModel implements Model {
         this.useSavingsWallet = useSavingsWallet;
         this.amount = tradeAmount.min(BigInteger.valueOf(getMaxTradeLimit()));
         this.securityDeposit = offer.getDirection() == SELL
-                ? offer.getBuyerSecurityDeposit()
-                : offer.getSellerSecurityDeposit();
-        this.takerFee = HavenoUtils.getTakerFee(amount);
+                ? offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(amount)
+                : offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(amount);
+        this.takerFee = HavenoUtils.multiply(amount, offer.getTakerFeePct());
 
         calculateVolume();
         calculateTotalToPay();
@@ -150,13 +148,14 @@ public class TakeOfferModel implements Model {
     private long getMaxTradeLimit() {
         return accountAgeWitnessService.getMyTradeLimit(paymentAccount,
                 offer.getCurrencyCode(),
-                offer.getMirroredDirection());
+                offer.getMirroredDirection(),
+                offer.hasBuyerAsTakerWithoutDeposit());
     }
 
     @NotNull
     public BigInteger getFundsNeededForTrade() {
         // If taking a buy offer, taker needs to reserve the offer.amt too.
-        return securityDeposit.add(offer.isBuyOffer() ? amount : BigInteger.valueOf(0));
+        return securityDeposit.add(offer.isBuyOffer() ? amount : BigInteger.ZERO);
     }
 
     private void validateModelInputs() {
@@ -173,7 +172,7 @@ public class TakeOfferModel implements Model {
         this.amount = null;
         this.availableBalance = null;
         this.isXmrWalletFunded = false;
-        this.missingCoin = BigInteger.valueOf(0);
+        this.missingCoin = BigInteger.ZERO;
         this.offer = null;
         this.paymentAccount = null;
         this.securityDeposit = null;

@@ -10,7 +10,7 @@ gettxfeerate
 
 DESCRIPTION
 -----------
-Returns the most recent bitcoin network transaction fee the Haveno server could find.
+Returns the most recent monero network transaction fee the Haveno server could find.
 
 EXAMPLES
 --------

@@ -1,24 +1,24 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.util;
 
 import com.jfoenix.controls.JFXComboBox;
-import com.jfoenix.controls.JFXDatePicker;
+//import com.jfoenix.controls.JFXDatePicker;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.controls.JFXToggleButton;
 import de.jensd.fx.fontawesome.AwesomeDude;
@@ -36,6 +36,7 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipRadioButton;
 import haveno.desktop.components.AutoTooltipSlideToggleButton;
+import haveno.desktop.components.AutoTooltipTextField;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.BalanceTextField;
 import haveno.desktop.components.BusyAnimation;
@@ -57,6 +58,7 @@ import haveno.desktop.components.TxIdTextField;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -379,15 +381,30 @@ public class FormBuilder {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Confirmation Fields
     ///////////////////////////////////////////////////////////////////////////////////////////
-
+    public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
+                                                                 int rowIndex,
+                                                                 String title1,
+                                                                 String title2,
+                                                                 double top) {
+        return addConfirmationLabelLabel(gridPane, false, rowIndex, title1, title2, top);
+    }
     public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
                                                                  int rowIndex,
                                                                  String title1,
                                                                  String title2) {
-        return addConfirmationLabelLabel(gridPane, rowIndex, title1, title2, 0);
+        return addConfirmationLabelLabel(gridPane, false, rowIndex, title1, title2, 0);
     }
 
     public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
+                                                                 boolean isWrapped,
+                                                                 int rowIndex,
+                                                                 String title1,
+                                                                 String title2) {
+        return addConfirmationLabelLabel(gridPane, isWrapped, rowIndex, title1, title2, 0);
+    }
+
+    public static Tuple2<Label, Label> addConfirmationLabelLabel(GridPane gridPane,
+                                                                 boolean isWrapped,
                                                                  int rowIndex,
                                                                  String title1,
                                                                  String title2,
@@ -396,10 +413,14 @@ public class FormBuilder {
         label1.getStyleClass().add("confirmation-label");
         Label label2 = addLabel(gridPane, rowIndex, title2);
         label2.getStyleClass().add("confirmation-value");
+        label2.setWrapText(isWrapped);
         GridPane.setColumnIndex(label2, 1);
         GridPane.setMargin(label1, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label1, HPos.LEFT);
+        GridPane.setValignment(label1, VPos.TOP);
         GridPane.setMargin(label2, new Insets(top, 0, 0, 0));
+        GridPane.setHalignment(label2, HPos.LEFT);
+        GridPane.setValignment(label2, VPos.TOP);
 
         return new Tuple2<>(label1, label2);
     }
@@ -451,12 +472,21 @@ public class FormBuilder {
                                                                        String title1,
                                                                        String title2,
                                                                        double top) {
+        return addConfirmationLabelTextArea(gridPane, false, rowIndex, title1, title2, top);
+    }
+
+    public static Tuple2<Label, TextArea> addConfirmationLabelTextArea(GridPane gridPane,
+                                                                       boolean isWrapped,
+                                                                       int rowIndex,
+                                                                       String title1,
+                                                                       String title2,
+                                                                       double top) {
         Label label = addLabel(gridPane, rowIndex, title1);
         label.getStyleClass().add("confirmation-label");
 
         TextArea textArea = addTextArea(gridPane, rowIndex, title2);
         ((JFXTextArea) textArea).setLabelFloat(false);
-
+        textArea.setWrapText(isWrapped);
         GridPane.setColumnIndex(textArea, 1);
         GridPane.setMargin(label, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label, HPos.LEFT);
@@ -464,6 +494,7 @@ public class FormBuilder {
 
         return new Tuple2<>(label, textArea);
     }
+
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -645,7 +676,7 @@ public class FormBuilder {
         TextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setWrapText(true);
-
+        textArea.setPrefHeight(100);
         final Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, textArea, top);
         GridPane.setColumnIndex(topLabelWithVBox.second, colIndex);
 
@@ -669,7 +700,13 @@ public class FormBuilder {
                                                                   int columnIndex,
                                                                   String title,
                                                                   double top) {
-        DatePicker datePicker = new JFXDatePicker();
+        //DatePicker datePicker = new JFXDatePicker();
+        //
+        //Temporary solution to fix issue 527; a more
+        //permanant solution would require this issue to be solved:
+        //(https://github.com/sshahine/JFoenix/issues/1245)
+        DatePicker datePicker = new DatePicker();
+
         Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, columnIndex, title, datePicker, top);
         return new Tuple2<>(topLabelWithVBox.first, datePicker);
     }
@@ -684,11 +721,14 @@ public class FormBuilder {
                                                                         String title1,
                                                                         String title2,
                                                                         double top) {
-        DatePicker datePicker1 = new JFXDatePicker();
+
+        //DatePicker datePicker1 = new JFXDatePicker();
+        DatePicker datePicker1 = new DatePicker();
         Tuple2<Label, VBox> topLabelWithVBox1 = getTopLabelWithVBox(title1, datePicker1);
         VBox vBox1 = topLabelWithVBox1.second;
 
-        DatePicker datePicker2 = new JFXDatePicker();
+        //DatePicker datePicker2 = new JFXDatePicker();
+        DatePicker datePicker2 = new DatePicker();
         Tuple2<Label, VBox> topLabelWithVBox2 = getTopLabelWithVBox(title2, datePicker2);
         VBox vBox2 = topLabelWithVBox2.second;
 
@@ -1120,35 +1160,28 @@ public class FormBuilder {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Label + TextField + RadioButton + RadioButton
+    // Label + TextField + HyperlinkWithIcon
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static Tuple4<Label, TextField, RadioButton, RadioButton> addTopLabelTextFieldRadioButtonRadioButton(GridPane gridPane,
-                                                                                                                int rowIndex,
-                                                                                                                ToggleGroup toggleGroup,
-                                                                                                                String title,
-                                                                                                                String textFieldTitle,
-                                                                                                                String radioButtonTitle1,
-                                                                                                                String radioButtonTitle2,
-                                                                                                                double top) {
+    public static Tuple3<Label, TextField, HyperlinkWithIcon> addTopLabelTextFieldHyperLink(GridPane gridPane,
+                                                                                            int rowIndex,
+                                                                                            String title,
+                                                                                            String textFieldTitle,
+                                                                                            String maxButtonTitle,
+                                                                                            double top) {
         TextField textField = new HavenoTextField();
         textField.setPromptText(textFieldTitle);
 
-        RadioButton radioButton1 = new AutoTooltipRadioButton(radioButtonTitle1);
-        radioButton1.setToggleGroup(toggleGroup);
-        radioButton1.setPadding(new Insets(6, 0, 0, 0));
-
-        RadioButton radioButton2 = new AutoTooltipRadioButton(radioButtonTitle2);
-        radioButton2.setToggleGroup(toggleGroup);
-        radioButton2.setPadding(new Insets(6, 0, 0, 0));
+        HyperlinkWithIcon maxLink = new ExternalHyperlink(maxButtonTitle);
 
         HBox hBox = new HBox();
         hBox.setSpacing(10);
-        hBox.getChildren().addAll(textField, radioButton1, radioButton2);
+        hBox.getChildren().addAll(textField, maxLink);
+        hBox.setAlignment(Pos.CENTER_LEFT);
 
         final Tuple2<Label, VBox> labelVBoxTuple2 = addTopLabelWithVBox(gridPane, rowIndex, title, hBox, top);
 
-        return new Tuple4<>(labelVBoxTuple2.first, textField, radioButton1, radioButton2);
+        return new Tuple3<>(labelVBoxTuple2.first, textField, maxLink);
     }
 
 
@@ -1254,6 +1287,20 @@ public class FormBuilder {
         return new Tuple3<>(vBox, label, comboBox);
     }
 
+    public static Tuple3<VBox, Label, AutoTooltipTextField> addTopLabelAutoToolTipTextField(String title) {
+        return addTopLabelAutoToolTipTextField(title, 0);
+    }
+
+    public static Tuple3<VBox, Label, AutoTooltipTextField> addTopLabelAutoToolTipTextField(String title, int top) {
+        Label label = getTopLabel(title);
+        VBox vBox = getTopLabelVBox(top);
+
+        final AutoTooltipTextField textField = new AutoTooltipTextField();
+        vBox.getChildren().addAll(label, textField);
+
+        return new Tuple3<>(vBox, label, textField);
+    }
+
     @NotNull
     private static VBox getTopLabelVBox(int top) {
         VBox vBox = new VBox();
@@ -1342,6 +1389,24 @@ public class FormBuilder {
 
     public static <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         JFXComboBox<T> comboBox = new JFXComboBox<>();
+        comboBox.setLabelFloat(true);
+        comboBox.setPromptText(title);
+        comboBox.setMaxWidth(Double.MAX_VALUE);
+
+        // Default ComboBox does not show promptText after clear selection.
+        // https://stackoverflow.com/questions/50569330/how-to-reset-combobox-and-display-prompttext?noredirect=1&lq=1
+        comboBox.setButtonCell(getComboBoxButtonCell(title, comboBox));
+
+        GridPane.setRowIndex(comboBox, rowIndex);
+        GridPane.setColumnIndex(comboBox, 0);
+        GridPane.setMargin(comboBox, new Insets(top + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
+        gridPane.getChildren().add(comboBox);
+
+        return comboBox;
+    }
+
+    public static <T> AutocompleteComboBox<T> addAutocompleteComboBox(GridPane gridPane, int rowIndex, String title, double top) {
+        var comboBox = new AutocompleteComboBox<T>();
         comboBox.setLabelFloat(true);
         comboBox.setPromptText(title);
         comboBox.setMaxWidth(Double.MAX_VALUE);

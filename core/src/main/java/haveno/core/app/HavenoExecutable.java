@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -19,6 +36,8 @@ package haveno.core.app;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.AppModule;
 import haveno.common.config.Config;
@@ -34,14 +53,14 @@ import haveno.common.setup.UncaughtExceptionHandler;
 import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.setup.CorePersistedDataHost;
 import haveno.core.setup.CoreSetup;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.TradeManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -62,6 +81,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public abstract class HavenoExecutable implements GracefulShutDownHandler, HavenoSetup.HavenoSetupListener, UncaughtExceptionHandler {
+
+    // TODO: regular expression is used to parse application name for the flatpak manifest, a more stable approach would be nice
+    // Don't edit the next line unless you're only editing in between the quotes.
+    public static final String DEFAULT_APP_NAME = "Haveno";
 
     public static final int EXIT_SUCCESS = 0;
     public static final int EXIT_FAILURE = 1;
@@ -103,7 +126,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             System.exit(EXIT_FAILURE);
         } catch (Throwable ex) {
             System.err.println("fault: An unexpected error occurred. " +
-                    "Please file a report at https://haveno.exchange/issues");
+                    "Please file a report at https://github.com/haveno-dex/haveno/issues");
             ex.printStackTrace(System.err);
             System.exit(EXIT_FAILURE);
         }
@@ -180,8 +203,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                     startApplication();
                 }
             } catch (InterruptedException | ExecutionException e) {
-                log.error("An error occurred: {}", e.getMessage());
-                e.printStackTrace();
+                log.error("An error occurred: {}\n", e.getMessage(), e);
             }
         });
     }
@@ -336,9 +358,15 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             // notify trade protocols and wallets to prepare for shut down before shutting down
             Set<Runnable> tasks = new HashSet<Runnable>();
             tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
-            tasks.add(() -> injector.getInstance(CoreMoneroConnectionsService.class).onShutDownStarted());
-            HavenoUtils.executeTasks(tasks); // notify in parallel
+            tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
+            tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
+            try {
+                ThreadUtils.awaitTasks(tasks, tasks.size(), 90000l); // run in parallel with timeout
+            } catch (Exception e) {
+                log.error("Failed to notify all services to prepare for shutdown: {}\n", e.getMessage(), e);
+            }
 
+            injector.getInstance(TradeManager.class).shutDown();
             injector.getInstance(PriceFeedService.class).shutDown();
             injector.getInstance(ArbitratorManager.class).shutDown();
             injector.getInstance(TradeStatisticsManager.class).shutDown();
@@ -353,23 +381,24 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
                 // shut down p2p service
                 injector.getInstance(P2PService.class).shutDown(() -> {
-                    log.info("Done shutting down OpenOfferManager, OfferBookService, and P2PService");
 
                     // shut down monero wallets and connections
+                    log.info("Shutting down wallet and connection services");
                     injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
+                        
+                        // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
                         completeShutdown(resultHandler, EXIT_SUCCESS, systemExit);
                     });
                     injector.getInstance(BtcWalletService.class).shutDown();
                     injector.getInstance(XmrWalletService.class).shutDown();
-                    injector.getInstance(CoreMoneroConnectionsService.class).shutDown();
+                    injector.getInstance(XmrConnectionService.class).shutDown();
                     injector.getInstance(WalletsSetup.class).shutDown();
                 });
             });
         } catch (Throwable t) {
-            log.error("App shutdown failed with exception {}", t.toString());
-            t.printStackTrace();
+            log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);
             completeShutdown(resultHandler, EXIT_FAILURE, systemExit);
         }
     }

@@ -1,22 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.openoffer;
 
+import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
@@ -40,7 +41,13 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
+import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 import haveno.desktop.util.GUIUtil;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -68,19 +75,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
-
-import javax.inject.Inject;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static haveno.desktop.util.FormBuilder.getRegularIconButton;
 
 @FxmlView
 public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersViewModel> {
@@ -116,7 +111,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     private PortfolioView.OpenOfferActionHandler openOfferActionHandler;
     private ChangeListener<Number> widthListener;
 
-    private Map<String, Subscription> offerStateSubscriptions = new HashMap<String, Subscription>();
+    private Map<String, ChangeListener<OpenOffer.State>> offerStateChangeListeners = new HashMap<String, ChangeListener<OpenOffer.State>>();
 
     @Inject
     public OpenOffersView(OpenOffersViewModel model, Navigation navigation, OfferDetailsWindow offerDetailsWindow) {
@@ -132,7 +127,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         deviationColumn.setGraphic(new AutoTooltipTableColumn<>(Res.get("shared.deviation"),
                 Res.get("portfolio.closedTrades.deviation.help")).getGraphic());
-        amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.BTCMinMax")));
+        amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.XMRMinMax")));
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountMinMax")));
         marketColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.market")));
         directionColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.offerType")));
@@ -301,7 +296,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void updateSelectToggleButtonState() {
         List<OpenOfferListItem> availableItems = sortedList.stream()
-                .filter(openOfferListItem -> !openOfferListItem.getOpenOffer().isScheduled())
+                .filter(openOfferListItem -> !openOfferListItem.getOpenOffer().isPending())
                 .collect(Collectors.toList());
         if (availableItems.size() == 0) {
             selectToggleButton.setDisable(true);
@@ -705,12 +700,17 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     OpenOffer openOffer = item.getOpenOffer();
-                                    if (!offerStateSubscriptions.containsKey(openOffer.getId())) {
-                                        offerStateSubscriptions.put(openOffer.getId(), EasyBind.subscribe(openOffer.stateProperty(), state -> {
-                                            refresh();
-                                        }));
+
+                                    // refresh on state change
+                                    if (offerStateChangeListeners.containsKey(openOffer.getId())) {
+                                        openOffer.stateProperty().removeListener(offerStateChangeListeners.get(openOffer.getId()));
+                                        offerStateChangeListeners.remove(openOffer.getId());
                                     }
-                                    if (openOffer.getState() == OpenOffer.State.SCHEDULED) {
+                                    ChangeListener<OpenOffer.State> listener = (observable, oldValue, newValue) -> { if (oldValue != newValue) refresh(); };
+                                    offerStateChangeListeners.put(openOffer.getId(), listener);
+                                    openOffer.stateProperty().addListener(listener);
+
+                                    if (openOffer.getState() == OpenOffer.State.PENDING) {
                                         setGraphic(new AutoTooltipLabel(Res.get("shared.pending")));
                                         return;
                                     }

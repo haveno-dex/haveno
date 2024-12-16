@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.funds.transactions;
@@ -42,7 +42,7 @@ import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
-class TransactionsListItem {
+public class TransactionsListItem {
     private String dateString;
     private final Date date;
     private final String txId;
@@ -53,13 +53,16 @@ class TransactionsListItem {
     private String direction = "";
     private boolean received;
     private boolean detailsAvailable;
-    private BigInteger amount = BigInteger.valueOf(0);
+    private BigInteger amount = BigInteger.ZERO;
+    private BigInteger txFee = BigInteger.ZERO;
     private String memo = "";
     private long confirmations = 0;
     @Getter
     private boolean initialTxConfidenceVisibility = true;
     private final Supplier<LazyFields> lazyFieldsSupplier;
     private XmrWalletService xmrWalletService;
+    @Getter
+    private MoneroTxWallet tx;
 
     private static class LazyFields {
         TxConfidenceIndicator txConfidenceIndicator;
@@ -80,6 +83,7 @@ class TransactionsListItem {
     TransactionsListItem(MoneroTxWallet tx,
                          XmrWalletService xmrWalletService,
                          TransactionAwareTradable transactionAwareTradable) {
+        this.tx = tx;
         this.memo = tx.getNote();
         this.txId = tx.getHash();
         this.xmrWalletService = xmrWalletService;
@@ -88,8 +92,8 @@ class TransactionsListItem {
         Optional<Tradable> optionalTradable = Optional.ofNullable(transactionAwareTradable)
                 .map(TransactionAwareTradable::asTradable);
 
-        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? BigInteger.valueOf(0) : tx.getIncomingAmount();
-        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? BigInteger.valueOf(0) : tx.getOutgoingAmount();
+        BigInteger valueSentToMe = tx.getIncomingAmount() == null ? BigInteger.ZERO : tx.getIncomingAmount();
+        BigInteger valueSentFromMe = tx.getOutgoingAmount() == null ? BigInteger.ZERO : tx.getOutgoingAmount();
 
         if (tx.getTransfers().get(0).isIncoming()) {
             addressString = ((MoneroIncomingTransfer) tx.getTransfers().get(0)).getAddress();
@@ -99,7 +103,7 @@ class TransactionsListItem {
             else addressString = "unavailable";
         }
 
-        if (valueSentFromMe.compareTo(BigInteger.valueOf(0)) == 0) {
+        if (valueSentFromMe.compareTo(BigInteger.ZERO) == 0) {
             amount = valueSentToMe;
             direction = Res.get("funds.tx.direction.receivedWith");
             received = true;
@@ -107,6 +111,7 @@ class TransactionsListItem {
             amount = valueSentFromMe.multiply(BigInteger.valueOf(-1));
             received = false;
             direction = Res.get("funds.tx.direction.sentTo");
+            txFee = tx.getFee().multiply(BigInteger.valueOf(-1));
         }
 
         if (optionalTradable.isPresent()) {
@@ -122,16 +127,17 @@ class TransactionsListItem {
                 if (trade.getSelf().getDepositTxHash() != null &&
                         trade.getSelf().getDepositTxHash().equals(txId)) {
                     details = Res.get("funds.tx.multiSigDeposit", tradeId);
+                    addressString = trade.getProcessModel().getMultisigAddress();
                 } else if (trade.getPayoutTxId() != null &&
                         trade.getPayoutTxId().equals(txId)) {
                     details = Res.get("funds.tx.multiSigPayout", tradeId);
-                    if (amount.compareTo(BigInteger.valueOf(0)) == 0) {
+                    if (amount.compareTo(BigInteger.ZERO) == 0) {
                         initialTxConfidenceVisibility = false;
                     }
                 } else {
                     Trade.DisputeState disputeState = trade.getDisputeState();
                     if (disputeState == Trade.DisputeState.DISPUTE_CLOSED) {
-                        if (valueSentToMe.compareTo(BigInteger.valueOf(0)) > 0) {
+                        if (valueSentToMe.compareTo(BigInteger.ZERO) > 0) {
                             details = Res.get("funds.tx.disputePayout", tradeId);
                         } else {
                             details = Res.get("funds.tx.disputeLost", tradeId);
@@ -139,7 +145,7 @@ class TransactionsListItem {
                     } else if (disputeState == Trade.DisputeState.REFUND_REQUEST_CLOSED ||
                             disputeState == Trade.DisputeState.REFUND_REQUESTED ||
                             disputeState == Trade.DisputeState.REFUND_REQUEST_STARTED_BY_PEER) {
-                        if (valueSentToMe.compareTo(BigInteger.valueOf(0)) > 0) {
+                        if (valueSentToMe.compareTo(BigInteger.ZERO) > 0) {
                             details = Res.get("funds.tx.refund", tradeId);
                         } else {
                             // We have spent the deposit tx outputs to the Haveno donation address to enable
@@ -147,7 +153,7 @@ class TransactionsListItem {
                             // already when funding the deposit tx we show 0 BTC as amount.
                             // Confirmation is not known from the BitcoinJ side (not 100% clear why) as no funds
                             // left our wallet nor we received funds. So we set indicator invisible.
-                            amount = BigInteger.valueOf(0);
+                            amount = BigInteger.ZERO;
                             details = Res.get("funds.tx.collateralForRefund", tradeId);
                             initialTxConfidenceVisibility = false;
                         }
@@ -157,7 +163,7 @@ class TransactionsListItem {
                 }
             }
         } else {
-            if (amount.compareTo(BigInteger.valueOf(0)) == 0) {
+            if (amount.compareTo(BigInteger.ZERO) == 0) {
                 details = Res.get("funds.tx.noFundsFromDispute");
             }
         }
@@ -198,6 +204,14 @@ class TransactionsListItem {
 
     public BigInteger getAmount() {
         return amount;
+    }
+
+    public BigInteger getTxFee() {
+        return txFee;
+    }
+
+    public String getTxFeeStr() {
+        return txFee.equals(BigInteger.ZERO) ? "" : HavenoUtils.formatXmr(txFee);
     }
 
     public String getAddressString() {

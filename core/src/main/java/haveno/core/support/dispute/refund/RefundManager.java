@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.dispute.refund;
@@ -24,7 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -66,7 +66,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
     public RefundManager(P2PService p2PService,
                          TradeWalletService tradeWalletService,
                          XmrWalletService walletService,
-                         CoreMoneroConnectionsService connectionService,
+                         XmrConnectionService xmrConnectionService,
                          CoreNotificationService notificationService,
                          TradeManager tradeManager,
                          ClosedTradableManager closedTradableManager,
@@ -76,7 +76,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
                          RefundDisputeListService refundDisputeListService,
                          Config config,
                          PriceFeedService priceFeedService) {
-        super(p2PService, tradeWalletService, walletService, connectionService, notificationService, tradeManager, closedTradableManager,
+        super(p2PService, tradeWalletService, walletService, xmrConnectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, refundDisputeListService, config, priceFeedService);
     }
 

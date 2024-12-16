@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer.availability.tasks;
@@ -26,6 +26,7 @@ import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.messages.OfferAvailabilityRequest;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.user.User;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -53,8 +54,9 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             User user = model.getUser();
             P2PService p2PService = model.getP2PService();
             XmrWalletService walletService = model.getXmrWalletService();
-            String paymentAccountId = model.getPaymentAccountId();
-            String paymentMethodId = user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
+            String makerPaymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
+            String takerPaymentAccountId = model.getPaymentAccountId();
+            String paymentMethodId = user.getPaymentAccount(takerPaymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
@@ -66,15 +68,16 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
 
             // send InitTradeRequest to maker to sign
             InitTradeRequest tradeRequest = new InitTradeRequest(
+                    TradeProtocolVersion.MULTISIG_2_3, // TODO: replace with first of their accepted protocols
                     offer.getId(),
-                    P2PService.getMyNodeAddress(),
-                    p2PService.getKeyRing().getPubKeyRing(),
                     model.getTradeAmount().longValueExact(),
                     price.getValue(),
-                    HavenoUtils.getTakerFee(model.getTradeAmount()).longValueExact(),
-                    user.getAccountId(),
-                    paymentAccountId,
                     paymentMethodId,
+                    null,
+                    user.getAccountId(),
+                    makerPaymentAccountId,
+                    takerPaymentAccountId,
+                    p2PService.getKeyRing().getPubKeyRing(),
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     sig,
@@ -86,7 +89,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     null,
                     null,
                     payoutAddress,
-                    null);
+                    null); // challenge is required when offer taken
 
             // save trade request to later send to arbitrator
             model.setTradeRequest(tradeRequest);

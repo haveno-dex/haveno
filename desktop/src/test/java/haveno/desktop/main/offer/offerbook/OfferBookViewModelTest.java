@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.offer.offerbook;
@@ -241,7 +241,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForAmount.intValue());
     }
@@ -255,7 +255,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -273,7 +273,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -292,7 +292,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForVolume.intValue());
     }
@@ -306,7 +306,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -324,7 +324,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -342,7 +342,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForPrice.intValue());
     }
@@ -356,7 +356,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -374,7 +374,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForMarketPriceMargin.intValue());
     }
@@ -409,7 +409,7 @@ public class OfferBookViewModelTest {
         item4.getOffer().setPriceFeedService(priceFeedService);
         offerBookListItems.addAll(item1, item2);
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -430,7 +430,7 @@ public class OfferBookViewModelTest {
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().getEpochSecond(), true));
 
-        final OfferBookViewModel model = new XmrOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
 
         final OfferBookListItem item = make(xmrBuyItem.but(
@@ -605,6 +605,11 @@ public class OfferBookViewModelTest {
                 false,
                 0,
                 0,
+                0,
+                0,
+                0,
+                0,
+                0,
                 "BTC",
                 tradeCurrencyCode,
                 paymentMethodId,
@@ -614,9 +619,6 @@ public class OfferBookViewModelTest {
                 bankId,
                 acceptedBanks,
                 null,
-                0,
-                0,
-                0,
                 0,
                 0,
                 0,

@@ -18,6 +18,7 @@
 package haveno.core.trade.protocol.tasks;
 
 
+import haveno.common.ThreadUtils;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -53,23 +54,29 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             if (sender.getNodeAddress().equals(trade.getSeller().getNodeAddress()) && sender != trade.getSeller()) trade.getSeller().setNodeAddress(null);
             if (sender.getNodeAddress().equals(trade.getArbitrator().getNodeAddress()) && sender != trade.getArbitrator()) trade.getArbitrator().setNodeAddress(null);
 
-            // update multisig hex
-            sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
-
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {
                 log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
                 trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
             }
-            processModel.getTradeManager().requestPersistence(); // in case importing multisig hex fails
 
-            // import multisig hex
-            trade.importMultisigHex();
+            // update multisig hex
+            if (sender.getUpdatedMultisigHex() == null) {
+                sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
 
-            // save wallet off thread
-            trade.saveWallet();
+                // try to import multisig hex (retry later)
+                if (!trade.isPayoutPublished()) {
+                    ThreadUtils.submitToPool(() -> {
+                        try {
+                            trade.importMultisigHex();
+                        } catch (Exception e) {
+                            log.warn("Error importing multisig hex on deposits confirmed for trade " + trade.getId() + ": " + e.getMessage() + "\n", e);
+                        }
+                    });
+                }
+            }
 
-            // persist and complete
+            // persist
             processModel.getTradeManager().requestPersistence();
             complete();
           } catch (Throwable t) {

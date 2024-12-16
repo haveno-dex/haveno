@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade.messages;
@@ -30,15 +30,21 @@ import java.util.Optional;
 public final class DepositResponse extends TradeMessage implements DirectMessage {
     private final long currentDate;
     private final String errorMessage;
+    private final long buyerSecurityDeposit;
+    private final long sellerSecurityDeposit;
 
     public DepositResponse(String tradeId,
                                      String uid,
                                      String messageVersion,
                                      long currentDate,
-                                     String errorMessage) {
+                                     String errorMessage,
+                                     long buyerSecurityDeposit,
+                                     long sellerSecurityDeposit) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
         this.errorMessage = errorMessage;
+        this.buyerSecurityDeposit = buyerSecurityDeposit;
+        this.sellerSecurityDeposit = sellerSecurityDeposit;
     }
 
 
@@ -49,9 +55,11 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositResponse.Builder builder = protobuf.DepositResponse.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid);
         builder.setCurrentDate(currentDate);
+        builder.setBuyerSecurityDeposit(buyerSecurityDeposit);
+        builder.setSellerSecurityDeposit(sellerSecurityDeposit);
         Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(errorMessage));
 
         return getNetworkEnvelopeBuilder().setDepositResponse(builder).build();
@@ -64,7 +72,9 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
                 proto.getUid(),
                 messageVersion,
                 proto.getCurrentDate(),
-                ProtoUtil.stringOrNullFromProto(proto.getErrorMessage()));
+                ProtoUtil.stringOrNullFromProto(proto.getErrorMessage()),
+                proto.getBuyerSecurityDeposit(),
+                proto.getSellerSecurityDeposit());
     }
 
     @Override
@@ -72,6 +82,8 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
         return "DepositResponse {" +
                 ",\n     currentDate=" + currentDate +
                 ",\n     errorMessage=" + errorMessage +
+                ",\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
+                ",\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
                 "\n} " + super.toString();
     }
 }

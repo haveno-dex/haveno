@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,32 +34,25 @@
 
 package haveno.core.offer;
 
-import common.utils.GenUtils;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.JsonUtil;
-import haveno.core.xmr.wallet.MoneroKeyImageListener;
-import haveno.core.xmr.wallet.MoneroKeyImagePoller;
+import haveno.core.xmr.wallet.XmrKeyImageListener;
+import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
-import monero.common.MoneroConnectionManagerListener;
-import monero.common.MoneroRpcConnection;
-import monero.daemon.model.MoneroKeyImageSpentStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -50,23 +60,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 /**
  * Handles storage and retrieval of offers.
  * Uses an invalidation flag to only request the full offer map in case there was a change (anyone has added or removed an offer).
  */
 public class OfferBookService {
-    private static final Logger log = LoggerFactory.getLogger(OfferBookService.class);
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
     private final List<OfferBookChangedListener> offerBookChangedListeners = new LinkedList<>();
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
-    private final CoreMoneroConnectionsService connectionsService;
+    private final XmrConnectionService xmrConnectionService;
 
     // poll key images of offers
-    private MoneroKeyImagePoller keyImagePoller;
+    private XmrKeyImagePoller keyImagePoller;
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
@@ -84,70 +95,67 @@ public class OfferBookService {
     public OfferBookService(P2PService p2PService,
                             PriceFeedService priceFeedService,
                             FilterManager filterManager,
-                            CoreMoneroConnectionsService connectionsService,
+                            XmrConnectionService xmrConnectionService,
                             @Named(Config.STORAGE_DIR) File storageDir,
                             @Named(Config.DUMP_STATISTICS) boolean dumpStatistics) {
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
-        this.connectionsService = connectionsService;
+        this.xmrConnectionService = xmrConnectionService;
         jsonFileManager = new JsonFileManager(storageDir);
 
         // listen for connection changes to monerod
-        connectionsService.addConnectionListener(new MoneroConnectionManagerListener() {
-            @Override
-            public void onConnectionChanged(MoneroRpcConnection connection) {
-                maybeInitializeKeyImagePoller();
-                keyImagePoller.setDaemon(connectionsService.getDaemon());
-                keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
-            }
+        xmrConnectionService.addConnectionListener((connection) -> {
+            maybeInitializeKeyImagePoller();
+            keyImagePoller.setDaemon(xmrConnectionService.getDaemon());
+            keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
         });
 
         // listen for offers
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
+                UserThread.execute(() -> {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
-                        synchronized (offerBookChangedListeners) {
-                            offerBookChangedListeners.forEach(listener -> {
-                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                                    maybeInitializeKeyImagePoller();
-                                    keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
-                                    Offer offer = new Offer(offerPayload);
-                                    offer.setPriceFeedService(priceFeedService);
-                                    setReservedFundsSpent(offer);
-                                    listener.onAdded(offer);
-                                }
-                            });
+                        if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                            maybeInitializeKeyImagePoller();
+                            keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
+                            Offer offer = new Offer(offerPayload);
+                            offer.setPriceFeedService(priceFeedService);
+                            setReservedFundsSpent(offer);
+                            synchronized (offerBookChangedListeners) {
+                                offerBookChangedListeners.forEach(listener -> listener.onAdded(offer));
+                            }
                         }
                     });
+                });
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
+                UserThread.execute(() -> {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
-                        synchronized (offerBookChangedListeners) {
-                            offerBookChangedListeners.forEach(listener -> {
-                                if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                                    OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                                    maybeInitializeKeyImagePoller();
-                                    keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
-                                    Offer offer = new Offer(offerPayload);
-                                    offer.setPriceFeedService(priceFeedService);
-                                    setReservedFundsSpent(offer);
-                                    listener.onRemoved(offer);
-                                }
-                            });
+                        if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                            maybeInitializeKeyImagePoller();
+                            keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                            Offer offer = new Offer(offerPayload);
+                            offer.setPriceFeedService(priceFeedService);
+                            setReservedFundsSpent(offer);
+                            synchronized (offerBookChangedListeners) {
+                                offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
+                            }
                         }
                     });
+                });
             }
         });
 
         if (dumpStatistics) {
             p2PService.addP2PServiceListener(new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     addOfferBookChangedListener(new OfferBookChangedListener() {
                         @Override
                         public void onAdded(Offer offer) {
@@ -268,28 +276,30 @@ public class OfferBookService {
 
     private synchronized void maybeInitializeKeyImagePoller() {
         if (keyImagePoller != null) return;
-        keyImagePoller = new MoneroKeyImagePoller(connectionsService.getDaemon(), getKeyImageRefreshPeriodMs());
+        keyImagePoller = new XmrKeyImagePoller(xmrConnectionService.getDaemon(), getKeyImageRefreshPeriodMs());
 
         // handle when key images spent
-        keyImagePoller.addListener(new MoneroKeyImageListener() {
+        keyImagePoller.addListener(new XmrKeyImageListener() {
             @Override
             public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                for (String keyImage : spentStatuses.keySet()) {
-                    updateAffectedOffers(keyImage);
-                }
+                UserThread.execute(() -> {
+                    for (String keyImage : spentStatuses.keySet()) {
+                        updateAffectedOffers(keyImage);
+                    }
+                });
             }
         });
 
         // first poll after 20s
         // TODO: remove?
         new Thread(() -> {
-            GenUtils.waitFor(20000);
+            HavenoUtils.waitFor(20000);
             keyImagePoller.poll();
         }).start();
     }
 
     private long getKeyImageRefreshPeriodMs() {
-        return connectionsService.isConnectionLocal() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+        return xmrConnectionService.isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
     private void updateAffectedOffers(String keyImage) {
@@ -297,12 +307,8 @@ public class OfferBookService {
             if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
                 synchronized (offerBookChangedListeners) {
                     offerBookChangedListeners.forEach(listener -> {
-
-                        // notify off thread to avoid deadlocking
-                        new Thread(() -> {
-                            listener.onRemoved(offer);
-                            listener.onAdded(offer);
-                        }).start();
+                        listener.onRemoved(offer);
+                        listener.onAdded(offer);
                     });
                 }
             }

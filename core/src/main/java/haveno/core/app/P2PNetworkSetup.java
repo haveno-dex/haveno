@@ -1,24 +1,26 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.app;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.UserThread;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
@@ -27,26 +29,23 @@ import haveno.network.p2p.P2PServiceListener;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
+import java.util.function.Consumer;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.monadic.MonadicBinding;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.function.Consumer;
 
 @Singleton
 @Slf4j
 public class P2PNetworkSetup {
     private final PriceFeedService priceFeedService;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     private final Preferences preferences;
 
     @SuppressWarnings("FieldCanBeLocal")
@@ -72,12 +71,12 @@ public class P2PNetworkSetup {
     @Inject
     public P2PNetworkSetup(PriceFeedService priceFeedService,
                            P2PService p2PService,
-                           CoreMoneroConnectionsService connectionService,
+                           XmrConnectionService xmrConnectionService,
                            Preferences preferences) {
 
         this.priceFeedService = priceFeedService;
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.preferences = preferences;
     }
 
@@ -88,7 +87,7 @@ public class P2PNetworkSetup {
         BooleanProperty initialP2PNetworkDataReceived = new SimpleBooleanProperty();
 
         p2PNetworkInfoBinding = EasyBind.combine(bootstrapState, bootstrapWarning, p2PService.getNumConnectedPeers(),
-                connectionService.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
+                xmrConnectionService.numConnectionsProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
                 (state, warning, numP2pPeers, numXmrPeers, hiddenService, dataReceived) -> {
                     String result;
                     int p2pPeers = (int) numP2pPeers;

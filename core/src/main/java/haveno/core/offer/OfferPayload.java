@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer;
@@ -28,6 +28,8 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.Hex;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
@@ -39,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;
+import java.math.BigInteger;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 @Getter
 @Slf4j
 public final class OfferPayload implements ProtectedStoragePayload, ExpirablePayload, RequiresOwnerIsOnlinePayload {
-    public static final long TTL = TimeUnit.MINUTES.toMillis(9);
+    public static final long TTL = TimeUnit.MINUTES.toMillis(11);
 
     protected final String id;
     protected final long date;
@@ -91,11 +94,14 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Keys for extra map
     // Only set for traditional offers
     public static final String ACCOUNT_AGE_WITNESS_HASH = "accountAgeWitnessHash";
+    public static final String CASHAPP_EXTRA_INFO = "cashAppExtraInfo";
     public static final String REFERRAL_ID = "referralId";
     // Only used in payment method F2F
     public static final String F2F_CITY = "f2fCity";
     public static final String F2F_EXTRA_INFO = "f2fExtraInfo";
     public static final String PAY_BY_MAIL_EXTRA_INFO = "payByMailExtraInfo";
+    public static final String AUSTRALIA_PAYID_EXTRA_INFO = "australiaPayidExtraInfo";
+    public static final String PAYPAL_EXTRA_INFO = "payPalExtraInfo";
 
     // Comma separated list of ordinal of a haveno.common.app.Capability. E.g. ordinal of
     // Capability.SIGNED_ACCOUNT_AGE_WITNESS is 11 and Capability.MEDIATION is 12 so if we want to signal that maker
@@ -129,9 +135,11 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     @Nullable
     private final List<String> acceptedBankIds;
     private final long blockHeightAtOfferCreation;
-    private final long makerFee;
-    private final long buyerSecurityDeposit;
-    private final long sellerSecurityDeposit;
+    private final double makerFeePct;
+    private final double takerFeePct;
+    private final double penaltyFeePct;
+    private final double buyerSecurityDepositPct;
+    private final double sellerSecurityDepositPct;
     private final long maxTradeLimit;
     private final long maxTradePeriod;
 
@@ -148,7 +156,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Reserved for possible future use to support private trades where the taker needs to have an accessKey
     private final boolean isPrivateOffer;
     @Nullable
-    private final String hashOfChallenge;
+    private final String challengeHash;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -165,6 +173,11 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         boolean useMarketBasedPrice,
                         long amount,
                         long minAmount,
+                        double makerFeePct,
+                        double takerFeePct,
+                        double penaltyFeePct,
+                        double buyerSecurityDepositPct,
+                        double sellerSecurityDepositPct,
                         String baseCurrencyCode,
                         String counterCurrencyCode,
                         String paymentMethodId,
@@ -175,9 +188,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         @Nullable List<String> acceptedBankIds,
                         String versionNr,
                         long blockHeightAtOfferCreation,
-                        long makerFee,
-                        long buyerSecurityDeposit,
-                        long sellerSecurityDeposit,
                         long maxTradeLimit,
                         long maxTradePeriod,
                         boolean useAutoClose,
@@ -185,7 +195,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                         long lowerClosePrice,
                         long upperClosePrice,
                         boolean isPrivateOffer,
-                        @Nullable String hashOfChallenge,
+                        @Nullable String challengeHash,
                         @Nullable Map<String, String> extraDataMap,
                         int protocolVersion,
                         @Nullable NodeAddress arbitratorSigner,
@@ -201,6 +211,11 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.price = price;
         this.amount = amount;
         this.minAmount = minAmount;
+        this.makerFeePct = makerFeePct;
+        this.takerFeePct = takerFeePct;
+        this.penaltyFeePct = penaltyFeePct;
+        this.buyerSecurityDepositPct = buyerSecurityDepositPct;
+        this.sellerSecurityDepositPct = sellerSecurityDepositPct;
         this.paymentMethodId = paymentMethodId;
         this.makerPaymentAccountId = makerPaymentAccountId;
         this.extraDataMap = extraDataMap;
@@ -216,9 +231,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.bankId = bankId;
         this.acceptedBankIds = acceptedBankIds;
         this.blockHeightAtOfferCreation = blockHeightAtOfferCreation;
-        this.makerFee = makerFee;
-        this.buyerSecurityDeposit = buyerSecurityDeposit;
-        this.sellerSecurityDeposit = sellerSecurityDeposit;
         this.maxTradeLimit = maxTradeLimit;
         this.maxTradePeriod = maxTradePeriod;
         this.useAutoClose = useAutoClose;
@@ -226,7 +238,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         this.lowerClosePrice = lowerClosePrice;
         this.upperClosePrice = upperClosePrice;
         this.isPrivateOffer = isPrivateOffer;
-        this.hashOfChallenge = hashOfChallenge;
+        this.challengeHash = challengeHash;
     }
 
     public byte[] getHash() {
@@ -250,6 +262,11 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             false,
             amount,
             minAmount,
+            makerFeePct,
+            takerFeePct,
+            penaltyFeePct,
+            buyerSecurityDepositPct,
+            sellerSecurityDepositPct,
             baseCurrencyCode,
             counterCurrencyCode,
             paymentMethodId,
@@ -260,9 +277,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             acceptedBankIds,
             versionNr,
             blockHeightAtOfferCreation,
-            makerFee,
-            buyerSecurityDeposit,
-            sellerSecurityDeposit,
             maxTradeLimit,
             maxTradePeriod,
             useAutoClose,
@@ -270,7 +284,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             lowerClosePrice,
             upperClosePrice,
             isPrivateOffer,
-            hashOfChallenge,
+            challengeHash,
             extraDataMap,
             protocolVersion,
             arbitratorSigner,
@@ -300,6 +314,33 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         return getBaseCurrencyCode().equals("XMR") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }
 
+    public BigInteger getMaxMakerFee() {
+        return HavenoUtils.multiply(BigInteger.valueOf(getAmount()), getMakerFeePct());
+    }
+
+    public BigInteger getMaxBuyerSecurityDeposit() {
+        return getBuyerSecurityDepositForTradeAmount(BigInteger.valueOf(getAmount()));
+    }
+
+    public BigInteger getMaxSellerSecurityDeposit() {
+        return getSellerSecurityDepositForTradeAmount(BigInteger.valueOf(getAmount()));
+    }
+
+    public BigInteger getBuyerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
+        BigInteger securityDepositUnadjusted = HavenoUtils.multiply(tradeAmount, getBuyerSecurityDepositPct());
+        boolean isBuyerTaker = getDirection() == OfferDirection.SELL;
+        if (isPrivateOffer() && isBuyerTaker) {
+            return securityDepositUnadjusted;
+        } else {
+            return Restrictions.getMinSecurityDeposit().max(securityDepositUnadjusted);
+        }
+    }
+
+    public BigInteger getSellerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
+        BigInteger securityDepositUnadjusted = HavenoUtils.multiply(tradeAmount, getSellerSecurityDepositPct());
+        return Restrictions.getMinSecurityDeposit().max(securityDepositUnadjusted);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -316,15 +357,17 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 .setUseMarketBasedPrice(useMarketBasedPrice)
                 .setAmount(amount)
                 .setMinAmount(minAmount)
+                .setMakerFeePct(makerFeePct)
+                .setTakerFeePct(takerFeePct)
+                .setPenaltyFeePct(penaltyFeePct)
+                .setBuyerSecurityDepositPct(buyerSecurityDepositPct)
+                .setSellerSecurityDepositPct(sellerSecurityDepositPct)
                 .setBaseCurrencyCode(baseCurrencyCode)
                 .setCounterCurrencyCode(counterCurrencyCode)
                 .setPaymentMethodId(paymentMethodId)
                 .setMakerPaymentAccountId(makerPaymentAccountId)
                 .setVersionNr(versionNr)
                 .setBlockHeightAtOfferCreation(blockHeightAtOfferCreation)
-                .setMakerFee(makerFee)
-                .setBuyerSecurityDeposit(buyerSecurityDeposit)
-                .setSellerSecurityDeposit(sellerSecurityDeposit)
                 .setMaxTradeLimit(maxTradeLimit)
                 .setMaxTradePeriod(maxTradePeriod)
                 .setUseAutoClose(useAutoClose)
@@ -338,7 +381,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         Optional.ofNullable(bankId).ifPresent(builder::setBankId);
         Optional.ofNullable(acceptedBankIds).ifPresent(builder::addAllAcceptedBankIds);
         Optional.ofNullable(acceptedCountryCodes).ifPresent(builder::addAllAcceptedCountryCodes);
-        Optional.ofNullable(hashOfChallenge).ifPresent(builder::setHashOfChallenge);
+        Optional.ofNullable(challengeHash).ifPresent(builder::setChallengeHash);
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
         Optional.ofNullable(arbitratorSigner).ifPresent(e -> builder.setArbitratorSigner(arbitratorSigner.toProtoMessage()));
         Optional.ofNullable(arbitratorSignature).ifPresent(e -> builder.setArbitratorSignature(ByteString.copyFrom(e)));
@@ -352,7 +395,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 null : new ArrayList<>(proto.getAcceptedBankIdsList());
         List<String> acceptedCountryCodes = proto.getAcceptedCountryCodesList().isEmpty() ?
                 null : new ArrayList<>(proto.getAcceptedCountryCodesList());
-        String hashOfChallenge = ProtoUtil.stringOrNullFromProto(proto.getHashOfChallenge());
+        List<String> reserveTxKeyImages = proto.getReserveTxKeyImagesList().isEmpty() ?
+                null : new ArrayList<>(proto.getReserveTxKeyImagesList());
+        String challengeHash = ProtoUtil.stringOrNullFromProto(proto.getChallengeHash());
         Map<String, String> extraDataMapMap = CollectionUtils.isEmpty(proto.getExtraDataMap()) ?
                 null : proto.getExtraDataMap();
 
@@ -366,6 +411,11 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getUseMarketBasedPrice(),
                 proto.getAmount(),
                 proto.getMinAmount(),
+                proto.getMakerFeePct(),
+                proto.getTakerFeePct(),
+                proto.getPenaltyFeePct(),
+                proto.getBuyerSecurityDepositPct(),
+                proto.getSellerSecurityDepositPct(),
                 proto.getBaseCurrencyCode(),
                 proto.getCounterCurrencyCode(),
                 proto.getPaymentMethodId(),
@@ -376,9 +426,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 acceptedBankIds,
                 proto.getVersionNr(),
                 proto.getBlockHeightAtOfferCreation(),
-                proto.getMakerFee(),
-                proto.getBuyerSecurityDeposit(),
-                proto.getSellerSecurityDeposit(),
                 proto.getMaxTradeLimit(),
                 proto.getMaxTradePeriod(),
                 proto.getUseAutoClose(),
@@ -386,12 +433,12 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 proto.getLowerClosePrice(),
                 proto.getUpperClosePrice(),
                 proto.getIsPrivateOffer(),
-                hashOfChallenge,
+                challengeHash,
                 extraDataMapMap,
                 proto.getProtocolVersion(),
                 proto.hasArbitratorSigner() ? NodeAddress.fromProto(proto.getArbitratorSigner()) : null,
                 ProtoUtil.byteArrayOrNullFromProto(proto.getArbitratorSignature()),
-                proto.getReserveTxKeyImagesList() == null ? null : new ArrayList<String>(proto.getReserveTxKeyImagesList()));
+                reserveTxKeyImages);
     }
 
     @Override
@@ -404,6 +451,11 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     price=" + price +
                 ",\r\n     amount=" + amount +
                 ",\r\n     minAmount=" + minAmount +
+                ",\r\n     makerFeePct=" + makerFeePct +
+                ",\r\n     takerFeePct=" + takerFeePct +
+                ",\r\n     penaltyFeePct=" + penaltyFeePct +
+                ",\r\n     buyerSecurityDepositPct=" + buyerSecurityDepositPct +
+                ",\r\n     sellerSecurityDeposiPct=" + sellerSecurityDepositPct +
                 ",\r\n     paymentMethodId='" + paymentMethodId + '\'' +
                 ",\r\n     makerPaymentAccountId='" + makerPaymentAccountId + '\'' +
                 ",\r\n     ownerNodeAddress=" + ownerNodeAddress +
@@ -421,9 +473,6 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     bankId='" + bankId + '\'' +
                 ",\r\n     acceptedBankIds=" + acceptedBankIds +
                 ",\r\n     blockHeightAtOfferCreation=" + blockHeightAtOfferCreation +
-                ",\r\n     makerFee=" + makerFee +
-                ",\r\n     buyerSecurityDeposit=" + buyerSecurityDeposit +
-                ",\r\n     sellerSecurityDeposit=" + sellerSecurityDeposit +
                 ",\r\n     maxTradeLimit=" + maxTradeLimit +
                 ",\r\n     maxTradePeriod=" + maxTradePeriod +
                 ",\r\n     useAutoClose=" + useAutoClose +
@@ -431,7 +480,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     lowerClosePrice=" + lowerClosePrice +
                 ",\r\n     upperClosePrice=" + upperClosePrice +
                 ",\r\n     isPrivateOffer=" + isPrivateOffer +
-                ",\r\n     hashOfChallenge='" + hashOfChallenge + '\'' +
+                ",\r\n     challengeHash='" + challengeHash + '\'' +
                 ",\r\n     arbitratorSigner=" + arbitratorSigner +
                 ",\r\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
                 "\r\n} ";
@@ -453,15 +502,17 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
             object.add("useMarketBasedPrice", context.serialize(offerPayload.isUseMarketBasedPrice()));
             object.add("amount", context.serialize(offerPayload.getAmount()));
             object.add("minAmount", context.serialize(offerPayload.getMinAmount()));
+            object.add("makerFeePct", context.serialize(offerPayload.getMakerFeePct()));
+            object.add("takerFeePct", context.serialize(offerPayload.getTakerFeePct()));
+            object.add("penaltyFeePct", context.serialize(offerPayload.getPenaltyFeePct()));
+            object.add("buyerSecurityDepositPct", context.serialize(offerPayload.getBuyerSecurityDepositPct()));
+            object.add("sellerSecurityDepositPct", context.serialize(offerPayload.getSellerSecurityDepositPct()));
             object.add("baseCurrencyCode", context.serialize(offerPayload.getBaseCurrencyCode()));
             object.add("counterCurrencyCode", context.serialize(offerPayload.getCounterCurrencyCode()));
             object.add("paymentMethodId", context.serialize(offerPayload.getPaymentMethodId()));
             object.add("makerPaymentAccountId", context.serialize(offerPayload.getMakerPaymentAccountId()));
             object.add("versionNr", context.serialize(offerPayload.getVersionNr()));
             object.add("blockHeightAtOfferCreation", context.serialize(offerPayload.getBlockHeightAtOfferCreation()));
-            object.add("makerFee", context.serialize(offerPayload.getMakerFee()));
-            object.add("buyerSecurityDeposit", context.serialize(offerPayload.getBuyerSecurityDeposit()));
-            object.add("sellerSecurityDeposit", context.serialize(offerPayload.getSellerSecurityDeposit()));
             object.add("maxTradeLimit", context.serialize(offerPayload.getMaxTradeLimit()));
             object.add("maxTradePeriod", context.serialize(offerPayload.getMaxTradePeriod()));
             object.add("useAutoClose", context.serialize(offerPayload.isUseAutoClose()));

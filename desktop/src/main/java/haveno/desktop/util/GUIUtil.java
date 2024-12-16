@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.util;
@@ -28,7 +28,6 @@ import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
-import haveno.common.crypto.KeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistableEnvelope;
@@ -38,7 +37,7 @@ import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CurrencyUtil;
@@ -48,6 +47,7 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountList;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.Trade;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -92,8 +92,8 @@ import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroTxConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
@@ -134,8 +134,6 @@ public class GUIUtil {
 
     private static Preferences preferences;
 
-    public static TradeCurrency TOP_CRYPTO = CurrencyUtil.getTradeCurrency("BTC").get();
-
     public static void setPreferences(Preferences preferences) {
         GUIUtil.preferences = preferences;
     }
@@ -167,12 +165,11 @@ public class GUIUtil {
                                       Preferences preferences,
                                       Stage stage,
                                       PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler,
-                                      KeyRing keyRing) {
+                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
         if (!accounts.isEmpty()) {
             String directory = getDirectoryFromChooser(preferences, stage);
             if (!directory.isEmpty()) {
-                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, null);
                 PaymentAccountList paymentAccounts = new PaymentAccountList(accounts);
                 persistenceManager.initialize(paymentAccounts, fileName, PersistenceManager.Source.PRIVATE_LOW_PRIO);
                 persistenceManager.persistNow(() -> {
@@ -192,8 +189,7 @@ public class GUIUtil {
                                       Preferences preferences,
                                       Stage stage,
                                       PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler,
-                                      KeyRing keyRing) {
+                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
         FileChooser fileChooser = new FileChooser();
         File initDir = new File(preferences.getDirectoryChooserPath());
         if (initDir.isDirectory()) {
@@ -206,7 +202,7 @@ public class GUIUtil {
             if (Paths.get(path).getFileName().toString().equals(fileName)) {
                 String directory = Paths.get(path).getParent().toString();
                 preferences.setDirectoryChooserPath(directory);
-                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, keyRing);
+                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, null);
                 persistenceManager.readPersisted(fileName, persisted -> {
                             StringBuilder msg = new StringBuilder();
                             HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
@@ -528,18 +524,32 @@ public class GUIUtil {
     public static void updateConfidence(MoneroTx tx,
                                         Tooltip tooltip,
                                         TxConfidenceIndicator txConfidenceIndicator) {
-        if (tx != null && (tx.getNumConfirmations() == null || !tx.isRelayed())) {
-            tooltip.setText(Res.get("confidence.unknown"));
-            txConfidenceIndicator.setProgress(0);
-        } else if (tx != null && tx.isFailed()) {
-            tooltip.setText(Res.get("confidence.invalid"));
-            txConfidenceIndicator.setProgress(0);
-        } else if (tx != null && tx.isConfirmed()) {
-            tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
-            txConfidenceIndicator.setProgress((double) tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK);
+        updateConfidence(tx, null, tooltip, txConfidenceIndicator);
+    }
+
+    public static void updateConfidence(MoneroTx tx,
+                                        Trade trade,
+                                        Tooltip tooltip,
+                                        TxConfidenceIndicator txConfidenceIndicator) {
+        if (tx == null || tx.getNumConfirmations() == null || !tx.isRelayed()) {
+            if (trade != null && trade.isDepositsUnlocked()) {
+                tooltip.setText(Res.get("confidence.confirmed", ">=10"));
+                txConfidenceIndicator.setProgress(1.0);
+            } else {
+                tooltip.setText(Res.get("confidence.unknown"));
+                txConfidenceIndicator.setProgress(-1);
+            }
         } else {
-            tooltip.setText(Res.get("confidence.seen", 0)); // TODO: replace with numBroadcastPeers
-            txConfidenceIndicator.setProgress(-1.0);
+            if (tx.isFailed()) {
+                tooltip.setText(Res.get("confidence.invalid"));
+                txConfidenceIndicator.setProgress(0);
+            } else if (tx.isConfirmed()) {
+                tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
+                txConfidenceIndicator.setProgress((double) tx.getNumConfirmations() / (double) XmrWalletService.NUM_BLOCKS_UNLOCK);
+            } else {
+                tooltip.setText(Res.get("confidence.confirmed", 0));
+                txConfidenceIndicator.setProgress(-1);
+            }
         }
 
         txConfidenceIndicator.setPrefSize(24, 24);
@@ -623,13 +633,9 @@ public class GUIUtil {
         }
     }
 
-    public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount, BigInteger minFee) {
+    public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount) {
         String result = " (" + getPercentage(fee, tradeAmount) +
                 " " + Res.get("guiUtil.ofTradeAmount") + ")";
-
-        if (fee.compareTo(minFee) <= 0) {
-            result = " " + Res.get("guiUtil.requiredMinimum");
-        }
 
         return result;
     }
@@ -674,8 +680,8 @@ public class GUIUtil {
                 .show();
     }
 
-    public static String getMoneroURI(String address, BigInteger amount, String label, MoneroWallet wallet) {
-        return wallet.getPaymentUri(new MoneroTxConfig()
+    public static String getMoneroURI(String address, BigInteger amount, String label) {
+        return MoneroUtils.getPaymentUri(new MoneroTxConfig()
                 .setAddress(address)
                 .setAmount(amount)
                 .setNote(label));
@@ -689,19 +695,24 @@ public class GUIUtil {
         return false;
     }
 
-    public static boolean isReadyForTxBroadcastOrShowPopup(CoreMoneroConnectionsService connectionService) {
-        if (!connectionService.hasSufficientPeersForBroadcast()) {
-            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToBtcNetwork", connectionService.getMinBroadcastConnections())).show();
+    public static boolean isReadyForTxBroadcastOrShowPopup(XmrWalletService xmrWalletService) {
+        XmrConnectionService xmrConnectionService = xmrWalletService.getXmrConnectionService();
+        if (!xmrConnectionService.hasSufficientPeersForBroadcast()) {
+            new Popup().information(Res.get("popup.warning.notSufficientConnectionsToXmrNetwork", xmrConnectionService.getMinBroadcastConnections())).show();
             return false;
         }
 
-        if (!connectionService.isDownloadComplete()) {
+        if (!xmrConnectionService.isDownloadComplete()) {
             new Popup().information(Res.get("popup.warning.downloadNotComplete")).show();
             return false;
         }
 
+        if (!isWalletSyncedWithinToleranceOrShowPopup(xmrWalletService)) {
+            return false;
+        }
+
         try {
-            connectionService.verifyConnection();
+            xmrConnectionService.verifyConnection();
         } catch (Exception e) {
             new Popup().information(e.getMessage()).show();
             return false;
@@ -710,12 +721,11 @@ public class GUIUtil {
         return true;
     }
 
-    public static boolean isChainHeightSyncedWithinToleranceOrShowPopup(CoreMoneroConnectionsService connectionService) {
-        if (!connectionService.isSyncedWithinTolerance()) {
-            new Popup().information(Res.get("popup.warning.chainNotSynced")).show();
+    public static boolean isWalletSyncedWithinToleranceOrShowPopup(XmrWalletService xmrWalletService) {
+        if (!xmrWalletService.isSyncedWithinTolerance()) {
+            new Popup().information(Res.get("popup.warning.walletNotSynced")).show();
             return false;
         }
-
         return true;
     }
 
@@ -742,7 +752,7 @@ public class GUIUtil {
     }
 
     public static void showWantToBurnBTCPopup(Coin miningFee, Coin amount, CoinFormatter btcFormatter) {
-        new Popup().warning(Res.get("popup.warning.burnBTC", btcFormatter.formatCoinWithCode(miningFee),
+        new Popup().warning(Res.get("popup.warning.burnXMR", btcFormatter.formatCoinWithCode(miningFee),
                 btcFormatter.formatCoinWithCode(amount))).show();
     }
 
@@ -1020,13 +1030,5 @@ public class GUIUtil {
         ColumnConstraints columnConstraints2 = new ColumnConstraints();
         columnConstraints2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
-    }
-
-    public static void updateTopCrypto(Preferences preferences) {
-        TradeCurrency tradeCurrency = preferences.getPreferredTradeCurrency();
-        if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
-            return;
-        }
-        TOP_CRYPTO = tradeCurrency;
     }
 }

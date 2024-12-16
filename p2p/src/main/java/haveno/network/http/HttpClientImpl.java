@@ -1,26 +1,43 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.http;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
+
+import haveno.common.ThreadUtils;
 import haveno.common.app.Version;
 import haveno.common.util.Utilities;
 import haveno.network.Socks5ProxyProvider;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -39,23 +56,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContexts;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 // TODO close connection if failing
 @Slf4j
 public class HttpClientImpl implements HttpClient {
@@ -65,6 +65,7 @@ public class HttpClientImpl implements HttpClient {
     private HttpURLConnection connection;
     @Nullable
     private CloseableHttpClient closeableHttpClient;
+    private static final long SHUTDOWN_TIMEOUT_MS = 5000l;
 
     @Getter
     @Setter
@@ -88,6 +89,18 @@ public class HttpClientImpl implements HttpClient {
 
     @Override
     public void shutDown() {
+        try {
+            ThreadUtils.awaitTask(() -> {
+                doShutDown(connection, closeableHttpClient);
+                connection = null;
+                closeableHttpClient = null;
+            }, SHUTDOWN_TIMEOUT_MS);
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    private void doShutDown(HttpURLConnection connection, CloseableHttpClient closeableHttpClient) {
         try {
             if (connection != null) {
                 connection.getInputStream().close();
@@ -133,6 +146,12 @@ public class HttpClientImpl implements HttpClient {
         } else {
             return doRequestWithProxy(baseUrl, param, httpMethod, socks5Proxy, headerKey, headerValue);
         }
+    }
+
+    public void cancelPendingRequest() {
+        if (!hasPendingRequest) return;
+        shutDown();
+        hasPendingRequest = false;
     }
 
     private String requestWithoutProxy(String baseUrl,

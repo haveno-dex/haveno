@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.apitest.method.offer;
@@ -62,7 +62,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 75_000_000L,
                 "0.005",   // FIXED PRICE IN BTC FOR 1 XMR
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId());
         log.debug("Sell XMR (Buy BTC) offer:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -75,7 +75,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -91,7 +92,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -106,7 +108,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 50_000_000L,
                 "0.005",   // FIXED PRICE IN BTC (satoshis) FOR 1 XMR
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId());
         log.debug("Buy XMR (Sell BTC) offer:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -119,7 +121,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -135,7 +138,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertEquals("0.00500000", newOffer.getPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -152,7 +156,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 75_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId(),
                 triggerPrice);
         log.debug("Pending Sell XMR (Buy BTC) offer:\n{}", toOfferTable.apply(newOffer));
@@ -169,7 +173,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
 
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -189,7 +194,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
 
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(75_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -205,7 +211,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 50_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Buy XMR (Sell BTC) offer:\n{}", toOfferTable.apply(newOffer));
@@ -218,7 +224,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertTrue(newOffer.getUseMarketBasedPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());
@@ -233,7 +240,8 @@ public class CreateXMROffersTest extends AbstractOfferTest {
         assertTrue(newOffer.getUseMarketBasedPrice());
         assertEquals(100_000_000L, newOffer.getAmount());
         assertEquals(50_000_000L, newOffer.getMinAmount());
-        assertEquals(15_000_000, newOffer.getBuyerSecurityDeposit());
+        assertEquals(.15, newOffer.getBuyerSecurityDepositPct());
+        assertEquals(.15, newOffer.getSellerSecurityDepositPct());
         assertEquals(alicesXmrAcct.getId(), newOffer.getPaymentAccountId());
         assertEquals(XMR, newOffer.getBaseCurrencyCode());
         assertEquals(BTC, newOffer.getCounterCurrencyCode());

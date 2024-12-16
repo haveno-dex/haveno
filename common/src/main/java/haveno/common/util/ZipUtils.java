@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 package haveno.common.util;
 
@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -38,13 +39,14 @@ public class ZipUtils {
      * @param dir The directory to create the zip from.
      * @param out The stream to write to.
      */
-    public static void zipDirToStream(File dir, OutputStream out, int bufferSize) throws Exception {
+    public static void zipDirToStream(File dir, OutputStream out, int bufferSize, Collection<File> excludedFiles) throws Exception {
 
         // Get all files in directory and subdirectories.
-        ArrayList<String> fileList = new ArrayList<>();
-        getFilesRecursive(dir, fileList);
+        List<File> fileList = new ArrayList<>();
+        getFilesRecursive(dir, fileList, excludedFiles);
         try (ZipOutputStream zos = new ZipOutputStream(out)) {
-            for (String filePath : fileList) {
+            for (File file : fileList) {
+                String filePath = file.getAbsolutePath();
                 log.info("Compressing: " + filePath);
 
                 // Creates a zip entry.
@@ -73,14 +75,15 @@ public class ZipUtils {
     /**
      * Get files list from the directory recursive to the subdirectory.
      */
-    public static void getFilesRecursive(File directory, List<String> fileList) {
+    public static void getFilesRecursive(File directory, List<File> fileList, Collection<File> excludedFiles) {
         File[] files = directory.listFiles();
         if (files != null && files.length > 0) {
             for (File file : files) {
+                if (excludedFiles != null && excludedFiles.contains(file)) continue;
                 if (file.isFile()) {
-                    fileList.add(file.getAbsolutePath());
+                    fileList.add(file);
                 } else {
-                    getFilesRecursive(file, fileList);
+                    getFilesRecursive(file, fileList, excludedFiles);
                 }
             }
         }

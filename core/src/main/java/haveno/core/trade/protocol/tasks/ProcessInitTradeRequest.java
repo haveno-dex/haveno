@@ -21,11 +21,13 @@ import com.google.common.base.Charsets;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.offer.Offer;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.ArbitratorTrade;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
+import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.trade.protocol.TradePeer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,58 +52,31 @@ public class ProcessInitTradeRequest extends TradeTask {
             runInterceptHook();
             Offer offer = checkNotNull(trade.getOffer(), "Offer must not be null");
             InitTradeRequest request = (InitTradeRequest) processModel.getTradeMessage();
+
+            // validate
             checkNotNull(request);
             checkTradeId(processModel.getOfferId(), request);
-
-            // handle request as arbitrator
-            TradePeer multisigParticipant;
-            if (trade instanceof ArbitratorTrade) {
-                trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing()));
-                trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO (woodser): why duplicating field in process model
-
-                // handle request from taker
-                if (request.getSenderNodeAddress().equals(request.getTakerNodeAddress())) {
-                    multisigParticipant = processModel.getTaker();
-                    if (!trade.getTaker().getNodeAddress().equals(request.getTakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree");
-                    if (trade.getTaker().getPubKeyRing() != null) throw new RuntimeException("Pub key ring should not be initialized before processing InitTradeRequest");
-                    trade.getTaker().setPubKeyRing(request.getPubKeyRing());
-                    if (!HavenoUtils.isMakerSignatureValid(request, request.getMakerSignature(), offer.getPubKeyRing())) throw new RuntimeException("Maker signature is invalid for the trade request"); // verify maker signature
-
-                    // check trade price
-                    try {
-                        long tradePrice = request.getTradePrice();
-                        offer.verifyTakersTradePrice(tradePrice);
-                        trade.setPrice(tradePrice);
-                    } catch (TradePriceOutOfToleranceException e) {
-                        failed(e.getMessage());
-                    } catch (Throwable e2) {
-                        failed(e2);
-                    }
-                }
-
-                // handle request from maker
-                else if (request.getSenderNodeAddress().equals(request.getMakerNodeAddress())) {
-                    multisigParticipant = processModel.getMaker();
-                    if (!trade.getMaker().getNodeAddress().equals(request.getMakerNodeAddress())) throw new RuntimeException("Init trade requests from maker and taker do not agree"); // TODO (woodser): test when maker and taker do not agree, use proper handling, uninitialize trade for other takers
-                    if (trade.getMaker().getPubKeyRing() == null) trade.getMaker().setPubKeyRing(request.getPubKeyRing());
-                    else if (!trade.getMaker().getPubKeyRing().equals(request.getPubKeyRing())) throw new RuntimeException("Init trade requests from maker and taker do not agree");  // TODO (woodser): proper handling
-                    trade.getMaker().setPubKeyRing(request.getPubKeyRing());
-                    if (trade.getPrice().getValue() != request.getTradePrice()) throw new RuntimeException("Maker and taker price do not agree");
-                } else {
-                    throw new RuntimeException("Sender is not trade's maker or taker");
-                }
-            }
+            checkArgument(request.getTradeAmount() > 0);
+            if (trade.getAmount().compareTo(trade.getOffer().getAmount()) > 0) throw new RuntimeException("Trade amount exceeds offer amount");
+            if (trade.getAmount().compareTo(trade.getOffer().getMinAmount()) < 0) throw new RuntimeException("Trade amount is less than minimum offer amount");
+            if (!request.getTakerNodeAddress().equals(trade.getTaker().getNodeAddress())) throw new RuntimeException("Trade's taker node address does not match request");
+            if (!request.getMakerNodeAddress().equals(trade.getMaker().getNodeAddress())) throw new RuntimeException("Trade's maker node address does not match request");
+            if (!request.getOfferId().equals(offer.getId())) throw new RuntimeException("Offer id does not match request's offer id");
 
             // handle request as maker
-            else if (trade instanceof MakerTrade) {
-                multisigParticipant = processModel.getTaker();
-                trade.getTaker().setNodeAddress(request.getSenderNodeAddress()); // arbitrator sends maker InitTradeRequest with taker's node address and pub key ring
-                trade.getTaker().setPubKeyRing(request.getPubKeyRing());
+            TradePeer sender;
+            if (trade instanceof MakerTrade) {
+                sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+                if (sender != trade.getTaker()) throw new RuntimeException("InitTradeRequest to maker is expected from taker");
+                trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
+
+                // check protocol version
+                if (request.getTradeProtocolVersion() != TradeProtocolVersion.MULTISIG_2_3) throw new RuntimeException("Trade protocol version is not supported"); // TODO: check if contained in supported versions
 
                 // check trade price
                 try {
                     long tradePrice = request.getTradePrice();
-                    offer.verifyTakersTradePrice(tradePrice);
+                    offer.verifyTradePrice(tradePrice);
                     trade.setPrice(tradePrice);
                 } catch (TradePriceOutOfToleranceException e) {
                     failed(e.getMessage());
@@ -110,27 +85,78 @@ public class ProcessInitTradeRequest extends TradeTask {
                 }
             }
 
+            // handle request as arbitrator
+            else if (trade instanceof ArbitratorTrade) {
+                trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing())); // TODO: why initializing this here fields here and 
+                trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO: why duplicating field in process model?
+                if (!trade.getArbitrator().getNodeAddress().equals(request.getArbitratorNodeAddress())) throw new RuntimeException("Trade's arbitrator node address does not match request");
+
+                // check protocol version
+                if (request.getTradeProtocolVersion() != TradeProtocolVersion.MULTISIG_2_3) throw new RuntimeException("Trade protocol version is not supported"); // TODO: check consistent from maker and taker when multiple protocols supported
+
+                // handle request from maker
+                sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+                if (sender == trade.getMaker()) {
+                    trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
+
+                    // check trade price
+                    try {
+                        long tradePrice = request.getTradePrice();
+                        offer.verifyTradePrice(tradePrice);
+                        trade.setPrice(tradePrice);
+                    } catch (TradePriceOutOfToleranceException e) {
+                        failed(e.getMessage());
+                    } catch (Throwable e2) {
+                        failed(e2);
+                    }
+                }
+
+                // handle request from taker
+                else if (sender == trade.getTaker()) {
+                    if (!trade.getTaker().getPubKeyRing().equals(request.getTakerPubKeyRing())) throw new RuntimeException("Taker's pub key ring does not match request's pub key ring");
+                    if (request.getTradeAmount() != trade.getAmount().longValueExact()) throw new RuntimeException("Trade amount does not match request's trade amount");
+                    if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
+                }
+                
+                // handle invalid sender
+                else {
+                    throw new RuntimeException("Sender is not trade's maker or taker");
+                }
+            }
+
+            // handle request as taker
+            else if (trade instanceof TakerTrade) {
+                if (request.getTradeAmount() != trade.getAmount().longValueExact()) throw new RuntimeException("Trade amount does not match request's trade amount");
+                if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
+                Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(request.getArbitratorNodeAddress());
+                if (arbitrator == null) throw new RuntimeException("Arbitrator is not accepted by taker");
+                trade.getArbitrator().setNodeAddress(request.getArbitratorNodeAddress());
+                trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
+                sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+                if (sender != trade.getArbitrator()) throw new RuntimeException("InitTradeRequest to taker is expected from arbitrator");
+            }
+
             // handle invalid trade type
             else {
                 throw new RuntimeException("Invalid trade type to process init trade request: " + trade.getClass().getName());
             }
 
             // set trading peer info
-            if (multisigParticipant.getPaymentAccountId() == null) multisigParticipant.setPaymentAccountId(request.getPaymentAccountId());
-            else if (multisigParticipant.getPaymentAccountId() != request.getPaymentAccountId()) throw new RuntimeException("Payment account id is different from previous");
-            multisigParticipant.setPubKeyRing(checkNotNull(request.getPubKeyRing()));
-            multisigParticipant.setAccountId(nonEmptyStringOf(request.getAccountId()));
-            multisigParticipant.setPaymentMethodId(nonEmptyStringOf(request.getPaymentMethodId()));
-            multisigParticipant.setAccountAgeWitnessNonce(trade.getId().getBytes(Charsets.UTF_8));
-            multisigParticipant.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfOfferId());
-            multisigParticipant.setCurrentDate(request.getCurrentDate());
+            if (trade.getMaker().getAccountId() == null) trade.getMaker().setAccountId(request.getMakerAccountId());
+            else if (!trade.getMaker().getAccountId().equals(request.getMakerAccountId())) throw new RuntimeException("Maker account id is different from previous");
+            if (trade.getTaker().getAccountId() == null) trade.getTaker().setAccountId(request.getTakerAccountId());
+            else if (!trade.getTaker().getAccountId().equals(request.getTakerAccountId())) throw new RuntimeException("Taker account id is different from previous");
+            if (trade.getMaker().getPaymentAccountId() == null) trade.getMaker().setPaymentAccountId(request.getMakerPaymentAccountId());
+            else if (!trade.getMaker().getPaymentAccountId().equals(request.getMakerPaymentAccountId())) throw new RuntimeException("Maker payment account id is different from previous");
+            if (trade.getTaker().getPaymentAccountId() == null) trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
+            else if (!trade.getTaker().getPaymentAccountId().equals(request.getTakerPaymentAccountId())) throw new RuntimeException("Taker payment account id is different from previous");
+            sender.setPaymentMethodId(nonEmptyStringOf(request.getPaymentMethodId())); // TODO: move to process model?
+            sender.setAccountAgeWitnessNonce(trade.getId().getBytes(Charsets.UTF_8));
+            sender.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfOfferId());
+            sender.setCurrentDate(request.getCurrentDate());
 
             // check peer's current date
-            processModel.getAccountAgeWitnessService().verifyPeersCurrentDate(new Date(multisigParticipant.getCurrentDate()));
-
-            // check trade amount
-            checkArgument(request.getTradeAmount() > 0);
-            checkArgument(request.getTradeAmount() == trade.getAmount().longValueExact(), "Trade amount does not match request's trade amount");
+            processModel.getAccountAgeWitnessService().verifyPeersCurrentDate(new Date(sender.getCurrentDate()));
 
             // persist trade
             trade.addInitProgressStep();

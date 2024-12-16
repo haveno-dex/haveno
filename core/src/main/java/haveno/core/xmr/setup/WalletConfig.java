@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.xmr.setup;
@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.AbstractIdleService;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
-import haveno.core.api.LocalMoneroNode;
+import haveno.core.api.XmrLocalNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
@@ -32,7 +32,6 @@ import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.crypto.KeyCrypter;
 import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.script.Script;
@@ -92,7 +91,6 @@ public class WalletConfig extends AbstractIdleService {
     protected volatile File vBtcWalletFile;
 
     protected PeerAddress[] peerAddresses;
-    protected DownloadListener downloadListener;
     protected InputStream checkpoints;
     protected String userAgent, version;
     @Nullable
@@ -103,7 +101,7 @@ public class WalletConfig extends AbstractIdleService {
     protected volatile Context context;
 
     protected Config config;
-    protected LocalMoneroNode localMoneroNode;
+    protected XmrLocalNode xmrLocalNode;
     protected Socks5Proxy socks5Proxy;
     protected int numConnectionsForBtc;
     @Getter
@@ -143,9 +141,9 @@ public class WalletConfig extends AbstractIdleService {
         return this;
     }
 
-    public WalletConfig setLocalMoneroNodeService(LocalMoneroNode localMoneroNode) {
+    public WalletConfig setXmrLocalNode(XmrLocalNode xmrLocalNode) {
         checkState(state() == State.NEW, "Cannot call after startup");
-        this.localMoneroNode = localMoneroNode;
+        this.xmrLocalNode = xmrLocalNode;
         return this;
     }
 
@@ -167,15 +165,6 @@ public class WalletConfig extends AbstractIdleService {
     public WalletConfig connectToLocalHost() {
         final InetAddress localHost = InetAddress.getLoopbackAddress();
         return setPeerNodes(new PeerAddress(params, localHost, params.getPort()));
-    }
-
-    /**
-     * If you want to learn about the sync process, you can provide a listener here. For instance, a
-     * {@link DownloadProgressTracker} is a good choice.
-     */
-    public WalletConfig setDownloadListener(DownloadListener listener) {
-        this.downloadListener = listener;
-        return this;
     }
 
     /**

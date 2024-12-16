@@ -63,21 +63,20 @@ public class ProcessSignContractRequest extends TradeTask {
           // extract fields from request
           // TODO (woodser): verify request and from maker or taker
           SignContractRequest request = (SignContractRequest) processModel.getTradeMessage();
-          TradePeer trader = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
-          trader.setDepositTxHash(request.getDepositTxHash());
-          trader.setAccountId(request.getAccountId());
-          trader.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
-          trader.setPayoutAddressString(request.getPayoutAddress());
+          TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+          sender.setDepositTxHash(request.getDepositTxHash());
+          sender.setAccountId(request.getAccountId());
+          sender.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
+          sender.setPayoutAddressString(request.getPayoutAddress());
 
           // maker sends witness signature of deposit tx hash
-          if (trader == trade.getMaker()) {
-            trader.setAccountAgeWitnessNonce(request.getDepositTxHash().getBytes(Charsets.UTF_8));
-            trader.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfDepositHash());
+          if (sender == trade.getMaker()) {
+            sender.setAccountAgeWitnessNonce(request.getDepositTxHash().getBytes(Charsets.UTF_8));
+            sender.setAccountAgeWitnessSignature(request.getAccountAgeWitnessSignatureOfDepositHash());
           }
 
-          // sign contract only when both deposit txs hashes known
-          // TODO (woodser): remove makerDepositTxId and takerDepositTxId from Trade
-          if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null) {
+          // sign contract only when received from both peers
+          if (processModel.getMaker().getPaymentAccountPayloadHash() == null || processModel.getTaker().getPaymentAccountPayloadHash() == null) {
               complete();
               return;
           }

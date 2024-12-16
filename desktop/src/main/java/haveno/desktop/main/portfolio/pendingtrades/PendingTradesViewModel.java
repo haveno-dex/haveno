@@ -1,24 +1,27 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
+import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
@@ -36,30 +39,25 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.BtcAddressValidator;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
+import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-
-import javax.annotation.Nullable;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
 
 public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTradesDataModel> implements ViewModel {
 
@@ -104,6 +102,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     @Getter
     private final ObjectProperty<MessageState> messageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     private Subscription tradeStateSubscription;
+    private Subscription paymentAccountDecryptedSubscription;
     private Subscription payoutStateSubscription;
     private Subscription messageStateSubscription;
     @Getter
@@ -148,12 +147,17 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 tradeStateSubscription.unsubscribe();
                 tradeStateSubscription = null;
             }
-    
+
+            if (paymentAccountDecryptedSubscription != null) {
+                paymentAccountDecryptedSubscription.unsubscribe();
+                paymentAccountDecryptedSubscription = null;
+            }
+
             if (payoutStateSubscription != null) {
                 payoutStateSubscription.unsubscribe();
                 payoutStateSubscription = null;
             }
-    
+
             if (messageStateSubscription != null) {
                 messageStateSubscription.unsubscribe();
                 messageStateSubscription = null;
@@ -169,42 +173,46 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 sellerState.set(SellerState.UNDEFINED);
                 buyerState.set(BuyerState.UNDEFINED);
             }
-    
+
+            if (paymentAccountDecryptedSubscription != null) {
+                paymentAccountDecryptedSubscription.unsubscribe();
+            }
+
             if (payoutStateSubscription != null) {
                 payoutStateSubscription.unsubscribe();
                 sellerState.set(SellerState.UNDEFINED);
                 buyerState.set(BuyerState.UNDEFINED);
             }
-    
+
             if (messageStateSubscription != null) {
                 messageStateSubscription.unsubscribe();
                 messageStateProperty.set(MessageState.UNDEFINED);
             }
-    
+
             if (selectedItem != null) {
                 this.trade = selectedItem.getTrade();
                 tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), state -> {
                     onTradeStateChanged(state);
+                });
+                paymentAccountDecryptedSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentAccountDecryptedProperty(), decrypted -> {
+                    refresh();
                 });
                 payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                     onPayoutStateChanged(state);
                 });
                 messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
             }
-
         }
     }
 
-    public void setMessageStateProperty(MessageState messageState) {
-        // ARRIVED is set internally after ACKNOWLEDGED, otherwise warn if subsequent states received
-        if ((messageStateProperty.get() == MessageState.ACKNOWLEDGED && messageState != MessageState.ARRIVED) || messageStateProperty.get() == MessageState.ARRIVED) {
-            log.warn("We have already an ACKNOWLEDGED/ARRIVED message received. " +
-                    "We would not expect any other message after that. Received messageState={}", messageState);
-            return;
-        }
-
-        if (trade != null)
-            trade.getProcessModel().setPaymentSentMessageState(messageState);
+    private void refresh() {
+        UserThread.execute(() -> {
+            sellerState.set(UNDEFINED);
+            buyerState.set(BuyerState.UNDEFINED);
+            onTradeStateChanged(trade.getState());
+            if (trade.isPayoutPublished()) onPayoutStateChanged(trade.getPayoutState()); // TODO: payout state takes precedence in case PaymentReceivedMessage not processed
+            else onTradeStateChanged(trade.getState());
+        });
     }
 
     private void onMessageStateChanged(MessageState messageState) {
@@ -223,9 +231,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         return sellerState;
     }
 
-    public String getPayoutAmount() {
+    public String getPayoutAmountBeforeCost() {
         return dataModel.getTrade() != null
-                ? HavenoUtils.formatXmr(dataModel.getTrade().getPayoutAmount(), true)
+                ? HavenoUtils.formatXmr(dataModel.getTrade().getPayoutAmountBeforeCost(), true)
                 : "";
     }
 
@@ -287,12 +295,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             BigInteger tradeFeeInXmr = dataModel.getTradeFee();
 
-            BigInteger minTradeFee = dataModel.isMaker() ?
-                    HavenoUtils.getMinMakerFee() :
-                    HavenoUtils.getMinTakerFee();
-
-            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInXmr, trade.getAmount(),
-                    minTradeFee);
+            String percentage = GUIUtil.getPercentageOfTradeAmount(tradeFeeInXmr, trade.getAmount());
             return HavenoUtils.formatXmr(tradeFeeInXmr, true) + percentage;
         } else {
             return "";
@@ -304,16 +307,10 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         Trade trade = dataModel.getTrade();
         if (offer != null && trade != null && trade.getAmount() != null) {
             BigInteger securityDeposit = dataModel.isBuyer() ?
-                    offer.getBuyerSecurityDeposit()
-                    : offer.getSellerSecurityDeposit();
+                    offer.getMaxBuyerSecurityDeposit()
+                    : offer.getMaxSellerSecurityDeposit();
 
-            BigInteger minSecurityDeposit = dataModel.isBuyer() ?
-                    Restrictions.getMinBuyerSecurityDeposit() :
-                    Restrictions.getMinSellerSecurityDeposit();
-
-            String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit,
-                    trade.getAmount(),
-                    minSecurityDeposit);
+            String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit, trade.getAmount());
             return HavenoUtils.formatXmr(securityDeposit, true) + percentage;
         } else {
             return "";
@@ -363,6 +360,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             return;
         }
 
+        if (trade.isCompleted()) {
+            sellerState.set(UNDEFINED);
+            buyerState.set(BuyerState.UNDEFINED);
+            return;
+        }
+
         switch (tradeState) {
 
             // initialization
@@ -395,7 +398,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer step 3
-            case BUYER_CONFIRMED_IN_UI_PAYMENT_SENT: // UI action
+            case BUYER_CONFIRMED_PAYMENT_SENT: // UI action
             case BUYER_SENT_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG sent
             case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:  // PAYMENT_SENT_MSG arrived
                 // We don't switch the UI before we got the feedback of the msg delivery
@@ -418,16 +421,11 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // seller step 3
-            case SELLER_CONFIRMED_IN_UI_PAYMENT_RECEIPT:
+            case SELLER_CONFIRMED_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
                 sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
-                break;
-
-            case TRADE_COMPLETED:
-                sellerState.set(UNDEFINED);
-                buyerState.set(BuyerState.UNDEFINED);
                 break;
 
             default:

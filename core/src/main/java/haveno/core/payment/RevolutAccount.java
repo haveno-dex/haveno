@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -32,7 +32,7 @@ import java.util.List;
 public final class RevolutAccount extends PaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
-            PaymentAccountFormField.FieldId.USER_NAME,
+            PaymentAccountFormField.FieldId.USERNAME,
             PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.SALT
@@ -74,7 +74,6 @@ public final class RevolutAccount extends PaymentAccount {
 
     public RevolutAccount() {
         super(PaymentMethod.REVOLUT);
-        tradeCurrencies.addAll(getSupportedCurrencies());
     }
 
     @Override
@@ -82,16 +81,16 @@ public final class RevolutAccount extends PaymentAccount {
         return new RevolutAccountPayload(paymentMethod.getId(), id);
     }
 
-    public void setUserName(String userName) {
-        revolutAccountPayload().setUserName(userName);
+    public void setUsername(String userame) {
+        revolutAccountPayload().setUserName(userame);
     }
 
-    public String getUserName() {
-        return (revolutAccountPayload()).getUserName();
+    public String getUsername() {
+        return (revolutAccountPayload()).getUsername();
     }
 
-    public boolean userNameNotSet() {
-        return (revolutAccountPayload()).userNameNotSet();
+    public boolean usernameNotSet() {
+        return (revolutAccountPayload()).usernameNotSet();
     }
 
     private RevolutAccountPayload revolutAccountPayload() {

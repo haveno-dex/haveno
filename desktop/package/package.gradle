@@ -1,38 +1,46 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 import java.time.LocalDateTime
+import java.util.regex.Pattern
 
 task jpackageSanityChecks {
     description 'Interactive sanity checks on the version of the code that will be packaged'
 
     doLast {
-        executeCmd("git --no-pager log -5 --oneline")
-        ant.input(message: "Above you see the current HEAD and its recent history.\n" +
-                "Is this the right commit for packaging? (y=continue, n=abort)",
-                addproperty: "sanity-check-1",
-                validargs: "y,n")
-        if (ant.properties['sanity-check-1'] == 'n') {
-            ant.fail('Aborting')
-        }
+        if (!System.getenv("CI")) {
+            executeCmd("git --no-pager log -5 --oneline")
+            ant.input(message: "Above you see the current HEAD and its recent history.\n" +
+                    "Is this the right commit for packaging? (y=continue, n=abort)",
+                    addproperty: "sanity-check-1",
+                    validargs: "y,n")
+            if (ant.properties['sanity-check-1'] == 'n') {
+                ant.fail('Aborting')
+            }
 
-        executeCmd("git status --short --branch")
-        ant.input(message: "Above you see any local changes that are not in the remote branch.\n" +
-                "If you have any local changes, please abort, get them merged, get the latest branch and try again.\n" +
-                "Continue with packaging? (y=continue, n=abort)",
-                addproperty: "sanity-check-2",
-                validargs: "y,n")
-        if (ant.properties['sanity-check-2'] == 'n') {
-            ant.fail('Aborting')
-        }
+            executeCmd("git status --short --branch")
+            ant.input(message: "Above you see any local changes that are not in the remote branch.\n" +
+                    "If you have any local changes, please abort, get them merged, get the latest branch and try again.\n" +
+                    "Continue with packaging? (y=continue, n=abort)",
+                    addproperty: "sanity-check-2",
+                    validargs: "y,n")
+            if (ant.properties['sanity-check-2'] == 'n') {
+                ant.fail('Aborting')
+            }
 
-        // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
-        executeCmd("java --version")
-        ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
-                "Is this java version ok for that? (y=continue, n=abort)",
-                addproperty: "sanity-check-3",
-                validargs: "y,n")
-        if (ant.properties['sanity-check-3'] == 'n') {
-            ant.fail('Aborting')
+            // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
+            executeCmd("java --version")
+            ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
+                    "Is this java version ok for that? (y=continue, n=abort)",
+                    addproperty: "sanity-check-3",
+                    validargs: "y,n")
+            if (ant.properties['sanity-check-3'] == 'n') {
+                ant.fail('Aborting')
+            }
+        } else {
+            println "CI environment detected, skipping interactive sanity checks"
+            executeCmd("git --no-pager log -5 --oneline")
+            executeCmd("git status --short --branch")
+            executeCmd("java --version")
         }
     }
 }
@@ -55,9 +63,6 @@ task getJavaBinariesDownloadURLs {
         binariesFolderPath.mkdirs()
         ext.binariesFolderPath = binariesFolderPath
 
-        // TODO Extend script logic to alternatively allow a local (separate, v14+) JDK for jpackage
-        // TODO Another option is to use the local JDK for everything: build jars and use jpackage (but then it has to be v14+)
-
         // Define the download URLs (and associated binary hashes) for the JDK used to package the installers
         // These JDKs are independent of what is installed on the building system
         //
@@ -71,28 +76,48 @@ task getJavaBinariesDownloadURLs {
         // -- linux   ( -> use the tar.gz JDK link)
         // -- macOS   ( -> use the tar.gz JDK link)
         // -- windows ( -> use the .zip JDK link)
-        Map jdk15Binaries = [
-                'linux'         : 'https://github.com/AdoptOpenJDK/openjdk15-binaries/releases/download/jdk-15.0.2%2B7/OpenJDK15U-jdk_x64_linux_hotspot_15.0.2_7.tar.gz',
-                'linux-sha256'  : '94f20ca8ea97773571492e622563883b8869438a015d02df6028180dd9acc24d',
-                'mac'           : 'https://github.com/AdoptOpenJDK/openjdk15-binaries/releases/download/jdk-15.0.2%2B7/OpenJDK15U-jdk_x64_mac_hotspot_15.0.2_7.tar.gz',
-                'mac-sha256'    : 'd358a7ff03905282348c6c80562a4da2e04eb377b60ad2152be4c90f8d580b7f',
-                'windows'       : 'https://github.com/AdoptOpenJDK/openjdk15-binaries/releases/download/jdk-15.0.2%2B7/OpenJDK15U-jdk_x64_windows_hotspot_15.0.2_7.zip',
-                'windows-sha256': 'b80dde2b7f8374eff0f1726c1cbdb48fb095fdde21489046d92f7144baff5741'
-
-                // TODO For some reason, using "--runtime-image jdk-11" does NOT work with a v15 jpackage, but works with v14
+        Map jdk21Binaries = [
+                'linux'                 : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-linux-amd64-full.tar.gz',
+                'linux-sha256'          : '7eda80851fba1da023e03446c77100f19e7c770491b0d5bc9f893044e1b2b69b',
+                'linux-aarch64'         : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-linux-aarch64-full.tar.gz',
+                'linux-aarch64-sha256'  : 'a477fc72085f30b03bf71fbed47923cea3b6f33b5b6a5a74718623b772a3a043',
+                'mac'                   : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-macos-amd64-full.tar.gz',
+                'mac-sha256'            : '42b528206595e559803b6f9f6bdbbf236ec6d10684058f46bc5261f5498d345c',
+                'mac-aarch64'           : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-macos-aarch64-full.tar.gz',
+                'mac-aarch64-sha256'    : 'eba73a9bff7234220dc9a1da7f44b3d7ed2a562663eadc1c53bd74b355839a55',
+                'windows'               : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-windows-amd64-full.zip',
+                'windows-sha256'        : 'f823eff0234af5bef095e53e5431191dbee8c2e42ca321eda23148a15cbf8d5b',
+                'windows-aarch64'       : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-windows-aarch64-full.zip',
+                'windows-aarch64-sha256': 'a2e9edecaf9637f83ef1cddab3a74f39ac55f8e1a479f10f3584ad939dfadd0a'
         ]
 
         String osKey
+        String architecture = System.getProperty("os.arch").toLowerCase()
+
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-            osKey = 'windows'
+            if (architecture.contains("aarch64") || architecture.contains("arm")) {
+                osKey = "windows-aarch64"
+            } else {
+                osKey = "windows"
+            }
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
-            osKey = 'mac'
+            if (architecture.contains("aarch64") || architecture.contains("arm")) {
+                osKey = "mac-aarch64"
+            } else {
+                osKey = "mac"
+            }
         } else {
-            osKey = 'linux'
+            if (architecture.contains("aarch64") || architecture.contains("arm")) {
+                osKey = "linux-aarch64"
+            } else {
+                osKey = "linux"
+            }
         }
 
-        ext.jdk15Binary_DownloadURL = jdk15Binaries[osKey]
-        ext.jdk15Binary_SHA256Hash = jdk15Binaries[osKey + '-sha256']
+        ext.osKey = osKey
+
+        ext.jdk21Binary_DownloadURL = jdk21Binaries[osKey]
+        ext.jdk21Binary_SHA256Hash = jdk21Binaries[osKey + '-sha256']
     }
 }
 
@@ -108,8 +133,8 @@ task retrieveAndExtractJavaBinaries {
         File jdkForJpackageDir = new File(tempRootDir, jdkForJpackageDirName)
         jdkForJpackageDir.mkdirs()
 
-        String jdkForJpackageArchiveURL = getJavaBinariesDownloadURLs.property('jdk15Binary_DownloadURL')
-        String jdkForJpackageArchiveHash = getJavaBinariesDownloadURLs.property('jdk15Binary_SHA256Hash')
+        String jdkForJpackageArchiveURL = getJavaBinariesDownloadURLs.property('jdk21Binary_DownloadURL')
+        String jdkForJpackageArchiveHash = getJavaBinariesDownloadURLs.property('jdk21Binary_SHA256Hash')
         String jdkForJpackageArchiveFileName = jdkForJpackageArchiveURL.tokenize('/').last()
         File jdkForJpackageFile = new File(jdkForJpackageDir, jdkForJpackageArchiveFileName)
 
@@ -226,15 +251,15 @@ task packageInstallers {
                     destfile: "${binariesFolderPath}/jar-lib-for-raspberry-pi-${appVersion}.zip")
         }
 
-        String appDescription = 'A decentralized monero exchange network.'
-        String appCopyright = '© 2023 Haveno'
+        //String appDescription = 'A decentralized monero exchange network.'
+        String appCopyright = '© 2024 Haveno'
         String appNameAndVendor = 'Haveno'
 
         String commonOpts = new String(
                 // Generic options
                 " --dest \"${binariesFolderPath}\"" +
                         " --name ${appNameAndVendor}" +
-                        " --description \"${appDescription}\"" +
+                        //" --description \"${appDescription}\"" + // TODO: task managers show app description instead of name, so we disable it
                         " --app-version ${appVersion}" +
                         " --copyright \"${appCopyright}\"" +
                         " --vendor ${appNameAndVendor}" +
@@ -248,6 +273,10 @@ task packageInstallers {
                         " --main-class haveno.desktop.app.HavenoAppMain" +
                         " --java-options -Xss1280k" +
                         " --java-options -XX:MaxRAM=4g" +
+                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED" +
+                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED" +
+                        " --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED" +
+                        " --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED" +
                         " --java-options -Djava.net.preferIPv4Stack=true" +
                         " --arguments --baseCurrencyNetwork=XMR_STAGENET"
                 // Warning: this will cause guice reflection exceptions and lead to issues with the guice internal cache
@@ -265,7 +294,7 @@ task packageInstallers {
                             " --win-shortcut"
             )
 
-            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --type exe")
+            executeCmd(jPackageFilePath + commonOpts + windowsOpts + " --verbose > desktop/build/output.txt --type exe")
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
             // See https://docs.oracle.com/en/java/javase/14/jpackage/override-jpackage-resources.html
             // for details of "--resource-dir"
@@ -295,6 +324,69 @@ task packageInstallers {
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 
+            // Clean jpackage temp folder, needs to be empty for the next packaging step (AppImage)
+            jpackageTempDir.deleteDir()
+            jpackageTempDir.mkdirs()
+
+            executeCmd(jPackageFilePath + commonOpts +
+                    " --dest \"${jpackageTempDir}\"" +
+                    " --type app-image")
+
+            // Path to the app-image directory: THIS IS NOT THE ACTUAL .AppImage FILE.
+            // See JPackage documentation on --type app-image for more.
+            String appImagePath = new String(
+                    "\"${binariesFolderPath}/${appNameAndVendor}\""
+            )
+
+            // Which version of AppImageTool to use
+            String AppImageToolVersion = "13";
+
+            // Download AppImageTool
+            Map AppImageToolBinaries = [
+                    'linux'                 : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-x86_64.AppImage",
+                    'linux-aarch64'         : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-aarch64.AppImage",
+            ]
+
+            String osKey = getJavaBinariesDownloadURLs.property('osKey')
+
+            File appDir = new File("${jpackageTempDir}/Haveno")
+            File templateAppDir = new File("${project(':desktop').projectDir}/package/linux/Haveno.AppDir")
+            File jpackDir = appDir
+
+            appDir.mkdirs()
+
+            File AppImageToolBinary = new File("${jpackageTempDir}/appimagetool.AppImage")
+
+            // Adding a platform to the AppImageToolBinaries essentially adds it to the "supported" list of platforms able to make AppImages
+            // However, be warned that any platform that doesn't support unix `ln` and `chmod` will not work with the current method.
+            if (AppImageToolBinaries.containsKey(osKey)) {
+                println "Downloading ${AppImageToolBinaries[osKey]}"
+                ant.get(src: AppImageToolBinaries[osKey], dest: AppImageToolBinary)
+                println 'Download saved to ' + jpackageTempDir
+
+                project.exec {
+                    commandLine('chmod', '+x', AppImageToolBinary)
+                }
+
+                copy {
+                    from templateAppDir
+                    into appDir
+                    boolean includeEmptyDirs = true
+                }
+
+                project.exec {
+                    workingDir appDir
+                    commandLine 'ln', '-s', 'bin/Haveno', 'AppRun'
+                }
+
+                project.exec {
+                    commandLine "${AppImageToolBinary}", appDir, "${binariesFolderPath}/haveno_${appVersion}.AppImage"
+                }
+            } else {
+                println "Your platform does not support AppImageTool ${AppImageToolVersion}"
+            }
+
+
             // Clean jpackage temp folder, needs to be empty for the next packaging step (rpm)
             jpackageTempDir.deleteDir()
             jpackageTempDir.mkdirs()
@@ -303,6 +395,55 @@ task packageInstallers {
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
                     " --linux-rpm-license-type AGPLv3" + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
                     " --type rpm")
+
+
+
+            // Define Flatpak-related properties
+            String flatpakManifestFile = 'package/linux/exchange.haveno.Haveno.yml'
+            String linuxDir = 'package/linux'
+            String flatpakOutputDir = 'package/linux/build'
+            String flatpakExportDir = "${binariesFolderPath}/fpexport"
+            String flatpakBundleFile = "${binariesFolderPath}/haveno.flatpak"
+
+            // Read the default app name from the HavenoExecutable.java file
+            def filer = file('../core/src/main/java/haveno/core/app/HavenoExecutable.java')
+            def content = filer.text
+            def matcher = Pattern.compile(/public static final String DEFAULT_APP_NAME = "(.*?)";/).matcher(content)
+            def defaultAppName = "Haveno"
+            if (matcher.find()) {
+                defaultAppName = matcher.group(1)
+            } else {
+                throw new GradleException("DEFAULT_APP_NAME not found in HavenoExecutable.java")
+            }
+
+            // Copy the manifest to a new tmp one in the same place
+            // and add a --filesystem=.local/share/${name} to the flatpak manifest
+            def manifest = file(flatpakManifestFile)
+            def newManifest = file('exchange.haveno.Haveno.yaml')
+            newManifest.write(manifest.text.replace("- --share=network", "- --share=network\n  - --filesystem=~/.local/share/${defaultAppName}:create"))
+            flatpakManifestFile = 'exchange.haveno.Haveno.yaml'
+
+            // Command to build the Flatpak
+            exec {
+                commandLine 'flatpak-builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
+            }
+
+            // Command to export the Flatpak
+            exec {
+                commandLine 'flatpak', 'build-export', flatpakExportDir, flatpakOutputDir
+            }
+
+            // Command to create the Flatpak bundle
+            exec {
+                commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Haveno', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
+            }
+
+            // delete the flatpak build directory
+            delete(flatpakOutputDir)
+            delete(flatpakExportDir)
+            delete(flatpakManifestFile)
+
+            println "Flatpak package created at ${flatpakBundleFile}"
         }
 
         // Env variable can be set by calling "export HAVENO_SHARED_FOLDER='Some value'"
@@ -319,6 +460,7 @@ task packageInstallers {
                     from binariesFolderPath
                     into envVariableSharedFolder
                 }
+
                 executeCmd("open " + envVariableSharedFolder)
             }
         }

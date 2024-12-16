@@ -1,25 +1,31 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.offer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Version;
 import haveno.common.util.MathUtils;
+import static haveno.common.util.MathUtils.roundDoubleToLong;
+import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -28,8 +34,23 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
-import haveno.core.payment.PayByMailAccount;
+import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
+import static haveno.core.offer.OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.CAPABILITIES;
+import static haveno.core.offer.OfferPayload.CASHAPP_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.F2F_CITY;
+import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.PAYPAL_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.REFERRAL_ID;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
+import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
+
+import haveno.core.payment.AustraliaPayidAccount;
+import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.F2FAccount;
+import haveno.core.payment.PayByMailAccount;
+import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
@@ -37,31 +58,15 @@ import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
+import static haveno.core.xmr.wallet.Restrictions.getMaxSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMinSecurityDepositAsPercent;
 import haveno.network.p2p.P2PService;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.common.util.MathUtils.roundDoubleToLong;
-import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
-import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
-import static haveno.core.offer.OfferPayload.CAPABILITIES;
-import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.F2F_CITY;
-import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.REFERRAL_ID;
-import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
-import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
-import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
-import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class holds utility methods for creating, editing and taking an Offer.
@@ -115,9 +120,10 @@ public class OfferUtil {
 
     public long getMaxTradeLimit(PaymentAccount paymentAccount,
                                  String currencyCode,
-                                 OfferDirection direction) {
+                                 OfferDirection direction,
+                                 boolean buyerAsTakerWithoutDeposit) {
         return paymentAccount != null
-                ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction)
+                ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit)
                 : 0;
     }
 
@@ -143,9 +149,9 @@ public class OfferUtil {
     public BigInteger getBalanceShortage(BigInteger cost, BigInteger balance) {
         if (cost != null) {
             BigInteger shortage = cost.subtract(balance);
-            return shortage.compareTo(BigInteger.valueOf(0)) < 0 ? BigInteger.valueOf(0) : shortage;
+            return shortage.compareTo(BigInteger.ZERO) < 0 ? BigInteger.ZERO : shortage;
         } else {
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
         }
     }
 
@@ -199,6 +205,18 @@ public class OfferUtil {
             extraDataMap.put(PAY_BY_MAIL_EXTRA_INFO, ((PayByMailAccount) paymentAccount).getExtraInfo());
         }
 
+        if (paymentAccount instanceof PayPalAccount) {
+            extraDataMap.put(PAYPAL_EXTRA_INFO, ((PayPalAccount) paymentAccount).getExtraInfo());
+        }
+
+        if (paymentAccount instanceof CashAppAccount) {
+            extraDataMap.put(CASHAPP_EXTRA_INFO, ((CashAppAccount) paymentAccount).getExtraInfo());
+        }
+
+        if (paymentAccount instanceof AustraliaPayidAccount) {
+            extraDataMap.put(AUSTRALIA_PAYID_EXTRA_INFO, ((AustraliaPayidAccount) paymentAccount).getExtraInfo());
+        }
+
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());
 
         if (currencyCode.equals("XMR") && direction == OfferDirection.SELL) {
@@ -211,18 +229,16 @@ public class OfferUtil {
         return extraDataMap.isEmpty() ? null : extraDataMap;
     }
 
-    public void validateOfferData(double buyerSecurityDeposit,
+    public void validateOfferData(double securityDeposit,
                                   PaymentAccount paymentAccount,
-                                  String currencyCode,
-                                  BigInteger makerFee) {
-        checkNotNull(makerFee, "makerFee must not be null");
+                                  String currencyCode) {
         checkNotNull(p2PService.getAddress(), "Address must not be null");
-        checkArgument(buyerSecurityDeposit <= getMaxBuyerSecurityDepositAsPercent(),
+        checkArgument(securityDeposit <= getMaxSecurityDepositAsPercent(),
                 "securityDeposit must not exceed " +
-                        getMaxBuyerSecurityDepositAsPercent());
-        checkArgument(buyerSecurityDeposit >= getMinBuyerSecurityDepositAsPercent(),
+                        getMaxSecurityDepositAsPercent());
+        checkArgument(securityDeposit >= getMinSecurityDepositAsPercent(),
                 "securityDeposit must not be less than " +
-                        getMinBuyerSecurityDepositAsPercent());
+                        getMinSecurityDepositAsPercent() + " but was " + securityDeposit);
         checkArgument(!filterManager.isCurrencyBanned(currencyCode),
                 Res.get("offerbook.warning.currencyBanned"));
         checkArgument(!filterManager.isPaymentMethodBanned(paymentAccount.getPaymentMethod()),

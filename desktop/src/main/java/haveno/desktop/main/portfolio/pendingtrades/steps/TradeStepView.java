@@ -1,23 +1,23 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
-import com.jfoenix.controls.JFXProgressBar;
+import static com.google.common.base.Preconditions.checkNotNull;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.ClockWatcher;
@@ -39,12 +39,20 @@ import haveno.core.user.Preferences;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.TxIdTextField;
+import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
 import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -63,19 +71,6 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.components.paymentmethods.PaymentMethodForm.addOpenTradeDuration;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 
 public abstract class TradeStepView extends AnchorPane {
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -112,8 +107,6 @@ public abstract class TradeStepView extends AnchorPane {
         preferences = model.dataModel.preferences;
         trade = model.dataModel.getTrade();
         checkNotNull(trade, "Trade must not be null at TradeStepView");
-
-        startCachingTxs();
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -170,13 +163,6 @@ public abstract class TradeStepView extends AnchorPane {
 //        };
     }
 
-    private void startCachingTxs() {
-        List<String> txIds = new ArrayList<String>();
-        if (!model.dataModel.makerTxId.isEmpty().get()) txIds.add(model.dataModel.makerTxId.get());
-        if (!model.dataModel.takerTxId.isEmpty().get()) txIds.add(model.dataModel.takerTxId.get());
-        new Thread(() -> trade.getXmrWalletService().getTxsWithCache(txIds)).start();
-    }
-
     public void activate() {
         if (selfTxIdTextField != null) {
             if (selfTxIdSubscription != null)
@@ -184,8 +170,7 @@ public abstract class TradeStepView extends AnchorPane {
 
             selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.makerTxId : model.dataModel.takerTxId, id -> {
                 if (!id.isEmpty()) {
-                    startCachingTxs();
-                    selfTxIdTextField.setup(id);
+                    selfTxIdTextField.setup(id, trade);
                 } else {
                     selfTxIdTextField.cleanup();
                 }
@@ -197,8 +182,7 @@ public abstract class TradeStepView extends AnchorPane {
 
             peerTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.takerTxId : model.dataModel.makerTxId, id -> {
                 if (!id.isEmpty()) {
-                    startCachingTxs();
-                    peerTxIdTextField.setup(id);
+                    peerTxIdTextField.setup(id, trade);
                 } else {
                     peerTxIdTextField.cleanup();
                 }
@@ -206,15 +190,13 @@ public abstract class TradeStepView extends AnchorPane {
         }
         trade.errorMessageProperty().addListener(errorMessageListener);
 
-        if (!isMediationClosedState()) {
-            tradeStepInfo.setOnAction(e -> {
-                if (this.isTradePeriodOver()) {
-                    openSupportTicket();
-                } else {
-                    openChat();
-                }
-            });
-        }
+        tradeStepInfo.setOnAction(e -> {
+            if (!isArbitrationOpenedState() && this.isTradePeriodOver()) {
+                openSupportTicket();
+            } else {
+                openChat();
+            }
+        });
 
         // We get mailbox messages processed after we have bootstrapped. This will influence the states we
         // handle in our disputeStateSubscription and mediationResultStateSubscriptions. To avoid that we show
@@ -224,7 +206,7 @@ public abstract class TradeStepView extends AnchorPane {
         } else {
             bootstrapListener = new BootstrapListener() {
                 @Override
-                public void onUpdatedDataReceived() {
+                public void onDataReceived() {
                     registerSubscriptions();
                 }
             };
@@ -344,32 +326,38 @@ public abstract class TradeStepView extends AnchorPane {
         GridPane.setColumnSpan(tradeInfoTitledGroupBg, 2);
 
         // self's deposit tx id
-        final Tuple3<Label, TxIdTextField, VBox> labelSelfTxIdTextFieldVBoxTuple3 =
-                addTopLabelTxIdTextField(gridPane, gridRow, Res.get("shared.yourDepositTransactionId"),
-                        Layout.COMPACT_FIRST_ROW_DISTANCE);
+        boolean showSelfTxId = model.dataModel.isMaker() || !trade.hasBuyerAsTakerWithoutDeposit();
+        if (showSelfTxId) {
+            final Tuple3<Label, TxIdTextField, VBox> labelSelfTxIdTextFieldVBoxTuple3 =
+            addTopLabelTxIdTextField(gridPane, gridRow, Res.get("shared.yourDepositTransactionId"),
+                    Layout.COMPACT_FIRST_ROW_DISTANCE);
 
-        GridPane.setColumnSpan(labelSelfTxIdTextFieldVBoxTuple3.third, 2);
-        selfTxIdTextField = labelSelfTxIdTextFieldVBoxTuple3.second;
+            GridPane.setColumnSpan(labelSelfTxIdTextFieldVBoxTuple3.third, 2);
+            selfTxIdTextField = labelSelfTxIdTextFieldVBoxTuple3.second;
 
-        String selfTxId = model.dataModel.isMaker() ? model.dataModel.makerTxId.get() : model.dataModel.takerTxId.get();
-        if (!selfTxId.isEmpty())
-            selfTxIdTextField.setup(selfTxId);
-        else
-            selfTxIdTextField.cleanup();
+            String selfTxId = model.dataModel.isMaker() ? model.dataModel.makerTxId.get() : model.dataModel.takerTxId.get();
+            if (!selfTxId.isEmpty())
+                selfTxIdTextField.setup(selfTxId, trade);
+            else
+                selfTxIdTextField.cleanup();
+        }
 
         // peer's deposit tx id
-        final Tuple3<Label, TxIdTextField, VBox> labelPeerTxIdTextFieldVBoxTuple3 =
-                addTopLabelTxIdTextField(gridPane, ++gridRow, Res.get("shared.peerDepositTransactionId"),
-                        -Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
+        boolean showPeerTxId = !model.dataModel.isMaker() || !trade.hasBuyerAsTakerWithoutDeposit();
+        if (showPeerTxId) {
+            final Tuple3<Label, TxIdTextField, VBox> labelPeerTxIdTextFieldVBoxTuple3 =
+            addTopLabelTxIdTextField(gridPane, showSelfTxId ? ++gridRow : gridRow, Res.get("shared.peerDepositTransactionId"),
+                    showSelfTxId ? -Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR : Layout.COMPACT_FIRST_ROW_DISTANCE);
 
-        GridPane.setColumnSpan(labelPeerTxIdTextFieldVBoxTuple3.third, 2);
-        peerTxIdTextField = labelPeerTxIdTextFieldVBoxTuple3.second;
+            GridPane.setColumnSpan(labelPeerTxIdTextFieldVBoxTuple3.third, 2);
+            peerTxIdTextField = labelPeerTxIdTextFieldVBoxTuple3.second;
 
-        String peerTxId = model.dataModel.isMaker() ? model.dataModel.takerTxId.get() : model.dataModel.makerTxId.get();
-        if (!peerTxId.isEmpty())
-            peerTxIdTextField.setup(peerTxId);
-        else
-            peerTxIdTextField.cleanup();
+            String peerTxId = model.dataModel.isMaker() ? model.dataModel.takerTxId.get() : model.dataModel.makerTxId.get();
+            if (!peerTxId.isEmpty())
+                peerTxIdTextField.setup(peerTxId, trade);
+            else
+                peerTxIdTextField.cleanup();
+        }
 
         if (model.dataModel.getTrade() != null) {
             checkNotNull(model.dataModel.getTrade().getOffer(), "Offer must not be null in TradeStepView");
@@ -384,7 +372,7 @@ public abstract class TradeStepView extends AnchorPane {
         timeLeftTextField = labelTextFieldVBoxTuple3.second;
         timeLeftTextField.setMinWidth(400);
 
-        timeLeftProgressBar = new JFXProgressBar(0);
+        timeLeftProgressBar = new ProgressBar(0);
         timeLeftProgressBar.setOpacity(0.7);
         timeLeftProgressBar.setMinHeight(9);
         timeLeftProgressBar.setMaxHeight(9);
@@ -424,12 +412,7 @@ public abstract class TradeStepView extends AnchorPane {
                 log.warn("deactivating TradeStepView because model's trade is null");
 
                 // schedule deactivation to avoid concurrent modification of clock listeners
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        deactivate();
-                    }
-                });
+                Platform.runLater(() -> deactivate());
                 return;
             }
 
@@ -593,7 +576,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateMediationResultState(boolean blockOpeningOfResultAcceptedPopup) {
-        if (isInArbitration()) {
+        if (isInMediation()) {
             if (isRefundRequestStartedByPeer()) {
                 tradeStepInfo.setState(TradeStepInfo.State.IN_REFUND_REQUEST_PEER_REQUESTED);
             } else if (isRefundRequestSelfStarted()) {
@@ -618,7 +601,7 @@ public abstract class TradeStepView extends AnchorPane {
         }
     }
 
-    private boolean isInArbitration() {
+    private boolean isInMediation() {
         return isRefundRequestStartedByPeer() || isRefundRequestSelfStarted();
     }
 
@@ -632,6 +615,10 @@ public abstract class TradeStepView extends AnchorPane {
 
     private boolean isMediationClosedState() {
         return trade.getDisputeState() == Trade.DisputeState.MEDIATION_CLOSED;
+    }
+
+    private boolean isArbitrationOpenedState() {
+        return trade.getDisputeState().isOpen();
     }
 
     private boolean isTradePeriodOver() {
@@ -667,7 +654,7 @@ public abstract class TradeStepView extends AnchorPane {
           model.dataModel.onMoveInvalidTradeToFailedTrades(trade);
           new Popup().warning(Res.get("portfolio.pending.mediationResult.error.depositTxNull")).show(); // TODO (woodser): separate error messages for maker/taker
           return;
-        } else if (trade instanceof TakerTrade && trade.getTakerDepositTx() == null) {
+        } else if (trade instanceof TakerTrade && trade.getTakerDepositTx() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
           log.error("trade.getTakerDepositTx() was null at openMediationResultPopup. " +
                   "We add the trade to failed trades. TradeId={}", trade.getId());
           //model.dataModel.addTradeToFailedTrades();
@@ -679,8 +666,8 @@ public abstract class TradeStepView extends AnchorPane {
         DisputeResult disputeResult = optionalDispute.get().getDisputeResultProperty().get();
         Contract contract = checkNotNull(trade.getContract(), "contract must not be null");
         boolean isMyRoleBuyer = contract.isMyRoleBuyer(model.dataModel.getPubKeyRingProvider().get());
-        String buyerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmount(), true);
-        String sellerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmount(), true);
+        String buyerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost(), true);
+        String sellerPayoutAmount = HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost(), true);
         String myPayoutAmount = isMyRoleBuyer ? buyerPayoutAmount : sellerPayoutAmount;
         String peersPayoutAmount = isMyRoleBuyer ? sellerPayoutAmount : buyerPayoutAmount;
 
@@ -762,7 +749,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTradePeriodState(Trade.TradePeriodState tradePeriodState) {
-        if (trade.getDisputeState() == Trade.DisputeState.NO_DISPUTE) {
+        if (!trade.getDisputeState().isOpen()) {
             switch (tradePeriodState) {
                 case FIRST_HALF:
                     // just for dev testing. not possible to go back in time ;-)

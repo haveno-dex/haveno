@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.user;
@@ -28,7 +28,7 @@ import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.CoreProtoResolver;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositAsPercent;
 
 @Slf4j
 @Data
@@ -77,6 +77,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String buyScreenCryptoCurrencyCode;
     @Nullable
     private String sellScreenCryptoCurrencyCode;
+    @Nullable
+    private String buyScreenOtherCurrencyCode;
+    @Nullable
+    private String sellScreenOtherCurrencyCode;
     private int tradeStatisticsTickUnitIndex = 3;
     private boolean resyncSpvRequested;
     private boolean sortMarketCurrenciesNumerically = true;
@@ -108,16 +112,18 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean useMarketNotifications = true;
     private boolean usePriceNotifications = true;
     private boolean useStandbyMode = false;
+    private boolean useSoundForNotifications = true;
+    private boolean useSoundForNotificationsInitialized = false;
     @Nullable
     private String rpcUser;
     @Nullable
     private String rpcPw;
     @Nullable
     private String takeOfferSelectedPaymentAccountId;
-    private double buyerSecurityDepositAsPercent = getDefaultBuyerSecurityDepositAsPercent();
+    private double securityDepositAsPercent = getDefaultSecurityDepositAsPercent();
     private int ignoreDustThreshold = 600;
     private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_INITIAL;
-    private double buyerSecurityDepositAsPercentForCrypto = getDefaultBuyerSecurityDepositAsPercent();
+    private double securityDepositAsPercentForCrypto = getDefaultSecurityDepositAsPercent();
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
     private double bsqAverageTrimThreshold = 0.05;
@@ -128,10 +134,11 @@ public final class PreferencesPayload implements PersistableEnvelope {
     // Added in 1.5.5
     private boolean hideNonAccountPaymentMethods;
     private boolean showOffersMatchingMyAccounts;
+    private boolean showPrivateOffers;
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
-    private MoneroNodeSettings moneroNodeSettings;
+    private XmrNodeSettings xmrNodeSettings = new XmrNodeSettings();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -185,10 +192,12 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setUseMarketNotifications(useMarketNotifications)
                 .setUsePriceNotifications(usePriceNotifications)
                 .setUseStandbyMode(useStandbyMode)
-                .setBuyerSecurityDepositAsPercent(buyerSecurityDepositAsPercent)
+                .setUseSoundForNotifications(useSoundForNotifications)
+                .setUseSoundForNotificationsInitialized(useSoundForNotificationsInitialized)
+                .setSecurityDepositAsPercent(securityDepositAsPercent)
                 .setIgnoreDustThreshold(ignoreDustThreshold)
                 .setClearDataAfterDays(clearDataAfterDays)
-                .setBuyerSecurityDepositAsPercentForCrypto(buyerSecurityDepositAsPercentForCrypto)
+                .setSecurityDepositAsPercentForCrypto(securityDepositAsPercentForCrypto)
                 .setBlockNotifyPort(blockNotifyPort)
                 .setTacAcceptedV120(tacAcceptedV120)
                 .setBsqAverageTrimThreshold(bsqAverageTrimThreshold)
@@ -197,6 +206,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                         .collect(Collectors.toList()))
                 .setHideNonAccountPaymentMethods(hideNonAccountPaymentMethods)
                 .setShowOffersMatchingMyAccounts(showOffersMatchingMyAccounts)
+                .setShowPrivateOffers(showPrivateOffers)
                 .setDenyApiTaker(denyApiTaker)
                 .setNotifyOnPreRelease(notifyOnPreRelease);
 
@@ -208,6 +218,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(sellScreenCurrencyCode).ifPresent(builder::setSellScreenCurrencyCode);
         Optional.ofNullable(buyScreenCryptoCurrencyCode).ifPresent(builder::setBuyScreenCryptoCurrencyCode);
         Optional.ofNullable(sellScreenCryptoCurrencyCode).ifPresent(builder::setSellScreenCryptoCurrencyCode);
+        Optional.ofNullable(buyScreenOtherCurrencyCode).ifPresent(builder::setBuyScreenOtherCurrencyCode);
+        Optional.ofNullable(sellScreenOtherCurrencyCode).ifPresent(builder::setSellScreenOtherCurrencyCode);
         Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(
                 account -> builder.setSelectedPaymentAccountForCreateOffer(selectedPaymentAccountForCreateOffer.toProtoMessage()));
         Optional.ofNullable(bridgeAddresses).ifPresent(builder::addAllBridgeAddresses);
@@ -217,7 +229,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(rpcUser).ifPresent(builder::setRpcUser);
         Optional.ofNullable(rpcPw).ifPresent(builder::setRpcPw);
         Optional.ofNullable(takeOfferSelectedPaymentAccountId).ifPresent(builder::setTakeOfferSelectedPaymentAccountId);
-        Optional.ofNullable(moneroNodeSettings).ifPresent(settings -> builder.setMoneroNodeSettings(settings.toProtoMessage()));
+        Optional.ofNullable(xmrNodeSettings).ifPresent(settings -> builder.setXmrNodeSettings(settings.toProtoMessage()));
         return protobuf.PersistableEnvelope.newBuilder().setPreferencesPayload(builder).build();
     }
 
@@ -256,6 +268,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCryptoCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenCryptoCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenOtherCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenOtherCurrencyCode()),
                 proto.getTradeStatisticsTickUnitIndex(),
                 proto.getResyncSpvRequested(),
                 proto.getSortMarketCurrenciesNumerically(),
@@ -280,13 +294,15 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getUseMarketNotifications(),
                 proto.getUsePriceNotifications(),
                 proto.getUseStandbyMode(),
+                proto.getUseSoundForNotifications(),
+                proto.getUseSoundForNotificationsInitialized(),
                 proto.getRpcUser().isEmpty() ? null : proto.getRpcUser(),
                 proto.getRpcPw().isEmpty() ? null : proto.getRpcPw(),
                 proto.getTakeOfferSelectedPaymentAccountId().isEmpty() ? null : proto.getTakeOfferSelectedPaymentAccountId(),
-                proto.getBuyerSecurityDepositAsPercent(),
+                proto.getSecurityDepositAsPercent(),
                 proto.getIgnoreDustThreshold(),
                 proto.getClearDataAfterDays(),
-                proto.getBuyerSecurityDepositAsPercentForCrypto(),
+                proto.getSecurityDepositAsPercentForCrypto(),
                 proto.getBlockNotifyPort(),
                 proto.getTacAcceptedV120(),
                 proto.getBsqAverageTrimThreshold(),
@@ -296,9 +312,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
                                 .collect(Collectors.toList())),
                 proto.getHideNonAccountPaymentMethods(),
                 proto.getShowOffersMatchingMyAccounts(),
+                proto.getShowPrivateOffers(),
                 proto.getDenyApiTaker(),
                 proto.getNotifyOnPreRelease(),
-                MoneroNodeSettings.fromProto(proto.getMoneroNodeSettings())
+                XmrNodeSettings.fromProto(proto.getXmrNodeSettings())
         );
     }
 }

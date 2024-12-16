@@ -131,7 +131,7 @@
     -bs-red-soft: derive(-bs-rd-error-red, 60%);
     -bs-progress-bar-track: #272728;
     -bs-chart-tick: rgba(255, 255, 255, 0.7);
-    -bs-chart-lines: rgba(0, 0, 0, 0.3);
+    -bs-chart-lines: -bs-color-gray-2;
     -bs-white: white;
     -bs-prompt-text: -bs-color-gray-6;
     -bs-decimals: #db6300;
@@ -239,6 +239,10 @@
 .input-with-border {
     -fx-border-color: -bs-color-gray-2;
     -fx-border-width: 0 0 10 0;
+}
+
+#address-text-field.jfx-text-field:readonly {
+    -fx-background-color: derive(-bs-background-color, 15%);
 }
 
 .wallet-seed-words {
@@ -552,4 +556,13 @@
 .markdown-label * {
     -fx-text-fill: -bs-text-color;
     -fx-fill: -bs-text-color;
+}
+
+.toggle-button-no-slider {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toggle-button-no-slider:selected {
+    -fx-background-color: -bs-color-gray-ddd;
 }

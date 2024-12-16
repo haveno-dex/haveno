@@ -1,51 +1,55 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.account.content.backup;
 
+import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
+import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
+import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;
+import static haveno.desktop.util.FormBuilder.add2Buttons;
+import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.addInputTextField;
+import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
-import javafx.beans.value.ChangeListener;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.GridPane;
-import javafx.stage.DirectoryChooser;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
-import static haveno.desktop.util.FormBuilder.add2Buttons;
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
-import static haveno.desktop.util.FormBuilder.addInputTextField;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import javafx.beans.value.ChangeListener;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
+import javafx.stage.DirectoryChooser;
+import javax.annotation.Nullable;
 
 @FxmlView
 public class BackupView extends ActivatableView<GridPane, Void> {
@@ -125,22 +129,54 @@ public class BackupView extends ActivatableView<GridPane, Void> {
         openFileOrShowWarning(openLogsButton, logFile);
 
         backupNow.setOnAction(event -> {
-            String backupDirectory = preferences.getBackupDirectory();
-            if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
-                PersistenceManager.flushAllDataToDiskAtBackup(() -> {
-                    try {
-                        String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
-                        String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
-                        FileUtil.copyDirectory(dataDir, new File(destination));
-                        new Popup().feedback(Res.get("account.backup.success", destination)).show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        log.error(e.getMessage());
-                        showWrongPathWarningAndReset(e);
-                    }
-                });
+
+            // windows requires closing wallets for read access
+            if (Utilities.isWindows()) {
+                new Popup().information(Res.get("settings.net.needRestart"))
+                    .actionButtonText(Res.get("shared.applyAndShutDown"))
+                    .onAction(() -> {
+                        UserThread.runAfter(() -> {
+                            HavenoApp.setOnGracefulShutDownHandler(() -> doBackup());
+                            HavenoApp.getShutDownHandler().run();
+                        }, 500, TimeUnit.MILLISECONDS);
+                    })
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> {
+                        // nothing to do
+                    })
+                    .show();
+            } else {
+                doBackup();
             }
         });
+    }
+
+    private void doBackup() {
+        log.info("Backing up data directory");
+        String backupDirectory = preferences.getBackupDirectory();
+        if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
+            PersistenceManager.flushAllDataToDiskAtBackup(() -> {
+                try {
+
+                    // copy data directory to backup directory
+                    String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
+                    String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
+                    File destinationFile = new File(destination);
+                    FileUtil.copyDirectory(dataDir, new File(destination));
+
+                    // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
+                    File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
+                    if (monerod.exists()) monerod.delete();
+                    File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
+                    if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
+                    new Popup().feedback(Res.get("account.backup.success", destination)).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    log.error(e.getMessage());
+                    showWrongPathWarningAndReset(e);
+                }
+            });
+        }
     }
 
     private void openFileOrShowWarning(Button button, File dataDir) {

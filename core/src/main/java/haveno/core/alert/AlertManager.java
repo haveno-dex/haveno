@@ -1,23 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.alert;
 
 import com.google.common.base.Charsets;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -26,21 +28,18 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
+import java.math.BigInteger;
+import java.security.SignatureException;
+import java.util.Collection;
+import java.util.List;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
+import static org.bitcoinj.core.Utils.HEX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.security.SignatureException;
-import java.util.Collection;
-
-import static org.bitcoinj.core.Utils.HEX;
 
 public class AlertManager {
     private static final Logger log = LoggerFactory.getLogger(AlertManager.class);
@@ -49,9 +48,8 @@ public class AlertManager {
     private final KeyRing keyRing;
     private final User user;
     private final ObjectProperty<Alert> alertMessageProperty = new SimpleObjectProperty<>();
+    private final boolean useDevPrivilegeKeys;
 
-    // Pub key for developer global alert message
-    private final String pubKeyAsHex;
     private ECKey alertSigningKey;
 
 
@@ -68,6 +66,7 @@ public class AlertManager {
         this.p2PService = p2PService;
         this.keyRing = keyRing;
         this.user = user;
+        this.useDevPrivilegeKeys = useDevPrivilegeKeys;
 
         if (!ignoreDevMsg) {
             p2PService.addHashSetChangedListener(new HashMapChangedListener() {
@@ -95,9 +94,25 @@ public class AlertManager {
                 }
             });
         }
-        pubKeyAsHex = useDevPrivilegeKeys ?
-                DevEnv.DEV_PRIVILEGE_PUB_KEY :
-                "036d8a1dfcb406886037d2381da006358722823e1940acc2598c844bbc0fd1026f";
+    }
+
+    protected List<String> getPubKeyList() {
+        if (useDevPrivilegeKeys) return List.of(DevEnv.DEV_PRIVILEGE_PUB_KEY);
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            return List.of(
+                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
+                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492");
+        case XMR_STAGENET:
+            return List.of(
+                    "036d8a1dfcb406886037d2381da006358722823e1940acc2598c844bbc0fd1026f",
+                    "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
+                    "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
+        case XMR_MAINNET:
+            return List.of();
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
     }
 
 
@@ -143,7 +158,7 @@ public class AlertManager {
     private boolean isKeyValid(String privKeyString) {
         try {
             alertSigningKey = ECKey.fromPrivate(new BigInteger(1, HEX.decode(privKeyString)));
-            return pubKeyAsHex.equals(Utils.HEX.encode(alertSigningKey.getPubKey()));
+            return getPubKeyList().contains(Utils.HEX.encode(alertSigningKey.getPubKey()));
         } catch (Throwable t) {
             return false;
         }
@@ -157,12 +172,15 @@ public class AlertManager {
 
     private boolean verifySignature(Alert alert) {
         String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
-        try {
-            ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
-            return true;
-        } catch (SignatureException e) {
-            log.warn("verifySignature failed");
-            return false;
+        for (String pubKeyAsHex : getPubKeyList()) {
+            try {
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
+                return true;
+            } catch (SignatureException e) {
+                // ignore
+            }
         }
+        log.warn("verifySignature failed");
+        return false;
     }
 }

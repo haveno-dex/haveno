@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.peers.peerexchange;
@@ -45,6 +45,9 @@ class PeerExchangeHandler implements MessageListener {
     // We want to keep timeout short here
     private static final long TIMEOUT = 90;
     private static final int DELAY_MS = 500;
+    private static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging warnings to once every 60 seconds
+    private static long lastLoggedWarningTs = 0;
+    private static int numThrottledWarnings = 0;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -115,35 +118,39 @@ class PeerExchangeHandler implements MessageListener {
                             TIMEOUT, TimeUnit.SECONDS);
                 }
 
-                SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getPeersRequest);
-                Futures.addCallback(future, new FutureCallback<Connection>() {
-                    @Override
-                    public void onSuccess(Connection connection) {
-                        if (!stopped) {
-                            //TODO
-                            /*if (!connection.getPeersNodeAddressOptional().isPresent()) {
-                                connection.setPeersNodeAddress(nodeAddress);
-                                log.warn("sendGetPeersRequest: !connection.getPeersNodeAddressOptional().isPresent()");
-                            }*/
-
-                            PeerExchangeHandler.this.connection = connection;
-                            connection.addMessageListener(PeerExchangeHandler.this);
-                        } else {
-                            log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onSuccess call.");
+                try {
+                    SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getPeersRequest);
+                    Futures.addCallback(future, new FutureCallback<Connection>() {
+                        @Override
+                        public void onSuccess(Connection connection) {
+                            if (!stopped) {
+                                //TODO
+                                /*if (!connection.getPeersNodeAddressOptional().isPresent()) {
+                                    connection.setPeersNodeAddress(nodeAddress);
+                                    log.warn("sendGetPeersRequest: !connection.getPeersNodeAddressOptional().isPresent()");
+                                }*/
+    
+                                PeerExchangeHandler.this.connection = connection;
+                                connection.addMessageListener(PeerExchangeHandler.this);
+                            } else {
+                                log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onSuccess call.");
+                            }
                         }
-                    }
-
-                    @Override
-                    public void onFailure(@NotNull Throwable throwable) {
-                        if (!stopped) {
-                            String errorMessage = "Sending getPeersRequest to " + nodeAddress +
-                                    " failed. That is expected if the peer is offline. Exception=" + throwable.getMessage();
-                            handleFault(errorMessage, CloseConnectionReason.SEND_MSG_FAILURE, nodeAddress);
-                        } else {
-                            log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onFailure call.");
+    
+                        @Override
+                        public void onFailure(@NotNull Throwable throwable) {
+                            if (!stopped) {
+                                String errorMessage = "Sending getPeersRequest to " + nodeAddress +
+                                        " failed. That is expected if the peer is offline. Exception=" + throwable.getMessage();
+                                handleFault(errorMessage, CloseConnectionReason.SEND_MSG_FAILURE, nodeAddress);
+                            } else {
+                                log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onFailure call.");
+                            }
                         }
-                    }
-                }, MoreExecutors.directExecutor());
+                    }, MoreExecutors.directExecutor());
+                } catch (Exception e) {
+                    if (!networkNode.isShutDownStarted()) throw e;
+                }
             } else {
                 log.debug("My node address is still null at sendGetPeersRequest. We ignore that call.");
             }
@@ -169,9 +176,8 @@ class PeerExchangeHandler implements MessageListener {
                     cleanup();
                     listener.onComplete();
                 } else {
-                    log.warn("Nonce not matching. That should never happen.\n\t" +
-                                    "We drop that message. nonce={} / requestNonce={}",
-                            nonce, getPeersResponse.getRequestNonce());
+                    throttleWarn("Nonce not matching. That should never happen.\n" + 
+                            "\tWe drop that message. nonce=" + nonce + ", requestNonce=" + getPeersResponse.getRequestNonce() + ", peerNodeAddress=" + connection.getPeersNodeAddressOptional().orElseGet(null));
                 }
             } else {
                 log.trace("We have stopped that handler already. We ignore that onMessage call.");
@@ -212,4 +218,15 @@ class PeerExchangeHandler implements MessageListener {
         }
     }
 
+    private synchronized void throttleWarn(String msg) {
+        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (logWarning) {
+            log.warn(msg);
+            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            numThrottledWarnings = 0;
+            lastLoggedWarningTs = System.currentTimeMillis();
+        } else {
+            numThrottledWarnings++;
+        }
+    }
 }

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.dispute;
@@ -61,12 +61,21 @@ public final class DisputeResult implements NetworkPayload {
         PEER_WAS_LATE
     }
 
+    public enum SubtractFeeFrom {
+        BUYER_ONLY,
+        SELLER_ONLY,
+        BUYER_AND_SELLER
+    }
+
     private final String tradeId;
     private final int traderId;
     @Setter
     @Nullable
     private Winner winner;
     private int reasonOrdinal = Reason.OTHER.ordinal();
+    @Setter
+    @Nullable
+    private SubtractFeeFrom subtractFeeFrom;
     private final BooleanProperty tamperProofEvidenceProperty = new SimpleBooleanProperty();
     private final BooleanProperty idVerificationProperty = new SimpleBooleanProperty();
     private final BooleanProperty screenCastProperty = new SimpleBooleanProperty();
@@ -77,8 +86,8 @@ public final class DisputeResult implements NetworkPayload {
     @Setter
     @Nullable
     private byte[] arbitratorSignature;
-    private long buyerPayoutAmount;
-    private long sellerPayoutAmount;
+    private long buyerPayoutAmountBeforeCost;
+    private long sellerPayoutAmountBeforeCost;
     @Setter
     @Nullable
     private byte[] arbitratorPubKey;
@@ -93,28 +102,30 @@ public final class DisputeResult implements NetworkPayload {
                          int traderId,
                          @Nullable Winner winner,
                          int reasonOrdinal,
+                         @Nullable SubtractFeeFrom subtractFeeFrom,
                          boolean tamperProofEvidence,
                          boolean idVerification,
                          boolean screenCast,
                          String summaryNotes,
                          @Nullable ChatMessage chatMessage,
                          @Nullable byte[] arbitratorSignature,
-                         long buyerPayoutAmount,
-                         long sellerPayoutAmount,
+                         long buyerPayoutAmountBeforeCost,
+                         long sellerPayoutAmountBeforeCost,
                          @Nullable byte[] arbitratorPubKey,
                          long closeDate) {
         this.tradeId = tradeId;
         this.traderId = traderId;
         this.winner = winner;
         this.reasonOrdinal = reasonOrdinal;
+        this.subtractFeeFrom = subtractFeeFrom;
         this.tamperProofEvidenceProperty.set(tamperProofEvidence);
         this.idVerificationProperty.set(idVerification);
         this.screenCastProperty.set(screenCast);
         this.summaryNotesProperty.set(summaryNotes);
         this.chatMessage = chatMessage;
         this.arbitratorSignature = arbitratorSignature;
-        this.buyerPayoutAmount = buyerPayoutAmount;
-        this.sellerPayoutAmount = sellerPayoutAmount;
+        this.buyerPayoutAmountBeforeCost = buyerPayoutAmountBeforeCost;
+        this.sellerPayoutAmountBeforeCost = sellerPayoutAmountBeforeCost;
         this.arbitratorPubKey = arbitratorPubKey;
         this.closeDate = closeDate;
     }
@@ -129,14 +140,15 @@ public final class DisputeResult implements NetworkPayload {
                 proto.getTraderId(),
                 ProtoUtil.enumFromProto(DisputeResult.Winner.class, proto.getWinner().name()),
                 proto.getReasonOrdinal(),
+                ProtoUtil.enumFromProto(DisputeResult.SubtractFeeFrom.class, proto.getSubtractFeeFrom().name()),
                 proto.getTamperProofEvidence(),
                 proto.getIdVerification(),
                 proto.getScreenCast(),
                 proto.getSummaryNotes(),
                 proto.getChatMessage() == null ? null : ChatMessage.fromPayloadProto(proto.getChatMessage()),
                 proto.getArbitratorSignature().toByteArray(),
-                proto.getBuyerPayoutAmount(),
-                proto.getSellerPayoutAmount(),
+                proto.getBuyerPayoutAmountBeforeCost(),
+                proto.getSellerPayoutAmountBeforeCost(),
                 proto.getArbitratorPubKey().toByteArray(),
                 proto.getCloseDate());
     }
@@ -151,13 +163,14 @@ public final class DisputeResult implements NetworkPayload {
                 .setIdVerification(idVerificationProperty.get())
                 .setScreenCast(screenCastProperty.get())
                 .setSummaryNotes(summaryNotesProperty.get())
-                .setBuyerPayoutAmount(buyerPayoutAmount)
-                .setSellerPayoutAmount(sellerPayoutAmount)
+                .setBuyerPayoutAmountBeforeCost(buyerPayoutAmountBeforeCost)
+                .setSellerPayoutAmountBeforeCost(sellerPayoutAmountBeforeCost)
                 .setCloseDate(closeDate);
 
         Optional.ofNullable(arbitratorSignature).ifPresent(arbitratorSignature -> builder.setArbitratorSignature(ByteString.copyFrom(arbitratorSignature)));
         Optional.ofNullable(arbitratorPubKey).ifPresent(arbitratorPubKey -> builder.setArbitratorPubKey(ByteString.copyFrom(arbitratorPubKey)));
         Optional.ofNullable(winner).ifPresent(result -> builder.setWinner(protobuf.DisputeResult.Winner.valueOf(winner.name())));
+        Optional.ofNullable(subtractFeeFrom).ifPresent(result -> builder.setSubtractFeeFrom(protobuf.DisputeResult.SubtractFeeFrom.valueOf(subtractFeeFrom.name())));
         Optional.ofNullable(chatMessage).ifPresent(chatMessage ->
                 builder.setChatMessage(chatMessage.toProtoNetworkEnvelope().getChatMessage()));
 
@@ -200,20 +213,22 @@ public final class DisputeResult implements NetworkPayload {
         return summaryNotesProperty;
     }
 
-    public void setBuyerPayoutAmount(BigInteger buyerPayoutAmount) {
-        this.buyerPayoutAmount = buyerPayoutAmount.longValueExact();
+    public void setBuyerPayoutAmountBeforeCost(BigInteger buyerPayoutAmountBeforeCost) {
+        if (buyerPayoutAmountBeforeCost.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("buyerPayoutAmountBeforeCost cannot be negative");
+        this.buyerPayoutAmountBeforeCost = buyerPayoutAmountBeforeCost.longValueExact();
     }
 
-    public BigInteger getBuyerPayoutAmount() {
-        return BigInteger.valueOf(buyerPayoutAmount);
+    public BigInteger getBuyerPayoutAmountBeforeCost() {
+        return BigInteger.valueOf(buyerPayoutAmountBeforeCost);
     }
 
-    public void setSellerPayoutAmount(BigInteger sellerPayoutAmount) {
-        this.sellerPayoutAmount = sellerPayoutAmount.longValueExact();
+    public void setSellerPayoutAmountBeforeCost(BigInteger sellerPayoutAmountBeforeCost) {
+        if (sellerPayoutAmountBeforeCost.compareTo(BigInteger.ZERO) < 0) throw new IllegalArgumentException("sellerPayoutAmountBeforeCost cannot be negative");
+        this.sellerPayoutAmountBeforeCost = sellerPayoutAmountBeforeCost.longValueExact();
     }
 
-    public BigInteger getSellerPayoutAmount() {
-        return BigInteger.valueOf(sellerPayoutAmount);
+    public BigInteger getSellerPayoutAmountBeforeCost() {
+        return BigInteger.valueOf(sellerPayoutAmountBeforeCost);
     }
 
     public void setCloseDate(Date closeDate) {
@@ -231,14 +246,15 @@ public final class DisputeResult implements NetworkPayload {
                 ",\n     traderId=" + traderId +
                 ",\n     winner=" + winner +
                 ",\n     reasonOrdinal=" + reasonOrdinal +
+                ",\n     subtractFeeFrom=" + subtractFeeFrom +
                 ",\n     tamperProofEvidenceProperty=" + tamperProofEvidenceProperty +
                 ",\n     idVerificationProperty=" + idVerificationProperty +
                 ",\n     screenCastProperty=" + screenCastProperty +
                 ",\n     summaryNotesProperty=" + summaryNotesProperty +
                 ",\n     chatMessage=" + chatMessage +
                 ",\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
-                ",\n     buyerPayoutAmount=" + buyerPayoutAmount +
-                ",\n     sellerPayoutAmount=" + sellerPayoutAmount +
+                ",\n     buyerPayoutAmountBeforeCost=" + buyerPayoutAmountBeforeCost +
+                ",\n     sellerPayoutAmountBeforeCost=" + sellerPayoutAmountBeforeCost +
                 ",\n     arbitratorPubKey=" + Utilities.bytesAsHexString(arbitratorPubKey) +
                 ",\n     closeDate=" + closeDate +
                 "\n}";

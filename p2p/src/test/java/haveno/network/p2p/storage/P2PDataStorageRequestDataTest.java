@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.storage;
@@ -30,7 +30,6 @@ import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
 
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -49,7 +48,6 @@ public class P2PDataStorageRequestDataTest {
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
         this.testState = new TestState();
 
         this.localNodeAddress = new NodeAddress("localhost", 8080);
@@ -115,8 +113,8 @@ public class P2PDataStorageRequestDataTest {
     // correct GetDataRequestMessage with both sets of keys.
     @Test
     public void buildPreliminaryGetDataRequest_FilledP2PDataStore() throws NoSuchAlgorithmException {
-        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[] { 1 });
-        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[] { 2 });
+        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[]{1});
+        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[]{2});
         ProtectedStorageEntry toAdd3 = getProtectedStorageEntryForAdd();
         ProtectedStorageEntry toAdd4 = getProtectedStorageEntryForAdd();
 
@@ -143,8 +141,8 @@ public class P2PDataStorageRequestDataTest {
     // correct GetDataRequestMessage with both sets of keys.
     @Test
     public void requestData_FilledP2PDataStore_GetUpdatedDataRequest() throws NoSuchAlgorithmException {
-        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[] { 1 });
-        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[] { 2 });
+        PersistableNetworkPayload toAdd1 = new PersistableNetworkPayloadStub(new byte[]{1});
+        PersistableNetworkPayload toAdd2 = new PersistableNetworkPayloadStub(new byte[]{2});
         ProtectedStorageEntry toAdd3 = getProtectedStorageEntryForAdd();
         ProtectedStorageEntry toAdd4 = getProtectedStorageEntryForAdd();
 

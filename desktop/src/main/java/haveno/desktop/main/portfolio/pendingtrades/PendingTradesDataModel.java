@@ -1,23 +1,26 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
@@ -26,7 +29,7 @@ import haveno.common.handlers.FaultHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreDisputesService;
-import haveno.core.api.CoreMoneroConnectionsService;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -34,7 +37,6 @@ import haveno.core.offer.OfferUtil;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
-import haveno.core.support.dispute.DisputeAlreadyOpenException;
 import haveno.core.support.dispute.DisputeList;
 import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -61,6 +63,12 @@ import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientV
 import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -69,18 +77,10 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.bitcoinj.core.Coin;
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import javax.annotation.Nullable;
-import javax.inject.Named;
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class PendingTradesDataModel extends ActivatableDataModel {
     @Getter
@@ -89,7 +89,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     public final ArbitrationManager arbitrationManager;
     public final MediationManager mediationManager;
     private final P2PService p2PService;
-    private final CoreMoneroConnectionsService connectionService;
+    private final XmrConnectionService xmrConnectionService;
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
     public final Navigation navigation;
@@ -116,6 +116,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private final PubKeyRingProvider pubKeyRingProvider;
     private final CoreDisputesService disputesService;
 
+    private final Set<Trade> hiddenTrades = new HashSet<Trade>();
+    private final ChangeListener<Trade.State> hiddenStateChangeListener = (observable, oldValue, newValue) -> {
+        onListChanged();
+    };
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialization
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +134,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   TraderChatManager traderChatManager,
                                   Preferences preferences,
                                   P2PService p2PService,
-                                  CoreMoneroConnectionsService connectionService,
+                                  XmrConnectionService xmrConnectionService,
                                   AccountAgeWitnessService accountAgeWitnessService,
                                   Navigation navigation,
                                   WalletPasswordWindow walletPasswordWindow,
@@ -145,7 +150,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         this.traderChatManager = traderChatManager;
         this.preferences = preferences;
         this.p2PService = p2PService;
-        this.connectionService = connectionService;
+        this.xmrConnectionService = xmrConnectionService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
         this.walletPasswordWindow = walletPasswordWindow;
@@ -170,6 +175,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
 
     @Override
     protected void deactivate() {
+        for (Trade trade : hiddenTrades) trade.stateProperty().removeListener(hiddenStateChangeListener);
         tradeManager.getObservableList().removeListener(tradesListChangeListener);
         notificationCenter.setSelectedTradeId(null);
         activated = false;
@@ -273,17 +279,17 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             Offer offer = trade.getOffer();
             if (isMaker()) {
                 if (offer != null) {
-                    return offer.getMakerFee();
+                    return trade.getMakerFee();
                 } else {
                     log.error("offer is null");
-                    return BigInteger.valueOf(0);
+                    return BigInteger.ZERO;
                 }
             } else {
                 return trade.getTakerFee();
             }
         } else {
             log.error("Trade is null at getTotalFees");
-            return BigInteger.valueOf(0);
+            return BigInteger.ZERO;
         }
     }
 
@@ -308,15 +314,39 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onListChanged() {
-        list.clear();
-        list.addAll(tradeManager.getObservableList().stream()
-                .map(trade -> new PendingTradesListItem(trade, btcFormatter))
-                .collect(Collectors.toList()));
+        synchronized (tradeManager.getObservableList()) {
+
+            // add or remove listener for hidden trades
+            for (Trade trade : tradeManager.getObservableList()) {
+                if (isTradeShown(trade)) {
+                    if (hiddenTrades.contains(trade)) {
+                        trade.stateProperty().removeListener(hiddenStateChangeListener);
+                        hiddenTrades.remove(trade);
+                    }
+                } else {
+                    if (!hiddenTrades.contains(trade)) {
+                        trade.stateProperty().addListener(hiddenStateChangeListener);
+                        hiddenTrades.add(trade);
+                    }
+                }
+            }
+    
+            // add shown trades to list
+            list.clear();
+            list.addAll(tradeManager.getObservableList().stream()
+                    .filter(trade -> isTradeShown(trade))
+                    .map(trade -> new PendingTradesListItem(trade, btcFormatter))
+                    .collect(Collectors.toList()));
+        }
 
         // we sort by date, earliest first
         list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
 
         selectBestItem();
+    }
+
+    private boolean isTradeShown(Trade trade) {
+        return trade.isDepositsPublished();
     }
 
     private void selectBestItem() {
@@ -350,14 +380,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 tradeStateChangeListener = (observable, oldValue, newValue) -> {
                     String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                     String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
-                    if (makerDepositTxHash != null && takerDepositTxHash != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
-                        makerTxId.set(makerDepositTxHash);
-                        takerTxId.set(takerDepositTxHash);
+                    makerTxId.set(nullToEmptyString(makerDepositTxHash));
+                    takerTxId.set(nullToEmptyString(takerDepositTxHash));
+                    if (makerDepositTxHash != null || takerDepositTxHash != null) {
                         notificationCenter.setSelectedTradeId(tradeId);
                         selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
-                    } else {
-                        makerTxId.set("");
-                        takerTxId.set("");
                     }
                 };
                 selectedTrade.stateProperty().addListener(tradeStateChangeListener);
@@ -371,13 +398,8 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 isMaker = tradeManager.isMyOffer(offer);
                 String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                 String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
-                if (makerDepositTxHash != null && takerDepositTxHash != null) {
-                    makerTxId.set(makerDepositTxHash);
-                    takerTxId.set(takerDepositTxHash);
-                } else {
-                    makerTxId.set("");
-                    takerTxId.set("");
-                }
+                makerTxId.set(nullToEmptyString(makerDepositTxHash));
+                takerTxId.set(nullToEmptyString(takerDepositTxHash));
                 notificationCenter.setSelectedTradeId(tradeId);
             } else {
                 selectedTrade = null;
@@ -387,6 +409,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             }
             selectedItemProperty.set(item);
         });
+    }
+
+    private String nullToEmptyString(String str) {
+        return str == null ? "" : str;
     }
 
     private void tryOpenDispute(boolean isSupportTicket) {
@@ -416,7 +442,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         }
         depositTxId = trade.getMaker().getDepositTxHash();
       } else {
-        if (trade.getTaker().getDepositTxHash() == null) {
+        if (trade.getTaker().getDepositTxHash() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
           log.error("Deposit tx must not be null");
           new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
           return;
@@ -515,36 +541,49 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             dispute.setExtraData("counterCurrencyExtraData", trade.getCounterCurrencyExtraData());
 
             trade.setDisputeState(Trade.DisputeState.MEDIATION_REQUESTED);
-            sendDisputeOpenedMessage(dispute, false, disputeManager, trade.getSelf().getUpdatedMultisigHex());
+            sendDisputeOpenedMessage(dispute, disputeManager);
             tradeManager.requestPersistence();
         } else if (useArbitration) {
-          // Only if we have completed mediation we allow arbitration
           disputeManager = arbitrationManager;
           Dispute dispute = disputesService.createDisputeForTrade(trade, offer, pubKeyRingProvider.get(), isMaker, isSupportTicket);
-          sendDisputeOpenedMessage(dispute, false, disputeManager, trade.getSelf().getUpdatedMultisigHex());
+
+          // export latest multisig hex
+          try {
+            trade.exportMultisigHex();
+          } catch (Exception e) {
+            log.error("Failed to export multisig hex", e);
+          }
+
+          // send dispute opened message
+          sendDisputeOpenedMessage(dispute, disputeManager);
           tradeManager.requestPersistence();
         } else {
             log.warn("Invalid dispute state {}", disputeState.name());
         }
     }
 
-    private void sendDisputeOpenedMessage(Dispute dispute, boolean reOpen, DisputeManager<? extends DisputeList<Dispute>> disputeManager, String senderMultisigHex) {
-        disputeManager.sendDisputeOpenedMessage(dispute, reOpen, senderMultisigHex,
-                () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class), (errorMessage, throwable) -> {
-                    if ((throwable instanceof DisputeAlreadyOpenException)) {
-                        errorMessage += "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg");
-                        new Popup().warning(errorMessage)
-                                .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
-                                .onAction(() -> sendDisputeOpenedMessage(dispute, true, disputeManager, senderMultisigHex))
-                                .closeButtonText(Res.get("shared.cancel")).show();
-                    } else {
-                        new Popup().warning(errorMessage).show();
-                    }
-                });
+    private void sendDisputeOpenedMessage(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
+        Optional<Dispute> optionalDispute = disputeManager.findDispute(dispute);
+        boolean disputeClosed = optionalDispute.isPresent() && optionalDispute.get().isClosed();
+        if (disputeClosed) {
+            String msg = "We got a dispute already open for that trade and trading peer.\n" + "TradeId = " + dispute.getTradeId();
+            new Popup().warning(msg + "\n\n" + Res.get("portfolio.pending.openAgainDispute.msg"))
+                    .actionButtonText(Res.get("portfolio.pending.openAgainDispute.button"))
+                    .onAction(() -> doSendDisputeOpenedMessage(dispute, disputeManager))
+                    .closeButtonText(Res.get("shared.cancel")).show();
+        } else {
+            doSendDisputeOpenedMessage(dispute, disputeManager);
+        }
+    }
+
+    private void doSendDisputeOpenedMessage(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
+        disputeManager.sendDisputeOpenedMessage(dispute,
+                () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class),
+                (errorMessage, throwable) -> new Popup().warning(errorMessage).show());
     }
 
     public boolean isReadyForTxBroadcast() {
-        return GUIUtil.isBootstrappedOrShowPopup(p2PService) && GUIUtil.isReadyForTxBroadcastOrShowPopup(connectionService);
+        return GUIUtil.isBootstrappedOrShowPopup(p2PService) && GUIUtil.isReadyForTxBroadcastOrShowPopup(xmrWalletService);
     }
 
     public boolean isBootstrappedOrShowPopup() {

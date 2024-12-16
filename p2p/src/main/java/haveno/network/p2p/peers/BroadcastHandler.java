@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.peers;
@@ -74,6 +74,7 @@ public class BroadcastHandler implements PeerManager.Listener {
 
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
+    @Nullable
     private final ResultHandler resultHandler;
     private final String uid;
 
@@ -283,6 +284,9 @@ public class BroadcastHandler implements PeerManager.Listener {
                     return;
                 }
 
+                log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
+                numOfFailedBroadcasts.incrementAndGet();
+
                 maybeNotifyListeners(broadcastRequestsForConnection);
                 checkForCompletion();
             }
@@ -348,7 +352,13 @@ public class BroadcastHandler implements PeerManager.Listener {
 
         sendMessageFutures.stream()
                 .filter(future -> !future.isCancelled() && !future.isDone())
-                .forEach(future -> future.cancel(true));
+                .forEach(future -> {
+                    try {
+                        future.cancel(true);
+                    } catch (Exception e) {
+                        if (!networkNode.isShutDownStarted()) throw e;
+                    }
+                });
         sendMessageFutures.clear();
 
         peerManager.removeListener(this);

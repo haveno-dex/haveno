@@ -1,4 +1,21 @@
 /*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * This file is part of Haveno.
  *
  * Haveno is free software: you can redistribute it and/or modify it
@@ -17,6 +34,22 @@
 
 package haveno.network.p2p.network;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.google.inject.Inject;
+import com.google.protobuf.InvalidProtocolBufferException;
+import haveno.common.Proto;
+import haveno.common.ThreadUtils;
+import haveno.common.app.Capabilities;
+import haveno.common.app.HasCapabilities;
+import haveno.common.app.Version;
+import haveno.common.config.Config;
+import haveno.common.proto.ProtobufferException;
+import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.util.SingleThreadExecutorUtils;
+import haveno.common.util.Utilities;
 import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.CloseConnectionMessage;
 import haveno.network.p2p.ExtendedDataSizePermission;
@@ -30,39 +63,16 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
-
-import haveno.common.Proto;
-import haveno.common.UserThread;
-import haveno.common.app.Capabilities;
-import haveno.common.app.HasCapabilities;
-import haveno.common.app.Version;
-import haveno.common.config.Config;
-import haveno.common.proto.ProtobufferException;
-import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.proto.network.NetworkProtoResolver;
-import haveno.common.util.SingleThreadExecutorUtils;
-import haveno.common.util.Utilities;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-
-import javax.inject.Inject;
-
-import com.google.common.util.concurrent.Uninterruptibles;
-
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InvalidClassException;
 import java.io.OptionalDataException;
 import java.io.StreamCorruptedException;
-
+import java.lang.ref.WeakReference;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -77,16 +87,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import java.lang.ref.WeakReference;
-
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Connection is created by the server thread or by sendMessage from NetworkNode.
@@ -109,6 +116,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
+    private static final String THREAD_ID = Connection.class.getSimpleName();
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -164,16 +172,23 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private final Capabilities capabilities = new Capabilities();
 
+    // throttle logs of reported invalid requests
+    private static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30 seconds
+    private static long lastLoggedInvalidRequestReportTs = 0;
+    private static int numThrottledInvalidRequestReports = 0;
+    private static long lastLoggedWarningTs = 0;
+    private static int numThrottledWarnings = 0;
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     Connection(Socket socket,
-            MessageListener messageListener,
-            ConnectionListener connectionListener,
-            @Nullable NodeAddress peersNodeAddress,
-            NetworkProtoResolver networkProtoResolver,
-            @Nullable BanFilter banFilter) {
+               MessageListener messageListener,
+               ConnectionListener connectionListener,
+               @Nullable NodeAddress peersNodeAddress,
+               NetworkProtoResolver networkProtoResolver,
+               @Nullable BanFilter banFilter) {
         this.socket = socket;
         this.connectionListener = connectionListener;
         this.banFilter = banFilter;
@@ -199,7 +214,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             // When you construct an ObjectInputStream, in the constructor the class attempts to read a header that
             // the associated ObjectOutputStream on the other end of the connection has written.
             // It will not return until that header has been read.
-            protoOutputStream = new SynchronizedProtoOutputStream(socket.getOutputStream(), statistic);
+            protoOutputStream = new ProtoOutputStream(socket.getOutputStream(), statistic);
             protoInputStream = socket.getInputStream();
             // We create a thread for handling inputStream data
             executorService.submit(this);
@@ -207,11 +222,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             if (peersNodeAddress != null) {
                 setPeersNodeAddress(peersNodeAddress);
                 if (banFilter != null && banFilter.isPeerBanned(peersNodeAddress)) {
-                    log.warn("We created an outbound connection with a banned peer");
-                    reportInvalidRequest(RuleViolation.PEER_BANNED);
+                    reportInvalidRequest(RuleViolation.PEER_BANNED, "We created an outbound connection with a banned peer");
                 }
             }
-            UserThread.execute(() -> connectionListener.onConnection(this));
+            ThreadUtils.execute(() -> connectionListener.onConnection(this), THREAD_ID);
         } catch (Throwable e) {
             handleException(e);
         }
@@ -238,9 +252,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         if (banFilter != null &&
                 peersNodeAddressOptional.isPresent() &&
                 banFilter.isPeerBanned(peersNodeAddressOptional.get())) {
-            log.warn("We tried to send a message to a banned peer. message={}",
-                    networkEnvelope.getClass().getSimpleName());
-            reportInvalidRequest(RuleViolation.PEER_BANNED);
+            String errorMessage = "We tried to send a message to a banned peer. message=" + networkEnvelope.getClass().getSimpleName();
+            reportInvalidRequest(RuleViolation.PEER_BANNED, errorMessage);
             return;
         }
 
@@ -255,7 +268,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             long elapsed = now - lastSendTimeStamp;
             if (elapsed < getSendMsgThrottleTrigger()) {
                 log.debug("We got 2 sendMessage requests in less than {} ms. We set the thread to sleep " +
-                        "for {} ms to avoid flooding our peer. lastSendTimeStamp={}, now={}, elapsed={}, networkEnvelope={}",
+                                "for {} ms to avoid flooding our peer. lastSendTimeStamp={}, now={}, elapsed={}, networkEnvelope={}",
                         getSendMsgThrottleTrigger(), getSendMsgThrottleSleep(), lastSendTimeStamp, now, elapsed,
                         networkEnvelope.getClass().getSimpleName());
 
@@ -266,8 +279,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             if (!stopped) {
                 protoOutputStream.writeEnvelope(networkEnvelope);
-                UserThread.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)));
-                UserThread.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize));
+                ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)), THREAD_ID);
+                ThreadUtils.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize), THREAD_ID);
             }
         } catch (Throwable t) {
             handleException(t);
@@ -396,7 +409,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         if (networkEnvelope instanceof BundleOfEnvelopes) {
             onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
         } else {
-            UserThread.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)));
+            ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)), THREAD_ID);
         }
     }
 
@@ -409,7 +422,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             if (networkEnvelope instanceof SendersNodeAddressMessage) {
                 boolean isValid = processSendersNodeAddressMessage((SendersNodeAddressMessage) networkEnvelope);
                 if (!isValid) {
-                    log.warn("Received an invalid {} at processing BundleOfEnvelopes", networkEnvelope.getClass().getSimpleName());
+                    throttleWarn("Received an invalid " + networkEnvelope.getClass().getSimpleName() + " at processing BundleOfEnvelopes");
                     continue;
                 }
             }
@@ -432,9 +445,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope -> UserThread.execute(() ->
-                messageListeners.forEach(listener -> listener.onMessage(envelope, connection))));
+        envelopesToProcess.forEach(envelope -> ThreadUtils.execute(() -> {
+                messageListeners.forEach(listener -> listener.onMessage(envelope, connection));
+        }, THREAD_ID));
     }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Setters
@@ -454,6 +469,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
         peersNodeAddressProperty.set(peerNodeAddress);
     }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
@@ -497,11 +513,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                         Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
                     } catch (Throwable t) {
-                        log.error(t.getMessage());
-                        t.printStackTrace();
+                        log.error(ExceptionUtils.getStackTrace(t));
                     } finally {
                         stopped = true;
-                        UserThread.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
+                        ThreadUtils.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler), THREAD_ID);
                     }
                 }, "Connection:SendCloseConnectionMessage-" + this.uid).start();
             } else {
@@ -511,37 +526,33 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         } else {
             //TODO find out why we get called that
             log.debug("stopped was already at shutDown call");
-            UserThread.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler));
+            ThreadUtils.execute(() -> doShutDown(closeConnectionReason, shutDownCompleteHandler), THREAD_ID);
         }
     }
 
     private void doShutDown(CloseConnectionReason closeConnectionReason, @Nullable Runnable shutDownCompleteHandler) {
-        // Use UserThread.execute as it's not clear if that is called from a non-UserThread
-        UserThread.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this));
+        ThreadUtils.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this), THREAD_ID);
         try {
             protoOutputStream.onConnectionShutdown();
             socket.close();
         } catch (SocketException e) {
             log.trace("SocketException at shutdown might be expected {}", e.getMessage());
         } catch (IOException e) {
-            log.error("Exception at shutdown. " + e.getMessage());
-            e.printStackTrace();
+            log.error("Exception at shutdown. {}\n", e.getMessage(), e);
         } finally {
             capabilitiesListeners.clear();
 
             try {
                 protoInputStream.close();
             } catch (IOException e) {
-                log.error(e.getMessage());
-                e.printStackTrace();
+                log.error(ExceptionUtils.getStackTrace(e));
             }
 
             Utilities.shutdownAndAwaitTermination(executorService, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
 
             log.debug("Connection shutdown complete {}", this);
-            // Use UserThread.execute as it's not clear if that is called from a non-UserThread
             if (shutDownCompleteHandler != null)
-                UserThread.execute(shutDownCompleteHandler);
+                ThreadUtils.execute(shutDownCompleteHandler, THREAD_ID);
         }
     }
 
@@ -599,34 +610,53 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
      * Runs in same thread as Connection
      */
 
-    public boolean reportInvalidRequest(RuleViolation ruleViolation) {
-        log.info("We got reported the ruleViolation {} at connection with address{} and uid {}", ruleViolation, this.getPeersNodeAddressProperty(), this.getUid());
+    public boolean reportInvalidRequest(RuleViolation ruleViolation, String errorMessage) {
+        return Connection.reportInvalidRequest(this, ruleViolation, errorMessage);
+    }
+
+    private static synchronized boolean reportInvalidRequest(Connection connection, RuleViolation ruleViolation, String errorMessage) {
+
+        // determine if report should be logged to avoid spamming the logs
+        boolean logReport = System.currentTimeMillis() - lastLoggedInvalidRequestReportTs > LOG_THROTTLE_INTERVAL_MS;
+
+        // count the number of unlogged reports since last log entry
+        if (!logReport) numThrottledInvalidRequestReports++;
+
+        // handle report
+        if (logReport) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
         int numRuleViolations;
-        numRuleViolations = ruleViolations.getOrDefault(ruleViolation, 0);
-
+        numRuleViolations = connection.ruleViolations.getOrDefault(ruleViolation, 0);
         numRuleViolations++;
-        ruleViolations.put(ruleViolation, numRuleViolations);
-
+        connection.ruleViolations.put(ruleViolation, numRuleViolations);
         if (numRuleViolations >= ruleViolation.maxTolerance) {
-            log.warn("We close connection as we received too many corrupt requests. " +
+            if (logReport) log.warn("We close connection as we received too many corrupt requests. " +
                     "ruleViolations={} " +
-                    "connection with address{} and uid {}", ruleViolations, peersNodeAddressProperty, uid);
-            this.ruleViolation = ruleViolation;
+                    "connection with address {} and uid {}", connection.ruleViolations, connection.peersNodeAddressProperty, connection.uid);
+            connection.ruleViolation = ruleViolation;
             if (ruleViolation == RuleViolation.PEER_BANNED) {
-                log.debug("We close connection due RuleViolation.PEER_BANNED. peersNodeAddress={}",
-                        getPeersNodeAddressOptional());
-                shutDown(CloseConnectionReason.PEER_BANNED);
+                if (logReport) log.debug("We close connection due RuleViolation.PEER_BANNED. peersNodeAddress={}", connection.getPeersNodeAddressOptional());
+                connection.shutDown(CloseConnectionReason.PEER_BANNED);
             } else if (ruleViolation == RuleViolation.INVALID_CLASS) {
-                log.warn("We close connection due RuleViolation.INVALID_CLASS");
-                shutDown(CloseConnectionReason.INVALID_CLASS_RECEIVED);
+                if (logReport) log.warn("We close connection due RuleViolation.INVALID_CLASS");
+                connection.shutDown(CloseConnectionReason.INVALID_CLASS_RECEIVED);
             } else {
-                log.warn("We close connection due RuleViolation.RULE_VIOLATION");
-                shutDown(CloseConnectionReason.RULE_VIOLATION);
+                if (logReport) log.warn("We close connection due RuleViolation.RULE_VIOLATION");
+                connection.shutDown(CloseConnectionReason.RULE_VIOLATION);
             }
 
+            resetReportedInvalidRequestsThrottle(logReport);
             return true;
         } else {
+            resetReportedInvalidRequestsThrottle(logReport);
             return false;
+        }
+    }
+
+    private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
+        if (logReport) {
+            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numThrottledInvalidRequestReports);
+            numThrottledInvalidRequestReports = 0;
+            lastLoggedInvalidRequestReportTs = System.currentTimeMillis();
         }
     }
 
@@ -643,25 +673,22 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             else
                 closeConnectionReason = CloseConnectionReason.RESET;
 
-            log.info("SocketException (expected if connection lost). closeConnectionReason={}; connection={}", closeConnectionReason, this);
+            throttleWarn("SocketException (expected if connection lost). closeConnectionReason=" + closeConnectionReason + "; connection=" + this);
         } else if (e instanceof SocketTimeoutException || e instanceof TimeoutException) {
             closeConnectionReason = CloseConnectionReason.SOCKET_TIMEOUT;
-            log.info("Shut down caused by exception {} on connection={}", e, this);
+            throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
         } else if (e instanceof EOFException) {
             closeConnectionReason = CloseConnectionReason.TERMINATED;
-            log.warn("Shut down caused by exception {} on connection={}", e, this);
+            throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
         } else if (e instanceof OptionalDataException || e instanceof StreamCorruptedException) {
             closeConnectionReason = CloseConnectionReason.CORRUPTED_DATA;
-            log.warn("Shut down caused by exception {} on connection={}", e, this);
+            throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
         } else {
             // TODO sometimes we get StreamCorruptedException, OptionalDataException, IllegalStateException
             closeConnectionReason = CloseConnectionReason.UNKNOWN_EXCEPTION;
-            log.warn("Unknown reason for exception at socket: {}\n\t" +
-                    "peer={}\n\t" +
-                    "Exception={}",
-                    socket.toString(),
-                    this.peersNodeAddressOptional,
-                    e.toString());
+            throttleWarn("Unknown reason for exception at socket: " + socket.toString() + "\n\t" +
+                            "peer=" + this.peersNodeAddressOptional + "\n\t" +
+                            "Exception=" + e.toString());
         }
         shutDown(closeConnectionReason);
     }
@@ -682,8 +709,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         }
 
         if (banFilter != null && banFilter.isPeerBanned(senderNodeAddress)) {
-            log.warn("We got a message from a banned peer. message={}", sendersNodeAddressMessage.getClass().getSimpleName());
-            reportInvalidRequest(RuleViolation.PEER_BANNED);
+            String errorMessage = "We got a message from a banned peer. message=" + sendersNodeAddressMessage.getClass().getSimpleName();
+            reportInvalidRequest(RuleViolation.PEER_BANNED, errorMessage);
             return false;
         }
 
@@ -715,7 +742,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 try {
                     if (socket != null &&
                             socket.isClosed()) {
-                        log.warn("Socket is null or closed socket={}", socket);
+                        throttleWarn("Socket is null or closed socket=" + socket);
                         shutDown(CloseConnectionReason.SOCKET_CLOSED);
                         return;
                     }
@@ -727,7 +754,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                     if (socket != null &&
                             socket.isClosed()) {
-                        log.warn("Socket is null or closed socket={}", socket);
+                        throttleWarn("Socket is null or closed socket=" + socket);
                         shutDown(CloseConnectionReason.SOCKET_CLOSED);
                         return;
                     }
@@ -737,9 +764,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             return;
                         }
                         if (protoInputStream.read() == -1) {
-                            log.warn("proto is null because protoInputStream.read()=-1 (EOF). That is expected if client got stopped without proper shutdown.");
+                            throttleWarn("proto is null because protoInputStream.read()=-1 (EOF). That is expected if client got stopped without proper shutdown.");
                         } else {
-                            log.warn("proto is null. protoInputStream.read()=" + protoInputStream.read());
+                            throttleWarn("proto is null. protoInputStream.read()=" + protoInputStream.read());
                         }
                         shutDown(CloseConnectionReason.NO_PROTO_BUFFER_ENV);
                         return;
@@ -748,8 +775,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     if (banFilter != null &&
                             peersNodeAddressOptional.isPresent() &&
                             banFilter.isPeerBanned(peersNodeAddressOptional.get())) {
-                        log.warn("We got a message from a banned peer. proto={}", Utilities.toTruncatedString(proto));
-                        reportInvalidRequest(RuleViolation.PEER_BANNED);
+                        String errorMessage = "We got a message from a banned peer. proto=" + Utilities.toTruncatedString(proto);
+                        reportInvalidRequest(RuleViolation.PEER_BANNED, errorMessage);
                         return;
                     }
 
@@ -758,7 +785,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     long elapsed = now - lastReadTimeStamp;
                     if (elapsed < 10) {
                         log.debug("We got 2 network messages received in less than 10 ms. We set the thread to sleep " +
-                                "for 20 ms to avoid getting flooded by our peer. lastReadTimeStamp={}, now={}, elapsed={}",
+                                        "for 20 ms to avoid getting flooded by our peer. lastReadTimeStamp={}, now={}, elapsed={}",
                                 lastReadTimeStamp, now, elapsed);
                         Thread.sleep(20);
                     }
@@ -784,30 +811,28 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                     if (networkEnvelope instanceof AddPersistableNetworkPayloadMessage &&
                             !((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload().verifyHashSize()) {
-                        log.warn("PersistableNetworkPayload.verifyHashSize failed. hashSize={}; object={}",
-                                ((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload().getHash().length,
-                                Utilities.toTruncatedString(proto));
-                        if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED))
+                        String errorMessage = "PersistableNetworkPayload.verifyHashSize failed. hashSize=" +
+                                ((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload().getHash().length + "; object=" +
+                                Utilities.toTruncatedString(proto);
+                        if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, errorMessage))
                             return;
                     }
 
                     if (exceeds) {
-                        log.warn("size > MAX_MSG_SIZE. size={}; object={}", size, Utilities.toTruncatedString(proto));
-
-                        if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED))
+                        String errorMessage = "size > MAX_MSG_SIZE. size=" + size + "; object=" + Utilities.toTruncatedString(proto);
+                        if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, errorMessage))
                             return;
                     }
 
-                    if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED))
+                    if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED, "Violates throttle limit"))
                         return;
 
                     // Check P2P network ID
+                    String errorMessage = "RuleViolation.WRONG_NETWORK_ID. version of message=" + proto.getMessageVersion() +
+                            ", app version=" + Version.getP2PMessageVersion() +
+                            ", proto.toTruncatedString=" + Utilities.toTruncatedString(proto.toString());
                     if (!proto.getMessageVersion().equals(Version.getP2PMessageVersion())
-                            && reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID)) {
-                        log.warn("RuleViolation.WRONG_NETWORK_ID. version of message={}, app version={}, " +
-                                "proto.toTruncatedString={}", proto.getMessageVersion(),
-                                Version.getP2PMessageVersion(),
-                                Utilities.toTruncatedString(proto.toString()));
+                            && reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID, errorMessage)) {
                         return;
                     }
 
@@ -823,8 +848,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                         if (CloseConnectionReason.PEER_BANNED.name().equals(proto.getCloseConnectionMessage().getReason())) {
                             log.warn("We got shut down because we are banned by the other peer. " +
-                                    "(InputHandler.run CloseConnectionMessage). Peer: {}",
-                                    getPeersNodeAddressOptional());
+                                    "(InputHandler.run CloseConnectionMessage). Peer: {}", getPeersNodeAddressOptional());
                         }
                         shutDown(CloseConnectionReason.CLOSE_REQUESTED_BY_PEER);
                         return;
@@ -843,20 +867,16 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         }
 
                         if (!(networkEnvelope instanceof SendersNodeAddressMessage) && peersNodeAddressOptional.isEmpty()) {
-                            log.info("We got a {} from a peer with yet unknown address on connection with uid={}",
-                                    networkEnvelope.getClass().getSimpleName(), uid);
+                            log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
                         }
 
-                        onMessage(networkEnvelope, this);
-                        UserThread.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size));
+                        ThreadUtils.execute(() -> onMessage(networkEnvelope, this), THREAD_ID);
+                        ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
                 } catch (InvalidClassException e) {
-                    log.error(e.getMessage());
-                    e.printStackTrace();
-                    reportInvalidRequest(RuleViolation.INVALID_CLASS);
+                    reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
                 } catch (ProtobufferException | NoClassDefFoundError | InvalidProtocolBufferException e) {
-                    log.error(e.getMessage());
-                    reportInvalidRequest(RuleViolation.INVALID_DATA_TYPE);
+                    reportInvalidRequest(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
                 } catch (Throwable t) {
                     handleException(t);
                 }
@@ -897,7 +917,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         capabilitiesListeners.forEach(weakListener -> {
             SupportedCapabilitiesListener supportedCapabilitiesListener = weakListener.get();
             if (supportedCapabilitiesListener != null) {
-                UserThread.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities));
+                ThreadUtils.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities), THREAD_ID);
             }
         });
         return false;
@@ -914,5 +934,17 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private String getSenderNodeAddressAsString(NetworkEnvelope networkEnvelope) {
         NodeAddress nodeAddress = getSenderNodeAddress(networkEnvelope);
         return nodeAddress == null ? "null" : nodeAddress.getFullAddress();
+    }
+
+    private synchronized void throttleWarn(String msg) {
+        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (logWarning) {
+            log.warn(msg);
+            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            numThrottledWarnings = 0;
+            lastLoggedWarningTs = System.currentTimeMillis();
+        } else {
+            numThrottledWarnings++;
+        }
     }
 }

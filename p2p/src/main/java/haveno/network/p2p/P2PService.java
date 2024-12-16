@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p;
@@ -57,6 +57,8 @@ import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import lombok.Getter;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.fxmisc.easybind.monadic.MonadicBinding;
@@ -189,6 +191,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     }
 
     private void doShutDown() {
+        log.info("P2PService doShutDown started");
 
         if (p2PDataStorage != null) {
             p2PDataStorage.shutDown();
@@ -298,7 +301,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onUpdatedDataReceived() {
-        applyIsBootstrapped(P2PServiceListener::onUpdatedDataReceived);
+        p2pServiceListeners.forEach(P2PServiceListener::onUpdatedDataReceived);
     }
 
     @Override
@@ -313,7 +316,8 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onDataReceived() {
-        p2pServiceListeners.forEach(P2PServiceListener::onDataReceived);
+        applyIsBootstrapped(P2PServiceListener::onDataReceived);
+
     }
 
     private void applyIsBootstrapped(Consumer<P2PServiceListener> listenerHandler) {
@@ -382,12 +386,16 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     // DirectMessages
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO OfferAvailabilityResponse is called twice!
     public void sendEncryptedDirectMessage(NodeAddress peerNodeAddress, PubKeyRing pubKeyRing, NetworkEnvelope message,
                                            SendDirectMessageListener sendDirectMessageListener) {
+        sendEncryptedDirectMessage(peerNodeAddress, pubKeyRing, message, sendDirectMessageListener, null);
+    }
+
+    public void sendEncryptedDirectMessage(NodeAddress peerNodeAddress, PubKeyRing pubKeyRing, NetworkEnvelope message,
+                                           SendDirectMessageListener sendDirectMessageListener, Integer timeoutSeconds) {
         checkNotNull(peerNodeAddress, "PeerAddress must not be null (sendEncryptedDirectMessage)");
         if (isBootstrapped()) {
-            doSendEncryptedDirectMessage(peerNodeAddress, pubKeyRing, message, sendDirectMessageListener);
+            doSendEncryptedDirectMessage(peerNodeAddress, pubKeyRing, message, sendDirectMessageListener, timeoutSeconds);
         } else {
             throw new NetworkNotReadyException();
         }
@@ -396,7 +404,8 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     private void doSendEncryptedDirectMessage(@NotNull NodeAddress peersNodeAddress,
                                               PubKeyRing pubKeyRing,
                                               NetworkEnvelope message,
-                                              SendDirectMessageListener sendDirectMessageListener) {
+                                              SendDirectMessageListener sendDirectMessageListener,
+                                              Integer timeoutSeconds) {
         log.debug("Send encrypted direct message {} to peer {}",
                 message.getClass().getSimpleName(), peersNodeAddress);
 
@@ -417,7 +426,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
                     networkNode.getNodeAddress(),
                     encryptionService.encryptAndSign(pubKeyRing, message));
 
-            SettableFuture<Connection> future = networkNode.sendMessage(peersNodeAddress, sealedMsg);
+            SettableFuture<Connection> future = networkNode.sendMessage(peersNodeAddress, sealedMsg, timeoutSeconds);
             Futures.addCallback(future, new FutureCallback<>() {
                 @Override
                 public void onSuccess(@Nullable Connection connection) {
@@ -426,15 +435,12 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
                 @Override
                 public void onFailure(@NotNull Throwable throwable) {
-                    log.error(throwable.toString());
-                    throwable.printStackTrace();
+                    log.error(ExceptionUtils.getStackTrace(throwable));
                     sendDirectMessageListener.onFault(throwable.toString());
                 }
             }, MoreExecutors.directExecutor());
         } catch (CryptoException e) {
-            e.printStackTrace();
-            log.error(message.toString());
-            log.error(e.toString());
+            log.error("Error sending encrypted direct message, message={}, error={}\n", message.toString(), e.getMessage(), e);
             sendDirectMessageListener.onFault(e.toString());
         }
     }
@@ -557,6 +563,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         return keyRing;
     }
 
+    // TODO: this is unreliable and unused, because peer sometimes reports no TRADE_STATISTICS_3 capability, causing valid trades to be unpublished
     public Optional<Capabilities> findPeersCapabilities(NodeAddress peer) {
         return networkNode.getConfirmedConnections().stream()
                 .filter(e -> e.getPeersNodeAddressOptional().isPresent())

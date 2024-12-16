@@ -1,25 +1,25 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.statistics;
 
 import com.google.inject.Injector;
 import haveno.core.app.misc.AppSetup;
-import haveno.core.app.misc.AppSetupWithP2PAndDAO;
+import haveno.core.app.misc.AppSetupWithP2P;
 import haveno.core.offer.OfferBookService;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
@@ -52,7 +52,7 @@ public class Statistics {
         priceFeedService.setCurrencyCode("USD");
         p2pService.addP2PServiceListener(new BootstrapListener() {
             @Override
-            public void onUpdatedDataReceived() {
+            public void onDataReceived() {
                 // we need to have tor ready
                 log.info("onBootstrapComplete: we start requestPriceFeed");
                 priceFeedService.startRequestingPrices(price -> log.info("requestPriceFeed. price=" + price),
@@ -62,7 +62,7 @@ public class Statistics {
             }
         });
 
-        appSetup = injector.getInstance(AppSetupWithP2PAndDAO.class);
+        appSetup = injector.getInstance(AppSetupWithP2P.class);
         appSetup.start();
     }
 }

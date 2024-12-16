@@ -1,39 +1,30 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.OpenOffer;
-import haveno.core.util.FormattingUtils;
-import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.core.Monetary;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import static haveno.core.trade.ClosedTradableUtil.castToTrade;
 import static haveno.core.trade.ClosedTradableUtil.getTotalTxFee;
 import static haveno.core.trade.ClosedTradableUtil.getTotalVolumeByCurrency;
@@ -42,10 +33,17 @@ import static haveno.core.trade.ClosedTradableUtil.isOpenOffer;
 import static haveno.core.trade.Trade.DisputeState.DISPUTE_CLOSED;
 import static haveno.core.trade.Trade.DisputeState.MEDIATION_CLOSED;
 import static haveno.core.trade.Trade.DisputeState.REFUND_REQUEST_CLOSED;
+import haveno.core.util.FormattingUtils;
 import static haveno.core.util.FormattingUtils.formatPercentagePrice;
 import static haveno.core.util.FormattingUtils.formatToPercentWithSymbol;
 import static haveno.core.util.VolumeUtil.formatVolume;
 import static haveno.core.util.VolumeUtil.formatVolumeWithCode;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Monetary;
 
 @Slf4j
 @Singleton
@@ -85,11 +83,19 @@ public class ClosedTradableFormatter {
     }
 
     public String getBuyerSecurityDepositAsString(Tradable tradable) {
-        return HavenoUtils.formatXmr(tradable.getOffer().getBuyerSecurityDeposit());
+        if (tradable instanceof Trade) {
+            Trade trade = castToTrade(tradable);
+            return HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee());
+        }
+        return HavenoUtils.formatXmr(tradable.getOffer().getMaxBuyerSecurityDeposit());
     }
 
     public String getSellerSecurityDepositAsString(Tradable tradable) {
-        return HavenoUtils.formatXmr(tradable.getOffer().getSellerSecurityDeposit());
+        if (tradable instanceof Trade) {
+            Trade trade = castToTrade(tradable);
+            return HavenoUtils.formatXmr(trade.getSellerSecurityDepositBeforeMiningFee());
+        }
+        return HavenoUtils.formatXmr(tradable.getOffer().getMaxSellerSecurityDeposit());
     }
 
     public String getTradeFeeAsString(Tradable tradable, boolean appendCode) {

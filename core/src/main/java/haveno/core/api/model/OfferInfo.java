@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.api.model;
@@ -52,10 +52,11 @@ public class OfferInfo implements Payload {
     private final long minAmount;
     private final String volume;
     private final String minVolume;
-    private final long makerFee;
-    @Nullable
-    private final long buyerSecurityDeposit;
-    private final long sellerSecurityDeposit;
+    private final double makerFeePct;
+    private final double takerFeePct;
+    private final double penaltyFeePct;
+    private final double buyerSecurityDepositPct;
+    private final double sellerSecurityDepositPct;
     private final String triggerPrice;
     private final String paymentAccountId;
     private final String paymentMethodId;
@@ -74,6 +75,11 @@ public class OfferInfo implements Payload {
     private final int protocolVersion;
     @Nullable
     private final String arbitratorSigner;
+    @Nullable
+    private final String splitOutputTxHash;
+    private final long splitOutputTxFee;
+    private final boolean isPrivateOffer;
+    private final String challenge;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -83,11 +89,13 @@ public class OfferInfo implements Payload {
         this.marketPriceMarginPct = builder.getMarketPriceMarginPct();
         this.amount = builder.getAmount();
         this.minAmount = builder.getMinAmount();
+        this.makerFeePct = builder.getMakerFeePct();
+        this.takerFeePct = builder.getTakerFeePct();
+        this.penaltyFeePct = builder.getPenaltyFeePct();
+        this.buyerSecurityDepositPct = builder.getBuyerSecurityDepositPct();
+        this.sellerSecurityDepositPct = builder.getSellerSecurityDepositPct();
         this.volume = builder.getVolume();
         this.minVolume = builder.getMinVolume();
-        this.makerFee = builder.getMakerFee();
-        this.buyerSecurityDeposit = builder.getBuyerSecurityDeposit();
-        this.sellerSecurityDeposit = builder.getSellerSecurityDeposit();
         this.triggerPrice = builder.getTriggerPrice();
         this.paymentAccountId = builder.getPaymentAccountId();
         this.paymentMethodId = builder.getPaymentMethodId();
@@ -103,6 +111,10 @@ public class OfferInfo implements Payload {
         this.versionNumber = builder.getVersionNumber();
         this.protocolVersion = builder.getProtocolVersion();
         this.arbitratorSigner = builder.getArbitratorSigner();
+        this.splitOutputTxHash = builder.getSplitOutputTxHash();
+        this.splitOutputTxFee = builder.getSplitOutputTxFee();
+        this.isPrivateOffer = builder.isPrivateOffer();
+        this.challenge = builder.getChallenge();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -127,6 +139,9 @@ public class OfferInfo implements Payload {
                 .withTriggerPrice(preciseTriggerPrice)
                 .withState(openOffer.getState().name())
                 .withIsActivated(isActivated)
+                .withSplitOutputTxHash(openOffer.getSplitOutputTxHash())
+                .withSplitOutputTxFee(openOffer.getSplitOutputTxFee())
+                .withChallenge(openOffer.getChallenge())
                 .build();
     }
 
@@ -148,11 +163,14 @@ public class OfferInfo implements Payload {
                 .withMarketPriceMarginPct(marketPriceMarginAsPctLiteral)
                 .withAmount(offer.getAmount().longValueExact())
                 .withMinAmount(offer.getMinAmount().longValueExact())
+                .withMakerFeePct(offer.getMakerFeePct())
+                .withTakerFeePct(offer.getTakerFeePct())
+                .withPenaltyFeePct(offer.getPenaltyFeePct())
+                .withSellerSecurityDepositPct(offer.getSellerSecurityDepositPct())
+                .withBuyerSecurityDepositPct(offer.getBuyerSecurityDepositPct())
+                .withSellerSecurityDepositPct(offer.getSellerSecurityDepositPct())
                 .withVolume(roundedVolume)
                 .withMinVolume(roundedMinVolume)
-                .withMakerFee(offer.getMakerFee().longValueExact())
-                .withBuyerSecurityDeposit(offer.getBuyerSecurityDeposit().longValueExact())
-                .withSellerSecurityDeposit(offer.getSellerSecurityDeposit().longValueExact())
                 .withPaymentAccountId(offer.getMakerPaymentAccountId())
                 .withPaymentMethodId(offer.getPaymentMethod().getId())
                 .withPaymentMethodShortName(offer.getPaymentMethod().getShortName())
@@ -164,7 +182,9 @@ public class OfferInfo implements Payload {
                 .withPubKeyRing(offer.getOfferPayload().getPubKeyRing().toString())
                 .withVersionNumber(offer.getOfferPayload().getVersionNr())
                 .withProtocolVersion(offer.getOfferPayload().getProtocolVersion())
-                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress());
+                .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress())
+                .withIsPrivateOffer(offer.isPrivateOffer())
+                .withChallenge(offer.getChallenge());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -183,9 +203,11 @@ public class OfferInfo implements Payload {
                 .setMinAmount(minAmount)
                 .setVolume(volume)
                 .setMinVolume(minVolume)
-                .setMakerFee(makerFee)
-                .setBuyerSecurityDeposit(buyerSecurityDeposit)
-                .setSellerSecurityDeposit(sellerSecurityDeposit)
+                .setMakerFeePct(makerFeePct)
+                .setTakerFeePct(takerFeePct)
+                .setPenaltyFeePct(penaltyFeePct)
+                .setBuyerSecurityDepositPct(buyerSecurityDepositPct)
+                .setSellerSecurityDepositPct(sellerSecurityDepositPct)
                 .setTriggerPrice(triggerPrice == null ? "0" : triggerPrice)
                 .setPaymentAccountId(paymentAccountId)
                 .setPaymentMethodId(paymentMethodId)
@@ -199,8 +221,12 @@ public class OfferInfo implements Payload {
                 .setOwnerNodeAddress(ownerNodeAddress)
                 .setPubKeyRing(pubKeyRing)
                 .setVersionNr(versionNumber)
-                .setProtocolVersion(protocolVersion);
+                .setProtocolVersion(protocolVersion)
+                .setSplitOutputTxFee(splitOutputTxFee)
+                .setIsPrivateOffer(isPrivateOffer);
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
+        Optional.ofNullable(splitOutputTxHash).ifPresent(builder::setSplitOutputTxHash);
+        Optional.ofNullable(challenge).ifPresent(builder::setChallenge);
         return builder.build();
     }
 
@@ -216,9 +242,11 @@ public class OfferInfo implements Payload {
                 .withMinAmount(proto.getMinAmount())
                 .withVolume(proto.getVolume())
                 .withMinVolume(proto.getMinVolume())
-                .withMakerFee(proto.getMakerFee())
-                .withBuyerSecurityDeposit(proto.getBuyerSecurityDeposit())
-                .withSellerSecurityDeposit(proto.getSellerSecurityDeposit())
+                .withMakerFeePct(proto.getMakerFeePct())
+                .withTakerFeePct(proto.getTakerFeePct())
+                .withPenaltyFeePct(proto.getPenaltyFeePct())
+                .withBuyerSecurityDepositPct(proto.getBuyerSecurityDepositPct())
+                .withSellerSecurityDepositPct(proto.getSellerSecurityDepositPct())
                 .withTriggerPrice(proto.getTriggerPrice())
                 .withPaymentAccountId(proto.getPaymentAccountId())
                 .withPaymentMethodId(proto.getPaymentMethodId())
@@ -234,6 +262,10 @@ public class OfferInfo implements Payload {
                 .withVersionNumber(proto.getVersionNr())
                 .withProtocolVersion(proto.getProtocolVersion())
                 .withArbitratorSigner(proto.getArbitratorSigner())
+                .withSplitOutputTxHash(proto.getSplitOutputTxHash())
+                .withSplitOutputTxFee(proto.getSplitOutputTxFee())
+                .withIsPrivateOffer(proto.getIsPrivateOffer())
+                .withChallenge(proto.getChallenge())
                 .build();
     }
 }

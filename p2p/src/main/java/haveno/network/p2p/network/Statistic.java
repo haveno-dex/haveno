@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.network.p2p.network;
@@ -70,7 +70,7 @@ public class Statistic {
             totalReceivedBytesPerSec.set(((double) totalReceivedBytes.get()) / passed);
         }, 1);
 
-        // We log statistics every 5 minutes
+        // We log statistics every 60 minutes
         UserThread.runPeriodically(() -> {
             String ls = System.lineSeparator();
             log.info("Accumulated network statistics:" + ls +
@@ -79,14 +79,14 @@ public class Statistic {
                             "Number of sent messages per sec: {};" + ls +
                             "Bytes received: {}" + ls +
                             "Number of received messages/Received messages: {} / {};" + ls +
-                            "Number of received messages per sec: {};" + ls,
+                            "Number of received messages per sec: {}" + ls,
                     Utilities.readableFileSize(totalSentBytes.get()),
                     numTotalSentMessages.get(), totalSentMessages,
                     numTotalSentMessagesPerSec.get(),
                     Utilities.readableFileSize(totalReceivedBytes.get()),
                     numTotalReceivedMessages.get(), totalReceivedMessages,
                     numTotalReceivedMessagesPerSec.get());
-        }, TimeUnit.MINUTES.toSeconds(5));
+        }, TimeUnit.MINUTES.toSeconds(60));
     }
 
     public static LongProperty totalSentBytesProperty() {
@@ -234,6 +234,30 @@ public class Statistic {
 
     public IntegerProperty roundTripTimeProperty() {
         return roundTripTime;
+    }
+
+    public static long getTotalSentBytes() {
+        return totalSentBytes.get();
+    }
+
+    public static double getTotalSentBytesPerSec() {
+        return totalSentBytesPerSec.get();
+    }
+
+    public static long getTotalReceivedBytes() {
+        return totalReceivedBytes.get();
+    }
+
+    public static double getTotalReceivedBytesPerSec() {
+        return totalReceivedBytesPerSec.get();
+    }
+
+    public static double numTotalReceivedMessagesPerSec() {
+        return numTotalReceivedMessagesPerSec.get();
+    }
+
+    public static double getNumTotalSentMessagesPerSec() {
+        return numTotalSentMessagesPerSec.get();
     }
 
     @Override

@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.support.dispute;
@@ -77,20 +77,21 @@ public class DisputeValidation {
 
 
     public static void validateSenderNodeAddress(Dispute dispute,
-                                                 NodeAddress senderNodeAddress) throws NodeAddressException {
-        if (!senderNodeAddress.equals(dispute.getContract().getBuyerNodeAddress())
-                && !senderNodeAddress.equals(dispute.getContract().getSellerNodeAddress())
-                && !senderNodeAddress.equals(dispute.getContract().getArbitratorNodeAddress())) {
-            throw new NodeAddressException(dispute, "senderNodeAddress not matching any of the traders node addresses");
+                                                 NodeAddress senderNodeAddress,
+                                                 Config config) throws NodeAddressException {
+        if (config.useLocalhostForP2P) return;
+        if (!senderNodeAddress.getHostName().equals(dispute.getContract().getBuyerNodeAddress().getHostName())
+                && !senderNodeAddress.getHostName().equals(dispute.getContract().getSellerNodeAddress().getHostName())
+                && !senderNodeAddress.getHostName().equals(dispute.getContract().getArbitratorNodeAddress().getHostName())) {
+            throw new NodeAddressException(dispute, "senderNodeAddress not matching any of the trade node addresses");
         }
     }
 
     public static void validateNodeAddresses(Dispute dispute, Config config)
             throws NodeAddressException {
-        if (!config.useLocalhostForP2P) {
-            validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress());
-            validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress());
-        }
+        if (config.useLocalhostForP2P) return;  
+        validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress());
+        validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress());
     }
 
     private static void validateNodeAddress(Dispute dispute, NodeAddress nodeAddress) throws NodeAddressException {

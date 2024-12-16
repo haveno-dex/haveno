@@ -77,13 +77,15 @@ public class Config {
     public static final String SEED_NODES = "seedNodes";
     public static final String BAN_LIST = "banList";
     public static final String NODE_PORT = "nodePort";
+    public static final String HIDDEN_SERVICE_ADDRESS = "hiddenServiceAddress";
     public static final String USE_LOCALHOST_FOR_P2P = "useLocalhostForP2P";
     public static final String MAX_CONNECTIONS = "maxConnections";
-    public static final String SOCKS_5_PROXY_BTC_ADDRESS = "socks5ProxyBtcAddress";
+    public static final String SOCKS_5_PROXY_XMR_ADDRESS = "socks5ProxyXmrAddress";
     public static final String SOCKS_5_PROXY_HTTP_ADDRESS = "socks5ProxyHttpAddress";
     public static final String USE_TOR_FOR_XMR = "useTorForXmr";
     public static final String TORRC_FILE = "torrcFile";
     public static final String TORRC_OPTIONS = "torrcOptions";
+    public static final String TOR_CONTROL_HOST = "torControlHost";
     public static final String TOR_CONTROL_PORT = "torControlPort";
     public static final String TOR_CONTROL_PASSWORD = "torControlPassword";
     public static final String TOR_CONTROL_COOKIE_FILE = "torControlCookieFile";
@@ -99,6 +101,7 @@ public class Config {
     public static final String XMR_NODE_USERNAME = "xmrNodeUsername";
     public static final String XMR_NODE_PASSWORD = "xmrNodePassword";
     public static final String XMR_NODES = "xmrNodes";
+    public static final String USE_NATIVE_XMR_WALLET = "useNativeXmrWallet";
     public static final String SOCKS5_DISCOVER_MODE = "socks5DiscoverMode";
     public static final String USE_ALL_PROVIDED_NODES = "useAllProvidedNodes";
     public static final String USER_AGENT = "userAgent";
@@ -149,6 +152,7 @@ public class Config {
     public final File appDataDir;
     public final int walletRpcBindPort;
     public final int nodePort;
+    public final String  hiddenServiceAddress;
     public final int maxMemory;
     public final String logLevel;
     public final List<String> bannedXmrNodes;
@@ -169,10 +173,11 @@ public class Config {
     public final List<String> banList;
     public final boolean useLocalhostForP2P;
     public final int maxConnections;
-    public final String socks5ProxyBtcAddress;
+    public final String socks5ProxyXmrAddress;
     public final String socks5ProxyHttpAddress;
     public final File torrcFile;
     public final String torrcOptions;
+    public final String torControlHost;
     public final int torControlPort;
     public final String torControlPassword;
     public final File torControlCookieFile;
@@ -186,6 +191,7 @@ public class Config {
     public final String xmrNodeUsername;
     public final String xmrNodePassword;
     public final String xmrNodes;
+    public final boolean useNativeXmrWallet;
     public final UseTorForXmr useTorForXmr;
     public final boolean useTorForXmrOptionSetExplicitly;
     public final String socks5DiscoverMode;
@@ -281,6 +287,12 @@ public class Config {
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(9999);
+
+        ArgumentAcceptingOptionSpec<String> hiddenServiceAddressOpt =
+                parser.accepts(HIDDEN_SERVICE_ADDRESS, "Hidden Service Address to listen on")
+                        .withRequiredArg()
+                        .ofType(String.class)
+                        .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<Integer> walletRpcBindPortOpt =
                 parser.accepts(WALLET_RPC_BIND_PORT, "Port to bind the wallet RPC on")
@@ -418,8 +430,8 @@ public class Config {
                         .ofType(int.class)
                         .defaultsTo(12);
 
-        ArgumentAcceptingOptionSpec<String> socks5ProxyBtcAddressOpt =
-                parser.accepts(SOCKS_5_PROXY_BTC_ADDRESS, "A proxy address to be used for Bitcoin network.")
+        ArgumentAcceptingOptionSpec<String> socks5ProxyXmrAddressOpt =
+                parser.accepts(SOCKS_5_PROXY_XMR_ADDRESS, "A proxy address to be used for Bitcoin network.")
                         .withRequiredArg()
                         .describedAs("host:port")
                         .defaultsTo("");
@@ -445,6 +457,11 @@ public class Config {
                         .withRequiredArg()
                         .withValuesConvertedBy(RegexMatcher.regex("^([^\\s,]+\\s[^,]+,?\\s*)+$"))
                         .defaultsTo("");
+
+        ArgumentAcceptingOptionSpec<String> torControlHostOpt =
+                parser.accepts(TOR_CONTROL_HOST, "The control hostname of an already running Tor service to be used by Haveno.")
+                        .withRequiredArg()
+                        .defaultsTo("127.0.0.1");
 
         ArgumentAcceptingOptionSpec<Integer> torControlPortOpt =
                 parser.accepts(TOR_CONTROL_PORT,
@@ -524,6 +541,12 @@ public class Config {
                         .withRequiredArg()
                         .describedAs("ip[,...]")
                         .defaultsTo("");
+
+        ArgumentAcceptingOptionSpec<Boolean> useNativeXmrWalletOpt =
+                parser.accepts(USE_NATIVE_XMR_WALLET, "Use native wallet libraries instead of monero-wallet-rpc server")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
 
         //noinspection rawtypes
         ArgumentAcceptingOptionSpec<Enum> useTorForXmrOpt =
@@ -655,6 +678,7 @@ public class Config {
             this.helpRequested = options.has(helpOpt);
             this.configFile = configFile;
             this.nodePort = options.valueOf(nodePortOpt);
+            this.hiddenServiceAddress = options.valueOf(hiddenServiceAddressOpt);
             this.walletRpcBindPort = options.valueOf(walletRpcBindPortOpt);
             this.maxMemory = options.valueOf(maxMemoryOpt);
             this.logLevel = options.valueOf(logLevelOpt);
@@ -667,6 +691,7 @@ public class Config {
             this.bitcoinRegtestHost = options.valueOf(bitcoinRegtestHostOpt);
             this.torrcFile = options.has(torrcFileOpt) ? options.valueOf(torrcFileOpt).toFile() : null;
             this.torrcOptions = options.valueOf(torrcOptionsOpt);
+            this.torControlHost = options.valueOf(torControlHostOpt);
             this.torControlPort = options.valueOf(torControlPortOpt);
             this.torControlPassword = options.valueOf(torControlPasswordOpt);
             this.torControlCookieFile = options.has(torControlCookieFileOpt) ?
@@ -684,7 +709,7 @@ public class Config {
             this.banList = options.valuesOf(banListOpt);
             this.useLocalhostForP2P = !this.baseCurrencyNetwork.isMainnet() && options.valueOf(useLocalhostForP2POpt);
             this.maxConnections = options.valueOf(maxConnectionsOpt);
-            this.socks5ProxyBtcAddress = options.valueOf(socks5ProxyBtcAddressOpt);
+            this.socks5ProxyXmrAddress = options.valueOf(socks5ProxyXmrAddressOpt);
             this.socks5ProxyHttpAddress = options.valueOf(socks5ProxyHttpAddressOpt);
             this.msgThrottlePerSec = options.valueOf(msgThrottlePerSecOpt);
             this.msgThrottlePer10Sec = options.valueOf(msgThrottlePer10SecOpt);
@@ -694,6 +719,7 @@ public class Config {
             this.xmrNodeUsername = options.valueOf(xmrNodeUsernameOpt);
             this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
             this.xmrNodes = options.valueOf(xmrNodesOpt);
+            this.useNativeXmrWallet = options.valueOf(useNativeXmrWalletOpt);
             this.useTorForXmr = (UseTorForXmr) options.valueOf(useTorForXmrOpt);
             this.useTorForXmrOptionSetExplicitly = options.has(useTorForXmrOpt);
             this.socks5DiscoverMode = options.valueOf(socks5DiscoverModeOpt);

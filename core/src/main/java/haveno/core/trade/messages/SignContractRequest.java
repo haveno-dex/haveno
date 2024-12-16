@@ -1,18 +1,18 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.trade.messages;
@@ -35,7 +35,9 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     private final String accountId;
     private final byte[] paymentAccountPayloadHash;
     private final String payoutAddress;
+    @Nullable
     private final String depositTxHash;
+    @Nullable
     private final byte[] accountAgeWitnessSignatureOfDepositHash;
 
     public SignContractRequest(String tradeId,
@@ -45,7 +47,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                      String accountId,
                                      byte[] paymentAccountPayloadHash,
                                      String payoutAddress,
-                                     String depositTxHash,
+                                     @Nullable String depositTxHash,
                                      @Nullable byte[] accountAgeWitnessSignatureOfDepositHash) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
@@ -64,14 +66,13 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     @Override
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.SignContractRequest.Builder builder = protobuf.SignContractRequest.newBuilder()
-                .setTradeId(tradeId)
+                .setTradeId(offerId)
                 .setUid(uid)
                 .setAccountId(accountId)
                 .setPaymentAccountPayloadHash(ByteString.copyFrom(paymentAccountPayloadHash))
-                .setPayoutAddress(payoutAddress)
-                .setDepositTxHash(depositTxHash);
-
+                .setPayoutAddress(payoutAddress);
         Optional.ofNullable(accountAgeWitnessSignatureOfDepositHash).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfDepositHash(ByteString.copyFrom(e)));
+        Optional.ofNullable(depositTxHash).ifPresent(builder::setDepositTxHash);
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setSignContractRequest(builder).build();
@@ -87,7 +88,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 proto.getAccountId(),
                 proto.getPaymentAccountPayloadHash().toByteArray(),
                 proto.getPayoutAddress(),
-                proto.getDepositTxHash(),
+                ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfDepositHash()));
     }
 

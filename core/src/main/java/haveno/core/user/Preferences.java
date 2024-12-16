@@ -1,22 +1,26 @@
 /*
- * This file is part of Haveno.
+ * This file is part of Bisq.
  *
- * Haveno is free software: you can redistribute it and/or modify it
+ * Bisq is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
@@ -26,15 +30,24 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
-import haveno.core.xmr.MoneroNodeSettings;
+import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.network.BridgeAddressProvider;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -43,30 +56,17 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 @Slf4j
 @Singleton
 public final class Preferences implements PersistedDataHost, BridgeAddressProvider {
-    
+
     public enum UseTorForXmr {
         AFTER_SYNC,
         OFF,
@@ -131,8 +131,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final PersistenceManager<PreferencesPayload> persistenceManager;
     private final Config config;
     private final String xmrNodesFromOptions;
+    private final XmrNodes xmrNodes;
     @Getter
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
+    @Getter
+    private final BooleanProperty useSoundForNotificationsProperty = new SimpleBooleanProperty(prefPayload.isUseSoundForNotifications());
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -141,11 +144,13 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     @Inject
     public Preferences(PersistenceManager<PreferencesPayload> persistenceManager,
                        Config config,
-                       @Named(Config.XMR_NODES) String xmrNodesFromOptions) {
+                       @Named(Config.XMR_NODES) String xmrNodesFromOptions,
+                       XmrNodes xmrNodes) {
 
         this.persistenceManager = persistenceManager;
         this.config = config;
         this.xmrNodesFromOptions = xmrNodesFromOptions;
+        this.xmrNodes = xmrNodes;
 
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
@@ -160,6 +165,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         useStandbyModeProperty.addListener((ov) -> {
             prefPayload.setUseStandbyMode(useStandbyModeProperty.get());
+            requestPersistence();
+        });
+
+        useSoundForNotificationsProperty.addListener((ov) -> {
+            prefPayload.setUseSoundForNotifications(useSoundForNotificationsProperty.get());
             requestPersistence();
         });
 
@@ -260,14 +270,15 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         // set all properties
         useAnimationsProperty.set(prefPayload.isUseAnimations());
         useStandbyModeProperty.set(prefPayload.isUseStandbyMode());
+        useSoundForNotificationsProperty.set(prefPayload.isUseSoundForNotifications());
         cssThemeProperty.set(prefPayload.getCssTheme());
 
 
-        // if no valid Bitcoin block explorer is set, select the 1st valid Bitcoin block explorer
-        ArrayList<BlockChainExplorer> btcExplorers = getBlockChainExplorers();
+        // if no valid Monero block explorer is set, select the 1st valid Monero block explorer
+        ArrayList<BlockChainExplorer> xmrExplorers = getBlockChainExplorers();
         if (getBlockChainExplorer() == null ||
                 getBlockChainExplorer().name.length() == 0) {
-            setBlockChainExplorer(btcExplorers.get(0));
+            setBlockChainExplorer(xmrExplorers.get(0));
         }
         tradeCurrenciesAsObservable.addAll(prefPayload.getTraditionalCurrencies());
         tradeCurrenciesAsObservable.addAll(prefPayload.getCryptoCurrencies());
@@ -277,10 +288,16 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         if (config.useTorForXmrOptionSetExplicitly)
             setUseTorForXmr(config.useTorForXmr);
 
+        // switch to public nodes if no provided nodes available
+        if (getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
+            log.warn("No provided nodes available, switching to public nodes");
+            setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
+        }
+
         if (xmrNodesFromOptions != null && !xmrNodesFromOptions.isEmpty()) {
             if (getMoneroNodes() != null && !getMoneroNodes().equals(xmrNodesFromOptions)) {
-                log.warn("The Bitcoin node(s) from the program argument and the one(s) persisted in the UI are different. " +
-                        "The Bitcoin node(s) {} from the program argument will be used.", xmrNodesFromOptions);
+                log.warn("The Monero node(s) from the program argument and the one(s) persisted in the UI are different. " +
+                        "The Monero node(s) {} from the program argument will be used.", xmrNodesFromOptions);
             }
             setMoneroNodes(xmrNodesFromOptions);
             setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.CUSTOM.ordinal());
@@ -307,6 +324,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
                     });
         }
 
+        // enable sounds by default for existing clients (protobuf does not express that new field is unset)
+        if (!prefPayload.isUseSoundForNotificationsInitialized()) {
+            prefPayload.setUseSoundForNotificationsInitialized(true);
+            setUseSoundForNotifications(true);
+        }
+
         initialReadDone = true;
         requestPersistence();
     }
@@ -315,6 +338,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public MoneroNodesOption getMoneroNodesOption() {
+        return XmrNodes.MoneroNodesOption.values()[getMoneroNodesOptionOrdinal()];
+    }
 
     public void dontShowAgain(String key, boolean dontShowAgain) {
         prefPayload.getDontShowAgainMap().put(key, dontShowAgain);
@@ -539,6 +566,16 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setBuyScreenOtherCurrencyCode(String buyScreenCurrencyCode) {
+        prefPayload.setBuyScreenOtherCurrencyCode(buyScreenCurrencyCode);
+        requestPersistence();
+    }
+
+    public void setSellScreenOtherCurrencyCode(String sellScreenCurrencyCode) {
+        prefPayload.setSellScreenOtherCurrencyCode(sellScreenCurrencyCode);
+        requestPersistence();
+    }
+
     public void setIgnoreTradersList(List<String> ignoreTradersList) {
         prefPayload.setIgnoreTradersList(ignoreTradersList);
         requestPersistence();
@@ -564,8 +601,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setMoneroNodes(String bitcoinNodes) {
-        prefPayload.setMoneroNodes(bitcoinNodes);
+    public void setMoneroNodes(String moneroNodes) {
+        prefPayload.setMoneroNodes(moneroNodes);
         requestPersistence();
     }
 
@@ -579,14 +616,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setBuyerSecurityDepositAsPercent(double buyerSecurityDepositAsPercent, PaymentAccount paymentAccount) {
-        double max = Restrictions.getMaxBuyerSecurityDepositAsPercent();
-        double min = Restrictions.getMinBuyerSecurityDepositAsPercent();
+    public void setSecurityDepositAsPercent(double securityDepositAsPercent, PaymentAccount paymentAccount) {
+        double max = Restrictions.getMaxSecurityDepositAsPercent();
+        double min = Restrictions.getMinSecurityDepositAsPercent();
 
         if (PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount))
-            prefPayload.setBuyerSecurityDepositAsPercentForCrypto(Math.min(max, Math.max(min, buyerSecurityDepositAsPercent)));
+            prefPayload.setSecurityDepositAsPercentForCrypto(Math.min(max, Math.max(min, securityDepositAsPercent)));
         else
-            prefPayload.setBuyerSecurityDepositAsPercent(Math.min(max, Math.max(min, buyerSecurityDepositAsPercent)));
+            prefPayload.setSecurityDepositAsPercent(Math.min(max, Math.max(min, securityDepositAsPercent)));
         requestPersistence();
     }
 
@@ -649,14 +686,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         prefPayload.setCustomBridges(customBridges);
         persistenceManager.forcePersistNow();
     }
-    
+
     public void setUseTorForXmrOrdinal(int useTorForXmrOrdinal) {
         prefPayload.setUseTorForXmrOrdinal(useTorForXmrOrdinal);
         requestPersistence();
     }
 
-    public void setMoneroNodesOptionOrdinal(int bitcoinNodesOptionOrdinal) {
-        prefPayload.setMoneroNodesOptionOrdinal(bitcoinNodesOptionOrdinal);
+    public void setMoneroNodesOptionOrdinal(int moneroNodesOptionOrdinal) {
+        prefPayload.setMoneroNodesOptionOrdinal(moneroNodesOptionOrdinal);
         requestPersistence();
     }
 
@@ -694,6 +731,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.useStandbyModeProperty.set(useStandbyMode);
     }
 
+    public void setUseSoundForNotifications(boolean useSoundForNotifications) {
+        this.useSoundForNotificationsProperty.set(useSoundForNotifications);
+    }
+
     public void setTakeOfferSelectedPaymentAccountId(String value) {
         prefPayload.setTakeOfferSelectedPaymentAccountId(value);
         requestPersistence();
@@ -714,6 +755,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setShowPrivateOffers(boolean value) {
+        prefPayload.setShowPrivateOffers(value);
+        requestPersistence();
+    }
+
     public void setDenyApiTaker(boolean value) {
         prefPayload.setDenyApiTaker(value);
         requestPersistence();
@@ -724,8 +770,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setMoneroNodeSettings(MoneroNodeSettings settings) {
-        prefPayload.setMoneroNodeSettings(settings);
+    public void setXmrNodeSettings(XmrNodeSettings settings) {
+        prefPayload.setXmrNodeSettings(settings);
         requestPersistence();
     }
 
@@ -797,16 +843,16 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return prefPayload.isSplitOfferOutput();
     }
 
-    public double getBuyerSecurityDepositAsPercent(PaymentAccount paymentAccount) {
+    public double getSecurityDepositAsPercent(PaymentAccount paymentAccount) {
         double value = PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount) ?
-                prefPayload.getBuyerSecurityDepositAsPercentForCrypto() : prefPayload.getBuyerSecurityDepositAsPercent();
+                prefPayload.getSecurityDepositAsPercentForCrypto() : prefPayload.getSecurityDepositAsPercent();
 
-        if (value < Restrictions.getMinBuyerSecurityDepositAsPercent()) {
-            value = Restrictions.getMinBuyerSecurityDepositAsPercent();
-            setBuyerSecurityDepositAsPercent(value, paymentAccount);
+        if (value < Restrictions.getMinSecurityDepositAsPercent()) {
+            value = Restrictions.getMinSecurityDepositAsPercent();
+            setSecurityDepositAsPercent(value, paymentAccount);
         }
 
-        return value == 0 ? Restrictions.getDefaultBuyerSecurityDepositAsPercent() : value;
+        return value == 0 ? Restrictions.getDefaultSecurityDepositAsPercent() : value;
     }
 
     @Override
@@ -889,7 +935,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setSortMarketCurrenciesNumerically(boolean sortMarketCurrenciesNumerically);
 
-        void setMoneroNodes(String bitcoinNodes);
+        void setMoneroNodes(String moneroNodes);
 
         void setUseCustomWithdrawalTxFee(boolean useCustomWithdrawalTxFee);
 
@@ -920,10 +966,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setTorTransportOrdinal(int torTransportOrdinal);
 
         void setCustomBridges(String customBridges);
-        
+
         void setUseTorForXmrOrdinal(int useTorForXmrOrdinal);
 
-        void setMoneroNodesOptionOrdinal(int bitcoinNodesOption);
+        void setMoneroNodesOptionOrdinal(int moneroNodesOption);
 
         void setReferralId(String referralId);
 
@@ -942,6 +988,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         long getWithdrawalTxFeeInVbytes();
 
         void setUseStandbyMode(boolean useStandbyMode);
+
+        void setUseSoundForNotifications(boolean useSoundForNotifications);
 
         void setTakeOfferSelectedPaymentAccountId(String value);
 
@@ -977,6 +1025,6 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setNotifyOnPreRelease(boolean value);
 
-        void setMoneroNodeSettings(MoneroNodeSettings settings);
+        void setXmrNodeSettings(XmrNodeSettings settings);
     }
 }

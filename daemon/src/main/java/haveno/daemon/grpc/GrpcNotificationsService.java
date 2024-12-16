@@ -1,11 +1,15 @@
 package haveno.daemon.grpc;
 
+import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.core.api.NotificationListener;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
+import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationsGrpc.NotificationsImplBase;
+import static haveno.proto.grpc.NotificationsGrpc.getRegisterNotificationListenerMethod;
+import static haveno.proto.grpc.NotificationsGrpc.getSendNotificationMethod;
 import haveno.proto.grpc.RegisterNotificationListenerRequest;
 import haveno.proto.grpc.SendNotificationReply;
 import haveno.proto.grpc.SendNotificationRequest;
@@ -13,18 +17,12 @@ import io.grpc.Context;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
+import java.util.HashMap;
+import java.util.Optional;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.Optional;
-
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.NotificationsGrpc.getRegisterNotificationListenerMethod;
-import static haveno.proto.grpc.NotificationsGrpc.getSendNotificationMethod;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
 class GrpcNotificationsService extends NotificationsImplBase {

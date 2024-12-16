@@ -18,23 +18,22 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.app.Version;
-import haveno.common.handlers.ErrorMessageHandler;
-import haveno.common.handlers.ResultHandler;
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.offer.availability.DisputeAgentSelection;
-import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.offer.Offer;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
-import haveno.network.p2p.NodeAddress;
+import haveno.core.trade.messages.TradeProtocolVersion;
+import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.core.util.Validator.checkTradeId;
 
 @Slf4j
 public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
-
     @SuppressWarnings({"unused"})
     public TakerSendInitTradeRequestToArbitrator(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -45,93 +44,60 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
         try {
             runInterceptHook();
 
-            // get least used arbitrator
-            Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager());
-            if (leastUsedArbitrator == null) {
-                failed("Could not get least used arbitrator to send " + InitTradeRequest.class.getSimpleName() + " for offer " + trade.getId());
-                return;
+            // verify trade state
+            InitTradeRequest sourceRequest = (InitTradeRequest) processModel.getTradeMessage(); // arbitrator's InitTradeRequest to taker
+            checkNotNull(sourceRequest);
+            checkTradeId(processModel.getOfferId(), sourceRequest);
+            if (!trade.isBuyerAsTakerWithoutDeposit() && trade.getSelf().getReserveTxHash() == null) {
+                throw new IllegalStateException("Taker reserve tx id is not initialized: " + trade.getSelf().getReserveTxHash());
             }
 
-            // send request to least used arbitrators until success
-            sendInitTradeRequests(leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), () -> {
-                trade.addInitProgressStep();
-                complete();
-            }, (errorMessage) -> {
-                log.warn("Cannot initialize trade with arbitrators: " + errorMessage);
-                failed(errorMessage);
-            });
+            // create request to arbitrator
+            Offer offer = processModel.getOffer();
+            InitTradeRequest arbitratorRequest = new InitTradeRequest(
+                    TradeProtocolVersion.MULTISIG_2_3, // TODO: use processModel.getTradeProtocolVersion(), select one of maker's supported versions
+                    offer.getId(),
+                    trade.getAmount().longValueExact(),
+                    trade.getPrice().getValue(),
+                    trade.getSelf().getPaymentMethodId(),
+                    trade.getMaker().getAccountId(),
+                    trade.getTaker().getAccountId(),
+                    trade.getMaker().getPaymentAccountId(),
+                    trade.getTaker().getPaymentAccountId(),
+                    trade.getTaker().getPubKeyRing(),
+                    UUID.randomUUID().toString(),
+                    Version.getP2PMessageVersion(),
+                    null,
+                    sourceRequest.getCurrentDate(),
+                    trade.getMaker().getNodeAddress(),
+                    trade.getTaker().getNodeAddress(),
+                    trade.getArbitrator().getNodeAddress(),
+                    trade.getSelf().getReserveTxHash(),
+                    trade.getSelf().getReserveTxHex(),
+                    trade.getSelf().getReserveTxKey(),
+                    model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString(),
+                    trade.getChallenge());
+
+            // send request to arbitrator
+            log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getOfferId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
+            processModel.getP2PService().sendEncryptedDirectMessage(
+                    trade.getArbitrator().getNodeAddress(),
+                    trade.getArbitrator().getPubKeyRing(),
+                    arbitratorRequest,
+                    new SendDirectMessageListener() {
+                        @Override
+                        public void onArrived() {
+                            log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
+                            complete();
+                        }
+                        @Override
+                        public void onFault(String errorMessage) {
+                            log.warn("Failed to send {} to arbitrator, error={}.", InitTradeRequest.class.getSimpleName(), errorMessage);
+                            failed();
+                        }
+                    });
         } catch (Throwable t) {
-          failed(t);
+            failed(t);
         }
-    }
-
-    private void sendInitTradeRequests(NodeAddress arbitratorNodeAddress, Set<NodeAddress> excludedArbitrators, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        sendInitTradeRequest(arbitratorNodeAddress, new SendDirectMessageListener() {
-            @Override
-            public void onArrived() {
-                log.info("{} arrived at arbitrator: offerId={}", InitTradeRequest.class.getSimpleName(), trade.getId());
-                resultHandler.handleResult();
-            }
-
-            // if unavailable, try alternative arbitrator
-            @Override
-            public void onFault(String errorMessage) {
-                log.warn("Arbitrator {} unavailable: {}", arbitratorNodeAddress, errorMessage);
-                excludedArbitrators.add(arbitratorNodeAddress);
-                Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager(), excludedArbitrators);
-                if (altArbitrator == null) {
-                    errorMessageHandler.handleErrorMessage("Cannot take offer because no arbitrators are available");
-                    return;
-                }
-                log.info("Using alternative arbitrator {}", altArbitrator.getNodeAddress());
-                sendInitTradeRequests(altArbitrator.getNodeAddress(), excludedArbitrators, resultHandler, errorMessageHandler);
-            }
-        });
-    }
-
-    private void sendInitTradeRequest(NodeAddress arbitratorNodeAddress, SendDirectMessageListener listener) {
-
-        // get registered arbitrator
-        Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(arbitratorNodeAddress);
-        if (arbitrator == null) throw new RuntimeException("Node address " + arbitratorNodeAddress + " is not a registered arbitrator");
-
-        // set pub keys
-        processModel.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
-        trade.getArbitrator().setNodeAddress(arbitratorNodeAddress);
-        trade.getArbitrator().setPubKeyRing(processModel.getArbitrator().getPubKeyRing());
-
-        // create request to arbitrator
-        InitTradeRequest makerRequest = (InitTradeRequest) processModel.getTradeMessage(); // taker's InitTradeRequest to maker
-        InitTradeRequest arbitratorRequest = new InitTradeRequest(
-                makerRequest.getTradeId(),
-                makerRequest.getSenderNodeAddress(),
-                makerRequest.getPubKeyRing(),
-                makerRequest.getTradeAmount(),
-                makerRequest.getTradePrice(),
-                makerRequest.getTradeFee(),
-                makerRequest.getAccountId(),
-                makerRequest.getPaymentAccountId(),
-                makerRequest.getPaymentMethodId(),
-                makerRequest.getUid(),
-                Version.getP2PMessageVersion(),
-                makerRequest.getAccountAgeWitnessSignatureOfOfferId(),
-                makerRequest.getCurrentDate(),
-                makerRequest.getMakerNodeAddress(),
-                makerRequest.getTakerNodeAddress(),
-                trade.getArbitrator().getNodeAddress(),
-                processModel.getReserveTx().getHash(),
-                processModel.getReserveTx().getFullHex(),
-                processModel.getReserveTx().getKey(),
-                makerRequest.getPayoutAddress(),
-                processModel.getMakerSignature());
-
-        // send request to arbitrator
-        log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getTradeId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());
-        processModel.getP2PService().sendEncryptedDirectMessage(
-                arbitratorNodeAddress,
-                arbitrator.getPubKeyRing(),
-                arbitratorRequest,
-                listener
-        );
     }
 }

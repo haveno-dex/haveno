@@ -21,6 +21,7 @@ import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
@@ -31,6 +32,7 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
+import monero.wallet.model.MoneroMultisigInfo;
 import monero.wallet.model.MoneroMultisigInitResult;
 
 import java.util.Arrays;
@@ -62,21 +64,29 @@ public class ProcessInitMultisigRequest extends TradeTask {
           checkTradeId(processModel.getOfferId(), request);
           XmrWalletService xmrWalletService = processModel.getProvider().getXmrWalletService();
 
-          // get peer multisig participant
-          TradePeer multisigParticipant = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+          // get sender
+          TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+
+          // set trade fee address
+          if (HavenoUtils.ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS) {
+            if (request.getTradeFeeAddress() != null && sender == trade.getArbitrator()) {
+              trade.getProcessModel().setTradeFeeAddress(request.getTradeFeeAddress());
+            }
+          } else {
+            trade.getProcessModel().setTradeFeeAddress(HavenoUtils.getGlobalTradeFeeAddress());
+          }
 
           // reconcile peer's established multisig hex with message
-          if (multisigParticipant.getPreparedMultisigHex() == null) multisigParticipant.setPreparedMultisigHex(request.getPreparedMultisigHex());
-          else if (request.getPreparedMultisigHex() != null && !multisigParticipant.getPreparedMultisigHex().equals(request.getPreparedMultisigHex())) throw new RuntimeException("Message's prepared multisig differs from previous messages, previous: " + multisigParticipant.getPreparedMultisigHex() + ", message: " + request.getPreparedMultisigHex());
-          if (multisigParticipant.getMadeMultisigHex() == null) multisigParticipant.setMadeMultisigHex(request.getMadeMultisigHex());
-          else if (request.getMadeMultisigHex() != null && !multisigParticipant.getMadeMultisigHex().equals(request.getMadeMultisigHex())) throw new RuntimeException("Message's made multisig differs from previous messages: " + request.getMadeMultisigHex() + " versus " + multisigParticipant.getMadeMultisigHex());
-          if (multisigParticipant.getExchangedMultisigHex() == null) multisigParticipant.setExchangedMultisigHex(request.getExchangedMultisigHex());
-          else if (request.getExchangedMultisigHex() != null && !multisigParticipant.getExchangedMultisigHex().equals(request.getExchangedMultisigHex())) throw new RuntimeException("Message's exchanged multisig differs from previous messages: " + request.getExchangedMultisigHex() + " versus " + multisigParticipant.getExchangedMultisigHex());
+          if (sender.getPreparedMultisigHex() == null) sender.setPreparedMultisigHex(request.getPreparedMultisigHex());
+          else if (request.getPreparedMultisigHex() != null && !sender.getPreparedMultisigHex().equals(request.getPreparedMultisigHex())) throw new RuntimeException("Message's prepared multisig differs from previous messages, previous: " + sender.getPreparedMultisigHex() + ", message: " + request.getPreparedMultisigHex());
+          if (sender.getMadeMultisigHex() == null) sender.setMadeMultisigHex(request.getMadeMultisigHex());
+          else if (request.getMadeMultisigHex() != null && !sender.getMadeMultisigHex().equals(request.getMadeMultisigHex())) throw new RuntimeException("Message's made multisig differs from previous messages: " + request.getMadeMultisigHex() + " versus " + sender.getMadeMultisigHex());
+          if (sender.getExchangedMultisigHex() == null) sender.setExchangedMultisigHex(request.getExchangedMultisigHex());
+          else if (request.getExchangedMultisigHex() != null && !sender.getExchangedMultisigHex().equals(request.getExchangedMultisigHex())) throw new RuntimeException("Message's exchanged multisig differs from previous messages: " + request.getExchangedMultisigHex() + " versus " + sender.getExchangedMultisigHex());
 
           // prepare multisig if applicable
           boolean updateParticipants = false;
           if (trade.getSelf().getPreparedMultisigHex() == null) {
-            trade.addInitProgressStep();
             log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
             multisigWallet = trade.createWallet();
             trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
@@ -109,8 +119,17 @@ public class ProcessInitMultisigRequest extends TradeTask {
           if (processModel.getMultisigAddress() == null && peers[0].getExchangedMultisigHex() != null && peers[1].getExchangedMultisigHex() != null) {
             log.info("Importing exchanged multisig hex for trade {}", trade.getId());
             MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
+
+            // check multisig state
+            MoneroMultisigInfo multisigInfo = multisigWallet.getMultisigInfo();
+            if (!multisigInfo.isMultisig()) throw new RuntimeException("Multisig wallet is not multisig on completion");
+            if (!multisigInfo.isReady()) throw new RuntimeException("Multisig wallet is not ready on completion");
+            if (multisigInfo.getThreshold() != 2) throw new RuntimeException("Multisig wallet has unexpected threshold: " + multisigInfo.getThreshold());
+            if (multisigInfo.getNumParticipants() != 3) throw new RuntimeException("Multisig wallet has unexpected number of participants: " + multisigInfo.getNumParticipants());
+
+            // set final address and save
             processModel.setMultisigAddress(result.getAddress());
-            new Thread(() -> trade.saveWallet()).start(); // save multisig wallet off thread on completion
+            trade.saveWallet();
             trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
           }
 
@@ -150,7 +169,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             sendInitMultisigRequest(peer1Address, peer1PubKeyRing, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer1Address, request.getTradeId(), request.getUid());
+                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer1Address, request.getOfferId(), request.getUid());
                 ack1 = true;
                 if (ack1 && ack2) completeAux();
               }
@@ -166,7 +185,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             sendInitMultisigRequest(peer2Address, peer2PubKeyRing, new SendDirectMessageListener() {
               @Override
               public void onArrived() {
-                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer2Address, request.getTradeId(), request.getUid());
+                log.info("{} arrived: peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), peer2Address, request.getOfferId(), request.getUid());
                 ack2 = true;
                 if (ack1 && ack2) completeAux();
               }
@@ -210,9 +229,10 @@ public class ProcessInitMultisigRequest extends TradeTask {
                 new Date().getTime(),
                 trade.getSelf().getPreparedMultisigHex(),
                 trade.getSelf().getMadeMultisigHex(),
-                trade.getSelf().getExchangedMultisigHex());
+                trade.getSelf().getExchangedMultisigHex(),
+                null);
 
-        log.info("Send {} with offerId {} and uid {} to peer {}", request.getClass().getSimpleName(), request.getTradeId(), request.getUid(), recipient);
+        log.info("Send {} with offerId {} and uid {} to peer {}", request.getClass().getSimpleName(), request.getOfferId(), request.getUid(), recipient);
         processModel.getP2PService().sendEncryptedDirectMessage(recipient, pubKeyRing, request, listener);
     }
 

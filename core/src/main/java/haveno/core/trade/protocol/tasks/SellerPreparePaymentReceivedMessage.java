@@ -18,6 +18,8 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.support.dispute.Dispute;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.model.MoneroTxWallet;
@@ -36,34 +38,66 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             runInterceptHook();
 
             // check connection
-            trade.checkDaemonConnection();
+            trade.verifyDaemonConnection();
 
             // handle first time preparation
-            if (processModel.getPaymentReceivedMessage() == null) {
+            if (trade.getArbitrator().getPaymentReceivedMessage() == null) {
 
-                // import multisig hex
-                trade.importMultisigHex();
-
-                // verify, sign, and publish payout tx if given. otherwise create payout tx
-                if (trade.getPayoutTxHex() != null) {
-                    try {
-                        log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
-                        trade.verifyPayoutTx(trade.getPayoutTxHex(), true, true);
-                    } catch (Exception e) {
-                        log.warn("Error verifying, signing, and publishing payout tx for trade {}: {}. Creating unsigned payout tx", trade.getId(), e.getMessage());
-                        createUnsignedPayoutTx();
-                    }
-                } else {
-                    createUnsignedPayoutTx();
+                // adapt from 1.0.6 to 1.0.7 which changes field usage
+                // TODO: remove after future updates to allow old trades to clear
+                if (trade.getPayoutTxHex() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
+                    log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+                    trade.setPayoutTxHex(null);
                 }
-            } else if (processModel.getPaymentReceivedMessage().getSignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
+
+                // synchronize on lock for wallet operations
+                synchronized (trade.getWalletLock()) {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
+
+                        // import multisig hex unless already signed
+                        if (trade.getPayoutTxHex() == null) {
+                            trade.importMultisigHex();
+                        }
+
+                        // verify, sign, and publish payout tx if given
+                        if (trade.getBuyer().getPaymentSentMessage().getPayoutTxHex() != null) {
+                            try {
+                                if (trade.getPayoutTxHex() == null) {
+                                    log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
+                                    trade.processPayoutTx(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex(), true, true);
+                                } else {
+                                    log.warn("Seller publishing previously signed payout tx for trade {}", trade.getId());
+                                    trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
+                                }
+                            } catch (IllegalArgumentException | IllegalStateException e) {
+                                log.warn("Illegal state or argument verifying, signing, and publishing payout tx for {} {}. Creating new unsigned payout tx. error={}. ", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                                createUnsignedPayoutTx();
+                            } catch (Exception e) {
+                                log.warn("Error verifying, signing, and publishing payout tx for trade {}: {}", trade.getId(), e.getMessage(), e);
+                                throw e;
+                            }
+                        }
+                        
+                        // otherwise create unsigned payout tx
+                        else if (trade.getSelf().getUnsignedPayoutTxHex() == null) {
+                            createUnsignedPayoutTx();
+                        }
+                    }
+                }
+            } else if (trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex() != null && !trade.isPayoutPublished()) {
 
                 // republish payout tx from previous message
-                log.info("Seller re-verifying and publishing payout tx for trade {}", trade.getId());
-                trade.verifyPayoutTx(processModel.getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
+                log.info("Seller re-verifying and publishing signed payout tx for trade {}", trade.getId());
+                trade.processPayoutTx(trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
             }
 
-            processModel.getTradeManager().requestPersistence();
+            // close open disputes
+            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
+            }
+
+            trade.requestPersistence();
             complete();
         } catch (Throwable t) {
             failed(t);
@@ -73,7 +107,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
     private void createUnsignedPayoutTx() {
         log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
         MoneroTxWallet payoutTx = trade.createPayoutTx();
-        trade.setPayoutTx(payoutTx);
-        trade.setPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+        trade.updatePayout(payoutTx);
+        trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
     }
 }
