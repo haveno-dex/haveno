@@ -127,7 +127,6 @@ public class CreateOfferService {
                 isPrivateOffer,
                 buyerAsTakerWithoutDeposit);
 
-        
         // verify buyer as taker security deposit
         boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
         if (!isBuyerMaker && !isPrivateOffer && buyerAsTakerWithoutDeposit) {
