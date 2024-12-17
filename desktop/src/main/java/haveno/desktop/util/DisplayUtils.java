@@ -116,10 +116,6 @@ public class DisplayUtils {
     // Offer direction
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
-        return getDirectionWithCode(direction, currencyCode, false);
-    }
-
     public static String getDirectionWithCode(OfferDirection direction, String currencyCode, boolean isPrivate) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
             return (direction == OfferDirection.BUY) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", Res.getBaseCurrencyCode());
