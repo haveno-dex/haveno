@@ -948,7 +948,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 if (openOffer.getScheduledTxHashes() != null) {
                     boolean scheduledTxsAvailable = true;
                     for (MoneroTxWallet tx : xmrWalletService.getTxs(openOffer.getScheduledTxHashes())) {
-                        if (!tx.isLocked() && !isOutputsAvailable(tx)) {
+                        if (!tx.isLocked() && !hasSpendableAmount(tx)) {
                             scheduledTxsAvailable = false;
                             break;
                         }
@@ -1165,31 +1165,21 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             throw new RuntimeException("Not enough money in Haveno wallet");
         }
 
-        // get earliest available or pending txs with sufficient incoming amount
+        // get earliest available or pending txs with sufficient spendable amount
         BigInteger scheduledAmount = BigInteger.ZERO;
         Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
 
-            // skip if no funds available
-            BigInteger sentToSelfAmount = xmrWalletService.getAmountSentToSelf(tx); // amount sent to self always shows 0, so compute from destinations manually
-            if (sentToSelfAmount.equals(BigInteger.ZERO) && (tx.getIncomingTransfers() == null || tx.getIncomingTransfers().isEmpty())) continue;
-            if (!isOutputsAvailable(tx)) continue;
+            // get spendable amount
+            BigInteger spendableAmount = getSpendableAmount(tx);
+
+            // skip if no spendable amount or already scheduled
+            if (spendableAmount.equals(BigInteger.ZERO)) continue;
             if (isTxScheduledByOtherOffer(openOffers, openOffer, tx.getHash())) continue;
 
-            // schedule transaction if funds sent to self, because they are not included in incoming transfers // TODO: fix in libraries?
-            if (sentToSelfAmount.compareTo(BigInteger.ZERO) > 0) {
-                scheduledAmount = scheduledAmount.add(sentToSelfAmount);
-                scheduledTxs.add(tx);
-            } else if (tx.getIncomingTransfers() != null) {
-
-                // schedule transaction if incoming tranfers to account 0
-                for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
-                    if (transfer.getAccountIndex() == 0) {
-                        scheduledAmount = scheduledAmount.add(transfer.getAmount());
-                        scheduledTxs.add(tx);
-                    }
-                }
-            }
+            // schedule tx
+            scheduledAmount = scheduledAmount.add(spendableAmount);
+            scheduledTxs.add(tx);
 
             // break if sufficient funds
             if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
@@ -1200,6 +1190,34 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));
         openOffer.setScheduledAmount(scheduledAmount.toString());
         openOffer.setState(OpenOffer.State.PENDING);
+    }
+
+    private BigInteger getSpendableAmount(MoneroTxWallet tx) {
+
+        // compute spendable amount from outputs if confirmed
+        if (tx.isConfirmed()) {
+            BigInteger spendableAmount = BigInteger.ZERO;
+            if (tx.getOutputsWallet() != null) {
+                for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                    if (!output.isSpent() && !output.isFrozen() && output.getAccountIndex() == 0) {
+                        spendableAmount = spendableAmount.add(output.getAmount());
+                    }
+                }
+            }
+            return spendableAmount;
+        }
+
+        // funds sent to self always show 0 incoming amount, so compute from destinations manually
+        // TODO: this excludes change output, so change is missing from spendable amount until confirmed
+        BigInteger sentToSelfAmount = xmrWalletService.getAmountSentToSelf(tx);
+        if (sentToSelfAmount.compareTo(BigInteger.ZERO) > 0) return sentToSelfAmount;
+
+        // if not confirmed and not sent to self, return incoming amount
+        return tx.getIncomingAmount() == null ? BigInteger.ZERO : tx.getIncomingAmount();
+    }
+
+    private boolean hasSpendableAmount(MoneroTxWallet tx) {
+        return getSpendableAmount(tx).compareTo(BigInteger.ZERO) > 0;
     }
 
     private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
@@ -1231,14 +1249,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
         }
         return false;
-    }
-
-    private boolean isOutputsAvailable(MoneroTxWallet tx) {
-        if (tx.getOutputsWallet() == null) return false;
-        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-            if (output.isSpent() || output.isFrozen()) return false;
-        }
-        return true;
     }
 
     private void signAndPostOffer(OpenOffer openOffer,
