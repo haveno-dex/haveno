@@ -68,7 +68,7 @@ class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataMod
     }
 
     String getDirectionLabel(FailedTradesListItem item) {
-        return (item != null) ? DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getTrade().getOffer()), item.getTrade().getOffer().getCurrencyCode()) : "";
+        return (item != null) ? DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getTrade().getOffer()), item.getTrade().getOffer().getCurrencyCode(), item.getTrade().getOffer().isPrivateOffer()) : "";
     }
 
     String getMarketLabel(FailedTradesListItem item) {

@@ -105,7 +105,7 @@ public class ClosedTradesListItem implements FilterableListItem {
                 ? offer.getDirection()
                 : offer.getMirroredDirection();
         String currencyCode = tradable.getOffer().getCurrencyCode();
-        return DisplayUtils.getDirectionWithCode(direction, currencyCode);
+        return DisplayUtils.getDirectionWithCode(direction, currencyCode, offer.isPrivateOffer());
     }
 
     public Date getDate() {
