@@ -96,7 +96,7 @@ public class TakeBuyBTCOfferWithNationalBankAcctTest extends AbstractTradeTest {
                     1_000_000L,
                     1_000_000L, // min-amount = amount
                     0.00,
-                    defaultBuyerSecurityDepositPct.get(),
+                    defaultSecurityDepositPct.get(),
                     alicesPaymentAccount.getId(),
                     NO_TRIGGER_PRICE);
             var offerId = alicesOffer.getId();

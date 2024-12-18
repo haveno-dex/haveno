@@ -123,6 +123,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private ScrollPane scrollPane;
     private GridPane gridPane;
+    private TitledGroupBg noFundingRequiredTitledGroupBg;
+    private Label noFundingRequiredLabel;
     private TitledGroupBg payFundsTitledGroupBg;
     private TitledGroupBg advancedOptionsGroup;
     private VBox priceAsPercentageInputBox, amountRangeBox;
@@ -452,7 +454,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
-        if (!DevEnv.isDevMode()) {
+        if (!DevEnv.isDevMode() && model.dataModel.hasTotalToPay()) {
             String tradeAmountText = model.isSeller() ? Res.get("takeOffer.takeOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
             String message = Res.get("takeOffer.takeOfferFundWalletInfo.msg",
                     model.getTotalToPayInfo(),
@@ -472,17 +474,22 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         // temporarily disabled due to high CPU usage (per issue #4649)
         //waitingForFundsBusyAnimation.play();
 
-        payFundsTitledGroupBg.setVisible(true);
-        totalToPayTextField.setVisible(true);
-        addressTextField.setVisible(true);
-        qrCodeImageView.setVisible(true);
-        balanceTextField.setVisible(true);
+        if (model.getOffer().hasBuyerAsTakerWithoutDeposit()) {
+            noFundingRequiredTitledGroupBg.setVisible(true);
+            noFundingRequiredLabel.setVisible(true);
+        } else {
+            payFundsTitledGroupBg.setVisible(true);
+            totalToPayTextField.setVisible(true);
+            addressTextField.setVisible(true);
+            qrCodeImageView.setVisible(true);
+            balanceTextField.setVisible(true);
+        }
 
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
                 model.getSecurityDepositWithCode(), model.getTakerFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
 
-        if (model.dataModel.getIsXmrWalletFunded().get()) {
+        if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay()) {
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
@@ -847,7 +854,24 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void addFundingGroup() {
-        // don't increase gridRow as we removed button when this gets visible
+
+        // no funding required title
+        noFundingRequiredTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
+                Res.get("takeOffer.fundsBox.noFundingRequiredTitle"), Layout.COMPACT_GROUP_DISTANCE);
+        noFundingRequiredTitledGroupBg.getStyleClass().add("last");
+        GridPane.setColumnSpan(noFundingRequiredTitledGroupBg, 2);
+        noFundingRequiredTitledGroupBg.setVisible(false);
+
+        // no funding required description
+        noFundingRequiredLabel = new AutoTooltipLabel(Res.get("takeOffer.fundsBox.noFundingRequiredDescription"));
+        noFundingRequiredLabel.setVisible(false);
+        //GridPane.setRowSpan(noFundingRequiredLabel, 1);
+        GridPane.setRowIndex(noFundingRequiredLabel, gridRow);
+        noFundingRequiredLabel.setPadding(new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        GridPane.setHalignment(noFundingRequiredLabel, HPos.LEFT);
+        gridPane.getChildren().add(noFundingRequiredLabel);
+
+        // funding title
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
                 Res.get("takeOffer.fundsBox.title"), Layout.COMPACT_GROUP_DISTANCE);
         payFundsTitledGroupBg.getStyleClass().add("last");
@@ -937,7 +961,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         cancelButton2.setOnAction(e -> {
             String key = "CreateOfferCancelAndFunded";
-            if (model.dataModel.getIsXmrWalletFunded().get() &&
+            if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay() && 
                     model.dataModel.preferences.showAgain(key)) {
                 new Popup().backgroundInfo(Res.get("takeOffer.alreadyFunded.askCancel"))
                         .closeButtonText(Res.get("shared.no"))

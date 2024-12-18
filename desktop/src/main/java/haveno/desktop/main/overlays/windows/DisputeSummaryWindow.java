@@ -99,6 +99,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             reasonWasOtherRadioButton, reasonWasBankRadioButton, reasonWasOptionTradeRadioButton,
             reasonWasSellerNotRespondingRadioButton, reasonWasWrongSenderAccountRadioButton,
             reasonWasPeerWasLateRadioButton, reasonWasTradeAlreadySettledRadioButton;
+    private CoreDisputesService.PayoutSuggestion payoutSuggestion;
 
     // Dispute object of other trade peer. The dispute field is the one from which we opened the close dispute window.
     private Optional<Dispute> peersDisputeOptional;
@@ -700,33 +701,28 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private void applyPayoutAmountsToDisputeResult(Toggle selectedTradeAmountToggle) {
-        CoreDisputesService.DisputePayout payout;
         if (selectedTradeAmountToggle == buyerGetsTradeAmountRadioButton) {
-            payout = CoreDisputesService.DisputePayout.BUYER_GETS_TRADE_AMOUNT;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.BUYER_GETS_TRADE_AMOUNT;
             disputeResult.setWinner(DisputeResult.Winner.BUYER);
         } else if (selectedTradeAmountToggle == buyerGetsAllRadioButton) {
-            payout = CoreDisputesService.DisputePayout.BUYER_GETS_ALL;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.BUYER_GETS_ALL;
             disputeResult.setWinner(DisputeResult.Winner.BUYER);
         } else if (selectedTradeAmountToggle == sellerGetsTradeAmountRadioButton) {
-            payout = CoreDisputesService.DisputePayout.SELLER_GETS_TRADE_AMOUNT;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.SELLER_GETS_TRADE_AMOUNT;
             disputeResult.setWinner(DisputeResult.Winner.SELLER);
         } else if (selectedTradeAmountToggle == sellerGetsAllRadioButton) {
-            payout = CoreDisputesService.DisputePayout.SELLER_GETS_ALL;
+            payoutSuggestion = CoreDisputesService.PayoutSuggestion.SELLER_GETS_ALL;
             disputeResult.setWinner(DisputeResult.Winner.SELLER);
         } else {
             // should not happen
             throw new IllegalStateException("Unknown radio button");
         }
-        disputesService.applyPayoutAmountsToDisputeResult(payout, dispute, disputeResult, -1);
+        disputesService.applyPayoutAmountsToDisputeResult(payoutSuggestion, dispute, disputeResult, -1);
         buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost()));
         sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost()));
     }
 
     private void applyTradeAmountRadioButtonStates() {
-        Contract contract = dispute.getContract();
-        BigInteger buyerSecurityDeposit = trade.getBuyer().getSecurityDeposit();
-        BigInteger sellerSecurityDeposit = trade.getSeller().getSecurityDeposit();
-        BigInteger tradeAmount = contract.getTradeAmount();
 
         BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
         BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
@@ -734,20 +730,22 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         buyerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(buyerPayoutAmount));
         sellerPayoutAmountInputTextField.setText(HavenoUtils.formatXmr(sellerPayoutAmount));
 
-        if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(sellerSecurityDeposit)) {
-            buyerGetsTradeAmountRadioButton.setSelected(true);
-        } else if (buyerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)) &&
-                sellerPayoutAmount.equals(BigInteger.ZERO)) {
-            buyerGetsAllRadioButton.setSelected(true);
-        } else if (sellerPayoutAmount.equals(tradeAmount.add(sellerSecurityDeposit))
-                && buyerPayoutAmount.equals(buyerSecurityDeposit)) {
-            sellerGetsTradeAmountRadioButton.setSelected(true);
-        } else if (sellerPayoutAmount.equals(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit))
-                && buyerPayoutAmount.equals(BigInteger.ZERO)) {
-            sellerGetsAllRadioButton.setSelected(true);
-        } else {
-            customRadioButton.setSelected(true);
+        switch (payoutSuggestion) {
+            case BUYER_GETS_TRADE_AMOUNT:
+                buyerGetsTradeAmountRadioButton.setSelected(true);
+                break;
+            case BUYER_GETS_ALL:
+                buyerGetsAllRadioButton.setSelected(true);
+                break;
+            case SELLER_GETS_TRADE_AMOUNT:
+                sellerGetsTradeAmountRadioButton.setSelected(true);
+                break;
+            case SELLER_GETS_ALL:
+                sellerGetsAllRadioButton.setSelected(true);
+                break;
+            case CUSTOM:
+                customRadioButton.setSelected(true);
+                break;
         }
     }
 }

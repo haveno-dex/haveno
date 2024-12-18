@@ -124,7 +124,7 @@ public class PaymentAccountUtil {
                                                 AccountAgeWitnessService accountAgeWitnessService) {
         boolean hasChargebackRisk = hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode());
         boolean hasValidAccountAgeWitness = accountAgeWitnessService.getMyTradeLimit(paymentAccount,
-                offer.getCurrencyCode(), offer.getMirroredDirection()) >= offer.getMinAmount().longValueExact();
+                offer.getCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()) >= offer.getMinAmount().longValueExact();
         return !hasChargebackRisk || hasValidAccountAgeWitness;
     }
 

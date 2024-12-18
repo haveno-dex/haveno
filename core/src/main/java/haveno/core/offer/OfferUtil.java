@@ -58,8 +58,8 @@ import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
-import static haveno.core.xmr.wallet.Restrictions.getMaxBuyerSecurityDepositAsPercent;
-import static haveno.core.xmr.wallet.Restrictions.getMinBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMaxSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMinSecurityDepositAsPercent;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -120,9 +120,10 @@ public class OfferUtil {
 
     public long getMaxTradeLimit(PaymentAccount paymentAccount,
                                  String currencyCode,
-                                 OfferDirection direction) {
+                                 OfferDirection direction,
+                                 boolean buyerAsTakerWithoutDeposit) {
         return paymentAccount != null
-                ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction)
+                ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit)
                 : 0;
     }
 
@@ -228,16 +229,16 @@ public class OfferUtil {
         return extraDataMap.isEmpty() ? null : extraDataMap;
     }
 
-    public void validateOfferData(double buyerSecurityDeposit,
+    public void validateOfferData(double securityDeposit,
                                   PaymentAccount paymentAccount,
                                   String currencyCode) {
         checkNotNull(p2PService.getAddress(), "Address must not be null");
-        checkArgument(buyerSecurityDeposit <= getMaxBuyerSecurityDepositAsPercent(),
+        checkArgument(securityDeposit <= getMaxSecurityDepositAsPercent(),
                 "securityDeposit must not exceed " +
-                        getMaxBuyerSecurityDepositAsPercent());
-        checkArgument(buyerSecurityDeposit >= getMinBuyerSecurityDepositAsPercent(),
+                        getMaxSecurityDepositAsPercent());
+        checkArgument(securityDeposit >= getMinSecurityDepositAsPercent(),
                 "securityDeposit must not be less than " +
-                        getMinBuyerSecurityDepositAsPercent() + " but was " + buyerSecurityDeposit);
+                        getMinSecurityDepositAsPercent() + " but was " + securityDeposit);
         checkArgument(!filterManager.isCurrencyBanned(currencyCode),
                 Res.get("offerbook.warning.currencyBanned"));
         checkArgument(!filterManager.isPaymentMethodBanned(paymentAccount.getPaymentMethod()),

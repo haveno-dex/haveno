@@ -33,7 +33,9 @@ import java.util.Optional;
 public final class DepositRequest extends TradeMessage implements DirectMessage {
     private final long currentDate;
     private final byte[] contractSignature;
+    @Nullable
     private final String depositTxHex;
+    @Nullable
     private final String depositTxKey;
     @Nullable
     private final byte[] paymentAccountKey;
@@ -43,8 +45,8 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                                      String messageVersion,
                                      long currentDate,
                                      byte[] contractSignature,
-                                     String depositTxHex,
-                                     String depositTxKey,
+                                     @Nullable String depositTxHex,
+                                     @Nullable String depositTxKey,
                                      @Nullable byte[] paymentAccountKey) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
@@ -63,13 +65,12 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
     public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
         protobuf.DepositRequest.Builder builder = protobuf.DepositRequest.newBuilder()
                 .setTradeId(offerId)
-                .setUid(uid)
-                .setDepositTxHex(depositTxHex)
-                .setDepositTxKey(depositTxKey);
+                .setUid(uid);
         builder.setCurrentDate(currentDate);
         Optional.ofNullable(paymentAccountKey).ifPresent(e -> builder.setPaymentAccountKey(ByteString.copyFrom(e)));
+        Optional.ofNullable(depositTxHex).ifPresent(builder::setDepositTxHex);
+        Optional.ofNullable(depositTxKey).ifPresent(builder::setDepositTxKey);
         Optional.ofNullable(contractSignature).ifPresent(e -> builder.setContractSignature(ByteString.copyFrom(e)));
-
         return getNetworkEnvelopeBuilder().setDepositRequest(builder).build();
     }
 
@@ -81,8 +82,8 @@ public final class DepositRequest extends TradeMessage implements DirectMessage 
                 messageVersion,
                 proto.getCurrentDate(),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getContractSignature()),
-                proto.getDepositTxHex(),
-                proto.getDepositTxKey(),
+                ProtoUtil.stringOrNullFromProto(proto.getDepositTxHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getDepositTxKey()),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getPaymentAccountKey()));
     }
 

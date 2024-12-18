@@ -24,11 +24,13 @@ import org.bitcoinj.core.Coin;
 import java.math.BigInteger;
 
 public class Restrictions {
+
+    // configure restrictions
+    public static final double MIN_SECURITY_DEPOSIT_PCT = 0.15;
+    public static final double MAX_SECURITY_DEPOSIT_PCT = 0.5;
     public static BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.1);
-    public static BigInteger MIN_BUYER_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
-    // For the seller we use a fixed one as there is no way the seller can cancel the trade
-    // To make it editable would just increase complexity.
-    public static BigInteger MIN_SELLER_SECURITY_DEPOSIT = MIN_BUYER_SECURITY_DEPOSIT;
+    public static BigInteger MIN_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
+
     // At mediation we require a min. payout to the losing party to keep incentive for the trader to accept the
     // mediated payout. For Refund agent cases we do not have that restriction.
     private static BigInteger MIN_REFUND_AT_MEDIATED_DISPUTE;
@@ -53,31 +55,20 @@ public class Restrictions {
         return MIN_TRADE_AMOUNT;
     }
 
-    public static double getDefaultBuyerSecurityDepositAsPercent() {
-        return 0.15; // 15% of trade amount.
+    public static double getDefaultSecurityDepositAsPercent() {
+        return MIN_SECURITY_DEPOSIT_PCT;
     }
 
-    public static double getMinBuyerSecurityDepositAsPercent() {
-        return 0.15; // 15% of trade amount.
+    public static double getMinSecurityDepositAsPercent() {
+        return MIN_SECURITY_DEPOSIT_PCT;
     }
 
-    public static double getMaxBuyerSecurityDepositAsPercent() {
-        return 0.5; // 50% of trade amount. For a 1 BTC trade it is about 3500 USD @ 7000 USD/BTC
+    public static double getMaxSecurityDepositAsPercent() {
+        return MAX_SECURITY_DEPOSIT_PCT;
     }
 
-    // We use MIN_BUYER_SECURITY_DEPOSIT as well as lower bound in case of small trade amounts.
-    // So 0.0005 BTC is the min. buyer security deposit even with amount of 0.0001 BTC and 0.05% percentage value.
-    public static BigInteger getMinBuyerSecurityDeposit() {
-        return MIN_BUYER_SECURITY_DEPOSIT;
-    }
-
-
-    public static double getSellerSecurityDepositAsPercent() {
-        return 0.15; // 15% of trade amount.
-    }
-
-    public static BigInteger getMinSellerSecurityDeposit() {
-        return MIN_SELLER_SECURITY_DEPOSIT;
+    public static BigInteger getMinSecurityDeposit() {
+        return MIN_SECURITY_DEPOSIT;
     }
 
     // This value must be lower than MIN_BUYER_SECURITY_DEPOSIT and SELLER_SECURITY_DEPOSIT

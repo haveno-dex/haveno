@@ -158,7 +158,6 @@ public final class TradePeer implements PersistablePayload {
     }
 
     public BigInteger getSecurityDeposit() {
-        if (depositTxHash == null) return null;
         return BigInteger.valueOf(securityDeposit);
     }
 

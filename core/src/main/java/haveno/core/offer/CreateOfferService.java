@@ -33,10 +33,8 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatisticsManager;
-import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -102,9 +100,10 @@ public class CreateOfferService {
                                    Price fixedPrice,
                                    boolean useMarketBasedPrice,
                                    double marketPriceMargin,
-                                   double securityDepositAsDouble,
-                                   PaymentAccount paymentAccount) {
-
+                                   double securityDepositPct,
+                                   PaymentAccount paymentAccount,
+                                   boolean isPrivateOffer,
+                                   boolean buyerAsTakerWithoutDeposit) {
         log.info("create and get offer with offerId={}, " +
                         "currencyCode={}, " +
                         "direction={}, " +
@@ -113,7 +112,9 @@ public class CreateOfferService {
                         "marketPriceMargin={}, " +
                         "amount={}, " +
                         "minAmount={}, " +
-                        "securityDeposit={}",
+                        "securityDepositPct={}, " +
+                        "isPrivateOffer={}, " +
+                        "buyerAsTakerWithoutDeposit={}",
                 offerId,
                 currencyCode,
                 direction,
@@ -122,7 +123,15 @@ public class CreateOfferService {
                 marketPriceMargin,
                 amount,
                 minAmount,
-                securityDepositAsDouble);
+                securityDepositPct,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
+
+        // verify buyer as taker security deposit
+        boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
+        if (!isBuyerMaker && !isPrivateOffer && buyerAsTakerWithoutDeposit) {
+            throw new IllegalArgumentException("Buyer as taker deposit is required for public offers");
+        }
 
         // verify fixed price xor market price with margin
         if (fixedPrice != null) {
@@ -143,10 +152,17 @@ public class CreateOfferService {
         }
 
         // adjust amount and min amount for fixed-price offer
-        long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction);
         if (fixedPrice != null) {
-            amount = CoinUtil.getRoundedAmount(amount, fixedPrice, maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
-            minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+            amount = CoinUtil.getRoundedAmount(amount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
+            minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
+        }
+
+        // generate one-time challenge for private offer
+        String challenge = null;
+        String challengeHash = null;
+        if (isPrivateOffer) {
+            challenge = HavenoUtils.generateChallenge();
+            challengeHash = HavenoUtils.getChallengeHash(challenge);
         }
 
         long priceAsLong = fixedPrice != null ? fixedPrice.getValue() : 0L;
@@ -161,21 +177,16 @@ public class CreateOfferService {
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
-
-        // reserved for future use cases
-        // Use null values if not set
-        boolean isPrivateOffer = false;
+        boolean hasBuyerAsTakerWithoutDeposit = !isBuyerMaker && isPrivateOffer && buyerAsTakerWithoutDeposit;
+        long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, hasBuyerAsTakerWithoutDeposit);
         boolean useAutoClose = false;
         boolean useReOpenAfterAutoClose = false;
         long lowerClosePrice = 0;
         long upperClosePrice = 0;
-        String hashOfChallenge = null;
-        Map<String, String> extraDataMap = offerUtil.getExtraDataMap(paymentAccount,
-                currencyCode,
-                direction);
+        Map<String, String> extraDataMap = offerUtil.getExtraDataMap(paymentAccount, currencyCode, direction);
 
         offerUtil.validateOfferData(
-                securityDepositAsDouble,
+                securityDepositPct,
                 paymentAccount,
                 currencyCode);
 
@@ -189,11 +200,11 @@ public class CreateOfferService {
                 useMarketBasedPriceValue,
                 amountAsLong,
                 minAmountAsLong,
-                HavenoUtils.MAKER_FEE_PCT,
-                HavenoUtils.TAKER_FEE_PCT,
+                hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT,
+                hasBuyerAsTakerWithoutDeposit ? 0d : HavenoUtils.TAKER_FEE_PCT,
                 HavenoUtils.PENALTY_FEE_PCT,
-                securityDepositAsDouble,
-                securityDepositAsDouble,
+                hasBuyerAsTakerWithoutDeposit ? 0d : securityDepositPct, // buyer as taker security deposit is optional for private offers
+                securityDepositPct,
                 baseCurrencyCode,
                 counterCurrencyCode,
                 paymentAccount.getPaymentMethod().getId(),
@@ -211,7 +222,7 @@ public class CreateOfferService {
                 upperClosePrice,
                 lowerClosePrice,
                 isPrivateOffer,
-                hashOfChallenge,
+                challengeHash,
                 extraDataMap,
                 Version.TRADE_PROTOCOL_VERSION,
                 null,
@@ -219,36 +230,8 @@ public class CreateOfferService {
                 null);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
+        offer.setChallenge(challenge);
         return offer;
-    }
-
-    public BigInteger getReservedFundsForOffer(OfferDirection direction,
-                                         BigInteger amount,
-                                         double buyerSecurityDeposit,
-                                         double sellerSecurityDeposit) {
-
-        BigInteger reservedFundsForOffer = getSecurityDeposit(direction,
-                amount,
-                buyerSecurityDeposit,
-                sellerSecurityDeposit);
-        if (!offerUtil.isBuyOffer(direction))
-            reservedFundsForOffer = reservedFundsForOffer.add(amount);
-
-        return reservedFundsForOffer;
-    }
-
-    public BigInteger getSecurityDeposit(OfferDirection direction,
-                                   BigInteger amount,
-                                   double buyerSecurityDeposit,
-                                   double sellerSecurityDeposit) {
-        return offerUtil.isBuyOffer(direction) ?
-                getBuyerSecurityDeposit(amount, buyerSecurityDeposit) :
-                getSellerSecurityDeposit(amount, sellerSecurityDeposit);
-    }
-
-    public double getSellerSecurityDepositAsDouble(double buyerSecurityDeposit) {
-        return Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? buyerSecurityDeposit :
-                Restrictions.getSellerSecurityDepositAsPercent();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -258,27 +241,5 @@ public class CreateOfferService {
     private boolean isMarketPriceAvailable(String currencyCode) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         return marketPrice != null && marketPrice.isExternallyProvidedPrice();
-    }
-
-    private BigInteger getBuyerSecurityDeposit(BigInteger amount, double buyerSecurityDeposit) {
-        BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(buyerSecurityDeposit, amount);
-        return getBoundedBuyerSecurityDeposit(percentOfAmount);
-    }
-
-    private BigInteger getSellerSecurityDeposit(BigInteger amount, double sellerSecurityDeposit) {
-        BigInteger percentOfAmount = CoinUtil.getPercentOfAmount(sellerSecurityDeposit, amount);
-        return getBoundedSellerSecurityDeposit(percentOfAmount);
-    }
-
-    private BigInteger getBoundedBuyerSecurityDeposit(BigInteger value) {
-        // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinBuyerSecurityDeposit from Restrictions.
-        return Restrictions.getMinBuyerSecurityDeposit().max(value);
-    }
-
-    private BigInteger getBoundedSellerSecurityDeposit(BigInteger value) {
-        // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
-        // MinSellerSecurityDeposit from Restrictions.
-        return Restrictions.getMinSellerSecurityDeposit().max(value);
     }
 }

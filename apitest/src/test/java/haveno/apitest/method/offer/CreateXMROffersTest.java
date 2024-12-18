@@ -62,7 +62,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 75_000_000L,
                 "0.005",   // FIXED PRICE IN BTC FOR 1 XMR
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId());
         log.debug("Sell XMR (Buy BTC) offer:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -108,7 +108,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 50_000_000L,
                 "0.005",   // FIXED PRICE IN BTC (satoshis) FOR 1 XMR
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId());
         log.debug("Buy XMR (Sell BTC) offer:\n{}", toOfferTable.apply(newOffer));
         assertTrue(newOffer.getIsMyOffer());
@@ -156,7 +156,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 75_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId(),
                 triggerPrice);
         log.debug("Pending Sell XMR (Buy BTC) offer:\n{}", toOfferTable.apply(newOffer));
@@ -211,7 +211,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
                 100_000_000L,
                 50_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 alicesXmrAcct.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Buy XMR (Sell BTC) offer:\n{}", toOfferTable.apply(newOffer));
