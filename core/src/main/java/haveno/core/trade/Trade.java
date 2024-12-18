@@ -657,6 +657,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             ThreadUtils.submitToPool(() -> {
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
+                if (newValue == Trade.Phase.DEPOSITS_CONFIRMED) onDepositsConfirmed();
+                if (newValue == Trade.Phase.DEPOSITS_UNLOCKED) onDepositsUnlocked();
                 if (newValue == Trade.Phase.PAYMENT_SENT) onPaymentSent();
                 if (isDepositsPublished() && !isPayoutUnlocked()) updatePollPeriod();
                 if (isPaymentReceived()) {
@@ -2892,10 +2894,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         ThreadUtils.submitToPool(() -> xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages()));
     }
 
+    private void onDepositsConfirmed() {
+        HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_CONFIRMED, "Trade Deposits Confirmed", "The deposit transactions have confirmed");
+    }
+
+    private void onDepositsUnlocked() {
+        HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_UNLOCKED, "Trade Deposits Unlocked", "The deposit transactions have unlocked");
+    }
+
     private void onPaymentSent() {
-        if (this instanceof SellerTrade) {
-            HavenoUtils.notificationService.sendTradeNotification(this, Phase.PAYMENT_SENT, "Payment Sent", "The buyer has sent the payment"); // TODO (woodser): use language translation
-        }
+        HavenoUtils.notificationService.sendTradeNotification(this, Phase.PAYMENT_SENT, "Payment Sent", "The buyer has sent the payment");
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
