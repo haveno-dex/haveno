@@ -26,8 +26,7 @@ On Windows, first install MSYS2:
 On all platforms, install Java JDK 21:
 
 ```
-curl -s "https://get.sdkman.io" | bash
-sdk install java 21.0.2.fx-librca
+curl --proto '=https' --tlsv1.2 -sSf https://github.com/haveno-dex/haveno/raw/refs/heads/master/scripts/install_java.sh | sh
 ```
 
 ## Build Haveno
