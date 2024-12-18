@@ -1039,6 +1039,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         securityDepositAndFeeBox.getChildren().addAll(getSecurityDepositBox(), tradeFeeFieldsBox);
 
         buyerAsTakerWithoutDepositSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.buyerAsTakerWithoutDeposit"));
+        buyerAsTakerWithoutDepositSlider.setPadding(new Insets(0, 0, 0, 0));
         buyerAsTakerWithoutDepositSlider.setOnAction(event -> {
 
             // popup info box
