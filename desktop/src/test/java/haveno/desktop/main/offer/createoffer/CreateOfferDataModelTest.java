@@ -53,7 +53,7 @@ public class CreateOfferDataModelTest {
 
         when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
         when(preferences.isUsePercentageBasedPrice()).thenReturn(true);
-        when(preferences.getBuyerSecurityDepositAsPercent(null)).thenReturn(0.01);
+        when(preferences.getSecurityDepositAsPercent(null)).thenReturn(0.01);
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
         when(tradeStats.getObservableTradeStatisticsSet()).thenReturn(FXCollections.observableSet());
 

@@ -30,7 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class TradeLimits {
-    private static final BigInteger MAX_TRADE_LIMIT = HavenoUtils.xmrToAtomicUnits(96.0); // max trade limit for lowest risk payment method. Others will get derived from that.
+    private static final BigInteger MAX_TRADE_LIMIT = HavenoUtils.xmrToAtomicUnits(528); // max trade limit for lowest risk payment method. Others will get derived from that.
+    private static final BigInteger MAX_TRADE_LIMIT_WITHOUT_BUYER_AS_TAKER_DEPOSIT = HavenoUtils.xmrToAtomicUnits(1); // max trade limit without deposit from buyer
+
     @Nullable
     @Getter
     private static TradeLimits INSTANCE;
@@ -55,6 +57,15 @@ public class TradeLimits {
      */
     public BigInteger getMaxTradeLimit() {
        return MAX_TRADE_LIMIT;
+    }
+
+    /**
+     * The maximum trade limit without a buyer deposit.
+     * 
+     * @return the maximum trade limit for a buyer without a deposit
+     */
+    public BigInteger getMaxTradeLimitBuyerAsTakerWithoutDeposit() {
+        return MAX_TRADE_LIMIT_WITHOUT_BUYER_AS_TAKER_DEPOSIT;
     }
 
     // We possibly rounded value for the first month gets multiplied by 4 to get the trade limit after the account

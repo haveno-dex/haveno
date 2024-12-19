@@ -25,11 +25,16 @@ See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
 ## Installing Haveno
 
-Haveno can be installed on Linux, macOS, and Windows by using a third party installer and network. We do not endorse any networks at this time.
+Haveno can be installed on Linux, macOS, and Windows by using a third party installer and network.
+
+> [!note]
+> The official Haveno repository does not support making real trades directly.
+> 
+> To make real trades with Haveno, first find a third party network, and then use their installer or build their repository. We do not endorse any networks at this time.
 
 A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the test network.
 
-Alternatively, you can [start your own network](https://github.com/haveno-dex/haveno/blob/master/docs/create-mainnet.md).
+Alternatively, you can [create your own mainnet network](create-mainnet.md).
 
 Note that Haveno is being actively developed. If you find issues or bugs, please let us know.
 
@@ -47,7 +52,7 @@ If you wish to help, take a look at the repositories above and look for open iss
 Haveno is a community-driven project. For it to be successful it's fundamental to have the support and help of the community. Join the community rooms on our Matrix server:
 
 - General discussions: **Haveno** ([#haveno:monero.social](https://matrix.to/#/#haveno:monero.social)) relayed on IRC/Libera (`#haveno`)
-- Development discussions: **Haveno Development** ([#haveno-dev:monero.social](https://matrix.to/#/#haveno-dev:monero.social)) relayed on IRC/Libera (`#haveno-dev`)
+- Development discussions: **Haveno Development** ([#haveno-development:monero.social](https://matrix.to/#/#haveno-development:monero.social)) relayed on IRC/Libera (`#haveno-development`)
 
 Email: contact@haveno.exchange
 Website: [haveno.exchange](https://haveno.exchange)

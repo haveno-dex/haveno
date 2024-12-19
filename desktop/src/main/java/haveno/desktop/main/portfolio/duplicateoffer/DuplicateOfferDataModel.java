@@ -52,7 +52,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
     DuplicateOfferDataModel(CreateOfferService createOfferService,
                        OpenOfferManager openOfferManager,
                        OfferUtil offerUtil,
-                       XmrWalletService btcWalletService,
+                       XmrWalletService xmrWalletService,
                        Preferences preferences,
                        User user,
                        P2PService p2PService,
@@ -65,7 +65,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         super(createOfferService,
                 openOfferManager,
                 offerUtil,
-                btcWalletService,
+                xmrWalletService,
                 preferences,
                 user,
                 p2PService,
@@ -85,20 +85,21 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
+        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
 
-        setBuyerSecurityDeposit(getBuyerSecurityAsPercent(offer));
+        setSecurityDepositPct(getSecurityAsPercent(offer));
 
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
     }
 
-    private double getBuyerSecurityAsPercent(Offer offer) {
-        BigInteger offerBuyerSecurityDeposit = getBoundedBuyerSecurityDeposit(offer.getMaxBuyerSecurityDeposit());
-        double offerBuyerSecurityDepositAsPercent = CoinUtil.getAsPercentPerBtc(offerBuyerSecurityDeposit,
+    private double getSecurityAsPercent(Offer offer) {
+        BigInteger offerSellerSecurityDeposit = getBoundedSecurityDeposit(offer.getMaxSellerSecurityDeposit());
+        double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
                 offer.getAmount());
-        return Math.min(offerBuyerSecurityDepositAsPercent,
-                Restrictions.getMaxBuyerSecurityDepositAsPercent());
+        return Math.min(offerSellerSecurityDepositAsPercent,
+                Restrictions.getMaxSecurityDepositAsPercent());
     }
 
     @Override

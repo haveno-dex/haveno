@@ -1,13 +1,13 @@
 # Build and run Haveno
 
-These are the steps needed to build and run Haveno. You can test it locally or on our test network using the official Haveno repository.
+These are the steps to build and run Haveno using the *official test network*.
 
-> [!note]
-> Trying to use Haveno on mainnet?
+> [!warning]
+> The official Haveno repository does not support making real trades directly.
 > 
-> The official Haveno repository does not operate or endorse any mainnet network.
+> To make real trades with Haveno, first find a third party network, and then use their installer or build their repository.  We do not endorse any networks at this time.
 > 
-> Find a third party network and use their installer or build their repository. Alternatively [create your own mainnet network](create-mainnet.md).
+> Alternatively, you can [create your own mainnet network](create-mainnet.md).
 
 ## Install dependencies
 

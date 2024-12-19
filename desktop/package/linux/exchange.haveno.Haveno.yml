@@ -35,7 +35,7 @@ modules:
       - mkdir -p /app/share/icons/hicolor/128x128/apps/
       - mkdir -p /app/share/applications/
       - mkdir -p /app/share/metainfo/
-      - mv icon.png /app/share/icons/hicolor/128x128/apps/haveno.png
+      - mv icon.png /app/share/icons/hicolor/128x128/apps/exchange.haveno.Haveno.png
       - mv Haveno.desktop /app/share/applications/exchange.haveno.Haveno.desktop
       - mv exchange.haveno.Haveno.metainfo.xml /app/share/metainfo/
 

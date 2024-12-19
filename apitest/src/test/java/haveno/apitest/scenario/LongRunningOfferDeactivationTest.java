@@ -57,7 +57,7 @@ public class LongRunningOfferDeactivationTest extends AbstractOfferTest {
                 1_000_000,
                 1_000_000,
                 0.00,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 paymentAcct.getId(),
                 triggerPrice);
         log.info("SELL offer {} created with margin based price {}.",
@@ -103,7 +103,7 @@ public class LongRunningOfferDeactivationTest extends AbstractOfferTest {
                 1_000_000,
                 1_000_000,
                 0.00,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 paymentAcct.getId(),
                 triggerPrice);
         log.info("BUY offer {} created with margin based price {}.",

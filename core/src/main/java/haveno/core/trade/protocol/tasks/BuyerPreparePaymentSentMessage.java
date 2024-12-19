@@ -74,7 +74,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
             Preconditions.checkNotNull(trade.getSeller().getPaymentAccountPayload(), "Seller's payment account payload is null");
             Preconditions.checkNotNull(trade.getAmount(), "trade.getTradeAmount() must not be null");
             Preconditions.checkNotNull(trade.getMakerDepositTx(), "trade.getMakerDepositTx() must not be null");
-            Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
+            if (!trade.hasBuyerAsTakerWithoutDeposit()) Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
             checkNotNull(trade.getOffer(), "offer must not be null");
 
             // create payout tx if we have seller's updated multisig hex

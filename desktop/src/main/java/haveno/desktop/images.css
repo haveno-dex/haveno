@@ -59,6 +59,10 @@
     -fx-image: url("../../images/sell_red.png");
 }
 
+#image-lock2x {
+    -fx-image: url("../../images/lock@2x.png");
+}
+
 #image-expand {
     -fx-image: url("../../images/expand.png");
 }

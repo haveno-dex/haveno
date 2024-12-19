@@ -45,6 +45,9 @@ class PeerExchangeHandler implements MessageListener {
     // We want to keep timeout short here
     private static final long TIMEOUT = 90;
     private static final int DELAY_MS = 500;
+    private static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging warnings to once every 60 seconds
+    private static long lastLoggedWarningTs = 0;
+    private static int numThrottledWarnings = 0;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -173,9 +176,8 @@ class PeerExchangeHandler implements MessageListener {
                     cleanup();
                     listener.onComplete();
                 } else {
-                    log.warn("Nonce not matching. That should never happen.\n\t" +
-                                    "We drop that message. nonce={} / requestNonce={}",
-                            nonce, getPeersResponse.getRequestNonce());
+                    throttleWarn("Nonce not matching. That should never happen.\n" + 
+                            "\tWe drop that message. nonce=" + nonce + ", requestNonce=" + getPeersResponse.getRequestNonce() + ", peerNodeAddress=" + connection.getPeersNodeAddressOptional().orElseGet(null));
                 }
             } else {
                 log.trace("We have stopped that handler already. We ignore that onMessage call.");
@@ -216,4 +218,15 @@ class PeerExchangeHandler implements MessageListener {
         }
     }
 
+    private synchronized void throttleWarn(String msg) {
+        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (logWarning) {
+            log.warn(msg);
+            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            numThrottledWarnings = 0;
+            lastLoggedWarningTs = System.currentTimeMillis();
+        } else {
+            numThrottledWarnings++;
+        }
+    }
 }

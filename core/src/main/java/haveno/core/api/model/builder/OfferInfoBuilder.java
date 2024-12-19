@@ -63,6 +63,8 @@ public final class OfferInfoBuilder {
     private String arbitratorSigner;
     private String splitOutputTxHash;
     private long splitOutputTxFee;
+    private boolean isPrivateOffer;
+    private String challenge;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -231,6 +233,16 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withSplitOutputTxFee(long splitOutputTxFee) {
         this.splitOutputTxFee = splitOutputTxFee;
+        return this;
+    }
+
+    public OfferInfoBuilder withIsPrivateOffer(boolean isPrivateOffer) {
+        this.isPrivateOffer = isPrivateOffer;
+        return this;
+    }
+
+    public OfferInfoBuilder withChallenge(String challenge) {
+        this.challenge = challenge;
         return this;
     }
 

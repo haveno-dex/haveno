@@ -116,18 +116,18 @@ public class DisplayUtils {
     // Offer direction
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
+    public static String getDirectionWithCode(OfferDirection direction, String currencyCode, boolean isPrivate) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
+            return (direction == OfferDirection.BUY) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", Res.getBaseCurrencyCode());
         else
-            return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency", currencyCode) : Res.get("shared.sellCurrency", currencyCode);
+            return (direction == OfferDirection.SELL) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", currencyCode) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", currencyCode);
     }
 
-    public static String getDirectionBothSides(OfferDirection direction) {
+    public static String getDirectionBothSides(OfferDirection direction, boolean isLocked) {
         String currencyCode = Res.getBaseCurrencyCode();
         return direction == OfferDirection.BUY ?
-                Res.get("formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
-                Res.get("formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
+                Res.get(isLocked ? "formatter.makerTakerLocked" : "formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
+                Res.get(isLocked ? "formatter.makerTakerLocked" : "formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {

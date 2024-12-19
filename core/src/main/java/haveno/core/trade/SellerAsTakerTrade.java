@@ -44,7 +44,8 @@ public final class SellerAsTakerTrade extends SellerTrade implements TakerTrade 
                               String uid,
                               @Nullable NodeAddress makerNodeAddress,
                               @Nullable NodeAddress takerNodeAddress,
-                              @Nullable NodeAddress arbitratorNodeAddress) {
+                              @Nullable NodeAddress arbitratorNodeAddress,
+                              @Nullable String challenge) {
         super(offer,
                 tradeAmount,
                 tradePrice,
@@ -53,7 +54,8 @@ public final class SellerAsTakerTrade extends SellerTrade implements TakerTrade 
                 uid,
                 makerNodeAddress,
                 takerNodeAddress,
-                arbitratorNodeAddress);
+                arbitratorNodeAddress,
+                challenge);
     }
 
 
@@ -87,7 +89,8 @@ public final class SellerAsTakerTrade extends SellerTrade implements TakerTrade 
                         uid,
                         proto.getProcessModel().getMaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getMaker().getNodeAddress()) : null,
                         proto.getProcessModel().getTaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getTaker().getNodeAddress()) : null,
-                        proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null),
+                        proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null,
+                        ProtoUtil.stringOrNullFromProto(proto.getChallenge())),
                 proto,
                 coreProtoResolver);
     }

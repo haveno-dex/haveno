@@ -20,6 +20,7 @@ package haveno.desktop.main.offer.takeoffer;
 import com.google.inject.Inject;
 
 import haveno.common.ThreadUtils;
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
@@ -131,7 +132,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         addListeners();
 
-        updateAvailableBalance();
+        updateBalances();
 
         // TODO In case that we have funded but restarted, or canceled but took again the offer we would need to
         // store locally the result when we received the funding tx(s).
@@ -192,7 +193,7 @@ class TakeOfferDataModel extends OfferDataModel {
         balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                updateAvailableBalance();
+                updateBalances();
             }
         };
 
@@ -225,6 +226,19 @@ class TakeOfferDataModel extends OfferDataModel {
 
         // reset address entries off thread
         ThreadUtils.submitToPool(() -> xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId()));
+    }
+
+    protected void updateBalances() {
+        super.updateBalances();
+
+        // update remaining balance
+        UserThread.await(() -> {
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
+            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
+            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
+                showWalletFundedNotification.set(true);
+            }
+        });
     }
 
 
@@ -287,11 +301,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     void fundFromSavingsWallet() {
         useSavingsWallet = true;
-        updateAvailableBalance();
-        if (!isXmrWalletFunded.get()) {
-            this.useSavingsWallet = false;
-            updateAvailableBalance();
-        }
+        updateBalances();
     }
 
 
@@ -331,7 +341,7 @@ class TakeOfferDataModel extends OfferDataModel {
     long getMaxTradeLimit() {
         if (paymentAccount != null) {
             return accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
-                    offer.getMirroredDirection());
+                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         } else {
             return 0;
         }
@@ -369,7 +379,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
             volume.set(volumeByAmount);
 
-            updateAvailableBalance();
+            updateBalances();
         }
     }
 
@@ -391,7 +401,7 @@ class TakeOfferDataModel extends OfferDataModel {
                 totalToPay.set(feeAndSecDeposit.add(amount.get()));
             else
                 totalToPay.set(feeAndSecDeposit);
-            updateAvailableBalance();
+            updateBalances();
             log.debug("totalToPay {}", totalToPay.get());
         }
     }
