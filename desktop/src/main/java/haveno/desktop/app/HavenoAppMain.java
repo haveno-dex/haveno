@@ -200,7 +200,7 @@ public class HavenoAppMain extends HavenoExecutable {
 
             // Add an icon to the dialog
             Stage stage = (Stage) getDialogPane().getScene().getWindow();
-            stage.getIcons().add(ImageUtil.getImageByPath("lock.png"));
+            stage.getIcons().add(ImageUtil.getImageByPath("lock@2x.png"));
 
             // Create the password field
             PasswordField passwordField = new PasswordField();
