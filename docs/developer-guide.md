@@ -31,8 +31,8 @@ Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run 
    For example, the gRPC function to get offers is implemented by [`GrpcServer`](https://github.com/haveno-dex/haveno/blob/master/daemon/src/main/java/haveno/daemon/grpc/GrpcServer.java) > [`GrpcOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/daemon/src/main/java/haveno/daemon/grpc/GrpcOffersService.java#L104) > [`CoreApi.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/haveno/core/api/CoreApi.java#L128) > [`CoreOffersService.getOffers(...)`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/haveno/core/api/CoreOffersService.java#L126) > [`OfferBookService.getOffers()`](https://github.com/haveno-dex/haveno/blob/b761dbfd378faf49d95090c126318b419af7926b/core/src/main/java/haveno/core/offer/OfferBookService.java#L193).
 5. Build Haveno: `make`
 6. Update the gRPC client in haveno-ts: `npm install`
-7. Add the corresponding typescript method(s) to [haveno.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/haveno.ts) with clear and concise documentation.
-8. Add clean and comprehensive tests to [haveno.test.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/haveno.test.ts), following existing patterns.
+7. Add the corresponding typescript method(s) to [HavenoClient.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/HavenoClient.ts) with clear and concise documentation.
+8. Add clean and comprehensive tests to [HavenoClient.test.ts](https://github.com/haveno-dex/haveno-ts/blob/master/src/HavenoClient.test.ts), following existing patterns.
 9. Run the tests with `npm run test -- -t 'my test'` to run tests by name and `npm test` to run all tests together. Ensure all tests pass and there are no exception stacktraces in the terminals of Alice, Bob, or the arbitrator.
 10. Open pull requests to the haveno and haveno-ts projects for the backend and frontend implementations.
 
