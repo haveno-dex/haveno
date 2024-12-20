@@ -579,7 +579,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
 
-        predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+        // filter private offers
+        if (direction == OfferDirection.BUY) {
+            predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+        }
 
         if (!filterText.isEmpty()) {
 
