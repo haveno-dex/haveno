@@ -56,6 +56,7 @@ import haveno.core.util.coin.CoinUtil;
 import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
+import haveno.core.util.validation.InputValidator.ValidationResult;
 import haveno.core.util.validation.MonetaryValidator;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
@@ -490,6 +491,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
             if (amount.get() != null) amountValidationResult.set(isXmrInputValid(amount.get()));
             updateSecurityDeposit();
+            setSecurityDepositToModel();
+            onFocusOutSecurityDepositTextField(true, false); // refresh security deposit field
             applyMakerFee();
             dataModel.calculateTotalToPay();
             updateButtonDisableState();
@@ -769,7 +772,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     }
                 }
             }
-            // We want to trigger a recalculation of the volume
+
+            // trigger recalculation of the volume
             UserThread.execute(() -> {
                 onFocusOutVolumeTextField(true, false);
                 onFocusOutMinAmountTextField(true, false);
@@ -815,6 +819,11 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             }
 
             maybeShowMakeOfferToUnsignedAccountWarning();
+
+            // trigger recalculation of the security deposit
+            UserThread.execute(() -> {
+                onFocusOutSecurityDepositTextField(true, false);
+            });
         }
     }
 
@@ -944,11 +953,16 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             if (marketPriceMargin.get() == null && amount.get() != null && volume.get() != null) {
                 updateMarketPriceToManual();
             }
+
+            // trigger recalculation of security deposit
+            UserThread.execute(() -> {
+                onFocusOutSecurityDepositTextField(true, false);
+            });
         }
     }
 
     void onFocusOutSecurityDepositTextField(boolean oldValue, boolean newValue) {
-        if (oldValue && !newValue) {
+        if (oldValue && !newValue && !isMinSecurityDeposit.get()) {
             InputValidator.ValidationResult result = securityDepositValidator.validate(securityDeposit.get());
             securityDepositValidationResult.set(result);
             if (result.isValid) {
@@ -1040,6 +1054,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public String getSecurityDepositLabel() {
         return dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer() ? Res.get("createOffer.myDeposit") :
+                dataModel.isMinSecurityDeposit() ? Res.get("createOffer.minSecurityDepositUsed") :
                 Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? Res.get("createOffer.setDepositForBothTraders") :
                 dataModel.isBuyOffer() ? Res.get("createOffer.setDepositAsBuyer") : Res.get("createOffer.setDeposit");
     }
@@ -1211,7 +1226,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private void setSecurityDepositToModel() {
-        if (!(dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer()) && securityDeposit.get() != null && !securityDeposit.get().isEmpty()) {
+        if (securityDeposit.get() != null && !securityDeposit.get().isEmpty() && !isMinSecurityDeposit.get()) {
             dataModel.setSecurityDepositPct(ParsingUtils.parsePercentStringToDouble(securityDeposit.get()));
         } else {
             dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
@@ -1282,11 +1297,11 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     private void updateSecurityDeposit() {
         isMinSecurityDeposit.set(dataModel.isMinSecurityDeposit());
+        securityDepositLabel.set(getSecurityDepositLabel());
         if (dataModel.isMinSecurityDeposit()) {
-            securityDepositLabel.set(Res.get("createOffer.minSecurityDepositUsed"));
             securityDeposit.set(HavenoUtils.formatXmr(Restrictions.getMinSecurityDeposit()));
+            securityDepositValidationResult.set(new ValidationResult(true));
         } else {
-            securityDepositLabel.set(getSecurityDepositLabel());
             boolean hasBuyerAsTakerWithoutDeposit = dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer();
             securityDeposit.set(FormattingUtils.formatToPercent(hasBuyerAsTakerWithoutDeposit ?
                     Restrictions.getDefaultSecurityDepositAsPercent() : // use default percent if no deposit from buyer
