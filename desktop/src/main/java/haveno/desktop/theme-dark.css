@@ -561,8 +561,10 @@
 .toggle-button-no-slider {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0, 1;
 }
 
 .toggle-button-no-slider:selected {
-    -fx-background-color: -bs-color-gray-ddd;
+    -fx-background-color: -bs-color-gray-bbb;
 }
