@@ -185,7 +185,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
 
-        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.3em", null);
+        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
         matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         matchingOffersToggleButton.setPrefHeight(27);
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
