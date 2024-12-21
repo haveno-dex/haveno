@@ -115,7 +115,6 @@ import lombok.Getter;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTransferQuery;
@@ -1159,23 +1158,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void scheduleWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
 
-        // check for sufficient balance - scheduled offers amount
-        BigInteger offerReserveAmount = openOffer.getOffer().getAmountNeeded();
-        if (xmrWalletService.getBalance().subtract(getScheduledAmount(openOffers)).compareTo(offerReserveAmount) < 0) {
-            throw new RuntimeException("Not enough money in Haveno wallet");
-        }
-
         // get earliest available or pending txs with sufficient spendable amount
+        BigInteger offerReserveAmount = openOffer.getOffer().getAmountNeeded();
         BigInteger scheduledAmount = BigInteger.ZERO;
         Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
 
-            // get spendable amount
-            BigInteger spendableAmount = getSpendableAmount(tx);
+            // get unscheduled spendable amount
+            BigInteger spendableAmount = getUnscheduledSpendableAmount(tx, openOffers);
 
-            // skip if no spendable amount or already scheduled
+            // skip if no spendable amount
             if (spendableAmount.equals(BigInteger.ZERO)) continue;
-            if (isTxScheduledByOtherOffer(openOffers, openOffer, tx.getHash())) continue;
 
             // schedule tx
             scheduledAmount = scheduledAmount.add(spendableAmount);
@@ -1184,12 +1177,36 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // break if sufficient funds
             if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
         }
-        if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to schedule offer");
+        if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to create offer");
 
         // schedule txs
         openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));
         openOffer.setScheduledAmount(scheduledAmount.toString());
         openOffer.setState(OpenOffer.State.PENDING);
+    }
+
+    private BigInteger getUnscheduledSpendableAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
+        if (isScheduledWithUnknownAmount(tx, openOffers)) return BigInteger.ZERO;
+        return getSpendableAmount(tx).subtract(getSplitAmount(tx, openOffers)).max(BigInteger.ZERO);
+    }
+
+    private boolean isScheduledWithUnknownAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
+        for (OpenOffer openOffer : openOffers) {
+            if (openOffer.getScheduledTxHashes() == null) continue;
+            if (openOffer.getScheduledTxHashes().contains(tx.getHash()) && !tx.getHash().equals(openOffer.getSplitOutputTxHash())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private BigInteger getSplitAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
+        for (OpenOffer openOffer : openOffers) {
+            if (openOffer.getSplitOutputTxHash() == null) continue;
+            if (!openOffer.getSplitOutputTxHash().equals(tx.getHash())) continue;
+            return openOffer.getOffer().getAmountNeeded();
+        }
+        return BigInteger.ZERO;
     }
 
     private BigInteger getSpendableAmount(MoneroTxWallet tx) {
@@ -1218,23 +1235,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private boolean hasSpendableAmount(MoneroTxWallet tx) {
         return getSpendableAmount(tx).compareTo(BigInteger.ZERO) > 0;
-    }
-
-    private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
-        BigInteger scheduledAmount = BigInteger.ZERO;
-        for (OpenOffer openOffer : openOffers) {
-            if (openOffer.getState() != OpenOffer.State.PENDING) continue;
-            if (openOffer.getScheduledTxHashes() == null) continue;
-            List<MoneroTxWallet> fundingTxs = xmrWalletService.getTxs(openOffer.getScheduledTxHashes());
-            for (MoneroTxWallet fundingTx : fundingTxs) {
-                if (fundingTx.getIncomingTransfers() != null) {
-                    for (MoneroIncomingTransfer transfer : fundingTx.getIncomingTransfers()) {
-                        if (transfer.getAccountIndex() == 0) scheduledAmount = scheduledAmount.add(transfer.getAmount());
-                    }
-                }
-            }
-        }
-        return scheduledAmount;
     }
 
     private boolean isTxScheduledByOtherOffer(List<OpenOffer> openOffers, OpenOffer openOffer, String txHash) {

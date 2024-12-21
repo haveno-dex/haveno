@@ -243,6 +243,10 @@ Set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `true` for the arbitrator to assig
 
 Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getGlobalTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
 
+## Update the download URL
+
+Change every instance of `https://haveno.exchange/downloads` to your download URL. For example, `https://havenoexample.com/downloads`.
+
 ## Start users for testing
 
 Start user1 on Monero's mainnet using `make user1-desktop-mainnet` or Monero's stagenet using `make user1-desktop-stagenet`.
@@ -266,7 +270,7 @@ Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master
 
 <b>Set the mandatory minimum version for trading (optional)</b>
 
-If applicable, update the mandatory minimum version for trading, by entering `ctrl + f` to open the Filter window, enter a private key with developer privileges, and enter the minimum version (e.g. 1.0.16) in the field labeled "Min. version required for trading".
+If applicable, update the mandatory minimum version for trading, by entering `ctrl + f` to open the Filter window, enter a private key with developer privileges, and enter the minimum version (e.g. 1.0.17) in the field labeled "Min. version required for trading".
 
 <b>Send update alert</b>
 

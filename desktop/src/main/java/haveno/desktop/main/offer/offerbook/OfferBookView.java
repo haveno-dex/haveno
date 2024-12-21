@@ -185,7 +185,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
 
-        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.3em", null);
+        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
         matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         matchingOffersToggleButton.setPrefHeight(27);
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
@@ -1069,38 +1069,38 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         return new TableCell<>() {
                             OfferFilterService.Result canTakeOfferResult = null;
 
-                            final ImageView iconView = new ImageView();
-                            final AutoTooltipButton button = new AutoTooltipButton();
-
-                            {
-                                button.setGraphic(iconView);
-                                button.setGraphicTextGap(10);
-                                button.setPrefWidth(10000);
-                            }
-
-                            final ImageView iconView2 = new ImageView();
-                            final AutoTooltipButton button2 = new AutoTooltipButton();
-
-                            {
-                                button2.setGraphic(iconView2);
-                                button2.setGraphicTextGap(10);
-                                button2.setPrefWidth(10000);
-                            }
-
-                            final HBox hbox = new HBox();
-
-                            {
-                                hbox.setSpacing(8);
-                                hbox.setAlignment(Pos.CENTER);
-                                hbox.getChildren().add(button);
-                                hbox.getChildren().add(button2);
-                                HBox.setHgrow(button, Priority.ALWAYS);
-                                HBox.setHgrow(button2, Priority.ALWAYS);
-                            }
-
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
                                 super.updateItem(item, empty);
+
+                                final ImageView iconView = new ImageView();
+                                final AutoTooltipButton button = new AutoTooltipButton();
+    
+                                {
+                                    button.setGraphic(iconView);
+                                    button.setGraphicTextGap(10);
+                                    button.setPrefWidth(10000);
+                                }
+    
+                                final ImageView iconView2 = new ImageView();
+                                final AutoTooltipButton button2 = new AutoTooltipButton();
+    
+                                {
+                                    button2.setGraphic(iconView2);
+                                    button2.setGraphicTextGap(10);
+                                    button2.setPrefWidth(10000);
+                                }
+    
+                                final HBox hbox = new HBox();
+    
+                                {
+                                    hbox.setSpacing(8);
+                                    hbox.setAlignment(Pos.CENTER);
+                                    hbox.getChildren().add(button);
+                                    hbox.getChildren().add(button2);
+                                    HBox.setHgrow(button, Priority.ALWAYS);
+                                    HBox.setHgrow(button2, Priority.ALWAYS);
+                                }
 
                                 TableRow<OfferBookListItem> tableRow = getTableRow();
                                 if (item != null && !empty) {
