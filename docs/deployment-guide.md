@@ -243,6 +243,10 @@ Set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `true` for the arbitrator to assig
 
 Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getGlobalTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
 
+## Update the download URL
+
+Change every instance of `https://haveno.exchange/downloads` to your download URL. For example, `https://havenoexample.com/downloads`.
+
 ## Start users for testing
 
 Start user1 on Monero's mainnet using `make user1-desktop-mainnet` or Monero's stagenet using `make user1-desktop-stagenet`.
