@@ -201,11 +201,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 DisplayUtils.formatDateTime(trade.getDate()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(offer.getMaxBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(offer.getMaxSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(trade.getSellerSecurityDepositBeforeMiningFee(), true);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
