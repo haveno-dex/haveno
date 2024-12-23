@@ -852,14 +852,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    public boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
-        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
-            onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
-            return true;
-        }
-        return false;
-    }
-
     public boolean isIdling() {
         return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
@@ -2386,7 +2378,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return tradeVolumeProperty;
     }
 
-    private void onConnectionChanged(MoneroRpcConnection connection) {
+    @Override
+    protected void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
             // use current connection
