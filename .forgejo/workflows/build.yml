@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+    paths-ignore:
+      - '**/README.md'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-13, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+          cache: gradle
+      - name: Build with Gradle
+        run: ./gradlew build --stacktrace --scan
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: error-reports-${{ matrix.os }}
+          path: ${{ github.workspace }}/desktop/build/reports
+      - name: cache nodes dependencies
+        uses: actions/upload-artifact@v3
+        with:
+          include-hidden-files: true
+          name: cached-localnet
+          path: .localnet
+      - name: Install dependencies
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: |
+          sudo apt update
+          sudo apt install -y rpm libfuse2 flatpak flatpak-builder appstream
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: Install WiX Toolset
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
+          .\wix314.exe /quiet /norestart
+        shell: powershell
+      - name: Build Haveno Installer
+        run: |
+          ./gradlew clean build --refresh-keys --refresh-dependencies
+          ./gradlew packageInstallers
+        working-directory: .
+
+      # get version from jar
+      - name: Set Version Unix
+        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+        run: |
+          export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set Version Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
+          "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
+        shell: powershell
+
+      - name: Move Release Files on Unix
+        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+        run: |
+          if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
+            mkdir ${{ github.workspace }}/release-linux-rpm
+            mkdir ${{ github.workspace }}/release-linux-deb
+            mkdir ${{ github.workspace }}/release-linux-flatpak
+            mkdir ${{ github.workspace }}/release-linux-appimage
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-x86_64-installer.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-x86_64-installer.deb
+            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-x86_64.flatpak
+            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-x86_64.AppImage
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-deb
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-rpm
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-appimage
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-flatpak
+          else
+            mkdir ${{ github.workspace }}/release-macos
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-macos
+          fi
+        shell: bash
+      - name: Move Release Files on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          mkdir ${{ github.workspace }}/release-windows
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
+          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
+        shell: powershell
+
+      # win
+      - uses: actions/upload-artifact@v3
+        name: "Windows artifacts"
+        if: ${{ matrix.os == 'windows-latest'}}
+        with:
+          name: haveno-windows
+          path: ${{ github.workspace }}/release-windows
+      # macos
+      - uses: actions/upload-artifact@v3
+        name: "macOS artifacts"
+        if: ${{ matrix.os == 'macos-13'  }}
+        with:
+          name: haveno-macos
+          path: ${{ github.workspace }}/release-macos
+      # linux
+      - uses: actions/upload-artifact@v3
+        name: "Linux - deb artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-deb
+          path: ${{ github.workspace }}/release-linux-deb
+      - uses: actions/upload-artifact@v3
+        name: "Linux - rpm artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-rpm
+          path: ${{ github.workspace }}/release-linux-rpm
+
+      - uses: actions/upload-artifact@v3
+        name: "Linux - AppImage artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-appimage
+          path: ${{ github.workspace }}/release-linux-appimage
+
+      - uses: actions/upload-artifact@v3
+        name: "Linux - flatpak artifact"
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        with:
+          name: haveno-linux-flatpak
+          path: ${{ github.workspace }}/release-linux-flatpak
