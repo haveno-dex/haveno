@@ -33,6 +33,7 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroOutput;
+import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTxWallet;
 
 @Slf4j
@@ -62,7 +63,6 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             model.getXmrWalletService().getXmrConnectionService().verifyConnection();
 
             // create reserve tx
-            MoneroTxWallet reserveTx = null;
             synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
 
                 // reset protocol timeout
@@ -79,6 +79,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 Integer preferredSubaddressIndex = fundingEntry == null ? null : fundingEntry.getSubaddressIndex();
 
                 // attempt creating reserve tx
+                MoneroTxWallet reserveTx = null;
                 try {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
                         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
@@ -121,6 +122,17 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 openOffer.setReserveTxHex(reserveTx.getFullHex());
                 openOffer.setReserveTxKey(reserveTx.getKey());
                 offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
+
+                // reset offer funding address entry if unused
+                List<MoneroOutputWallet> inputs = model.getXmrWalletService().getOutputs(reservedKeyImages);
+                boolean usesFundingEntry = false;
+                for (MoneroOutputWallet input : inputs) {
+                    if (input.getAccountIndex() == 0 && input.getSubaddressIndex() == fundingEntry.getSubaddressIndex()) {
+                        usesFundingEntry = true;
+                        break;
+                    }
+                }
+                if (!usesFundingEntry) model.getXmrWalletService().swapAddressEntryToAvailable(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
             }
             complete();
         } catch (Throwable t) {

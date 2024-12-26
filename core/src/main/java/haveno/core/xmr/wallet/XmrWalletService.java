@@ -578,15 +578,6 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    public BigInteger getOutputsAmount(Collection<String> keyImages) {
-        BigInteger sum = BigInteger.ZERO;
-        for (String keyImage : keyImages) {
-            List<MoneroOutputWallet> outputs = getOutputs(new MoneroOutputQuery().setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage)));
-            if (!outputs.isEmpty()) sum = sum.add(outputs.get(0).getAmount());
-        }
-        return sum;
-    }
-
     private List<Integer> getSubaddressesWithExactInput(BigInteger amount) {
 
         // fetch unspent, unfrozen, unlocked outputs
@@ -1125,6 +1116,15 @@ public class XmrWalletService extends XmrWalletBase {
         return subaddress == null ? BigInteger.ZERO : subaddress.getBalance();
     }
 
+    public BigInteger getBalanceForSubaddress(int subaddressIndex, boolean includeFrozen) {
+        return getBalanceForSubaddress(subaddressIndex).add(includeFrozen ? getFrozenBalanceForSubaddress(subaddressIndex) : BigInteger.ZERO);
+    }
+
+    public BigInteger getFrozenBalanceForSubaddress(int subaddressIndex) {
+        List<MoneroOutputWallet> outputs = getOutputs(new MoneroOutputQuery().setIsFrozen(true).setIsSpent(false).setAccountIndex(0).setSubaddressIndex(subaddressIndex));
+        return outputs.stream().map(output -> output.getAmount()).reduce(BigInteger.ZERO, BigInteger::add);
+    }
+
     public BigInteger getAvailableBalanceForSubaddress(int subaddressIndex) {
         MoneroSubaddress subaddress = getSubaddress(subaddressIndex);
         return subaddress == null ? BigInteger.ZERO : subaddress.getUnlockedBalance();
@@ -1248,6 +1248,19 @@ public class XmrWalletService extends XmrWalletBase {
             if (query == null || query.meetsCriteria(output)) filteredOutputs.add(output);
         }
         return filteredOutputs;
+    }
+
+    public List<MoneroOutputWallet> getOutputs(Collection<String> keyImages) {
+        List<MoneroOutputWallet> outputs = new ArrayList<MoneroOutputWallet>();
+        for (String keyImage : keyImages) {
+            List<MoneroOutputWallet> outputList = getOutputs(new MoneroOutputQuery().setIsSpent(false).setKeyImage(new MoneroKeyImage(keyImage)));
+            if (!outputList.isEmpty()) outputs.add(outputList.get(0));
+        }
+        return outputs;
+    }
+
+    public BigInteger getOutputsAmount(Collection<String> keyImages) {
+        return getOutputs(keyImages).stream().map(output -> output.getAmount()).reduce(BigInteger.ZERO, BigInteger::add);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
