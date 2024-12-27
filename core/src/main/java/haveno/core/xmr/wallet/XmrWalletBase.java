@@ -30,11 +30,13 @@ public abstract class XmrWalletBase {
     // constants
     public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 120;
     public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
+    public static final int SAVE_WALLET_DELAY_SECONDS = 300;
 
     // inherited
     protected MoneroWallet wallet;
     @Getter
     protected final Object walletLock = new Object();
+    protected Timer saveWalletDelayTimer;
     @Getter
     protected XmrConnectionService xmrConnectionService;
     protected boolean wasWalletSynced;
@@ -146,8 +148,23 @@ public abstract class XmrWalletBase {
         return false;
     }
 
+    public void saveWalletWithDelay() {
+        // delay writing to disk to avoid frequent write operations
+        if (saveWalletDelayTimer == null) {
+            saveWalletDelayTimer = UserThread.runAfter(() -> {
+                requestSaveWallet();
+                UserThread.execute(() -> saveWalletDelayTimer = null);
+            }, SAVE_WALLET_DELAY_SECONDS, TimeUnit.SECONDS);
+        }
+    }
+
+    // --------------------------------- ABSTRACT -----------------------------
+
+    public abstract void saveWallet();
+
+    public abstract void requestSaveWallet();
+
     protected abstract void onConnectionChanged(MoneroRpcConnection connection);
-    
 
     // ------------------------------ PRIVATE HELPERS -------------------------
 

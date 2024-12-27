@@ -901,6 +901,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    @Override
     public void requestSaveWallet() {
 
         // save wallet off main thread
@@ -911,6 +912,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
          }, getId());
     }
 
+    @Override
     public void saveWallet() {
         synchronized (walletLock) {
             if (!walletExists()) {
@@ -2675,7 +2677,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     pollInProgress = false;
                 }
             }
-            requestSaveWallet();
+            saveWalletWithDelay();
         }
     }
 

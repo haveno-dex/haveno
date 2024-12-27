@@ -245,16 +245,20 @@ public class XmrWalletService extends XmrWalletBase {
         return user.getWalletCreationDate();
     }
 
-    public void saveMainWallet() {
-        saveMainWallet(!(Utilities.isWindows() && wallet != null));
+    @Override
+    public void saveWallet() {
+        saveWallet(!(Utilities.isWindows() && wallet != null));
     }
 
-    public void saveMainWallet(boolean backup) {
-        saveWallet(getWallet(), backup);
+    public void saveWallet(boolean backup) {
+        synchronized (walletLock) {
+            saveWallet(getWallet(), backup);
+        }
     }
 
-    public void requestSaveMainWallet() {
-        ThreadUtils.submitToPool(() -> saveMainWallet()); // save wallet off main thread
+    @Override
+    public void requestSaveWallet() {
+        ThreadUtils.submitToPool(() -> saveWallet()); // save wallet off main thread
     }
 
     public boolean isWalletAvailable() {
@@ -443,7 +447,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (Boolean.TRUE.equals(txConfig.getRelay())) {
                     cachedTxs.addFirst(tx);
                     cacheWalletInfo();
-                    requestSaveMainWallet();
+                    requestSaveWallet();
                 }
                 return tx;
             }
@@ -453,7 +457,7 @@ public class XmrWalletService extends XmrWalletBase {
     public String relayTx(String metadata) {
         synchronized (walletLock) {
             String txId = wallet.relayTx(metadata);
-            requestSaveMainWallet();
+            requestSaveWallet();
             return txId;
         }
     }
@@ -552,7 +556,7 @@ public class XmrWalletService extends XmrWalletBase {
             // freeze outputs
             for (String keyImage : unfrozenKeyImages) wallet.freezeOutput(keyImage);
             cacheWalletInfo();
-            requestSaveMainWallet();
+            requestSaveWallet();
         }
     }
 
@@ -574,7 +578,7 @@ public class XmrWalletService extends XmrWalletBase {
             // thaw outputs
             for (String keyImage : frozenKeyImages) wallet.thawOutput(keyImage);
             cacheWalletInfo();
-            requestSaveMainWallet();
+            requestSaveWallet();
         }
     }
 
@@ -1424,14 +1428,14 @@ public class XmrWalletService extends XmrWalletBase {
                         HavenoUtils.havenoSetup.getWalletInitialized().set(true);
 
                         // save but skip backup on initialization
-                        saveMainWallet(false);
+                        saveWallet(false);
                     } catch (Exception e) {
                         if (isClosingWallet || isShutDownStarted || HavenoUtils.havenoSetup.getWalletInitialized().get()) return; // ignore if wallet closing, shut down started, or app already initialized
                         log.warn("Error initially syncing main wallet: {}", e.getMessage());
                         if (numSyncAttempts <= 1) {
                             log.warn("Failed to sync main wallet. Opening app without syncing", numSyncAttempts);
                             HavenoUtils.havenoSetup.getWalletInitialized().set(true);
-                            saveMainWallet(false);
+                            saveWallet(false);
 
                             // reschedule to init main wallet
                             UserThread.runAfter(() -> {
@@ -1809,7 +1813,7 @@ public class XmrWalletService extends XmrWalletBase {
         tasks.add(() -> {
             try {
                 wallet.changePassword(oldPassword, newPassword);
-                saveMainWallet();
+                saveWallet();
             } catch (Exception e) {
                 log.warn("Error changing main wallet password: " + e.getMessage() + "\n", e);
                 throw e;
@@ -2002,7 +2006,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (wallet != null && !isShutDownStarted) {
                     try {
                         cacheWalletInfo();
-                        requestSaveMainWallet();
+                        saveWalletWithDelay();
                     } catch (Exception e) {
                         log.warn("Error caching wallet info: " + e.getMessage() + "\n", e);
                     }
