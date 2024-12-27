@@ -508,12 +508,14 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateP2PTable() {
-        if (connectionService.isShutDownStarted()) return; // ignore if shutting down
-        p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
-        p2pNetworkListItems.clear();
-        p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
-                .map(connection -> new P2pNetworkListItem(connection, clockWatcher))
-                .collect(Collectors.toList()));
+        UserThread.execute(() -> {
+            if (connectionService.isShutDownStarted()) return; // ignore if shutting down
+            p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
+            p2pNetworkListItems.clear();
+            p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
+                    .map(connection -> new P2pNetworkListItem(connection, clockWatcher))
+                    .collect(Collectors.toList()));
+        });
     }
 
     private void updateMoneroConnectionsTable() {
