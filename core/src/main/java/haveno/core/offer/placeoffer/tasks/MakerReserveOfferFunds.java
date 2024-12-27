@@ -124,15 +124,17 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
 
                 // reset offer funding address entry if unused
-                List<MoneroOutputWallet> inputs = model.getXmrWalletService().getOutputs(reservedKeyImages);
-                boolean usesFundingEntry = false;
-                for (MoneroOutputWallet input : inputs) {
-                    if (input.getAccountIndex() == 0 && input.getSubaddressIndex() == fundingEntry.getSubaddressIndex()) {
-                        usesFundingEntry = true;
-                        break;
+                if (fundingEntry != null) {
+                    List<MoneroOutputWallet> inputs = model.getXmrWalletService().getOutputs(reservedKeyImages);
+                    boolean usesFundingEntry = false;
+                    for (MoneroOutputWallet input : inputs) {
+                        if (input.getAccountIndex() == 0 && input.getSubaddressIndex() == fundingEntry.getSubaddressIndex()) {
+                            usesFundingEntry = true;
+                            break;
+                        }
                     }
+                    if (!usesFundingEntry) model.getXmrWalletService().swapAddressEntryToAvailable(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
                 }
-                if (!usesFundingEntry) model.getXmrWalletService().swapAddressEntryToAvailable(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
             }
             complete();
         } catch (Throwable t) {
