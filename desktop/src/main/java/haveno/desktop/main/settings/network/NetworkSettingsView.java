@@ -521,7 +521,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             if (connectionService.isShutDownStarted()) return; // ignore if shutting down
             moneroNetworkListItems.clear();
             moneroNetworkListItems.setAll(connectionService.getConnections().stream()
-                    .map(connection -> new MoneroNetworkListItem(connection, Boolean.TRUE.equals(connection.isConnected()) && connection == connectionService.getConnection()))
+                    .map(connection -> new MoneroNetworkListItem(connection, connection == connectionService.getConnection() && Boolean.TRUE.equals(connectionService.isConnected())))
                     .collect(Collectors.toList()));
             updateChainHeightTextField(connectionService.chainHeightProperty().get());
         });
