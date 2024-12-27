@@ -376,8 +376,8 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void saveWallet(MoneroWallet wallet, boolean backup) {
-        wallet.save();
         if (backup) backupWallet(getWalletName(wallet.getPath()));
+        wallet.save();
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
@@ -385,8 +385,8 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroError err = null;
         String path = wallet.getPath();
         try {
-            wallet.close(save);
-            if (save) backupWallet(getWalletName(path));
+            if (save) saveWallet(wallet, true);
+            wallet.close();
         } catch (MoneroError e) {
             err = e;
         }
