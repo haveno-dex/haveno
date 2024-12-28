@@ -178,6 +178,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static int numThrottledInvalidRequestReports = 0;
     private static long lastLoggedWarningTs = 0;
     private static int numThrottledWarnings = 0;
+    private static long lastLoggedInfoTs = 0;
+    private static int numThrottledInfos = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -676,7 +678,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             throttleWarn("SocketException (expected if connection lost). closeConnectionReason=" + closeConnectionReason + "; connection=" + this);
         } else if (e instanceof SocketTimeoutException || e instanceof TimeoutException) {
             closeConnectionReason = CloseConnectionReason.SOCKET_TIMEOUT;
-            throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
+            throttleInfo("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
         } else if (e instanceof EOFException) {
             closeConnectionReason = CloseConnectionReason.TERMINATED;
             throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
@@ -937,14 +939,26 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private synchronized void throttleWarn(String msg) {
-        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
-        if (logWarning) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
             log.warn(msg);
             if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
             numThrottledWarnings = 0;
             lastLoggedWarningTs = System.currentTimeMillis();
         } else {
             numThrottledWarnings++;
+        }
+    }
+
+    private synchronized void throttleInfo(String msg) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedInfoTs > LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
+            log.info(msg);
+            if (numThrottledInfos > 0) log.info("{} info logs were throttled since the last log entry", numThrottledInfos);
+            numThrottledInfos = 0;
+            lastLoggedInfoTs = System.currentTimeMillis();
+        } else {
+            numThrottledInfos++;
         }
     }
 }
