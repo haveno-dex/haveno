@@ -212,8 +212,8 @@ public class HavenoAppMain extends HavenoExecutable {
             errorMessageField.setTextFill(Color.color(1, 0, 0));
 
             // Create the version field
-            Label versionField = new Label(Version.VERSION);
-            
+            Label versionField = new Label("v" + Version.VERSION);
+
             // Set the dialog content
             VBox vbox = new VBox(10);
             vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByPath("logo_splash.png")), versionField, passwordField, errorMessageField);

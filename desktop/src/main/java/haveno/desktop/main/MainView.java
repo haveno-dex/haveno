@@ -20,6 +20,7 @@ package haveno.desktop.main;
 import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
+import haveno.common.app.Version;
 import haveno.common.HavenoException;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -510,6 +511,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         ImageView logo = new ImageView();
         logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-splash-logo" : "image-splash-testnet-logo");
 
+        Label versionLabel = new Label("v" + Version.VERSION);
+
         // createBitcoinInfoBox
         xmrSplashInfo = new AutoTooltipLabel();
         xmrSplashInfo.textProperty().bind(model.getXmrInfo());
@@ -621,7 +624,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkBox.setPrefHeight(40);
         splashP2PNetworkBox.getChildren().addAll(splashP2PNetworkLabel, splashP2PNetworkBusyAnimation, splashP2PNetworkIcon, showTorNetworkSettingsButton);
 
-        vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox);
+        vBox.getChildren().addAll(logo, versionLabel, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox);
         return vBox;
     }
 
