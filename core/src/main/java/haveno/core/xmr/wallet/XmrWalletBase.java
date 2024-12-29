@@ -17,6 +17,7 @@ import javafx.beans.property.LongProperty;
 import javafx.beans.property.SimpleLongProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
@@ -24,16 +25,18 @@ import monero.wallet.MoneroWalletFull;
 import monero.wallet.model.MoneroWalletListener;
 
 @Slf4j
-public class XmrWalletBase {
+public abstract class XmrWalletBase {
 
     // constants
     public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 120;
     public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
+    public static final int SAVE_WALLET_DELAY_SECONDS = 300;
 
     // inherited
     protected MoneroWallet wallet;
     @Getter
     protected final Object walletLock = new Object();
+    protected Timer saveWalletDelayTimer;
     @Getter
     protected XmrConnectionService xmrConnectionService;
     protected boolean wasWalletSynced;
@@ -136,6 +139,34 @@ public class XmrWalletBase {
             if (syncProgressError != null) throw new RuntimeException(syncProgressError);
         }
     }
+
+    public boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
+        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
+            onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
+            return true;
+        }
+        return false;
+    }
+
+    public void saveWalletWithDelay() {
+        // delay writing to disk to avoid frequent write operations
+        if (saveWalletDelayTimer == null) {
+            saveWalletDelayTimer = UserThread.runAfter(() -> {
+                requestSaveWallet();
+                UserThread.execute(() -> saveWalletDelayTimer = null);
+            }, SAVE_WALLET_DELAY_SECONDS, TimeUnit.SECONDS);
+        }
+    }
+
+    // --------------------------------- ABSTRACT -----------------------------
+
+    public abstract void saveWallet();
+
+    public abstract void requestSaveWallet();
+
+    protected abstract void onConnectionChanged(MoneroRpcConnection connection);
+
+    // ------------------------------ PRIVATE HELPERS -------------------------
 
     private void updateSyncProgress(long height, long targetHeight) {
         resetSyncProgressTimeout();

@@ -60,7 +60,7 @@ class DepositListItem {
         this.xmrWalletService = xmrWalletService;
         this.addressEntry = addressEntry;
 
-        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
+        balanceAsBI = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex(), true);
         balance.set(HavenoUtils.formatXmr(balanceAsBI));
 
         updateUsage(addressEntry.getSubaddressIndex());
