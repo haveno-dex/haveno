@@ -788,11 +788,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         return new TableCell<>() {
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
-                                if (item != null && !empty)
-                                    setGraphic(new ColoredDecimalPlacesWithZerosText(model.getAmount(item), GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
-                                else
-                                    setGraphic(null);
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
+                                    if (item != null && !empty)
+                                        setGraphic(new ColoredDecimalPlacesWithZerosText(model.getAmount(item), GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
+                                    else
+                                        setGraphic(null);
+                                });
                             }
                         };
                     }
@@ -817,12 +819,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
-
-                                if (item != null && !empty)
-                                    setText(CurrencyUtil.getCurrencyPair(item.getOffer().getCurrencyCode()));
-                                else
-                                    setText("");
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
+                                    if (item != null && !empty)
+                                        setText(CurrencyUtil.getCurrencyPair(item.getOffer().getCurrencyCode()));
+                                    else
+                                        setText("");
+                                });
                             }
                         };
                     }
@@ -852,13 +855,15 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         return new TableCell<>() {
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
 
-                                if (item != null && !empty) {
-                                    setGraphic(getPriceAndPercentage(item));
-                                } else {
-                                    setGraphic(null);
-                                }
+                                    if (item != null && !empty) {
+                                        setGraphic(getPriceAndPercentage(item));
+                                    } else {
+                                        setGraphic(null);
+                                    }
+                                });
                             }
 
                             private HBox getPriceAndPercentage(OfferBookListItem item) {
@@ -934,21 +939,23 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         return new TableCell<>() {
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
 
-                                if (item != null && !empty) {
-                                    if (item.getOffer().getPrice() == null) {
-                                        setText(Res.get("shared.na"));
-                                        setGraphic(null);
+                                    if (item != null && !empty) {
+                                        if (item.getOffer().getPrice() == null) {
+                                            setText(Res.get("shared.na"));
+                                            setGraphic(null);
+                                        } else {
+                                            setText("");
+                                            setGraphic(new ColoredDecimalPlacesWithZerosText(model.getVolume(item),
+                                                    model.getNumberOfDecimalsForVolume(item)));
+                                        }
                                     } else {
                                         setText("");
-                                        setGraphic(new ColoredDecimalPlacesWithZerosText(model.getVolume(item),
-                                                model.getNumberOfDecimalsForVolume(item)));
+                                        setGraphic(null);
                                     }
-                                } else {
-                                    setText("");
-                                    setGraphic(null);
-                                }
+                                });
                             }
                         };
                     }
@@ -974,30 +981,32 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
 
-                                if (item != null && !empty) {
+                                    if (item != null && !empty) {
 
-                                    Offer offer = item.getOffer();
-                                    if (model.isOfferBanned(offer)) {
-                                        setGraphic(new AutoTooltipLabel(model.getPaymentMethod(item)));
-                                    } else {
-                                        if (offer.isXmrAutoConf()) {
-                                            field = new HyperlinkWithIcon(model.getPaymentMethod(item), AwesomeIcon.ROCKET);
+                                        Offer offer = item.getOffer();
+                                        if (model.isOfferBanned(offer)) {
+                                            setGraphic(new AutoTooltipLabel(model.getPaymentMethod(item)));
                                         } else {
-                                            field = new HyperlinkWithIcon(model.getPaymentMethod(item));
+                                            if (offer.isXmrAutoConf()) {
+                                                field = new HyperlinkWithIcon(model.getPaymentMethod(item), AwesomeIcon.ROCKET);
+                                            } else {
+                                                field = new HyperlinkWithIcon(model.getPaymentMethod(item));
+                                            }
+                                            field.setOnAction(event -> {
+                                                offerDetailsWindow.show(offer);
+                                            });
+                                            field.setTooltip(new Tooltip(model.getPaymentMethodToolTip(item)));
+                                            setGraphic(field);
                                         }
-                                        field.setOnAction(event -> {
-                                            offerDetailsWindow.show(offer);
-                                        });
-                                        field.setTooltip(new Tooltip(model.getPaymentMethodToolTip(item)));
-                                        setGraphic(field);
+                                    } else {
+                                        setGraphic(null);
+                                        if (field != null)
+                                            field.setOnAction(null);
                                     }
-                                } else {
-                                    setGraphic(null);
-                                    if (field != null)
-                                        field.setOnAction(null);
-                                }
+                                });
                             }
                         };
                     }
@@ -1026,25 +1035,28 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         return new TableCell<>() {
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
-                                if (item != null && !empty) {
-                                    var isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
-                                    var deposit = isSellOffer ? item.getOffer().getMaxBuyerSecurityDeposit() :
-                                            item.getOffer().getMaxSellerSecurityDeposit();
-                                    if (deposit == null) {
-                                        setText(Res.get("shared.na"));
-                                        setGraphic(null);
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
+
+                                    if (item != null && !empty) {
+                                        var isSellOffer = item.getOffer().getDirection() == OfferDirection.SELL;
+                                        var deposit = isSellOffer ? item.getOffer().getMaxBuyerSecurityDeposit() :
+                                                item.getOffer().getMaxSellerSecurityDeposit();
+                                        if (deposit == null) {
+                                            setText(Res.get("shared.na"));
+                                            setGraphic(null);
+                                        } else {
+                                            setText("");
+                                            String rangePrefix = item.getOffer().isRange() ? "<= " : "";
+                                            setGraphic(new ColoredDecimalPlacesWithZerosText(rangePrefix + model.formatDepositString(
+                                                    deposit, item.getOffer().getAmount().longValueExact()),
+                                                    GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
+                                        }
                                     } else {
                                         setText("");
-                                        String rangePrefix = item.getOffer().isRange() ? "<= " : "";
-                                        setGraphic(new ColoredDecimalPlacesWithZerosText(rangePrefix + model.formatDepositString(
-                                                deposit, item.getOffer().getAmount().longValueExact()),
-                                                GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
+                                        setGraphic(null);
                                     }
-                                } else {
-                                    setText("");
-                                    setGraphic(null);
-                                }
+                                });
                             }
                         };
                     }
@@ -1071,112 +1083,114 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
                             @Override
                             public void updateItem(final OfferBookListItem item, boolean empty) {
-                                super.updateItem(item, empty);
+                                UserThread.execute(() -> {
+                                    super.updateItem(item, empty);
 
-                                final ImageView iconView = new ImageView();
-                                final AutoTooltipButton button = new AutoTooltipButton();
-    
-                                {
-                                    button.setGraphic(iconView);
-                                    button.setGraphicTextGap(10);
-                                    button.setPrefWidth(10000);
-                                }
-    
-                                final ImageView iconView2 = new ImageView();
-                                final AutoTooltipButton button2 = new AutoTooltipButton();
-    
-                                {
-                                    button2.setGraphic(iconView2);
-                                    button2.setGraphicTextGap(10);
-                                    button2.setPrefWidth(10000);
-                                }
-    
-                                final HBox hbox = new HBox();
-    
-                                {
-                                    hbox.setSpacing(8);
-                                    hbox.setAlignment(Pos.CENTER);
-                                    hbox.getChildren().add(button);
-                                    hbox.getChildren().add(button2);
-                                    HBox.setHgrow(button, Priority.ALWAYS);
-                                    HBox.setHgrow(button2, Priority.ALWAYS);
-                                }
-
-                                TableRow<OfferBookListItem> tableRow = getTableRow();
-                                if (item != null && !empty) {
-                                    Offer offer = item.getOffer();
-                                    boolean myOffer = model.isMyOffer(offer);
-
-                                    // https://github.com/bisq-network/bisq/issues/4986
-                                    if (tableRow != null) {
-                                        canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
-                                        tableRow.setOpacity(canTakeOfferResult.isValid() || myOffer ? 1 : 0.4);
-
-                                        if (myOffer) {
-                                            button.setDefaultButton(false);
-                                            tableRow.setOnMousePressed(null);
-                                        } else if (canTakeOfferResult.isValid()) {
-                                            // set first row button as default
-                                            button.setDefaultButton(getIndex() == 0);
-                                            tableRow.setOnMousePressed(null);
-                                        } else {
-                                            button.setDefaultButton(false);
-                                            tableRow.setOnMousePressed(e -> {
-                                                // ugly hack to get the icon clickable when deactivated
-                                                if (!(e.getTarget() instanceof ImageView || e.getTarget() instanceof Canvas))
-                                                    onShowInfo(offer, canTakeOfferResult);
-                                            });
-                                        }
+                                    final ImageView iconView = new ImageView();
+                                    final AutoTooltipButton button = new AutoTooltipButton();
+        
+                                    {
+                                        button.setGraphic(iconView);
+                                        button.setGraphicTextGap(10);
+                                        button.setPrefWidth(10000);
                                     }
-
-                                    String title;
-                                    if (myOffer) {
-                                        iconView.setId("image-remove");
-                                        title = Res.get("shared.remove");
-                                        button.setOnAction(e -> onRemoveOpenOffer(offer));
-
-                                        iconView2.setId("image-edit");
-                                        button2.updateText(Res.get("shared.edit"));
-                                        button2.setOnAction(e -> onEditOpenOffer(offer));
-                                        button2.setManaged(true);
-                                        button2.setVisible(true);
-                                    } else {
-                                        boolean isSellOffer = OfferViewUtil.isShownAsSellOffer(offer);
-                                        boolean isPrivateOffer = offer.isPrivateOffer();
-                                        iconView.setId(isPrivateOffer ? "image-lock2x" : isSellOffer ? "image-buy-white" : "image-sell-white");
-                                        iconView.setFitHeight(16);
-                                        iconView.setFitWidth(16);
-                                        button.setId(isSellOffer ? "buy-button" : "sell-button");
-                                        button.setStyle("-fx-text-fill: white");
-                                        title = Res.get("offerbook.takeOffer");
-                                        button.setTooltip(new Tooltip(Res.get("offerbook.takeOfferButton.tooltip", model.getDirectionLabelTooltip(offer))));
-                                        button.setOnAction(e -> onTakeOffer(offer));
-                                        button2.setManaged(false);
-                                        button2.setVisible(false);
+        
+                                    final ImageView iconView2 = new ImageView();
+                                    final AutoTooltipButton button2 = new AutoTooltipButton();
+        
+                                    {
+                                        button2.setGraphic(iconView2);
+                                        button2.setGraphicTextGap(10);
+                                        button2.setPrefWidth(10000);
                                     }
-
-                                    if (!myOffer) {
-                                        if (canTakeOfferResult == null) {
+        
+                                    final HBox hbox = new HBox();
+        
+                                    {
+                                        hbox.setSpacing(8);
+                                        hbox.setAlignment(Pos.CENTER);
+                                        hbox.getChildren().add(button);
+                                        hbox.getChildren().add(button2);
+                                        HBox.setHgrow(button, Priority.ALWAYS);
+                                        HBox.setHgrow(button2, Priority.ALWAYS);
+                                    }
+    
+                                    TableRow<OfferBookListItem> tableRow = getTableRow();
+                                    if (item != null && !empty) {
+                                        Offer offer = item.getOffer();
+                                        boolean myOffer = model.isMyOffer(offer);
+    
+                                        // https://github.com/bisq-network/bisq/issues/4986
+                                        if (tableRow != null) {
                                             canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
+                                            tableRow.setOpacity(canTakeOfferResult.isValid() || myOffer ? 1 : 0.4);
+    
+                                            if (myOffer) {
+                                                button.setDefaultButton(false);
+                                                tableRow.setOnMousePressed(null);
+                                            } else if (canTakeOfferResult.isValid()) {
+                                                // set first row button as default
+                                                button.setDefaultButton(getIndex() == 0);
+                                                tableRow.setOnMousePressed(null);
+                                            } else {
+                                                button.setDefaultButton(false);
+                                                tableRow.setOnMousePressed(e -> {
+                                                    // ugly hack to get the icon clickable when deactivated
+                                                    if (!(e.getTarget() instanceof ImageView || e.getTarget() instanceof Canvas))
+                                                        onShowInfo(offer, canTakeOfferResult);
+                                                });
+                                            }
                                         }
-
-                                        if (!canTakeOfferResult.isValid()) {
-                                            button.setOnAction(e -> onShowInfo(offer, canTakeOfferResult));
+    
+                                        String title;
+                                        if (myOffer) {
+                                            iconView.setId("image-remove");
+                                            title = Res.get("shared.remove");
+                                            button.setOnAction(e -> onRemoveOpenOffer(offer));
+    
+                                            iconView2.setId("image-edit");
+                                            button2.updateText(Res.get("shared.edit"));
+                                            button2.setOnAction(e -> onEditOpenOffer(offer));
+                                            button2.setManaged(true);
+                                            button2.setVisible(true);
+                                        } else {
+                                            boolean isSellOffer = OfferViewUtil.isShownAsSellOffer(offer);
+                                            boolean isPrivateOffer = offer.isPrivateOffer();
+                                            iconView.setId(isPrivateOffer ? "image-lock2x" : isSellOffer ? "image-buy-white" : "image-sell-white");
+                                            iconView.setFitHeight(16);
+                                            iconView.setFitWidth(16);
+                                            button.setId(isSellOffer ? "buy-button" : "sell-button");
+                                            button.setStyle("-fx-text-fill: white");
+                                            title = Res.get("offerbook.takeOffer");
+                                            button.setTooltip(new Tooltip(Res.get("offerbook.takeOfferButton.tooltip", model.getDirectionLabelTooltip(offer))));
+                                            button.setOnAction(e -> onTakeOffer(offer));
+                                            button2.setManaged(false);
+                                            button2.setVisible(false);
+                                        }
+    
+                                        if (!myOffer) {
+                                            if (canTakeOfferResult == null) {
+                                                canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
+                                            }
+    
+                                            if (!canTakeOfferResult.isValid()) {
+                                                button.setOnAction(e -> onShowInfo(offer, canTakeOfferResult));
+                                            }
+                                        }
+    
+                                        button.updateText(title);
+                                        setPadding(new Insets(0, 15, 0, 0));
+                                        setGraphic(hbox);
+                                    } else {
+                                        setGraphic(null);
+                                        button.setOnAction(null);
+                                        button2.setOnAction(null);
+                                        if (tableRow != null) {
+                                            tableRow.setOpacity(1);
+                                            tableRow.setOnMousePressed(null);
                                         }
                                     }
-
-                                    button.updateText(title);
-                                    setPadding(new Insets(0, 15, 0, 0));
-                                    setGraphic(hbox);
-                                } else {
-                                    setGraphic(null);
-                                    button.setOnAction(null);
-                                    button2.setOnAction(null);
-                                    if (tableRow != null) {
-                                        tableRow.setOpacity(1);
-                                        tableRow.setOnMousePressed(null);
-                                    }
-                                }
+                                });
                             }
                         };
                     }
@@ -1204,17 +1218,19 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 return new TableCell<>() {
                     @Override
                     public void updateItem(final OfferBookListItem item, boolean empty) {
-                        super.updateItem(item, empty);
+                        UserThread.execute(() -> {
+                            super.updateItem(item, empty);
 
-                        if (item != null && !empty) {
-                            var witnessAgeData = item.getWitnessAgeData(accountAgeWitnessService, signedWitnessService);
-                            var label = witnessAgeData.isSigningRequired()
-                                    ? new AccountStatusTooltipLabel(witnessAgeData)
-                                    : new InfoAutoTooltipLabel(witnessAgeData.getDisplayString(), witnessAgeData.getIcon(), ContentDisplay.RIGHT, witnessAgeData.getInfo());
-                            setGraphic(label);
-                        } else {
-                            setGraphic(null);
-                        }
+                            if (item != null && !empty) {
+                                var witnessAgeData = item.getWitnessAgeData(accountAgeWitnessService, signedWitnessService);
+                                var label = witnessAgeData.isSigningRequired()
+                                        ? new AccountStatusTooltipLabel(witnessAgeData)
+                                        : new InfoAutoTooltipLabel(witnessAgeData.getDisplayString(), witnessAgeData.getIcon(), ContentDisplay.RIGHT, witnessAgeData.getInfo());
+                                setGraphic(label);
+                            } else {
+                                setGraphic(null);
+                            }
+                        });
                     }
                 };
             }
@@ -1240,24 +1256,26 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                         return new TableCell<>() {
                             @Override
                             public void updateItem(final OfferBookListItem newItem, boolean empty) {
-                                super.updateItem(newItem, empty);
-                                if (newItem != null && !empty) {
-                                    final Offer offer = newItem.getOffer();
-                                    final NodeAddress makersNodeAddress = offer.getOwnerNodeAddress();
-                                    String role = Res.get("peerInfoIcon.tooltip.maker");
-                                    int numTrades = model.getNumTrades(offer);
-                                    PeerInfoIconTrading peerInfoIcon = new PeerInfoIconTrading(makersNodeAddress,
-                                            role,
-                                            numTrades,
-                                            privateNotificationManager,
-                                            offer,
-                                            model.preferences,
-                                            model.accountAgeWitnessService,
-                                            useDevPrivilegeKeys);
-                                    setGraphic(peerInfoIcon);
-                                } else {
-                                    setGraphic(null);
-                                }
+                                UserThread.execute(() -> {
+                                    super.updateItem(newItem, empty);
+                                    if (newItem != null && !empty) {
+                                        final Offer offer = newItem.getOffer();
+                                        final NodeAddress makersNodeAddress = offer.getOwnerNodeAddress();
+                                        String role = Res.get("peerInfoIcon.tooltip.maker");
+                                        int numTrades = model.getNumTrades(offer);
+                                        PeerInfoIconTrading peerInfoIcon = new PeerInfoIconTrading(makersNodeAddress,
+                                                role,
+                                                numTrades,
+                                                privateNotificationManager,
+                                                offer,
+                                                model.preferences,
+                                                model.accountAgeWitnessService,
+                                                useDevPrivilegeKeys);
+                                        setGraphic(peerInfoIcon);
+                                    } else {
+                                        setGraphic(null);
+                                    }
+                                });
                             }
                         };
                     }
