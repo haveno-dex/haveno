@@ -27,6 +27,7 @@ import haveno.core.offer.Offer;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
@@ -98,15 +99,18 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     private ChangeListener<String> filterTextFieldListener;
     private Scene scene;
     private XmrWalletService xmrWalletService;
+    private User user;
     private ContextMenu contextMenu;
 
     @Inject
     public FailedTradesView(FailedTradesViewModel model,
                             TradeDetailsWindow tradeDetailsWindow,
-                            XmrWalletService xmrWalletService) {
+                            XmrWalletService xmrWalletService,
+                            User user) {
         super(model);
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.xmrWalletService = xmrWalletService;
+        this.user = user;
     }
 
     @Override
@@ -190,9 +194,33 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         tableView.setItems(sortedList);
 
         contextMenu = new ContextMenu();
-        MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
-        MenuItem item2 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.taker")));
-        contextMenu.getItems().addAll(item1, item2);
+        boolean isArbitrator = user.getRegisteredArbitrator() != null;
+        if (isArbitrator) {
+            MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
+            MenuItem item2 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.taker")));
+
+            item1.setOnAction(event -> {
+                Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+                handleContextMenu("portfolio.failed.penalty.msg",
+                        Res.get(selectedFailedTrade.getMaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
+                        Res.get("shared.maker"),
+                        selectedFailedTrade.getMaker().getSecurityDeposit(),
+                        selectedFailedTrade.getMaker().getReserveTxHash(),
+                        selectedFailedTrade.getMaker().getReserveTxHex());
+            });
+    
+            item2.setOnAction(event -> {
+                Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+                handleContextMenu("portfolio.failed.penalty.msg",
+                        Res.get(selectedFailedTrade.getTaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
+                        Res.get("shared.taker"),
+                        selectedFailedTrade.getTaker().getSecurityDeposit(),
+                        selectedFailedTrade.getTaker().getReserveTxHash(),
+                        selectedFailedTrade.getTaker().getReserveTxHex());
+            });
+
+            contextMenu.getItems().addAll(item1, item2);
+        }
 
         tableView.setRowFactory(tv -> {
             TableRow<FailedTradesListItem> row = new TableRow<>();
@@ -200,26 +228,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                 contextMenu.show(row, event.getScreenX(), event.getScreenY());
             });
             return row;
-        });
-
-        item1.setOnAction(event -> {
-            Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
-            handleContextMenu("portfolio.failed.penalty.msg",
-                    Res.get(selectedFailedTrade.getMaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
-                    Res.get("shared.maker"),
-                    selectedFailedTrade.getMaker().getSecurityDeposit(),
-                    selectedFailedTrade.getMaker().getReserveTxHash(),
-                    selectedFailedTrade.getMaker().getReserveTxHex());
-        });
-
-        item2.setOnAction(event -> {
-            Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
-            handleContextMenu("portfolio.failed.penalty.msg",
-                    Res.get(selectedFailedTrade.getTaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
-                    Res.get("shared.taker"),
-                    selectedFailedTrade.getTaker().getSecurityDeposit(),
-                    selectedFailedTrade.getTaker().getReserveTxHash(),
-                    selectedFailedTrade.getTaker().getReserveTxHex());
         });
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
