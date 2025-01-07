@@ -115,6 +115,8 @@ public class CashAppForm extends PaymentMethodForm {
     public void addFormForEditAccount() {
         gridRowFrom = gridRow;
         addAccountNameTextFieldWithAutoFillToggleButton();
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
+                Res.get(cashAppAccount.getPaymentMethod().getId()));
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email.mobile.cashtag"),
                 cashAppAccount.getEmailOrMobileNrOrCashtag()).second;
 
