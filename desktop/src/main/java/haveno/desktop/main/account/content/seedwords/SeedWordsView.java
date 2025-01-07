@@ -1,36 +1,36 @@
 /*
- * This file is part of Bisq.
- *
- * Bisq is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at
- * your option) any later version.
- *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of Bisq.
+*
+* Bisq is free software: you can redistribute it and/or modify it
+* under the terms of the GNU Affero General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or (at
+* your option) any later version.
+*
+* Bisq is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+* License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 /*
- * This file is part of Haveno.
- *
- * Haveno is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at
- * your option) any later version.
- *
- * Haveno is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of Haveno.
+*
+* Haveno is free software: you can redistribute it and/or modify it
+* under the terms of the GNU Affero General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or (at
+* your option) any later version.
+*
+* Haveno is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+* License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 package haveno.desktop.main.account.content.seedwords;
 
@@ -53,6 +53,7 @@ import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import haveno.desktop.util.Layout;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
@@ -61,13 +62,20 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.TimeZone;
+import java.util.List;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import net.glxn.qrgen.QRCode;
+import net.glxn.qrgen.image.ImageType;
 import org.bitcoinj.crypto.MnemonicCode;
 import org.bitcoinj.crypto.MnemonicException;
 import org.bitcoinj.wallet.DeterministicSeed;
@@ -90,9 +98,10 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     private final SimpleBooleanProperty seedWordsValid = new SimpleBooleanProperty(false);
     private ChangeListener<String> seedWordsTextAreaChangeListener;
     private final BooleanProperty seedWordsEdited = new SimpleBooleanProperty();
-    private String seedWordText;
+    private char[] seedWordText;
     private LocalDate walletCreationDate;
 
+    private ImageView qrCodeImageView;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -100,10 +109,10 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     @Inject
     private SeedWordsView(WalletsManager walletsManager,
-                          OpenOfferManager openOfferManager,
-                          XmrWalletService xmrWalletService,
-                          WalletPasswordWindow walletPasswordWindow,
-                          @Named(Config.STORAGE_DIR) File storageDir) {
+                        OpenOfferManager openOfferManager,
+                        XmrWalletService xmrWalletService,
+                        WalletPasswordWindow walletPasswordWindow,
+                        @Named(Config.STORAGE_DIR) File storageDir) {
         this.walletsManager = walletsManager;
         this.openOfferManager = openOfferManager;
         this.xmrWalletService = xmrWalletService;
@@ -119,6 +128,16 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         displaySeedWordsTextArea.setPrefHeight(70);
         displaySeedWordsTextArea.setMaxHeight(70);
         displaySeedWordsTextArea.setEditable(false);
+
+        // Create a container for seed words and QR code
+        HBox hBox = new HBox();
+        qrCodeImageView = new ImageView();
+        qrCodeImageView.setFitWidth(150);
+        qrCodeImageView.setFitHeight(150);
+        hBox.getChildren().add(displaySeedWordsTextArea);  // Seed words text
+        hBox.getChildren().add(qrCodeImageView);           // QR code image view
+
+        root.add(hBox, 0, ++gridRow, 2, 1);  // Add the HBox to the grid
 
         datePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
         datePicker.setMouseTransparent(true);
@@ -141,7 +160,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
         addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.information"), Layout.GROUP_DISTANCE);
         addMultilineLabel(root, gridRow, Res.get("account.seed.info"),
-                Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        Layout.FIRST_ROW_AND_GROUP_DISTANCE);
 
         seedWordsValidChangeListener = (observable, oldValue, newValue) -> {
             if (newValue) {
@@ -206,20 +225,20 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
                         .onAction(() -> {
                             DontShowAgainLookup.dontShowAgain(key, true);
                             initSeedWords(xmrWalletService.getWallet().getSeed());
-                            showSeedScreen();
+                            Platform.runLater(this::showSeedScreen);
                         })
                         .closeButtonText(Res.get("shared.no"))
                         .show();
             } else {
                 initSeedWords(xmrWalletService.getWallet().getSeed());
-                showSeedScreen();
+                Platform.runLater(this::showSeedScreen);
             }
         }
     }
 
     @Override
     protected void deactivate() {
-        displaySeedWordsTextArea.setText("");
+        clearSensitiveData();
         datePicker.setValue(null);
 
         // seedWordsValid.removeListener(seedWordsValidChangeListener);
@@ -235,21 +254,43 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         // restoreDatePicker.getStyleClass().remove("validation-error");
     }
 
+    private void clearSensitiveData() {
+        if (seedWordText != null) {
+            // Overwrite seed words in memory before clearing
+            java.util.Arrays.fill(seedWordText, ' ');
+        }
+    }
+
+    private void generateAndDisplayQRCode(String seedWords) {
+        Platform.runLater(() -> {
+            // Using cakewallet's QR Code format 
+            String formattedSeed = "monero-wallet:?seed=" + seedWords.replace(" ", "+");
+    
+            // Generate QR Code using the net.glxn.qrgen library
+            ByteArrayInputStream qrCodeStream = new ByteArrayInputStream(
+                QRCode.from(formattedSeed).to(ImageType.PNG).stream().toByteArray()
+            );
+            Image qrCodeImage = new Image(qrCodeStream);
+            qrCodeImageView.setImage(qrCodeImage);
+        });
+    }
+
     private void askForPassword() {
         walletPasswordWindow.headLine(Res.get("account.seed.enterPw")).onSuccess(() -> {
             initSeedWords(xmrWalletService.getWallet().getSeed());
-            showSeedScreen();
+            Platform.runLater(this::showSeedScreen);
         }).hideForgotPasswordButton().show();
     }
 
     private void initSeedWords(String seed) {
-        seedWordText = seed;
+        seedWordText = seed.toCharArray();
     }
 
     private void showSeedScreen() {
-        displaySeedWordsTextArea.setText(seedWordText);
+        displaySeedWordsTextArea.setText(new String(seedWordText));
         walletCreationDate = Instant.ofEpochSecond(xmrWalletService.getWalletCreationDate()).atZone(ZoneId.systemDefault()).toLocalDate();
         datePicker.setValue(walletCreationDate);
+        generateAndDisplayQRCode(new String(seedWordText));
     }
 
     private void onRestore() {
@@ -316,7 +357,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         LocalDateTime localDateTime = walletDate.atStartOfDay().minusDays(1);
         long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
 
-        DeterministicSeed seed = new DeterministicSeed(Splitter.on(" ").splitToList(seedWordsTextArea.getText()), null, "", date);
+        DeterministicSeed seed = new DeterministicSeed(List.of(new String(seedWordText).split(" ")), null, "", date);
         SharedPresentation.restoreSeedWords(walletsManager, openOfferManager, seed, storageDir);
     }
 }
