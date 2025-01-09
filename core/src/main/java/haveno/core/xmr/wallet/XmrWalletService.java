@@ -1343,6 +1343,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 doMaybeInitMainWallet(sync, MAX_SYNC_ATTEMPTS);
             } catch (Exception e) {
+                if (isShutDownStarted) return;
                 log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
                 HavenoUtils.setTopError(e.getMessage());
                 throw e;
@@ -1510,10 +1511,11 @@ public class XmrWalletService extends XmrWalletBase {
             // try opening wallet
             config.setNetworkType(getMoneroNetworkType());
             config.setServer(connection);
-            log.info("Opening full wallet " + config.getPath() + " with monerod=" + connection.getUri() + ", proxyUri=" + connection.getProxyUri());
+            log.info("Opening full wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             try {
                 walletFull = MoneroWalletFull.openWallet(config);
             } catch (Exception e) {
+                if (isShutDownStarted) throw e;
                 log.warn("Failed to open full wallet '{}', attempting to use backup cache files, error={}", config.getPath(), e.getMessage());
                 boolean retrySuccessful = false;
                 try {
@@ -1551,7 +1553,7 @@ public class XmrWalletService extends XmrWalletBase {
 
                         // retry opening wallet after cache deleted
                         try {
-                            log.warn("Failed to open full wallet using backup cache files, retrying with cache deleted");
+                            log.warn("Failed to open full wallet '{}' using backup cache files, retrying with cache deleted", config.getPath());
                             walletFull = MoneroWalletFull.openWallet(config);
                             log.warn("Successfully opened full wallet after cache deleted");
                             retrySuccessful = true;
@@ -1565,7 +1567,7 @@ public class XmrWalletService extends XmrWalletBase {
                         } else {
     
                             // restore original wallet cache
-                            log.warn("Failed to open full wallet after deleting cache, restoring original cache");
+                            log.warn("Failed to open full wallet '{}' after deleting cache, restoring original cache", config.getPath());
                             File cacheFile = new File(cachePath);
                             if (cacheFile.exists()) cacheFile.delete();
                             if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
@@ -1637,11 +1639,12 @@ public class XmrWalletService extends XmrWalletBase {
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // try opening wallet
-            log.info("Opening RPC wallet " + config.getPath() + " with monerod=" + connection.getUri() + ", proxyUri=" + connection.getProxyUri());
+            log.info("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             config.setServer(connection);
             try {
                 walletRpc.openWallet(config);
             } catch (Exception e) {
+                if (isShutDownStarted) throw e;
                 log.warn("Failed to open RPC wallet '{}', attempting to use backup cache files, error={}", config.getPath(), e.getMessage());
                 boolean retrySuccessful = false;
                 try {
@@ -1679,7 +1682,7 @@ public class XmrWalletService extends XmrWalletBase {
 
                         // retry opening wallet after cache deleted
                         try {
-                            log.warn("Failed to open RPC wallet using backup cache files, retrying with cache deleted");
+                            log.warn("Failed to open RPC wallet '{}' using backup cache files, retrying with cache deleted", config.getPath());
                             walletRpc.openWallet(config);
                             log.warn("Successfully opened RPC wallet after cache deleted");
                             retrySuccessful = true;
@@ -1693,7 +1696,7 @@ public class XmrWalletService extends XmrWalletBase {
                         } else {
     
                             // restore original wallet cache
-                            log.warn("Failed to open RPC wallet after deleting cache, restoring original cache");
+                            log.warn("Failed to open RPC wallet '{}' after deleting cache, restoring original cache", config.getPath());
                             File cacheFile = new File(cachePath);
                             if (cacheFile.exists()) cacheFile.delete();
                             if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
