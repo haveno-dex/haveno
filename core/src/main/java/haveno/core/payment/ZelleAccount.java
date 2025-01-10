@@ -42,6 +42,7 @@ public final class ZelleAccount extends PaymentAccount {
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
+            PaymentAccountFormField.FieldId.EXTRA_INFO,
             PaymentAccountFormField.FieldId.SALT
     );
 
@@ -74,5 +75,13 @@ public final class ZelleAccount extends PaymentAccount {
 
     public String getHolderName() {
         return ((ZelleAccountPayload) paymentAccountPayload).getHolderName();
+    }
+
+    public void setExtraInfo(String extraInfo) {
+        ((ZelleAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((ZelleAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 }

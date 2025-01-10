@@ -102,6 +102,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     public static final String PAY_BY_MAIL_EXTRA_INFO = "payByMailExtraInfo";
     public static final String AUSTRALIA_PAYID_EXTRA_INFO = "australiaPayidExtraInfo";
     public static final String PAYPAL_EXTRA_INFO = "payPalExtraInfo";
+    public static final String ZELLE_EXTRA_INFO = "zelleExtraInfo";
+    public static final String SEPA_EXTRA_INFO = "sepaExtraInfo";
+    public static final String SEPA_INSTANT_EXTRA_INFO = "sepaInstantExtraInfo";
 
     // Comma separated list of ordinal of a haveno.common.app.Capability. E.g. ordinal of
     // Capability.SIGNED_ACCOUNT_AGE_WITNESS is 11 and Capability.MEDIATION is 12 so if we want to signal that maker

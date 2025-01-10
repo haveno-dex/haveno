@@ -17,6 +17,7 @@
 
 package haveno.desktop.components.paymentmethods;
 
+import com.jfoenix.controls.JFXTextArea;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -29,11 +30,14 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.FormBuilder;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
 
 public class ZelleForm extends PaymentMethodForm {
@@ -45,6 +49,10 @@ public class ZelleForm extends PaymentMethodForm {
                 ((ZelleAccountPayload) paymentAccountPayload).getHolderName());
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.email.mobile"),
                 ((ZelleAccountPayload) paymentAccountPayload).getEmailOrMobileNr());
+        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
+        textExtraInfo.setMinHeight(70);
+        textExtraInfo.setEditable(false);
+        textExtraInfo.setText(((ZelleAccountPayload) paymentAccountPayload).getExtraInfo());
         return gridRow;
     }
 
@@ -77,6 +85,16 @@ public class ZelleForm extends PaymentMethodForm {
         final String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "";
         addTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"),
                 nameAndCode);
+
+        TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt")).second;
+        extraTextArea.setMinHeight(70);
+        ((JFXTextArea) extraTextArea).setLabelFloat(false);
+        extraTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
+            zelleAccount.setExtraInfo(newValue);
+            updateFromInputs();
+        });
+
         addLimitations(false);
         addAccountNameTextFieldWithAutoFillToggleButton();
     }
@@ -101,6 +119,10 @@ public class ZelleForm extends PaymentMethodForm {
         final String nameAndCode = singleTradeCurrency != null ? singleTradeCurrency.getNameAndCode() : "";
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.currency"),
                 nameAndCode);
+        TextArea textAreaExtra = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
+        textAreaExtra.setText(zelleAccount.getExtraInfo());
+        textAreaExtra.setMinHeight(70);
+        textAreaExtra.setEditable(false);
         addLimitations(true);
     }
 
