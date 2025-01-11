@@ -3,7 +3,7 @@ name: ACAB
 on:
   workflow_dispatch:
   push:
-    branches: [ haveno-reto ]
+    branches: [ haveno-reto, dev ]
   pull_request:
     branches: [ haveno-reto ]
     paths-ignore:
@@ -39,11 +39,11 @@ jobs:
           include-hidden-files: true
           name: cached-localnet
           path: .localnet
-      - name: cache seednode jar
+      - name: save seednode JARs
         uses: actions/upload-artifact@v4
         with:
-          name: cached-seednode-jar
-          path: seednode/build/distributions
+          name: haveno-seednode-tar
+          path: seednode/build/distributions/seednode.tar
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
