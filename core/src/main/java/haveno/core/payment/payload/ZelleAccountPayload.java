@@ -37,6 +37,7 @@ import java.util.Map;
 public final class ZelleAccountPayload extends PaymentAccountPayload implements PayloadWithHolderName {
     private String emailOrMobileNr = "";
     private String holderName = "";
+    private String extraInfo = "";
 
     public ZelleAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -51,6 +52,7 @@ public final class ZelleAccountPayload extends PaymentAccountPayload implements 
                                        String id,
                                        String emailOrMobileNr,
                                        String holderName,
+                                       String extraInfo,
                                        long maxTradePeriod,
                                        Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -60,6 +62,7 @@ public final class ZelleAccountPayload extends PaymentAccountPayload implements 
 
         this.emailOrMobileNr = emailOrMobileNr;
         this.holderName = holderName;
+        this.extraInfo = extraInfo;
     }
 
     @Override
@@ -67,7 +70,8 @@ public final class ZelleAccountPayload extends PaymentAccountPayload implements 
         return getPaymentAccountPayloadBuilder()
                 .setZelleAccountPayload(protobuf.ZelleAccountPayload.newBuilder()
                         .setEmailOrMobileNr(emailOrMobileNr)
-                        .setHolderName(holderName))
+                        .setHolderName(holderName)
+                        .setExtraInfo(extraInfo))
                 .build();
     }
 
@@ -76,6 +80,7 @@ public final class ZelleAccountPayload extends PaymentAccountPayload implements 
                 proto.getId(),
                 proto.getZelleAccountPayload().getEmailOrMobileNr(),
                 proto.getZelleAccountPayload().getHolderName(),
+                proto.getZelleAccountPayload().getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -88,13 +93,15 @@ public final class ZelleAccountPayload extends PaymentAccountPayload implements 
     @Override
     public String getPaymentDetails() {
         return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.owner") + " " + holderName + ", " +
-                Res.getWithCol("payment.emailOrMobile") + " " + emailOrMobileNr;
+                Res.getWithCol("payment.emailOrMobile") + " " + emailOrMobileNr + ", " +
+                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo;
     }
 
     @Override
     public String getPaymentDetailsForTradePopup() {
         return Res.getWithCol("payment.account.owner") + " " + holderName + "\n" +
-                Res.getWithCol("payment.emailOrMobile") + " " + emailOrMobileNr;
+                Res.getWithCol("payment.emailOrMobile") + " " + emailOrMobileNr + "\n" +
+                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo;
     }
 
     @Override

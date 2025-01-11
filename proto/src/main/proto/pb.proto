@@ -901,6 +901,7 @@ message ChaseQuickPayAccountPayload {
 message ZelleAccountPayload {
     string holder_name = 1;
     string email_or_mobile_nr = 2;
+    string extra_info = 3;
 }
 
 message CountryBasedPaymentAccountPayload {
@@ -1021,12 +1022,14 @@ message SepaAccountPayload {
     string iban = 2;
     string bic = 3;
     string email = 4 [deprecated = true];
+    string extra_info = 5;
 }
 
 message SepaInstantAccountPayload {
     string holder_name = 1;
     string iban = 2;
     string bic = 3;
+    string extra_info = 4;
 }
 
 message CryptoCurrencyAccountPayload {

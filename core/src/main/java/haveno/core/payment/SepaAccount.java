@@ -43,6 +43,7 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
             PaymentAccountFormField.FieldId.BIC,
             PaymentAccountFormField.FieldId.COUNTRY,
             PaymentAccountFormField.FieldId.ACCEPTED_COUNTRY_CODES,
+            PaymentAccountFormField.FieldId.EXTRA_INFO,
             PaymentAccountFormField.FieldId.SALT
     );
 
@@ -102,6 +103,14 @@ public final class SepaAccount extends CountryBasedPaymentAccount implements Ban
 
     public void removeAcceptedCountry(String countryCode) {
         ((SepaAccountPayload) paymentAccountPayload).removeAcceptedCountry(countryCode);
+    }
+
+    public void setExtraInfo(String extraInfo) {
+        ((SepaAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((SepaAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 
     @Override

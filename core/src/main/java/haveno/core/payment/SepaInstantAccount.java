@@ -25,6 +25,7 @@ import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.SepaAccountPayload;
 import haveno.core.payment.payload.SepaInstantAccountPayload;
 import haveno.core.payment.validation.SepaIBANValidator;
 import lombok.EqualsAndHashCode;
@@ -88,6 +89,15 @@ public final class SepaInstantAccount extends CountryBasedPaymentAccount impleme
 
     public void removeAcceptedCountry(String countryCode) {
         ((SepaInstantAccountPayload) paymentAccountPayload).removeAcceptedCountry(countryCode);
+    }
+
+
+    public void setExtraInfo(String extraInfo) {
+        ((SepaAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+    }
+
+    public String getExtraInfo() {
+        return ((SepaAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 
     @Override
