@@ -21,14 +21,14 @@ import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.CashAtAtmAccountPayload;
+import haveno.core.payment.payload.CardlessCashAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.NonNull;
 
 import java.util.List;
 
-public final class CashAtAtmAccount extends PaymentAccount {
+public final class CardlessCashAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
@@ -39,13 +39,13 @@ public final class CashAtAtmAccount extends PaymentAccount {
         PaymentAccountFormField.FieldId.SALT
     );
 
-    public CashAtAtmAccount() {
-        super(PaymentMethod.CASH_AT_ATM);
+    public CardlessCashAccount() {
+        super(PaymentMethod.CARDLESS_CASH);
     }
 
     @Override
     protected PaymentAccountPayload createPayload() {
-        return new CashAtAtmAccountPayload(paymentMethod.getId(), id);
+        return new CardlessCashAccountPayload(paymentMethod.getId(), id);
     }
 
     @Override
@@ -59,18 +59,18 @@ public final class CashAtAtmAccount extends PaymentAccount {
     }
 
     public void setExtraInfo(String extraInfo) {
-        ((CashAtAtmAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
+        ((CardlessCashAccountPayload) paymentAccountPayload).setExtraInfo(extraInfo);
     }
 
     public String getExtraInfo() {
-        return ((CashAtAtmAccountPayload) paymentAccountPayload).getExtraInfo();
+        return ((CardlessCashAccountPayload) paymentAccountPayload).getExtraInfo();
     }
 
     @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);
         if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
-        if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.cashAtAtm.extraInfo.prompt"));
+        if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.cardlessCash.extraInfo.prompt"));
         return field;
     }
 }

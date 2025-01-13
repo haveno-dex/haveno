@@ -161,7 +161,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
-            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed,
+            takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cardlessCashWarningDisplayed,
             australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
@@ -272,7 +272,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
         maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowCashAtAtmWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowCardlessCashWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowAustraliaPayidWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowPayPalWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowCashAppWarning(lastPaymentAccount, model.dataModel.getOffer());
@@ -1167,10 +1167,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
     }
 
-    private void maybeShowCashAtAtmWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_AT_ATM_ID) &&
-                !cashAtAtmWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            cashAtAtmWarningDisplayed = true;
+    private void maybeShowCardlessCashWarning(PaymentAccount paymentAccount, Offer offer) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CARDLESS_CASH_ID) &&
+                !cardlessCashWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
+            cardlessCashWarningDisplayed = true;
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
                         .preamble(Res.get("payment.tradingRestrictions"))

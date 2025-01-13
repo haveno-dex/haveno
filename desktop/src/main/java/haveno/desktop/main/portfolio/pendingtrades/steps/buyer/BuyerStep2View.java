@@ -52,7 +52,7 @@ import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
 import haveno.desktop.components.paymentmethods.CashAppForm;
-import haveno.desktop.components.paymentmethods.CashAtAtmForm;
+import haveno.desktop.components.paymentmethods.CardlessCashForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
@@ -311,8 +311,8 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.PAY_BY_MAIL_ID:
                 gridRow = PayByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
-            case PaymentMethod.CASH_AT_ATM_ID:
-                gridRow = CashAtAtmForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+            case PaymentMethod.CARDLESS_CASH_ID:
+                gridRow = CardlessCashForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.MONEY_GRAM_ID:
                 gridRow = MoneyGramForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);

@@ -37,7 +37,7 @@ import haveno.core.monetary.Volume;
 import static haveno.core.offer.OfferPayload.ACCOUNT_AGE_WITNESS_HASH;
 import static haveno.core.offer.OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.CAPABILITIES;
-import static haveno.core.offer.OfferPayload.CASH_AT_ATM_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.CARDLESS_CASH_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.CASHAPP_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.F2F_CITY;
 import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
@@ -49,7 +49,7 @@ import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
 
 import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.CashAppAccount;
-import haveno.core.payment.CashAtAtmAccount;
+import haveno.core.payment.CardlessCashAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
@@ -219,8 +219,8 @@ public class OfferUtil {
             extraDataMap.put(AUSTRALIA_PAYID_EXTRA_INFO, ((AustraliaPayidAccount) paymentAccount).getExtraInfo());
         }
 
-        if (paymentAccount instanceof CashAtAtmAccount) {
-            extraDataMap.put(CASH_AT_ATM_EXTRA_INFO, ((CashAtAtmAccount) paymentAccount).getExtraInfo());
+        if (paymentAccount instanceof CardlessCashAccount) {
+            extraDataMap.put(CARDLESS_CASH_EXTRA_INFO, ((CardlessCashAccount) paymentAccount).getExtraInfo());
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());

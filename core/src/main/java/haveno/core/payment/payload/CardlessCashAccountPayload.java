@@ -35,10 +35,10 @@ import java.util.Map;
 @Setter
 @Getter
 @Slf4j
-public final class CashAtAtmAccountPayload extends PaymentAccountPayload {
+public final class CardlessCashAccountPayload extends PaymentAccountPayload {
     private String extraInfo = "";
 
-    public CashAtAtmAccountPayload(String paymentMethod, String id) {
+    public CardlessCashAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
     }
 
@@ -47,7 +47,7 @@ public final class CashAtAtmAccountPayload extends PaymentAccountPayload {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private CashAtAtmAccountPayload(String paymentMethod, String id,
+    private CardlessCashAccountPayload(String paymentMethod, String id,
                                              String extraInfo,
                                              long maxTradePeriod,
                                              Map<String, String> excludeFromJsonDataMap) {
@@ -61,15 +61,15 @@ public final class CashAtAtmAccountPayload extends PaymentAccountPayload {
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
-                .setCashAtAtmAccountPayload(protobuf.CashAtAtmAccountPayload.newBuilder()
+                .setCardlessCashAccountPayload(protobuf.CardlessCashAccountPayload.newBuilder()
                         .setExtraInfo(extraInfo))
                 .build();
     }
 
-    public static CashAtAtmAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
-        return new CashAtAtmAccountPayload(proto.getPaymentMethodId(),
+    public static CardlessCashAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
+        return new CardlessCashAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
-                proto.getCashAtAtmAccountPayload().getExtraInfo(),
+                proto.getCardlessCashAccountPayload().getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
