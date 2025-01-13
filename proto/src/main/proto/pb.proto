@@ -880,7 +880,7 @@ message PaymentAccountPayload {
         CelPayAccountPayload cel_pay_account_payload = 37;
         MoneseAccountPayload monese_account_payload = 38;
         VerseAccountPayload verse_account_payload = 39;
-        CashAtAtmAccountPayload cash_at_atm_account_payload = 40;
+        CardlessCashAccountPayload cardless_cash_account_payload = 40;
         PayPalAccountPayload paypal_account_payload = 41;
     }
 }
@@ -1140,7 +1140,7 @@ message PayByMailAccountPayload {
     string extra_info = 3;
 }
 
-message CashAtAtmAccountPayload {
+message CardlessCashAccountPayload {
     string extra_info = 1;
 }
 
@@ -1882,7 +1882,7 @@ message PaymentAccountForm {
         UPHOLD = 11;
         PAXUM = 12;
         PAY_BY_MAIL = 13;
-        CASH_AT_ATM = 14;
+        CARDLESS_CASH = 14;
         AUSTRALIA_PAYID = 15;
         CASH_APP = 16;
         PAYPAL = 17;

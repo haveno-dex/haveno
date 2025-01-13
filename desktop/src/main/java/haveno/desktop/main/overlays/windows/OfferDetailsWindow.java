@@ -182,7 +182,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 offer.getPaymentMethod().equals(PaymentMethod.AUSTRALIA_PAYID)||
                 offer.getPaymentMethod().equals(PaymentMethod.PAYPAL)||
                 offer.getPaymentMethod().equals(PaymentMethod.CASH_APP) ||
-                offer.getPaymentMethod().equals(PaymentMethod.CASH_AT_ATM);
+                offer.getPaymentMethod().equals(PaymentMethod.CARDLESS_CASH);
         if (!takeOfferHandlerOptional.isPresent())
             rows++;
         if (showAcceptedBanks)

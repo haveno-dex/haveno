@@ -48,7 +48,7 @@ import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BizumAccount;
 import haveno.core.payment.CapitualAccount;
 import haveno.core.payment.CashAppAccount;
-import haveno.core.payment.CashAtAtmAccount;
+import haveno.core.payment.CardlessCashAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.CashDepositAccount;
@@ -177,7 +177,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String AMAZON_GIFT_CARD_ID = "AMAZON_GIFT_CARD";
     public static final String BLOCK_CHAINS_INSTANT_ID = "BLOCK_CHAINS_INSTANT";
     public static final String PAY_BY_MAIL_ID = "PAY_BY_MAIL";
-    public static final String CASH_AT_ATM_ID = "CASH_AT_ATM";
+    public static final String CARDLESS_CASH_ID = "CASH_AT_ATM"; // preserve old id for backward compatibility
     public static final String CAPITUAL_ID = "CAPITUAL";
     public static final String CELPAY_ID = "CELPAY";
     public static final String MONESE_ID = "MONESE";
@@ -237,7 +237,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod AMAZON_GIFT_CARD;
     public static PaymentMethod BLOCK_CHAINS_INSTANT;
     public static PaymentMethod PAY_BY_MAIL;
-    public static PaymentMethod CASH_AT_ATM;
+    public static PaymentMethod CARDLESS_CASH;
     public static PaymentMethod CAPITUAL;
     public static PaymentMethod CELPAY;
     public static PaymentMethod MONESE;
@@ -284,7 +284,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Global
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
             PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
-            CASH_AT_ATM = new PaymentMethod(CASH_AT_ATM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAtAtmAccount.SUPPORTED_CURRENCIES)),
+            CARDLESS_CASH = new PaymentMethod(CARDLESS_CASH_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CardlessCashAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
             NATIONAL_BANK = new PaymentMethod(NATIONAL_BANK_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NationalBankAccount.SUPPORTED_CURRENCIES)),
@@ -347,7 +347,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static List<PaymentMethod> getPaymentMethods() {
         List<String> paymentMethodIds = List.of(
                 BLOCK_CHAINS_ID,
-                CASH_AT_ATM_ID,
+                CARDLESS_CASH_ID,
                 FASTER_PAYMENTS_ID,
                 F2F_ID,
                 MONEY_GRAM_ID,
@@ -592,12 +592,12 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static boolean isRoundedForAtmCash(String id) {
-        return id.equals(PaymentMethod.CASH_AT_ATM_ID) ||
+        return id.equals(PaymentMethod.CARDLESS_CASH_ID) ||
             id.equals(PaymentMethod.HAL_CASH_ID);
     }
 
     public static boolean isFixedPriceOnly(String id) {
-        return id.equals(PaymentMethod.CASH_AT_ATM_ID) ||
+        return id.equals(PaymentMethod.CARDLESS_CASH_ID) ||
             id.equals(PaymentMethod.HAL_CASH_ID);
     }
 }
