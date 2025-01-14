@@ -37,6 +37,7 @@ jobs:
           include-hidden-files: true
           name: cached-localnet
           path: .localnet
+          overwrite: true
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
