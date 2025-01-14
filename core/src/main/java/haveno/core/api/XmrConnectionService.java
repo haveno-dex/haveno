@@ -725,8 +725,8 @@ public final class XmrConnectionService {
 
                 // poll daemon
                 if (daemon == null) switchToBestConnection();
-                if (daemon == null) throw new RuntimeException("No connection to Monero daemon");
                 try {
+                    if (daemon == null) throw new RuntimeException("No connection to Monero daemon");
                     lastInfo = daemon.getInfo();
                 } catch (Exception e) {
 
@@ -753,6 +753,7 @@ public final class XmrConnectionService {
 
                     // switch to best connection
                     switchToBestConnection();
+                    if (daemon == null) throw new RuntimeException("No connection to Monero daemon after error handling");
                     lastInfo = daemon.getInfo(); // caught internally if still fails
                 }
 
