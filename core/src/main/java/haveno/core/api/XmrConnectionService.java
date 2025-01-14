@@ -654,8 +654,7 @@ public final class XmrConnectionService {
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
         if (isShutDownStarted || !accountService.isAccountOpen()) return;
         if (currentConnection == null) {
-            log.warn("Setting daemon connection to null");
-            Thread.dumpStack();
+            log.warn("Setting daemon connection to null", new Throwable("Stack trace"));
         }
         synchronized (lock) {
             if (currentConnection == null) {
