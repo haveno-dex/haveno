@@ -319,7 +319,7 @@ service XmrConnections {
     }
     rpc StopCheckingConnection(StopCheckingConnectionRequest) returns (StopCheckingConnectionReply) {
     }
-    rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
+    rpc GetBestConnection(GetBestConnectionRequest) returns (GetBestConnectionReply) {
     }
     rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
     }
@@ -400,9 +400,9 @@ message StopCheckingConnectionRequest {}
 
 message StopCheckingConnectionReply {}
 
-message GetBestAvailableConnectionRequest {}
+message GetBestConnectionRequest {}
 
-message GetBestAvailableConnectionReply {
+message GetBestConnectionReply {
     UrlConnection connection = 1;
 }
 

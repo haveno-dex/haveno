@@ -47,8 +47,8 @@ import haveno.proto.grpc.CheckConnectionsReply;
 import haveno.proto.grpc.CheckConnectionsRequest;
 import haveno.proto.grpc.GetAutoSwitchReply;
 import haveno.proto.grpc.GetAutoSwitchRequest;
-import haveno.proto.grpc.GetBestAvailableConnectionReply;
-import haveno.proto.grpc.GetBestAvailableConnectionRequest;
+import haveno.proto.grpc.GetBestConnectionReply;
+import haveno.proto.grpc.GetBestConnectionRequest;
 import haveno.proto.grpc.GetConnectionReply;
 import haveno.proto.grpc.GetConnectionRequest;
 import haveno.proto.grpc.GetConnectionsReply;
@@ -68,7 +68,7 @@ import static haveno.proto.grpc.XmrConnectionsGrpc.XmrConnectionsImplBase;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getAddConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionsMethod;
-import static haveno.proto.grpc.XmrConnectionsGrpc.getGetBestAvailableConnectionMethod;
+import static haveno.proto.grpc.XmrConnectionsGrpc.getGetBestConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getGetConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getGetConnectionsMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getRemoveConnectionMethod;
@@ -201,12 +201,12 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
     }
 
     @Override
-    public void getBestAvailableConnection(GetBestAvailableConnectionRequest request,
-                                           StreamObserver<GetBestAvailableConnectionReply> responseObserver) {
+    public void getBestConnection(GetBestConnectionRequest request,
+                                           StreamObserver<GetBestConnectionReply> responseObserver) {
         handleRequest(responseObserver, () -> {
-            MoneroRpcConnection connection = coreApi.getBestAvailableXmrConnection();
+            MoneroRpcConnection connection = coreApi.getBestXmrConnection();
             UrlConnection replyConnection = toUrlConnection(connection);
-            GetBestAvailableConnectionReply.Builder builder = GetBestAvailableConnectionReply.newBuilder();
+            GetBestConnectionReply.Builder builder = GetBestConnectionReply.newBuilder();
             if (replyConnection != null) {
                 builder.setConnection(replyConnection);
             }
@@ -314,7 +314,7 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
                             put(getCheckConnectionsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getStartCheckingConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getStopCheckingConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getGetBestAvailableConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
+                            put(getGetBestConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getSetAutoSwitchMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                         }}
                 )));
