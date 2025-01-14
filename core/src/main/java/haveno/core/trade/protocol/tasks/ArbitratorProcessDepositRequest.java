@@ -211,10 +211,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
         // log error
         if (errorMessage != null) {
-            log.warn("Sending deposit responses with error={}", errorMessage);
-            Thread.dumpStack();
+            log.warn("Sending deposit responses with error={}", errorMessage, new Throwable("Stack trace"));
         }
-                
+
         // create deposit response
         DepositResponse response = new DepositResponse(
                 trade.getOffer().getId(),
