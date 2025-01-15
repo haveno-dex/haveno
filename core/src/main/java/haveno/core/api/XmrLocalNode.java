@@ -166,11 +166,18 @@ public class XmrLocalNode {
 
         var args = new ArrayList<>(MONEROD_ARGS);
 
-        var dataDir = settings.getBlockchainPath();
-        if (dataDir == null || dataDir.isEmpty()) {
-            dataDir = MONEROD_DATADIR;
+        var dataDir = "";
+        if (config.xmrBlockchainPath == null || config.xmrBlockchainPath.isEmpty()) {
+            dataDir = settings.getBlockchainPath();
+            if (dataDir == null || dataDir.isEmpty()) {
+                dataDir = MONEROD_DATADIR;
+            }
+        } else {
+            dataDir = config.xmrBlockchainPath; // startup config overrides settings
         }
-        if (dataDir != null) args.add("--data-dir=" + dataDir);
+        if (dataDir != null && !dataDir.isEmpty()) {
+            args.add("--data-dir=" + dataDir);
+        }
 
         var bootstrapUrl = settings.getBootstrapUrl();
         if (bootstrapUrl != null && !bootstrapUrl.isEmpty()) {
