@@ -239,8 +239,8 @@ public class CoreApi {
         xmrConnectionService.stopCheckingConnection();
     }
 
-    public MoneroRpcConnection getBestAvailableXmrConnection() {
-        return xmrConnectionService.getBestAvailableConnection();
+    public MoneroRpcConnection getBestXmrConnection() {
+        return xmrConnectionService.getBestConnection();
     }
 
     public void setXmrConnectionAutoSwitch(boolean autoSwitch) {

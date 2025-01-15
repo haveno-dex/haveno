@@ -117,6 +117,7 @@ public class Config {
     public static final String BTC_FEE_INFO = "bitcoinFeeInfo";
     public static final String BYPASS_MEMPOOL_VALIDATION = "bypassMempoolValidation";
     public static final String PASSWORD_REQUIRED = "passwordRequired";
+    public static final String UPDATE_XMR_BINARIES = "updateXmrBinaries";
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -204,6 +205,7 @@ public class Config {
     public final boolean republishMailboxEntries;
     public final boolean bypassMempoolValidation;
     public final boolean passwordRequired;
+    public final boolean updateXmrBinaries;
 
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
@@ -621,6 +623,13 @@ public class Config {
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
+        ArgumentAcceptingOptionSpec<Boolean> updateXmrBinariesOpt =
+                parser.accepts(UPDATE_XMR_BINARIES,
+                        "Update Monero binaries if applicable")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(true);
+
         try {
             CompositeOptionSet options = new CompositeOptionSet();
 
@@ -733,6 +742,7 @@ public class Config {
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
             this.passwordRequired = options.valueOf(passwordRequiredOpt);
+            this.updateXmrBinaries = options.valueOf(updateXmrBinariesOpt);
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
                     ex.options().get(0),
