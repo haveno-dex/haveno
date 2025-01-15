@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, windows-latest]
+        os: [ubuntu-24.04, macos-13, windows-latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -39,7 +39,7 @@ jobs:
           path: .localnet
           overwrite: true
       - name: Install dependencies
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y rpm libfuse2 flatpak flatpak-builder appstream
@@ -58,7 +58,7 @@ jobs:
 
       # get version from jar
       - name: Set Version Unix
-        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' || matrix.os == 'macos-13' }}
         run: |
           export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -70,9 +70,9 @@ jobs:
         shell: powershell
 
       - name: Move Release Files on Unix
-        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' || matrix.os == 'macos-13' }}
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
+          if [ "${{ matrix.os }}" == "ubuntu-24.04" ]; then
             mkdir ${{ github.workspace }}/release-linux-rpm
             mkdir ${{ github.workspace }}/release-linux-deb
             mkdir ${{ github.workspace }}/release-linux-flatpak
@@ -116,27 +116,27 @@ jobs:
       # linux
       - uses: actions/upload-artifact@v4
         name: "Linux - deb artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
         with:
           name: haveno-linux-deb
           path: ${{ github.workspace }}/release-linux-deb
       - uses: actions/upload-artifact@v4
         name: "Linux - rpm artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
         with:
           name: haveno-linux-rpm
           path: ${{ github.workspace }}/release-linux-rpm
 
       - uses: actions/upload-artifact@v4
         name: "Linux - AppImage artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
         with:
           name: haveno-linux-appimage
           path: ${{ github.workspace }}/release-linux-appimage
 
       - uses: actions/upload-artifact@v4
         name: "Linux - flatpak artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
         with:
           name: haveno-linux-flatpak
           path: ${{ github.workspace }}/release-linux-flatpak
