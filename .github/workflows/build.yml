@@ -26,17 +26,18 @@ jobs:
           cache: gradle
       - name: Build with Gradle
         run: ./gradlew build --stacktrace --scan
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: error-reports-${{ matrix.os }}
           path: ${{ github.workspace }}/desktop/build/reports
       - name: cache nodes dependencies
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
           name: cached-localnet
           path: .localnet
+          overwrite: true
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
@@ -99,41 +100,41 @@ jobs:
         shell: powershell
 
       # win
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: "Windows artifacts"
         if: ${{ matrix.os == 'windows-latest'}}
         with:
           name: haveno-windows
           path: ${{ github.workspace }}/release-windows
       # macos
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: "macOS artifacts"
         if: ${{ matrix.os == 'macos-13'  }}
         with:
           name: haveno-macos
           path: ${{ github.workspace }}/release-macos
       # linux
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: "Linux - deb artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-deb
           path: ${{ github.workspace }}/release-linux-deb
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-rpm
           path: ${{ github.workspace }}/release-linux-rpm
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: "Linux - AppImage artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
           name: haveno-linux-appimage
           path: ${{ github.workspace }}/release-linux-appimage
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: "Linux - flatpak artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
         with:
