@@ -39,7 +39,7 @@ jobs:
           include-hidden-files: true
           name: cached-localnet
           path: .localnet
-      - name: Save seednode JARs
+      - name: save seednode JARs
         uses: actions/upload-artifact@v4
         with:
           name: haveno-seednode-tar
