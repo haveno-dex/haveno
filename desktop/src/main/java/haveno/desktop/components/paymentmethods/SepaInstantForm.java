@@ -25,7 +25,6 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.SepaInstantAccount;
 import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.payment.payload.SepaAccountPayload;
 import haveno.core.payment.payload.SepaInstantAccountPayload;
 import haveno.core.payment.validation.BICValidator;
 import haveno.core.payment.validation.SepaIBANValidator;
@@ -36,19 +35,14 @@ import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.normalization.IBANNormalizer;
 import javafx.collections.FXCollections;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.GridPane;
 
 import java.util.List;
 import java.util.Optional;
 
-import com.jfoenix.controls.JFXTextArea;
-
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class SepaInstantForm extends GeneralSepaForm {
 
@@ -66,10 +60,6 @@ public class SepaInstantForm extends GeneralSepaForm {
         // IBAN, BIC will not be translated
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, IBAN, sepaInstantAccountPayload.getIban());
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, BIC, sepaInstantAccountPayload.getBic());
-        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
-        textExtraInfo.setMinHeight(70);
-        textExtraInfo.setEditable(false);
-        textExtraInfo.setText(((SepaAccountPayload) paymentAccountPayload).getExtraInfo());
         return gridRow;
     }
 
@@ -153,15 +143,6 @@ public class SepaInstantForm extends GeneralSepaForm {
             ibanInputTextField.refreshValidation();
         });
 
-        TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
-                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt")).second;
-        extraTextArea.setMinHeight(70);
-        ((JFXTextArea) extraTextArea).setLabelFloat(false);
-        extraTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
-            sepaInstantAccount.setExtraInfo(newValue);
-            updateFromInputs();
-        });
-
         updateFromInputs();
     }
 
@@ -193,12 +174,6 @@ public class SepaInstantForm extends GeneralSepaForm {
 
         addCountriesGrid(Res.get("payment.accept.euro"), CountryUtil.getAllSepaEuroCountries());
         addCountriesGrid(Res.get("payment.accept.nonEuro"), CountryUtil.getAllSepaNonEuroCountries());
-
-        TextArea textAreaExtra = addCompactTopLabelTextArea(gridPane, ++gridRow, Res.get("payment.shared.extraInfo"), "").second;
-        textAreaExtra.setText(sepaInstantAccount.getExtraInfo());
-        textAreaExtra.setMinHeight(70);
-        textAreaExtra.setEditable(false);
-
         addLimitations(true);
     }
 

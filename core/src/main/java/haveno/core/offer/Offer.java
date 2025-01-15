@@ -432,12 +432,6 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return getExtraDataMap().get(OfferPayload.PAYPAL_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASHAPP_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.CASHAPP_EXTRA_INFO);
-        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.ZELLE_EXTRA_INFO))
-            return getExtraDataMap().get(OfferPayload.ZELLE_EXTRA_INFO);
-        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.SEPA_EXTRA_INFO))
-            return getExtraDataMap().get(OfferPayload.SEPA_EXTRA_INFO);
-        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.SEPA_INSTANT_EXTRA_INFO))
-            return getExtraDataMap().get(OfferPayload.SEPA_INSTANT_EXTRA_INFO);
         else
             return "";
     }

@@ -160,9 +160,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
-    private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, zelleExtraInfoDisplayed, fasterPaymentsWarningDisplayed,
+    private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
             takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed,
-            australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed, sepaExtraInfoDisplayed, sepaInstantExtraInfoDisplayed;
+            australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
@@ -268,7 +268,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
         maybeShowTakeOfferFromUnsignedAccountWarning(model.dataModel.getOffer());
-        maybeShowZelleWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowZelleWarning(lastPaymentAccount);
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
         maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
@@ -276,8 +276,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowAustraliaPayidWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowPayPalWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowCashAppWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowSepaWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowSepaInstantWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
             nextButton.setVisible(false);
@@ -761,7 +759,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         paymentAccountsComboBox.setOnAction(e -> {
             PaymentAccount paymentAccount = paymentAccountsComboBox.getSelectionModel().getSelectedItem();
             if (paymentAccount != null) {
-                maybeShowZelleWarning(paymentAccount, model.dataModel.getOffer());
+                maybeShowZelleWarning(paymentAccount);
                 maybeShowFasterPaymentsWarning(paymentAccount);
                 maybeShowAccountWarning(paymentAccount, model.dataModel.isBuyOffer());
             }
@@ -1130,25 +1128,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
     }
 
-    private void maybeShowZelleWarning(PaymentAccount paymentAccount, Offer offer) {
+    private void maybeShowZelleWarning(PaymentAccount paymentAccount) {
         if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.ZELLE_ID) &&
                 !zelleWarningDisplayed) {
             zelleWarningDisplayed = true;
             UserThread.runAfter(GUIUtil::showZelleWarning, 500, TimeUnit.MILLISECONDS);
-        }
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.ZELLE_ID) &&
-                !zelleExtraInfoDisplayed && !offer.getExtraInfo().isEmpty()) {
-            zelleExtraInfoDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -1238,40 +1222,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_APP_ID) &&
                 !cashAppWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
             cashAppWarningDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void maybeShowSepaWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.SEPA_ID) &&
-                !sepaExtraInfoDisplayed && !offer.getExtraInfo().isEmpty()) {
-            sepaExtraInfoDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void maybeShowSepaInstantWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.SEPA_INSTANT_ID) &&
-                !sepaInstantExtraInfoDisplayed && !offer.getExtraInfo().isEmpty()) {
-            sepaInstantExtraInfoDisplayed = true;
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
                         .preamble(Res.get("payment.tradingRestrictions"))

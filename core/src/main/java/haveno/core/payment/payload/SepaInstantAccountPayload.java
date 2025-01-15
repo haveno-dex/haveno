@@ -46,7 +46,6 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
     private String iban = "";
     @Setter
     private String bic = "";
-    private String extraInfo = "";
 
     // Don't use a set here as we need a deterministic ordering, otherwise the contract hash does not match
     private final List<String> persistedAcceptedCountryCodes = new ArrayList<>();
@@ -72,7 +71,6 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
                                       String holderName,
                                       String iban,
                                       String bic,
-                                      String extraInfo,
                                       long maxTradePeriod,
                                       Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethodName,
@@ -85,7 +83,6 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
         this.holderName = holderName;
         this.iban = iban;
         this.bic = bic;
-        this.extraInfo = extraInfo;
         persistedAcceptedCountryCodes.addAll(acceptedCountryCodes);
     }
 
@@ -95,8 +92,7 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
                 protobuf.SepaInstantAccountPayload.newBuilder()
                         .setHolderName(holderName)
                         .setIban(iban)
-                        .setBic(bic)
-                        .setExtraInfo(extraInfo);
+                        .setBic(bic);
         final protobuf.CountryBasedPaymentAccountPayload.Builder countryBasedPaymentAccountPayload = getPaymentAccountPayloadBuilder()
                 .getCountryBasedPaymentAccountPayloadBuilder()
                 .setSepaInstantAccountPayload(builder);
@@ -115,7 +111,6 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
                 sepaInstantAccountPayloadPB.getHolderName(),
                 sepaInstantAccountPayloadPB.getIban(),
                 sepaInstantAccountPayloadPB.getBic(),
-                sepaInstantAccountPayloadPB.getExtraInfo(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -147,8 +142,7 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
     @Override
     public String getPaymentDetails() {
         return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.owner") + " " + holderName + ", IBAN: " +
-                iban + ", BIC: " + bic + ", " + Res.getWithCol("payment.bank.country") + " " + getCountryCode() + ", " +
-                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo;
+                iban + ", BIC: " + bic + ", " + Res.getWithCol("payment.bank.country") + " " + getCountryCode();
     }
 
     @Override
@@ -156,8 +150,7 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
         return Res.getWithCol("payment.account.owner") + " " + holderName + "\n" +
                 "IBAN: " + iban + "\n" +
                 "BIC: " + bic + "\n" +
-                Res.getWithCol("payment.bank.country") + " " + CountryUtil.getNameByCode(countryCode) + "\n" +
-                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo;
+                Res.getWithCol("payment.bank.country") + " " + CountryUtil.getNameByCode(countryCode);
     }
 
     @Override

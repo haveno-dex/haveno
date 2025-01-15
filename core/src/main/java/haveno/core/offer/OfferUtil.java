@@ -42,9 +42,6 @@ import static haveno.core.offer.OfferPayload.F2F_CITY;
 import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.PAYPAL_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.SEPA_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.SEPA_INSTANT_EXTRA_INFO;
-import static haveno.core.offer.OfferPayload.ZELLE_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.REFERRAL_ID;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
@@ -55,9 +52,6 @@ import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.SepaAccount;
-import haveno.core.payment.SepaInstantAccount;
-import haveno.core.payment.ZelleAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.ReferralIdService;
@@ -221,18 +215,6 @@ public class OfferUtil {
 
         if (paymentAccount instanceof AustraliaPayidAccount) {
             extraDataMap.put(AUSTRALIA_PAYID_EXTRA_INFO, ((AustraliaPayidAccount) paymentAccount).getExtraInfo());
-        }
-
-        if (paymentAccount instanceof ZelleAccount) {
-            extraDataMap.put(ZELLE_EXTRA_INFO, ((ZelleAccount) paymentAccount).getExtraInfo());
-        }
-
-        if (paymentAccount instanceof SepaAccount) {
-            extraDataMap.put(SEPA_EXTRA_INFO, ((SepaAccount) paymentAccount).getExtraInfo());
-        }
-
-        if (paymentAccount instanceof SepaInstantAccount) {
-            extraDataMap.put(SEPA_INSTANT_EXTRA_INFO, ((SepaInstantAccount) paymentAccount).getExtraInfo());
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());
