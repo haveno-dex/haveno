@@ -151,11 +151,9 @@ public class CreateOfferService {
             throw new IllegalArgumentException("Must provide fixed price");
         }
 
-        // adjust amount and min amount for fixed-price offer
-        if (fixedPrice != null) {
-            amount = CoinUtil.getRoundedAmount(amount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
-            minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
-        }
+        // adjust amount and min amount
+        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
+        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
 
         // generate one-time challenge for private offer
         String challenge = null;
