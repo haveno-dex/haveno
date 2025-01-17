@@ -118,6 +118,7 @@ public class Config {
     public static final String BYPASS_MEMPOOL_VALIDATION = "bypassMempoolValidation";
     public static final String PASSWORD_REQUIRED = "passwordRequired";
     public static final String UPDATE_XMR_BINARIES = "updateXmrBinaries";
+    public static final String XMR_BLOCKCHAIN_PATH = "xmrBlockchainPath";
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -206,6 +207,7 @@ public class Config {
     public final boolean bypassMempoolValidation;
     public final boolean passwordRequired;
     public final boolean updateXmrBinaries;
+    public final String xmrBlockchainPath;
 
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
@@ -630,6 +632,13 @@ public class Config {
                         .ofType(boolean.class)
                         .defaultsTo(true);
 
+        ArgumentAcceptingOptionSpec<String> xmrBlockchainPathOpt =
+                parser.accepts(XMR_BLOCKCHAIN_PATH,
+                        "Path to Monero blockchain when using local Monero node")
+                        .withRequiredArg()
+                        .ofType(String.class)
+                        .defaultsTo("");
+
         try {
             CompositeOptionSet options = new CompositeOptionSet();
 
@@ -743,6 +752,7 @@ public class Config {
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
             this.passwordRequired = options.valueOf(passwordRequiredOpt);
             this.updateXmrBinaries = options.valueOf(updateXmrBinariesOpt);
+            this.xmrBlockchainPath = options.valueOf(xmrBlockchainPathOpt);
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
                     ex.options().get(0),
@@ -752,11 +762,11 @@ public class Config {
         }
 
         // Create all appDataDir subdirectories and assign to their respective properties
-        File btcNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
-        this.keyStorageDir = mkdir(btcNetworkDir, "keys");
-        this.storageDir = mkdir(btcNetworkDir, "db");
-        this.torDir = mkdir(btcNetworkDir, "tor");
-        this.walletDir = mkdir(btcNetworkDir, "wallet");
+        File xmrNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
+        this.keyStorageDir = mkdir(xmrNetworkDir, "keys");
+        this.storageDir = mkdir(xmrNetworkDir, "db");
+        this.torDir = mkdir(xmrNetworkDir, "tor");
+        this.walletDir = mkdir(xmrNetworkDir, "wallet");
 
         // Assign values to special-case static fields
         APP_DATA_DIR_VALUE = appDataDir;
