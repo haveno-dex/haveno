@@ -781,11 +781,23 @@ public class XmrWalletService extends XmrWalletBase {
                 BigInteger actualSendAmount = transferCheck.getReceivedAmount();
 
                 // verify trade fee amount
-                if (!actualTradeFee.equals(tradeFeeAmount)) throw new RuntimeException("Invalid trade fee amount, expected " + tradeFeeAmount + " but was " + actualTradeFee);
+                if (!actualTradeFee.equals(tradeFeeAmount)) {
+                    if (equalsWithinFractionError(actualTradeFee, tradeFeeAmount)) {
+                        log.warn("Trade tx fee amount is within fraction error, expected " + tradeFeeAmount + " but was " + actualTradeFee);
+                    } else {
+                        throw new RuntimeException("Invalid trade fee amount, expected " + tradeFeeAmount + " but was " + actualTradeFee);
+                    }
+                }
 
                 // verify send amount
                 BigInteger expectedSendAmount = sendAmount.subtract(tx.getFee());
-                if (!actualSendAmount.equals(expectedSendAmount)) throw new RuntimeException("Invalid send amount, expected " + expectedSendAmount + " but was " + actualSendAmount + " with tx fee " + tx.getFee());
+                if (!actualSendAmount.equals(expectedSendAmount)) {
+                    if (equalsWithinFractionError(actualSendAmount, expectedSendAmount)) {
+                        log.warn("Trade tx send amount is within fraction error, expected " + expectedSendAmount + " but was " + actualSendAmount + " with tx fee " + tx.getFee());
+                    } else {
+                        throw new RuntimeException("Invalid send amount, expected " + expectedSendAmount + " but was " + actualSendAmount + " with tx fee " + tx.getFee());
+                    }
+                }
                 return tx;
             } catch (Exception e) {
                 log.warn("Error verifying trade tx with offer id=" + offerId + (tx == null ? "" : ", tx=\n" + tx) + ": " + e.getMessage());
@@ -799,6 +811,11 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
         }
+    }
+
+    // TODO: old bug in atomic unit conversion could cause fractional difference error, remove this in future release, maybe re-sign all offers then
+    private static boolean equalsWithinFractionError(BigInteger a, BigInteger b) {
+        return a.subtract(b).abs().compareTo(new BigInteger("1")) <= 0;
     }
 
     /**
