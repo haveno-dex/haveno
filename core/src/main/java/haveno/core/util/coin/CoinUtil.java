@@ -104,7 +104,7 @@ public class CoinUtil {
     }
     
     public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Long maxTradeLimit) {
-        DecimalFormat decimalFormat = new DecimalFormat("#.####");
+        DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
     }
