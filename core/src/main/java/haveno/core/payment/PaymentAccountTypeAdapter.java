@@ -139,6 +139,10 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
 
 
     private void writeInnerMutableFields(JsonWriter out, PaymentAccount account) {
+        if (account instanceof CountryBasedPaymentAccount) {
+            writeAcceptedCountryCodesField(out, account);
+        }
+
         if (account.hasMultipleCurrencies()) {
             writeTradeCurrenciesField(out, account);
             writeSelectedTradeCurrencyField(out, account);
@@ -176,7 +180,16 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
             String fieldName = "tradeCurrencies";
             log.debug("Append form with non-settable field: {}", fieldName);
             out.name(fieldName);
-            out.value("comma delimited currency code list, e.g., gbp,eur,jpy,usd");
+            List<TradeCurrency> tradeCurrencies = account.getTradeCurrencies();
+            if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
+                String tradeCurrenciesValue = tradeCurrencies.stream()
+                        .map(TradeCurrency::getCode) // convert each currency to its code.
+                        .reduce((c1, c2) -> c1 + "," + c2) // create a comma-delimited string.
+                        .orElse("");
+                out.value(tradeCurrenciesValue);
+            } else {
+                out.value(""); // if no currencies exist, write an empty string.
+            }
         } catch (Exception ex) {
             String errMsg = format("cannot create a new %s json form",
                     account.getClass().getSimpleName());
@@ -194,6 +207,34 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
             log.debug("Append form with settable field: {}", fieldName);
             out.name(fieldName);
             out.value("primary trading currency code, e.g., eur");
+        } catch (Exception ex) {
+            String errMsg = format("cannot create a new %s json form",
+                    account.getClass().getSimpleName());
+            log.error(capitalize(errMsg) + ".", ex);
+            throw new IllegalStateException("programmer error: " + errMsg);
+        }
+    }
+
+    private void writeAcceptedCountryCodesField(JsonWriter out, PaymentAccount account) {
+        try {
+            String fieldName = "acceptedCountryCodes";
+            log.debug("Append form with non-settable field: {}", fieldName);
+            out.name(fieldName);
+
+            if (account instanceof CountryBasedPaymentAccount) {
+                List<Country> acceptedCountries = ((CountryBasedPaymentAccount) account).getAcceptedCountries();
+                if (acceptedCountries != null && !acceptedCountries.isEmpty()) {
+                    String countryCodesValue = acceptedCountries.stream()
+                            .map(e -> e.code) // convert each country to its code.
+                            .reduce((c1, c2) -> c1 + "," + c2) // create a comma-delimited string.
+                            .orElse("");
+                    out.value(countryCodesValue);
+                } else {
+                    out.value(""); // if no countries exist, write an empty string.
+                }
+            } else {
+                out.value(""); // default empty value for non-country-based accounts.
+            }
         } catch (Exception ex) {
             String errMsg = format("cannot create a new %s json form",
                     account.getClass().getSimpleName());
