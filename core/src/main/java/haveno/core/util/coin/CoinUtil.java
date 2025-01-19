@@ -31,6 +31,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.core.util.VolumeUtil.getAdjustedVolumeUnit;
@@ -104,7 +106,7 @@ public class CoinUtil {
     }
     
     public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Long maxTradeLimit) {
-        DecimalFormat decimalFormat = new DecimalFormat("#.####");
+        DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
     }
