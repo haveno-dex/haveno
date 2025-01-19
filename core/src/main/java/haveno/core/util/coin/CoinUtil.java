@@ -76,14 +76,14 @@ public class CoinUtil {
     }
 
     public static BigInteger getRoundedAmount(BigInteger amount, Price price, Long maxTradeLimit, String currencyCode, String paymentMethodId) {
-        if (PaymentMethod.isRoundedForAtmCash(paymentMethodId)) {
-            return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
-        } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode)) {
-            return getRoundedAmountUnit(amount, price, maxTradeLimit);
-        } else if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            return getRoundedAmount4Decimals(amount, price, maxTradeLimit);
+        if (price != null) {
+            if (PaymentMethod.isRoundedForAtmCash(paymentMethodId)) {
+                return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
+            } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode)) {
+                return getRoundedAmountUnit(amount, price, maxTradeLimit);
+            }
         }
-        return amount;
+        return getRoundedAmount4Decimals(amount, maxTradeLimit);
     }
 
     public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, Long maxTradeLimit) {
@@ -103,7 +103,7 @@ public class CoinUtil {
         return getAdjustedAmount(amount, price, maxTradeLimit, 1);
     }
     
-    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Price price, Long maxTradeLimit) {
+    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Long maxTradeLimit) {
         DecimalFormat decimalFormat = new DecimalFormat("#.####");
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);

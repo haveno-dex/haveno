@@ -71,6 +71,7 @@ import javax.sound.sampled.SourceDataLine;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
@@ -204,11 +205,11 @@ public class HavenoUtils {
     }
 
     public static double atomicUnitsToXmr(BigInteger atomicUnits) {
-        return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();
+        return MoneroUtils.atomicUnitsToXmr(atomicUnits);
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return new BigDecimal(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+        return MoneroUtils.xmrToAtomicUnits(xmr);
     }
 
     public static long xmrToCentineros(double xmr) {
@@ -220,11 +221,11 @@ public class HavenoUtils {
     }
 
     public static double divide(BigInteger auDividend, BigInteger auDivisor) {
-        return atomicUnitsToXmr(auDividend) / atomicUnitsToXmr(auDivisor);
+        return MoneroUtils.divide(auDividend, auDivisor);
     }
 
     public static BigInteger multiply(BigInteger amount1, double amount2) {
-        return amount1 == null ? null : new BigDecimal(amount1).multiply(BigDecimal.valueOf(amount2)).toBigInteger();
+        return MoneroUtils.multiply(amount1, amount2);
     }
 
     // ------------------------- FORMAT UTILS ---------------------------------
