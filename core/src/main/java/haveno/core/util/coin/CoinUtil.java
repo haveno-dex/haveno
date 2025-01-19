@@ -31,8 +31,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.Locale;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.core.util.VolumeUtil.getAdjustedVolumeUnit;
