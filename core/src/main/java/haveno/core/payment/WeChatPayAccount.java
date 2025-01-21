@@ -31,11 +31,15 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class WeChatPayAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("CNY"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
+            new TraditionalCurrency("CNY"),
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP")
+    );
 
     public WeChatPayAccount() {
         super(PaymentMethod.WECHAT_PAY);
-        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
     @Override
