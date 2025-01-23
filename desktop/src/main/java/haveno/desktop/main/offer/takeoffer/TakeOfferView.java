@@ -162,7 +162,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
             takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed,
-            australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed;
+            australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed, F2FWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
@@ -276,6 +276,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowAustraliaPayidWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowPayPalWarning(lastPaymentAccount, model.dataModel.getOffer());
         maybeShowCashAppWarning(lastPaymentAccount, model.dataModel.getOffer());
+        maybeShowF2FWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
             nextButton.setVisible(false);
@@ -1222,6 +1223,23 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_APP_ID) &&
                 !cashAppWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
             cashAppWarningDisplayed = true;
+            UserThread.runAfter(() -> {
+                new GenericMessageWindow()
+                        .preamble(Res.get("payment.tradingRestrictions"))
+                        .instruction(offer.getExtraInfo())
+                        .actionButtonText(Res.get("shared.iConfirm"))
+                        .closeButtonText(Res.get("shared.close"))
+                        .width(Layout.INITIAL_WINDOW_WIDTH)
+                        .onClose(() -> close(false))
+                        .show();
+            }, 500, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void maybeShowF2FWarning(PaymentAccount paymentAccount, Offer offer) {
+        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.F2F_ID) &&
+                !F2FWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
+            F2FWarningDisplayed = true;
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
                         .preamble(Res.get("payment.tradingRestrictions"))
