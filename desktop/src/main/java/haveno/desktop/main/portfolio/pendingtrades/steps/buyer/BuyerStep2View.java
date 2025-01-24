@@ -326,7 +326,7 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.F2F_ID:
                 checkNotNull(model.dataModel.getTrade(), "model.dataModel.getTrade() must not be null");
                 checkNotNull(model.dataModel.getTrade().getOffer(), "model.dataModel.getTrade().getOffer() must not be null");
-                gridRow = F2FForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload, model.dataModel.getTrade().getOffer(), 0);
+                gridRow = F2FForm.addStep2Form(gridPane, gridRow, paymentAccountPayload, model.dataModel.getTrade().getOffer(), 0, true);
                 break;
             case PaymentMethod.BLOCK_CHAINS_ID:
             case PaymentMethod.BLOCK_CHAINS_INSTANT_ID:
