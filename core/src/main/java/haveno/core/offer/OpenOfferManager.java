@@ -1788,7 +1788,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         protocolVersion,
                         originalOfferPayload.getArbitratorSigner(),
                         originalOfferPayload.getArbitratorSignature(),
-                        originalOfferPayload.getReserveTxKeyImages());
+                        originalOfferPayload.getReserveTxKeyImages(),
+                        originalOfferPayload.getExtraInfo());
 
                 // Save states from original data to use for the updated
                 Offer.State originalOfferState = originalOffer.getState();

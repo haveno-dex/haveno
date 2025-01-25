@@ -178,6 +178,7 @@ public class CoreOffersService {
                              String paymentAccountId,
                              boolean isPrivateOffer,
                              boolean buyerAsTakerWithoutDeposit,
+                             String extraInfo,
                              Consumer<Offer> resultHandler,
                              ErrorMessageHandler errorMessageHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
@@ -204,7 +205,8 @@ public class CoreOffersService {
                 securityDepositPct,
                 paymentAccount,
                 isPrivateOffer,
-                buyerAsTakerWithoutDeposit);
+                buyerAsTakerWithoutDeposit,
+                extraInfo);
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
 
@@ -230,7 +232,8 @@ public class CoreOffersService {
                     double securityDepositPct,
                     PaymentAccount paymentAccount,
                     boolean isPrivateOffer,
-                    boolean buyerAsTakerWithoutDeposit) {
+                    boolean buyerAsTakerWithoutDeposit,
+                    String extraInfo) {
         return createOfferService.createAndGetOffer(offerId,
                 direction,
                 currencyCode.toUpperCase(),
@@ -242,7 +245,8 @@ public class CoreOffersService {
                 securityDepositPct,
                 paymentAccount,
                 isPrivateOffer,
-                buyerAsTakerWithoutDeposit);
+                buyerAsTakerWithoutDeposit,
+                extraInfo);
     }
 
     void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {

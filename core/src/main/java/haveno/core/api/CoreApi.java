@@ -425,6 +425,7 @@ public class CoreApi {
                                    String paymentAccountId,
                                    boolean isPrivateOffer,
                                    boolean buyerAsTakerWithoutDeposit,
+                                   String extraInfo,
                                    Consumer<Offer> resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
         coreOffersService.postOffer(currencyCode,
@@ -440,6 +441,7 @@ public class CoreApi {
                 paymentAccountId,
                 isPrivateOffer,
                 buyerAsTakerWithoutDeposit,
+                extraInfo,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -455,7 +457,8 @@ public class CoreApi {
                            double securityDepositPct,
                            PaymentAccount paymentAccount,
                            boolean isPrivateOffer,
-                           boolean buyerAsTakerWithoutDeposit) {
+                           boolean buyerAsTakerWithoutDeposit,
+                           String extraInfo) {
         return coreOffersService.editOffer(offerId,
                 currencyCode,
                 direction,
@@ -467,7 +470,8 @@ public class CoreApi {
                 securityDepositPct,
                 paymentAccount,
                 isPrivateOffer,
-                buyerAsTakerWithoutDeposit);
+                buyerAsTakerWithoutDeposit,
+                extraInfo);
     }
 
     public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
