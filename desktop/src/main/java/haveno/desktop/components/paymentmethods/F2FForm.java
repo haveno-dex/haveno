@@ -65,7 +65,7 @@ public class F2FForm extends PaymentMethodForm {
         textArea.setMinHeight(70);
         textArea.setEditable(false);
         textArea.setId("text-area-disabled");
-        textArea.setText(offer.getExtraInfo());
+        textArea.setText(offer.getPaymentAccountExtraInfo());
         return gridRow;
     }
 
@@ -106,7 +106,7 @@ public class F2FForm extends PaymentMethodForm {
         });
 
         TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
-                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt")).second;
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt.paymentAccount")).second;
         extraTextArea.setMinHeight(70);
         ((JFXTextArea) extraTextArea).setLabelFloat(false);
         //extraTextArea.setValidator(f2fValidator);

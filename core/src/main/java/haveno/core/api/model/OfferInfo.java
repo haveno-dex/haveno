@@ -80,6 +80,7 @@ public class OfferInfo implements Payload {
     private final long splitOutputTxFee;
     private final boolean isPrivateOffer;
     private final String challenge;
+    private final String extraInfo;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -115,6 +116,7 @@ public class OfferInfo implements Payload {
         this.splitOutputTxFee = builder.getSplitOutputTxFee();
         this.isPrivateOffer = builder.isPrivateOffer();
         this.challenge = builder.getChallenge();
+        this.extraInfo = builder.getExtraInfo();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -184,7 +186,8 @@ public class OfferInfo implements Payload {
                 .withProtocolVersion(offer.getOfferPayload().getProtocolVersion())
                 .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress())
                 .withIsPrivateOffer(offer.isPrivateOffer())
-                .withChallenge(offer.getChallenge());
+                .withChallenge(offer.getChallenge())
+                .withExtraInfo(offer.getCombinedExtraInfo());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +230,7 @@ public class OfferInfo implements Payload {
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
         Optional.ofNullable(splitOutputTxHash).ifPresent(builder::setSplitOutputTxHash);
         Optional.ofNullable(challenge).ifPresent(builder::setChallenge);
+        Optional.ofNullable(extraInfo).ifPresent(builder::setExtraInfo);
         return builder.build();
     }
 
@@ -266,6 +270,7 @@ public class OfferInfo implements Payload {
                 .withSplitOutputTxFee(proto.getSplitOutputTxFee())
                 .withIsPrivateOffer(proto.getIsPrivateOffer())
                 .withChallenge(proto.getChallenge())
+                .withExtraInfo(proto.getExtraInfo())
                 .build();
     }
 }

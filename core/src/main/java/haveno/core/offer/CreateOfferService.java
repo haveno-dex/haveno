@@ -103,7 +103,8 @@ public class CreateOfferService {
                                    double securityDepositPct,
                                    PaymentAccount paymentAccount,
                                    boolean isPrivateOffer,
-                                   boolean buyerAsTakerWithoutDeposit) {
+                                   boolean buyerAsTakerWithoutDeposit,
+                                   String extraInfo) {
         log.info("create and get offer with offerId={}, " +
                         "currencyCode={}, " +
                         "direction={}, " +
@@ -114,7 +115,8 @@ public class CreateOfferService {
                         "minAmount={}, " +
                         "securityDepositPct={}, " +
                         "isPrivateOffer={}, " +
-                        "buyerAsTakerWithoutDeposit={}",
+                        "buyerAsTakerWithoutDeposit={}, " + 
+                        "extraInfo={}",
                 offerId,
                 currencyCode,
                 direction,
@@ -125,7 +127,8 @@ public class CreateOfferService {
                 minAmount,
                 securityDepositPct,
                 isPrivateOffer,
-                buyerAsTakerWithoutDeposit);
+                buyerAsTakerWithoutDeposit,
+                extraInfo);
 
         // verify buyer as taker security deposit
         boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
@@ -225,7 +228,8 @@ public class CreateOfferService {
                 Version.TRADE_PROTOCOL_VERSION,
                 null,
                 null,
-                null);
+                null,
+                extraInfo);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
         offer.setChallenge(challenge);
