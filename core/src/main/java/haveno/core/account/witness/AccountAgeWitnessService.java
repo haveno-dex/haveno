@@ -40,6 +40,7 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.ChargeBackRisk;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.TradeLimits;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.support.dispute.Dispute;
@@ -498,9 +499,14 @@ public class AccountAgeWitnessService {
         return getAccountAge(getMyWitness(paymentAccountPayload), new Date());
     }
 
-    public long getMyTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferDirection direction) {
+    public long getMyTradeLimit(PaymentAccount paymentAccount, String currencyCode, OfferDirection direction, boolean buyerAsTakerWithoutDeposit) {
         if (paymentAccount == null)
             return 0;
+
+        if (buyerAsTakerWithoutDeposit) {
+            TradeLimits tradeLimits = new TradeLimits();
+            return tradeLimits.getMaxTradeLimitBuyerAsTakerWithoutDeposit().longValueExact();
+        }
 
         AccountAgeWitness accountAgeWitness = getMyWitness(paymentAccount.getPaymentAccountPayload());
         BigInteger maxTradeLimit = paymentAccount.getPaymentMethod().getMaxTradeLimit(currencyCode);

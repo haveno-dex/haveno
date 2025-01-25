@@ -62,11 +62,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CoreDisputesService {
 
-    public enum DisputePayout {
+    // TODO: persist in DisputeResult?
+    public enum PayoutSuggestion {
         BUYER_GETS_TRADE_AMOUNT,
-        BUYER_GETS_ALL, // used in desktop
+        BUYER_GETS_ALL,
         SELLER_GETS_TRADE_AMOUNT,
-        SELLER_GETS_ALL, // used in desktop
+        SELLER_GETS_ALL,
         CUSTOM
     }
 
@@ -172,17 +173,17 @@ public class CoreDisputesService {
                 // create dispute result
                 var closeDate = new Date();
                 var winnerDisputeResult = createDisputeResult(winningDispute, winner, reason, summaryNotes, closeDate);
-                DisputePayout payout;
+                PayoutSuggestion payoutSuggestion;
                 if (customWinnerAmount > 0) {
-                    payout = DisputePayout.CUSTOM;
+                    payoutSuggestion = PayoutSuggestion.CUSTOM;
                 } else if (winner == DisputeResult.Winner.BUYER) {
-                    payout = DisputePayout.BUYER_GETS_TRADE_AMOUNT;
+                    payoutSuggestion = PayoutSuggestion.BUYER_GETS_TRADE_AMOUNT;
                 } else if (winner == DisputeResult.Winner.SELLER) {
-                    payout = DisputePayout.SELLER_GETS_TRADE_AMOUNT;
+                    payoutSuggestion = PayoutSuggestion.SELLER_GETS_TRADE_AMOUNT;
                 } else {
                     throw new IllegalStateException("Unexpected DisputeResult.Winner: " + winner);
                 }
-                applyPayoutAmountsToDisputeResult(payout, winningDispute, winnerDisputeResult, customWinnerAmount);
+                applyPayoutAmountsToDisputeResult(payoutSuggestion, winningDispute, winnerDisputeResult, customWinnerAmount);
 
                 // close winning dispute ticket
                 closeDisputeTicket(arbitrationManager, winningDispute, winnerDisputeResult, () -> {
@@ -227,26 +228,26 @@ public class CoreDisputesService {
      * Sets payout amounts given a payout type. If custom is selected, the winner gets a custom amount, and the peer
      * receives the remaining amount minus the mining fee.
      */
-    public void applyPayoutAmountsToDisputeResult(DisputePayout payout, Dispute dispute, DisputeResult disputeResult, long customWinnerAmount) {
+    public void applyPayoutAmountsToDisputeResult(PayoutSuggestion payoutSuggestion, Dispute dispute, DisputeResult disputeResult, long customWinnerAmount) {
         Contract contract = dispute.getContract();
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
         BigInteger buyerSecurityDeposit = trade.getBuyer().getSecurityDeposit();
         BigInteger sellerSecurityDeposit = trade.getSeller().getSecurityDeposit();
         BigInteger tradeAmount = contract.getTradeAmount();
         disputeResult.setSubtractFeeFrom(DisputeResult.SubtractFeeFrom.BUYER_AND_SELLER);
-        if (payout == DisputePayout.BUYER_GETS_TRADE_AMOUNT) {
+        if (payoutSuggestion == PayoutSuggestion.BUYER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit));
             disputeResult.setSellerPayoutAmountBeforeCost(sellerSecurityDeposit);
-        } else if (payout == DisputePayout.BUYER_GETS_ALL) {
+        } else if (payoutSuggestion == PayoutSuggestion.BUYER_GETS_ALL) {
             disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
             disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.ZERO);
-        } else if (payout == DisputePayout.SELLER_GETS_TRADE_AMOUNT) {
+        } else if (payoutSuggestion == PayoutSuggestion.SELLER_GETS_TRADE_AMOUNT) {
             disputeResult.setBuyerPayoutAmountBeforeCost(buyerSecurityDeposit);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit));
-        } else if (payout == DisputePayout.SELLER_GETS_ALL) {
+        } else if (payoutSuggestion == PayoutSuggestion.SELLER_GETS_ALL) {
             disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.ZERO);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit).add(buyerSecurityDeposit));
-        } else if (payout == DisputePayout.CUSTOM) {
+        } else if (payoutSuggestion == PayoutSuggestion.CUSTOM) {
             if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) throw new RuntimeException("Winner payout is more than the trade wallet's balance");
             long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
             if (loserAmount < 0) throw new RuntimeException("Loser payout cannot be negative");

@@ -45,27 +45,17 @@
 
     <TitledGroupBg fx:id="btcHeader" GridPane.rowSpan="5"/>
     <VBox GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
-        <AutoTooltipLabel fx:id="moneroPeersLabel" styleClass="small-text"/>
-        <TableView fx:id="moneroPeersTableView">
+        <AutoTooltipLabel fx:id="moneroConnectionsLabel" styleClass="small-text"/>
+        <TableView fx:id="moneroConnectionsTableView">
             <columns>
-                <TableColumn fx:id="moneroPeerAddressColumn" minWidth="220">
+                <TableColumn fx:id="moneroConnectionAddressColumn" minWidth="220">
                     <cellValueFactory>
-                        <PropertyValueFactory property="onionAddress"/>
+                        <PropertyValueFactory property="address"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="moneroPeerVersionColumn" minWidth="80" maxWidth="90">
+                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="90">
                     <cellValueFactory>
-                        <PropertyValueFactory property="version"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="moneroPeerSubVersionColumn" minWidth="180" maxWidth="180">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="subVersion"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="moneroPeerHeightColumn" minWidth="80" maxWidth="80">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="height"/>
+                        <PropertyValueFactory property="connected"/>
                     </cellValueFactory>
                 </TableColumn>
             </columns>

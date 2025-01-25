@@ -48,7 +48,9 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
             InitTradeRequest sourceRequest = (InitTradeRequest) processModel.getTradeMessage(); // arbitrator's InitTradeRequest to taker
             checkNotNull(sourceRequest);
             checkTradeId(processModel.getOfferId(), sourceRequest);
-            if (trade.getSelf().getReserveTxHash() == null || trade.getSelf().getReserveTxHash().isEmpty()) throw new IllegalStateException("Reserve tx id is not initialized: " + trade.getSelf().getReserveTxHash());
+            if (!trade.isBuyerAsTakerWithoutDeposit() && trade.getSelf().getReserveTxHash() == null) {
+                throw new IllegalStateException("Taker reserve tx id is not initialized: " + trade.getSelf().getReserveTxHash());
+            }
 
             // create request to arbitrator
             Offer offer = processModel.getOffer();
@@ -73,7 +75,8 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
                     trade.getSelf().getReserveTxHash(),
                     trade.getSelf().getReserveTxHex(),
                     trade.getSelf().getReserveTxKey(),
-                    model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString());
+                    model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString(),
+                    trade.getChallenge());
 
             // send request to arbitrator
             log.info("Sending {} with offerId {} and uid {} to arbitrator {}", arbitratorRequest.getClass().getSimpleName(), arbitratorRequest.getOfferId(), arbitratorRequest.getUid(), trade.getArbitrator().getNodeAddress());

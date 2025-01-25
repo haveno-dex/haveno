@@ -73,7 +73,7 @@ public class AppStartupState {
                 isWalletSynced.set(true);
         });
 
-        xmrConnectionService.numPeersProperty().addListener((observable, oldValue, newValue) -> {
+        xmrConnectionService.numConnectionsProperty().addListener((observable, oldValue, newValue) -> {
             if (xmrConnectionService.hasSufficientPeersForBroadcast())
                 hasSufficientPeersForBroadcast.set(true);
         });

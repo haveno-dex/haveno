@@ -59,8 +59,10 @@ public class Capabilities {
     }
 
     public Capabilities(Collection<Capability> capabilities) {
-        synchronized (this.capabilities) {
-            this.capabilities.addAll(capabilities);
+        synchronized (capabilities) {
+            synchronized (this.capabilities) {
+                this.capabilities.addAll(capabilities);
+            }
         }
     }
 
@@ -73,9 +75,11 @@ public class Capabilities {
     }
 
     public void set(Collection<Capability> capabilities) {
-        synchronized (this.capabilities) {
-            this.capabilities.clear();
-            this.capabilities.addAll(capabilities);
+        synchronized (capabilities) {
+            synchronized (this.capabilities) {
+                this.capabilities.clear();
+                this.capabilities.addAll(capabilities);
+            }
         }
     }
 
@@ -87,15 +91,19 @@ public class Capabilities {
 
     public void addAll(Capabilities capabilities) {
         if (capabilities != null) {
-            synchronized (this.capabilities) {
-                this.capabilities.addAll(capabilities.capabilities);
+            synchronized (capabilities.capabilities) {
+                synchronized (this.capabilities) {
+                    this.capabilities.addAll(capabilities.capabilities);
+                }
             }
         }
     }
 
     public boolean containsAll(final Set<Capability> requiredItems) {
-        synchronized (this.capabilities) {
-            return capabilities.containsAll(requiredItems);
+        synchronized(requiredItems) {
+            synchronized (this.capabilities) {
+                return capabilities.containsAll(requiredItems);
+            }
         }
     }
 
@@ -129,7 +137,9 @@ public class Capabilities {
      * @return int list of Capability ordinals
      */
     public static List<Integer> toIntList(Capabilities capabilities) {
-        return capabilities.capabilities.stream().map(Enum::ordinal).sorted().collect(Collectors.toList());
+        synchronized (capabilities.capabilities) {
+            return capabilities.capabilities.stream().map(Enum::ordinal).sorted().collect(Collectors.toList());
+        }
     }
 
     /**
@@ -139,11 +149,13 @@ public class Capabilities {
      * @return a {@link Capabilities} object
      */
     public static Capabilities fromIntList(List<Integer> capabilities) {
-        return new Capabilities(capabilities.stream()
-                .filter(integer -> integer < Capability.values().length)
-                .filter(integer -> integer >= 0)
-                .map(integer -> Capability.values()[integer])
-                .collect(Collectors.toSet()));
+        synchronized (capabilities) {
+            return new Capabilities(capabilities.stream()
+                    .filter(integer -> integer < Capability.values().length)
+                    .filter(integer -> integer >= 0)
+                    .map(integer -> Capability.values()[integer])
+                    .collect(Collectors.toSet()));
+        }
     }
 
     /**
@@ -181,7 +193,9 @@ public class Capabilities {
     }
 
     public static boolean hasMandatoryCapability(Capabilities capabilities, Capability mandatoryCapability) {
-        return capabilities.capabilities.stream().anyMatch(c -> c == mandatoryCapability);
+        synchronized (capabilities.capabilities) {
+            return capabilities.capabilities.stream().anyMatch(c -> c == mandatoryCapability);
+        }
     }
 
     @Override
@@ -211,8 +225,10 @@ public class Capabilities {
     // Neither would support removal of past capabilities, a use case we never had so far and which might have
     // backward compatibility issues, so we should treat capabilities as an append-only data structure.
     public int findHighestCapability(Capabilities capabilities) {
-        return (int) capabilities.capabilities.stream()
-                .mapToLong(e -> (long) e.ordinal())
-                .sum();
+        synchronized (capabilities.capabilities) {
+            return (int) capabilities.capabilities.stream()
+                    .mapToLong(e -> (long) e.ordinal())
+                    .sum();
+        }
     }
 }

@@ -403,7 +403,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             return Res.get("portfolio.pending.failedTrade.missingDepositTx");
         }
 
-        if (trade.getTakerDepositTx() == null) {
+        if (trade.getTakerDepositTx() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
           return Res.get("portfolio.pending.failedTrade.missingDepositTx"); // TODO (woodser): use .missingTakerDepositTx, .missingMakerDepositTx, update translation to 2-of-3 multisig
         }
 

@@ -83,7 +83,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while getting lock to create deposit tx, tradeId=" + trade.getShortId());
                 trade.startProtocolTimeout();
 
-                // collect relevant info
+                // collect info
                 Integer subaddressIndex = null;
                 boolean reserveExactAmount = false;
                 if (trade instanceof MakerTrade) {
@@ -97,53 +97,60 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 }
 
                 // attempt creating deposit tx
-                try {
-                    synchronized (HavenoUtils.getWalletFunctionLock()) {
-                        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
-                            MoneroRpcConnection sourceConnection = trade.getXmrConnectionService().getConnection();
-                            try {
-                                depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
-                            } catch (Exception e) {
-                                log.warn("Error creating deposit tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                                trade.getXmrWalletService().handleWalletError(e, sourceConnection);
+                if (!trade.isBuyerAsTakerWithoutDeposit()) {
+                    try {
+                        synchronized (HavenoUtils.getWalletFunctionLock()) {
+                            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                                MoneroRpcConnection sourceConnection = trade.getXmrConnectionService().getConnection();
+                                try {
+                                    depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
+                                } catch (Exception e) {
+                                    log.warn("Error creating deposit tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                    if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
+                                    if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                                }
+                
+                                // check for timeout
                                 if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
-                                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                                if (depositTx != null) break;
                             }
-            
-                            // check for timeout
-                            if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
-                            if (depositTx != null) break;
                         }
+                    } catch (Exception e) {
+    
+                        // thaw deposit inputs
+                        if (depositTx != null) {
+                            trade.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(depositTx));
+                            trade.getSelf().setReserveTxKeyImages(null);
+                        }
+    
+                        // re-freeze maker offer inputs
+                        if (trade instanceof MakerTrade) {
+                            trade.getXmrWalletService().freezeOutputs(trade.getOffer().getOfferPayload().getReserveTxKeyImages());
+                        }
+    
+                        throw e;
                     }
-                } catch (Exception e) {
-
-                    // thaw deposit inputs
-                    if (depositTx != null) {
-                        trade.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(depositTx));
-                        trade.getSelf().setReserveTxKeyImages(null);
-                    }
-
-                    // re-freeze maker offer inputs
-                    if (trade instanceof MakerTrade) {
-                        trade.getXmrWalletService().freezeOutputs(trade.getOffer().getOfferPayload().getReserveTxKeyImages());
-                    }
-
-                    throw e;
                 }
 
                 // reset protocol timeout
                 trade.addInitProgressStep();
 
                 // update trade state
-                BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
-                trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
-                trade.getSelf().setDepositTx(depositTx);
-                trade.getSelf().setDepositTxHash(depositTx.getHash());
-                trade.getSelf().setDepositTxFee(depositTx.getFee());
-                trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
                 trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
                 trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
+                trade.getSelf().setPaymentAccountPayloadHash(trade.getSelf().getPaymentAccountPayload().getHash());
+                BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+                if (depositTx == null) {
+                    trade.getSelf().setSecurityDeposit(securityDeposit);
+                } else {
+                    trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
+                    trade.getSelf().setDepositTx(depositTx);
+                    trade.getSelf().setDepositTxHash(depositTx.getHash());
+                    trade.getSelf().setDepositTxFee(depositTx.getFee());
+                    trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
+                }
             }
 
             // maker signs deposit hash nonce to avoid challenge protocol
@@ -161,7 +168,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     trade.getProcessModel().getAccountId(),
                     trade.getSelf().getPaymentAccountPayload().getHash(),
                     trade.getSelf().getPayoutAddressString(),
-                    depositTx.getHash(),
+                    depositTx == null ? null : depositTx.getHash(),
                     sig);
 
             // send request to trading peer

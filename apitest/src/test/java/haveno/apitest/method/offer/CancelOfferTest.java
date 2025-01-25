@@ -47,7 +47,7 @@ public class CancelOfferTest extends AbstractOfferTest {
                 10000000L,
                 10000000L,
                 0.00,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 paymentAccountId,
                 NO_TRIGGER_PRICE);
     };

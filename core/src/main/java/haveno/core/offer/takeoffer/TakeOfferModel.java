@@ -148,7 +148,8 @@ public class TakeOfferModel implements Model {
     private long getMaxTradeLimit() {
         return accountAgeWitnessService.getMyTradeLimit(paymentAccount,
                 offer.getCurrencyCode(),
-                offer.getMirroredDirection());
+                offer.getMirroredDirection(),
+                offer.hasBuyerAsTakerWithoutDeposit());
     }
 
     @NotNull

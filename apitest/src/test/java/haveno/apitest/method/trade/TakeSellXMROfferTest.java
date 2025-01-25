@@ -71,7 +71,7 @@ public class TakeSellXMROfferTest extends AbstractTradeTest {
                     20_000_000L,
                     10_500_000L,
                     priceMarginPctInput,
-                    defaultBuyerSecurityDepositPct.get(),
+                    defaultSecurityDepositPct.get(),
                     alicesXmrAcct.getId(),
                     NO_TRIGGER_PRICE);
             log.debug("Alice's SELL XMR (BUY BTC) Offer:\n{}", new TableBuilder(OFFER_TBL, alicesOffer).build());

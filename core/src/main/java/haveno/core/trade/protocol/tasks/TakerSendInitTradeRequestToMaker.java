@@ -47,7 +47,9 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
             runInterceptHook();
 
             // verify trade state
-            if (trade.getSelf().getReserveTxHash() == null || trade.getSelf().getReserveTxHash().isEmpty()) throw new IllegalStateException("Reserve tx id is not initialized: " + trade.getSelf().getReserveTxHash());
+            if (!trade.isBuyerAsTakerWithoutDeposit() && trade.getSelf().getReserveTxHash() == null) {
+                throw new IllegalStateException("Taker reserve tx id is not initialized: " + trade.getSelf().getReserveTxHash());
+            }
 
             // collect fields
             Offer offer = model.getOffer();
@@ -55,6 +57,7 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
             P2PService p2PService = processModel.getP2PService();
             XmrWalletService walletService = model.getXmrWalletService();
             String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            String challenge = model.getChallenge();
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
             byte[] sig = HavenoUtils.sign(p2PService.getKeyRing(), offer.getId());
@@ -81,7 +84,8 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
                     null, // reserve tx not sent from taker to maker
                     null,
                     null,
-                    payoutAddress);
+                    payoutAddress,
+                    challenge);
 
             // send request to maker
             log.info("Sending {} with offerId {} and uid {} to maker {}", makerRequest.getClass().getSimpleName(), makerRequest.getOfferId(), makerRequest.getUid(), trade.getMaker().getNodeAddress());

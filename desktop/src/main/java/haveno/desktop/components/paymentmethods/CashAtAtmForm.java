@@ -43,7 +43,7 @@ public class CashAtAtmForm extends PaymentMethodForm {
                                       PaymentAccountPayload paymentAccountPayload) {
         CashAtAtmAccountPayload cbm = (CashAtAtmAccountPayload) paymentAccountPayload;
 
-        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
+        TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, ++gridRow, 0, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
         textExtraInfo.setEditable(false);
         textExtraInfo.setText(cbm.getExtraInfo());

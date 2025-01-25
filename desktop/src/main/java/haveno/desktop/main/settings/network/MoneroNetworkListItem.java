@@ -17,28 +17,23 @@
 
 package haveno.desktop.main.settings.network;
 
-import monero.daemon.model.MoneroPeer;
+import haveno.core.locale.Res;
+import monero.common.MoneroRpcConnection;
 
 public class MoneroNetworkListItem {
-    private final MoneroPeer peer;
-
-    public MoneroNetworkListItem(MoneroPeer peer) {
-        this.peer = peer;
+    private final MoneroRpcConnection connection;
+    private final boolean connected;
+    
+    public MoneroNetworkListItem(MoneroRpcConnection connection, boolean connected) {
+        this.connection = connection;
+        this.connected = connected;
     }
 
-    public String getOnionAddress() {
-        return peer.getHost() + ":" + peer.getPort();
+    public String getAddress() {
+        return connection.getUri();
     }
 
-    public String getVersion() {
-        return "";
-    }
-
-    public String getSubVersion() {
-        return "";
-    }
-
-    public String getHeight() {
-        return String.valueOf(peer.getHeight());
+    public String getConnected() {
+        return connected ? Res.get("settings.net.connected") : "";
     }
 }

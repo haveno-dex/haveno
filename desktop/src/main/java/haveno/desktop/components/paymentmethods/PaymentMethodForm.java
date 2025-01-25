@@ -184,14 +184,14 @@ public abstract class PaymentMethodForm {
                 Res.get("payment.maxPeriodAndLimitCrypto",
                         getTimeText(hours),
                         HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
-                            paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY), true))
+                            paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY, false), true))
                 :
                 Res.get("payment.maxPeriodAndLimit",
                         getTimeText(hours),
                         HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY), true),
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY, false), true),
                         HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
-                                paymentAccount, tradeCurrency.getCode(), OfferDirection.SELL), true),
+                                paymentAccount, tradeCurrency.getCode(), OfferDirection.SELL, false), true),
                         DisplayUtils.formatAccountAge(accountAge));
         return limitationsText;
     }

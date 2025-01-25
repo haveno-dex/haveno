@@ -95,7 +95,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         price.set(null);
         volume.set(null);
         minVolume.set(null);
-        buyerSecurityDepositPct.set(0);
+        securityDepositPct.set(0);
         paymentAccounts.clear();
         paymentAccount = null;
         marketPriceMargin = 0;
@@ -127,12 +127,12 @@ class EditOfferDataModel extends MutableOfferDataModel {
         // If the security deposit got bounded because it was below the coin amount limit, it can be bigger
         // by percentage than the restriction. We can't determine the percentage originally entered at offer
         // creation, so just use the default value as it doesn't matter anyway.
-        double buyerSecurityDepositPercent = CoinUtil.getAsPercentPerBtc(offer.getMaxBuyerSecurityDeposit(), offer.getAmount());
-        if (buyerSecurityDepositPercent > Restrictions.getMaxBuyerSecurityDepositAsPercent()
-                && offer.getMaxBuyerSecurityDeposit().equals(Restrictions.getMinBuyerSecurityDeposit()))
-            buyerSecurityDepositPct.set(Restrictions.getDefaultBuyerSecurityDepositAsPercent());
+        double securityDepositPercent = CoinUtil.getAsPercentPerXmr(offer.getMaxSellerSecurityDeposit(), offer.getAmount());
+        if (securityDepositPercent > Restrictions.getMaxSecurityDepositAsPercent()
+                && offer.getMaxSellerSecurityDeposit().equals(Restrictions.getMinSecurityDeposit()))
+            securityDepositPct.set(Restrictions.getDefaultSecurityDepositAsPercent());
         else
-            buyerSecurityDepositPct.set(buyerSecurityDepositPercent);
+            securityDepositPct.set(securityDepositPercent);
 
         allowAmountUpdate = false;
     }
@@ -211,7 +211,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getLowerClosePrice(),
                 offerPayload.getUpperClosePrice(),
                 offerPayload.isPrivateOffer(),
-                offerPayload.getHashOfChallenge(),
+                offerPayload.getChallengeHash(),
                 offerPayload.getExtraDataMap(),
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),

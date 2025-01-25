@@ -380,14 +380,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 tradeStateChangeListener = (observable, oldValue, newValue) -> {
                     String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                     String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
-                    if (makerDepositTxHash != null && takerDepositTxHash != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
-                        makerTxId.set(makerDepositTxHash);
-                        takerTxId.set(takerDepositTxHash);
+                    makerTxId.set(nullToEmptyString(makerDepositTxHash));
+                    takerTxId.set(nullToEmptyString(takerDepositTxHash));
+                    if (makerDepositTxHash != null || takerDepositTxHash != null) {
                         notificationCenter.setSelectedTradeId(tradeId);
                         selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
-                    } else {
-                        makerTxId.set("");
-                        takerTxId.set("");
                     }
                 };
                 selectedTrade.stateProperty().addListener(tradeStateChangeListener);
@@ -401,13 +398,8 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 isMaker = tradeManager.isMyOffer(offer);
                 String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                 String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
-                if (makerDepositTxHash != null && takerDepositTxHash != null) {
-                    makerTxId.set(makerDepositTxHash);
-                    takerTxId.set(takerDepositTxHash);
-                } else {
-                    makerTxId.set("");
-                    takerTxId.set("");
-                }
+                makerTxId.set(nullToEmptyString(makerDepositTxHash));
+                takerTxId.set(nullToEmptyString(takerDepositTxHash));
                 notificationCenter.setSelectedTradeId(tradeId);
             } else {
                 selectedTrade = null;
@@ -417,6 +409,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             }
             selectedItemProperty.set(item);
         });
+    }
+
+    private String nullToEmptyString(String str) {
+        return str == null ? "" : str;
     }
 
     private void tryOpenDispute(boolean isSupportTicket) {
@@ -446,7 +442,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         }
         depositTxId = trade.getMaker().getDepositTxHash();
       } else {
-        if (trade.getTaker().getDepositTxHash() == null) {
+        if (trade.getTaker().getDepositTxHash() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
           log.error("Deposit tx must not be null");
           new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
           return;

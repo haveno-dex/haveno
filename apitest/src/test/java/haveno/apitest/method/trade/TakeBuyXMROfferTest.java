@@ -65,7 +65,7 @@ public class TakeBuyXMROfferTest extends AbstractTradeTest {
                     15_000_000L,
                     7_500_000L,
                     "0.00455500",   // FIXED PRICE IN BTC (satoshis) FOR 1 XMR
-                    defaultBuyerSecurityDepositPct.get(),
+                    defaultSecurityDepositPct.get(),
                     alicesXmrAcct.getId());
             log.debug("Alice's BUY XMR (SELL BTC) Offer:\n{}", new TableBuilder(OFFER_TBL, alicesOffer).build());
             genBtcBlocksThenWait(1, 5000);

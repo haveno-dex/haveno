@@ -87,7 +87,7 @@ public class P2PNetworkSetup {
         BooleanProperty initialP2PNetworkDataReceived = new SimpleBooleanProperty();
 
         p2PNetworkInfoBinding = EasyBind.combine(bootstrapState, bootstrapWarning, p2PService.getNumConnectedPeers(),
-                xmrConnectionService.numPeersProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
+                xmrConnectionService.numConnectionsProperty(), hiddenServicePublished, initialP2PNetworkDataReceived,
                 (state, warning, numP2pPeers, numXmrPeers, hiddenService, dataReceived) -> {
                     String result;
                     int p2pPeers = (int) numP2pPeers;

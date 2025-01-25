@@ -212,7 +212,10 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public boolean isSellOffer(OfferDirection direction) {
-        return direction == OfferDirection.SELL;
+        // for cryptocurrency, buy direction is to buy XMR, so we need sell offers
+        // for traditional currency, buy direction is to sell XMR, so we need buy offers
+        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
+        return isCryptoCurrency ? direction == OfferDirection.BUY : direction == OfferDirection.SELL;
     }
 
     public boolean isMyOffer(Offer offer) {
@@ -423,12 +426,20 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void updateScreenCurrencyInPreferences(OfferDirection direction) {
         if (isSellOffer(direction)) {
-            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCurrencyCode(getCurrencyCode());
+            } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
+                preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
+            } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+                preferences.setBuyScreenOtherCurrencyCode(getCurrencyCode());
             }
         } else {
-            if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCurrencyCode(getCurrencyCode());
+            } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
+                preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
+            } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
+                preferences.setSellScreenOtherCurrencyCode(getCurrencyCode());
             }
         }
     }

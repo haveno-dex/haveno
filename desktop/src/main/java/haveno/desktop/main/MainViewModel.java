@@ -140,6 +140,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> tradesAndUIReady;
     private final Queue<Overlay<?>> popupQueue = new PriorityQueue<>(Comparator.comparing(Overlay::getDisplayOrderPriority));
+    private Popup moneroConnectionFallbackPopup;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -334,9 +335,38 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             tacWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
+        havenoSetup.setDisplayMoneroConnectionFallbackHandler(show -> {
+            if (moneroConnectionFallbackPopup == null) {
+                moneroConnectionFallbackPopup = new Popup()
+                    .headLine(Res.get("connectionFallback.headline"))
+                    .warning(Res.get("connectionFallback.msg"))
+                    .closeButtonText(Res.get("shared.no"))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(() -> {
+                        havenoSetup.getConnectionServiceFallbackHandlerActive().set(false);
+                        new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                    })
+                    .onClose(() -> {
+                        log.warn("User has declined to fallback to the next best available Monero node.");
+                        havenoSetup.getConnectionServiceFallbackHandlerActive().set(false);
+                    });
+            }
+            if (show) {
+                moneroConnectionFallbackPopup.show();
+            } else if (moneroConnectionFallbackPopup.isDisplayed()) {
+                moneroConnectionFallbackPopup.hide();
+            }
+        });
+        
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> {
             if (show) {
                 torNetworkSettingsWindow.show();
+
+                // bring connection fallback popup to front if displayed
+                if (moneroConnectionFallbackPopup != null && moneroConnectionFallbackPopup.isDisplayed()) {
+                    moneroConnectionFallbackPopup.hide();
+                    moneroConnectionFallbackPopup.show();
+                }
             } else if (torNetworkSettingsWindow.isDisplayed()) {
                 torNetworkSettingsWindow.hide();
             }

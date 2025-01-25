@@ -88,7 +88,8 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     null, // reserve tx not sent from taker to maker
                     null,
                     null,
-                    payoutAddress);
+                    payoutAddress,
+                    null); // challenge is required when offer taken
 
             // save trade request to later send to arbitrator
             model.setTradeRequest(tradeRequest);

@@ -118,6 +118,10 @@ The price node is separated from Haveno and is run as a standalone service. To d
 
 After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
 
+### Update the download URL
+
+Change every instance of `https://haveno.exchange/downloads` to your download URL. For example, `https://havenoexample.com/downloads`.
+
 ## Review all local changes
 
 For comparison, placeholders to run on mainnet are marked [here on this branch](https://github.com/haveno-dex/haveno/tree/mainnet_placeholders).

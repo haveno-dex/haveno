@@ -250,6 +250,7 @@ message InitTradeRequest {
     string reserve_tx_hex = 18;
     string reserve_tx_key = 19;
     string payout_address = 20;
+    string challenge = 21;
 }
 
 message InitMultisigRequest {
@@ -650,7 +651,7 @@ message OfferPayload {
     int64 lower_close_price = 30;
     int64 upper_close_price = 31;
     bool is_private_offer = 32;
-    string hash_of_challenge = 33;
+    string challenge_hash = 33;
     map<string, string> extra_data = 34;
     int32 protocol_version = 35;
     NodeAddress arbitrator_signer = 36;
@@ -1412,6 +1413,7 @@ message OpenOffer {
     string reserve_tx_hash = 9;
     string reserve_tx_hex = 10;
     string reserve_tx_key = 11;
+    string challenge = 12;
 }
 
 message Tradable {
@@ -1528,6 +1530,7 @@ message Trade {
     string counter_currency_extra_data = 26;
     string uid = 27;
     bool is_completed = 28;
+    string challenge = 29;
 }
 
 message BuyerAsMakerTrade {
@@ -1723,9 +1726,9 @@ message PreferencesPayload {
     string rpc_user = 43;
     string rpc_pw = 44;
     string take_offer_selected_payment_account_id = 45;
-    double buyer_security_deposit_as_percent = 46;
+    double security_deposit_as_percent = 46;
     int32 ignore_dust_threshold = 47;
-    double buyer_security_deposit_as_percent_for_crypto = 48;
+    double security_deposit_as_percent_for_crypto = 48;
     int32 block_notify_port = 49;
     int32 css_theme = 50;
     bool tac_accepted_v120 = 51;
@@ -1744,6 +1747,7 @@ message PreferencesPayload {
     bool use_sound_for_notifications_initialized = 64;
     string buy_screen_other_currency_code = 65;
     string sell_screen_other_currency_code = 66;
+    bool show_private_offers = 67;
 }
 
 message AutoConfirmSettings {

@@ -158,6 +158,9 @@ public class HavenoSetup {
             rejectedTxErrorMessageHandler;
     @Setter
     @Nullable
+    private Consumer<Boolean> displayMoneroConnectionFallbackHandler;        
+    @Setter
+    @Nullable
     private Consumer<Boolean> displayTorNetworkSettingsHandler;
     @Setter
     @Nullable
@@ -361,7 +364,30 @@ public class HavenoSetup {
     }
 
     private void maybeInstallDependencies() {
-        // Do nothing
+        try {
+
+            // install monerod
+            File monerodFile = new File(XmrLocalNode.MONEROD_PATH);
+            String monerodResourcePath = "bin/" + XmrLocalNode.MONEROD_NAME;
+            if (!monerodFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile))) {
+                log.info("Installing monerod");
+                monerodFile.getParentFile().mkdirs();
+                FileUtil.resourceToFile("bin/" + XmrLocalNode.MONEROD_NAME, monerodFile);
+                monerodFile.setExecutable(true);
+            }
+
+            // install monero-wallet-rpc
+            File moneroWalletRpcFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
+            String moneroWalletRpcResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
+            if (!moneroWalletRpcFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile))) {
+                log.info("Installing monero-wallet-rpc");
+                moneroWalletRpcFile.getParentFile().mkdirs();
+                FileUtil.resourceToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile);
+                moneroWalletRpcFile.setExecutable(true);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to install Monero binaries: {}\n", e.getMessage(), e);
+        }
     }
 
     private void readMapsFromResources(Runnable completeHandler) {
@@ -402,6 +428,12 @@ public class HavenoSetup {
         // reset startup timeout on progress
         getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
         getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
+
+        // listen for fallback handling
+        getConnectionServiceFallbackHandlerActive().addListener((observable, oldValue, newValue) -> {
+            if (displayMoneroConnectionFallbackHandler == null) return;
+            displayMoneroConnectionFallbackHandler.accept(newValue);
+        });
 
         log.info("Init P2P network");
         havenoSetupListeners.forEach(HavenoSetupListener::onInitP2pNetwork);
@@ -700,6 +732,10 @@ public class HavenoSetup {
 
     public StringProperty getConnectionServiceErrorMsg() {
         return xmrConnectionService.getConnectionServiceErrorMsg();
+    }
+
+    public BooleanProperty getConnectionServiceFallbackHandlerActive() {
+        return xmrConnectionService.getConnectionServiceFallbackHandlerActive();
     }
 
     public StringProperty getTopErrorMsg() {

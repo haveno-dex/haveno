@@ -277,9 +277,6 @@ public class BroadcastHandler implements PeerManager.Listener {
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
-                log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
-                numOfFailedBroadcasts.incrementAndGet();
-
                 if (stopped.get()) {
                     return;
                 }
@@ -356,7 +353,8 @@ public class BroadcastHandler implements PeerManager.Listener {
                     try {
                         future.cancel(true);
                     } catch (Exception e) {
-                        if (!networkNode.isShutDownStarted()) throw e;
+                        if (networkNode.isShutDownStarted()) return; // ignore if shut down
+                        throw e;
                     }
                 });
         sendMessageFutures.clear();

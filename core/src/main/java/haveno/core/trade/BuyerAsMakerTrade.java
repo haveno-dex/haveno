@@ -28,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.math.BigInteger;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 @Slf4j
 public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
 
@@ -43,7 +45,8 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                              String uid,
                              NodeAddress makerNodeAddress,
                              NodeAddress takerNodeAddress,
-                             NodeAddress arbitratorNodeAddress) {
+                             NodeAddress arbitratorNodeAddress,
+                             @Nullable String challenge) {
         super(offer,
                 tradeAmount,
                 tradePrice,
@@ -52,7 +55,8 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                 uid,
                 makerNodeAddress,
                 takerNodeAddress,
-                arbitratorNodeAddress);
+                arbitratorNodeAddress,
+                challenge);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +89,8 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                 uid,
                 proto.getProcessModel().getMaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getMaker().getNodeAddress()) : null,
                 proto.getProcessModel().getTaker().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getTaker().getNodeAddress()) : null,
-                proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null);
+                proto.getProcessModel().getArbitrator().hasNodeAddress() ? NodeAddress.fromProto(proto.getProcessModel().getArbitrator().getNodeAddress()) : null,
+                ProtoUtil.stringOrNullFromProto(proto.getChallenge()));
 
         trade.setPrice(proto.getPrice());
 

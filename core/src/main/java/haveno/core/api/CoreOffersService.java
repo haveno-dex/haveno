@@ -172,10 +172,12 @@ public class CoreOffersService {
                              double marketPriceMargin,
                              long amountAsLong,
                              long minAmountAsLong,
-                             double securityDeposit,
+                             double securityDepositPct,
                              String triggerPriceAsString,
                              boolean reserveExactAmount,
                              String paymentAccountId,
+                             boolean isPrivateOffer,
+                             boolean buyerAsTakerWithoutDeposit,
                              Consumer<Offer> resultHandler,
                              ErrorMessageHandler errorMessageHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
@@ -199,8 +201,10 @@ public class CoreOffersService {
                 price,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
-                securityDeposit,
-                paymentAccount);
+                securityDepositPct,
+                paymentAccount,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
 
@@ -223,8 +227,10 @@ public class CoreOffersService {
                     double marketPriceMargin,
                     BigInteger amount,
                     BigInteger minAmount,
-                    double buyerSecurityDeposit,
-                    PaymentAccount paymentAccount) {
+                    double securityDepositPct,
+                    PaymentAccount paymentAccount,
+                    boolean isPrivateOffer,
+                    boolean buyerAsTakerWithoutDeposit) {
         return createOfferService.createAndGetOffer(offerId,
                 direction,
                 currencyCode.toUpperCase(),
@@ -233,8 +239,10 @@ public class CoreOffersService {
                 price,
                 useMarketBasedPrice,
                 exactMultiply(marketPriceMargin, 0.01),
-                buyerSecurityDeposit,
-                paymentAccount);
+                securityDepositPct,
+                paymentAccount,
+                isPrivateOffer,
+                buyerAsTakerWithoutDeposit);
     }
 
     void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
