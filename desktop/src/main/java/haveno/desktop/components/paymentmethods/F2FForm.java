@@ -52,20 +52,20 @@ public class F2FForm extends PaymentMethodForm {
     private final F2FValidator f2fValidator;
     private Country selectedCountry;
 
-    public static int addFormForBuyer(GridPane gridPane, int gridRow,
-                                      PaymentAccountPayload paymentAccountPayload, Offer offer, double top) {
+    public static int addStep2Form(GridPane gridPane, int gridRow,
+                                      PaymentAccountPayload paymentAccountPayload, Offer offer, double top, boolean isBuyer) {
         F2FAccountPayload f2fAccountPayload = (F2FAccountPayload) paymentAccountPayload;
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, 0, Res.get("shared.country"),
                 CountryUtil.getNameAndCode(f2fAccountPayload.getCountryCode()), top);
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.f2f.city"),
                 offer.getF2FCity(), top);
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.f2f.contact"),
-                f2fAccountPayload.getContact());
+                isBuyer ? f2fAccountPayload.getContact() : Res.get("shared.na"));
         TextArea textArea = addTopLabelTextArea(gridPane, gridRow, 1, Res.get("payment.shared.extraInfo"), "").second;
         textArea.setMinHeight(70);
         textArea.setEditable(false);
         textArea.setId("text-area-disabled");
-        textArea.setText(offer.getExtraInfo());
+        textArea.setText(offer.getPaymentAccountExtraInfo());
         return gridRow;
     }
 
@@ -106,7 +106,7 @@ public class F2FForm extends PaymentMethodForm {
         });
 
         TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
-                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt")).second;
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt.paymentAccount")).second;
         extraTextArea.setMinHeight(70);
         ((JFXTextArea) extraTextArea).setLabelFloat(false);
         //extraTextArea.setValidator(f2fValidator);

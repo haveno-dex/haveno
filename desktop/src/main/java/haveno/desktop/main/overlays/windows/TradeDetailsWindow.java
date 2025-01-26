@@ -38,6 +38,7 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
@@ -47,6 +48,8 @@ import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
@@ -165,9 +168,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
 
         // second group
         rows = 7;
+
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+            rows++;
+
         PaymentAccountPayload buyerPaymentAccountPayload = null;
         PaymentAccountPayload sellerPaymentAccountPayload = null;
-
         if (contract != null) {
             rows++;
 
@@ -218,6 +224,29 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTradePeerNodeAddress() != null)
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
                     trade.getTradePeerNodeAddress().getFullAddress());
+
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
+            TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
+            textArea.setText(offer.getCombinedExtraInfo());
+            textArea.setMaxHeight(200);
+            textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
+                if (newScene != null) {
+                    // avoid javafx css warning
+                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
+                    textArea.applyCss();
+                    var text = textArea.lookup(".text");
+
+                    textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
+                        return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
+                    }, text.boundsInLocalProperty()));
+
+                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
+                        Platform.runLater(() -> textArea.requestLayout());
+                    });
+                }
+            });
+            textArea.setEditable(false);
+        }
 
         if (contract != null) {
             buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());

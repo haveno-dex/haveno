@@ -94,6 +94,7 @@ public class TradesChartsViewModelTest {
             0,
             null,
             null,
+            null,
             null);
 
     @BeforeEach

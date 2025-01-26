@@ -166,6 +166,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setExtraInfo(offer.getOfferExtraInfo());
     }
 
     public void onStartEditOffer(ErrorMessageHandler errorMessageHandler) {
@@ -216,7 +217,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),
                 offerPayload.getArbitratorSignature(),
-                offerPayload.getReserveTxKeyImages());
+                offerPayload.getReserveTxKeyImages(),
+                newOfferPayload.getExtraInfo());
 
         final Offer editedOffer = new Offer(editedPayload);
         editedOffer.setPriceFeedService(priceFeedService);

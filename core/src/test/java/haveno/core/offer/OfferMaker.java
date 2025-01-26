@@ -73,7 +73,8 @@ public class OfferMaker {
                     0,
                     null,
                     null,
-                    null));
+                    null,
+                    "My extra info"));
 
     public static final Maker<Offer> btcUsdOffer = a(Offer);
 }

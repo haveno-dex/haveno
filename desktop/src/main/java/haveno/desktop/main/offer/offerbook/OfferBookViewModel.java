@@ -483,8 +483,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 if (countryCode != null) {
                     result += "\n" + Res.get("payment.f2f.offerbook.tooltip.countryAndCity",
                             CountryUtil.getNameByCode(countryCode), offer.getF2FCity());
-
-                    result += "\n" + Res.get("payment.f2f.offerbook.tooltip.extra", offer.getExtraInfo());
                 }
             } else {
                 if (countryCode != null) {
@@ -514,6 +512,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                         result += "\n" + Res.getWithCol("shared.acceptedBanks") + " " + Joiner.on(", ").join(acceptedBanks);
                 }
             }
+            if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+                result += "\n" + Res.get("payment.shared.extraInfo.tooltip", offer.getCombinedExtraInfo());
         }
         return result;
     }

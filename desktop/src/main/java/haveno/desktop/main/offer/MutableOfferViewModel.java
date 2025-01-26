@@ -144,6 +144,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final StringProperty waitingForFundsText = new SimpleStringProperty("");
     final StringProperty triggerPriceDescription = new SimpleStringProperty("");
     final StringProperty percentagePriceDescription = new SimpleStringProperty("");
+    final StringProperty extraInfo = new SimpleStringProperty("");
 
     final BooleanProperty isPlaceOfferButtonDisabled = new SimpleBooleanProperty(true);
     final BooleanProperty cancelButtonDisabled = new SimpleBooleanProperty();
@@ -166,6 +167,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private ChangeListener<String> priceStringListener, marketPriceMarginStringListener;
     private ChangeListener<String> volumeStringListener;
     private ChangeListener<String> securityDepositStringListener;
+    private ChangeListener<String> extraInfoStringListener;
 
     private ChangeListener<BigInteger> amountListener;
     private ChangeListener<BigInteger> minAmountListener;
@@ -238,6 +240,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 dataModel.calculateTotalToPay();
                 updateButtonDisableState();
                 updateSpinnerInfo();
+                setExtraInfoToModel();
             }, 100, TimeUnit.MILLISECONDS);
         }
 
@@ -498,6 +501,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             updateButtonDisableState();
         };
 
+        extraInfoStringListener = (ov, oldValue, newValue) -> {
+            if (newValue != null) {
+                extraInfo.set(newValue);
+            } else {
+                extraInfo.set("");
+            }
+        };
+
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
        /* feeFromFundingTxListener = (ov, oldValue, newValue) -> {
             updateButtonDisableState();
@@ -542,6 +553,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getUseMarketBasedPrice().addListener(useMarketBasedPriceListener);
         volume.addListener(volumeStringListener);
         securityDeposit.addListener(securityDepositStringListener);
+        extraInfo.addListener(extraInfoStringListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().addListener(amountListener);
@@ -550,6 +562,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getVolume().addListener(volumeListener);
         dataModel.getSecurityDepositPct().addListener(securityDepositAsDoubleListener);
         dataModel.getBuyerAsTakerWithoutDeposit().addListener(buyerAsTakerWithoutDepositListener);
+        dataModel.getExtraInfo().addListener(extraInfoStringListener);
 
         // dataModel.feeFromFundingTxProperty.addListener(feeFromFundingTxListener);
         dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
@@ -565,6 +578,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getUseMarketBasedPrice().removeListener(useMarketBasedPriceListener);
         volume.removeListener(volumeStringListener);
         securityDeposit.removeListener(securityDepositStringListener);
+        extraInfo.removeListener(extraInfoStringListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().removeListener(amountListener);
@@ -824,6 +838,12 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             UserThread.execute(() -> {
                 onFocusOutSecurityDepositTextField(true, false);
             });
+        }
+    }
+
+    public void onFocusOutExtraInfoTextField(boolean oldValue, boolean newValue) {
+        if (oldValue && !newValue) {
+            dataModel.setExtraInfo(extraInfo.get());
         }
     }
 
@@ -1230,6 +1250,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             dataModel.setSecurityDepositPct(ParsingUtils.parsePercentStringToDouble(securityDeposit.get()));
         } else {
             dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
+        }
+    }
+
+    private void setExtraInfoToModel() {
+        if (extraInfo.get() != null && !extraInfo.get().isEmpty()) {
+            dataModel.setExtraInfo(extraInfo.get());
+        } else {
+            dataModel.setExtraInfo(null);
         }
     }
 

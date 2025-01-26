@@ -111,6 +111,7 @@ public class OfferMaker {
                     lookup.valueOf(protocolVersion, 0),
                     getLocalHostNodeWithPort(99999),
                     null,
+                    null,
                     null));
 
     public static final Maker<Offer> xmrUsdOffer = a(Offer);

@@ -105,6 +105,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected final ObjectProperty<Price> price = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> minVolume = new SimpleObjectProperty<>();
+    protected final ObjectProperty<String> extraInfo = new SimpleObjectProperty<>();
 
     // Percentage value of buyer security deposit. E.g. 0.01 means 1% of trade amount
     protected final DoubleProperty securityDepositPct = new SimpleDoubleProperty();
@@ -305,7 +306,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 securityDepositPct.get(),
                 paymentAccount,
                 buyerAsTakerWithoutDeposit.get(), // private offer if buyer as taker without deposit
-                buyerAsTakerWithoutDeposit.get());
+                buyerAsTakerWithoutDeposit.get(),
+                extraInfo.get());
     }
 
     void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -583,6 +585,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.amount.set(amount);
     }
 
+    protected void setMinAmount(BigInteger minAmount) {
+        this.minAmount.set(minAmount);
+    }
+
     protected void setPrice(Price price) {
         this.price.set(price);
     }
@@ -593,6 +599,22 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected void setSecurityDepositPct(double value) {
         this.securityDepositPct.set(value);
+    }
+
+    public void setMarketPriceAvailable(boolean marketPriceAvailable) {
+        this.marketPriceAvailable = marketPriceAvailable;
+    }
+
+    public void setTriggerPrice(long triggerPrice) {
+        this.triggerPrice = triggerPrice;
+    }
+
+    public void setReserveExactAmount(boolean reserveExactAmount) {
+        this.reserveExactAmount = reserveExactAmount;
+    }
+
+    protected void setExtraInfo(String extraInfo) {
+        this.extraInfo.set(extraInfo);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -625,10 +647,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public ReadOnlyBooleanProperty getBuyerAsTakerWithoutDeposit() {
         return buyerAsTakerWithoutDeposit;
-    }
-
-    protected void setMinAmount(BigInteger minAmount) {
-        this.minAmount.set(minAmount);
     }
 
     public ReadOnlyStringProperty getTradeCurrencyCode() {
@@ -670,10 +688,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return totalToPay;
     }
 
-    public void setMarketPriceAvailable(boolean marketPriceAvailable) {
-        this.marketPriceAvailable = marketPriceAvailable;
-    }
-
     public BigInteger getMaxMakerFee() {
         return HavenoUtils.multiply(amount.get(), buyerAsTakerWithoutDeposit.get() ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
     }
@@ -687,11 +701,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return getSecurityDeposit().compareTo(Restrictions.getMinSecurityDeposit()) <= 0;
     }
 
-    public void setTriggerPrice(long triggerPrice) {
-        this.triggerPrice = triggerPrice;
-    }
-
-    public void setReserveExactAmount(boolean reserveExactAmount) {
-        this.reserveExactAmount = reserveExactAmount;
+    public ReadOnlyObjectProperty<String> getExtraInfo() {
+        return extraInfo;
     }
 }
