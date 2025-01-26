@@ -290,7 +290,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         if (!showAllPaymentMethods) {
             this.selectedPaymentMethod = paymentMethod;
 
-            // If we select TransferWise we switch to show all currencies as TransferWise supports
+            // If we select Wise we switch to show all currencies as Wise supports
             // sending to most currencies.
             if (paymentMethod.getId().equals(PaymentMethod.TRANSFERWISE_ID)) {
                 onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
