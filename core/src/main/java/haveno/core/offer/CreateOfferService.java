@@ -130,6 +130,9 @@ public class CreateOfferService {
                 buyerAsTakerWithoutDeposit,
                 extraInfo);
 
+        // must nullify empty string so contracts match
+        if ("".equals(extraInfo)) extraInfo = null;
+
         // verify buyer as taker security deposit
         boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
         if (!isBuyerMaker && !isPrivateOffer && buyerAsTakerWithoutDeposit) {
@@ -142,14 +145,11 @@ public class CreateOfferService {
             if (marketPriceMargin != 0) throw new IllegalArgumentException("Cannot set market price margin with fixed price");
         }
 
-        long creationTime = new Date().getTime();
-        NodeAddress makerAddress = p2PService.getAddress();
+        // verify price
         boolean useMarketBasedPriceValue = fixedPrice == null &&
                 useMarketBasedPrice &&
                 isMarketPriceAvailable(currencyCode) &&
                 !PaymentMethod.isFixedPriceOnly(paymentAccount.getPaymentMethod().getId());
-
-        // verify price
         if (fixedPrice == null && !useMarketBasedPriceValue) {
             throw new IllegalArgumentException("Must provide fixed price");
         }
@@ -166,6 +166,8 @@ public class CreateOfferService {
             challengeHash = HavenoUtils.getChallengeHash(challenge);
         }
 
+        long creationTime = new Date().getTime();
+        NodeAddress makerAddress = p2PService.getAddress();
         long priceAsLong = fixedPrice != null ? fixedPrice.getValue() : 0L;
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.longValueExact() : 0L;
