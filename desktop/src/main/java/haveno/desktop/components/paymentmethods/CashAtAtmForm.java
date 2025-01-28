@@ -41,12 +41,12 @@ public class CashAtAtmForm extends PaymentMethodForm {
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        CashAtAtmAccountPayload cbm = (CashAtAtmAccountPayload) paymentAccountPayload;
+        CashAtAtmAccountPayload cashAtAtmPayload = (CashAtAtmAccountPayload) paymentAccountPayload;
 
         TextArea textExtraInfo = addCompactTopLabelTextArea(gridPane, ++gridRow, 0, Res.get("payment.shared.extraInfo"), "").second;
         textExtraInfo.setMinHeight(70);
         textExtraInfo.setEditable(false);
-        textExtraInfo.setText(cbm.getExtraInfo());
+        textExtraInfo.setText(cashAtAtmPayload.getExtraInfo());
         return gridRow;
     }
 
@@ -79,7 +79,11 @@ public class CashAtAtmForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(cashAtAtmAccount.getExtraInfo().substring(0, Math.min(50, cashAtAtmAccount.getExtraInfo().length())));
+        if (cashAtAtmAccount.getExtraInfo() != null && !cashAtAtmAccount.getExtraInfo().isEmpty()) {
+            setAccountNameWithString(cashAtAtmAccount.getExtraInfo().substring(0, Math.min(50, cashAtAtmAccount.getExtraInfo().length())));
+        } else {
+            setAccountNameWithString(cashAtAtmAccount.getSelectedTradeCurrency().getCode());
+        }
     }
 
     @Override
@@ -104,7 +108,6 @@ public class CashAtAtmForm extends PaymentMethodForm {
     @Override
     public void updateAllInputsValid() {
         allInputsValid.set(isAccountNameValid()
-                && !cashAtAtmAccount.getExtraInfo().isEmpty()
                 && paymentAccount.getSingleTradeCurrency() != null);
     }
 }
