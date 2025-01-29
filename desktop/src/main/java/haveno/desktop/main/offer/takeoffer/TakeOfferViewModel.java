@@ -208,7 +208,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         errorMessage.set(offer.getErrorMessage());
 
         xmrValidator.setMaxValue(offer.getAmount());
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()).min(offer.getAmount()));
+        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
         xmrValidator.setMinValue(offer.getMinAmount());
     }
 
@@ -237,7 +237,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()).min(offer.getAmount()));
+        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
         updateButtonDisableState();
     }
 
@@ -299,20 +299,13 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 Price tradePrice = dataModel.tradePrice;
                 long maxTradeLimit = dataModel.getMaxTradeLimit();
                 if (PaymentMethod.isRoundedForAtmCash(dataModel.getPaymentMethod().getId())) {
-                    BigInteger adjustedAmountForAtm = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(),
-                            tradePrice,
-                            maxTradeLimit);
-                    dataModel.applyAmount(adjustedAmountForAtm);
-                    amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
+                    BigInteger adjustedAmountForAtm = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit);
+                    dataModel.maybeApplyAmount(adjustedAmountForAtm);
                 } else if (dataModel.getOffer().isTraditionalOffer()) {
-                    if (!isAmountEqualMinAmount(dataModel.getAmount().get()) && (!isAmountEqualMaxAmount(dataModel.getAmount().get()))) {
-                        // We only apply the rounding if the amount is variable (minAmount is lower as amount).
-                        // Otherwise we could get an amount lower then the minAmount set by rounding
-                        BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
-                        dataModel.applyAmount(roundedAmount);
-                    }
-                    amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
+                    BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
+                    dataModel.maybeApplyAmount(roundedAmount);
                 }
+                amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
 
                 if (!dataModel.isMinAmountLessOrEqualAmount())
                     amountValidationResult.set(new InputValidator.ValidationResult(false,
@@ -580,23 +573,12 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             if (price != null) {
                 if (dataModel.isRoundedForAtmCash()) {
                     amount = CoinUtil.getRoundedAtmCashAmount(amount, price, maxTradeLimit);
-                } else if (dataModel.getOffer().isTraditionalOffer()
-                        && !isAmountEqualMinAmount(amount) && !isAmountEqualMaxAmount(amount)) {
-                    // We only apply the rounding if the amount is variable (minAmount is lower as amount).
-                    // Otherwise we could get an amount lower then the minAmount set by rounding
+                } else if (dataModel.getOffer().isTraditionalOffer()) {
                     amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                 }
             }
-            dataModel.applyAmount(amount);
+            dataModel.maybeApplyAmount(amount);
         }
-    }
-
-    private boolean isAmountEqualMinAmount(BigInteger amount) {
-        return offer.getMinAmount().equals(amount);
-    }
-
-    private boolean isAmountEqualMaxAmount(BigInteger amount) {
-        return offer.getAmount().equals(amount);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
