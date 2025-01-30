@@ -584,7 +584,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         // filter private offers
         if (direction == OfferDirection.BUY) {
-            predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+            predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() || !showPrivateOffers);
         }
 
         if (!filterText.isEmpty()) {
