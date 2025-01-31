@@ -39,7 +39,6 @@ import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
-import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.FiatVolumeValidator;
 import haveno.core.payment.validation.SecurityDepositValidator;
 import haveno.core.payment.validation.XmrValidator;
@@ -186,7 +185,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final IntegerProperty marketPriceAvailableProperty = new SimpleIntegerProperty(-1);
     private ChangeListener<Number> currenciesUpdateListener;
     protected boolean syncMinAmountWithAmount = true;
-    private boolean makeOfferFromUnsignedAccountWarningDisplayed;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -695,7 +693,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
         xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
-        maybeShowMakeOfferToUnsignedAccountWarning();
 
         securityDepositValidator.setPaymentAccount(paymentAccount);
     }
@@ -831,8 +828,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             } else {
                 syncMinAmountWithAmount = true;
             }
-
-            maybeShowMakeOfferToUnsignedAccountWarning();
 
             // trigger recalculation of the security deposit
             UserThread.execute(() -> {
@@ -1266,17 +1261,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         String value = FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get());
         if (!securityDepositValidator.validate(value).isValid) {
             dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
-        }
-    }
-
-    private void maybeShowMakeOfferToUnsignedAccountWarning() {
-        if (!makeOfferFromUnsignedAccountWarningDisplayed &&
-                dataModel.getDirection() == OfferDirection.SELL &&
-                PaymentMethod.hasChargebackRisk(dataModel.getPaymentAccount().getPaymentMethod(), dataModel.getTradeCurrency().getCode())) {
-            BigInteger checkAmount = dataModel.getMinAmount().get() == null ? dataModel.getAmount().get() : dataModel.getMinAmount().get();
-            if (checkAmount != null && checkAmount.compareTo(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT) <= 0) {
-                makeOfferFromUnsignedAccountWarningDisplayed = true;
-            }
         }
     }
 
