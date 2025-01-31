@@ -183,7 +183,7 @@ class TakeOfferDataModel extends OfferDataModel {
         checkArgument(!possiblePaymentAccounts.isEmpty(), "possiblePaymentAccounts.isEmpty()");
         paymentAccount = getLastSelectedPaymentAccount();
 
-        this.amount.set(offer.getAmount().min(BigInteger.valueOf(getMaxTradeLimit())));
+        this.amount.set(BigInteger.valueOf(getMaxTradeLimit()));
 
         updateSecurityDeposit();
 
@@ -292,8 +292,7 @@ class TakeOfferDataModel extends OfferDataModel {
         if (paymentAccount != null) {
             this.paymentAccount = paymentAccount;
 
-            long myLimit = getMaxTradeLimit();
-            this.amount.set(offer.getMinAmount().max(amount.get().min(BigInteger.valueOf(myLimit))));
+            this.amount.set(BigInteger.valueOf(getMaxTradeLimit()));
 
             preferences.setTakeOfferSelectedPaymentAccountId(paymentAccount.getId());
         }
@@ -338,13 +337,17 @@ class TakeOfferDataModel extends OfferDataModel {
                 .orElse(firstItem);
     }
 
-    long getMaxTradeLimit() {
+    long getMyMaxTradeLimit() {
         if (paymentAccount != null) {
             return accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
                     offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         } else {
             return 0;
         }
+    }
+
+    long getMaxTradeLimit() {
+        return Math.min(offer.getAmount().longValueExact(), getMyMaxTradeLimit());
     }
 
     boolean canTakeOffer() {
@@ -383,8 +386,10 @@ class TakeOfferDataModel extends OfferDataModel {
         }
     }
 
-    void applyAmount(BigInteger amount) {
-        this.amount.set(amount.min(BigInteger.valueOf(getMaxTradeLimit())));
+    void maybeApplyAmount(BigInteger amount) {
+        if (amount.compareTo(offer.getMinAmount()) >= 0 && amount.compareTo(BigInteger.valueOf(getMaxTradeLimit())) <= 0) {
+            this.amount.set(amount);
+        }
         calculateTotalToPay();
     }
 

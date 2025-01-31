@@ -1104,6 +1104,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         extraInfoTextArea.setPrefHeight(75);
         extraInfoTextArea.setMinHeight(75);
         extraInfoTextArea.setMaxHeight(75);
+        extraInfoTextArea.setFocusTraversable(false);
         GridPane.setRowIndex(extraInfoTextArea, gridRow);
         GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
         GridPane.setColumnIndex(extraInfoTextArea, 0);

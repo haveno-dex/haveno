@@ -597,7 +597,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static boolean isFixedPriceOnly(String id) {
-        return id.equals(PaymentMethod.CASH_AT_ATM_ID) ||
-            id.equals(PaymentMethod.HAL_CASH_ID);
+        return id.equals(PaymentMethod.HAL_CASH_ID);
     }
 }

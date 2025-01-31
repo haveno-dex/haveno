@@ -1346,7 +1346,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // verify maker's trade fee
                 if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId;
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1379,7 +1379,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // verify maker's trade fee
                 if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId;
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_PCT + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
