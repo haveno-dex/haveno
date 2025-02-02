@@ -876,13 +876,14 @@ message PaymentAccountPayload {
         PayByMailAccountPayload pay_by_mail_account_payload = 32;
         CapitualAccountPayload capitual_account_payload = 33;
         PayseraAccountPayload Paysera_account_payload = 34;
-        PaxumAccountPayload Paxum_account_payload = 35;
+        PaxumAccountPayload paxum_account_payload = 35;
         SwiftAccountPayload swift_account_payload = 36;
         CelPayAccountPayload cel_pay_account_payload = 37;
         MoneseAccountPayload monese_account_payload = 38;
         VerseAccountPayload verse_account_payload = 39;
         CashAtAtmAccountPayload cash_at_atm_account_payload = 40;
         PayPalAccountPayload paypal_account_payload = 41;
+        PaysafeAccountPayload paysafe_account_payload = 42;
     }
 }
 
@@ -1073,6 +1074,7 @@ message MoneyBeamAccountPayload {
 message VenmoAccountPayload {
     string email_or_mobile_nr_or_username = 1;
 }
+
 message PayPalAccountPayload {
     string email_or_mobile_nr_or_username = 1;
     string extra_info = 2;
@@ -1232,6 +1234,10 @@ message SwiftAccountPayload {
     string intermediary_name = 14;
     string intermediary_branch = 15;
     string intermediary_address = 16;
+}
+
+message PaysafeAccountPayload {
+    string email = 1;
 }
 
 message PersistableEnvelope {
@@ -1888,6 +1894,7 @@ message PaymentAccountForm {
         CASH_APP = 16;
         PAYPAL = 17;
         VENMO = 18;
+        PAYSAFE = 19;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
