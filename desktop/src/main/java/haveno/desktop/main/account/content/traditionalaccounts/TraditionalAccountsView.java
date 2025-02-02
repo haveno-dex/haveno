@@ -38,6 +38,7 @@ import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.PaysafeAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.VenmoAccount;
@@ -103,6 +104,7 @@ import haveno.desktop.components.paymentmethods.PaxumForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
+import haveno.desktop.components.paymentmethods.PaysafeForm;
 import haveno.desktop.components.paymentmethods.PayseraForm;
 import haveno.desktop.components.paymentmethods.PaytmForm;
 import haveno.desktop.components.paymentmethods.PerfectMoneyForm;
@@ -400,6 +402,13 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                                     .actionButtonText(Res.get("shared.iUnderstand"))
                                     .onAction(() -> doSaveNewAccount(paymentAccount))
                                     .show();
+                        } else if (paymentAccount instanceof PaysafeAccount) {
+                            new Popup().warning(Res.get("payment.paysafe.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
                         } else {
                             doSaveNewAccount(paymentAccount);
                         }
@@ -677,6 +686,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new VenmoForm(paymentAccount, accountAgeWitnessService, venmoValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.CASH_APP_ID:
                 return new CashAppForm(paymentAccount, accountAgeWitnessService, cashAppValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYSAFE_ID:
+                return new PaysafeForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
