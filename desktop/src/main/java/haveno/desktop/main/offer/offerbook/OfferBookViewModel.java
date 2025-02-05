@@ -643,9 +643,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     public boolean hasSelectionAccountSigning() {
         if (showAllTradeCurrenciesProperty.get()) {
-            if (!isShowAllEntry(selectedPaymentMethod.getId())) {
+            if (isShowAllEntry(selectedPaymentMethod.getId()))
+                return !(this instanceof CryptoOfferBookViewModel);
+            else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod);
-            }
         } else {
             if (isShowAllEntry(selectedPaymentMethod.getId()))
                 return CurrencyUtil.getMatureMarketCurrencies().stream()
@@ -653,7 +654,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod, tradeCurrencyCode.get());
         }
-        return true;
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {

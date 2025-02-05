@@ -51,6 +51,7 @@ import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
+import haveno.core.payment.PaysafeAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
 import haveno.core.payment.ZelleAccount;
@@ -193,6 +194,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String CASH_APP_ID = "CASH_APP";
     public static final String VENMO_ID = "VENMO";
     public static final String PAYPAL_ID = "PAYPAL";
+    public static final String PAYSAFE_ID = "PAYSAFE";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -252,6 +254,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod PAYPAL;
     public static PaymentMethod CASH_APP;
     public static PaymentMethod VENMO;
+    public static PaymentMethod PAYSAFE;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -322,6 +325,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             DOMESTIC_WIRE_TRANSFER = new PaymentMethod(DOMESTIC_WIRE_TRANSFER_ID, 3 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(DomesticWireTransferAccount.SUPPORTED_CURRENCIES)),
             PAYPAL = new PaymentMethod(PAYPAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayPalAccount.SUPPORTED_CURRENCIES)),
             CASH_APP = new PaymentMethod(CASH_APP_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAppAccount.SUPPORTED_CURRENCIES)),
+            PAYSAFE = new PaymentMethod(PaymentMethod.PAYSAFE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PaysafeAccount.SUPPORTED_CURRENCIES)),
 
             // Japan
             JAPAN_BANK = new PaymentMethod(JAPAN_BANK_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(JapanBankAccount.SUPPORTED_CURRENCIES)),
@@ -364,7 +368,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 AUSTRALIA_PAYID_ID,
                 CASH_APP_ID,
                 PAYPAL_ID,
-                VENMO_ID);
+                VENMO_ID,
+                PAYSAFE_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -588,7 +593,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.UPHOLD_ID) ||
                 id.equals(PaymentMethod.CASH_APP_ID) ||
                 id.equals(PaymentMethod.PAYPAL_ID) ||
-                id.equals(PaymentMethod.VENMO_ID);
+                id.equals(PaymentMethod.VENMO_ID) ||
+                id.equals(PaymentMethod.PAYSAFE_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {
