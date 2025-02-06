@@ -732,7 +732,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             xmrWalletService.addWalletListener(idlePayoutSyncer);
         }
 
-        // TODO: buyer's payment sent message state property can become unsynced (after improper shut down?)
+        // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed in v1.0.19 so this check can be removed?
         if (isBuyer()) {
             MessageState expectedState = getPaymentSentMessageState();
             if (expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
@@ -2020,12 +2020,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (processModel.getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
         switch (state) {
             case BUYER_SENT_PAYMENT_SENT_MSG:
-            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                 return MessageState.SENT;
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
+                return MessageState.ARRIVED;
             case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                 return MessageState.STORED_IN_MAILBOX;
             case SELLER_RECEIVED_PAYMENT_SENT_MSG:
-                return MessageState.ARRIVED;
+                return MessageState.ACKNOWLEDGED;
             case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                 return MessageState.FAILED;
             default:
