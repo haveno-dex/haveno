@@ -506,16 +506,16 @@ configure(project(':core')) {
                 } else {
                     ext.extractArchiveTarGz(moneroArchiveFile, localnetDir)
                 }
+            }
 
-                // add the current platform's monero dependencies into the resources folder for installation
-                copy {
-                    from "${monerodFile}"
-                    into "${project(':core').projectDir}/src/main/resources/bin"
-                }
-                copy {
-                    from "${moneroRpcFile}"
-                    into "${project(':core').projectDir}/src/main/resources/bin"
-                }
+            // add the current platform's monero dependencies into the resources folder for installation
+            copy {
+                from "${monerodFile}"
+                into "${project(':core').projectDir}/src/main/resources/bin"
+            }
+            copy {
+                from "${moneroRpcFile}"
+                into "${project(':core').projectDir}/src/main/resources/bin"
             }
         }
 
