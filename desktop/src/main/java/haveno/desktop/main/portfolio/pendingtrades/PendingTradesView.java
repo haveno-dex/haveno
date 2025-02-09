@@ -363,7 +363,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     }
 
     private void updateMoveTradeToFailedColumnState() {
-        UserThread.execute(() -> moveTradeToFailedColumn.setVisible(model.dataModel.list.stream().anyMatch(item -> isMaybeInvalidTrade(item.getTrade()))));
+        synchronized (model.dataModel.list) {
+            UserThread.execute(() -> moveTradeToFailedColumn.setVisible(model.dataModel.list.stream().anyMatch(item -> isMaybeInvalidTrade(item.getTrade()))));
+        }
     }
 
     private boolean isMaybeInvalidTrade(Trade trade) {
