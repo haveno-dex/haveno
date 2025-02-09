@@ -112,7 +112,7 @@ public class XmrWalletService extends XmrWalletBase {
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final double MINER_FEE_TOLERANCE = 0.25; // miner fee must be within percent of estimated fee
-    public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.ELEVATED;
+    public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.DEFAULT;
     public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
@@ -762,9 +762,9 @@ public class XmrWalletService extends XmrWalletBase {
                 if (!BigInteger.ZERO.equals(tx.getUnlockTime())) throw new RuntimeException("Unlock height must be 0");
 
                 // verify miner fee
-                BigInteger minerFeeEstimate = getElevatedFeeEstimate(tx.getWeight());
+                BigInteger minerFeeEstimate = getFeeEstimate(tx.getWeight());
                 double minerFeeDiff = tx.getFee().subtract(minerFeeEstimate).abs().doubleValue() / minerFeeEstimate.doubleValue();
-                if (minerFeeDiff > MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + minerFeeEstimate + " but was " + tx.getFee());
+                if (minerFeeDiff > MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + minerFeeEstimate + " but was " + tx.getFee() + ", diff%=" + minerFeeDiff);
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), minerFeeDiff);
 
                 // verify proof to fee address
@@ -824,11 +824,19 @@ public class XmrWalletService extends XmrWalletBase {
      * @param txWeight - the tx weight
      * @return the tx fee estimate
      */
-    private BigInteger getElevatedFeeEstimate(long txWeight) {
+    private BigInteger getFeeEstimate(long txWeight) {
+
+        // get fee priority
+        MoneroTxPriority priority;
+        if (PROTOCOL_FEE_PRIORITY == MoneroTxPriority.DEFAULT) {
+            priority = wallet.getDefaultFeePriority();
+        } else {
+            priority = PROTOCOL_FEE_PRIORITY;
+        }
 
         // get fee estimates per kB from daemon
         MoneroFeeEstimate feeEstimates = getDaemon().getFeeEstimate();
-        BigInteger baseFeeEstimate = feeEstimates.getFees().get(2); // get elevated fee per kB
+        BigInteger baseFeeEstimate = feeEstimates.getFees().get(priority.ordinal() - 1);
         BigInteger qmask = feeEstimates.getQuantizationMask();
         log.info("Monero base fee estimate={}, qmask={}", baseFeeEstimate, qmask);
 
