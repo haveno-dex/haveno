@@ -45,7 +45,8 @@ while getopts 'csauhn:r:f:' flag; do
 				exit 1
 			fi
 			;;
-		n) APPVM_NAME=${OPTARG} ;;
+		n) APPVM_NAME=${OPTARG} 
+			TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME" ;;
 		*) print_usage
 			exit 1 ;;
 	esac
