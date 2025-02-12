@@ -332,15 +332,17 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             }
     
             // add shown trades to list
-            list.clear();
-            list.addAll(tradeManager.getObservableList().stream()
-                    .filter(trade -> isTradeShown(trade))
-                    .map(trade -> new PendingTradesListItem(trade, btcFormatter))
-                    .collect(Collectors.toList()));
-        }
+            synchronized (list) {
+                list.clear();
+                list.addAll(tradeManager.getObservableList().stream()
+                        .filter(trade -> isTradeShown(trade))
+                        .map(trade -> new PendingTradesListItem(trade, btcFormatter))
+                        .collect(Collectors.toList()));
 
-        // we sort by date, earliest first
-        list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
+                // we sort by date, earliest first
+                list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
+            }
+        }
 
         selectBestItem();
     }
@@ -350,17 +352,21 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     private void selectBestItem() {
-        if (list.size() == 1)
-            doSelectItem(list.get(0));
-        else if (list.size() > 1 && (selectedItemProperty.get() == null || !list.contains(selectedItemProperty.get())))
-            doSelectItem(list.get(0));
-        else if (list.size() == 0)
-            doSelectItem(null);
+        synchronized (list) {
+            if (list.size() == 1)
+                doSelectItem(list.get(0));
+            else if (list.size() > 1 && (selectedItemProperty.get() == null || !list.contains(selectedItemProperty.get())))
+                doSelectItem(list.get(0));
+            else if (list.size() == 0)
+                doSelectItem(null);
+        }
     }
 
     private void selectItemByTradeId(String tradeId) {
         if (activated) {
-            list.stream().filter(e -> e.getTrade().getId().equals(tradeId)).findAny().ifPresent(this::doSelectItem);
+            synchronized (list) {
+                list.stream().filter(e -> e.getTrade().getId().equals(tradeId)).findAny().ifPresent(this::doSelectItem);
+            }
         }
     }
 
