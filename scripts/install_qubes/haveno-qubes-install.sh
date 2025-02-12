@@ -45,15 +45,15 @@ while getopts 'csauhn:r:f:' flag; do
 				exit 1
 			fi
 			;;
-		n) APPVM_NAME=${OPTARG} 
-			TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME" ;;
+		n) APPVM_NAME=${OPTARG}
+		        TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME" ;;
 		*) print_usage
 			exit 1 ;;
 	esac
 done
 
 #Set build from force true if using haveno main repo
-if ! [[ $unoffical ]] ; then
+if ! [[ $unoffical -eq 0 ]] ; then
 	from_source=0
 	log "WARNING : you are installing the main haveno-dex repo but have no enabled build from source, as such this setting has been automatically toggled"
 fi
@@ -78,10 +78,8 @@ else
 fi
 log "cloning the template"
 qvm-clone debian-12-minimal "$APPVM_NAME"
-log "removing downloaded template"
-sudo dnf remove qubes-template-12-minimal
 log "Installing necessary packages on template"
-$TPL_ROOT "apt update && apt full-upgrade -y"
+$TPL_ROOT "apt-get update && apt-get full-upgrade -y"
 $TPL_ROOT "apt-get install --no-install-recommends qubes-core-agent-networking qubes-core-agent-nautilus nautilus zenity curl -y && poweroff" || true
 log "Setting $APPVM_NAME network to sys-whonix"
 qvm-prefs $APPVM_NAME netvm sys-whonix
@@ -146,7 +144,7 @@ Terminal=false
 Type=Application
 Categories=Network
 MimeType="
-	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --torControlPort=9051 --torControlHost=$SYS_WHONIX_IP' > /usr/local/sbin/Haveno && chmod +x /usr/local/sbin/Haveno"
+	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --torControlPort=9051 --torControlHost=$SYS_WHONIX_IP' > /usr/local/sbin/Haveno && chmod +x /usr/local/sbin/Haveno && chmod u+s /usr/local/sbin/Haveno"
 
 
 elif [[ $from_source -eq 0 ]]; then
@@ -164,7 +162,7 @@ elif [[ $from_source -eq 0 ]]; then
 	log "Compilation successful, creating a script to run compiled binary securly"
 	$TPL_ROOT "echo -e '#\x21/bin/bash\nsource /root/.sdkman/bin/sdkman-init.sh\n/root/$CODE_DIR/haveno-desktop --torControlPort=9051 --useTorForXmr=OFF --torControlHost=$SYS_WHONIX_IP' > /usr/local/sbin/Haveno && chmod +x /usr/local/sbin/Haveno && chmod u+s /usr/local/sbin/Haveno"
 	#Fix icon permissions
-	$TPL_ROOT "cp '/root/haveno-reto/desktop/package/linux/haveno.png' /opt/haveno.png && chmod 644 /opt/haveno.png"
+	$TPL_ROOT "cp '/root/$CODE_DIR/desktop/package/linux/haveno.png' /opt/haveno.png && chmod 644 /opt/haveno.png"
 	patched_app_entry="[Desktop Entry]
 Name=Haveno
 Comment=Haveno through sys-whonix
@@ -194,9 +192,9 @@ else
 	# Remove unneeded packages
 	log "Removing unneeded packages to lessen attack surface"
 	if [ $from_source -eq 0 ]; then
-		$TPL_ROOT "apt purge git wget make zip unzip curl -y"
+		$TPL_ROOT "apt-get purge git wget make zip unzip curl -y"
 	else
-		$TPL_ROOT "apt purge curl unzip gnupg2 -y"
+		$TPL_ROOT "apt-get purge curl unzip gnupg2 -y"
 	fi
 	#Whonix-gateway hardening
 	log "Hardening whonix-gateway template"
@@ -218,8 +216,9 @@ else
 		exit 1;
 	fi
 fi
-log "Restarting sys-whonix and finishing"
-qvm-shutdown sys-whonix
+log "Restarting sys-whonix and $APPVM_NAME"
+qvm-shutdown --wait $APPVM_NAME
+qvm-shutdown --wait sys-whonix
 qvm-start sys-whonix
 log "Installation complete, launch haveno using application shortcut Enjoy!"
 
