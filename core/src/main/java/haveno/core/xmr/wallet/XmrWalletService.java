@@ -415,7 +415,7 @@ public class XmrWalletService extends XmrWalletBase {
     public void deleteWallet(String walletName) {
         assertNotPath(walletName);
         log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
-        if (!walletExists(walletName)) throw new Error("Wallet does not exist at path: " + walletName);
+        if (!walletExists(walletName)) throw new RuntimeException("Wallet does not exist at path: " + walletName);
         String path = walletDir.toString() + File.separator + walletName;
         if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet cache file: " + path);
         if (!new File(path + KEYS_FILE_POSTFIX).delete()) throw new RuntimeException("Failed to delete wallet keys file: " + path + KEYS_FILE_POSTFIX);
@@ -755,7 +755,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (keyImages != null) {
                     Set<String> txKeyImages = new HashSet<String>();
                     for (MoneroOutput input : tx.getInputs()) txKeyImages.add(input.getKeyImage().getHex());
-                    if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new Error("Tx inputs do not match claimed key images");
+                    if (!txKeyImages.equals(new HashSet<String>(keyImages))) throw new RuntimeException("Tx inputs do not match claimed key images");
                 }
 
                 // verify unlock height
@@ -764,7 +764,7 @@ public class XmrWalletService extends XmrWalletBase {
                 // verify miner fee
                 BigInteger minerFeeEstimate = getElevatedFeeEstimate(tx.getWeight());
                 double minerFeeDiff = tx.getFee().subtract(minerFeeEstimate).abs().doubleValue() / minerFeeEstimate.doubleValue();
-                if (minerFeeDiff > MINER_FEE_TOLERANCE) throw new Error("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + minerFeeEstimate + " but was " + tx.getFee());
+                if (minerFeeDiff > MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + minerFeeEstimate + " but was " + tx.getFee());
                 log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), minerFeeDiff);
 
                 // verify proof to fee address
@@ -1739,7 +1739,7 @@ public class XmrWalletService extends XmrWalletBase {
     private MoneroWalletRpc startWalletRpcInstance(Integer port, boolean applyProxyUri) {
 
         // check if monero-wallet-rpc exists
-        if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new Error("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH
+        if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new RuntimeException("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH
                 + "; copy monero-wallet-rpc to the project root or set WalletConfig.java MONERO_WALLET_RPC_PATH for your system");
 
         // build command to start monero-wallet-rpc
