@@ -20,10 +20,15 @@ package haveno.desktop.main.overlays.windows;
 import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.app.HavenoApp;
+import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.Overlay;
+import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.layout.GridPane;
 import javafx.stage.Screen;
 import lombok.extern.slf4j.Slf4j;
+
+import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
 
 @Slf4j
 public class TacWindow extends Overlay<TacWindow> {
@@ -91,11 +96,10 @@ public class TacWindow extends Overlay<TacWindow> {
         String fontStyleClass = smallScreen ? "small-text" : "normal-text";
         messageTextArea.getStyleClass().add(fontStyleClass);
 
-        // TODO: link to the wiki
-        // HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
-        //         "https://haveno.exchange/wiki/Dispute_resolution");
-        // hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
-        // GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
+        HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
+                "https://docs.haveno.exchange/the-project/dispute-resolution");
+        hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
+        GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
     }
 
     @Override
