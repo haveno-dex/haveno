@@ -595,11 +595,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             offerBookService.activateOffer(offer,
                     () -> {
                         openOffer.setState(OpenOffer.State.AVAILABLE);
+                        applyTriggerState(openOffer);
                         requestPersistence();
                         log.debug("activateOpenOffer, offerId={}", offer.getId());
                         resultHandler.handleResult();
                     },
                     errorMessageHandler);
+        }
+    }
+
+    private void applyTriggerState(OpenOffer openOffer) {
+        if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
+        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer)) {
+            openOffer.deactivate(true);
         }
     }
 
@@ -688,7 +696,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             removeOpenOffer(openOffer);
 
             OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
-            editedOpenOffer.setState(originalState);
+            if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
+                editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                applyTriggerState(editedOpenOffer);
+            } else {
+                editedOpenOffer.setState(originalState);
+            }
 
             addOpenOffer(editedOpenOffer);
 

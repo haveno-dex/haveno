@@ -692,7 +692,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                             AutoTooltipSlideToggleButton checkBox;
 
                             private void updateState(@NotNull OpenOffer openOffer) {
-                                if (checkBox != null) checkBox.setSelected(!openOffer.isDeactivated());
+                                if (checkBox != null) checkBox.setSelected(openOffer.getState() == OpenOffer.State.AVAILABLE);
                             }
 
                             @Override
