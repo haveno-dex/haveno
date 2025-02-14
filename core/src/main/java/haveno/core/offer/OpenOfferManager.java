@@ -604,13 +604,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public void deactivateOpenOffer(OpenOffer openOffer,
+                                    boolean deactivatedByTrigger,
                                     ResultHandler resultHandler,
                                     ErrorMessageHandler errorMessageHandler) {
         Offer offer = openOffer.getOffer();
         if (openOffer.isAvailable()) {
             offerBookService.deactivateOffer(offer.getOfferPayload(),
                     () -> {
-                        openOffer.setState(OpenOffer.State.DEACTIVATED);
+                        openOffer.deactivate(deactivatedByTrigger);
                         requestPersistence();
                         log.debug("deactivateOpenOffer, offerId={}", offer.getId());
                         resultHandler.handleResult();
@@ -661,6 +662,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         if (openOffer.isAvailable()) {
             deactivateOpenOffer(openOffer,
+                    false,
                     resultHandler,
                     errorMessage -> {
                         offersToBeEdited.remove(openOffer.getId());

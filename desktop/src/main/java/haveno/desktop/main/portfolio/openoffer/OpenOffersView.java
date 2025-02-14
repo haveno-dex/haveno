@@ -368,7 +368,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void onActivateOpenOffer(OpenOffer openOffer) {
-        if (model.isBootstrappedOrShowPopup() && !model.dataModel.wasTriggered(openOffer)) {
+        if (model.isBootstrappedOrShowPopup() && !model.dataModel.isTriggered(openOffer)) {
             model.onActivateOpenOffer(openOffer,
                     () -> log.debug("Activate offer was successful"),
                     (message) -> {
@@ -720,7 +720,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                         checkBox.setPadding(new Insets(-7, 0, -7, 0));
                                         checkBox.setGraphic(iconView);
                                     }
-                                    checkBox.setDisable(model.dataModel.wasTriggered(openOffer));
+                                    checkBox.setDisable(model.dataModel.isTriggered(openOffer));
                                     checkBox.setOnAction(event -> {
                                         if (openOffer.isDeactivated()) {
                                             onActivateOpenOffer(openOffer);
@@ -798,7 +798,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                         boolean triggerPriceSet = item.getOpenOffer().getTriggerPrice() > 0;
                                         button.setVisible(triggerPriceSet);
 
-                                        if (model.dataModel.wasTriggered(item.getOpenOffer())) {
+                                        if (model.dataModel.isTriggered(item.getOpenOffer())) {
                                             button.getGraphic().getStyleClass().add("warning");
                                             button.setTooltip(new Tooltip(Res.get("openOffer.triggered")));
                                         } else {
