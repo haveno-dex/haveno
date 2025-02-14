@@ -1421,6 +1421,7 @@ message OpenOffer {
     string reserve_tx_hex = 10;
     string reserve_tx_key = 11;
     string challenge = 12;
+    bool deactivated_by_trigger = 13;
 }
 
 message Tradable {

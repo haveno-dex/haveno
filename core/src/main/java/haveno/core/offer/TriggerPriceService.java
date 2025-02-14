@@ -92,12 +92,11 @@ public class TriggerPriceService {
                 .filter(marketPrice -> openOffersByCurrency.containsKey(marketPrice.getCurrencyCode()))
                 .forEach(marketPrice -> {
                     openOffersByCurrency.get(marketPrice.getCurrencyCode()).stream()
-                            .filter(openOffer -> !openOffer.isDeactivated())
                             .forEach(openOffer -> checkPriceThreshold(marketPrice, openOffer));
                 });
     }
 
-    public static boolean wasTriggered(MarketPrice marketPrice, OpenOffer openOffer) {
+    public static boolean isTriggered(MarketPrice marketPrice, OpenOffer openOffer) {
         Price price = openOffer.getOffer().getPrice();
         if (price == null || marketPrice == null) {
             return false;
@@ -125,13 +124,12 @@ public class TriggerPriceService {
     }
 
     private void checkPriceThreshold(MarketPrice marketPrice, OpenOffer openOffer) {
-        if (wasTriggered(marketPrice, openOffer)) {
-            String currencyCode = openOffer.getOffer().getCurrencyCode();
-            int smallestUnitExponent = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
-                    TraditionalMoney.SMALLEST_UNIT_EXPONENT :
-                    CryptoMoney.SMALLEST_UNIT_EXPONENT;
-            long triggerPrice = openOffer.getTriggerPrice();
+        String currencyCode = openOffer.getOffer().getCurrencyCode();
+        int smallestUnitExponent = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                TraditionalMoney.SMALLEST_UNIT_EXPONENT :
+                CryptoMoney.SMALLEST_UNIT_EXPONENT;
 
+        if (openOffer.getState() == OpenOffer.State.AVAILABLE && isTriggered(marketPrice, openOffer)) {
             log.info("Market price exceeded the trigger price of the open offer.\n" +
                             "We deactivate the open offer with ID {}.\nCurrency: {};\nOffer direction: {};\n" +
                             "Market price: {};\nTrigger price: {}",
@@ -139,14 +137,26 @@ public class TriggerPriceService {
                     currencyCode,
                     openOffer.getOffer().getDirection(),
                     marketPrice.getPrice(),
-                    MathUtils.scaleDownByPowerOf10(triggerPrice, smallestUnitExponent)
+                    MathUtils.scaleDownByPowerOf10(openOffer.getTriggerPrice(), smallestUnitExponent)
             );
 
-            openOfferManager.deactivateOpenOffer(openOffer, () -> {
+            openOfferManager.deactivateOpenOffer(openOffer, true, () -> {
             }, errorMessage -> {
             });
-        } else if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
-            // TODO: check if open offer's reserve tx is failed or double spend seen
+        } else if (openOffer.getState() == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger() && !isTriggered(marketPrice, openOffer)) {
+            log.info("Market price is back within the trigger price of the open offer.\n" +
+                            "We reactivate the open offer with ID {}.\nCurrency: {};\nOffer direction: {};\n" +
+                            "Market price: {};\nTrigger price: {}",
+                    openOffer.getOffer().getShortId(),
+                    currencyCode,
+                    openOffer.getOffer().getDirection(),
+                    marketPrice.getPrice(),
+                    MathUtils.scaleDownByPowerOf10(openOffer.getTriggerPrice(), smallestUnitExponent)
+            );
+
+            openOfferManager.activateOpenOffer(openOffer, () -> {
+            }, errorMessage -> {
+            });
         }
     }
 

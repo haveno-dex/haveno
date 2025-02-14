@@ -69,27 +69,8 @@ public class PriceUtil {
         if (!result.isValid) {
             return result;
         }
-
-        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, marketPrice.getCurrencyCode());
-        long marketPriceAsLong = PriceUtil.getMarketPriceAsLong("" +  marketPrice.getPrice(), marketPrice.getCurrencyCode());
-        String marketPriceAsString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
-
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-        if ((isSellOffer && !isCryptoCurrency) || (!isSellOffer && isCryptoCurrency)) {
-            if (triggerPriceAsLong >= marketPriceAsLong) {
-                return new InputValidator.ValidationResult(false,
-                        Res.get("createOffer.triggerPrice.invalid.tooHigh", marketPriceAsString));
-            } else {
-                return new InputValidator.ValidationResult(true);
-            }
-        } else {
-            if (triggerPriceAsLong <= marketPriceAsLong) {
-                return new InputValidator.ValidationResult(false,
-                        Res.get("createOffer.triggerPrice.invalid.tooLow", marketPriceAsString));
-            } else {
-                return new InputValidator.ValidationResult(true);
-            }
-        }
+        
+        return new InputValidator.ValidationResult(true);
     }
 
     public static Price marketPriceToPrice(MarketPrice marketPrice) {
