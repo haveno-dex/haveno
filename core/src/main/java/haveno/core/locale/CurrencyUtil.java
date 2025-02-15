@@ -201,6 +201,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
         result.add(new CryptoCurrency("USDT-ERC20", "Tether USD (ERC20)"));
+        result.add(new CryptoCurrency("USDT-TRC20", "Tether USD (TRC20)"));
         result.add(new CryptoCurrency("USDC-ERC20", "USD Coin (ERC20)"));
         result.sort(TradeCurrency::compareTo);
         return result;
