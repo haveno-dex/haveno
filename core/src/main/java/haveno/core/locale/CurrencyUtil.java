@@ -298,7 +298,7 @@ public class CurrencyUtil {
         if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode.toUpperCase())) {
             return isCryptoCurrencyMap.get(currencyCode.toUpperCase());
         }
-        if (isCryptoCurrencyBase(currencyCode)) {
+        if (isCryptoCurrencyCodeBase(currencyCode)) {
             return true;
         }
 
@@ -327,7 +327,7 @@ public class CurrencyUtil {
         return isCryptoCurrency;
     }
 
-    private static boolean isCryptoCurrencyBase(String currencyCode) {
+    private static boolean isCryptoCurrencyCodeBase(String currencyCode) {
         if (currencyCode == null) return false;
         currencyCode = currencyCode.toUpperCase();
         return currencyCode.equals("USDT") || currencyCode.equals("USDC");
