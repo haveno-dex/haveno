@@ -19,9 +19,9 @@ package haveno.asset.tokens;
 
 import haveno.asset.Erc20Token;
 
-public class DaiStablecoin extends Erc20Token {
+public class DaiStablecoinERC20 extends Erc20Token {
 
-    public DaiStablecoin() {
-        super("Dai Stablecoin", "DAI");
+    public DaiStablecoinERC20() {
+        super("Dai Stablecoin", "DAI-ERC20");
     }
 }
