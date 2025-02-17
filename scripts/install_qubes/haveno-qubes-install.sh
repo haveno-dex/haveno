@@ -1,8 +1,7 @@
 #!/bin/bash
 
-#set -e
+set -e
 APPVM_NAME="haveno"
-TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME"
 
 #Options
 clean=1
@@ -45,8 +44,7 @@ while getopts 'csauhn:r:f:' flag; do
 				exit 1
 			fi
 			;;
-		n) APPVM_NAME=${OPTARG}
-		        TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME" ;;
+		n) APPVM_NAME=${OPTARG} ;;
 		*) print_usage
 			exit 1 ;;
 	esac
@@ -57,6 +55,8 @@ if ! [[ $unoffical -eq 0 ]] ; then
 	from_source=0
 	log "WARNING : you are installing the main haveno-dex repo but have no enabled build from source, as such this setting has been automatically toggled"
 fi
+
+TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME"
 
 if [ "$(hostname)" != "dom0" ]; then
 	echo "This script must be ran on dom0 to function"
@@ -80,13 +80,14 @@ log "cloning the template"
 qvm-clone debian-12-minimal "$APPVM_NAME"
 log "Installing necessary packages on template"
 $TPL_ROOT "apt-get update && apt-get full-upgrade -y"
-$TPL_ROOT "apt-get install --no-install-recommends qubes-core-agent-networking qubes-core-agent-nautilus nautilus zenity curl -y && poweroff" || true
+$TPL_ROOT "apt-get install --no-install-recommends qubes-core-agent-networking qubes-core-agent-passwordless-root qubes-core-agent-nautilus nautilus zenity curl -y && poweroff" || true
 log "Setting $APPVM_NAME network to sys-whonix"
 qvm-prefs $APPVM_NAME netvm sys-whonix
 
 #prevents qrexec error by sleeping
 sleep 5
 SYS_WHONIX_IP="$(qvm-prefs sys-whonix ip)"
+
 $TPL_ROOT "echo 'nameserver $SYS_WHONIX_IP' > /etc/resolv.conf"
 
 log "Testing for successful sys-whonix config"
@@ -97,13 +98,34 @@ else
 	log "sys-whonix connection success, traffic is being routed through tor"
 fi
 
+log "Cleaning any previous haveno hidden service on sys-whonix"
+qvm-run --pass-io -u root -- sys-whonix "rm -rf /var/lib/tor/haveno_service"
+log "Creating a hidden service for haveno on whonix gateway"
+read -p "Warning by default 50_user.conf on sys-whonix will be overwritten (baseline is empty
+Enter any character to append instead (may require cleaning if you reinstall haveno later" -n 1 cont
+if ! [[ "$key" = "" ]];then
+	log "Appending to 50_user.conf instead of overwriting"
+	out=">>"
+else
+	log "Overwriting 50_user.conf"
+	out=">"
+fi
+qvm-run --pass-io -u root -- sys-whonix "echo -e 'ConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno_service/\nHiddenServicePort 9999 $(qvm-prefs $APPVM_NAME ip):9999' $out /usr/local/etc/torrc.d/50_user.conf && service tor@default reload"
+
+log "Open port 9999 on $APPVM_NAME to allow incoming peer data"
+$TPL_ROOT "echo -e 'nft add rule ip qubes input tcp dport 9999 counter accept\necho nameserver $SYS_WHONIX_IP > /etc/resolv.conf' > /rw/config/rc.local"
+
+sleep 1
+SERVICE="$(qvm-run --pass-io -u root -- sys-whonix 'cat /var/lib/tor/haveno_service/hostname')"
+
+$TPL_ROOT "echo $SERVICE > /root/haveno-service-address"
 
 version="$($TPL_ROOT curl -Ls -o /dev/null -w %{url_effective} $HAVENO_REPO/releases/latest)"
 version=${version##*/}
 
 if [[ $from_source -eq 1 ]]; then
 	log "Downloading haveno release version $version"
-	$TPL_ROOT "curl -Ls  --remote-name-all $HAVENO_REPO/releases/download/$version/{$TARGET_DEB,$TARGET_DEB.sig,$version-hashes.txt}"
+	$TPL_ROOT "curl -L  --remote-name-all $HAVENO_REPO/releases/download/$version/{$TARGET_DEB,$TARGET_DEB.sig,$version-hashes.txt}"
 	read -p "Enter url to verify signatures or anything else to skip:" key
 	if [[ $key =~ $regex ]]; then
 		$TPL_ROOT "apt-get install --no-install-recommends gnupg2 -y"
@@ -114,18 +136,18 @@ if [[ $from_source -eq 1 ]]; then
 			log "Signature invalid, exiting"
 			exit 1;
 		fi
-	fi
 		
 	log "Verifying SHA-512"
 	release_sum=$($TPL_ROOT grep -A 1 "$TARGET_DEB" $version-hashes.txt | tail -n1 | tr -d '\n\r')
 	log "sha512sum of $TARGET_DEB according to release: $release_sum"
 	formated="$release_sum $TARGET_DEB"
 	check=$($TPL_ROOT "echo $formated | sha512sum -c")
-	if [[ "$check" =~ "OK" ]]; then
-		log "sha512sums match, continuing"
-	else
-		log "sha512sums don't match, exiting"
-		exit 1;
+		if [[ "$check" =~ "OK" ]]; then
+			log "sha512sums match, continuing"
+		else
+			log "sha512sums don't match, exiting"
+			exit 1;
+		fi
 	fi
 	# xdg-utils workaround
 	$TPL_ROOT "mkdir /usr/share/desktop-directories/"
@@ -138,14 +160,13 @@ if [[ $from_source -eq 1 ]]; then
 	patched_app_entry="[Desktop Entry]
 Name=Haveno
 Comment=Haveno through sys-whonix
-Exec=/usr/local/sbin/Haveno
+Exec=sudo /bin/Haveno
 Icon=/opt/haveno/lib/Haveno.png
 Terminal=false
 Type=Application
 Categories=Network
 MimeType="
-	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --torControlPort=9051 --torControlHost=$SYS_WHONIX_IP' > /usr/local/sbin/Haveno && chmod +x /usr/local/sbin/Haveno && chmod u+s /usr/local/sbin/Haveno"
-
+$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\nSERVICE=\x24\x28cat /root/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
 elif [[ $from_source -eq 0 ]]; then
 	log "Installing required packages for build"
@@ -160,13 +181,28 @@ elif [[ $from_source -eq 0 ]]; then
 	log "Making binary"
 	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
 	log "Compilation successful, creating a script to run compiled binary securly"
-	$TPL_ROOT "echo -e '#\x21/bin/bash\nsource /root/.sdkman/bin/sdkman-init.sh\n/root/$CODE_DIR/haveno-desktop --torControlPort=9051 --useTorForXmr=OFF --torControlHost=$SYS_WHONIX_IP' > /usr/local/sbin/Haveno && chmod +x /usr/local/sbin/Haveno && chmod u+s /usr/local/sbin/Haveno"
+	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\nSERVICE=\x24\x28cat /root/haveno-service-address\x29\n\nsource /root/.sdkman/bin/sdkman-init.sh\n/root/$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+
+elif [[ $from_source -eq 0 ]]; then
+	log "Installing required packages for build"
+	$TPL_ROOT "apt-get install --no-install-recommends make wget git zip unzip libxtst6 qubes-core-agent-passwordless-root -y"
+	log "Installing jdk 21"
+	$TPL_ROOT "curl -s https://get.sdkman.io | bash"
+	$TPL_ROOT "source /root/.sdkman/bin/sdkman-init.sh && sdk install java 21.0.2.fx-librca"
+	log "Checking out haveno repo"
+	CODE_DIR="$(basename $HAVENO_REPO)"
+	$TPL_ROOT "git clone $HAVENO_REPO"
+	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && git checkout master"
+	log "Making binary"
+	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
+	log "Compilation successful, creating a script to run compiled binary securly"
+	$TPL_ROOT "echo -e '#\x21/bin/bash\nsource /root/.sdkman/bin/sdkman-init.sh\n/root/$CODE_DIR/haveno-desktop --nodePort=9999 --useTorForXmr=OFF --hiddenServiceAddress=$SERVICE' > /usr/sbin/Haveno && chmod +x /usr/sbin/Haveno && chmod u+s /usr/sbin/Haveno"
 	#Fix icon permissions
 	$TPL_ROOT "cp '/root/$CODE_DIR/desktop/package/linux/haveno.png' /opt/haveno.png && chmod 644 /opt/haveno.png"
 	patched_app_entry="[Desktop Entry]
 Name=Haveno
 Comment=Haveno through sys-whonix
-Exec=sudo /usr/local/sbin/Haveno
+Exec=sudo /usr/sbin/Haveno
 Icon=/opt/haveno.png
 Terminal=false
 Type=Application
@@ -192,30 +228,17 @@ else
 	# Remove unneeded packages
 	log "Removing unneeded packages to lessen attack surface"
 	if [ $from_source -eq 0 ]; then
-		$TPL_ROOT "apt-get purge git wget make zip unzip curl -y"
+		$TPL_ROOT "apt purge git wget make zip unzip curl -y"
 	else
-		$TPL_ROOT "apt-get purge curl unzip gnupg2 -y"
+		$TPL_ROOT "apt purge curl unzip gnupg2 -y"
 	fi
 	#Whonix-gateway hardening
-	log "Hardening whonix-gateway template"
-	qvm-run --pass-io -u root -- whonix-gateway-17 "echo -e 'Sandbox 1\nConnectionPadding 1\n' > /usr/local/etc/torrc.d/50_user.conf"
 	log "Hardening Completed"
 	log "Remeber technical controls are only part of the battle, robust security is reliant on how you utilize the system"
 fi
 
-log "Enabling onion grater config on sys-whonix"
-if [[ "$(qvm-run -u root --pass-io -- whonix-gateway-17 'sudo onion-grater-add 40_haveno')" =~ "OK" ]]; then
-	log "Succesfully configured grater on sys-whonix"
-else
-	log "Failed to configure grater on sys-whonix, updating whonix gateway template and trying again"
-	qubes-vm-update -r --targets whonix-gateway-17
-	if [[ "$(qvm-run -u root --pass-io -- whonix-gateway-17 'sudo onion-grater-add 40_haveno')" =~ "OK" ]]; then
-		log "Succeeded in configuring onion grater"
-	else
-		log "Failed for unkown reason, exiting"
-		exit 1;
-	fi
-fi
+
+
 log "Restarting sys-whonix and $APPVM_NAME"
 qvm-shutdown --wait $APPVM_NAME
 qvm-shutdown --wait sys-whonix
