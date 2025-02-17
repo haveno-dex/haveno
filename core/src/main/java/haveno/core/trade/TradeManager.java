@@ -1315,7 +1315,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public Optional<Trade> getClosedTrade(String tradeId) {
-        return closedTradableManager.getClosedTrades().stream().filter(e -> e.getId().equals(tradeId)).findFirst();
+        return closedTradableManager.getTradeById(tradeId);
     }
 
     public Optional<Trade> getFailedTrade(String tradeId) {
