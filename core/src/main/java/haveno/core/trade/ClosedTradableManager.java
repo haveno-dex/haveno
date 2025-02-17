@@ -150,9 +150,9 @@ public class ClosedTradableManager implements PersistedDataHost {
         }
     }
 
-    public Optional<Tradable> getTradeById(String id) {
+    public Optional<Trade> getTradeById(String id) {
         synchronized (closedTradables) {
-            return closedTradables.stream().filter(e -> e instanceof Trade && e.getId().equals(id)).findFirst();
+            return getClosedTrades().stream().filter(e -> e.getId().equals(id)).findFirst();
         }
     }
 
