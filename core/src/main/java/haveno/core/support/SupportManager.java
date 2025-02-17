@@ -232,10 +232,12 @@ public abstract class SupportManager {
             getAllChatMessages(ackMessage.getSourceId()).stream()
                     .filter(msg -> msg.getUid().equals(ackMessage.getSourceUid()))
                     .forEach(msg -> {
-                        if (ackMessage.isSuccess())
-                            msg.setAcknowledged(true);
-                        else
-                            msg.setAckError(ackMessage.getErrorMessage());
+                        UserThread.execute(() -> {
+                            if (ackMessage.isSuccess())
+                                msg.setAcknowledged(true);
+                            else
+                                msg.setAckError(ackMessage.getErrorMessage());
+                        });
                     });
             requestPersistence();
         }
