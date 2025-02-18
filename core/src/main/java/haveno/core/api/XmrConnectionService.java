@@ -255,18 +255,17 @@ public final class XmrConnectionService {
         updatePolling();
     }
 
-    public MoneroRpcConnection getBestAvailableConnection() {
-        accountService.checkAccountOpen();
-        List<MoneroRpcConnection> ignoredConnections = new ArrayList<MoneroRpcConnection>();
-        addLocalNodeIfIgnored(ignoredConnections);
-        return connectionManager.getBestAvailableConnection(ignoredConnections.toArray(new MoneroRpcConnection[0]));
+    public MoneroRpcConnection getBestConnection() {
+        return getBestConnection(new ArrayList<MoneroRpcConnection>());
     }
 
-    private MoneroRpcConnection getBestAvailableConnection(Collection<MoneroRpcConnection> ignoredConnections) {
+    private MoneroRpcConnection getBestConnection(Collection<MoneroRpcConnection> ignoredConnections) {
         accountService.checkAccountOpen();
         Set<MoneroRpcConnection> ignoredConnectionsSet = new HashSet<>(ignoredConnections);
         addLocalNodeIfIgnored(ignoredConnectionsSet);
-        return connectionManager.getBestAvailableConnection(ignoredConnectionsSet.toArray(new MoneroRpcConnection[0]));
+        MoneroRpcConnection bestConnection = connectionManager.getBestAvailableConnection(ignoredConnectionsSet.toArray(new MoneroRpcConnection[0])); // checks connections
+        if (bestConnection == null && connectionManager.getConnections().size() == 1 && !ignoredConnectionsSet.contains(connectionManager.getConnections().get(0))) bestConnection = connectionManager.getConnections().get(0);
+        return bestConnection;
     }
 
     private void addLocalNodeIfIgnored(Collection<MoneroRpcConnection> ignoredConnections) {
@@ -278,7 +277,7 @@ public final class XmrConnectionService {
             log.info("Skipping switch to best Monero connection because connection is fixed or auto switch is disabled");
             return;
         }
-        MoneroRpcConnection bestConnection = getBestAvailableConnection();
+        MoneroRpcConnection bestConnection = getBestConnection();
         if (bestConnection != null) setConnection(bestConnection);
     }
 
@@ -329,7 +328,7 @@ public final class XmrConnectionService {
         if (currentConnection != null) excludedConnections.add(currentConnection);
 
         // get connection to switch to
-        MoneroRpcConnection bestConnection = getBestAvailableConnection(excludedConnections);
+        MoneroRpcConnection bestConnection = getBestConnection(excludedConnections);
 
         // remove from excluded connections after period
         UserThread.runAfter(() -> {
@@ -337,7 +336,7 @@ public final class XmrConnectionService {
         }, EXCLUDE_CONNECTION_SECONDS);
 
         // return if no connection to switch to
-        if (bestConnection == null) {
+        if (bestConnection == null || !Boolean.TRUE.equals(bestConnection.isConnected())) {
             log.warn("No connection to switch to");
             return false;
         }
@@ -545,7 +544,7 @@ public final class XmrConnectionService {
                         if (isConnected) {
                             setConnection(connection.getUri());
                         } else if (getConnection() != null && getConnection().getUri().equals(connection.getUri())) {
-                            MoneroRpcConnection bestConnection = getBestAvailableConnection();
+                            MoneroRpcConnection bestConnection = getBestConnection();
                             if (bestConnection != null) setConnection(bestConnection); // switch to best connection
                         }
                     }
@@ -610,7 +609,7 @@ public final class XmrConnectionService {
 
                 // update connection
                 if (connectionManager.getConnection() == null || connectionManager.getAutoSwitch()) {
-                    MoneroRpcConnection bestConnection = getBestAvailableConnection();
+                    MoneroRpcConnection bestConnection = getBestConnection();
                     if (bestConnection != null) setConnection(bestConnection);
                 }
             } else if (!isInitialized) {
@@ -654,8 +653,7 @@ public final class XmrConnectionService {
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
         if (isShutDownStarted || !accountService.isAccountOpen()) return;
         if (currentConnection == null) {
-            log.warn("Setting daemon connection to null");
-            Thread.dumpStack();
+            log.warn("Setting daemon connection to null", new Throwable("Stack trace"));
         }
         synchronized (lock) {
             if (currentConnection == null) {
@@ -726,8 +724,8 @@ public final class XmrConnectionService {
 
                 // poll daemon
                 if (daemon == null) switchToBestConnection();
-                if (daemon == null) throw new RuntimeException("No connection to Monero daemon");
                 try {
+                    if (daemon == null) throw new RuntimeException("No connection to Monero daemon");
                     lastInfo = daemon.getInfo();
                 } catch (Exception e) {
 
@@ -754,6 +752,7 @@ public final class XmrConnectionService {
 
                     // switch to best connection
                     switchToBestConnection();
+                    if (daemon == null) throw new RuntimeException("No connection to Monero daemon after error handling");
                     lastInfo = daemon.getInfo(); // caught internally if still fails
                 }
 

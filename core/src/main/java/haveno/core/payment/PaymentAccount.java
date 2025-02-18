@@ -378,6 +378,7 @@ public abstract class PaymentAccount implements PersistablePayload {
     @NonNull
     public abstract List<PaymentAccountFormField.FieldId> getInputFieldIds();
 
+    @SuppressWarnings("unchecked")
     public PaymentAccountForm toForm() {
 
         // convert to json map
@@ -387,7 +388,12 @@ public abstract class PaymentAccount implements PersistablePayload {
         PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.valueOf(paymentMethod.getId()));
         for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
             PaymentAccountFormField field = getEmptyFormField(fieldId);
-            field.setValue((String) jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString())));
+            Object value = jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString()));
+            if (value instanceof List) { // TODO: list should already be serialized to comma delimited string in PaymentAccount.toJson() (PaymentAccountTypeAdapter?)
+                field.setValue(String.join(",", (List<String>) value));
+            } else {
+                field.setValue((String) value);
+            }
             form.getFields().add(field);
         }
         return form;

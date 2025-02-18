@@ -24,7 +24,6 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
-import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -42,7 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.common.util.ReflectionUtils.getSetterMethodForFieldInClassHierarchy;
 import static haveno.common.util.ReflectionUtils.getVisibilityModifierAsString;
 import static haveno.common.util.ReflectionUtils.handleSetFieldValueError;
@@ -50,7 +48,6 @@ import static haveno.common.util.ReflectionUtils.isSetterOnClass;
 import static haveno.common.util.ReflectionUtils.loadFieldListForClassHierarchy;
 import static haveno.common.util.Utilities.decodeFromHex;
 import static haveno.core.locale.CountryUtil.findCountryByCode;
-import static haveno.core.locale.CurrencyUtil.getCurrencyByCountryCode;
 import static haveno.core.locale.CurrencyUtil.getTradeCurrenciesInList;
 import static haveno.core.locale.CurrencyUtil.getTradeCurrency;
 import static haveno.core.payment.payload.PaymentMethod.MONEY_GRAM_ID;
@@ -435,8 +432,10 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
 
             if (account.isCountryBasedPaymentAccount()) {
                 ((CountryBasedPaymentAccount) account).setCountry(country.get());
-                TraditionalCurrency fiatCurrency = getCurrencyByCountryCode(checkNotNull(countryCode));
-                account.setSingleTradeCurrency(fiatCurrency);
+
+                // TODO: applying single trade currency default can overwrite provided currencies, apply elsewhere?
+                // TraditionalCurrency fiatCurrency = getCurrencyByCountryCode(checkNotNull(countryCode));
+                // account.setSingleTradeCurrency(fiatCurrency);
             } else if (account.hasPaymentMethodWithId(MONEY_GRAM_ID)) {
                 ((MoneyGramAccount) account).setCountry(country.get());
             } else {

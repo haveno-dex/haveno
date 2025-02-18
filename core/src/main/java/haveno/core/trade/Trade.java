@@ -486,6 +486,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private IdlePayoutSyncer idlePayoutSyncer;
     @Getter
     private boolean isCompleted;
+    @Getter
+    private final String challenge;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructors
@@ -500,7 +502,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     String uid,
                     @Nullable NodeAddress makerNodeAddress,
                     @Nullable NodeAddress takerNodeAddress,
-                    @Nullable NodeAddress arbitratorNodeAddress) {
+                    @Nullable NodeAddress arbitratorNodeAddress,
+                    @Nullable String challenge) {
         super();
         this.offer = offer;
         this.amount = tradeAmount.longValueExact();
@@ -511,6 +514,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         this.uid = uid;
         this.takeOfferDate = new Date().getTime();
         this.tradeListeners = new ArrayList<TradeListener>();
+        this.challenge = challenge;
 
         getMaker().setNodeAddress(makerNodeAddress);
         getTaker().setNodeAddress(takerNodeAddress);
@@ -534,7 +538,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     String uid,
                     @Nullable NodeAddress makerNodeAddress,
                     @Nullable NodeAddress takerNodeAddress,
-                    @Nullable NodeAddress arbitratorNodeAddress) {
+                    @Nullable NodeAddress arbitratorNodeAddress,
+                    @Nullable String challenge) {
 
         this(offer,
                 tradeAmount,
@@ -544,7 +549,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 uid,
                 makerNodeAddress,
                 takerNodeAddress,
-                arbitratorNodeAddress);
+                arbitratorNodeAddress,
+                challenge);
     }
 
     // TODO: remove these constructors
@@ -559,7 +565,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     NodeAddress arbitratorNodeAddress,
                     XmrWalletService xmrWalletService,
                     ProcessModel processModel,
-                    String uid) {
+                    String uid,
+                    @Nullable String challenge) {
 
       this(offer,
               tradeAmount,
@@ -569,7 +576,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
               uid,
               makerNodeAddress,
               takerNodeAddress,
-              arbitratorNodeAddress);
+              arbitratorNodeAddress,
+              challenge);
 
         setAmount(tradeAmount);
     }
@@ -649,6 +657,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             ThreadUtils.submitToPool(() -> {
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
+                if (newValue == Trade.Phase.DEPOSITS_CONFIRMED) onDepositsConfirmed();
+                if (newValue == Trade.Phase.DEPOSITS_UNLOCKED) onDepositsUnlocked();
                 if (newValue == Trade.Phase.PAYMENT_SENT) onPaymentSent();
                 if (isDepositsPublished() && !isPayoutUnlocked()) updatePollPeriod();
                 if (isPaymentReceived()) {
@@ -722,7 +732,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             xmrWalletService.addWalletListener(idlePayoutSyncer);
         }
 
-        // TODO: buyer's payment sent message state property can become unsynced (after improper shut down?)
+        // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed in v1.0.19 so this check can be removed?
         if (isBuyer()) {
             MessageState expectedState = getPaymentSentMessageState();
             if (expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
@@ -842,14 +852,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    public boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
-        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
-            onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
-            return true;
-        }
-        return false;
-    }
-
     public boolean isIdling() {
         return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
@@ -899,6 +901,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    @Override
     public void requestSaveWallet() {
 
         // save wallet off main thread
@@ -909,6 +912,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
          }, getId());
     }
 
+    @Override
     public void saveWallet() {
         synchronized (walletLock) {
             if (!walletExists()) {
@@ -1233,7 +1237,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         Preconditions.checkNotNull(sellerPayoutAddress, "Seller payout address must not be null");
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
-        BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
+        BigInteger buyerDepositAmount = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
@@ -1324,7 +1328,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         MoneroWallet wallet = getWallet();
         Contract contract = getContract();
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
-        BigInteger buyerDepositAmount = getBuyer().getDepositTx().getIncomingAmount();
+        BigInteger buyerDepositAmount = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : getBuyer().getDepositTx().getIncomingAmount();
         BigInteger tradeAmount = getAmount();
 
         // describe payout tx
@@ -2016,12 +2020,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (processModel.getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
         switch (state) {
             case BUYER_SENT_PAYMENT_SENT_MSG:
-            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                 return MessageState.SENT;
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
+                return MessageState.ARRIVED;
             case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                 return MessageState.STORED_IN_MAILBOX;
             case SELLER_RECEIVED_PAYMENT_SENT_MSG:
-                return MessageState.ARRIVED;
+                return MessageState.ACKNOWLEDGED;
             case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                 return MessageState.FAILED;
             default:
@@ -2091,9 +2096,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         final long tradeTime = getTakeOfferDate().getTime();
         MoneroDaemon daemonRpc = xmrWalletService.getDaemon();
         if (daemonRpc == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
-        if (getMakerDepositTx() == null || getTakerDepositTx() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because its unlocked deposit tx is null. Is client connected to a daemon?");
+        if (getMakerDepositTx() == null || (getTakerDepositTx() == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot set start time for trade " + getId() + " because its unlocked deposit tx is null. Is client connected to a daemon?");
 
-        long maxHeight = Math.max(getMakerDepositTx().getHeight(), getTakerDepositTx().getHeight());
+        long maxHeight = Math.max(getMakerDepositTx().getHeight(), hasBuyerAsTakerWithoutDeposit() ? 0l : getTakerDepositTx().getHeight());
         long blockTime = daemonRpc.getBlockByHeight(maxHeight).getTimestamp();
 
         // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
@@ -2125,7 +2130,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public boolean isDepositsPublished() {
         if (isDepositFailed()) return false;
-        return getState().getPhase().ordinal() >= Phase.DEPOSITS_PUBLISHED.ordinal() && getMaker().getDepositTxHash() != null && getTaker().getDepositTxHash() != null;
+        return getState().getPhase().ordinal() >= Phase.DEPOSITS_PUBLISHED.ordinal() && getMaker().getDepositTxHash() != null && (getTaker().getDepositTxHash() != null || hasBuyerAsTakerWithoutDeposit());
     }
 
     public boolean isFundsLockedIn() {
@@ -2277,7 +2282,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public BigInteger getTakerFee() {
-        return offer.getTakerFee(getAmount());
+        return hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : offer.getTakerFee(getAmount());
+    }
+
+    public BigInteger getSecurityDepositBeforeMiningFee() {
+        return isBuyer() ? getBuyerSecurityDepositBeforeMiningFee() : getSellerSecurityDepositBeforeMiningFee();
     }
 
     public BigInteger getBuyerSecurityDepositBeforeMiningFee() {
@@ -2286,6 +2295,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public BigInteger getSellerSecurityDepositBeforeMiningFee() {
         return offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(getAmount());
+    }
+
+    public boolean isBuyerAsTakerWithoutDeposit() {
+        return isBuyer() && isTaker() && BigInteger.ZERO.equals(getBuyerSecurityDepositBeforeMiningFee());
+    }
+
+    public boolean hasBuyerAsTakerWithoutDeposit() {
+        return getBuyer() == getTaker() && BigInteger.ZERO.equals(getBuyerSecurityDepositBeforeMiningFee());
     }
 
     @Override
@@ -2303,7 +2320,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isTxChainInvalid() {
-        return processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null;
+        return processModel.getMaker().getDepositTxHash() == null || (processModel.getTaker().getDepositTxHash() == null && !hasBuyerAsTakerWithoutDeposit());
     }
 
     /**
@@ -2364,7 +2381,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return tradeVolumeProperty;
     }
 
-    private void onConnectionChanged(MoneroRpcConnection connection) {
+    @Override
+    protected void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
             // use current connection
@@ -2537,7 +2555,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (isPayoutUnlocked()) return;
 
             // skip if deposit txs unknown or not requested
-            if (processModel.getMaker().getDepositTxHash() == null || processModel.getTaker().getDepositTxHash() == null || !isDepositRequested()) return;
+            if (!isDepositRequested() || processModel.getMaker().getDepositTxHash() == null || (processModel.getTaker().getDepositTxHash() == null && !hasBuyerAsTakerWithoutDeposit())) return;
 
             // skip if daemon not synced
             if (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance()) return;
@@ -2553,7 +2571,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // get txs from trade wallet
                 MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-                Boolean updatePool = !isDepositsConfirmed() && (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null);
+                Boolean updatePool = !isDepositsConfirmed() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && hasBuyerAsTakerWithoutDeposit()));
                 if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
                 List<MoneroTxWallet> txs;
                 if (!updatePool) txs = wallet.getTxs(query);
@@ -2565,22 +2583,22 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     }
                 }
                 setDepositTxs(txs);
-                if (getMaker().getDepositTx() == null || getTaker().getDepositTx() == null) return; // skip if either deposit tx not seen
+                if (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit())) return; // skip if either deposit tx not seen
                 setStateDepositsSeen();
 
                 // set actual security deposits
                 if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
-                    BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
+                    BigInteger buyerSecurityDeposit = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
                     BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
                     getBuyer().setSecurityDeposit(buyerSecurityDeposit);
                     getSeller().setSecurityDeposit(sellerSecurityDeposit);
                 }
 
                 // check for deposit txs confirmation
-                if (getMaker().getDepositTx().isConfirmed() && getTaker().getDepositTx().isConfirmed()) setStateDepositsConfirmed();
+                if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) setStateDepositsConfirmed();
 
                 // check for deposit txs unlocked
-                if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
+                if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
                     setStateDepositsUnlocked();
                 }
             }
@@ -2660,7 +2678,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     pollInProgress = false;
                 }
             }
-            requestSaveWallet();
+            saveWalletWithDelay();
         }
     }
 
@@ -2750,7 +2768,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 log.warn("Missing maker deposit tx for {} {}", getClass().getSimpleName(), getId());
                 return true;
             }
-            if (getTakerDepositTx() == null) {
+            if (getTakerDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()) {
                 log.warn("Missing taker deposit tx for {} {}", getClass().getSimpleName(), getId());
                 return true;
             }
@@ -2872,10 +2890,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         ThreadUtils.submitToPool(() -> xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages()));
     }
 
+    private void onDepositsConfirmed() {
+        HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_CONFIRMED, "Trade Deposits Confirmed", "The deposit transactions have confirmed");
+    }
+
+    private void onDepositsUnlocked() {
+        HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_UNLOCKED, "Trade Deposits Unlocked", "The deposit transactions have unlocked");
+    }
+
     private void onPaymentSent() {
-        if (this instanceof SellerTrade) {
-            HavenoUtils.notificationService.sendTradeNotification(this, Phase.PAYMENT_SENT, "Payment Sent", "The buyer has sent the payment"); // TODO (woodser): use language translation
-        }
+        HavenoUtils.notificationService.sendTradeNotification(this, Phase.PAYMENT_SENT, "Payment Sent", "The buyer has sent the payment");
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -2913,6 +2937,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         Optional.ofNullable(payoutTxHex).ifPresent(e -> builder.setPayoutTxHex(payoutTxHex));
         Optional.ofNullable(payoutTxKey).ifPresent(e -> builder.setPayoutTxKey(payoutTxKey));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
+        Optional.ofNullable(challenge).ifPresent(e -> builder.setChallenge(challenge));
         return builder.build();
     }
 
@@ -2982,6 +3007,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 ",\n     refundResultState=" + refundResultState +
                 ",\n     refundResultStateProperty=" + refundResultStateProperty +
                 ",\n     isCompleted=" + isCompleted +
+                ",\n     challenge='" + challenge + '\'' +
                 "\n}";
     }
 }

@@ -66,7 +66,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 usdAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #1:\n{}", toOfferTable.apply(newOffer));
@@ -114,7 +114,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 10_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 nzdAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #2:\n{}", toOfferTable.apply(newOffer));
@@ -162,7 +162,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 gbpAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #3:\n{}", toOfferTable.apply(newOffer));
@@ -210,7 +210,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 priceMarginPctInput,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 brlAccount.getId(),
                 NO_TRIGGER_PRICE);
         log.debug("Offer #4:\n{}", toOfferTable.apply(newOffer));
@@ -259,7 +259,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
                 10_000_000L,
                 5_000_000L,
                 0.0,
-                defaultBuyerSecurityDepositPct.get(),
+                defaultSecurityDepositPct.get(),
                 usdAccount.getId(),
                 triggerPrice);
         assertTrue(newOffer.getIsMyOffer());

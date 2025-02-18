@@ -51,6 +51,7 @@ import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
+import haveno.core.payment.PaysafeAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
 import haveno.core.payment.ZelleAccount;
@@ -124,13 +125,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                                     Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
                                     TimeUnit.DAYS.toMillis(1);
 
-    // Default trade limits.
-    // We initialize very early before reading persisted data. We will apply later the limit from
-    // the DAO param (Param.MAX_TRADE_LIMIT) but that can be only done after the dao is initialized.
-    // The default values will be used for deriving the
-    // risk factor so the relation between the risk categories stays the same as with the default values.
-    // We must not change those values as it could lead to invalid offers if amount becomes lower then new trade limit.
-    // Increasing might be ok, but needs more thought as well...
+    // These values are not used except to derive the associated risk factor.
+    private static final BigInteger DEFAULT_TRADE_LIMIT_CRYPTO = HavenoUtils.xmrToAtomicUnits(200);
     private static final BigInteger DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = HavenoUtils.xmrToAtomicUnits(100);
     private static final BigInteger DEFAULT_TRADE_LIMIT_LOW_RISK = HavenoUtils.xmrToAtomicUnits(50);
     private static final BigInteger DEFAULT_TRADE_LIMIT_MID_RISK = HavenoUtils.xmrToAtomicUnits(25);
@@ -198,6 +194,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String CASH_APP_ID = "CASH_APP";
     public static final String VENMO_ID = "VENMO";
     public static final String PAYPAL_ID = "PAYPAL";
+    public static final String PAYSAFE_ID = "PAYSAFE";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -257,6 +254,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod PAYPAL;
     public static PaymentMethod CASH_APP;
     public static PaymentMethod VENMO;
+    public static PaymentMethod PAYSAFE;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -288,7 +286,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Global
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
-            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
+            PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
             CASH_AT_ATM = new PaymentMethod(CASH_AT_ATM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAtAtmAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
@@ -327,6 +325,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             DOMESTIC_WIRE_TRANSFER = new PaymentMethod(DOMESTIC_WIRE_TRANSFER_ID, 3 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(DomesticWireTransferAccount.SUPPORTED_CURRENCIES)),
             PAYPAL = new PaymentMethod(PAYPAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PayPalAccount.SUPPORTED_CURRENCIES)),
             CASH_APP = new PaymentMethod(CASH_APP_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAppAccount.SUPPORTED_CURRENCIES)),
+            PAYSAFE = new PaymentMethod(PaymentMethod.PAYSAFE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PaysafeAccount.SUPPORTED_CURRENCIES)),
 
             // Japan
             JAPAN_BANK = new PaymentMethod(JAPAN_BANK_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(JapanBankAccount.SUPPORTED_CURRENCIES)),
@@ -342,10 +341,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             PROMPT_PAY = new PaymentMethod(PROMPT_PAY_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PromptPayAccount.SUPPORTED_CURRENCIES)),
 
             // Cryptos
-            BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList()),
+            BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList()),
             
             // Cryptos with 1 hour trade period
-            BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_VERY_LOW_RISK, Arrays.asList())
+            BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList())
     );
 
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
@@ -369,7 +368,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 AUSTRALIA_PAYID_ID,
                 CASH_APP_ID,
                 PAYPAL_ID,
-                VENMO_ID);
+                VENMO_ID,
+                PAYSAFE_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -497,17 +497,21 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         }
 
         // We use the class field maxTradeLimit only for mapping the risk factor.
+        // The actual trade limit is calculated by dividing TradeLimits.MAX_TRADE_LIMIT by the
+        // risk factor, and then further decreasing by chargeback risk, account signing, and age.
         long riskFactor;
-        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
+        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_CRYPTO.longValueExact())
             riskFactor = 1;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
-            riskFactor = 2;
-        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.longValueExact())
             riskFactor = 4;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.longValueExact())
+            riskFactor = 11;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.longValueExact())
+            riskFactor = 22;
         else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.longValueExact())
-            riskFactor = 8;
+            riskFactor = 44;
         else {
-            riskFactor = 8;
+            riskFactor = 44;
             log.warn("maxTradeLimit is not matching one of our default values. We use highest risk factor. " +
                             "maxTradeLimit={}. PaymentMethod={}", maxTradeLimit, this);
         }
@@ -589,7 +593,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.UPHOLD_ID) ||
                 id.equals(PaymentMethod.CASH_APP_ID) ||
                 id.equals(PaymentMethod.PAYPAL_ID) ||
-                id.equals(PaymentMethod.VENMO_ID);
+                id.equals(PaymentMethod.VENMO_ID) ||
+                id.equals(PaymentMethod.PAYSAFE_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {
@@ -598,7 +603,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public static boolean isFixedPriceOnly(String id) {
-        return id.equals(PaymentMethod.CASH_AT_ATM_ID) ||
-            id.equals(PaymentMethod.HAL_CASH_ID);
+        return id.equals(PaymentMethod.HAL_CASH_ID);
     }
 }

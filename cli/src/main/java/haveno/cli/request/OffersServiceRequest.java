@@ -81,7 +81,7 @@ public class OffersServiceRequest {
                 .setUseMarketBasedPrice(useMarketBasedPrice)
                 .setPrice(fixedPrice)
                 .setMarketPriceMarginPct(marketPriceMarginPct)
-                .setBuyerSecurityDepositPct(securityDepositPct)
+                .setSecurityDepositPct(securityDepositPct)
                 .setPaymentAccountId(paymentAcctId)
                 .setTriggerPrice(triggerPrice)
                 .build();

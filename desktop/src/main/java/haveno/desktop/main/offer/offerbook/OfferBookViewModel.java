@@ -130,6 +130,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     final IntegerProperty maxPlacesForMarketPriceMargin = new SimpleIntegerProperty();
     boolean showAllPaymentMethods = true;
     boolean useOffersMatchingMyAccountsFilter;
+    boolean showPrivateOffers;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -213,6 +214,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             disableMatchToggle.set(user.getPaymentAccounts() == null || user.getPaymentAccounts().isEmpty());
         }
         useOffersMatchingMyAccountsFilter = !disableMatchToggle.get() && isShowOffersMatchingMyAccounts();
+        showPrivateOffers = preferences.isShowPrivateOffers();
 
         fillCurrencies();
         updateSelectedTradeCurrency();
@@ -258,7 +260,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             showAllTradeCurrenciesProperty.set(showAllEntry);
             if (isEditEntry(code))
                 navigation.navigateTo(MainView.class, SettingsView.class, PreferencesView.class);
-            else if (!showAllEntry) {
+            else if (showAllEntry) {
+                this.selectedTradeCurrency = getDefaultTradeCurrency();
+                tradeCurrencyCode.set(selectedTradeCurrency.getCode());
+            } else {
                 this.selectedTradeCurrency = tradeCurrency;
                 tradeCurrencyCode.set(code);
             }
@@ -285,7 +290,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         if (!showAllPaymentMethods) {
             this.selectedPaymentMethod = paymentMethod;
 
-            // If we select TransferWise we switch to show all currencies as TransferWise supports
+            // If we select Wise we switch to show all currencies as Wise supports
             // sending to most currencies.
             if (paymentMethod.getId().equals(PaymentMethod.TRANSFERWISE_ID)) {
                 onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
@@ -304,6 +309,12 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     void onShowOffersMatchingMyAccounts(boolean isSelected) {
         useOffersMatchingMyAccountsFilter = isSelected;
         preferences.setShowOffersMatchingMyAccounts(useOffersMatchingMyAccountsFilter);
+        filterOffers();
+    }
+
+    void onShowPrivateOffers(boolean isSelected) {
+        showPrivateOffers = isSelected;
+        preferences.setShowPrivateOffers(isSelected);
         filterOffers();
     }
 
@@ -472,8 +483,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 if (countryCode != null) {
                     result += "\n" + Res.get("payment.f2f.offerbook.tooltip.countryAndCity",
                             CountryUtil.getNameByCode(countryCode), offer.getF2FCity());
-
-                    result += "\n" + Res.get("payment.f2f.offerbook.tooltip.extra", offer.getExtraInfo());
                 }
             } else {
                 if (countryCode != null) {
@@ -503,6 +512,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                         result += "\n" + Res.getWithCol("shared.acceptedBanks") + " " + Joiner.on(", ").join(acceptedBanks);
                 }
             }
+            if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+                result += "\n" + Res.get("payment.shared.extraInfo.tooltip", offer.getCombinedExtraInfo());
         }
         return result;
     }
@@ -571,6 +582,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
 
+        // filter private offers
+        if (direction == OfferDirection.BUY) {
+            predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+        }
+
         if (!filterText.isEmpty()) {
 
             // filter node address
@@ -627,9 +643,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     public boolean hasSelectionAccountSigning() {
         if (showAllTradeCurrenciesProperty.get()) {
-            if (!isShowAllEntry(selectedPaymentMethod.getId())) {
+            if (isShowAllEntry(selectedPaymentMethod.getId()))
+                return !(this instanceof CryptoOfferBookViewModel);
+            else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod);
-            }
         } else {
             if (isShowAllEntry(selectedPaymentMethod.getId()))
                 return CurrencyUtil.getMatureMarketCurrencies().stream()
@@ -637,7 +654,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod, tradeCurrencyCode.get());
         }
-        return true;
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {

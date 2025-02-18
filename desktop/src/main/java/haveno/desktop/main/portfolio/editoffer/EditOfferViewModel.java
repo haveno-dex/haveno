@@ -111,7 +111,7 @@ class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
     }
 
     public boolean isSecurityDepositValid() {
-        return securityDepositValidator.validate(buyerSecurityDeposit.get()).isValid;
+        return securityDepositValidator.validate(securityDeposit.get()).isValid;
     }
 
     @Override

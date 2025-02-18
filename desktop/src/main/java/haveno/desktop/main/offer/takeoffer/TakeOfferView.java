@@ -69,6 +69,7 @@ import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
 import static haveno.desktop.util.FormBuilder.addAddressTextField;
 import static haveno.desktop.util.FormBuilder.addBalanceTextField;
 import static haveno.desktop.util.FormBuilder.addComboBoxTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addFundsTextfield;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.getEditableValueBox;
@@ -98,6 +99,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -123,6 +125,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private ScrollPane scrollPane;
     private GridPane gridPane;
+    private TitledGroupBg noFundingRequiredTitledGroupBg;
+    private Label noFundingRequiredLabel;
+    private int lastGridRowNoFundingRequired;
     private TitledGroupBg payFundsTitledGroupBg;
     private TitledGroupBg advancedOptionsGroup;
     private VBox priceAsPercentageInputBox, amountRangeBox;
@@ -130,6 +135,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             priceAsPercentageValueCurrencyBox, minAmountValueCurrencyBox, advancedOptionsBox,
             takeOfferBox, buttonBox, firstRowHBox;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
+    private TextArea extraInfoTextArea;
     private Label amountDescriptionLabel,
             paymentMethodLabel,
             priceCurrencyLabel, priceAsPercentageLabel,
@@ -158,9 +164,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private int gridRow = 0;
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
-    private boolean offerDetailsWindowDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
+    private boolean offerDetailsWindowDisplayed, extraInfoPopupDisplayed, zelleWarningDisplayed, fasterPaymentsWarningDisplayed,
             takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed,
-            australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed;
+            australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed, F2FWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
 
@@ -265,15 +271,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
+        maybeShowExtraInfoPopup(model.dataModel.getOffer());
         maybeShowTakeOfferFromUnsignedAccountWarning(model.dataModel.getOffer());
         maybeShowZelleWarning(lastPaymentAccount);
         maybeShowFasterPaymentsWarning(lastPaymentAccount);
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
-        maybeShowPayByMailWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowCashAtAtmWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowAustraliaPayidWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowPayPalWarning(lastPaymentAccount, model.dataModel.getOffer());
-        maybeShowCashAppWarning(lastPaymentAccount, model.dataModel.getOffer());
 
         if (!model.isRange()) {
             nextButton.setVisible(false);
@@ -355,6 +357,26 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             new Popup().warning(Res.get("takeOffer.noPriceFeedAvailable"))
                     .onClose(() -> close(false))
                     .show();
+
+        if (offer.hasBuyerAsTakerWithoutDeposit() && offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
+
+            // attach extra info text area
+            extraInfoTextArea = addCompactTopLabelTextArea(gridPane, ++lastGridRowNoFundingRequired, Res.get("payment.shared.extraInfo.noDeposit"), "").second;
+            extraInfoTextArea.setText(offer.getCombinedExtraInfo());
+            extraInfoTextArea.getStyleClass().add("text-area");
+            extraInfoTextArea.setWrapText(true);
+            extraInfoTextArea.setPrefHeight(75);
+            extraInfoTextArea.setMinHeight(75);
+            extraInfoTextArea.setMaxHeight(150);
+            extraInfoTextArea.setEditable(false);
+            GridPane.setRowIndex(extraInfoTextArea, lastGridRowNoFundingRequired);
+            GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
+            GridPane.setColumnIndex(extraInfoTextArea, 0);
+
+            // move up take offer buttons
+            GridPane.setRowIndex(takeOfferBox, lastGridRowNoFundingRequired + 1);
+            GridPane.setMargin(takeOfferBox, new Insets(15, 0, 0, 0));
+        }
     }
 
     @Override
@@ -452,7 +474,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
-        if (!DevEnv.isDevMode()) {
+        if (!DevEnv.isDevMode() && model.dataModel.hasTotalToPay()) {
             String tradeAmountText = model.isSeller() ? Res.get("takeOffer.takeOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
             String message = Res.get("takeOffer.takeOfferFundWalletInfo.msg",
                     model.getTotalToPayInfo(),
@@ -472,17 +494,22 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         // temporarily disabled due to high CPU usage (per issue #4649)
         //waitingForFundsBusyAnimation.play();
 
-        payFundsTitledGroupBg.setVisible(true);
-        totalToPayTextField.setVisible(true);
-        addressTextField.setVisible(true);
-        qrCodeImageView.setVisible(true);
-        balanceTextField.setVisible(true);
+        if (model.getOffer().hasBuyerAsTakerWithoutDeposit()) {
+            noFundingRequiredTitledGroupBg.setVisible(true);
+            noFundingRequiredLabel.setVisible(true);
+        } else {
+            payFundsTitledGroupBg.setVisible(true);
+            totalToPayTextField.setVisible(true);
+            addressTextField.setVisible(true);
+            qrCodeImageView.setVisible(true);
+            balanceTextField.setVisible(true);
+        }
 
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
                 model.getSecurityDepositWithCode(), model.getTakerFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
 
-        if (model.dataModel.getIsXmrWalletFunded().get()) {
+        if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay()) {
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
@@ -847,7 +874,25 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void addFundingGroup() {
-        // don't increase gridRow as we removed button when this gets visible
+
+        // no funding required title
+        noFundingRequiredTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
+                Res.get("takeOffer.fundsBox.noFundingRequiredTitle"), Layout.COMPACT_GROUP_DISTANCE);
+        noFundingRequiredTitledGroupBg.getStyleClass().add("last");
+        GridPane.setColumnSpan(noFundingRequiredTitledGroupBg, 2);
+        noFundingRequiredTitledGroupBg.setVisible(false);
+
+        // no funding required description
+        noFundingRequiredLabel = new AutoTooltipLabel(Res.get("takeOffer.fundsBox.noFundingRequiredDescription"));
+        noFundingRequiredLabel.setVisible(false);
+        //GridPane.setRowSpan(noFundingRequiredLabel, 1);
+        GridPane.setRowIndex(noFundingRequiredLabel, gridRow);
+        noFundingRequiredLabel.setPadding(new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        GridPane.setHalignment(noFundingRequiredLabel, HPos.LEFT);
+        gridPane.getChildren().add(noFundingRequiredLabel);
+        lastGridRowNoFundingRequired = gridRow;
+
+        // funding title
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
                 Res.get("takeOffer.fundsBox.title"), Layout.COMPACT_GROUP_DISTANCE);
         payFundsTitledGroupBg.getStyleClass().add("last");
@@ -937,7 +982,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         cancelButton2.setOnAction(e -> {
             String key = "CreateOfferCancelAndFunded";
-            if (model.dataModel.getIsXmrWalletFunded().get() &&
+            if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay() && 
                     model.dataModel.preferences.showAgain(key)) {
                 new Popup().backgroundInfo(Res.get("takeOffer.alreadyFunded.askCancel"))
                         .closeButtonText(Res.get("shared.no"))
@@ -1096,6 +1141,21 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    private void maybeShowExtraInfoPopup(Offer offer) {
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty() && !extraInfoPopupDisplayed) {
+            extraInfoPopupDisplayed = true;
+            UserThread.runAfter(() -> {
+                new GenericMessageWindow()
+                        .preamble(Res.get("payment.tradingRestrictions"))
+                        .instruction(offer.getCombinedExtraInfo())
+                        .actionButtonText(Res.get("shared.iConfirm"))
+                        .closeButtonText(Res.get("shared.close"))
+                        .width(Layout.INITIAL_WINDOW_WIDTH)
+                        .onClose(() -> close(false))
+                        .show();
+            }, 500, TimeUnit.MILLISECONDS);
+        }
+    }
 
     private void maybeShowTakeOfferFromUnsignedAccountWarning(Offer offer) {
         // warn if you are selling BTC to unsigned account (#5343)
@@ -1124,91 +1184,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private void maybeShowAccountWarning(PaymentAccount paymentAccount, boolean isBuyer) {
         String msgKey = paymentAccount.getPreTradeMessage(!isBuyer);
         OfferViewUtil.showPaymentAccountWarning(msgKey, paymentAccountWarningDisplayed);
-    }
-
-    private void maybeShowPayByMailWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.PAY_BY_MAIL_ID) &&
-                !payByMailWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            payByMailWarningDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void maybeShowCashAtAtmWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_AT_ATM_ID) &&
-                !cashAtAtmWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            cashAtAtmWarningDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void maybeShowAustraliaPayidWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.AUSTRALIA_PAYID_ID) &&
-                !australiaPayidWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            australiaPayidWarningDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void maybeShowPayPalWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.PAYPAL_ID) &&
-                !paypalWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            paypalWarningDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void maybeShowCashAppWarning(PaymentAccount paymentAccount, Offer offer) {
-        if (paymentAccount.getPaymentMethod().getId().equals(PaymentMethod.CASH_APP_ID) &&
-                !cashAppWarningDisplayed && !offer.getExtraInfo().isEmpty()) {
-            cashAppWarningDisplayed = true;
-            UserThread.runAfter(() -> {
-                new GenericMessageWindow()
-                        .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getExtraInfo())
-                        .actionButtonText(Res.get("shared.iConfirm"))
-                        .closeButtonText(Res.get("shared.close"))
-                        .width(Layout.INITIAL_WINDOW_WIDTH)
-                        .onClose(() -> close(false))
-                        .show();
-            }, 500, TimeUnit.MILLISECONDS);
-        }
     }
 
     private Tuple2<Label, VBox> getTradeInputBox(HBox amountValueBox, String promptText) {

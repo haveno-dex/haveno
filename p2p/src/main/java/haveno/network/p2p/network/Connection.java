@@ -175,9 +175,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // throttle logs of reported invalid requests
     private static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30 seconds
     private static long lastLoggedInvalidRequestReportTs = 0;
-    private static int numUnloggedInvalidRequestReports = 0;
+    private static int numThrottledInvalidRequestReports = 0;
     private static long lastLoggedWarningTs = 0;
-    private static int numUnloggedWarnings = 0;
+    private static int numThrottledWarnings = 0;
+    private static long lastLoggedInfoTs = 0;
+    private static int numThrottledInfos = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -620,7 +622,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean logReport = System.currentTimeMillis() - lastLoggedInvalidRequestReportTs > LOG_THROTTLE_INTERVAL_MS;
 
         // count the number of unlogged reports since last log entry
-        if (!logReport) numUnloggedInvalidRequestReports++;
+        if (!logReport) numThrottledInvalidRequestReports++;
 
         // handle report
         if (logReport) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
@@ -654,8 +656,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
         if (logReport) {
-            if (numUnloggedInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numUnloggedInvalidRequestReports);
-            numUnloggedInvalidRequestReports = 0;
+            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numThrottledInvalidRequestReports);
+            numThrottledInvalidRequestReports = 0;
             lastLoggedInvalidRequestReportTs = System.currentTimeMillis();
         }
     }
@@ -676,7 +678,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             throttleWarn("SocketException (expected if connection lost). closeConnectionReason=" + closeConnectionReason + "; connection=" + this);
         } else if (e instanceof SocketTimeoutException || e instanceof TimeoutException) {
             closeConnectionReason = CloseConnectionReason.SOCKET_TIMEOUT;
-            throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
+            throttleInfo("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
         } else if (e instanceof EOFException) {
             closeConnectionReason = CloseConnectionReason.TERMINATED;
             throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
@@ -937,14 +939,26 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private synchronized void throttleWarn(String msg) {
-        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
-        if (logWarning) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
             log.warn(msg);
-            if (numUnloggedWarnings > 0) log.warn("We received {} other log warnings since the last log entry", numUnloggedWarnings);
-            numUnloggedWarnings = 0;
+            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            numThrottledWarnings = 0;
             lastLoggedWarningTs = System.currentTimeMillis();
         } else {
-            numUnloggedWarnings++;
+            numThrottledWarnings++;
+        }
+    }
+
+    private synchronized void throttleInfo(String msg) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedInfoTs > LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
+            log.info(msg);
+            if (numThrottledInfos > 0) log.info("{} info logs were throttled since the last log entry", numThrottledInfos);
+            numThrottledInfos = 0;
+            lastLoggedInfoTs = System.currentTimeMillis();
+        } else {
+            numThrottledInfos++;
         }
     }
 }

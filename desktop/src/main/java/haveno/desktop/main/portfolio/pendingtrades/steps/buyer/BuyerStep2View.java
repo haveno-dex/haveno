@@ -55,6 +55,7 @@ import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.PayPalForm;
+import haveno.desktop.components.paymentmethods.PaysafeForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
@@ -326,7 +327,7 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.F2F_ID:
                 checkNotNull(model.dataModel.getTrade(), "model.dataModel.getTrade() must not be null");
                 checkNotNull(model.dataModel.getTrade().getOffer(), "model.dataModel.getTrade().getOffer() must not be null");
-                gridRow = F2FForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload, model.dataModel.getTrade().getOffer(), 0);
+                gridRow = F2FForm.addStep2Form(gridPane, gridRow, paymentAccountPayload, model.dataModel.getTrade().getOffer(), 0, true);
                 break;
             case PaymentMethod.BLOCK_CHAINS_ID:
             case PaymentMethod.BLOCK_CHAINS_INSTANT_ID:
@@ -416,6 +417,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.VENMO_ID:
                 gridRow = VenmoForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.PAYSAFE_ID:
+                gridRow = PaysafeForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);

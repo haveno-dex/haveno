@@ -28,6 +28,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.file.FileUtil;
+import haveno.common.util.Base64;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
@@ -48,7 +49,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
@@ -67,6 +71,7 @@ import javax.sound.sampled.SourceDataLine;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
@@ -87,13 +92,15 @@ public class HavenoUtils {
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
+    public static final double PENALTY_FEE_PCT = 0.02; // 2%
     public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
-    public static final double PENALTY_FEE_PCT = 0.02; // 2%
+    public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
 
     // other configuration
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
     public static final long LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
+    public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
 
     // synchronize requests to the daemon
     private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?
@@ -198,11 +205,11 @@ public class HavenoUtils {
     }
 
     public static double atomicUnitsToXmr(BigInteger atomicUnits) {
-        return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();
+        return MoneroUtils.atomicUnitsToXmr(atomicUnits);
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return new BigDecimal(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+        return MoneroUtils.xmrToAtomicUnits(xmr);
     }
 
     public static long xmrToCentineros(double xmr) {
@@ -214,11 +221,11 @@ public class HavenoUtils {
     }
 
     public static double divide(BigInteger auDividend, BigInteger auDivisor) {
-        return atomicUnitsToXmr(auDividend) / atomicUnitsToXmr(auDivisor);
+        return MoneroUtils.divide(auDividend, auDivisor);
     }
 
     public static BigInteger multiply(BigInteger amount1, double amount2) {
-        return amount1 == null ? null : new BigDecimal(amount1).multiply(BigDecimal.valueOf(amount2)).toBigInteger();
+        return MoneroUtils.multiply(amount1, amount2);
     }
 
     // ------------------------- FORMAT UTILS ---------------------------------
@@ -285,6 +292,41 @@ public class HavenoUtils {
     }
 
     // ------------------------ SIGNING AND VERIFYING -------------------------
+
+    public static String generateChallenge() {
+        try {
+
+            // load bip39 words
+            String fileName = "bip39_english.txt";
+            File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
+            if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
+            List<String> bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+
+            // select words randomly
+            List<String> passphraseWords = new ArrayList<String>();
+            SecureRandom secureRandom = new SecureRandom();
+            for (int i = 0; i < PRIVATE_OFFER_PASSPHRASE_NUM_WORDS; i++) {
+                passphraseWords.add(bip39Words.get(secureRandom.nextInt(bip39Words.size())));
+            }
+            return String.join(" ", passphraseWords);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to generate challenge", e);
+        }
+    }
+
+    public static String getChallengeHash(String challenge) {
+        if (challenge == null) return null;
+
+        // tokenize passphrase
+        String[] words = challenge.toLowerCase().split(" ");
+
+        // collect first 4 letters of each word, which are unique in bip39
+        List<String> prefixes = new ArrayList<String>();
+        for (String word : words) prefixes.add(word.substring(0, Math.min(word.length(), 4)));
+
+        // hash the result
+        return Base64.encode(Hash.getSha256Hash(String.join(" ", prefixes).getBytes()));
+    }
 
     public static byte[] sign(KeyRing keyRing, String message) {
         return sign(keyRing.getSignatureKeyPair().getPrivate(), message);

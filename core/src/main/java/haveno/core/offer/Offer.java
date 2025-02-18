@@ -115,6 +115,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     @Setter
     transient private boolean isReservedFundsSpent;
 
+    @JsonExclude
+    @Getter
+    @Setter
+    @Nullable
+    transient private String challenge;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -337,6 +343,18 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getSellerSecurityDepositPct();
     }
 
+    public boolean isPrivateOffer() {
+        return offerPayload.isPrivateOffer();
+    }
+
+    public String getChallengeHash() {
+        return offerPayload.getChallengeHash();
+    }
+
+    public boolean hasBuyerAsTakerWithoutDeposit() {
+        return getDirection() == OfferDirection.SELL && getBuyerSecurityDepositPct() == 0;
+    }
+
     public BigInteger getMaxTradeLimit() {
         return BigInteger.valueOf(offerPayload.getMaxTradeLimit());
     }
@@ -403,7 +421,23 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return "";
     }
 
-    public String getExtraInfo() {
+    public String getCombinedExtraInfo() {
+        StringBuilder sb = new StringBuilder();
+        if (getOfferExtraInfo() != null && !getOfferExtraInfo().isEmpty()) {
+            sb.append(getOfferExtraInfo());
+        }
+        if (getPaymentAccountExtraInfo() != null && !getPaymentAccountExtraInfo().isEmpty()) {
+            if (sb.length() > 0) sb.append("\n\n");
+            sb.append(getPaymentAccountExtraInfo());
+        }
+        return sb.toString();
+    }
+
+    public String getOfferExtraInfo() {
+        return offerPayload.getExtraInfo();
+    }
+
+    public String getPaymentAccountExtraInfo() {
         if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.F2F_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.F2F_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.PAY_BY_MAIL_EXTRA_INFO))
@@ -414,6 +448,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return getExtraDataMap().get(OfferPayload.PAYPAL_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASHAPP_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.CASHAPP_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASH_AT_ATM_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.CASH_AT_ATM_EXTRA_INFO);
         else
             return "";
     }

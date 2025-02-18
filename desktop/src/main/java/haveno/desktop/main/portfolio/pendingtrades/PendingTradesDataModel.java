@@ -332,15 +332,17 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             }
     
             // add shown trades to list
-            list.clear();
-            list.addAll(tradeManager.getObservableList().stream()
-                    .filter(trade -> isTradeShown(trade))
-                    .map(trade -> new PendingTradesListItem(trade, btcFormatter))
-                    .collect(Collectors.toList()));
-        }
+            synchronized (list) {
+                list.clear();
+                list.addAll(tradeManager.getObservableList().stream()
+                        .filter(trade -> isTradeShown(trade))
+                        .map(trade -> new PendingTradesListItem(trade, btcFormatter))
+                        .collect(Collectors.toList()));
 
-        // we sort by date, earliest first
-        list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
+                // we sort by date, earliest first
+                list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
+            }
+        }
 
         selectBestItem();
     }
@@ -350,17 +352,21 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     private void selectBestItem() {
-        if (list.size() == 1)
-            doSelectItem(list.get(0));
-        else if (list.size() > 1 && (selectedItemProperty.get() == null || !list.contains(selectedItemProperty.get())))
-            doSelectItem(list.get(0));
-        else if (list.size() == 0)
-            doSelectItem(null);
+        synchronized (list) {
+            if (list.size() == 1)
+                doSelectItem(list.get(0));
+            else if (list.size() > 1 && (selectedItemProperty.get() == null || !list.contains(selectedItemProperty.get())))
+                doSelectItem(list.get(0));
+            else if (list.size() == 0)
+                doSelectItem(null);
+        }
     }
 
     private void selectItemByTradeId(String tradeId) {
         if (activated) {
-            list.stream().filter(e -> e.getTrade().getId().equals(tradeId)).findAny().ifPresent(this::doSelectItem);
+            synchronized (list) {
+                list.stream().filter(e -> e.getTrade().getId().equals(tradeId)).findAny().ifPresent(this::doSelectItem);
+            }
         }
     }
 
@@ -380,14 +386,11 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 tradeStateChangeListener = (observable, oldValue, newValue) -> {
                     String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                     String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
-                    if (makerDepositTxHash != null && takerDepositTxHash != null) { // TODO (woodser): this treats separate deposit ids as one unit, being both available or unavailable
-                        makerTxId.set(makerDepositTxHash);
-                        takerTxId.set(takerDepositTxHash);
+                    makerTxId.set(nullToEmptyString(makerDepositTxHash));
+                    takerTxId.set(nullToEmptyString(takerDepositTxHash));
+                    if (makerDepositTxHash != null || takerDepositTxHash != null) {
                         notificationCenter.setSelectedTradeId(tradeId);
                         selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
-                    } else {
-                        makerTxId.set("");
-                        takerTxId.set("");
                     }
                 };
                 selectedTrade.stateProperty().addListener(tradeStateChangeListener);
@@ -401,13 +404,8 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 isMaker = tradeManager.isMyOffer(offer);
                 String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                 String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
-                if (makerDepositTxHash != null && takerDepositTxHash != null) {
-                    makerTxId.set(makerDepositTxHash);
-                    takerTxId.set(takerDepositTxHash);
-                } else {
-                    makerTxId.set("");
-                    takerTxId.set("");
-                }
+                makerTxId.set(nullToEmptyString(makerDepositTxHash));
+                takerTxId.set(nullToEmptyString(takerDepositTxHash));
                 notificationCenter.setSelectedTradeId(tradeId);
             } else {
                 selectedTrade = null;
@@ -417,6 +415,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             }
             selectedItemProperty.set(item);
         });
+    }
+
+    private String nullToEmptyString(String str) {
+        return str == null ? "" : str;
     }
 
     private void tryOpenDispute(boolean isSupportTicket) {
@@ -446,7 +448,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         }
         depositTxId = trade.getMaker().getDepositTxHash();
       } else {
-        if (trade.getTaker().getDepositTxHash() == null) {
+        if (trade.getTaker().getDepositTxHash() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
           log.error("Deposit tx must not be null");
           new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
           return;

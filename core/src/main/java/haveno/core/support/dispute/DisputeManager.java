@@ -537,13 +537,19 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         throw e;
                     }
 
-                    // try to validate payment account
+                    // try to validate payment accounts
                     try {
-                        DisputeValidation.validatePaymentAccountPayload(dispute); // TODO: add field to dispute details: valid, invalid, missing
+                        DisputeValidation.validatePaymentAccountPayloads(dispute); // TODO: add field to dispute details: valid, invalid, missing
                     } catch (Exception e) {
                         log.error(ExceptionUtils.getStackTrace(e));
                         trade.prependErrorMessage(e.getMessage());
                         throw e;
+                    }
+
+                    // set arbitrator's payment account payloads
+                    if (trade.isArbitrator()) {
+                        if (trade.getBuyer().getPaymentAccountPayload() == null) trade.getBuyer().setPaymentAccountPayload(dispute.getBuyerPaymentAccountPayload());
+                        if (trade.getSeller().getPaymentAccountPayload() == null) trade.getSeller().setPaymentAccountPayload(dispute.getSellerPaymentAccountPayload());
                     }
 
                     // get sender

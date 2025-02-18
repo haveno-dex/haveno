@@ -79,7 +79,7 @@ public class CashAppForm extends PaymentMethodForm {
         });
 
         TextArea extraTextArea = addTopLabelTextArea(gridPane, ++gridRow,
-                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt")).second;
+                Res.get("payment.shared.optionalExtra"), Res.get("payment.shared.extraInfo.prompt.paymentAccount")).second;
         extraTextArea.setMinHeight(70);
         ((JFXTextArea) extraTextArea).setLabelFloat(false);
         extraTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
@@ -115,6 +115,8 @@ public class CashAppForm extends PaymentMethodForm {
     public void addFormForEditAccount() {
         gridRowFrom = gridRow;
         addAccountNameTextFieldWithAutoFillToggleButton();
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
+                Res.get(cashAppAccount.getPaymentMethod().getId()));
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email.mobile.cashtag"),
                 cashAppAccount.getEmailOrMobileNrOrCashtag()).second;
 

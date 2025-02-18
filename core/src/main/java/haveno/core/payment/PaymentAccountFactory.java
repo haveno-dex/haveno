@@ -136,6 +136,8 @@ public class PaymentAccountFactory {
                 return new CashAppAccount();
             case PaymentMethod.VENMO_ID:
                 return new VenmoAccount();
+            case PaymentMethod.PAYSAFE_ID:
+                return new PaysafeAccount();
 
             // Cannot be deleted as it would break old trade history entries
             case PaymentMethod.OK_PAY_ID:

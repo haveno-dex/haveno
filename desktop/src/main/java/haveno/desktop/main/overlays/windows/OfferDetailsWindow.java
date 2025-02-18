@@ -29,6 +29,7 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OpenOffer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
@@ -42,6 +43,8 @@ import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.editor.PasswordPopup;
+import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
@@ -174,18 +177,14 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         List<String> acceptedCountryCodes = offer.getAcceptedCountryCodes();
         boolean showAcceptedCountryCodes = acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty();
         boolean isF2F = offer.getPaymentMethod().equals(PaymentMethod.F2F);
-        boolean showExtraInfo = offer.getPaymentMethod().equals(PaymentMethod.F2F) ||
-                offer.getPaymentMethod().equals(PaymentMethod.PAY_BY_MAIL) ||
-                offer.getPaymentMethod().equals(PaymentMethod.AUSTRALIA_PAYID)||
-                offer.getPaymentMethod().equals(PaymentMethod.PAYPAL_ID)||
-                offer.getPaymentMethod().equals(PaymentMethod.CASH_APP_ID);
+        boolean showOfferExtraInfo = offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty();
         if (!takeOfferHandlerOptional.isPresent())
             rows++;
         if (showAcceptedBanks)
             rows++;
         if (showAcceptedCountryCodes)
             rows++;
-        if (showExtraInfo)
+        if (showOfferExtraInfo)
             rows++;
         if (isF2F)
             rows++;
@@ -195,7 +194,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             rows++;
         }
 
-        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
+        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get(offer.isPrivateOffer() ? "shared.Offer" : "shared.Offer"));
 
         String counterCurrencyDirectionInfo = "";
         String xmrDirectionInfo = "";
@@ -217,7 +216,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             xmrDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
         } else {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
-                    DisplayUtils.getDirectionBothSides(direction), firstRowDistance);
+                    DisplayUtils.getDirectionBothSides(direction, offer.isPrivateOffer()), firstRowDistance);
         }
         String amount = Res.get("shared.xmrAmount");
         if (takeOfferHandlerOptional.isPresent()) {
@@ -316,9 +315,9 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (isF2F) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("payment.f2f.city"), offer.getF2FCity());
         }
-        if (showExtraInfo) {
+        if (showOfferExtraInfo) {
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo"), "", 0).second;
-            textArea.setText(offer.getExtraInfo());
+            textArea.setText(offer.getCombinedExtraInfo());
             textArea.setMaxHeight(200);
             textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
                 if (newScene != null) {
@@ -342,12 +341,18 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         // get amount reserved for the offer
         BigInteger reservedAmount = isMyOffer ? offer.getReservedAmount() : null;
 
+        // get offer challenge
+        OpenOffer myOpenOffer = HavenoUtils.openOfferManager.getOpenOfferById(offer.getId()).orElse(null);
+        String offerChallenge = myOpenOffer == null ? null : myOpenOffer.getChallenge();
+
         rows = 3;
         if (countryCode != null)
             rows++;
         if (!isF2F)
             rows++;
         if (reservedAmount != null)
+            rows++;
+        if (offerChallenge != null)
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
@@ -359,12 +364,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 DisplayUtils.formatDateTime(offer.getDate()));
         String value = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(offer.getOfferPayload().getMaxBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(takeOfferHandlerOptional.isPresent() ? offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(tradeAmount) : offer.getOfferPayload().getMaxBuyerSecurityDeposit(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(offer.getOfferPayload().getMaxSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(takeOfferHandlerOptional.isPresent() ? offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(tradeAmount) : offer.getOfferPayload().getMaxSellerSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
+
         if (reservedAmount != null) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.reservedAmount"),  HavenoUtils.formatXmr(reservedAmount, true));
         }
@@ -372,6 +378,9 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (countryCode != null && !isF2F)
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.countryBank"),
                     CountryUtil.getNameAndCode(countryCode));
+
+        if (offerChallenge != null)
+            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), offerChallenge);
 
         if (placeOfferHandlerOptional.isPresent()) {
             addTitledGroupBg(gridPane, ++rowIndex, 1, Res.get("offerDetailsWindow.commitment"), Layout.GROUP_DISTANCE);
@@ -416,13 +425,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 ++rowIndex, 1,
                 isPlaceOffer ? placeOfferButtonText : takeOfferButtonText);
 
-        AutoTooltipButton button = (AutoTooltipButton) placeOfferTuple.first;
-        button.setMinHeight(40);
-        button.setPadding(new Insets(0, 20, 0, 20));
-        button.setGraphic(iconView);
-        button.setGraphicTextGap(10);
-        button.setId(isBuyerRole ? "buy-button-big" : "sell-button-big");
-        button.updateText(isPlaceOffer ? placeOfferButtonText : takeOfferButtonText);
+        AutoTooltipButton confirmButton = (AutoTooltipButton) placeOfferTuple.first;
+        confirmButton.setMinHeight(40);
+        confirmButton.setPadding(new Insets(0, 20, 0, 20));
+        confirmButton.setGraphic(iconView);
+        confirmButton.setGraphicTextGap(10);
+        confirmButton.setId(isBuyerRole ? "buy-button-big" : "sell-button-big");
+        confirmButton.updateText(isPlaceOffer ? placeOfferButtonText : takeOfferButtonText);
 
         busyAnimation = placeOfferTuple.second;
         Label spinnerInfoLabel = placeOfferTuple.third;
@@ -436,27 +445,46 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         placeOfferTuple.fourth.getChildren().add(cancelButton);
 
-        button.setOnAction(e -> {
+        confirmButton.setOnAction(e -> {
             if (GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation)) {
-                button.setDisable(true);
-                cancelButton.setDisable(isPlaceOffer ? false : true); // TODO: enable cancel button for taking an offer until messages sent
-                // temporarily disabled due to high CPU usage (per issue #4649)
-                // busyAnimation.play();
-                if (isPlaceOffer) {
-                    spinnerInfoLabel.setText(Res.get("createOffer.fundsBox.placeOfferSpinnerInfo"));
-                    placeOfferHandlerOptional.ifPresent(Runnable::run);
+                if (!isPlaceOffer && offer.isPrivateOffer()) {
+                    new PasswordPopup()
+                            .headLine(Res.get("offerbook.takeOffer.enterChallenge"))
+                            .onAction(password -> {
+                                if (offer.getChallengeHash().equals(HavenoUtils.getChallengeHash(password))) {
+                                    offer.setChallenge(password);
+                                    confirmTakeOfferAux(confirmButton, cancelButton, spinnerInfoLabel, isPlaceOffer);
+                                } else {
+                                    new Popup().warning(Res.get("password.wrongPw")).show();
+                                }
+                            })
+                            .closeButtonText(Res.get("shared.cancel"))
+                            .show();
                 } else {
-
-                    // subscribe to trade progress
-                    spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo", "0%"));
-                    numTradesSubscription = EasyBind.subscribe(tradeManager.getNumPendingTrades(), newNum -> {
-                        subscribeToProgress(spinnerInfoLabel);
-                    });
-
-                    takeOfferHandlerOptional.ifPresent(Runnable::run);
+                    confirmTakeOfferAux(confirmButton, cancelButton, spinnerInfoLabel, isPlaceOffer);
                 }
             }
         });
+    }
+
+    private void confirmTakeOfferAux(Button button, Button cancelButton, Label spinnerInfoLabel, boolean isPlaceOffer) {
+        button.setDisable(true);
+        cancelButton.setDisable(isPlaceOffer ? false : true); // TODO: enable cancel button for taking an offer until messages sent
+        // temporarily disabled due to high CPU usage (per issue #4649)
+        // busyAnimation.play();
+        if (isPlaceOffer) {
+            spinnerInfoLabel.setText(Res.get("createOffer.fundsBox.placeOfferSpinnerInfo"));
+            placeOfferHandlerOptional.ifPresent(Runnable::run);
+        } else {
+
+            // subscribe to trade progress
+            spinnerInfoLabel.setText(Res.get("takeOffer.fundsBox.takeOfferSpinnerInfo", "0%"));
+            numTradesSubscription = EasyBind.subscribe(tradeManager.getNumPendingTrades(), newNum -> {
+                subscribeToProgress(spinnerInfoLabel);
+            });
+
+            takeOfferHandlerOptional.ifPresent(Runnable::run);
+        }
     }
 
     private void subscribeToProgress(Label spinnerInfoLabel) {

@@ -1,6 +1,6 @@
 ## Bounties
 
-We use bounties to incentivize development and reward contributors. All issues available for a bounty are listed [on the Kanban board](https://github.com/orgs/haveno-dex/projects/2). It's possible to list on each repository the issues with a bounty on them, by searching issues with the '💰bounty' label.
+We use bounties to incentivize development and reward contributors. All issues available for a bounty are listed [here](https://github.com/haveno-dex/haveno/issues?q=is%3Aissue%20state%3Aopen%20label%3A%F0%9F%92%B0bounty). It's possible to list on each repository the issues with a bounty on them, by searching issues with the '💰bounty' label.
 
 To receive a bounty, you agree to these conditions:
 

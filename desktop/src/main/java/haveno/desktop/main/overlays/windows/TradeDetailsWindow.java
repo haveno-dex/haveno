@@ -38,6 +38,7 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
@@ -47,6 +48,8 @@ import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
@@ -165,9 +168,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
 
         // second group
         rows = 7;
+
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+            rows++;
+
         PaymentAccountPayload buyerPaymentAccountPayload = null;
         PaymentAccountPayload sellerPaymentAccountPayload = null;
-
         if (contract != null) {
             rows++;
 
@@ -183,11 +189,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 rows++;
         }
 
-        if (trade.getPayoutTxId() != null)
-            rows++;
         boolean showDisputedTx = arbitrationManager.findOwnDispute(trade.getId()).isPresent() &&
                 arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId() != null;
         if (showDisputedTx)
+            rows++;
+        else if (trade.getPayoutTxId() != null)
             rows++;
         if (trade.hasFailed())
             rows += 2;
@@ -201,11 +207,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 DisplayUtils.formatDateTime(trade.getDate()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(offer.getMaxBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(offer.getMaxSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(trade.getSellerSecurityDepositBeforeMiningFee(), true);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
@@ -218,6 +224,29 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTradePeerNodeAddress() != null)
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
                     trade.getTradePeerNodeAddress().getFullAddress());
+
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
+            TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
+            textArea.setText(offer.getCombinedExtraInfo());
+            textArea.setMaxHeight(200);
+            textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
+                if (newScene != null) {
+                    // avoid javafx css warning
+                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
+                    textArea.applyCss();
+                    var text = textArea.lookup(".text");
+
+                    textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
+                        return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
+                    }, text.boundsInLocalProperty()));
+
+                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
+                        Platform.runLater(() -> textArea.requestLayout());
+                    });
+                }
+            });
+            textArea.setEditable(false);
+        }
 
         if (contract != null) {
             buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());
@@ -244,16 +273,18 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getMaker().getDepositTxHash() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"),
                     trade.getMaker().getDepositTxHash());
-          if (trade.getTaker().getDepositTxHash() != null)
+        if (trade.getTaker().getDepositTxHash() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"),
                     trade.getTaker().getDepositTxHash());
 
-        if (trade.getPayoutTxId() != null && !trade.getPayoutTxId().isBlank())
-            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
-                    trade.getPayoutTxId());
-        if (showDisputedTx)
+
+        if (showDisputedTx) {
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.disputedPayoutTxId"),
                     arbitrationManager.findOwnDispute(trade.getId()).get().getDisputePayoutTxId());
+        } else if (trade.getPayoutTxId() != null && !trade.getPayoutTxId().isBlank()) {
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"),
+                    trade.getPayoutTxId());
+        }
 
         if (trade.hasFailed()) {
             textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;

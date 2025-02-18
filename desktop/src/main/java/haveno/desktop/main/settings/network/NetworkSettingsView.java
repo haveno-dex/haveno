@@ -508,12 +508,14 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateP2PTable() {
-        if (connectionService.isShutDownStarted()) return; // ignore if shutting down
-        p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
-        p2pNetworkListItems.clear();
-        p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
-                .map(connection -> new P2pNetworkListItem(connection, clockWatcher))
-                .collect(Collectors.toList()));
+        UserThread.execute(() -> {
+            if (connectionService.isShutDownStarted()) return; // ignore if shutting down
+            p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
+            p2pNetworkListItems.clear();
+            p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
+                    .map(connection -> new P2pNetworkListItem(connection, clockWatcher))
+                    .collect(Collectors.toList()));
+        });
     }
 
     private void updateMoneroConnectionsTable() {
@@ -521,7 +523,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             if (connectionService.isShutDownStarted()) return; // ignore if shutting down
             moneroNetworkListItems.clear();
             moneroNetworkListItems.setAll(connectionService.getConnections().stream()
-                    .map(connection -> new MoneroNetworkListItem(connection, Boolean.TRUE.equals(connection.isConnected()) && connection == connectionService.getConnection()))
+                    .map(connection -> new MoneroNetworkListItem(connection, connection == connectionService.getConnection() && Boolean.TRUE.equals(connectionService.isConnected())))
                     .collect(Collectors.toList()));
             updateChainHeightTextField(connectionService.chainHeightProperty().get());
         });

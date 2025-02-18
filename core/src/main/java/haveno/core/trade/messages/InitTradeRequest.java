@@ -58,6 +58,8 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     private final String reserveTxKey;
     @Nullable
     private final String payoutAddress;
+    @Nullable
+    private final String challenge;
 
     public InitTradeRequest(TradeProtocolVersion tradeProtocolVersion,
                                     String offerId,
@@ -79,7 +81,8 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                                     @Nullable String reserveTxHash,
                                     @Nullable String reserveTxHex,
                                     @Nullable String reserveTxKey,
-                                    @Nullable String payoutAddress) {
+                                    @Nullable String payoutAddress,
+                                    @Nullable String challenge) {
         super(messageVersion, offerId, uid);
         this.tradeProtocolVersion = tradeProtocolVersion;
         this.tradeAmount = tradeAmount;
@@ -99,6 +102,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
         this.payoutAddress = payoutAddress;
+        this.challenge = challenge;
     }
 
 
@@ -129,6 +133,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(payoutAddress).ifPresent(e -> builder.setPayoutAddress(payoutAddress));
+        Optional.ofNullable(challenge).ifPresent(e -> builder.setChallenge(challenge));
         Optional.ofNullable(accountAgeWitnessSignatureOfOfferId).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfOfferId(ByteString.copyFrom(e)));
         builder.setCurrentDate(currentDate);
 
@@ -158,7 +163,8 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()),
-                ProtoUtil.stringOrNullFromProto(proto.getPayoutAddress()));
+                ProtoUtil.stringOrNullFromProto(proto.getPayoutAddress()),
+                ProtoUtil.stringOrNullFromProto(proto.getChallenge()));
     }
 
     @Override
@@ -183,6 +189,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ",\n     reserveTxHex=" + reserveTxHex +
                 ",\n     reserveTxKey=" + reserveTxKey +
                 ",\n     payoutAddress=" + payoutAddress +
+                ",\n     challenge=" + challenge +
                 "\n} " + super.toString();
     }
 }

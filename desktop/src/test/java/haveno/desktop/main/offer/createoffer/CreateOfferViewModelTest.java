@@ -55,6 +55,7 @@ import static haveno.desktop.maker.PreferenceMakers.empty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -99,7 +100,7 @@ public class CreateOfferViewModelTest {
         when(paymentAccount.getPaymentMethod()).thenReturn(PaymentMethod.ZELLE);
         when(user.getPaymentAccountsAsObservable()).thenReturn(FXCollections.observableSet());
         when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(false));
-        when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any())).thenReturn(100000000L);
+        when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(100000000L);
         when(preferences.getUserCountry()).thenReturn(new Country("ES", "Spain", null));
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
         when(tradeStats.getObservableTradeStatisticsSet()).thenReturn(FXCollections.observableSet());

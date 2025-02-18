@@ -110,7 +110,7 @@ public final class KeyRing {
      * @param password The password to unlock the keys or to generate new keys, nullable.
      */
     public void generateKeys(String password) {
-        if (isUnlocked()) throw new Error("Current keyring must be closed to generate new keys");
+        if (isUnlocked()) throw new IllegalStateException("Current keyring must be closed to generate new keys");
         symmetricKey = Encryption.generateSecretKey(256);
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();

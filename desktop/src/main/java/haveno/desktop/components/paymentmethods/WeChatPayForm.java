@@ -26,6 +26,7 @@ import haveno.core.payment.payload.WeChatPayAccountPayload;
 import haveno.core.payment.validation.WeChatPayValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
+import javafx.collections.FXCollections;
 import javafx.scene.layout.GridPane;
 
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
@@ -42,6 +43,12 @@ public class WeChatPayForm extends GeneralAccountNumberForm {
     public WeChatPayForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, WeChatPayValidator weChatPayValidator, InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.weChatPayAccount = (WeChatPayAccount) paymentAccount;
+    }
+
+    @Override
+    public void addTradeCurrency() {
+        addTradeCurrencyComboBox();
+        currencyComboBox.setItems(FXCollections.observableArrayList(weChatPayAccount.getSupportedCurrencies()));
     }
 
     @Override

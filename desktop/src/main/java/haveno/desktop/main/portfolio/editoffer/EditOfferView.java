@@ -90,6 +90,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         addBindings();
 
         hideOptionsGroup();
+        hideNextButtons();
 
         // Lock amount field as it would require bigger changes to support increased amount values.
         amountTextField.setDisable(true);
@@ -178,7 +179,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
 
     private void addConfirmEditGroup() {
 
-        int tmpGridRow = 4;
+        int tmpGridRow = 6;
         final Tuple4<Button, BusyAnimation, Label, HBox> editOfferTuple = addButtonBusyAnimationLabelAfterGroup(gridPane, tmpGridRow++, Res.get("editOffer.confirmEdit"));
 
         final HBox editOfferConfirmationBox = editOfferTuple.fourth;

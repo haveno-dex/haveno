@@ -70,7 +70,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @FXML
     TableView<TransactionsListItem> tableView;
     @FXML
-    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, memoColumn, confidenceColumn, revertTxColumn;
+    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, confidenceColumn, memoColumn, revertTxColumn;
     @FXML
     Label numItems;
     @FXML
@@ -133,8 +133,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         transactionColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txId", Res.getBaseCurrencyCode())));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
         txFeeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txFee", Res.getBaseCurrencyCode())));
-        memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
         confidenceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations", Res.getBaseCurrencyCode())));
+        memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
         revertTxColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.revert", Res.getBaseCurrencyCode())));
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -146,8 +146,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         setTransactionColumnCellFactory();
         setAmountColumnCellFactory();
         setTxFeeColumnCellFactory();
-        setMemoColumnCellFactory();
         setConfidenceColumnCellFactory();
+        setMemoColumnCellFactory();
         setRevertTxColumnCellFactory();
 
         dateColumn.setComparator(Comparator.comparing(TransactionsListItem::getDate));
@@ -221,8 +221,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                 columns[3] = item.getTxId();
                 columns[4] = item.getAmountStr();
                 columns[5] = item.getTxFeeStr();
-                columns[6] = item.getMemo() == null ? "" : item.getMemo();
-                columns[7] = String.valueOf(item.getNumConfirmations());
+                columns[6] = String.valueOf(item.getNumConfirmations());
+                columns[7] = item.getMemo() == null ? "" : item.getMemo();
                 return columns;
             };
 

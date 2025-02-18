@@ -20,6 +20,7 @@ package haveno.desktop.main;
 import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import com.jfoenix.controls.JFXComboBox;
+import haveno.common.app.Version;
 import haveno.common.HavenoException;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -621,7 +622,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkBox.setPrefHeight(40);
         splashP2PNetworkBox.getChildren().addAll(splashP2PNetworkLabel, splashP2PNetworkBusyAnimation, splashP2PNetworkIcon, showTorNetworkSettingsButton);
 
-        vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox);
+        Label versionLabel = new Label("v" + Version.VERSION);
+
+        vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox, versionLabel);
         return vBox;
     }
 

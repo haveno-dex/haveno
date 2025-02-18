@@ -21,6 +21,7 @@ import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.TradeMessage;
@@ -63,8 +64,21 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         checkBINotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
         if (offer.getMakerFeePct() < 0) throw new IllegalArgumentException("Maker fee must be >= 0% but was " + offer.getMakerFeePct());
         if (offer.getTakerFeePct() < 0) throw new IllegalArgumentException("Taker fee must be >= 0% but was " + offer.getTakerFeePct());
-        if (offer.getBuyerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Buyer security deposit percent must be positive but was " + offer.getBuyerSecurityDepositPct());
-        if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit percent must be positive but was " + offer.getSellerSecurityDepositPct());
+        offer.isPrivateOffer();
+        if (offer.isPrivateOffer()) {
+            boolean isBuyerMaker = offer.getDirection() == OfferDirection.BUY;
+            if (isBuyerMaker) {
+                if (offer.getBuyerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Buyer security deposit percent must be positive but was " + offer.getBuyerSecurityDepositPct());
+                if (offer.getSellerSecurityDepositPct() < 0) throw new IllegalArgumentException("Seller security deposit percent must be >= 0% but was " + offer.getSellerSecurityDepositPct());
+            } else {
+                if (offer.getBuyerSecurityDepositPct() < 0) throw new IllegalArgumentException("Buyer security deposit percent must be >= 0% but was " + offer.getBuyerSecurityDepositPct());
+                if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit percent must be positive but was " + offer.getSellerSecurityDepositPct());
+            }
+        } else {
+            if (offer.getBuyerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Buyer security deposit percent must be positive but was " + offer.getBuyerSecurityDepositPct());
+            if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit percent must be positive but was " + offer.getSellerSecurityDepositPct());
+        }
+
 
         // We remove those checks to be more flexible with future changes.
         /*checkArgument(offer.getMakerFee().value >= FeeService.getMinMakerFee(offer.isCurrencyForMakerFeeBtc()).value,
@@ -82,9 +96,9 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         /*checkArgument(offer.getMinAmount().compareTo(ProposalConsensus.getMinTradeAmount()) >= 0,
             "MinAmount is less than " + ProposalConsensus.getMinTradeAmount().toFriendlyString());*/
 
-        long maxAmount = accountAgeWitnessService.getMyTradeLimit(user.getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCurrencyCode(), offer.getDirection());
+        long maxAmount = accountAgeWitnessService.getMyTradeLimit(user.getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCurrencyCode(), offer.getDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         checkArgument(offer.getAmount().longValueExact() <= maxAmount,
-                "Amount is larger than " + HavenoUtils.atomicUnitsToXmr(offer.getPaymentMethod().getMaxTradeLimit(offer.getCurrencyCode())) + " XMR");
+                "Amount is larger than " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " XMR");
         checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "MinAmount is larger than Amount");
 
         checkNotNull(offer.getPrice(), "Price is null");

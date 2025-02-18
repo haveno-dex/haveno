@@ -200,7 +200,9 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
+        result.add(new CryptoCurrency("DAI-ERC20", "Dai Stablecoin (ERC20)"));
         result.add(new CryptoCurrency("USDT-ERC20", "Tether USD (ERC20)"));
+        result.add(new CryptoCurrency("USDT-TRC20", "Tether USD (TRC20)"));
         result.add(new CryptoCurrency("USDC-ERC20", "USD Coin (ERC20)"));
         result.sort(TradeCurrency::compareTo);
         return result;
@@ -297,7 +299,7 @@ public class CurrencyUtil {
         if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode.toUpperCase())) {
             return isCryptoCurrencyMap.get(currencyCode.toUpperCase());
         }
-        if (isCryptoCurrencyBase(currencyCode)) {
+        if (isCryptoCurrencyCodeBase(currencyCode)) {
             return true;
         }
 
@@ -326,10 +328,10 @@ public class CurrencyUtil {
         return isCryptoCurrency;
     }
 
-    private static boolean isCryptoCurrencyBase(String currencyCode) {
+    private static boolean isCryptoCurrencyCodeBase(String currencyCode) {
         if (currencyCode == null) return false;
         currencyCode = currencyCode.toUpperCase();
-        return currencyCode.equals("USDT") || currencyCode.equals("USDC");
+        return currencyCode.equals("USDT") || currencyCode.equals("USDC") || currencyCode.equals("DAI");
     }
 
     public static String getCurrencyCodeBase(String currencyCode) {
@@ -337,6 +339,7 @@ public class CurrencyUtil {
         currencyCode = currencyCode.toUpperCase();
         if (currencyCode.contains("USDT")) return "USDT";
         if (currencyCode.contains("USDC")) return "USDC";
+        if (currencyCode.contains("DAI")) return "DAI";
         return currencyCode;
     }
 

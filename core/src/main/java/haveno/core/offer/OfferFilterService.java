@@ -201,7 +201,7 @@ public class OfferFilterService {
                 accountAgeWitnessService);
         long myTradeLimit = accountOptional
                 .map(paymentAccount -> accountAgeWitnessService.getMyTradeLimit(paymentAccount,
-                        offer.getCurrencyCode(), offer.getMirroredDirection()))
+                        offer.getCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()))
                 .orElse(0L);
         long offerMinAmount = offer.getMinAmount().longValueExact();
         log.debug("isInsufficientTradeLimit accountOptional={}, myTradeLimit={}, offerMinAmount={}, ",

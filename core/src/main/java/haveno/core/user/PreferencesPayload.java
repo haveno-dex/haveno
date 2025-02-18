@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static haveno.core.xmr.wallet.Restrictions.getDefaultBuyerSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositAsPercent;
 
 @Slf4j
 @Data
@@ -120,10 +120,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String rpcPw;
     @Nullable
     private String takeOfferSelectedPaymentAccountId;
-    private double buyerSecurityDepositAsPercent = getDefaultBuyerSecurityDepositAsPercent();
+    private double securityDepositAsPercent = getDefaultSecurityDepositAsPercent();
     private int ignoreDustThreshold = 600;
     private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_INITIAL;
-    private double buyerSecurityDepositAsPercentForCrypto = getDefaultBuyerSecurityDepositAsPercent();
+    private double securityDepositAsPercentForCrypto = getDefaultSecurityDepositAsPercent();
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
     private double bsqAverageTrimThreshold = 0.05;
@@ -134,6 +134,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     // Added in 1.5.5
     private boolean hideNonAccountPaymentMethods;
     private boolean showOffersMatchingMyAccounts;
+    private boolean showPrivateOffers;
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
 
@@ -193,10 +194,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setUseStandbyMode(useStandbyMode)
                 .setUseSoundForNotifications(useSoundForNotifications)
                 .setUseSoundForNotificationsInitialized(useSoundForNotificationsInitialized)
-                .setBuyerSecurityDepositAsPercent(buyerSecurityDepositAsPercent)
+                .setSecurityDepositAsPercent(securityDepositAsPercent)
                 .setIgnoreDustThreshold(ignoreDustThreshold)
                 .setClearDataAfterDays(clearDataAfterDays)
-                .setBuyerSecurityDepositAsPercentForCrypto(buyerSecurityDepositAsPercentForCrypto)
+                .setSecurityDepositAsPercentForCrypto(securityDepositAsPercentForCrypto)
                 .setBlockNotifyPort(blockNotifyPort)
                 .setTacAcceptedV120(tacAcceptedV120)
                 .setBsqAverageTrimThreshold(bsqAverageTrimThreshold)
@@ -205,6 +206,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                         .collect(Collectors.toList()))
                 .setHideNonAccountPaymentMethods(hideNonAccountPaymentMethods)
                 .setShowOffersMatchingMyAccounts(showOffersMatchingMyAccounts)
+                .setShowPrivateOffers(showPrivateOffers)
                 .setDenyApiTaker(denyApiTaker)
                 .setNotifyOnPreRelease(notifyOnPreRelease);
 
@@ -297,10 +299,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getRpcUser().isEmpty() ? null : proto.getRpcUser(),
                 proto.getRpcPw().isEmpty() ? null : proto.getRpcPw(),
                 proto.getTakeOfferSelectedPaymentAccountId().isEmpty() ? null : proto.getTakeOfferSelectedPaymentAccountId(),
-                proto.getBuyerSecurityDepositAsPercent(),
+                proto.getSecurityDepositAsPercent(),
                 proto.getIgnoreDustThreshold(),
                 proto.getClearDataAfterDays(),
-                proto.getBuyerSecurityDepositAsPercentForCrypto(),
+                proto.getSecurityDepositAsPercentForCrypto(),
                 proto.getBlockNotifyPort(),
                 proto.getTacAcceptedV120(),
                 proto.getBsqAverageTrimThreshold(),
@@ -310,6 +312,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                                 .collect(Collectors.toList())),
                 proto.getHideNonAccountPaymentMethods(),
                 proto.getShowOffersMatchingMyAccounts(),
+                proto.getShowPrivateOffers(),
                 proto.getDenyApiTaker(),
                 proto.getNotifyOnPreRelease(),
                 XmrNodeSettings.fromProto(proto.getXmrNodeSettings())
