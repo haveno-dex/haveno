@@ -595,6 +595,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             offerBookService.activateOffer(offer,
                     () -> {
                         openOffer.setState(OpenOffer.State.AVAILABLE);
+                        applyTriggerState(openOffer);
                         requestPersistence();
                         log.debug("activateOpenOffer, offerId={}", offer.getId());
                         resultHandler.handleResult();
@@ -603,14 +604,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    private void applyTriggerState(OpenOffer openOffer) {
+        if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
+        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer)) {
+            openOffer.deactivate(true);
+        }
+    }
+
     public void deactivateOpenOffer(OpenOffer openOffer,
+                                    boolean deactivatedByTrigger,
                                     ResultHandler resultHandler,
                                     ErrorMessageHandler errorMessageHandler) {
         Offer offer = openOffer.getOffer();
         if (openOffer.isAvailable()) {
             offerBookService.deactivateOffer(offer.getOfferPayload(),
                     () -> {
-                        openOffer.setState(OpenOffer.State.DEACTIVATED);
+                        openOffer.deactivate(deactivatedByTrigger);
                         requestPersistence();
                         log.debug("deactivateOpenOffer, offerId={}", offer.getId());
                         resultHandler.handleResult();
@@ -661,6 +670,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         if (openOffer.isAvailable()) {
             deactivateOpenOffer(openOffer,
+                    false,
                     resultHandler,
                     errorMessage -> {
                         offersToBeEdited.remove(openOffer.getId());
@@ -686,7 +696,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             removeOpenOffer(openOffer);
 
             OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
-            editedOpenOffer.setState(originalState);
+            if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
+                editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                applyTriggerState(editedOpenOffer);
+            } else {
+                editedOpenOffer.setState(originalState);
+            }
 
             addOpenOffer(editedOpenOffer);
 

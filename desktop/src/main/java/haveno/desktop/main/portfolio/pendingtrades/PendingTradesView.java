@@ -363,7 +363,11 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     }
 
     private void updateMoveTradeToFailedColumnState() {
-        UserThread.execute(() -> moveTradeToFailedColumn.setVisible(model.dataModel.list.stream().anyMatch(item -> isMaybeInvalidTrade(item.getTrade()))));
+        UserThread.execute(() -> {
+            synchronized (model.dataModel.list) {
+                moveTradeToFailedColumn.setVisible(model.dataModel.list.stream().anyMatch(item -> isMaybeInvalidTrade(item.getTrade())));
+            }
+        });
     }
 
     private boolean isMaybeInvalidTrade(Trade trade) {
@@ -420,16 +424,18 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateNewChatMessagesByTradeMap() {
-        model.dataModel.list.forEach(t -> {
-            Trade trade = t.getTrade();
-            synchronized (trade.getChatMessages()) {
-                newChatMessagesByTradeMap.put(trade.getId(),
-                        trade.getChatMessages().stream()
-                                .filter(m -> !m.isWasDisplayed())
-                                .filter(m -> !m.isSystemMessage())
-                                .count());
-            }
-        });
+        synchronized (model.dataModel.list) {
+            model.dataModel.list.forEach(t -> {
+                Trade trade = t.getTrade();
+                synchronized (trade.getChatMessages()) {
+                    newChatMessagesByTradeMap.put(trade.getId(),
+                            trade.getChatMessages().stream()
+                                    .filter(m -> !m.isWasDisplayed())
+                                    .filter(m -> !m.isSystemMessage())
+                                    .count());
+                }
+            });
+        }
     }
 
     private void openChat(Trade trade) {
