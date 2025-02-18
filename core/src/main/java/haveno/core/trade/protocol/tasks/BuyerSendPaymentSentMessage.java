@@ -66,7 +66,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask {
     private ChangeListener<MessageState> listener;
     private Timer timer;
-    private static final int MAX_RESEND_ATTEMPTS = 10;
+    private static final int MAX_RESEND_ATTEMPTS = 20;
     private int delayInMin = 10;
     private int resendCounter = 0;
 
@@ -198,7 +198,16 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             onMessageStateChange(processModel.getPaymentSentMessageStateProperty().get());
         }
 
-        delayInMin = delayInMin * 2;
+        // first re-send is after 2 minutes, then increase the delay exponentially
+        if (resendCounter == 0) {
+            int shortDelay = 2;
+            log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
+            timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
+        } else {
+            log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+            timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
+            delayInMin = (int) ((double) delayInMin * 1.5);
+        }
         resendCounter++;
     }
 

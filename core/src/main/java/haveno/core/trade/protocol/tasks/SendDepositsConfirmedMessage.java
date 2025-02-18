@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTask {
     private Timer timer;
-    private static final int MAX_RESEND_ATTEMPTS = 10;
+    private static final int MAX_RESEND_ATTEMPTS = 20;
     private int delayInMin = 10;
     private int resendCounter = 0;
 
@@ -137,7 +137,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
             timer.stop();
         }
         
-        // first re-send is after 2 minutes, then double the delay each iteration
+        // first re-send is after 2 minutes, then increase the delay exponentially
         if (resendCounter == 0) {
             int shortDelay = 2;
             log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
@@ -145,7 +145,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         } else {
             log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
             timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = delayInMin * 2;
+            delayInMin = (int) ((double) delayInMin * 1.5);
         }
         resendCounter++;
     }
