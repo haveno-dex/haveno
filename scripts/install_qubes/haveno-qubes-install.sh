@@ -51,12 +51,13 @@ while getopts 'csauhn:r:f:' flag; do
 done
 
 #Set build from force true if using haveno main repo
-if ! [[ $unoffical -eq 0 ]] ; then
+if  [[ $unoffical -eq 1 ]] && [[ $from_source -eq 1 ]] ; then
 	from_source=0
 	log "WARNING : you are installing the main haveno-dex repo but have no enabled build from source, as such this setting has been automatically toggled"
 fi
 
-TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME"
+TPL_ROOT="qvm-run --pass-io -u root -- $APPVM_NAME-template"
+TPL_NAME="$APPVM_NAME-template"
 
 if [ "$(hostname)" != "dom0" ]; then
 	echo "This script must be ran on dom0 to function"
@@ -77,12 +78,12 @@ else
 	log "debian-12-minimal template already installed"
 fi
 log "cloning the template"
-qvm-clone debian-12-minimal "$APPVM_NAME"
+qvm-clone debian-12-minimal "$TPL_NAME"
 log "Installing necessary packages on template"
 $TPL_ROOT "apt-get update && apt-get full-upgrade -y"
 $TPL_ROOT "apt-get install --no-install-recommends qubes-core-agent-networking qubes-core-agent-passwordless-root qubes-core-agent-nautilus nautilus zenity curl -y && poweroff" || true
-log "Setting $APPVM_NAME network to sys-whonix"
-qvm-prefs $APPVM_NAME netvm sys-whonix
+log "Setting $TPL_NAME network to sys-whonix"
+qvm-prefs $TPL_NAME netvm sys-whonix
 
 #prevents qrexec error by sleeping
 sleep 5
@@ -103,22 +104,22 @@ qvm-run --pass-io -u root -- sys-whonix "rm -rf /var/lib/tor/haveno_service"
 log "Creating a hidden service for haveno on whonix gateway"
 read -p "Warning by default 50_user.conf on sys-whonix will be overwritten (baseline is empty)
 Enter any character to append instead (may require cleaning if you reinstall haveno later)" -n 1 cont
-if ! [[ "$key" = "" ]];then
+if ! [[ "$cont" = "" ]];then
 	log "Appending to 50_user.conf instead of overwriting"
 	out=">>"
 else
 	log "Overwriting 50_user.conf"
 	out=">"
 fi
-qvm-run --pass-io -u root -- sys-whonix "echo -e 'ConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno_service/\nHiddenServicePort 9999 $(qvm-prefs $APPVM_NAME ip):9999' $out /usr/local/etc/torrc.d/50_user.conf && service tor@default reload"
+qvm-run --pass-io -u root -- sys-whonix "echo -e 'ConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno_service/\nHiddenServicePort 9999 $(qvm-prefs $TPL_NAME ip):9999' $out /usr/local/etc/torrc.d/50_user.conf && service tor@default reload"
 
-log "Open port 9999 on $APPVM_NAME to allow incoming peer data"
+log "Open port 9999 on $TPL_NAME to allow incoming peer data"
 $TPL_ROOT "echo -e 'nft add rule ip qubes input tcp dport 9999 counter accept\necho nameserver $SYS_WHONIX_IP > /etc/resolv.conf' > /rw/config/rc.local"
 
 sleep 1
 SERVICE="$(qvm-run --pass-io -u root -- sys-whonix 'cat /var/lib/tor/haveno_service/hostname')"
 
-$TPL_ROOT "echo $SERVICE > /root/haveno-service-address"
+$TPL_ROOT "echo $SERVICE > /etc/skel/haveno-service-address"
 
 version="$($TPL_ROOT curl -Ls -o /dev/null -w %{url_effective} $HAVENO_REPO/releases/latest)"
 version=${version##*/}
@@ -167,44 +168,32 @@ Terminal=false
 Type=Application
 Categories=Network
 MimeType="
-$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\nSERVICE=\x24\x28cat /root/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
 elif [[ $from_source -eq 0 ]]; then
+	#needed for appVM capabilities
 	log "Installing required packages for build"
 	$TPL_ROOT "apt-get install --no-install-recommends make wget git zip unzip libxtst6 qubes-core-agent-passwordless-root -y"
 	log "Installing jdk 21"
-	$TPL_ROOT "curl -s https://get.sdkman.io | bash"
-	$TPL_ROOT "source /root/.sdkman/bin/sdkman-init.sh && sdk install java 21.0.2.fx-librca"
+	TPL_USER="qvm-run -u user --pass-io -- $TPL_NAME"
+	$TPL_USER "curl -s https://get.sdkman.io | bash"
+	log "Installed succesfully"
+	$TPL_USER "source /home/user/.sdkman/bin/sdkman-init.sh && sdk install java 21.0.2.fx-librca"
+	$TPL_ROOT "cp -r /home/user/.sdkman /etc/skel"
 	log "Checking out haveno repo"
-	CODE_DIR="$(basename $HAVENO_REPO)"
-	$TPL_ROOT "git clone $HAVENO_REPO"
-	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && git checkout master"
+	CODE_DIR="/opt/$(basename $HAVENO_REPO)"
+	$TPL_ROOT "cd /opt && git clone $HAVENO_REPO && chown -R user $CODE_DIR"
+	$TPL_USER "source /home/user/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && git checkout master"
 	log "Making binary"
-	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
+	$TPL_USER "source /home/user/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
 	log "Compilation successful, creating a script to run compiled binary securly"
-	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\nSERVICE=\x24\x28cat /root/haveno-service-address\x29\n\nsource /root/.sdkman/bin/sdkman-init.sh\n/root/$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\nsource /home/user/.sdkman/bin/sdkman-init.sh\n$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\n' > /bin/Haveno' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
-elif [[ $from_source -eq 0 ]]; then
-	log "Installing required packages for build"
-	$TPL_ROOT "apt-get install --no-install-recommends make wget git zip unzip libxtst6 qubes-core-agent-passwordless-root -y"
-	log "Installing jdk 21"
-	$TPL_ROOT "curl -s https://get.sdkman.io | bash"
-	$TPL_ROOT "source /root/.sdkman/bin/sdkman-init.sh && sdk install java 21.0.2.fx-librca"
-	log "Checking out haveno repo"
-	CODE_DIR="$(basename $HAVENO_REPO)"
-	$TPL_ROOT "git clone $HAVENO_REPO"
-	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && git checkout master"
-	log "Making binary"
-	$TPL_ROOT "source ~/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
-	log "Compilation successful, creating a script to run compiled binary securly"
-	$TPL_ROOT "echo -e '#\x21/bin/bash\nsource /root/.sdkman/bin/sdkman-init.sh\n/root/$CODE_DIR/haveno-desktop --nodePort=9999 --useTorForXmr=OFF --hiddenServiceAddress=$SERVICE' > /usr/sbin/Haveno && chmod +x /usr/sbin/Haveno && chmod u+s /usr/sbin/Haveno"
-	#Fix icon permissions
-	$TPL_ROOT "cp '/root/$CODE_DIR/desktop/package/linux/haveno.png' /opt/haveno.png && chmod 644 /opt/haveno.png"
 	patched_app_entry="[Desktop Entry]
 Name=Haveno
 Comment=Haveno through sys-whonix
-Exec=sudo /usr/sbin/Haveno
-Icon=/opt/haveno.png
+Exec=/bin/Haveno
+Icon=$CODE_DIR/desktop/package/linux/haveno.png
 Terminal=false
 Type=Application
 Categories=Network
@@ -214,8 +203,6 @@ fi
 
 # Patch default appmenu entry
 $TPL_ROOT "echo '$patched_app_entry' > /usr/share/applications/haveno-Haveno.desktop"
-qvm-sync-appmenus $APPVM_NAME
-qvm-features $APPVM_NAME menu-items "haveno-Haveno.desktop"
 
 if [ $unhardened -eq 0 ]; then
 	log "Skipping hardening of debian-12 template"
@@ -230,21 +217,26 @@ else
 	# Remove unneeded packages
 	log "Removing unneeded packages to lessen attack surface"
 	if [ $from_source -eq 0 ]; then
-		$TPL_ROOT "apt purge git wget make zip unzip curl -y"
+		$TPL_ROOT "apt-get purge git wget make zip unzip curl -y"
 	else
-		$TPL_ROOT "apt purge curl unzip gnupg2 -y"
+		$TPL_ROOT "apt-get purge curl unzip gnupg2  git -y"
 	fi
 	#Whonix-gateway hardening
 	log "Hardening Completed"
 	log "Remeber technical controls are only part of the battle, robust security is reliant on how you utilize the system"
 fi
 
+log "Creating $APPVM_NAME appVM based off template"
+qvm-create -t $TPL_NAME -l red $APPVM_NAME
+qvm-volume resize $APPVM_NAME:private 6GB
+qvm-start $APPVM_NAME
+log "Patching appmenu"
+qvm-sync-appmenus $APPVM_NAME
+qvm-features $APPVM_NAME menu-items "haveno-Haveno.desktop"
 
-
-log "Restarting sys-whonix and $APPVM_NAME"
-qvm-shutdown --wait $APPVM_NAME
-qvm-shutdown --wait sys-whonix
-qvm-start sys-whonix
+log "Shutting down $TPL_NAME"
+qvm-shutdown --wait $TPL_NAME
+qvm-prefs $TPL_NAME netvm none
 log "Installation complete, launch haveno using application shortcut Enjoy!"
 
 
