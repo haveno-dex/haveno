@@ -101,8 +101,8 @@ fi
 log "Cleaning any previous haveno hidden service on sys-whonix"
 qvm-run --pass-io -u root -- sys-whonix "rm -rf /var/lib/tor/haveno_service"
 log "Creating a hidden service for haveno on whonix gateway"
-read -p "Warning by default 50_user.conf on sys-whonix will be overwritten (baseline is empty
-Enter any character to append instead (may require cleaning if you reinstall haveno later" -n 1 cont
+read -p "Warning by default 50_user.conf on sys-whonix will be overwritten (baseline is empty)
+Enter any character to append instead (may require cleaning if you reinstall haveno later)" -n 1 cont
 if ! [[ "$key" = "" ]];then
 	log "Appending to 50_user.conf instead of overwriting"
 	out=">>"
@@ -129,8 +129,9 @@ if [[ $from_source -eq 1 ]]; then
 	read -p "Enter url to verify signatures or anything else to skip:" key
 	if [[ $key =~ $regex ]]; then
 		$TPL_ROOT "apt-get install --no-install-recommends gnupg2 -y"
-		$TPL_ROOT "gpg2 --fetch-keys $key"
-		if [[ "$($TPL_ROOT 'gpg2 --verify $TARGET_DEB.sig 2>&1')" =~ 'Good signature' ]] ; then
+		$TPL_ROOT "gpg2 --fetch-keys $key 2>&1"
+		verify_deb=$($TPL_ROOT gpg2 --verify --trust-model=always $TARGET_DEB.sig 2>&1)
+		if [[ $verify_deb =~ "Good signature" ]] ; then
 			log "Signature valid, continuing"
 		else
 			log "Signature invalid, exiting"
@@ -216,15 +217,16 @@ $TPL_ROOT "echo '$patched_app_entry' > /usr/share/applications/haveno-Haveno.des
 qvm-sync-appmenus $APPVM_NAME
 qvm-features $APPVM_NAME menu-items "haveno-Haveno.desktop"
 
-if [ $unhardened ]; then
+if [ $unhardened -eq 0 ]; then
 	log "Skipping hardening of debian-12 template"
 else
 	log "Starting hardening"
  	log "Installing tirdad to prevent ISN CPU info leak"
-	$TPL_ROOT "curl -s -O https://www.whonix.org/patrick.asc"
-	$TPL_ROOT "sudo apt-key --keyring /etc/apt/trusted.gpg.d/whonix.gpg add ~/patrick.asc"
-	$TPL_ROOT "echo 'deb https://deb.whonix.org bullseye main contrib non-free' | tee /etc/apt/sources.list.d/whonix.list"
-	$TPL_ROOT "apt-get update && apt-get install --no-install-recommends tirdad -y"
+	$TPL_ROOT "apt-get update && apt-get install --no-install-recommends git dpkg-dev debhelper dkms dh-dkms build-essential linux-headers-amd64 -y"
+	$TPL_ROOT "git clone https://github.com/Kicksecure/tirdad.git"
+	$TPL_ROOT "cd tirdad && dpkg-buildpackage -b --no-sign"
+	$TPL_ROOT "dpkg -i tirdad-dkms_*.deb"
+	log "Successfully installed tirdad"
 	# Remove unneeded packages
 	log "Removing unneeded packages to lessen attack surface"
 	if [ $from_source -eq 0 ]; then
