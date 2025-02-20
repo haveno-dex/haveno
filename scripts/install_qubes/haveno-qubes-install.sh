@@ -168,7 +168,7 @@ Terminal=false
 Type=Application
 Categories=Network
 MimeType="
-$TPL_ROOT "echo -e '#\x21/bin/bash\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+$TPL_ROOT "echo -e '#\x21/bin/bash\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill -9 \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\nkill -9 \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
 elif [[ $from_source -eq 0 ]]; then
 	#needed for appVM capabilities
@@ -187,7 +187,7 @@ elif [[ $from_source -eq 0 ]]; then
 	log "Making binary"
 	$TPL_USER "source /home/user/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
 	log "Compilation successful, creating a script to run compiled binary securly"
-	$TPL_ROOT "echo -e '#\x21/bin/bash\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\nsource /home/user/.sdkman/bin/sdkman-init.sh\n$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\n' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+	$TPL_ROOT "echo -e '#\x21/bin/bash\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill -9 \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\nsource /home/user/.sdkman/bin/sdkman-init.sh\n$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\nkill -9 \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
 	patched_app_entry="[Desktop Entry]
 Name=Haveno
