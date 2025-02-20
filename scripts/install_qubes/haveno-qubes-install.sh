@@ -168,7 +168,7 @@ Terminal=false
 Type=Application
 Categories=Network
 MimeType="
-$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+$TPL_ROOT "echo -e '#\x21/bin/bash\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\n/opt/haveno/bin/Haveno --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\nkill \x24PID' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
 elif [[ $from_source -eq 0 ]]; then
 	#needed for appVM capabilities
@@ -187,7 +187,7 @@ elif [[ $from_source -eq 0 ]]; then
 	log "Making binary"
 	$TPL_USER "source /home/user/.sdkman/bin/sdkman-init.sh && cd $CODE_DIR && make skip-tests"
 	log "Compilation successful, creating a script to run compiled binary securly"
-	$TPL_ROOT "echo -e '#\x21/bin/sh\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\nsource /home/user/.sdkman/bin/sdkman-init.sh\n$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\n' > /bin/Haveno' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
+	$TPL_ROOT "echo -e '#\x21/bin/bash\n\n#Proxying to gateway (anon-ws-disable-stacked-tor)\nsocat TCP-LISTEN:9050,fork,bind=127.0.0.1 TCP:$SYS_WHONIX_IP:9050 &\nPID=\x24\x21\ntrap \x22kill \x24PID\x22 EXIT\nSERVICE=\x24\x28cat /home/user/haveno-service-address\x29\n\nsource /home/user/.sdkman/bin/sdkman-init.sh\n$CODE_DIR/haveno-desktop --useTorForXmr=OFF --nodePort=9999 --hiddenServiceAddress=\x24SERVICE --userDataDir=/home/user/.local/share --appDataDir=/home/user/.local/share/Haveno-reto\n' > /bin/Haveno && chmod +x /bin/Haveno && chmod u+s /bin/Haveno"
 
 	patched_app_entry="[Desktop Entry]
 Name=Haveno
@@ -196,8 +196,7 @@ Exec=/bin/Haveno
 Icon=$CODE_DIR/desktop/package/linux/haveno.png
 Terminal=false
 Type=Application
-Categories=Network
-MimeType="
+Categories=Network"
 
 fi
 
@@ -226,17 +225,21 @@ else
 	log "Remeber technical controls are only part of the battle, robust security is reliant on how you utilize the system"
 fi
 
+log "Shutting down $TPL_NAME"
+qvm-sync-appmenus $TPL_NAME
+qvm-features $TPL_NAME menu-items haveno-Haveno.desktop
+qvm-shutdown --wait $TPL_NAME
+qvm-prefs $TPL_NAME netvm none
+
 log "Creating $APPVM_NAME appVM based off template"
 qvm-create -t $TPL_NAME -l red $APPVM_NAME
 qvm-volume resize $APPVM_NAME:private 6GB
 qvm-start $APPVM_NAME
 log "Patching appmenu"
 qvm-sync-appmenus $APPVM_NAME
-qvm-features $APPVM_NAME menu-items "haveno-Haveno.desktop"
+qvm-features $APPVM_NAME menu-items haveno-Haveno.desktop
+qvm-prefs $APPVM_NAME netvm sys-whonix
 
-log "Shutting down $TPL_NAME"
-qvm-shutdown --wait $TPL_NAME
-qvm-prefs $TPL_NAME netvm none
 log "Installation complete, launch haveno using application shortcut Enjoy!"
 
 
