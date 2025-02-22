@@ -63,7 +63,7 @@ See the [developer guide](docs/developer-guide.md) to get started developing for
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for our styling guides.
 
-If you are not able to contribute code and want to contribute development resources, [donations](#support) fund development bounties.
+If you are not able to contribute code and want to contribute development resources, [donations](#support-and-sponsorships) fund development bounties.
 
 ## Bounties
 
