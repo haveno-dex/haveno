@@ -8,7 +8,7 @@ This document is a guide for Haveno development.
 
 ## Run the UI proof of concept
 
-Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-in-a-browser) to run Haveno's UI proof of concept in a browser.
+Follow [instructions](https://github.com/haveno-dex/haveno-ui-poc) to run Haveno's UI proof of concept in a browser.
 
 This proof of concept demonstrates using Haveno's gRPC server with a web frontend (react and typescript) instead of Haveno's JFX application.
 
