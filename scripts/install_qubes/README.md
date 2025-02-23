@@ -277,7 +277,7 @@ $ qvm-copy 2.1-haveno-netvm_maker.sh
 ```
 
 <p style="text-align: center;">Note:</p>
-<p style="text-align: center;"><em>The IPv4 address of the Haveno AppVM can be found via the Qubes Manager GUI</em></p>
+<p style="text-align: center;"><em>The IPv4 address of the haveno AppVM can be found via the Qubes Manager GUI</em></p>
 
 <p style="text-align: center;">Example:</p>
 
