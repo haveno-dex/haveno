@@ -40,10 +40,10 @@ read ans
 ### Adjust Desktop Launcher:
 echo_blue "Adjustng desktop launcher ..."
 mkdir -p /home/$(ls /home)/\.local/share/applications
-sed 's|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --nodePort=9999 --hiddenServiceAddress=$ONION|g' /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+sed "s|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --nodePort=9999 --hiddenServiceAddress=$ONION|g" /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
 chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications
 echo_blue "Haveno AppVM configuration complete."
 printf "%s \n" "Press [ENTER] to complete ..."
 read ans
-#exit
-poweroff
+exit
+#poweroff
