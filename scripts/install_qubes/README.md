@@ -255,12 +255,9 @@ $ qvm-copy 2.0-haveno-netvm_taker.sh
 ##### In `sys-haveno` NetVM:
 ###### *Add Taker onion-grater Profile*:
 ```shell
-# onion-grater-add 40_bisq
+# onion-grater-add 40_haveno
 # poweroff
 ```
-
-<p style="text-align: center;">Note:</p>
-<p style="text-align: center;"><em>This works because the profile is already available by default via the onion-grater package while, haveno and bisq share the same default port of 9999</em></p>
 
 #### Scripted (Maker)
 ##### In `dispXXXX` AppVM:
