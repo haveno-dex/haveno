@@ -404,7 +404,7 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 ###### Create Desktop Launcher:
 ```shell
 # mkdir -p /home/$(ls /home)/\.local/share/applications
-# sed "s|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --nodePort=9999 --hiddenServiceAddress=<HAVENO_NETVM_ONION_ADDRESS>|g" /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# sed "s|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --hiddenServiceAddress=<HAVENO_NETVM_ONION_ADDRESS>|g" /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
 # chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications
 ```
 
@@ -414,7 +414,7 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 >		[Desktop Entry]
 >		Name=Haveno
 >		Comment=Haveno
->		Exec=/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --nodePort=9999 --hiddenServiceAddress=<HAVENO_NETVM_ONION_ADDRESS>
+>		Exec=/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --hiddenServiceAddress=<HAVENO_NETVM_ONION_ADDRESS>
 >		Icon=/opt/haveno/lib/Haveno.png
 >		Terminal=false
 >		Type=Application
