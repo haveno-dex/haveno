@@ -197,7 +197,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 ###### Download & Import Project PGP Key:
 ```shell
 # export https_proxy=http://127.0.0.1:8082
-# export KEY_SEARCH="PACKAGE_PGP_FINGERPRINT"
+# export KEY_SEARCH="<PACKAGE_PGP_FINGERPRINT>"
 ```
 
 <p style="text-align: center;">Example:</p>
@@ -273,7 +273,7 @@ $ qvm-copy 2.1-haveno-netvm_maker.sh
 
 ##### In `sys-haveno` NetVM:
 ```shell
-% sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "$HAVENO_APPVM_IP"
+% sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "<HAVENO_APPVM_IP>"
 ```
 
 <p style="text-align: center;">Note:</p>
@@ -301,7 +301,7 @@ $ sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "10.111.0.42"
 
 >		ConnectionPadding 1
 >		HiddenServiceDir /var/lib/tor/haveno-dex/
->		HiddenServicePort 9999 $HAVENO_APPVM_IP:9999
+>		HiddenServicePort 9999 <HAVENO_APPVM_IP>:9999
 
 
 
@@ -354,7 +354,7 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 
 ##### In `haveno` AppVM:
 ```shell
-% sudo zsh QubesIncoming/dispXXXX/3.0-haveno-appvm_maker.sh "$HAVENO_NETVM_ONION_ADDRESS"
+% sudo zsh QubesIncoming/dispXXXX/3.0-haveno-appvm_maker.sh "<HAVENO_NETVM_ONION_ADDRESS>"
 ```
 #### CLI (Maker)
 ##### In `haveno` AppVM:
@@ -369,7 +369,7 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 >		## Haveno-DEX
 >		ConnectionPadding 1
 >		HiddenServiceDir /var/lib/tor/haveno-dex/
->		HiddenServicePort 9999 $HAVENO_APPVM_IP:9999
+>		HiddenServicePort 9999 <HAVENO_APPVM_IP>:9999
 
 ```shell
 # tail /usr/local/etc/torrc.d/50_user.conf
