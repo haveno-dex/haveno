@@ -58,6 +58,109 @@ $ bash /tmp/haveno/0.0-dom0.sh
 $ qvm-clone whonix-workstation-17 haveno-template && qvm-start haveno-template
 ```
 
+### **Create & Start Haveno NetVM**:
+#### Scripted
+##### In `dom0`:
+```shell
+$ mkdir -p /tmp/haveno && qvm-run -p dispXXXX 'cat /tmp/haveno/0.0-dom1.sh' > /tmp/haveno/0.1-dom0.sh
+$ bash /tmp/haveno/0.1-dom0.sh
+```
+
+#### GUI
+##### Via `Qubes Manager`:
+
++ Click "New qube" Button
+
++ Enter "sys-haveno" for "Name and label"
+
++ Click the Button Beside "Name and label" and Select "orange"
+
++ Select "whonix-gateway-17" from "Template" Drop-Down
+
++ Select "sys-firewall" from "Networking" Drop-Down
+
++ Tick "Launch settings after creation" Radio-Box
+
++ Click OK
+
++ Click "Advanced" Tab
+
++ Enter "512" for "Initial memory"
+
+<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
+
++ Enter "512" for "Max memory"
+
+<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
+
++ Tick "Provides network" Radio-Box
+
++ Click "Apply" Button
+
++ Click "OK" Button
+
++ Click "Start/Resume" Button
+
+#### CLI
+##### In `dom0`:
+```shell
+$ qvm-create --template whonix-gateway-17 --class AppVM --label=orange --property memory=512 --property maxmem=512 --property netvm=sys-firewall --property provides_network=true sys-haveno
+```
+
+### **Create & Start Haveno AppVM**:
+#### Scripted
+##### In `dom0`:
+```shell
+$ mkdir -p /tmp/haveno && qvm-run -p dispXXXX 'cat /tmp/haveno/0.2-dom0.sh' > /tmp/haveno/0.2-dom0.sh
+$ bash /tmp/haveno/0.2-dom0.sh
+```
+#### GUI
+##### Via `Qubes Manager`:
+
++ Click "New qube" Button
+
++ Enter "haveno" for "Name and label"
+
++ Click the Button Beside "Name and label" and Select "orange"
+
++ Select "haveno-template" from "Template" Drop-Down
+
++ Select "sys-haveno" from "Networking" Drop-Down
+
++ Tick "Launch settings after creation" Radio-Box
+
++ Click OK
+
++ Click "Advanced" Tab
+
++ Enter "2048" for "Initial memory"
+
+<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
+
++ Enter "4096" for "Max memory"
+
+<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
+
++ Click "Applications" Tab
+
++ Click "<<" Button
+
++ Highlight "Haveno" Under "Available"
+
++ Click ">" Button
+
++ Click "Apply" Button
+
++ Click "OK" Button
+
++ Click "Start/Resume" Button
+
+#### CLI
+##### In `dom0`:
+```shell
+$ qvm-create --template haveno-template --class AppVM --label=orange --property memory=2048 --property maxmem=4096 --property netvm=sys-haveno haveno
+$ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
+```
 
 ### *Build Haveno TemplateVM:*
 #### Scripted
@@ -132,55 +235,6 @@ Note:
 # if [[ $(cat /tmp/desktop*.SHA-256) =~ $(sha256sum /opt/haveno/lib/app/desktop*.jar | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && printf 'Happy trading!\n'; else printf $'WARNING: Bad Hash!\n' && exit; fi
 ```
 
-### **Create & Start Haveno NetVM**:
-#### Scripted
-##### In `dom0`:
-```shell
-$ mkdir -p /tmp/haveno && qvm-run -p dispXXXX 'cat /tmp/haveno/0.0-dom1.sh' > /tmp/haveno/0.1-dom0.sh
-$ bash /tmp/haveno/0.1-dom0.sh
-```
-
-#### GUI
-##### Via `Qubes Manager`:
-
-+ Click "New qube" Button
-
-+ Enter "sys-haveno" for "Name and label"
-
-+ Click the Button Beside "Name and label" and Select "orange"
-
-+ Select "whonix-gateway-17" from "Template" Drop-Down
-
-+ Select "sys-firewall" from "Networking" Drop-Down
-
-+ Tick "Launch settings after creation" Radio-Box
-
-+ Click OK
-
-+ Click "Advanced" Tab
-
-+ Enter "512" for "Initial memory"
-
-<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
-
-+ Enter "512" for "Max memory"
-
-<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
-
-+ Tick "Provides network" Radio-Box
-
-+ Click "Apply" Button
-
-+ Click "OK" Button
-
-+ Click "Start/Resume" Button
-
-#### CLI
-##### In `dom0`:
-```shell
-$ qvm-create --template whonix-gateway-17 --class AppVM --label=orange --property memory=512 --property maxmem=512 --property netvm=sys-firewall --property provides_network=true sys-haveno
-```
-
 ### **Build Haveno NetVM:**
 #### Scripted (Taker)
 ##### In `dispXXXX` AppVM:
@@ -250,60 +304,7 @@ $ sudo zsh QubesIncoming/dispXXXX/2.0-haveno-netvm_maker.sh "10.111.0.42"
 >		HiddenServicePort 9999 $HAVENO_APPVM_IP:9999
 
 
-### **Create & Start Haveno AppVM**:
-#### Scripted
-##### In `dom0`:
-```shell
-$ mkdir -p /tmp/haveno && qvm-run -p dispXXXX 'cat /tmp/haveno/0.2-dom0.sh' > /tmp/haveno/0.2-dom0.sh
-$ bash /tmp/haveno/0.2-dom0.sh
-```
-#### GUI
-##### Via `Qubes Manager`:
 
-+ Click "New qube" Button
-
-+ Enter "haveno" for "Name and label"
-
-+ Click the Button Beside "Name and label" and Select "orange"
-
-+ Select "haveno-template" from "Template" Drop-Down
-
-+ Select "sys-haveno" from "Networking" Drop-Down
-
-+ Tick "Launch settings after creation" Radio-Box
-
-+ Click OK
-
-+ Click "Advanced" Tab
-
-+ Enter "2048" for "Initial memory"
-
-<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
-
-+ Enter "4096" for "Max memory"
-
-<p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
-
-+ Click "Applications" Tab
-
-+ Click "<<" Button
-
-+ Highlight "Haveno" Under "Available"
-
-+ Click ">" Button
-
-+ Click "Apply" Button
-
-+ Click "OK" Button
-
-+ Click "Start/Resume" Button
-
-#### CLI
-##### In `dom0`:
-```shell
-$ qvm-create --template haveno-template --class AppVM --label=orange --property memory=2048 --property maxmem=4096 --property netvm=sys-haveno haveno
-$ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
-```
 
 ### **Build Haveno AppVM**:
 #### Scripted (Taker)
@@ -420,4 +421,3 @@ $ qvm-shutdown --force haveno haveno-template sys-haveno && qvm-remove haveno ha
 ### **XMR**:
 
 ***85mRPDHW9SuGTDUoMJvt9W4u16Yp1j1SFDrcbfKH2vP1b59nZ62aKVqjfLoyxXrMZYMkNBGzAsuvCCDHPo4AHGx4K8Zmet6***
-
