@@ -62,7 +62,7 @@ $ qvm-clone whonix-workstation-17 haveno-template && qvm-start haveno-template
 #### Scripted
 ##### In `dom0`:
 ```shell
-$ mkdir -p /tmp/haveno && qvm-run -p dispXXXX 'cat /tmp/haveno/0.0-dom1.sh' > /tmp/haveno/0.1-dom0.sh
+$ mkdir -p /tmp/haveno && qvm-run -p dispXXXX 'cat /tmp/haveno/0.1-dom0.sh' > /tmp/haveno/0.1-dom0.sh
 $ bash /tmp/haveno/0.1-dom0.sh
 ```
 
@@ -104,7 +104,7 @@ $ bash /tmp/haveno/0.1-dom0.sh
 #### CLI
 ##### In `dom0`:
 ```shell
-$ qvm-create --template whonix-gateway-17 --class AppVM --label=orange --property memory=512 --property maxmem=512 --property netvm=sys-firewall --property provides_network=true sys-haveno
+$ qvm-create --template whonix-gateway-17 --class AppVM --label=orange --property memory=512 --property maxmem=512 --property netvm=sys-firewall sys-haveno && qvm-prefs --set sys-haveno provides_network True && qvm-start sys-haveno
 ```
 
 ### **Create & Start Haveno AppVM**:
@@ -159,7 +159,7 @@ $ bash /tmp/haveno/0.2-dom0.sh
 ##### In `dom0`:
 ```shell
 $ qvm-create --template haveno-template --class AppVM --label=orange --property memory=2048 --property maxmem=4096 --property netvm=sys-haveno haveno
-$ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
+$ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist - haveno
 ```
 
 ### *Build Haveno TemplateVM:*
@@ -176,7 +176,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 
 ##### In `haveno-template` TemplateVM:
 ```shell
-% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "PACKAGE_ARCHIVE_URL" "PACKAGE_PGP_FINGERPRINT"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "<PACKAGE_ARCHIVE_URL>" "<PACKAGE_PGP_FINGERPRINT>"
 ```
 
 <p style="text-align: center;">Example:</p>
@@ -286,7 +286,7 @@ $ sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "10.111.0.42"
 ##### In `sys-haveno` NetVM:
 ###### Prepare Maker Hidden Service:
 ```shell
-# printf "\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 <HAVENO_APPVM_IP>:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
+# printf "\n## Haveno-DEX\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 <HAVENO_APPVM_IP>:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
 ```
 
 ###### View & Verify Change:
@@ -299,8 +299,6 @@ $ sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "10.111.0.42"
 >		ConnectionPadding 1
 >		HiddenServiceDir /var/lib/tor/haveno-dex/
 >		HiddenServicePort 9999 <HAVENO_APPVM_IP>:9999
-
-
 
 
 ### **Build Haveno AppVM**:
@@ -339,6 +337,32 @@ $ qvm-copy /tmp/haveno/3.0-haveno-appvm_taker.sh
 # tail /rw/config/rc.local
 # poweroff
 ```
+
+###### Adjust Desktop Launcher:
+```shell
+# mkdir -p /home/$(ls /home)/\.local/share/applications
+# sed 's|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on|g' /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+```
+
+###### View & Verify Change:
+<p style="text-align: center;"><b>Confirm output contains:</b></p>
+
+>		[Desktop Entry]
+>		Name=Haveno
+>		Comment=Haveno
+>		Exec=/opt/haveno/bin/Haveno --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on
+>		Icon=/opt/haveno/lib/Haveno.png
+>		Terminal=false
+>		Type=Application
+>		Categories=Network
+>		MimeType=
+
+```shell
+# tail /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# poweroff
+```
+
 #### Scripted (Maker)
 ##### In `dispXXXX` AppVM:
 ```shell
@@ -353,25 +377,55 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 ```shell
 % sudo zsh QubesIncoming/dispXXXX/3.0-haveno-appvm_maker.sh "<HAVENO_NETVM_ONION_ADDRESS>"
 ```
+
 #### CLI (Maker)
 ##### In `haveno` AppVM:
-###### Prepare Maker Hidden Service
+###### Prepare Firewall Settings
 ```shell
-# printf "\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 $HAVENO_APPVM_IP:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
+# printf "\n# Prepare Local FW Settings\nmkdir -p /usr/local/etc/whonix_firewall.d\n" >> /rw/config/rc.local
+# printf "\n# Poke FW\nprintf \"EXTERNAL_OPEN_PORTS+=\\\\\" 9999 \\\\\"\\\n\" | tee /usr/local/etc/whonix_firewall.d/50_user.conf\n" >> /rw/config/rc.local
+# printf "\n# Restart FW\nwhonix_firewall\n\n" >> /rw/config/rc.local
 ```
 
-###### View & Verify Change
+###### View & Verify Change:
 <p style="text-align: center;"><b>Confirm output contains:</b></p>
 
->		## Haveno-DEX
->		ConnectionPadding 1
->		HiddenServiceDir /var/lib/tor/haveno-dex/
->		HiddenServicePort 9999 <HAVENO_APPVM_IP>:9999
+>		# Poke FW
+>		printf "EXTERNAL_OPEN_PORTS+=" 9999 "\n" | tee /usr/local/etc/whonix_firewall.d/50_user.conf
+>
+>		# Restart FW
+>		whonix_firewall
 
 ```shell
-# tail /usr/local/etc/torrc.d/50_user.conf
+# tail /rw/config/rc.local
 # poweroff
 ```
+
+###### Create Desktop Launcher:
+```shell
+# mkdir -p /home/$(ls /home)/\.local/share/applications
+# sed "s|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --nodePort=9999 --hiddenServiceAddress=<HAVENO_NETVM_ONION_ADDRESS>|g" /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications
+```
+
+###### View & Verify Change:
+<p style="text-align: center;"><b>Confirm output contains:</b></p>
+
+>		[Desktop Entry]
+>		Name=Haveno
+>		Comment=Haveno
+>		Exec=/opt/haveno/bin/Haveno --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on --nodePort=9999 --hiddenServiceAddress=<HAVENO_NETVM_ONION_ADDRESS>
+>		Icon=/opt/haveno/lib/Haveno.png
+>		Terminal=false
+>		Type=Application
+>		Categories=Network
+>		MimeType=
+
+```shell
+# tail /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# poweroff
+```
+
 
 ### **Remove Haveno AppVM, TemplateVM & NetVM:**
 #### Scripted
@@ -410,7 +464,7 @@ $ bash /tmp/haveno/0.3-dom0.sh
 #### CLI
 ##### In `dom0`:
 ```shell
-$ qvm-shutdown --force haveno haveno-template sys-haveno && qvm-remove haveno haveno-template sys-haveno
+$ qvm-shutdown --force --quiet haveno haveno-template sys-haveno && qvm-remove --force --quiet haveno haveno-template sys-haveno
 ```
 
 
