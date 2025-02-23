@@ -64,7 +64,7 @@ $ qvm-clone whonix-workstation-17 haveno-template && qvm-start haveno-template
 ##### In `dispXXXX` AppVM:
 
 ```shell
-% qvm-copy /tmp/haveno/1.0-haveno-templatevm_taker.sh
+% qvm-copy /tmp/haveno/1.0-haveno-templatevm.sh
 ```
 
 + Select "haveno-template" for "Target" of Pop-Up
@@ -73,13 +73,13 @@ $ qvm-clone whonix-workstation-17 haveno-template && qvm-start haveno-template
 
 ##### In `haveno-template` TemplateVM:
 ```shell
-% sudo zsh QubesIncoming/dispXXXX/1.0-haveno-templatevm_taker.sh "PACKAGE_ARCHIVE_URL" "PACKAGE_PGP_FINGERPRINT"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "PACKAGE_ARCHIVE_URL" "PACKAGE_PGP_FINGERPRINT"
 ```
 
 <p style="text-align: center;">Example:</p>
 
 ```shell
-$ sudo zsh QubesIncoming/dispXXXX/1.0-haveno-templatevm_taker.sh "https://github.com/retoaccess1/haveno-reto/releases/download/v1.0.18/haveno-linux-deb.zip" "DAA24D878B8D36C90120A897CA02DAC12DAE2D0F"
+$ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/example/natto/releases/download/v1.0.18/haveno-linux-deb.zip" "FAA24D878B8D36C90120A897CA02DAC12DAE2D0F"
 ```
 
 #### CLI
