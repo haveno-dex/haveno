@@ -159,7 +159,7 @@ $ bash /tmp/haveno/0.1-dom0.sh
 
 + Click "Advanced" Tab
 
-+ Enter "51" for "Initial memory"
++ Enter "512" for "Initial memory"
 
 <p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
 
@@ -211,7 +211,7 @@ $ qvm-copy 2.0-haveno-netvm_taker.sh
 #### Scripted (Maker)
 ##### In `dispXXXX` AppVM:
 ```shell
-$ qvm-copy 2.0-haveno-netvm_maker.sh
+$ qvm-copy 2.1-haveno-netvm_maker.sh
 ```
 + Select "sys-haveno" for "Target" of Pop-Up
 
@@ -275,6 +275,8 @@ $ bash /tmp/haveno/0.2-dom0.sh
 
 <p style="text-align: center;"><em>(Within reason, can adjust to personal preference)</em></p>
 
++ Click "Applications" Tab
+
 + Click "<<" Button
 
 + Highlight "Haveno" Under "Available"
@@ -333,7 +335,7 @@ $ qvm-copy /tmp/haveno/3.0-haveno-appvm_taker.sh
 #### Scripted (Maker)
 ##### In `dispXXXX` AppVM:
 ```shell
-$ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh "$HAVENO_NETVM_ONION_ADDRESS"
+$ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 ```
 
 + Select "haveno" for "Target" of Pop-Up
@@ -342,7 +344,7 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh "$HAVENO_NETVM_ONION_ADDRESS"
 
 ##### In `haveno` AppVM:
 ```shell
-% sudo zsh QubesIncoming/dispXXXX/3.0-haveno-appvm_maker.sh
+% sudo zsh QubesIncoming/dispXXXX/3.0-haveno-appvm_maker.sh "$HAVENO_NETVM_ONION_ADDRESS"
 ```
 #### CLI (Maker)
 ##### In `haveno` AppVM:
