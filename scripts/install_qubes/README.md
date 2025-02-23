@@ -222,6 +222,15 @@ $ qvm-copy 2.1-haveno-netvm_maker.sh
 % sudo zsh QubesIncoming/dispXXXX/2.0-haveno-netvm_maker.sh "$HAVENO_APPVM_IP"
 ```
 
+<p style="text-align: center;">Note:</p>
+<p style="text-align: center;"><em>The IPv4 address of the Haveno AppVM can be found via the Qubes Manager GUI</em></p>
+
+<p style="text-align: center;">Example:</p>
+
+```shell
+$ sudo zsh QubesIncoming/dispXXXX/2.0-haveno-netvm_maker.sh "10.111.0.42"
+```
+
 #### CLI (Maker)
 ##### In `sys-haveno` NetVM:
 ###### Prepare Maker Hidden Service:
