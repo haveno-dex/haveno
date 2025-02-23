@@ -2,7 +2,7 @@
 ## ./haveno-on-qubes/scripts/2.1-haveno-netvm_maker.sh
 
 if [[ $# -ne 1 ]] ; then
-    printf "\nNo arguments provided!\n\nThis script requires an argument to by provided:\nIP Address of Haveno AppVM\n\nPlease review documentation and try again.\n\nExiting now ...\n"
+    printf "\nNo arguments provided!\n\nThis script requires an argument to be provided:\nIP Address of Haveno AppVM\n\nPlease review documentation and try again.\n\nExiting now ...\n"
     exit 1
 fi
 
