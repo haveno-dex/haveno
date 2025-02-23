@@ -2,7 +2,7 @@
 ## ./haveno-on-qubes/scripts/3.1-haveno-appvm_maker.sh
 
 if [[ $# -ne 1 ]] ; then
-    printf "\nNo arguments provided!\n\nThis script requires an argument to by provided:\nOnion Address of Haveno NetVM\n\nPlease review documentation and try again.\n\nExiting now ...\n"
+    printf "\nNo arguments provided!\n\nThis script requires an argument to be provided:\nOnion Address of Haveno NetVM\n\nPlease review documentation and try again.\n\nExiting now ...\n"
     exit 1
 fi
 
@@ -45,6 +45,5 @@ chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications
 echo_blue "Haveno AppVM configuration complete."
 printf "%s \n" "Press [ENTER] to complete ..."
 read ans
-exit
-#poweroff
-
+#exit
+poweroff
