@@ -273,7 +273,7 @@ $ qvm-copy 2.1-haveno-netvm_maker.sh
 
 ##### In `sys-haveno` NetVM:
 ```shell
-% sudo zsh QubesIncoming/dispXXXX/2.0-haveno-netvm_maker.sh "$HAVENO_APPVM_IP"
+% sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "$HAVENO_APPVM_IP"
 ```
 
 <p style="text-align: center;">Note:</p>
@@ -282,7 +282,7 @@ $ qvm-copy 2.1-haveno-netvm_maker.sh
 <p style="text-align: center;">Example:</p>
 
 ```shell
-$ sudo zsh QubesIncoming/dispXXXX/2.0-haveno-netvm_maker.sh "10.111.0.42"
+$ sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "10.111.0.42"
 ```
 
 #### CLI (Maker)
