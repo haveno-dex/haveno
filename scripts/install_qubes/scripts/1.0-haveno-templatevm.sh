@@ -32,9 +32,9 @@ function remote {
 	
 	
 	## Define URL & PGP Fingerprint etc. vars:
-	user_url=$1
+	user_url=$PRECOMPILED_URL
 	base_url=$(printf ${user_url} | awk -F'/' -v OFS='/' '{$NF=""}1')
-	expected_fingerprint=$2
+	expected_fingerprint=$FINGERPRINT
 	binary_filename=$(awk -F'/' '{ print $NF }' <<< "$user_url")
 	package_filename="haveno.deb"
 	signature_filename="${binary_filename}.sig"
