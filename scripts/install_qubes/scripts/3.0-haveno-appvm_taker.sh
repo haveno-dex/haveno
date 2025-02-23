@@ -28,6 +28,6 @@ chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications/hav
 echo_blue "Haveno AppVM configuration complete."
 printf "%s \n" "Press [ENTER] to complete ..."
 read ans
-exit
-#poweroff
+#exit
+poweroff
 
