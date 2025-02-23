@@ -234,7 +234,7 @@ $ qvm-copy 2.0-haveno-netvm_maker.sh
 # tail /usr/local/etc/torrc.d/50_user.conf
 ```
 
-<p style="text-align: center;"><b>Confirm output contains exactly:</b></p>
+<p style="text-align: center;"><b>Confirm output contains:</b></p>
 
 >		ConnectionPadding 1
 >		HiddenServiceDir /var/lib/tor/haveno-dex/
@@ -318,7 +318,7 @@ $ qvm-copy /tmp/haveno/3.0-haveno-appvm_taker.sh
 # printf "\n# Restart FW\nwhonix_firewall\n\n" >> /rw/config/rc.local
 ```
 ###### View & Verify Change:
-<p style="text-align: center;"><b>Confirm output contains exactly:</b></p>
+<p style="text-align: center;"><b>Confirm output contains:</b></p>
 
 >		# Poke FW
 >		printf "EXTERNAL_OPEN_PORTS+=" 9999 "\n" | tee /usr/local/etc/whonix_firewall.d/50_user.conf
@@ -340,7 +340,7 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh "$HAVENO_NETVM_ONION_ADDRESS"
 
 + Click OK
 
-##### In `haveno`:
+##### In `haveno` AppVM:
 ```shell
 % sudo zsh QubesIncoming/dispXXXX/3.0-haveno-appvm_maker.sh
 ```
@@ -348,16 +348,16 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh "$HAVENO_NETVM_ONION_ADDRESS"
 ##### In `haveno` AppVM:
 ###### Prepare Maker Hidden Service
 ```shell
-# printf "\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 haveno:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
+# printf "\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 $HAVENO_APPVM_IP:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
 ```
 
 ###### View & Verify Change
-<p style="text-align: center;"><b>Confirm output contains exactly:</b></p>
+<p style="text-align: center;"><b>Confirm output contains:</b></p>
 
 >		## Haveno-DEX
 >		ConnectionPadding 1
 >		HiddenServiceDir /var/lib/tor/haveno-dex/
->		HiddenServicePort 9999 haveno:9999
+>		HiddenServicePort 9999 $HAVENO_APPVM_IP:9999
 
 ```shell
 # tail /usr/local/etc/torrc.d/50_user.conf
