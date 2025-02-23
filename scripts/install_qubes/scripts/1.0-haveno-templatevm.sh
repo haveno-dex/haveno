@@ -119,8 +119,8 @@ function remote {
 	echo_blue "Haveno TemplateVM installation and configuration complete."
 	printf "%s \n" "Press [ENTER] to complete ..."
 	read ans
-	exit
-	#poweroff
+	#exit
+	poweroff
 }
 
 
