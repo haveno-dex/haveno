@@ -289,7 +289,7 @@ $ sudo zsh QubesIncoming/dispXXXX/2.1-haveno-netvm_maker.sh "10.111.0.42"
 ##### In `sys-haveno` NetVM:
 ###### Prepare Maker Hidden Service:
 ```shell
-# printf "\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 $HAVENO_APPVM_IP:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
+# printf "\nConnectionPadding 1\nHiddenServiceDir /var/lib/tor/haveno-dex/\nHiddenServicePort 9999 <HAVENO_APPVM_IP>:9999\n\n" >> /usr/local/etc/torrc.d/50_user.conf
 ```
 
 ###### View & Verify Change:
