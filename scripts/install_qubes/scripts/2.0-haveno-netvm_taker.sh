@@ -16,7 +16,7 @@ echo_red() {
 ## onion-grater
 # Add onion-grater Profile
 echo_blue "\nAdding onion-grater Profile ..."
-onion-grater-add 40_bisq
+onion-grater-add 40_haveno
 #echo_blue "\nRestarting onion-grater Service ..."
 #systemctl restart onion-grater.service
 echo_blue "Haveno NetVM configuration complete."
