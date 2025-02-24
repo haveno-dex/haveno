@@ -335,7 +335,6 @@ $ qvm-copy /tmp/haveno/3.0-haveno-appvm_taker.sh
 
 ```shell
 # tail /rw/config/rc.local
-# poweroff
 ```
 
 ###### Adjust Desktop Launcher:
@@ -398,7 +397,6 @@ $ qvm-copy /tmp/haveno/3.1-haveno-appvm_maker.sh
 
 ```shell
 # tail /rw/config/rc.local
-# poweroff
 ```
 
 ###### Create Desktop Launcher:
