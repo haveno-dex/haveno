@@ -109,12 +109,6 @@ function remote {
 	echo_blue "Installing Haveno ..."
 	apt install -y ./"${package_filename}" || { echo_red "Failed to install Haveno."; exit 1; }
 	
-	
-	## Adjust permissions:
-	echo_blue "Adjust permissions ..."
-	chown -R $(ls /home):$(ls /home) /opt/haveno
-	
-	
 	## Finalize
 	echo_blue "Haveno TemplateVM installation and configuration complete."
 	printf "%s \n" "Press [ENTER] to complete ..."
