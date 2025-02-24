@@ -24,8 +24,8 @@
 <p style="text-align: center;"><em>Adjust the Steps to Provide Both</em></p>
 
 	IE:
-	Create sys-haveno-dynamic NetVM & sys-haveno-static NetVM
-	Create haveno-dynamic AppVM & haveno-static AppVM
+	Create sys-haveno-taker NetVM & sys-haveno-maker NetVM
+	Create haveno-taker AppVM & haveno-maker AppVM
 	Adjust NetVM for the for the respective Haveno AppVM as necessary.
 
 ---
@@ -212,7 +212,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 
 ###### Verify Hash, Unpack & Install Package
 ```shell
-# if [[ $(cat /tmp/hashes.txt) =~ $(sha512sum /tmp/haveno*.zip | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && mkdir -p /usr/share/desktop-directories && cd /tmp && unzip /tmp/haveno*.zip && apt install -y /tmp/haveno*.deb && chown -R $(ls /home):$(ls /home) /opt/haveno; else printf $'WARNING: Bad Hash!\n' && exit; fi
+# if [[ $(cat /tmp/hashes.txt) =~ $(sha512sum /tmp/haveno*.zip | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && mkdir -p /usr/share/desktop-directories && cd /tmp && unzip /tmp/haveno*.zip && apt install -y /tmp/haveno*.deb; else printf $'WARNING: Bad Hash!\n' && exit; fi
 ```
 
 ###### Verify Jar
@@ -360,7 +360,7 @@ $ qvm-copy haveno/scripts/install_qubes/scripts/3-AppVM/3.0-haveno-appvm_taker.s
 ```shell
 # mkdir -p /home/$(ls /home)/\.local/share/applications
 # sed 's|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on|g' /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
-# chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications
 ```
 
 ###### View & Verify Change
