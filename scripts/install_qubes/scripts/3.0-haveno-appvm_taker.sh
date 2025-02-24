@@ -12,6 +12,10 @@ echo_red() {
   echo -e "\033[0;31m$1\033[0m"
 }
 
+## Adjust sdwdate Configuration
+mkdir -p /usr/local/etc/sdwdate-gui.d
+printf "gateway=sys-haveno\n" > /usr/local/etc/sdwdate-gui.d/50_user.conf
+
 
 ## Prepare Firewall Settings
 echo_blue "\nConfiguring FW ..."
