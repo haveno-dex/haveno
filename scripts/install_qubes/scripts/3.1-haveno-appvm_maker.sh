@@ -22,6 +22,11 @@ echo_red() {
 ONION=$1
 
 
+## Adjust sdwdate Configuration
+mkdir -p /usr/local/etc/sdwdate-gui.d
+printf "gateway=sys-haveno\n" > /usr/local/etc/sdwdate-gui.d/50_user.conf
+
+
 ## Prepare Firewall Settings
 echo_blue "\nConfiguring FW ..."
 printf "\n# Prepare Local FW Settings\nmkdir -p /usr/local/etc/whonix_firewall.d\n" >> /rw/config/rc.local
