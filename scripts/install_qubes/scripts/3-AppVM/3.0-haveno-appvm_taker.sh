@@ -16,6 +16,7 @@ echo_red() {
 ## Adjust sdwdate Configuration
 mkdir -p /usr/local/etc/sdwdate-gui.d
 printf "gateway=sys-haveno\n" > /usr/local/etc/sdwdate-gui.d/50_user.conf
+systemctl restart sdwdate
 
 
 ## Prepare Firewall Settings
