@@ -329,6 +329,7 @@ $ qvm-copy haveno/scripts/install_qubes/scripts/3-AppVM/3.0-haveno-appvm_taker.s
 ```shell
 # mkdir /usr/local/etc/sdwdate-gui.d
 # printf "gateway=sys-haveno\n" > /usr/local/etc/sdwdate-gui.d/50_user.conf
+# systemctl restart sdwdate
 ```
 
 ###### Prepare Firewall Settings via `/rw/config/rc.local`
@@ -406,6 +407,7 @@ $ qvm-copy haveno/scripts/install_qubes/scripts/3-AppVM/3.1-haveno-appvm_maker.s
 ```shell
 # mkdir /usr/local/etc/sdwdate-gui.d
 # printf "gateway=sys-haveno\n" > /usr/local/etc/sdwdate-gui.d/50_user.conf
+# systemctl restart sdwdate
 ```
 
 ###### Prepare Firewall Settings via `/rw/config/rc.local`
