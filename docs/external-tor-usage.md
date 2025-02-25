@@ -114,6 +114,40 @@ Or, you can run `make install` (as `root` if necessary) to install it globally i
 $ tor
 ```
 
+### Windows
+#### Download
+* Download the `Windows Expert Bundle` from the [Official `Tor` Project's Download page](https://www.torproject.org/download/tor)
+
+#### Extract
+* Extract Archive to Disk
+
+#### Open Terminal
+* Open PowerShell with Admin Privileges
+
+#### Change to Location of Extracted Archive
+* Navigate to `Tor` Directory
+
+#### Package Installation
+* v10
+```powershell
+PS C:\Tor\> tor.exe –-service install
+```
+
+* v11
+```powershell
+PS C:\Tor\> tor.exe –-service install
+```
+
+#### Create Service
+```powershell
+PS C:\Tor\> sc create tor start=auto binPath="<PATH TO>\Tor\tor.exe -nt-service"
+```
+
+#### Start Service
+```powershell
+PS C:\Tor\> sc start tor
+```
+
 ### \* ***Optional*** \*
 #### [Set Up Your Onion Service](https://community.torproject.org/onion-services/setup)
 
@@ -378,4 +412,3 @@ $ /opt/haveno/bin/Haveno --torControlPort='9051' --torControlCookieFile='/var/ru
 ```shell
 $ /opt/haveno/bin/Haveno --socks5ProxyXmrAddress='127.0.0.1:9050' --useTorForXmr='on' --hiddenServiceAddress='2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion'
 ```
-
