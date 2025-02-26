@@ -34,7 +34,7 @@ Haveno can be installed on Linux, macOS, and Windows by using a third party inst
 
 A test network is also available for users to make test trades using Monero's stagenet. See the [instructions](https://github.com/haveno-dex/haveno/blob/master/docs/installing.md) to build Haveno and connect to the test network.
 
-Alternatively, you can [create your own mainnet network](create-mainnet.md).
+Alternatively, you can [create your own mainnet network](https://github.com/haveno-dex/haveno/blob/master/docs/create-mainnet.md).
 
 Note that Haveno is being actively developed. If you find issues or bugs, please let us know.
 
