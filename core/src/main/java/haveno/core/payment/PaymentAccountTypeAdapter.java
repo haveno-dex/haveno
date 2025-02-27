@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static haveno.common.util.ReflectionUtils.getSetterMethodForFieldInClassHierarchy;
 import static haveno.common.util.ReflectionUtils.getVisibilityModifierAsString;
@@ -102,6 +103,12 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
         // We're not serializing a real payment account instance here.
         out.beginObject();
 
+        // Write extra fields
+        out.name("accountName");
+        out.value(account.getAccountName());
+        out.name("accountId");
+        out.value(account.getId());
+
         writeComments(out, account);
 
         out.name("paymentMethodId");
@@ -112,7 +119,8 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
 
         // The last field in all json forms is the empty, editable salt field.
         out.name("salt");
-        out.value("");
+        out.value(account.getSaltAsHex());
+
 
         out.endObject();
     }
@@ -135,7 +143,11 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
     }
 
 
-    private void writeInnerMutableFields(JsonWriter out, PaymentAccount account) {
+    private void writeInnerMutableFields(JsonWriter out, PaymentAccount account) throws IOException {
+        if (account instanceof CountryBasedPaymentAccount) {
+            writeAcceptedCountryCodesField(out, account);
+        }
+    
         if (account.hasMultipleCurrencies()) {
             writeTradeCurrenciesField(out, account);
             writeSelectedTradeCurrencyField(out, account);
@@ -143,23 +155,21 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
 
         fieldSettersMap.forEach((field, value) -> {
             try {
-                // Write out a json element if there is a @Setter for this field.
                 if (value.isPresent()) {
-                    log.debug("Append form with settable field: {} {} {} setter: {}",
-                            getVisibilityModifierAsString(field),
-                            field.getType().getSimpleName(),
-                            field.getName(),
-                            value);
+                    log.debug("Appending form field: {} {} {} setter: {}",
+                        getVisibilityModifierAsString(field),
+                        field.getType().getSimpleName(),
+                        field.getName(),
+                        value);
                     String fieldName = field.getName();
                     out.name(fieldName);
-                    if (fieldName.equals("country")) out.value("your two letter country code");
-                    else out.value("your " + fieldName.toLowerCase());
+                    if (fieldName.equals("country"))
+                        out.value("your two letter country code");
+                    else
+                        out.value("your " + fieldName.toLowerCase());
                 }
-            } catch (Exception ex) {
-                String errMsg = format("cannot create a new %s json form",
-                        account.getClass().getSimpleName());
-                log.error(capitalize(errMsg) + ".", ex);
-                throw new IllegalStateException("programmer error: " + errMsg);
+            } catch (IOException ex) {
+                throw new RuntimeException("Error writing field " + field.getName(), ex);
             }
         });
     }
@@ -168,18 +178,16 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
     // field in the json form, though the 'tradeCurrencies' field has no setter method in
     // the PaymentAccount class hierarchy.  At of time of this change, TransferwiseAccount
     // is the only known exception to the rule.
-    private void writeTradeCurrenciesField(JsonWriter out, PaymentAccount account) {
-        try {
-            String fieldName = "tradeCurrencies";
-            log.debug("Append form with non-settable field: {}", fieldName);
-            out.name(fieldName);
-            out.value("comma delimited currency code list, e.g., gbp,eur,jpy,usd");
-        } catch (Exception ex) {
-            String errMsg = format("cannot create a new %s json form",
-                    account.getClass().getSimpleName());
-            log.error(capitalize(errMsg) + ".", ex);
-            throw new IllegalStateException("programmer error: " + errMsg);
+    private void writeTradeCurrenciesField(JsonWriter out, PaymentAccount account) throws IOException {
+        out.name("tradeCurrencies");
+        List<TradeCurrency> tradeCurrencies = account.getTradeCurrencies();
+        String tradeCurrenciesValue = "";
+        if (tradeCurrencies != null && !tradeCurrencies.isEmpty()) {
+            tradeCurrenciesValue = tradeCurrencies.stream()
+                                  .map(TradeCurrency::getCode)
+                                  .collect(Collectors.joining(","));
         }
+        out.value(tradeCurrenciesValue);
     }
 
     // PaymentAccounts that support multiple 'tradeCurrencies' need to define a
@@ -198,6 +206,23 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
             throw new IllegalStateException("programmer error: " + errMsg);
         }
     }
+
+    private void writeAcceptedCountryCodesField(JsonWriter out, PaymentAccount account) throws IOException {
+        out.name("acceptedCountryCodes");
+        if (account instanceof CountryBasedPaymentAccount) {
+            List<Country> acceptedCountries = ((CountryBasedPaymentAccount) account).getAcceptedCountries();
+            String countryCodesValue = "";
+            if (acceptedCountries != null && !acceptedCountries.isEmpty()) {
+                countryCodesValue = acceptedCountries.stream()
+                                .map(c -> c.code) // assuming 'code' is accessible or use getCode()
+                                .collect(Collectors.joining(","));
+            }
+            out.value(countryCodesValue);
+        } else {
+            out.value("");
+        }
+    }
+
 
     @Override
     public PaymentAccount read(JsonReader in) throws IOException {
