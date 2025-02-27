@@ -304,6 +304,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         // last moment we could apply some special handling if needed (e.g. as it happens for Revolut)
     }
 
+
     public String getPreTradeMessage(boolean isBuyer) {
         if (isBuyer) {
             return getMessageForBuyer();
@@ -341,13 +342,6 @@ public abstract class PaymentAccount implements PersistablePayload {
     // ---------------------------- SERIALIZATION -----------------------------
 
     public String toJson() {
-        Map<String, Object> jsonMap = new HashMap<String, Object>();
-        if (paymentAccountPayload != null) jsonMap.putAll(gsonBuilder.create().fromJson(paymentAccountPayload.toJson(), (Type) Object.class));
-        jsonMap.put("accountName", getAccountName());
-        jsonMap.put("accountId", getId());
-        if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
-        return gsonBuilder.create().toJson(jsonMap);
-
         Gson gson = gsonBuilder
             .registerTypeAdapter(PaymentAccount.class, new PaymentAccountTypeAdapter(this.getClass()))
             .create();
