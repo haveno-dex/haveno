@@ -23,6 +23,10 @@ Main features:
 
 See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
+## Haveno Demo
+
+https://github.com/user-attachments/assets/eb6b3af0-78ce-46a7-bfa1-2aacd8649d47
+
 ## Installing Haveno
 
 Haveno can be installed on Linux, macOS, and Windows by using a third party installer and network.
