@@ -303,7 +303,6 @@ public abstract class PaymentAccount implements PersistablePayload {
         // last moment we could apply some special handling if needed (e.g. as it happens for Revolut)
     }
 
-
     public String getPreTradeMessage(boolean isBuyer) {
         if (isBuyer) {
             return getMessageForBuyer();
@@ -378,6 +377,7 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     @SuppressWarnings("unchecked")
     public PaymentAccountForm toForm() {
+        
         // convert to json map
         Map<String, Object> jsonMap = gsonBuilder.create().fromJson(toJson(), (Type) Object.class);
 

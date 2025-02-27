@@ -156,11 +156,11 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
         fieldSettersMap.forEach((field, value) -> {
             try {
                 if (value.isPresent()) {
-                    log.debug("Appending form field: {} {} {} setter: {}",
-                        getVisibilityModifierAsString(field),
-                        field.getType().getSimpleName(),
-                        field.getName(),
-                        value);
+                    log.debug("Append form with settable field: {} {} {} setter: {}",
+                            getVisibilityModifierAsString(field),
+                            field.getType().getSimpleName(),
+                            field.getName(),
+                            value);
                     String fieldName = field.getName();
                     out.name(fieldName);
                     if (fieldName.equals("country"))
