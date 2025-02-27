@@ -19,9 +19,9 @@ On Windows, first install MSYS2:
   4. Update pacman: `pacman -Syy`
   5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
 
-      64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
+      64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git zip unzip`
 
-      32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+      32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git zip unzip`
 
 On all platforms, install Java JDK 21:
 
@@ -29,6 +29,8 @@ On all platforms, install Java JDK 21:
 curl -s "https://get.sdkman.io" | bash
 sdk install java 21.0.2.fx-librca
 ```
+
+Restart the terminal for the changes to take effect.
 
 ## Build Haveno
 
