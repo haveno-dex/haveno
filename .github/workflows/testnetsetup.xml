@@ -1,0 +1,47 @@
+name: testnet-setup
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+    paths-ignore:
+      - '**/README.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+          cache: gradle
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make wget git rpm libfuse2 flatpak flatpak-builder appstream
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      - name: Build Haveno
+        run: |
+          make clean
+          make
+
+      - name: Set Up Local Monero Testnet
+        run: |
+          make monerod1-local
+          make monerod2-local
+          start_mining 9tsUiG9bwcU7oTbAdBwBk2PzxFtysge5qcEsHEpetmEKgerHQa1fDqH7a4FiquZmms7yM22jdifVAD7jAb2e63GSJMuhY75 1
+
+      - name: Upload Test Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: path/to/test-reports
