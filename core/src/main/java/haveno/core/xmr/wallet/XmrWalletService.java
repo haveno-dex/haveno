@@ -247,7 +247,11 @@ public class XmrWalletService extends XmrWalletBase {
 
     @Override
     public void saveWallet() {
-        saveWallet(!(Utilities.isWindows() && wallet != null));
+        saveWallet(shouldBackup(wallet));
+    }
+
+    private boolean shouldBackup(MoneroWallet wallet) {
+        return wallet != null && !Utilities.isWindows(); // TODO: cannot backup on windows because file is locked
     }
 
     public void saveWallet(boolean backup) {
@@ -389,7 +393,7 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroError err = null;
         String path = wallet.getPath();
         try {
-            if (save) saveWallet(wallet, true);
+            if (save) saveWallet(wallet, shouldBackup(wallet));
             wallet.close();
         } catch (MoneroError e) {
             err = e;

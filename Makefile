@@ -70,6 +70,7 @@ monerod1-local:
 		--log-level 0 \
 		--add-exclusive-node 127.0.0.1:48080 \
 		--add-exclusive-node 127.0.0.1:58080 \
+		--max-connections-per-ip 10 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
@@ -88,6 +89,7 @@ monerod2-local:
 		--confirm-external-bind \
 		--add-exclusive-node 127.0.0.1:28080 \
 		--add-exclusive-node 127.0.0.1:58080 \
+		--max-connections-per-ip 10 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
@@ -106,6 +108,7 @@ monerod3-local:
 		--confirm-external-bind \
 		--add-exclusive-node 127.0.0.1:28080 \
 		--add-exclusive-node 127.0.0.1:48080 \
+		--max-connections-per-ip 10 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
