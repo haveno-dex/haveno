@@ -377,7 +377,7 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     @SuppressWarnings("unchecked")
     public PaymentAccountForm toForm() {
-        
+
         // convert to json map
         Map<String, Object> jsonMap = gsonBuilder.create().fromJson(toJson(), (Type) Object.class);
 
