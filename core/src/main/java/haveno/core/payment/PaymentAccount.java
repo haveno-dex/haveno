@@ -71,7 +71,6 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -341,12 +340,10 @@ public abstract class PaymentAccount implements PersistablePayload {
     // ---------------------------- SERIALIZATION -----------------------------
 
     public String toJson() {
-        Map<String, Object> jsonMap = new HashMap<String, Object>();
-        if (paymentAccountPayload != null) jsonMap.putAll(gsonBuilder.create().fromJson(paymentAccountPayload.toJson(), (Type) Object.class));
-        jsonMap.put("accountName", getAccountName());
-        jsonMap.put("accountId", getId());
-        if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
-        return gsonBuilder.create().toJson(jsonMap);
+        Gson gson = gsonBuilder
+            .registerTypeAdapter(PaymentAccount.class, new PaymentAccountTypeAdapter(this.getClass()))
+            .create();
+        return gson.toJson(this);
     }
 
     /**
@@ -388,12 +385,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.valueOf(paymentMethod.getId()));
         for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
             PaymentAccountFormField field = getEmptyFormField(fieldId);
-            Object value = jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString()));
-            if (value instanceof List) { // TODO: list should already be serialized to comma delimited string in PaymentAccount.toJson() (PaymentAccountTypeAdapter?)
-                field.setValue(String.join(",", (List<String>) value));
-            } else {
-                field.setValue((String) value);
-            }
+            field.setValue((String) jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString())));
             form.getFields().add(field);
         }
         return form;
