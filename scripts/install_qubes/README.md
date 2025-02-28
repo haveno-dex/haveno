@@ -159,6 +159,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 #### *TemplateVM (CLI)*
 ##### In `haveno-template` TemplateVM:
 ###### Download & Import Project PGP Key
+<p style="text-align: center;">For Whonix On Qubes OS:</p>
 ```shell
 # export https_proxy=http://127.0.0.1:8082
 # export KEY_SEARCH="<PACKAGE_PGP_FINGERPRINT>"
@@ -173,9 +174,35 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 # curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$KEY_SEARCH" | gpg --import
 ```
 
+<p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
+```shell
+# export KEY_SEARCH="<PACKAGE_PGP_FINGERPRINT>"
+# curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$KEY_SEARCH" | gpg --import
+```
+
+<p style="text-align: center;">Example:</p>
+
+```shell
+# export KEY_SEARCH="ABAF11C65A2970B130ABE3C479BE3E4300411886"
+# curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$KEY_SEARCH" | gpg --import
+```
+
+
 ###### Download Release Files
+<p style="text-align: center;">For Whonix On Qubes OS:</p>
 ```shell
 # export https_proxy=http://127.0.0.1:8082
+# curl -sSLo /tmp/hashes.txt https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt
+# curl -sSLo /tmp/hashes.txt.sig https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt.sig
+# curl -sSLo /tmp/haveno.zip https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
+# curl -sSLo /tmp/haveno.zip.sig https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
+```
+
+<p style="text-align: center;">Note:</p>
+<p style="text-align: center;"><em>Above are dummy URLS which MUST be replaced with actual working URLs</em></p>
+
+<p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
+```shell
 # curl -sSLo /tmp/hashes.txt https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt
 # curl -sSLo /tmp/hashes.txt.sig https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt.sig
 # curl -sSLo /tmp/haveno.zip https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
@@ -353,4 +380,3 @@ $ qvm-shutdown --force --quiet haveno haveno-template sys-haveno && qvm-remove -
 ### **XMR**:
 
 ***85mRPDHW9SuGTDUoMJvt9W4u16Yp1j1SFDrcbfKH2vP1b59nZ62aKVqjfLoyxXrMZYMkNBGzAsuvCCDHPo4AHGx4K8Zmet6***
-
