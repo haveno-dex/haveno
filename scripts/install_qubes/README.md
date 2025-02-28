@@ -160,6 +160,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 ##### In `haveno-template` TemplateVM:
 ###### Download & Import Project PGP Key
 <p style="text-align: center;">For Whonix On Qubes OS:</p>
+
 ```shell
 # export https_proxy=http://127.0.0.1:8082
 # export KEY_SEARCH="<PACKAGE_PGP_FINGERPRINT>"
@@ -175,6 +176,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 ```
 
 <p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
+
 ```shell
 # export KEY_SEARCH="<PACKAGE_PGP_FINGERPRINT>"
 # curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$KEY_SEARCH" | gpg --import
@@ -190,6 +192,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 
 ###### Download Release Files
 <p style="text-align: center;">For Whonix On Qubes OS:</p>
+
 ```shell
 # export https_proxy=http://127.0.0.1:8082
 # curl -sSLo /tmp/hashes.txt https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt
@@ -202,6 +205,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 <p style="text-align: center;"><em>Above are dummy URLS which MUST be replaced with actual working URLs</em></p>
 
 <p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
+
 ```shell
 # curl -sSLo /tmp/hashes.txt https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt
 # curl -sSLo /tmp/hashes.txt.sig https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt.sig
