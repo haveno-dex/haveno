@@ -1,6 +1,7 @@
 package haveno.network.p2p.network;
 
 import haveno.common.util.Hex;
+import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.NodeAddress;
 
 import haveno.common.UserThread;
@@ -9,7 +10,6 @@ import haveno.common.proto.network.NetworkProtoResolver;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
 import java.net.Socket;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 
 import java.io.IOException;
@@ -25,16 +25,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Slf4j
 public class TorNetworkNodeDirectBind extends TorNetworkNode {
 
-    private static final int TOR_DATA_PORT = 9050;  // TODO: config option?
     private final String serviceAddress;
+    private final Socks5ProxyProvider socks5ProxyProvider;
 
     public TorNetworkNodeDirectBind(int servicePort,
                                     NetworkProtoResolver networkProtoResolver,
                                     @Nullable BanFilter banFilter,
                                     int maxConnections,
-                                    String hiddenServiceAddress) {
+                                    String hiddenServiceAddress,
+                                    Socks5ProxyProvider socks5ProxyProvider) {
         super(servicePort, networkProtoResolver, banFilter, maxConnections);
         this.serviceAddress = hiddenServiceAddress;
+        this.socks5ProxyProvider = socks5ProxyProvider;
     }
 
     @Override
@@ -47,7 +49,7 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
 
     @Override
     public Socks5Proxy getSocksProxy() {
-        Socks5Proxy proxy = new Socks5Proxy(InetAddress.getLoopbackAddress(), TOR_DATA_PORT);
+        Socks5Proxy proxy = new Socks5Proxy(socks5ProxyProvider.getSocks5Proxy().getInetAddress(), socks5ProxyProvider.getSocks5Proxy().getPort()); // TODO: can/should we return the same socks5 proxy directly?
         proxy.resolveAddrLocally(false);
         return proxy;
     }
@@ -57,7 +59,7 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
         // https://datatracker.ietf.org/doc/html/rfc1928 SOCKS5 Protocol
         try {
             checkArgument(peerNodeAddress.getHostName().endsWith(".onion"), "PeerAddress is not an onion address");
-            Socket sock = new Socket(InetAddress.getLoopbackAddress(), TOR_DATA_PORT);
+            Socket sock = new Socket(getSocksProxy().getInetAddress(), getSocksProxy().getPort());
             sock.getOutputStream().write(Hex.decode("050100"));
             String response = Hex.encode(sock.getInputStream().readNBytes(2));
             if (!response.equalsIgnoreCase("0500")) {
