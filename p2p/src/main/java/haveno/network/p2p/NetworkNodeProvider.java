@@ -22,6 +22,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.network.BanFilter;
 import haveno.network.p2p.network.BridgeAddressProvider;
 import haveno.network.p2p.network.LocalhostNetworkNode;
@@ -55,7 +56,8 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             @Named(Config.TOR_CONTROL_PASSWORD) String password,
             @Nullable @Named(Config.TOR_CONTROL_COOKIE_FILE) File cookieFile,
             @Named(Config.TOR_STREAM_ISOLATION) boolean streamIsolation,
-            @Named(Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH) boolean useSafeCookieAuthentication) {
+            @Named(Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH) boolean useSafeCookieAuthentication,
+            Socks5ProxyProvider socks5ProxyProvider) {
         if (useLocalhostForP2P) {
             networkNode = new LocalhostNetworkNode(port, networkProtoResolver, banFilter, maxConnections);
         } else {
@@ -72,7 +74,7 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             if (torMode instanceof NewTor || torMode instanceof RunningTor) {
                 networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, controlHost);
             } else {
-                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
+                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress, socks5ProxyProvider);
             }
         }
     }
