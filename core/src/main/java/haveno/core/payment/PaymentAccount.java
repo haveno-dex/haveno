@@ -340,9 +340,9 @@ public abstract class PaymentAccount implements PersistablePayload {
     // ---------------------------- SERIALIZATION -----------------------------
 
     public String toJson() {
-        Gson gson = gsonBuilder
-            .registerTypeAdapter(PaymentAccount.class, new PaymentAccountTypeAdapter(this.getClass()))
-            .create();
+        Gson gson = new GsonBuilder()
+        .registerTypeHierarchyAdapter(PaymentAccount.class, new PaymentAccountTypeAdapter(this.getClass()))
+        .create();
         return gson.toJson(this);
     }
 
