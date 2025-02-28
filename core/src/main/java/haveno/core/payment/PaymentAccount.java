@@ -36,6 +36,7 @@ package haveno.core.payment;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.Utilities;
@@ -71,6 +72,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -341,9 +343,21 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     public String toJson() {
         Gson gson = new GsonBuilder()
-        .registerTypeHierarchyAdapter(PaymentAccount.class, new PaymentAccountTypeAdapter(this.getClass()))
-        .create();
-        return gson.toJson(this);
+            .registerTypeAdapter(PaymentAccountPayload.class, new PaymentAccountTypeAdapter(this.getClass()))
+            .create();
+
+        Map<String, Object> jsonMap = new HashMap<>();
+        if (paymentAccountPayload != null) {
+            String payloadJson = gson.toJson(paymentAccountPayload);
+            Map<String, Object> payloadMap = gson.fromJson(payloadJson, new TypeToken<Map<String, Object>>(){}.getType());
+            jsonMap.putAll(payloadMap);
+        }
+        
+        jsonMap.put("accountName", getAccountName());
+        jsonMap.put("accountId", getId());
+        if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
+        
+        return gson.toJson(jsonMap);
     }
 
     /**
