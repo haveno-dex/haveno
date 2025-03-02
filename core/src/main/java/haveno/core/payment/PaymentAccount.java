@@ -344,7 +344,7 @@ public abstract class PaymentAccount implements PersistablePayload {
     public String toJson() {
         Gson gson = gsonBuilder.create();
         Map<String, Object> jsonMap = new HashMap<>();
-    
+
         if (paymentAccountPayload != null) {
             String payloadJson = paymentAccountPayload.toJson();
             Map<String, Object> payloadMap = gson.fromJson(payloadJson, new TypeToken<Map<String, Object>>() {}.getType());
@@ -357,14 +357,13 @@ public abstract class PaymentAccount implements PersistablePayload {
                     entry.setValue(joinedString);
                 }
             }
-    
+
             jsonMap.putAll(payloadMap);
         }
     
         jsonMap.put("accountName", getAccountName());
         jsonMap.put("accountId", getId());
         if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
-        
         return gson.toJson(jsonMap);
     }
 
