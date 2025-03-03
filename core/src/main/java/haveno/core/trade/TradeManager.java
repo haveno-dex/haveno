@@ -747,7 +747,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-    log.info("TradeManager handling InitMultisigRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
+        log.info("TradeManager handling InitMultisigRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -766,7 +766,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void handleSignContractRequest(SignContractRequest request, NodeAddress sender) {
-    log.info("TradeManager handling SignContractRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
+        log.info("TradeManager handling SignContractRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());

@@ -1089,10 +1089,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         } catch (IllegalArgumentException | IllegalStateException e) {
                             throw e;
                         } catch (Exception e) {
+                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection);
                             doPollWallet();
                             if (isPayoutPublished()) break;
-                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                         }
