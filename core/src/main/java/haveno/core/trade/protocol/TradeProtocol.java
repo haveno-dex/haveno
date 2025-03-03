@@ -652,11 +652,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // handle ack for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
             if (trade.getTradePeer(sender) == trade.getSeller()) {
-                processModel.setPaymentSentAckMessage(ackMessage);
+                processModel.setPaymentSentAckMessageSeller(ackMessage);
                 trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
                 processModel.getTradeManager().requestPersistence();
             } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
                 processModel.setPaymentSentAckMessageArbitrator(ackMessage);
+                processModel.getTradeManager().requestPersistence();
             } else if (!ackMessage.isSuccess()) {
                 String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
                 log.warn(err);

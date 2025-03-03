@@ -735,9 +735,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed in v1.0.19 so this check can be removed?
         if (isBuyer()) {
             MessageState expectedState = getPaymentSentMessageState();
-            if (expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
-                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStateProperty().get());
-                processModel.getPaymentSentMessageStateProperty().set(expectedState);
+            if (expectedState != null && expectedState != processModel.getPaymentSentMessageStatePropertySeller().get()) {
+                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStatePropertySeller().get());
+                processModel.getPaymentSentMessageStatePropertySeller().set(expectedState);
             }
         }
 
@@ -2022,7 +2022,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public MessageState getPaymentSentMessageState() {
         if (isPaymentReceived()) return MessageState.ACKNOWLEDGED;
-        if (processModel.getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
+        if (processModel.getPaymentSentMessageStatePropertySeller().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
         switch (state) {
             case BUYER_SENT_PAYMENT_SENT_MSG:
                 return MessageState.SENT;
