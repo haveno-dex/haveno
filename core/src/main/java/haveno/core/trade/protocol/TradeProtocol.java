@@ -536,6 +536,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+
+        // validate signature
+        try {
+            HavenoUtils.verifyPaymentReceivedMessage(trade, message);
+        } catch (Throwable t) {
+            log.warn("Ignoring PaymentReceivedMessage with invalid signature for {} {}, error={}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
+            return;
+        }
+
+        // save message for reprocessing
+        trade.getSeller().setPaymentReceivedMessage(message);
+        trade.requestPersistence();
+
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
