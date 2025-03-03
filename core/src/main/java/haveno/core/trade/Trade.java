@@ -2441,8 +2441,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (!wasWalletSynced) trySyncWallet(true);
         updatePollPeriod();
         
-        // reprocess pending payout messages
-        this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
+        // reprocess pending messages
+        getProtocol().maybeReprocessPaymentSentMessage(false);
+        getProtocol().maybeReprocessPaymentReceivedMessage(false);
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
         startPolling();
