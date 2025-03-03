@@ -106,6 +106,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected ErrorMessageHandler errorMessageHandler;
 
     private boolean depositsConfirmedTasksCalled;
+    private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -275,6 +276,22 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                 })))
                         .executeTasks(true);
                 awaitTradeLatch();
+            }
+        }, trade.getId());
+    }
+
+    public void maybeReprocessPaymentSentMessage(boolean reprocessOnError) {
+        if (trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+
+                // skip if no need to reprocess
+                if (trade.isBuyer() || trade.getBuyer().getPaymentSentMessage() == null || trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
+                    return;
+                }
+
+                log.warn("Reprocessing payment sent message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                handle(trade.getBuyer().getPaymentSentMessage(), trade.getBuyer().getPaymentSentMessage().getSenderNodeAddress(), reprocessOnError);
             }
         }, trade.getId());
     }
@@ -481,7 +498,25 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
+        handle(message, peer, true);
+    }
+
+    // received by seller and arbitrator
+    protected void handle(PaymentSentMessage message, NodeAddress peer, boolean reprocessOnError) {
         System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+
+        // validate signature
+        try {
+            HavenoUtils.verifyPaymentSentMessage(trade, message);
+        } catch (Throwable t) {
+            log.warn("Ignoring PaymentSentMessage with invalid signature for {} {}, error={}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
+            return;
+        }
+
+        // save message for reprocessing
+        trade.getBuyer().setPaymentSentMessage(message);
+        trade.requestPersistence();
+
         if (!trade.isInitialized() || trade.isShutDown()) return;
         if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
             log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
@@ -521,7 +556,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 (errorMessage) -> {
-                                    handleTaskRunnerFault(peer, message, errorMessage);
+                                    log.warn("Error processing payment sent message: " + errorMessage);
+                                    processModel.getTradeManager().requestPersistence();
+    
+                                    // schedule to reprocess message unless deleted
+                                    if (trade.getBuyer().getPaymentSentMessage() != null) {
+                                        UserThread.runAfter(() -> {
+                                            reprocessPaymentSentMessageCount++;
+                                            maybeReprocessPaymentSentMessage(reprocessOnError);
+                                        }, trade.getReprocessDelayInSeconds(reprocessPaymentSentMessageCount));
+                                    } else {
+                                        handleTaskRunnerFault(peer, message, errorMessage); // otherwise send nack
+                                    }
+                                    unlatchTrade();
                                 })))
                         .executeTasks(true);
                 awaitTradeLatch();
