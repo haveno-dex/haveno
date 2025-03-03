@@ -18,7 +18,6 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.network.MessageState;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradePeer;
 import lombok.EqualsAndHashCode;
@@ -59,6 +58,6 @@ public class BuyerSendPaymentSentMessageToArbitrator extends BuyerSendPaymentSen
 
     @Override
     protected boolean isAckedByReceiver() {
-        return trade.getProcessModel().getPaymentSentMessageStatePropertyArbitrator().get() == MessageState.ACKNOWLEDGED;
+        return trade.getProcessModel().isPaymentSentMessageAckedByArbitrator();
     }
 }

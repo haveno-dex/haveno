@@ -40,25 +40,25 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
     
     @Override
     protected void setStateSent() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.SENT);
+        trade.getProcessModel().setPaymentSentMessageStateSeller(MessageState.SENT);
         super.setStateSent();
     }
 
     @Override
     protected void setStateArrived() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.ARRIVED);
+        trade.getProcessModel().setPaymentSentMessageStateSeller(MessageState.ARRIVED);
         super.setStateArrived();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.STORED_IN_MAILBOX);
+        trade.getProcessModel().setPaymentSentMessageStateSeller(MessageState.STORED_IN_MAILBOX);
         super.setStateStoredInMailbox();
     }
 
     @Override
     protected void setStateFault() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.FAILED);
+        trade.getProcessModel().setPaymentSentMessageStateSeller(MessageState.FAILED);
         super.setStateFault();
     }
 
@@ -72,6 +72,6 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
 
     @Override
     protected boolean isAckedByReceiver() {
-        return trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal();
+        return trade.getProcessModel().isPaymentSentMessageAckedBySeller();
     }
 }

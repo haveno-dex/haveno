@@ -170,7 +170,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
         if (listener != null) {
-            processModel.getPaymentSentMessageStateProperty().removeListener(listener);
+            processModel.getPaymentSentMessageStatePropertySeller().removeListener(listener);
         }
     }
 
@@ -194,8 +194,8 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
-            processModel.getPaymentSentMessageStateProperty().addListener(listener);
-            onMessageStateChange(processModel.getPaymentSentMessageStateProperty().get());
+            processModel.getPaymentSentMessageStatePropertySeller().addListener(listener);
+            onMessageStateChange(processModel.getPaymentSentMessageStatePropertySeller().get());
         }
 
         // first re-send is after 2 minutes, then increase the delay exponentially
