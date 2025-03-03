@@ -153,7 +153,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">Example:</p>
 
 ```shell
-$ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/nacho/repo/releases/download/v1.0.18/haveno-linux-deb.zip" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/nacho/repo/releases/download/v1.0.18/haveno-linux-deb.zip" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
 #### *TemplateVM (CLI)*
@@ -218,7 +218,7 @@ $ sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/
 
 ###### Verify Release Files
 ```shell
-# if [[ $(gpg --digest-algo SHA256 --verify /tmp/hashes.txt.sig /tmp/hashes.txt 2>&1) =~ 'Good signature' ]]; then printf $'SHASUM file has a VALID signature!\n'; else printf $'SHASUMS failed signature check\n' && exit; fi
+# if gpg --digest-algo SHA256 --verify /tmp/hashes.txt.sig >/dev/null 2>&1; then printf $'SHASUM file has a VALID signature!\n'; else printf $'SHASUMS failed signature check\n' && sleep 5 && exit 1; fi
 ```
 
 ###### Verify Hash, Unpack & Install Package
