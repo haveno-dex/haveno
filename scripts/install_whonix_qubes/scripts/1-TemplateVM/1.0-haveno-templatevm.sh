@@ -93,12 +93,10 @@ function remote {
 	
 	## Verify the downloaded binary with the signature:
 	echo_blue "Verifying the signature of the downloaded file ..."
-	OUTPUT=$(gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_filename}" 2>&1)
-	
-	if ! echo "$OUTPUT" | grep -q "Good signature from"; then
-	    echo_red "Verification failed: $OUTPUT"
+	if gpg --digest-algo SHA256 --verify "${signature_filename}" >/dev/null 2>&1; then
+	    7z x "${binary_filename}" && mv haveno*.deb "${package_filename}";
+	    else echo_red "Verification failed!" && sleep 5
 	    exit 1;
-	    else 7z x "${binary_filename}" && mv haveno*.deb "${package_filename}"
 	fi
 	
 	
