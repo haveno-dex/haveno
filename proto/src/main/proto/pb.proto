@@ -1568,7 +1568,7 @@ message ProcessModel {
     bytes payout_tx_signature = 4;
     bool use_savings_wallet = 5;
     int64 funds_needed_for_trade = 6;
-    string payment_sent_message_state = 7;
+    string payment_sent_message_state_seller = 7;
     string payment_sent_message_state_arbitrator = 8;
     bytes maker_signature = 9;
     TradePeer maker = 10;
