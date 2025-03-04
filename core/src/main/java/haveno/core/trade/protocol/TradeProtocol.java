@@ -125,12 +125,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
-        ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
+        handle(message, peerNodeAddress);
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
-        ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
+        handle(message, peerNodeAddress);
     }
 
     private void handle(TradeMessage message, NodeAddress peerNodeAddress) {
