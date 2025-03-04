@@ -43,7 +43,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   ///////////////////////////////////////////////////////////////////////////////////////////
 
   public void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer, ErrorMessageHandler errorMessageHandler) {
-      System.out.println("ArbitratorProtocol.handleInitTradeRequest()");
+      log.info(TradeProtocol.LOG_HIGHLIGHT + "handleInitTradeRequest() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
       ThreadUtils.execute(() -> {
           synchronized (trade.getLock()) {
               latchTrade();
@@ -78,7 +78,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
   }
   
   public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
-    System.out.println("ArbitratorProtocol.handleDepositRequest() " + trade.getId());
+    log.info(TradeProtocol.LOG_HIGHLIGHT + "handleDepositRequest() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
     ThreadUtils.execute(() -> {
         synchronized (trade.getLock()) {
             latchTrade();

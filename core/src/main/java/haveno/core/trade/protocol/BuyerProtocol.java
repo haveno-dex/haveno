@@ -119,7 +119,7 @@ public class BuyerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        System.out.println("BuyerProtocol.onPaymentSent()");
+        log.info(TradeProtocol.LOG_HIGHLIGHT + "BuyerProtocol.onPaymentSent() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
