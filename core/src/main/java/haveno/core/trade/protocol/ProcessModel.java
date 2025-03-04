@@ -158,6 +158,9 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private long tradeProtocolErrorHeight;
+    @Getter
+    @Setter
+    private boolean importMultisigHexScheduled;
 
     // We want to indicate the user the state of the message delivery of the
     // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
@@ -207,7 +210,8 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setPaymentSentMessageStateArbitrator(paymentSentMessageStatePropertyArbitrator.get().name())
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
                 .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
-                .setTradeProtocolErrorHeight(tradeProtocolErrorHeight);
+                .setTradeProtocolErrorHeight(tradeProtocolErrorHeight)
+                .setImportMultisigHexScheduled(importMultisigHexScheduled);
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
@@ -231,6 +235,7 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setBuyerPayoutAmountFromMediation(proto.getBuyerPayoutAmountFromMediation());
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
         processModel.setTradeProtocolErrorHeight(proto.getTradeProtocolErrorHeight());
+        processModel.setImportMultisigHexScheduled(proto.getImportMultisigHexScheduled());
 
         // nullable
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));
