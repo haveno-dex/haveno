@@ -96,6 +96,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private static final String TIMEOUT_REACHED = "Timeout reached.";
     public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other wallet functions
     public static final long REPROCESS_DELAY_MS = 5000;
+    public static final String LOG_HIGHLIGHT = "\u001B[0m"; // terminal default
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -313,7 +314,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -350,7 +351,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
 
@@ -393,7 +394,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -439,7 +440,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -469,7 +470,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handle(DepositsConfirmedMessage message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender + " for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handle(DepositsConfirmedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -503,7 +504,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer, boolean reprocessOnError) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
 
         // validate signature
         try {
@@ -582,7 +583,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
 
         // validate signature
         try {
