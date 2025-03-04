@@ -1581,6 +1581,7 @@ message ProcessModel {
     int64 seller_payout_amount_from_mediation = 17;
     int64 trade_protocol_error_height = 18;
     string trade_fee_address = 19;
+    bool import_multisig_hex_scheduled = 20;
 }
 
 message TradePeer {
