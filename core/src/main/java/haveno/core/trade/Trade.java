@@ -143,6 +143,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
+    private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 10;
     protected final Object pollLock = new Object();
     protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
@@ -741,6 +742,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
         }
 
+        // handle confirmations
+        walletHeight.addListener((observable, oldValue, newValue) -> {
+            importMultisigHexIfScheduled();
+        });
+
         // trade is initialized
         isInitialized = true;
 
@@ -1077,6 +1083,26 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public void scheduleImportMultisigHex() {
+        processModel.setImportMultisigHexScheduled(true);
+        requestPersistence();
+    }
+
+    private void importMultisigHexIfScheduled() {
+        if (!isInitialized || isShutDownStarted) return;
+        if (!isDepositsConfirmed() || getMaker().getDepositTx() == null) return;
+        if (walletHeight.get() - getMaker().getDepositTx().getHeight() < NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT) return;
+        ThreadUtils.execute(() -> {
+            if (!isInitialized || isShutDownStarted) return;
+            synchronized (getLock()) {
+                if (processModel.isImportMultisigHexScheduled()) {
+                    processModel.setImportMultisigHexScheduled(false);
+                    ThreadUtils.submitToPool(() -> importMultisigHex());
+                }
+            }
+        }, getId());
+    }
+
     public void importMultisigHex() {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
@@ -1141,6 +1167,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     if (removed) wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
                     if (wallet.isMultisigImportNeeded()) throw new IllegalStateException(errorMessage);
                 }
+
+                // remove scheduled import
+                processModel.setImportMultisigHexScheduled(false);
             } catch (MoneroError e) {
 
                 // import multisig hex individually if one is invalid
@@ -2350,7 +2379,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return tradeAmountTransferred();
     }
 
-    public boolean tradeAmountTransferred() {
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Private
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    private boolean tradeAmountTransferred() {
         return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
     }
 
@@ -2365,11 +2399,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             log.warn("Trade statistics are invalid for {} {}. We do not publish: {}", getClass().getSimpleName(), getId(), tradeStatistics);
         }
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
 
     // lazy initialization
     private ObjectProperty<BigInteger> getAmountProperty() {
