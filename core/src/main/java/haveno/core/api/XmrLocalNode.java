@@ -112,8 +112,7 @@ public class XmrLocalNode {
         // determine if local node is configured
         boolean hasConfiguredLocalNode = false;
         for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
-            String prefix = node.getAddress().startsWith("http") ? "" : "http://";
-            if (equalsUri(prefix + node.getAddress() + ":" + node.getPort())) {
+            if (node.getAddress() != null && equalsUri("http://" + node.getAddress() + ":" + node.getPort())) {
                 hasConfiguredLocalNode = true;
                 break;
             }
@@ -139,7 +138,11 @@ public class XmrLocalNode {
     }
 
     public boolean equalsUri(String uri) {
-        return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
+        try {
+            return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
