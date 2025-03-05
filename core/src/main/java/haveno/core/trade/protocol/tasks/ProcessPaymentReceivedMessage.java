@@ -80,9 +80,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 return;
             }
 
-            // save message for reprocessing
-            trade.getSeller().setPaymentReceivedMessage(message);
-
             // set state
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());

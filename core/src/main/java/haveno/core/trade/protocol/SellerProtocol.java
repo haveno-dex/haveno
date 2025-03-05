@@ -115,7 +115,7 @@ public class SellerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        log.info("SellerProtocol.onPaymentReceived()");
+        log.info(TradeProtocol.LOG_HIGHLIGHT + "SellerProtocol.onPaymentReceived() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
