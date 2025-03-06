@@ -68,7 +68,6 @@ import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.value.ChangeListener;
-import lombok.Getter;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
@@ -145,8 +144,7 @@ public class XmrWalletService extends XmrWalletBase {
     private TradeManager tradeManager;
     private ExecutorService syncWalletThreadPool = Executors.newFixedThreadPool(10); // TODO: adjust based on connection type
 
-    @Getter
-    public final Object lock = new Object();
+    private final Object lock = new Object();
     private TaskLooper pollLooper;
     private boolean pollInProgress;
     private Long pollPeriodMs;
@@ -740,7 +738,7 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         MoneroTx tx = null;
-        synchronized (daemon) {
+        synchronized (lock) {
             try {
 
                 // verify tx not submitted to pool
@@ -926,7 +924,7 @@ public class XmrWalletService extends XmrWalletBase {
             }
 
             // shut down threads
-            synchronized (getLock()) {
+            synchronized (lock) {
                 List<Runnable> shutDownThreads = new ArrayList<>();
                 shutDownThreads.add(() -> ThreadUtils.shutDown(THREAD_ID));
                 ThreadUtils.awaitTasks(shutDownThreads);
