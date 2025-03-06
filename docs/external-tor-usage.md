@@ -185,11 +185,14 @@ If the `HashedControlPassword` option is set, it must contain the salted hash of
   $ tor --hash-password <password>
   ```
 
-##### Example:
+###### Example:
 ```shell
 ControlPort 9051
 HashedControlPassword 16:C01147DC5F4DA2346056668DD23522558D0E0C8B5CC88FE72EEBC51967
 ```
+
+##### Restart `tor`
+`tor` must be restarted for changes to `torrc` to be applied.
 
 ### \* ***Optional*** \*
 #### [Set Up Your Onion Service](https://community.torproject.org/onion-services/setup)
