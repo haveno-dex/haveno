@@ -36,6 +36,7 @@ package haveno.core.payment;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.Utilities;
@@ -341,12 +342,29 @@ public abstract class PaymentAccount implements PersistablePayload {
     // ---------------------------- SERIALIZATION -----------------------------
 
     public String toJson() {
-        Map<String, Object> jsonMap = new HashMap<String, Object>();
-        if (paymentAccountPayload != null) jsonMap.putAll(gsonBuilder.create().fromJson(paymentAccountPayload.toJson(), (Type) Object.class));
+        Gson gson = gsonBuilder.create();
+        Map<String, Object> jsonMap = new HashMap<>();
+
+        if (paymentAccountPayload != null) {
+            String payloadJson = paymentAccountPayload.toJson();
+            Map<String, Object> payloadMap = gson.fromJson(payloadJson, new TypeToken<Map<String, Object>>() {}.getType());
+    
+            for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
+                Object value = entry.getValue();
+                if (value instanceof List) {
+                    List<?> list = (List<?>) value;
+                    String joinedString = list.stream().map(Object::toString).collect(Collectors.joining(","));
+                    entry.setValue(joinedString);
+                }
+            }
+
+            jsonMap.putAll(payloadMap);
+        }
+    
         jsonMap.put("accountName", getAccountName());
         jsonMap.put("accountId", getId());
         if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
-        return gsonBuilder.create().toJson(jsonMap);
+        return gson.toJson(jsonMap);
     }
 
     /**
@@ -388,12 +406,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.valueOf(paymentMethod.getId()));
         for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
             PaymentAccountFormField field = getEmptyFormField(fieldId);
-            Object value = jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString()));
-            if (value instanceof List) { // TODO: list should already be serialized to comma delimited string in PaymentAccount.toJson() (PaymentAccountTypeAdapter?)
-                field.setValue(String.join(",", (List<String>) value));
-            } else {
-                field.setValue((String) value);
-            }
+            field.setValue((String) jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString())));
             form.getFields().add(field);
         }
         return form;
