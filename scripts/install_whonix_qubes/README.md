@@ -153,7 +153,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">Example:</p>
 
 ```shell
-% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/nacho/repo/releases/download/v1.0.18/haveno-linux-deb.zip" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno-linux-deb.zip" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
 #### *TemplateVM (CLI)*
@@ -195,10 +195,10 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 
 ```shell
 # export https_proxy=http://127.0.0.1:8082
-# curl -sSLo /tmp/hashes.txt https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt
-# curl -sSLo /tmp/hashes.txt.sig https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt.sig
-# curl -sSLo /tmp/haveno.zip https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
-# curl -sSLo /tmp/haveno.zip.sig https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
+# curl -sSLo /tmp/hashes.txt https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt
+# curl -sSLo /tmp/hashes.txt.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt.sig
+# curl -sSLo /tmp/haveno.zip https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
+# curl -sSLo /tmp/haveno.zip.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
 ```
 
 <p style="text-align: center;">Note:</p>
@@ -207,10 +207,10 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
 
 ```shell
-# curl -sSLo /tmp/hashes.txt https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt
-# curl -sSLo /tmp/hashes.txt.sig https://github.com/nacho/repo/releases/download/v1.0.18/1.0.18-hashes.txt.sig
-# curl -sSLo /tmp/haveno.zip https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
-# curl -sSLo /tmp/haveno.zip.sig https://github.com/nacho/repo/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
+# curl -sSLo /tmp/hashes.txt https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt
+# curl -sSLo /tmp/hashes.txt.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt.sig
+# curl -sSLo /tmp/haveno.zip https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
+# curl -sSLo /tmp/haveno.zip.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
 ```
 
 <p style="text-align: center;">Note:</p>
