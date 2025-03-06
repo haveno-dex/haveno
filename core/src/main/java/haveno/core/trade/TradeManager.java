@@ -450,8 +450,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             return;
                         }
 
-                        // skip if marked as failed
-                        if (failedTradesManager.getObservableList().contains(trade)) {
+                        // skip if failed and error handling not scheduled
+                        if (failedTradesManager.getObservableList().contains(trade) && !trade.isProtocolErrorHandlingScheduled()) {
                             log.warn("Skipping initialization of failed trade {} {}", trade.getClass().getSimpleName(), trade.getId());
                             tradesToSkip.add(trade);
                             return;
@@ -460,8 +460,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         // initialize trade
                         initPersistedTrade(trade);
 
-                        // remove trade if protocol didn't initialize
-                        if (getOpenTradeByUid(trade.getUid()).isPresent() && !trade.isDepositsPublished()) {
+                        // record if protocol didn't initialize
+                        if (!trade.isDepositsPublished()) {
                             uninitializedTrades.add(trade);
                         }
                     } catch (Exception e) {

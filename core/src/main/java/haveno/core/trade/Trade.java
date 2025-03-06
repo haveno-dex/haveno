@@ -1618,14 +1618,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // done if wallet already deleted
         if (!walletExists()) return;
 
-        // move to failed trades
-        processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this);
-
         // set error height
         if (processModel.getTradeProtocolErrorHeight() == 0) {
             log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getLastInfo().getHeight());
-            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getLastInfo().getHeight());
+            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getLastInfo().getHeight()); // height denotes scheduled error handling
         }
+
+        // move to failed trades
+        processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this);
+        requestPersistence();
 
         // listen for deposits published to restore trade
         protocolErrorStateSubscription = EasyBind.subscribe(stateProperty(), state -> {
@@ -1678,6 +1679,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             });
         });
+    }
+
+    public boolean isProtocolErrorHandlingScheduled() {
+        return processModel.getTradeProtocolErrorHeight() > 0;
     }
 
     private void restoreDepositsPublishedTrade() {
