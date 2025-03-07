@@ -923,8 +923,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             requestPersistence();
         }, errorMessage -> {
             log.warn("Taker error during trade initialization: " + errorMessage);
-            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move to maybe remove on error
             trade.onProtocolError();
+            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move this into protocol error handling
             errorMessageHandler.handleErrorMessage(errorMessage);
         });
 
@@ -1282,6 +1282,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public boolean hasOpenTrade(Trade trade) {
         synchronized (tradableList) {
             return tradableList.contains(trade);
+        }
+    }
+
+    public boolean hasFailedScheduledTrade(String offerId) {
+        synchronized (failedTradesManager) {
+            return failedTradesManager.getTradeById(offerId).isPresent() && failedTradesManager.getTradeById(offerId).get().isProtocolErrorHandlingScheduled();
         }
     }
 

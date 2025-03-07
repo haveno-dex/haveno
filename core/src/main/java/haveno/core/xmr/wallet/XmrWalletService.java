@@ -1016,6 +1016,13 @@ public class XmrWalletService extends XmrWalletBase {
 
     public synchronized void resetAddressEntriesForOpenOffer(String offerId) {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
+
+        // skip if failed trade is scheduled for processing // TODO: do not call this function in this case?
+        if (tradeManager.hasFailedScheduledTrade(offerId)) {
+            log.warn("Refusing to reset address entries because trade is scheduled for deletion with offerId={}", offerId);
+            return;
+        }
+
         swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
         // swap trade payout to available if applicable
