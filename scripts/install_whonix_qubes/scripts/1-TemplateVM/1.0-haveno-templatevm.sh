@@ -133,7 +133,7 @@ function build {
 	# Build
 	git clone --depth=1 $SOURCE_URL
 	GIT_DIR=$(awk -F'/' '{ print $NF }' <<< "$SOURCE_URL")
-  cd ${GIT_DIR}
+	cd ${GIT_DIR}
 	git checkout master
 	sed -i 's|XMR_STAGENET|XMR_MAINNET|g' desktop/package/package.gradle
 	./gradlew clean build --refresh-keys --refresh-dependencies
