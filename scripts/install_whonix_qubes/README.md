@@ -135,7 +135,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 ---
 
 ### **Build TemplateVM, NetVM & AppVM:**
-#### *TemplateVM (Scripted)*
+#### *TemplateVM Using Precompiled Package via `git` Repository (Scripted)*
 ##### In `dispXXXX` AppVM:
 ```shell
 % qvm-copy haveno/scripts/install_qubes/scripts/1-TemplateVM/1.0-haveno-templatevm.sh
@@ -156,7 +156,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 % sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno-linux-deb.zip" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
-#### *TemplateVM (CLI)*
+#### *TemplateVM Using Precompiled Package From `git` Repository (CLI)*
 ##### In `haveno-template` TemplateVM:
 ###### Download & Import Project PGP Key
 <p style="text-align: center;">For Whonix On Qubes OS:</p>
@@ -231,6 +231,28 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 # if [[ $(cat /tmp/desktop*.SHA-256) =~ $(sha256sum /opt/haveno/lib/app/desktop*.jar | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && printf 'Happy trading!\n'; else printf $'WARNING: Bad Hash!\n' && exit; fi
 ```
 
+#### *TemplateVM Building From Source via `git` Repository (Scripted)*
+##### In `dispXXXX` AppVM:
+```shell
+% sudo bash haveno/scripts/install_qubes/scripts/1-TemplateVM/1.0-haveno-templatevm.sh "<JDK_PACKAGE_URL>" "<JDK_SHA_HASH>" "<SOURCE_URL>"
+```
+
+<p style="text-align: center;">Example:</p>
+
+```shell
+% sudo bash haveno/scripts/install_qubes/scripts/1-TemplateVM/1.0-haveno-templatevm.sh "https://download.bell-sw.com/java/21.0.6+10/bellsoft-jdk21.0.6+10-linux-amd64.deb" "a5e3fd9f5323de5fc188180c91e0caa777863b5b" "https://github.com/haveno-dex/haveno"
+```
++ Upon Successful Compilation & Packaging, A `Filecopy` Confirmation Will Be Presented
+
++ Select "haveno-template" for "Target" of Pop-Up
+
++ Click OK
+
+##### In `haveno-template` TemplateVM:
+```shell
+% sudo apt install -y ./QubesIncoming/dispXXXX/haveno.deb
+```
+
 #### *NetVM (Scripted)*
 ##### In `dispXXXX` AppVM:
 ```shell
@@ -300,7 +322,7 @@ $ qvm-copy haveno/scripts/install_qubes/scripts/3-AppVM/3.0-haveno-appvm.sh
 
 >		# Poke FW
 >		printf "EXTERNAL_OPEN_PORTS+=\" 9999 \"\n" | tee /usr/local/etc/whonix_firewall.d/50_user.conf
->		
+>
 >		# Restart FW
 >		whonix_firewall
 
