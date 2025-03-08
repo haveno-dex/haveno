@@ -987,26 +987,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         setSplitOutputTx(openOffer, splitOutputTx);
                     }
 
-                    // if not found, create tx to split exact output
-                    if (splitOutputTx == null) {
-                        if (openOffer.getSplitOutputTxHash() != null) {
-                            log.warn("Split output tx unexpectedly unavailable for offer, offerId={}, split output tx={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
-                            setSplitOutputTx(openOffer, null);
-                        }
-                        try {
-                            splitOrSchedule(openOffers, openOffer, amountNeeded);
-                        } catch (Exception e) {
-                            log.warn("Unable to split or schedule funds for offer {}: {}", openOffer.getId(), e.getMessage());
-                            openOffer.getOffer().setState(Offer.State.INVALID);
-                            errorMessageHandler.handleErrorMessage(e.getMessage());
-                            return;
-                        }
-                    } else if (!splitOutputTx.isLocked()) {
-
-                        // otherwise sign and post offer if split output available
-                        signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
+                    // if wallet has exact available balance, try to sign and post directly
+                    if (xmrWalletService.getAvailableBalance().equals(amountNeeded)) {
+                        signAndPostOffer(openOffer, true, resultHandler, (errorMessage) -> {
+                            splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
+                        });
                         return;
+                    } else {
+                        splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
                     }
+
                 } else {
 
                     // sign and post offer if enough funds
@@ -1017,11 +1007,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         return;
                     } else if (openOffer.getScheduledTxHashes() == null) {
                         scheduleWithEarliestTxs(openOffers, openOffer);
+                        resultHandler.handleResult(null);
+                        return;
                     }
                 }
-
-                // handle result
-                resultHandler.handleResult(null);
             } catch (Exception e) {
                 if (!openOffer.isCanceled()) log.error("Error processing pending offer: {}\n", e.getMessage(), e);
                 errorMessageHandler.handleErrorMessage(e.getMessage());
@@ -1087,13 +1076,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     if (output.isSpent() || output.isFrozen()) removeTxs.add(tx);
                 }
             }
-            if (!hasExactAmount(tx, reserveAmount, preferredSubaddressIndex)) removeTxs.add(tx);
+            if (!hasExactOutput(tx, reserveAmount, preferredSubaddressIndex)) removeTxs.add(tx);
         }
         splitOutputTxs.removeAll(removeTxs);
         return splitOutputTxs;
     }
 
-    private boolean hasExactAmount(MoneroTxWallet tx, BigInteger amount, Integer preferredSubaddressIndex) {
+    private boolean hasExactOutput(MoneroTxWallet tx, BigInteger amount, Integer preferredSubaddressIndex) {
         boolean hasExactOutput = (tx.getOutputsWallet(new MoneroOutputQuery()
                 .setAccountIndex(0)
                 .setSubaddressIndex(preferredSubaddressIndex)
@@ -1115,7 +1104,35 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return earliestUnscheduledTx;
     }
 
-    private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
+    // if split tx not found and cannot reserve exact amount directly, create tx to split or reserve exact output
+    private void splitOrSchedule(MoneroTxWallet splitOutputTx, List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger amountNeeded, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        if (splitOutputTx == null) {
+            if (openOffer.getSplitOutputTxHash() != null) {
+                log.warn("Split output tx unexpectedly unavailable for offer, offerId={}, split output tx={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
+                setSplitOutputTx(openOffer, null);
+            }
+            try {
+                splitOrScheduleAux(openOffers, openOffer, amountNeeded);
+                resultHandler.handleResult(null);
+                return;
+            } catch (Exception e) {
+                log.warn("Unable to split or schedule funds for offer {}: {}", openOffer.getId(), e.getMessage());
+                openOffer.getOffer().setState(Offer.State.INVALID);
+                errorMessageHandler.handleErrorMessage(e.getMessage());
+                return;
+            }
+        } else if (!splitOutputTx.isLocked()) {
+
+            // otherwise sign and post offer if split output available
+            signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
+            return;
+        } else {
+            resultHandler.handleResult(null);
+            return;
+        }
+    }
+
+    private void splitOrScheduleAux(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
 
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getAvailableBalance().compareTo(offerReserveAmount) >= 0;
@@ -1299,13 +1316,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     openOffer.setScheduledAmount(null);
                     requestPersistence();
 
-                    resultHandler.handleResult(transaction);
                     if (!stopped) {
                         startPeriodicRepublishOffersTimer();
                         startPeriodicRefreshOffersTimer();
                     } else {
                         log.debug("We have stopped already. We ignore that placeOfferProtocol.placeOffer.onResult call.");
                     }
+                    resultHandler.handleResult(transaction);
                 },
                 errorMessageHandler);
 
