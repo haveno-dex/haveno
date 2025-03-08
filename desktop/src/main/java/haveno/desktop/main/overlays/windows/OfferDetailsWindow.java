@@ -342,7 +342,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         BigInteger reservedAmount = isMyOffer ? offer.getReservedAmount() : null;
 
         // get offer challenge
-        OpenOffer myOpenOffer = HavenoUtils.openOfferManager.getOpenOfferById(offer.getId()).orElse(null);
+        OpenOffer myOpenOffer = HavenoUtils.openOfferManager.getOpenOffer(offer.getId()).orElse(null);
         String offerChallenge = myOpenOffer == null ? null : myOpenOffer.getChallenge();
 
         rows = 3;

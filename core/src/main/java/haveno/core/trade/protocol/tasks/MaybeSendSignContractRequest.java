@@ -87,7 +87,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 Integer subaddressIndex = null;
                 boolean reserveExactAmount = false;
                 if (trade instanceof MakerTrade) {
-                    reserveExactAmount = processModel.getOpenOfferManager().getOpenOfferById(trade.getId()).get().isReserveExactAmount();
+                    reserveExactAmount = processModel.getOpenOfferManager().getOpenOffer(trade.getId()).get().isReserveExactAmount();
                     if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
                 }
 

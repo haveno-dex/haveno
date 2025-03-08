@@ -159,7 +159,7 @@ public class CoreOffersService {
     }
 
     OpenOffer getMyOffer(String id) {
-        return openOfferManager.getOpenOfferById(id)
+        return openOfferManager.getOpenOffer(id)
                 .filter(open -> open.getOffer().isMyOffer(keyRing))
                 .orElseThrow(() ->
                         new IllegalStateException(format("openoffer with id '%s' not found", id)));

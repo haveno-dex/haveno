@@ -1604,7 +1604,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // unreserve maker's open offer
-        Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOfferById(this.getId());
+        Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(this.getId());
         if (this instanceof MakerTrade && openOffer.isPresent()) {
             processModel.getOpenOfferManager().unreserveOpenOffer(openOffer.get());
         }
@@ -1688,7 +1688,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void restoreDepositsPublishedTrade() {
 
         // close open offer
-        if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOfferById(getId()).isPresent()) {
+        if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOffer(getId()).isPresent()) {
             log.info("Closing open offer because {} {} was restored after protocol error", getClass().getSimpleName(), getShortId());
             processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(getOffer()));
         }
