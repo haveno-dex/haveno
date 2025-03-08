@@ -236,7 +236,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             public void onAdded(Offer offer) {
 
                 // cancel offer if reserved funds spent
-                Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
+                Optional<OpenOffer> openOfferOptional = getOpenOffer(offer.getId());
                 if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
                     log.warn("Canceling open offer because reserved funds have been spent, offerId={}, state={}", offer.getId(), openOfferOptional.get().getState());
                     cancelOpenOffer(openOfferOptional.get(), null, null);
@@ -573,7 +573,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     // Remove from offerbook
     public void removeOffer(Offer offer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
+        Optional<OpenOffer> openOfferOptional = getOpenOffer(offer.getId());
         if (openOfferOptional.isPresent()) {
             cancelOpenOffer(openOfferOptional.get(), resultHandler, errorMessageHandler);
         } else {
@@ -686,7 +686,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                      OpenOffer.State originalState,
                                      ResultHandler resultHandler,
                                      ErrorMessageHandler errorMessageHandler) {
-        Optional<OpenOffer> openOfferOptional = getOpenOfferById(editedOffer.getId());
+        Optional<OpenOffer> openOfferOptional = getOpenOffer(editedOffer.getId());
 
         if (openOfferOptional.isPresent()) {
             OpenOffer openOffer = openOfferOptional.get();
@@ -750,7 +750,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     // close open offer after key images spent
     public void closeOpenOffer(Offer offer) {
-        getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
+        getOpenOffer(offer.getId()).ifPresent(openOffer -> {
             removeOpenOffer(openOffer);
             openOffer.setState(OpenOffer.State.CLOSED);
             xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
@@ -813,14 +813,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return openOffers.getObservableList();
     }
 
-    public Optional<OpenOffer> getOpenOfferById(String offerId) {
+    public Optional<OpenOffer> getOpenOffer(String offerId) {
         synchronized (openOffers) {
             return openOffers.stream().filter(e -> e.getId().equals(offerId)).findFirst();
         }
     }
 
     public boolean hasOpenOffer(String offerId) {
-        return getOpenOfferById(offerId).isPresent();
+        return getOpenOffer(offerId).isPresent();
     }
 
     public Optional<SignedOffer> getSignedOfferById(String offerId) {
@@ -1575,7 +1575,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         try {
-            Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
+            Optional<OpenOffer> openOfferOptional = getOpenOffer(request.offerId);
             AvailabilityResult availabilityResult;
             byte[] makerSignature = null;
             if (openOfferOptional.isPresent()) {

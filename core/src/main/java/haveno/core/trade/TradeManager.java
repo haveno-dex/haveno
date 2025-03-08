@@ -556,7 +556,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (request.getMakerNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) {
 
             // get open offer
-            Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOfferById(request.getOfferId());
+            Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(request.getOfferId());
             if (!openOfferOptional.isPresent()) return;
             OpenOffer openOffer = openOfferOptional.get();
             if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
