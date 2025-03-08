@@ -77,7 +77,7 @@ Steps:
 
 1. Run `make user1-desktop-stagenet` to start the application.
 2. Click on the "Funds" tab in the top menu and copy the generated XMR address.
-3. Go to the [stagenet faucet](https://community.rino.io/faucet/stagenet/) and paste the address above in the "Get XMR" field. Submit and see the stagenet coins being sent to your Haveno instance.
+3. Go to the [stagenet faucet](https://stagenet-faucet.xmr-tw.org) and paste the address above in the "Get XMR" field. Submit and see the stagenet coins being sent to your Haveno instance.
 4. While you wait the 10 confirmations (20 minutes) needed for your funds to be spendable, create a fiat account by clicking on "Account" in the top menu, select the "National currency accounts" tab, then add a new account. For simplicity, we suggest to test using a Revolut account with a random ID.
 5. Now pick up an existing offer or open a new one. Fund your trade and wait 10 blocks for your deposit to be unlocked.
 6. Now if you are taking a trade you'll be asked to confirm you have sent the payment outside Haveno. Confirm in the app and wait for the confirmation of received payment from the other trader.
