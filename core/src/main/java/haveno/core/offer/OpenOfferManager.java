@@ -1574,6 +1574,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             return;
         }
 
+        // Don't allow trade start if not connected to Monero node
+        if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
+            errorMessage = "We got a handleOfferAvailabilityRequest but we are not connected to a Monero node.";
+            log.info(errorMessage);
+            sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+            return;
+        }
+
         if (stopped) {
             errorMessage = "We have stopped already. We ignore that handleOfferAvailabilityRequest call.";
             log.debug(errorMessage);
