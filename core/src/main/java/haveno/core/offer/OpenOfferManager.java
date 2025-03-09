@@ -1978,6 +1978,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private boolean preventedFromPublishing(OpenOffer openOffer) {
+        if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) return true;
         return openOffer.isDeactivated() || openOffer.isCanceled() || openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null;
     }
 
@@ -2000,25 +2001,27 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (periodicRefreshOffersTimer == null)
             periodicRefreshOffersTimer = UserThread.runPeriodically(() -> {
                         if (!stopped) {
-                            int size = openOffers.size();
-                            //we clone our list as openOffers might change during our delayed call
-                            final ArrayList<OpenOffer> openOffersList = new ArrayList<>(openOffers.getList());
-                            for (int i = 0; i < size; i++) {
-                                // we delay to avoid reaching throttle limits
-                                // roughly 4 offers per second
-
-                                long delay = 300;
-                                final long minDelay = (i + 1) * delay;
-                                final long maxDelay = (i + 2) * delay;
-                                final OpenOffer openOffer = openOffersList.get(i);
-                                UserThread.runAfterRandomDelay(() -> {
-                                    // we need to check if in the meantime the offer has been removed
-                                    boolean contained = false;
-                                    synchronized (openOffers) {
-                                        contained = openOffers.contains(openOffer);
-                                    }
-                                    if (contained) maybeRefreshOffer(openOffer, 0, 1);
-                                }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
+                            synchronized (openOffers) {
+                                int size = openOffers.size();
+                                //we clone our list as openOffers might change during our delayed call
+                                final ArrayList<OpenOffer> openOffersList = new ArrayList<>(openOffers.getList());
+                                for (int i = 0; i < size; i++) {
+                                    // we delay to avoid reaching throttle limits
+                                    // roughly 4 offers per second
+    
+                                    long delay = 300;
+                                    final long minDelay = (i + 1) * delay;
+                                    final long maxDelay = (i + 2) * delay;
+                                    final OpenOffer openOffer = openOffersList.get(i);
+                                    UserThread.runAfterRandomDelay(() -> {
+                                        // we need to check if in the meantime the offer has been removed
+                                        boolean contained = false;
+                                        synchronized (openOffers) {
+                                            contained = openOffers.contains(openOffer);
+                                        }
+                                        if (contained) maybeRefreshOffer(openOffer, 0, 1);
+                                    }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
+                                }
                             }
                         } else {
                             log.debug("We have stopped already. We ignore that periodicRefreshOffersTimer.run call.");
