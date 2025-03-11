@@ -60,8 +60,8 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
     public void handleInitTradeRequest(InitTradeRequest message,
                                        NodeAddress peer,
                                        ErrorMessageHandler errorMessageHandler) {
-        System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
-        ThreadUtils.execute(() -> {
+            log.info(TradeProtocol.LOG_HIGHLIGHT + "handleInitTradeRequest() for {} {} from {}", trade.getClass().getSimpleName(), trade.getShortId(), peer);
+            ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
