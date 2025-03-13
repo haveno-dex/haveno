@@ -451,10 +451,10 @@ Users are encouraged to experiment with options before use to determine which op
 ## Starting Haveno Using Externally Available `tor`
 ### Dynamic Onion Assignment via `--torControlPort`
 ```shell
-$ /opt/haveno/bin/Haveno --torControlPort='9051' --torControlCookieFile='/var/run/tor/control.authcookie' --torControlUseSafeCookieAuth --useTorForXmr='on' --socks5ProxyXmrAddress='127.0.0.1:9050'
+$ /opt/haveno/bin/Haveno --torControlPort='9051' --torControlCookieFile='/var/run/tor/control.authcookie' --torControlUseSafeCookieAuth --useTorForXmr='on'
 ```
 
 ### Static Onion Assignment via `--hiddenServiceAddress`
 ```shell
-$ /opt/haveno/bin/Haveno --socks5ProxyXmrAddress='127.0.0.1:9050' --useTorForXmr='on' --hiddenServiceAddress='2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion'
+$ /opt/haveno/bin/Haveno --useTorForXmr='on' --hiddenServiceAddress='2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion'
 ```
