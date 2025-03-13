@@ -94,6 +94,7 @@ public class ProcessModel implements Model, PersistablePayload {
     transient private ProcessModelServiceProvider provider;
     transient private TradeManager tradeManager;
     transient private Offer offer;
+    transient public Throwable error;
 
     // Added in v1.4.0
     // MessageState of the last message sent from the seller to the buyer in the take offer process.
