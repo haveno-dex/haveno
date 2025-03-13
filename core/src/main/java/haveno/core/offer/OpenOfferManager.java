@@ -97,6 +97,7 @@ import haveno.network.p2p.peers.PeerManager;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -888,6 +889,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             List<String> errorMessages = new ArrayList<String>();
             synchronized (processOffersLock) {
                 List<OpenOffer> openOffers = getOpenOffers();
+                removeOffersWithDuplicateKeyImages(openOffers);
                 for (OpenOffer pendingOffer : openOffers) {
                     if (pendingOffer.getState() != OpenOffer.State.PENDING) continue;
                     if (skipOffersWithTooManyAttempts && pendingOffer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD) continue; // skip offers with too many attempts
@@ -917,6 +919,28 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessages.toString());
             }
         }, THREAD_ID);
+    }
+
+    private void removeOffersWithDuplicateKeyImages(List<OpenOffer> openOffers) {
+
+        // collect offers with duplicate key images
+        Set<String> keyImages = new HashSet<>();
+        Set<OpenOffer> offersToRemove = new HashSet<>();
+        for (OpenOffer openOffer : openOffers) {
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
+            if (Collections.disjoint(keyImages, openOffer.getOffer().getOfferPayload().getReserveTxKeyImages())) {
+                keyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+            } else {
+                offersToRemove.add(openOffer);
+            }
+        }
+
+        // remove offers with duplicate key images
+        for (OpenOffer offerToRemove : offersToRemove) {
+            log.warn("Removing open offer which has duplicate key images with other open offers: {}", offerToRemove.getId());
+            doCancelOffer(offerToRemove);
+            openOffers.remove(offerToRemove);
+        }
     }
 
     private void processPendingOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
