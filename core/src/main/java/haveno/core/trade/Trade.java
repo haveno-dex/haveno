@@ -1903,10 +1903,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             getSeller().setPayoutTxFee(splitTxFee);
             getBuyer().setPayoutAmount(getBuyer().getSecurityDeposit().subtract(getBuyer().getPayoutTxFee()).add(getAmount()));
             getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()));
-        } else if (getDisputeState().isClosed()) {
+        } else {
             DisputeResult disputeResult = getDisputeResult();
-            if (disputeResult == null) log.warn("Dispute result is not set for {} {}", getClass().getSimpleName(), getId());
-            else {
+            if (disputeResult != null) {
                 BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
                 getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
                 getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);

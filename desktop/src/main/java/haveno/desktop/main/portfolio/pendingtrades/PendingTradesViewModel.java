@@ -416,8 +416,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             // payment received
             case SELLER_SENT_PAYMENT_RECEIVED_MSG:
-                if (trade instanceof BuyerTrade) buyerState.set(BuyerState.STEP4);
-                else if (trade instanceof SellerTrade) sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
+                if (trade instanceof BuyerTrade) {
+                    buyerState.set(BuyerState.UNDEFINED); // TODO: resetting screen to populate summary information which can be missing before payout message processed
+                    buyerState.set(BuyerState.STEP4);
+                } else if (trade instanceof SellerTrade) {
+                    sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
+                }
                 break;
 
             // seller step 3
