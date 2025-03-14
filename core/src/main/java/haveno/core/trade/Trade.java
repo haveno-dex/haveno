@@ -46,7 +46,6 @@ import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
-import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
@@ -195,7 +194,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         SELLER_SENT_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
         SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
-        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED);
+        SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED),
+        BUYER_RECEIVED_PAYMENT_RECEIVED_MSG(Phase.PAYMENT_RECEIVED);
 
         @NotNull
         public Phase getPhase() {
@@ -603,12 +603,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-      // notified from TradeProtocol of ack messages
-      public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
+    // notified from TradeProtocol of ack messages
+    public void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
         for (TradeListener listener : new ArrayList<TradeListener>(tradeListeners)) {  // copy array to allow listener invocation to unregister listener without concurrent modification exception
             listener.onAckMessage(ackMessage, sender);
         }
-      }
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -618,8 +618,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void initialize(ProcessModelServiceProvider serviceProvider) {
         if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
-        // done if payout unlocked and marked complete
-        if (isPayoutUnlocked() && isCompleted()) {
+        // skip initialization if trade is complete
+        // starting in v1.0.19, seller resends payment received message until acked or stored in mailbox
+        if (isPayoutUnlocked() && isCompleted() && !getProtocol().needsToResendPaymentReceivedMessages()) {
             clearAndShutDown();
             return;
         }
@@ -733,15 +734,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             xmrWalletService.addWalletListener(idlePayoutSyncer);
         }
 
-        // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed in v1.0.19 so this check can be removed?
-        if (isBuyer()) {
-            MessageState expectedState = getPaymentSentMessageState();
-            if (expectedState != null && expectedState != processModel.getPaymentSentMessageStatePropertySeller().get()) {
-                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStatePropertySeller().get());
-                processModel.getPaymentSentMessageStatePropertySeller().set(expectedState);
-            }
-        }
-
         // handle confirmations
         walletHeight.addListener((observable, oldValue, newValue) -> {
             importMultisigHexIfScheduled();
@@ -771,9 +763,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
         }
 
-        // start polling if deposit requested
-        if (isDepositRequested()) tryInitPolling();
+        // init syncing if deposit requested
+        if (isDepositRequested()) {
+            tryInitSyncing();
+        }
         isFullyInitialized = true;
+    }
+
+    public void reprocessApplicableMessages() {
+        if (!isDepositRequested() || isPayoutUnlocked() || isCompleted()) return;
+        getProtocol().maybeReprocessPaymentSentMessage(false);
+        getProtocol().maybeReprocessPaymentReceivedMessage(false);
+        HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
     }
 
     public void awaitInitialized() {
@@ -1535,7 +1536,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
-            peer.setPaymentReceivedMessage(null);
+            if (peer.isPaymentReceivedMessageReceived()) peer.setPaymentReceivedMessage(null);
         }
     }
 
@@ -2049,25 +2050,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
     }
 
-    public MessageState getPaymentSentMessageState() {
-        if (isPaymentReceived()) return MessageState.ACKNOWLEDGED;
-        if (processModel.getPaymentSentMessageStatePropertySeller().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
-        switch (state) {
-            case BUYER_SENT_PAYMENT_SENT_MSG:
-                return MessageState.SENT;
-            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
-                return MessageState.ARRIVED;
-            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
-                return MessageState.STORED_IN_MAILBOX;
-            case SELLER_RECEIVED_PAYMENT_SENT_MSG:
-                return MessageState.ACKNOWLEDGED;
-            case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
-                return MessageState.FAILED;
-            default:
-                return null;
-        }
-    }
-
     public String getPeerRole(TradePeer peer) {
         if (peer == getBuyer()) return "Buyer";
         if (peer == getSeller()) return "Seller";
@@ -2444,11 +2426,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // sync and reprocess messages on new thread
             if (isInitialized && connection != null && !Boolean.FALSE.equals(xmrConnectionService.isConnected())) {
-                ThreadUtils.execute(() -> tryInitPolling(), getId());
+                ThreadUtils.execute(() -> tryInitSyncing(), getId());
             }
         }
     }
-    private void tryInitPolling() {
+
+    private void tryInitSyncing() {
         if (isShutDownStarted) return;
 
         // set known deposit txs
@@ -2457,24 +2440,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // start polling
         if (!isIdling()) {
-            tryInitPollingAux();
+            doTryInitSyncing();
         }  else {
             long startSyncingInMs = ThreadLocalRandom.current().nextLong(0, getPollPeriod()); // random time to start polling
             UserThread.runAfter(() -> ThreadUtils.execute(() -> {
-                if (!isShutDownStarted) tryInitPollingAux();
+                if (!isShutDownStarted) doTryInitSyncing();
             }, getId()), startSyncingInMs / 1000l);
         }
     }
     
-    private void tryInitPollingAux() {
+    private void doTryInitSyncing() {
         if (!wasWalletSynced) trySyncWallet(true);
         updatePollPeriod();
-        
-        // reprocess pending messages
-        getProtocol().maybeReprocessPaymentSentMessage(false);
-        getProtocol().maybeReprocessPaymentReceivedMessage(false);
-        HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
-
         startPolling();
     }
 
@@ -2825,7 +2802,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
         pollWallet();
-        if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitPolling(), getId());
+        if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitSyncing(), getId());
     }
 
     private void setStateDepositsSeen() {
