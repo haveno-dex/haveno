@@ -38,26 +38,7 @@ public class BuyerSendPaymentSentMessageToArbitrator extends BuyerSendPaymentSen
 
     @Override
     protected void setStateSent() {
+        super.setStateSent();
         complete(); // don't wait for message to arbitrator
-    }
-
-    @Override
-    protected void setStateFault() {
-        // state only updated on seller message
-    }
-
-    @Override
-    protected void setStateStoredInMailbox() {
-        // state only updated on seller message
-    }
-
-    @Override
-    protected void setStateArrived() {
-        // state only updated on seller message
-    }
-
-    @Override
-    protected boolean isAckedByReceiver() {
-        return trade.getProcessModel().isPaymentSentMessageAckedByArbitrator();
     }
 }

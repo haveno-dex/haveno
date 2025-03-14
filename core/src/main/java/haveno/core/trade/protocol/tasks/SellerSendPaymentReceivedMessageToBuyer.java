@@ -37,6 +37,30 @@ public class SellerSendPaymentReceivedMessageToBuyer extends SellerSendPaymentRe
         return trade.getBuyer();
     }
 
+    @Override
+    protected void setStateSent() {
+        trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+        super.setStateSent();
+    }
+
+    @Override
+    protected void setStateFault() {
+        trade.advanceState(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
+        super.setStateFault();
+    }
+
+    @Override
+    protected void setStateStoredInMailbox() {
+        trade.advanceState(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
+        super.setStateStoredInMailbox();
+    }
+
+    @Override
+    protected void setStateArrived() {
+        trade.advanceState(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
+        super.setStateArrived();
+    }
+
     // continue execution on fault so payment received message is sent to arbitrator
     @Override
     protected void onFault(String errorMessage, TradeMessage message) {

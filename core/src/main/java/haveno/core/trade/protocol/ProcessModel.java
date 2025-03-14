@@ -44,6 +44,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -73,6 +74,9 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 
 import javax.annotation.Nullable;
+
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
@@ -161,15 +165,11 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private boolean importMultisigHexScheduled;
-
-    // We want to indicate the user the state of the message delivery of the
-    // PaymentSentMessage. As well we do an automatic re-send in case it was not ACKed yet.
-    // To enable that even after restart we persist the state.
-    @Setter
-    private ObjectProperty<MessageState> paymentSentMessageStatePropertySeller = new SimpleObjectProperty<>(MessageState.UNDEFINED);
-    @Setter
-    private ObjectProperty<MessageState> paymentSentMessageStatePropertyArbitrator = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     private ObjectProperty<Boolean> paymentAccountDecryptedProperty = new SimpleObjectProperty<>(false);
+    @Deprecated
+    private ObjectProperty<MessageState> paymentSentMessageStatePropertySeller = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Deprecated
+    private ObjectProperty<MessageState> paymentSentMessageStatePropertyArbitrator = new SimpleObjectProperty<>(MessageState.UNDEFINED);
 
     public ProcessModel(String offerId, String accountId, PubKeyRing pubKeyRing) {
         this(offerId, accountId, pubKeyRing, new TradePeer(), new TradePeer(), new TradePeer());
@@ -191,6 +191,31 @@ public class ProcessModel implements Model, PersistablePayload {
         this.offer = offer;
         this.provider = provider;
         this.tradeManager = tradeManager;
+        for (TradePeer peer : getTradePeers()) {
+            peer.applyTransient(tradeManager);
+        }
+
+        // migrate deprecated fields to new model for v1.0.19
+        if (paymentSentMessageStatePropertySeller.get() != MessageState.UNDEFINED && getSeller().getPaymentSentMessageStateProperty().get() == MessageState.UNDEFINED) {
+            getSeller().getPaymentSentMessageStateProperty().set(paymentSentMessageStatePropertySeller.get());
+            tradeManager.requestPersistence();
+        }
+        if (paymentSentMessageStatePropertyArbitrator.get() != MessageState.UNDEFINED && getArbitrator().getPaymentSentMessageStateProperty().get() == MessageState.UNDEFINED) {
+            getArbitrator().getPaymentSentMessageStateProperty().set(paymentSentMessageStatePropertyArbitrator.get());
+            tradeManager.requestPersistence();
+        }
+    }
+
+    private List<TradePeer> getTradePeers() {
+        return Arrays.asList(maker, taker, arbitrator);
+    }
+
+    private TradePeer getBuyer() {
+        return offer.getDirection() == OfferDirection.BUY ? maker : taker;
+    }
+
+    private TradePeer getSeller() {
+        return offer.getDirection() == OfferDirection.BUY ? taker : maker;
     }
 
 
@@ -245,14 +270,13 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setTradeFeeAddress(ProtoUtil.stringOrNullFromProto(proto.getTradeFeeAddress()));
         processModel.setMultisigAddress(ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
 
+        // deprecated fields need to be read in order to migrate to new fields
         String paymentSentMessageStateSellerString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageStateSeller());
         MessageState paymentSentMessageStateSeller = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateSellerString);
-        processModel.setPaymentSentMessageStateSeller(paymentSentMessageStateSeller);
-
+        processModel.paymentSentMessageStatePropertySeller.set(paymentSentMessageStateSeller);
         String paymentSentMessageStateArbitratorString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageStateArbitrator());
         MessageState paymentSentMessageStateArbitrator = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateArbitratorString);
-        processModel.setPaymentSentMessageStateArbitrator(paymentSentMessageStateArbitrator);
-
+        processModel.paymentSentMessageStatePropertyArbitrator.set(paymentSentMessageStateArbitrator);
         return processModel;
     }
 
@@ -279,40 +303,8 @@ public class ProcessModel implements Model, PersistablePayload {
         return getP2PService().getAddress();
     }
 
-    void setPaymentSentAckMessageSeller(AckMessage ackMessage) {
-        MessageState messageState = ackMessage.isSuccess() ?
-                MessageState.ACKNOWLEDGED :
-                MessageState.FAILED;
-        setPaymentSentMessageStateSeller(messageState);
-    }
-
-    void setPaymentSentAckMessageArbitrator(AckMessage ackMessage) {
-        MessageState messageState = ackMessage.isSuccess() ?
-                MessageState.ACKNOWLEDGED :
-                MessageState.FAILED;
-        setPaymentSentMessageStateArbitrator(messageState);
-    }
-
-    public void setPaymentSentMessageStateSeller(MessageState paymentSentMessageStateProperty) {
-        this.paymentSentMessageStatePropertySeller.set(paymentSentMessageStateProperty);
-        if (tradeManager != null) {
-            tradeManager.requestPersistence();
-        }
-    }
-
-    public void setPaymentSentMessageStateArbitrator(MessageState paymentSentMessageStateProperty) {
-        this.paymentSentMessageStatePropertyArbitrator.set(paymentSentMessageStateProperty);
-        if (tradeManager != null) {
-            tradeManager.requestPersistence();
-        }
-    }
-
-    public boolean isPaymentSentMessageAckedBySeller() {
-        return paymentSentMessageStatePropertySeller.get() == MessageState.ACKNOWLEDGED;
-    }
-
-    public boolean isPaymentSentMessageAckedByArbitrator() {
-        return paymentSentMessageStatePropertyArbitrator.get() == MessageState.ACKNOWLEDGED;
+    public boolean isPaymentReceivedMessagesReceived() {
+        return getArbitrator().isPaymentReceivedMessageReceived() && getBuyer().isPaymentReceivedMessageReceived();
     }
 
     void setDepositTxSentAckMessage(AckMessage ackMessage) {

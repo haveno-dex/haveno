@@ -1465,6 +1465,7 @@ message Trade {
         SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG = 24;
         SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG = 25;
         SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG = 26;
+        BUYER_RECEIVED_PAYMENT_RECEIVED_MSG = 27;
     }
 
     enum Phase {
@@ -1568,8 +1569,8 @@ message ProcessModel {
     bytes payout_tx_signature = 4;
     bool use_savings_wallet = 5;
     int64 funds_needed_for_trade = 6;
-    string payment_sent_message_state_seller = 7;
-    string payment_sent_message_state_arbitrator = 8;
+    string payment_sent_message_state_seller = 7 [deprecated = true];
+    string payment_sent_message_state_arbitrator = 8 [deprecated = true];
     bytes maker_signature = 9;
     TradePeer maker = 10;
     TradePeer taker = 11;
@@ -1613,7 +1614,7 @@ message TradePeer {
     string made_multisig_hex = 31;
     string exchanged_multisig_hex = 32;
     string updated_multisig_hex = 33;
-    bool deposits_confirmed_message_acked = 34;
+    bool deposits_confirmed_message_acked = 34 [deprecated = true];
     string deposit_tx_hash = 35;
     string deposit_tx_hex = 36;
     string deposit_tx_key = 37;
@@ -1622,6 +1623,9 @@ message TradePeer {
     string unsigned_payout_tx_hex = 40;
     int64 payout_tx_fee = 41;
     int64 payout_amount = 42;
+    string deposits_confirmed_message_state = 43;
+    string payment_sent_message_state = 44;
+    string payment_received_message_state = 45;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

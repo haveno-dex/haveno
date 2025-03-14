@@ -23,6 +23,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -52,8 +53,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         try {
             runInterceptHook();
 
-            // skip if already acked by receiver
-            if (isAckedByReceiver()) {
+            // skip if already acked or payout published
+            if (isAckedByReceiver() || trade.isPayoutPublished()) {
                 if (!isCompleted()) complete();
                 return;
             }
@@ -64,11 +65,17 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         }
     }
 
-    @Override
-    protected abstract NodeAddress getReceiverNodeAddress();
+    protected abstract TradePeer getReceiver();
 
     @Override
-    protected abstract PubKeyRing getReceiverPubKeyRing();
+    protected NodeAddress getReceiverNodeAddress() {
+        return getReceiver().getNodeAddress();
+    }
+
+    @Override
+    protected PubKeyRing getReceiverPubKeyRing() {
+        return getReceiver().getPubKeyRing();
+    }
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
@@ -97,23 +104,24 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
     @Override
     protected void setStateSent() {
+        getReceiver().setDepositsConfirmedMessageState(MessageState.SENT);
         tryToSendAgainLater();
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateArrived() {
-        // no additional handling
+        getReceiver().setDepositsConfirmedMessageState(MessageState.ARRIVED);
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        // no additional handling
+        getReceiver().setDepositsConfirmedMessageState(MessageState.STORED_IN_MAILBOX);
     }
 
     @Override
     protected void setStateFault() {
-        // no additional handling
+        getReceiver().setDepositsConfirmedMessageState(MessageState.FAILED);
     }
 
     private void cleanup() {
@@ -151,7 +159,6 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     }
 
     private boolean isAckedByReceiver() {
-        TradePeer peer = trade.getTradePeer(getReceiverNodeAddress());
-        return peer.isDepositsConfirmedMessageAcked();
+        return getReceiver().isDepositsConfirmedMessageAcked();
     }
 }
