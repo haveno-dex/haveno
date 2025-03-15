@@ -385,7 +385,7 @@ message DisputeOpenedMessage {
     NodeAddress sender_node_address = 2;
     string uid = 3;
     SupportType type = 4;
-    string updated_multisig_hex = 5;
+    string opener_updated_multisig_hex = 5;
     PaymentSentMessage payment_sent_message = 6;
 }
 
