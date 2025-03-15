@@ -34,7 +34,7 @@ import java.util.Optional;
 public final class DisputeOpenedMessage extends DisputeMessage {
     private final Dispute dispute;
     private final NodeAddress senderNodeAddress;
-    private final String updatedMultisigHex;
+    private final String openerUpdatedMultisigHex;
     private final PaymentSentMessage paymentSentMessage;
 
     public DisputeOpenedMessage(Dispute dispute,
@@ -67,7 +67,7 @@ public final class DisputeOpenedMessage extends DisputeMessage {
         super(messageVersion, uid, supportType);
         this.dispute = dispute;
         this.senderNodeAddress = senderNodeAddress;
-        this.updatedMultisigHex = updatedMultisigHex;
+        this.openerUpdatedMultisigHex = updatedMultisigHex;
         this.paymentSentMessage = paymentSentMessage;
     }
 
@@ -78,7 +78,7 @@ public final class DisputeOpenedMessage extends DisputeMessage {
                 .setDispute(dispute.toProtoMessage())
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setType(SupportType.toProtoMessage(supportType))
-                .setUpdatedMultisigHex(updatedMultisigHex);
+                .setOpenerUpdatedMultisigHex(openerUpdatedMultisigHex);
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
         return getNetworkEnvelopeBuilder().setDisputeOpenedMessage(builder).build();
     }
@@ -91,7 +91,7 @@ public final class DisputeOpenedMessage extends DisputeMessage {
                 proto.getUid(),
                 messageVersion,
                 SupportType.fromProto(proto.getType()),
-                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
+                ProtoUtil.stringOrNullFromProto(proto.getOpenerUpdatedMultisigHex()),
                 proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null);
     }
 
@@ -108,7 +108,7 @@ public final class DisputeOpenedMessage extends DisputeMessage {
                 ",\n     DisputeOpenedMessage.uid='" + uid + '\'' +
                 ",\n     messageVersion=" + messageVersion +
                 ",\n     supportType=" + supportType +
-                ",\n     updatedMultisigHex=" + updatedMultisigHex +
+                ",\n     openerUpdatedMultisigHex=" + openerUpdatedMultisigHex +
                 ",\n     paymentSentMessage=" + paymentSentMessage +
                 "\n} " + super.toString();
     }

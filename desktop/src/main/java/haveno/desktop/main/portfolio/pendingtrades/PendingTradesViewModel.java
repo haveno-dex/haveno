@@ -200,7 +200,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                     onPayoutStateChanged(state);
                 });
-                messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStatePropertySeller(), this::onPaymentSentMessageStateChanged);
+                messageStateSubscription = EasyBind.subscribe(trade.getSeller().getPaymentSentMessageStateProperty(), this::onPaymentSentMessageStateChanged);
             }
         }
     }
@@ -416,8 +416,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             // payment received
             case SELLER_SENT_PAYMENT_RECEIVED_MSG:
-                if (trade instanceof BuyerTrade) buyerState.set(BuyerState.STEP4);
-                else if (trade instanceof SellerTrade) sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
+                if (trade instanceof BuyerTrade) {
+                    buyerState.set(BuyerState.UNDEFINED); // TODO: resetting screen to populate summary information which can be missing before payout message processed
+                    buyerState.set(BuyerState.STEP4);
+                } else if (trade instanceof SellerTrade) {
+                    sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
+                }
                 break;
 
             // seller step 3
@@ -425,6 +429,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
+            case BUYER_RECEIVED_PAYMENT_RECEIVED_MSG:
                 sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 break;
 

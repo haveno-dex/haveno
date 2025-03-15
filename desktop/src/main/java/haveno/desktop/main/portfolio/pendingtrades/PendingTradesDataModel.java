@@ -553,13 +553,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
           disputeManager = arbitrationManager;
           Dispute dispute = disputesService.createDisputeForTrade(trade, offer, pubKeyRingProvider.get(), isMaker, isSupportTicket);
 
-          // export latest multisig hex
-          try {
-            trade.exportMultisigHex();
-          } catch (Exception e) {
-            log.error("Failed to export multisig hex", e);
-          }
-
           // send dispute opened message
           sendDisputeOpenedMessage(dispute, disputeManager);
           tradeManager.requestPersistence();

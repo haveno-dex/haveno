@@ -17,10 +17,9 @@
 
 package haveno.core.trade.protocol.tasks;
 
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
-import haveno.network.p2p.NodeAddress;
+import haveno.core.trade.protocol.TradePeer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -34,12 +33,7 @@ public class SendDepositsConfirmedMessageToSeller extends SendDepositsConfirmedM
     }
 
     @Override
-    public NodeAddress getReceiverNodeAddress() {
-        return trade.getSeller().getNodeAddress();
-    }
-
-    @Override
-    public PubKeyRing getReceiverPubKeyRing() {
-        return trade.getSeller().getPubKeyRing();
+    protected TradePeer getReceiver() {
+        return trade.getSeller();
     }
 }

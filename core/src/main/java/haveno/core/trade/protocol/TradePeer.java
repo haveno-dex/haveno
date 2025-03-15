@@ -24,12 +24,17 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.persistable.PersistablePayload;
 import haveno.core.account.witness.AccountAgeWitness;
+import haveno.core.network.MessageState;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
+import haveno.core.trade.TradeManager;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
+import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +62,7 @@ public final class TradePeer implements PersistablePayload {
     @Nullable
     transient private byte[] preparedDepositTx;
     transient private MoneroTxWallet depositTx;
+    transient private TradeManager tradeManager;
 
     // Persistable mutable
     @Nullable
@@ -95,7 +101,6 @@ public final class TradePeer implements PersistablePayload {
     @Setter
     @Getter
     private DisputeClosedMessage disputeClosedMessage;
-
 
     // added in v 0.6
     @Nullable
@@ -142,11 +147,30 @@ public final class TradePeer implements PersistablePayload {
     private long payoutAmount;
     @Nullable
     private String updatedMultisigHex;
-    @Getter
+    @Deprecated
+    private boolean depositsConfirmedMessageAcked;
+    
+    // We want to indicate the user the state of the message delivery of the payment
+    // confirmation messages. We do an automatic re-send in case it was not ACKed yet.
+    // To enable that even after restart we persist the state.
     @Setter
-    boolean depositsConfirmedMessageAcked;
+    private ObjectProperty<MessageState> depositsConfirmedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Setter
+    private ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Setter
+    private ObjectProperty<MessageState> paymentReceivedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
 
     public TradePeer() {
+    }
+
+    public void applyTransient(TradeManager tradeManager) {
+        this.tradeManager = tradeManager;
+
+        // migrate deprecated fields to new model for v1.0.19
+        if (depositsConfirmedMessageAcked && depositsConfirmedMessageStateProperty.get() == MessageState.UNDEFINED) {
+            depositsConfirmedMessageStateProperty.set(MessageState.ACKNOWLEDGED);
+            tradeManager.requestPersistence();
+        }
     }
 
     public BigInteger getDepositTxFee() {
@@ -179,6 +203,60 @@ public final class TradePeer implements PersistablePayload {
 
     public void setPayoutAmount(BigInteger payoutAmount) {
         this.payoutAmount = payoutAmount.longValueExact();
+    }
+
+    void setDepositsConfirmedAckMessage(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.FAILED;
+        setDepositsConfirmedMessageState(messageState);
+    }
+
+    void setPaymentSentAckMessage(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.FAILED;
+        setPaymentSentMessageState(messageState);
+    }
+
+    void setPaymentReceivedAckMessage(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.FAILED;
+        setPaymentReceivedMessageState(messageState);
+    }
+
+    public void setDepositsConfirmedMessageState(MessageState depositsConfirmedMessageStateProperty) {
+        this.depositsConfirmedMessageStateProperty.set(depositsConfirmedMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    public void setPaymentSentMessageState(MessageState paymentSentMessageStateProperty) {
+        this.paymentSentMessageStateProperty.set(paymentSentMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    public void setPaymentReceivedMessageState(MessageState paymentReceivedMessageStateProperty) {
+        this.paymentReceivedMessageStateProperty.set(paymentReceivedMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    public boolean isDepositsConfirmedMessageAcked() {
+        return depositsConfirmedMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
+    }
+
+    public boolean isPaymentSentMessageAcked() {
+        return paymentSentMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
+    }
+
+    public boolean isPaymentReceivedMessageReceived() {
+        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
     }
 
     @Override
@@ -221,6 +299,9 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(payoutTxFee).ifPresent(e -> builder.setPayoutTxFee(payoutTxFee));
         Optional.ofNullable(payoutAmount).ifPresent(e -> builder.setPayoutAmount(payoutAmount));
         builder.setDepositsConfirmedMessageAcked(depositsConfirmedMessageAcked);
+        builder.setDepositsConfirmedMessageState(depositsConfirmedMessageStateProperty.get().name());
+        builder.setPaymentSentMessageState(paymentSentMessageStateProperty.get().name());
+        builder.setPaymentReceivedMessageState(paymentReceivedMessageStateProperty.get().name());
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -270,6 +351,19 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setUnsignedPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getUnsignedPayoutTxHex()));
             tradePeer.setPayoutTxFee(BigInteger.valueOf(proto.getPayoutTxFee()));
             tradePeer.setPayoutAmount(BigInteger.valueOf(proto.getPayoutAmount()));
+
+            String depositsConfirmedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getDepositsConfirmedMessageState());
+            MessageState depositsConfirmedMessageState = ProtoUtil.enumFromProto(MessageState.class, depositsConfirmedMessageStateString);
+            tradePeer.setDepositsConfirmedMessageState(depositsConfirmedMessageState);
+
+            String paymentSentMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentSentMessageState());
+            MessageState paymentSentMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentSentMessageStateString);
+            tradePeer.setPaymentSentMessageState(paymentSentMessageState);
+
+            String paymentReceivedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentReceivedMessageState());
+            MessageState paymentReceivedMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentReceivedMessageStateString);
+            tradePeer.setPaymentReceivedMessageState(paymentReceivedMessageState);
+
             return tradePeer;
         }
     }

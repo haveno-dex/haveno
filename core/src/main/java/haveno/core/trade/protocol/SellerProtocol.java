@@ -53,6 +53,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SellerProtocol extends DisputeProtocol {
+    
+    private static final long RESEND_PAYMENT_RECEIVED_MSGS_AFTER = 1741629525730L; // Mar 10 2025 17:58 UTC
+
     enum SellerEvent implements FluentProtocol.Event {
         STARTUP,
         DEPOSIT_TXS_CONFIRMED,
@@ -69,29 +72,35 @@ public class SellerProtocol extends DisputeProtocol {
 
         // re-send payment received message if payout not published
         ThreadUtils.execute(() -> {
-            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            if (!needsToResendPaymentReceivedMessages()) return;
             synchronized (trade.getLock()) {
-                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
-                if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
-                    latchTrade();
-                    given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
-                        .with(SellerEvent.STARTUP))
-                        .setup(tasks(
-                                SellerSendPaymentReceivedMessageToBuyer.class,
-                                SellerSendPaymentReceivedMessageToArbitrator.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    unlatchTrade();
-                                },
-                                (errorMessage) -> {
-                                    log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
-                                    unlatchTrade();
-                                })))
-                        .executeTasks();
-                    awaitTradeLatch();
-                }
+                if (!needsToResendPaymentReceivedMessages()) return;
+                latchTrade();
+                given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
+                    .with(SellerEvent.STARTUP))
+                    .setup(tasks(
+                            SellerSendPaymentReceivedMessageToBuyer.class,
+                            SellerSendPaymentReceivedMessageToArbitrator.class)
+                    .using(new TradeTaskRunner(trade,
+                            () -> {
+                                unlatchTrade();
+                            },
+                            (errorMessage) -> {
+                                log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
+                                unlatchTrade();
+                            })))
+                    .executeTasks();
+                awaitTradeLatch();
             }
         }, trade.getId());
+    }
+
+    public boolean needsToResendPaymentReceivedMessages() {
+        return !trade.isShutDownStarted() && trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.getProcessModel().isPaymentReceivedMessagesReceived() && resendPaymentReceivedMessagesEnabled();
+    }
+
+    private boolean resendPaymentReceivedMessagesEnabled() {
+        return trade.getTakeOfferDate().getTime() > RESEND_PAYMENT_RECEIVED_MSGS_AFTER;
     }
 
     @Override

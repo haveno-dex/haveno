@@ -35,11 +35,15 @@
 package haveno.core.trade.protocol.tasks;
 
 import com.google.common.base.Charsets;
+
+import haveno.common.Timer;
+import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
@@ -47,15 +51,23 @@ import haveno.core.trade.messages.TradeMailboxMessage;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.NodeAddress;
+import javafx.beans.value.ChangeListener;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
-    SignedWitness signedWitness = null;
+    private SignedWitness signedWitness = null;
+    private ChangeListener<MessageState> listener;
+    private Timer timer;
+    private static final int MAX_RESEND_ATTEMPTS = 20;
+    private int delayInMin = 10;
+    private int resendCounter = 0;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -77,6 +89,13 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     protected void run() {
         try {
             runInterceptHook();
+
+            // skip if already received
+            if (isReceived()) {
+                if (!isCompleted()) complete();
+                return;
+            }
+
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -134,29 +153,85 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
     @Override
     protected void setStateSent() {
-        trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
         log.info("{} sent: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
+        getReceiver().setPaymentReceivedMessageState(MessageState.SENT);
+        tryToSendAgainLater();
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateFault() {
-        trade.advanceState(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
         log.error("{} failed: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
+        getReceiver().setPaymentReceivedMessageState(MessageState.FAILED);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.advanceState(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
         log.info("{} stored in mailbox: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
+        getReceiver().setPaymentReceivedMessageState(MessageState.STORED_IN_MAILBOX);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateArrived() {
-        trade.advanceState(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
         log.info("{} arrived: tradeId={} at peer {} SignedWitness {}", getClass().getSimpleName(), trade.getId(), getReceiverNodeAddress(), signedWitness);
+        getReceiver().setPaymentReceivedMessageState(MessageState.ARRIVED);
         processModel.getTradeManager().requestPersistence();
+    }
+
+    private void cleanup() {
+        if (timer != null) {
+            timer.stop();
+        }
+        if (listener != null) {
+            trade.getBuyer().getPaymentReceivedMessageStateProperty().removeListener(listener);
+        }
+    }
+
+    private void tryToSendAgainLater() {
+
+        // skip if already received
+        if (isReceived()) return;
+
+        if (resendCounter >= MAX_RESEND_ATTEMPTS) {
+            cleanup();
+            log.warn("We never received an ACK message when sending the PaymentReceivedMessage to the peer. We stop trying to send the message.");
+            return;
+        }
+
+        if (timer != null) {
+            timer.stop();
+        }
+
+        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
+
+        if (resendCounter == 0) {
+            listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
+            getReceiver().getPaymentReceivedMessageStateProperty().addListener(listener);
+            onMessageStateChange(getReceiver().getPaymentReceivedMessageStateProperty().get());
+        }
+
+        // first re-send is after 2 minutes, then increase the delay exponentially
+        if (resendCounter == 0) {
+            int shortDelay = 2;
+            log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
+            timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
+        } else {
+            log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+            timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
+            delayInMin = (int) ((double) delayInMin * 1.5);
+        }
+        resendCounter++;
+    }
+
+    private void onMessageStateChange(MessageState newValue) {
+        if (isReceived()) {
+            cleanup();
+        }
+    }
+
+    protected boolean isReceived() {
+        return getReceiver().isPaymentReceivedMessageReceived();
     }
 }
