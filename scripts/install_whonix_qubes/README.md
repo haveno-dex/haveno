@@ -72,4 +72,4 @@ $ bash 0.0-dom0.sh && bash 0.1-dom0.sh && bash 0.2-dom0.sh
 
 ---
 
-Complete Documentation Can Be Found [Here](https://github.com/haveno-dex/haveno/blob/install_whonix_qubes/scripts/install_whonix_qubes/INSTALL.md)).
+Complete Documentation Can Be Found [Here](https://github.com/haveno-dex/haveno/blob/install_whonix_qubes/scripts/install_whonix_qubes/INSTALL.md).
