@@ -3,7 +3,7 @@
 
 After you already have [`Qubes`](https://www.qubes-os.org/downloads) or [`Whonix`](https://www.whonix.org/wiki/Download) installed:
 
-1. Download [scripts](https://github.com/PromptPunksFauxCough/haveno/tree/install_whonix_qubes/scripts/install_whonix_qubes/scripts).
+1. Download [scripts](https://github.com/haveno-dex/haveno/tree/install_whonix_qubes/scripts/install_whonix_qubes/scripts).
 2. Move sript(s) to destinations.
 3. Consecutively execute the following commands in their respective destinations.
 
@@ -72,4 +72,4 @@ $ bash 0.0-dom0.sh && bash 0.1-dom0.sh && bash 0.2-dom0.sh
 
 ---
 
-Complete Documentation Can Be Found [Here](https://github.com/PromptPunksFauxCough/haveno_on_whonix_qubes).
+Complete Documentation Can Be Found [Here](https://github.com/haveno-dex/haveno/blob/install_whonix_qubes/scripts/install_whonix_qubes/INSTALL.md)).
