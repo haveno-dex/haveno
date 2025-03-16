@@ -270,7 +270,7 @@ Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master
 
 <b>Set the mandatory minimum version for trading (optional)</b>
 
-If applicable, update the mandatory minimum version for trading, by entering `ctrl + f` to open the Filter window, enter a private key with developer privileges, and enter the minimum version (e.g. 1.0.18) in the field labeled "Min. version required for trading".
+If applicable, update the mandatory minimum version for trading, by entering `ctrl + f` to open the Filter window, enter a private key with developer privileges, and enter the minimum version (e.g. 1.0.19) in the field labeled "Min. version required for trading".
 
 <b>Send update alert</b>
 

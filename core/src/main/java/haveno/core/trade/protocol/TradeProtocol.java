@@ -96,6 +96,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private static final String TIMEOUT_REACHED = "Timeout reached.";
     public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other wallet functions
     public static final long REPROCESS_DELAY_MS = 5000;
+    public static final String LOG_HIGHLIGHT = "\u001B[0m"; // terminal default
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -106,6 +107,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected ErrorMessageHandler errorMessageHandler;
 
     private boolean depositsConfirmedTasksCalled;
+    private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -124,12 +126,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
-        ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
+        handle(message, peerNodeAddress);
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
-        ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
+        handle(message, peerNodeAddress);
     }
 
     private void handle(TradeMessage message, NodeAddress peerNodeAddress) {
@@ -279,6 +281,22 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
+    public void maybeReprocessPaymentSentMessage(boolean reprocessOnError) {
+        if (trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+
+                // skip if no need to reprocess
+                if (trade.isBuyer() || trade.getBuyer().getPaymentSentMessage() == null || trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
+                    return;
+                }
+
+                log.warn("Reprocessing payment sent message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                handle(trade.getBuyer().getPaymentSentMessage(), trade.getBuyer().getPaymentSentMessage().getSenderNodeAddress(), reprocessOnError);
+            }
+        }, trade.getId());
+    }
+
     public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
         if (trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
@@ -296,7 +314,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -333,7 +351,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
 
@@ -376,7 +394,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -422,7 +440,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -452,7 +470,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handle(DepositsConfirmedMessage message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender + " for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handle(DepositsConfirmedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -481,7 +499,25 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        handle(message, peer, true);
+    }
+
+    // received by seller and arbitrator
+    protected void handle(PaymentSentMessage message, NodeAddress peer, boolean reprocessOnError) {
+        log.info(LOG_HIGHLIGHT + "handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
+
+        // validate signature
+        try {
+            HavenoUtils.verifyPaymentSentMessage(trade, message);
+        } catch (Throwable t) {
+            log.warn("Ignoring PaymentSentMessage with invalid signature for {} {}, error={}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
+            return;
+        }
+
+        // save message for reprocessing
+        trade.getBuyer().setPaymentSentMessage(message);
+        trade.requestPersistence();
+
         if (!trade.isInitialized() || trade.isShutDown()) return;
         if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
             log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
@@ -521,7 +557,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 (errorMessage) -> {
-                                    handleTaskRunnerFault(peer, message, errorMessage);
+                                    log.warn("Error processing payment sent message: " + errorMessage);
+                                    processModel.getTradeManager().requestPersistence();
+    
+                                    // schedule to reprocess message unless deleted
+                                    if (trade.getBuyer().getPaymentSentMessage() != null) {
+                                        UserThread.runAfter(() -> {
+                                            reprocessPaymentSentMessageCount++;
+                                            maybeReprocessPaymentSentMessage(reprocessOnError);
+                                        }, trade.getReprocessDelayInSeconds(reprocessPaymentSentMessageCount));
+                                    } else {
+                                        handleTaskRunnerFault(peer, message, errorMessage); // otherwise send nack
+                                    }
+                                    unlatchTrade();
                                 })))
                         .executeTasks(true);
                 awaitTradeLatch();
@@ -535,7 +583,20 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
+
+        // validate signature
+        try {
+            HavenoUtils.verifyPaymentReceivedMessage(trade, message);
+        } catch (Throwable t) {
+            log.warn("Ignoring PaymentReceivedMessage with invalid signature for {} {}, error={}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
+            return;
+        }
+
+        // save message for reprocessing
+        trade.getSeller().setPaymentReceivedMessage(message);
+        trade.requestPersistence();
+
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
@@ -652,11 +713,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // handle ack for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
             if (trade.getTradePeer(sender) == trade.getSeller()) {
-                processModel.setPaymentSentAckMessage(ackMessage);
+                processModel.setPaymentSentAckMessageSeller(ackMessage);
                 trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
                 processModel.getTradeManager().requestPersistence();
             } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
                 processModel.setPaymentSentAckMessageArbitrator(ackMessage);
+                processModel.getTradeManager().requestPersistence();
             } else if (!ackMessage.isSuccess()) {
                 String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
                 log.warn(err);

@@ -224,8 +224,8 @@ public class ReservedView extends ActivatableView<VBox, Void> {
         Optional<Trade> tradeOptional = tradeManager.getOpenTrade(offerId);
         if (tradeOptional.isPresent()) {
             return Optional.of(tradeOptional.get());
-        } else if (openOfferManager.getOpenOfferById(offerId).isPresent()) {
-            return Optional.of(openOfferManager.getOpenOfferById(offerId).get());
+        } else if (openOfferManager.getOpenOffer(offerId).isPresent()) {
+            return Optional.of(openOfferManager.getOpenOffer(offerId).get());
         } else {
             return Optional.<Tradable>empty();
         }

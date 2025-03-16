@@ -100,7 +100,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     private final ObjectProperty<BuyerState> buyerState = new SimpleObjectProperty<>();
     private final ObjectProperty<SellerState> sellerState = new SimpleObjectProperty<>();
     @Getter
-    private final ObjectProperty<MessageState> messageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    private final ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     private Subscription tradeStateSubscription;
     private Subscription paymentAccountDecryptedSubscription;
     private Subscription payoutStateSubscription;
@@ -186,7 +186,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             if (messageStateSubscription != null) {
                 messageStateSubscription.unsubscribe();
-                messageStateProperty.set(MessageState.UNDEFINED);
+                paymentSentMessageStateProperty.set(MessageState.UNDEFINED);
             }
 
             if (selectedItem != null) {
@@ -200,7 +200,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                     onPayoutStateChanged(state);
                 });
-                messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStateProperty(), this::onMessageStateChanged);
+                messageStateSubscription = EasyBind.subscribe(trade.getProcessModel().getPaymentSentMessageStatePropertySeller(), this::onPaymentSentMessageStateChanged);
             }
         }
     }
@@ -215,8 +215,8 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         });
     }
 
-    private void onMessageStateChanged(MessageState messageState) {
-        messageStateProperty.set(messageState);
+    private void onPaymentSentMessageStateChanged(MessageState messageState) {
+        paymentSentMessageStateProperty.set(messageState);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

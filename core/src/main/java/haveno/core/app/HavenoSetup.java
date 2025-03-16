@@ -176,7 +176,7 @@ public class HavenoSetup {
     private Consumer<PrivateNotificationPayload> displayPrivateNotificationHandler;
     @Setter
     @Nullable
-    private Runnable showPopupIfInvalidBtcConfigHandler;
+    private Runnable showPopupIfInvalidXmrConfigHandler;
     @Setter
     @Nullable
     private Consumer<List<RevolutAccount>> revolutAccountsUpdateHandler;
@@ -461,7 +461,7 @@ public class HavenoSetup {
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 showFirstPopupIfResyncSPVRequestedHandler,
-                showPopupIfInvalidBtcConfigHandler,
+                showPopupIfInvalidXmrConfigHandler,
                 () -> {},
                 () -> {});
     }

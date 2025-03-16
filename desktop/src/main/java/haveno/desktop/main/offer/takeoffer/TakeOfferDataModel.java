@@ -284,6 +284,7 @@ class TakeOfferDataModel extends OfferDataModel {
         // handle error
         if (errorMsg != null) {
             new Popup().warning(errorMsg).show();
+            log.warn("Error taking offer " + offer.getId() + ": " + errorMsg);
             errorMessageHandler.handleErrorMessage(errorMsg);
         }
     }

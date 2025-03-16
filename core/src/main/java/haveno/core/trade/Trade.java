@@ -143,6 +143,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
+    private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 10;
     protected final Object pollLock = new Object();
     protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
@@ -735,11 +736,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed in v1.0.19 so this check can be removed?
         if (isBuyer()) {
             MessageState expectedState = getPaymentSentMessageState();
-            if (expectedState != null && expectedState != processModel.getPaymentSentMessageStateProperty().get()) {
-                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStateProperty().get());
-                processModel.getPaymentSentMessageStateProperty().set(expectedState);
+            if (expectedState != null && expectedState != processModel.getPaymentSentMessageStatePropertySeller().get()) {
+                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStatePropertySeller().get());
+                processModel.getPaymentSentMessageStatePropertySeller().set(expectedState);
             }
         }
+
+        // handle confirmations
+        walletHeight.addListener((observable, oldValue, newValue) -> {
+            importMultisigHexIfScheduled();
+        });
 
         // trade is initialized
         isInitialized = true;
@@ -1077,6 +1083,26 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public void scheduleImportMultisigHex() {
+        processModel.setImportMultisigHexScheduled(true);
+        requestPersistence();
+    }
+
+    private void importMultisigHexIfScheduled() {
+        if (!isInitialized || isShutDownStarted) return;
+        if (!isDepositsConfirmed() || getMaker().getDepositTx() == null) return;
+        if (walletHeight.get() - getMaker().getDepositTx().getHeight() < NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT) return;
+        ThreadUtils.execute(() -> {
+            if (!isInitialized || isShutDownStarted) return;
+            synchronized (getLock()) {
+                if (processModel.isImportMultisigHexScheduled()) {
+                    processModel.setImportMultisigHexScheduled(false);
+                    ThreadUtils.submitToPool(() -> importMultisigHex());
+                }
+            }
+        }, getId());
+    }
+
     public void importMultisigHex() {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
@@ -1089,10 +1115,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         } catch (IllegalArgumentException | IllegalStateException e) {
                             throw e;
                         } catch (Exception e) {
+                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection);
                             doPollWallet();
                             if (isPayoutPublished()) break;
-                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                         }
@@ -1141,6 +1167,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     if (removed) wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
                     if (wallet.isMultisigImportNeeded()) throw new IllegalStateException(errorMessage);
                 }
+
+                // remove scheduled import
+                processModel.setImportMultisigHexScheduled(false);
             } catch (MoneroError e) {
 
                 // import multisig hex individually if one is invalid
@@ -1604,7 +1633,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // unreserve maker's open offer
-        Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOfferById(this.getId());
+        Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(this.getId());
         if (this instanceof MakerTrade && openOffer.isPresent()) {
             processModel.getOpenOfferManager().unreserveOpenOffer(openOffer.get());
         }
@@ -1618,14 +1647,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // done if wallet already deleted
         if (!walletExists()) return;
 
-        // move to failed trades
-        processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this);
-
         // set error height
         if (processModel.getTradeProtocolErrorHeight() == 0) {
             log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getLastInfo().getHeight());
-            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getLastInfo().getHeight());
+            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getLastInfo().getHeight()); // height denotes scheduled error handling
         }
+
+        // move to failed trades
+        processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this);
+        requestPersistence();
 
         // listen for deposits published to restore trade
         protocolErrorStateSubscription = EasyBind.subscribe(stateProperty(), state -> {
@@ -1680,10 +1710,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         });
     }
 
+    public boolean isProtocolErrorHandlingScheduled() {
+        return processModel.getTradeProtocolErrorHeight() > 0;
+    }
+
     private void restoreDepositsPublishedTrade() {
 
         // close open offer
-        if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOfferById(getId()).isPresent()) {
+        if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOffer(getId()).isPresent()) {
             log.info("Closing open offer because {} {} was restored after protocol error", getClass().getSimpleName(), getShortId());
             processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(getOffer()));
         }
@@ -2017,7 +2051,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public MessageState getPaymentSentMessageState() {
         if (isPaymentReceived()) return MessageState.ACKNOWLEDGED;
-        if (processModel.getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
+        if (processModel.getPaymentSentMessageStatePropertySeller().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
         switch (state) {
             case BUYER_SENT_PAYMENT_SENT_MSG:
                 return MessageState.SENT;
@@ -2345,7 +2379,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return tradeAmountTransferred();
     }
 
-    public boolean tradeAmountTransferred() {
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Private
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    private boolean tradeAmountTransferred() {
         return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
     }
 
@@ -2360,11 +2399,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             log.warn("Trade statistics are invalid for {} {}. We do not publish: {}", getClass().getSimpleName(), getId(), tradeStatistics);
         }
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Private
-    ///////////////////////////////////////////////////////////////////////////////////////////
 
     // lazy initialization
     private ObjectProperty<BigInteger> getAmountProperty() {
@@ -2436,8 +2470,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (!wasWalletSynced) trySyncWallet(true);
         updatePollPeriod();
         
-        // reprocess pending payout messages
-        this.getProtocol().maybeReprocessPaymentReceivedMessage(false);
+        // reprocess pending messages
+        getProtocol().maybeReprocessPaymentSentMessage(false);
+        getProtocol().maybeReprocessPaymentReceivedMessage(false);
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
         startPolling();

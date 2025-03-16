@@ -450,8 +450,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             return;
                         }
 
-                        // skip if marked as failed
-                        if (failedTradesManager.getObservableList().contains(trade)) {
+                        // skip if failed and error handling not scheduled
+                        if (failedTradesManager.getObservableList().contains(trade) && !trade.isProtocolErrorHandlingScheduled()) {
                             log.warn("Skipping initialization of failed trade {} {}", trade.getClass().getSimpleName(), trade.getId());
                             tradesToSkip.add(trade);
                             return;
@@ -460,8 +460,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         // initialize trade
                         initPersistedTrade(trade);
 
-                        // remove trade if protocol didn't initialize
-                        if (getOpenTradeByUid(trade.getUid()).isPresent() && !trade.isDepositsPublished()) {
+                        // record if protocol didn't initialize
+                        if (!trade.isDepositsPublished()) {
                             uninitializedTrades.add(trade);
                         }
                     } catch (Exception e) {
@@ -556,7 +556,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (request.getMakerNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) {
 
             // get open offer
-            Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOfferById(request.getOfferId());
+            Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(request.getOfferId());
             if (!openOfferOptional.isPresent()) return;
             OpenOffer openOffer = openOfferOptional.get();
             if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
@@ -747,7 +747,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-    log.info("TradeManager handling InitMultisigRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
+        log.info("TradeManager handling InitMultisigRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -766,7 +766,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void handleSignContractRequest(SignContractRequest request, NodeAddress sender) {
-    log.info("TradeManager handling SignContractRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
+        log.info("TradeManager handling SignContractRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
@@ -923,8 +923,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             requestPersistence();
         }, errorMessage -> {
             log.warn("Taker error during trade initialization: " + errorMessage);
-            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move to maybe remove on error
             trade.onProtocolError();
+            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move this into protocol error handling
             errorMessageHandler.handleErrorMessage(errorMessage);
         });
 
@@ -1282,6 +1282,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public boolean hasOpenTrade(Trade trade) {
         synchronized (tradableList) {
             return tradableList.contains(trade);
+        }
+    }
+
+    public boolean hasFailedScheduledTrade(String offerId) {
+        synchronized (failedTradesManager) {
+            return failedTradesManager.getTradeById(offerId).isPresent() && failedTradesManager.getTradeById(offerId).get().isProtocolErrorHandlingScheduled();
         }
     }
 
