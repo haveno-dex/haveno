@@ -620,7 +620,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // skip initialization if trade is complete
         // starting in v1.0.19, seller resends payment received message until acked or stored in mailbox
-        if (isPayoutUnlocked() && isCompleted() && !getProtocol().needsToResendPaymentReceivedMessages()) {
+        if (isFinished()) {
             clearAndShutDown();
             return;
         }
@@ -772,6 +772,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             tryInitSyncing();
         }
         isFullyInitialized = true;
+    }
+
+    public boolean isFinished() {
+        return isPayoutUnlocked() && isCompleted() && !getProtocol().needsToResendPaymentReceivedMessages();
     }
 
     public void resetToPaymentSentState() {
