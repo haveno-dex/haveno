@@ -165,7 +165,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             }
         } else if (networkEnvelope instanceof AckMessage) {
             onAckMessage((AckMessage) networkEnvelope, peer);
-            trade.onAckMessage((AckMessage) networkEnvelope, peer); // notify trade listeners
         }
     }
 
@@ -210,11 +209,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             onMailboxMessage(tradeMessage, mailboxMessage.getSenderNodeAddress());
         } else if (mailboxMessage instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) mailboxMessage;
-            if (!trade.isCompleted()) {
-                // We only apply the msg if we have not already completed the trade
-                onAckMessage(ackMessage, mailboxMessage.getSenderNodeAddress());
-            }
-            // In any case we remove the msg
+            onAckMessage(ackMessage, mailboxMessage.getSenderNodeAddress());
             processModel.getP2PService().getMailboxMessageService().removeMailboxMsg(ackMessage);
             log.info("Remove {} from the P2P network.", ackMessage.getClass().getSimpleName());
         }
@@ -242,7 +237,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected void onInitialized() {
 
         // listen for direct messages unless completed
-        if (!trade.isCompleted()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
+        if (!trade.isFinished()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
 
         // initialize trade
         synchronized (trade.getLock()) {
@@ -719,6 +714,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
 
+        // ignore if trade is completely finished
+        if (trade.isFinished())  return;
+
         // get trade peer
         TradePeer peer = trade.getTradePeer(sender);
         if (peer == null) {
@@ -791,6 +789,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             log.warn("Received AckMessage with error state for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
             handleError(ackMessage.getErrorMessage());
         }
+
+        // notify trade listeners
+        trade.onAckMessage(ackMessage, sender);
     }
 
     protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {
