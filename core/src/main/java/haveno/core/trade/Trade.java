@@ -644,7 +644,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // reset seller's payment received state if no ack receive
         if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() && getState().ordinal() < Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
             log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-            setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            resetToPaymentSentState();
         }
 
         // handle trade state events
@@ -768,6 +768,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             tryInitSyncing();
         }
         isFullyInitialized = true;
+    }
+
+    public void resetToPaymentSentState() {
+        setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+        for (TradePeer peer : getAllPeers()) peer.setPaymentReceivedMessage(null);
+        setPayoutTxHex(null);
     }
 
     public void reprocessApplicableMessages() {
@@ -1365,7 +1371,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         MoneroTxSet describedTxSet = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
         if (describedTxSet.getTxs() == null || describedTxSet.getTxs().size() != 1) throw new IllegalArgumentException("Bad payout tx"); // TODO (woodser): test nack
         MoneroTxWallet payoutTx = describedTxSet.getTxs().get(0);
-        if (payoutTxId == null) updatePayout(payoutTx); // update payout tx if not signed
+        if (payoutTxId == null) updatePayout(payoutTx); // update payout tx if id currently unknown
 
         // verify payout tx has exactly 2 destinations
         if (payoutTx.getOutgoingTransfer() == null || payoutTx.getOutgoingTransfer().getDestinations() == null || payoutTx.getOutgoingTransfer().getDestinations().size() != 2) throw new IllegalArgumentException("Payout tx does not have exactly two destinations");
@@ -1396,6 +1402,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCostSplit);
         if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
 
+        // update payout tx
+        updatePayout(payoutTx);
+
         // check connection
         boolean doSign = sign && getPayoutTxHex() == null;
         if (doSign || publish) verifyDaemonConnection();
@@ -1404,18 +1413,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (doSign) {
 
             // sign tx
+            String signedPayoutTxHex;
             try {
                 MoneroMultisigSignResult result = wallet.signMultisigTxHex(payoutTxHex);
                 if (result.getSignedMultisigTxHex() == null) throw new IllegalArgumentException("Error signing payout tx, signed multisig hex is null");
-                setPayoutTxHex(result.getSignedMultisigTxHex());
+                signedPayoutTxHex = result.getSignedMultisigTxHex();
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
-
-            // describe result
-            describedTxSet = wallet.describeMultisigTxSet(getPayoutTxHex());
-            payoutTx = describedTxSet.getTxs().get(0);
-            updatePayout(payoutTx);
 
             // verify fee is within tolerance by recreating payout tx
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
@@ -1426,6 +1431,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
             if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + payoutTx.getFee());
             log.info("Payout tx fee {} is within tolerance, diff %={}", payoutTx.getFee(), feeDiff);
+
+            // set signed payout tx hex
+            setPayoutTxHex(signedPayoutTxHex);
+
+            // describe result
+            describedTxSet = wallet.describeMultisigTxSet(getPayoutTxHex());
+            payoutTx = describedTxSet.getTxs().get(0);
+            updatePayout(payoutTx);
         }
 
         // save trade state
