@@ -2171,7 +2171,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isPaymentSent() {
-        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal();
+        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
     }
 
     public boolean hasPaymentReceivedMessage() {
@@ -2189,7 +2189,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isPaymentReceived() {
-        return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
+        return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal() && getState() != State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG;
     }
 
     public boolean isPayoutPublished() {
