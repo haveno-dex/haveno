@@ -110,8 +110,9 @@ public class Version {
     // For the switch to version 2, offers created with the old version will become invalid and have to be canceled.
     // For the switch to version 3, offers created with the old version can be migrated to version 3 just by opening
     // the Haveno app.
-    // VERSION = 0.0.1 -> TRADE_PROTOCOL_VERSION = 1
-    public static final int TRADE_PROTOCOL_VERSION = 1;
+    // Version = 0.0.1 -> TRADE_PROTOCOL_VERSION = 1
+    // Version = 1.0.19 -> TRADE_PROTOCOL_VERSION = 2
+    public static final int TRADE_PROTOCOL_VERSION = 2;
     private static String p2pMessageVersion;
 
     public static String getP2PMessageVersion() {
