@@ -1876,27 +1876,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getChallengeHash(),
                         updatedExtraDataMap,
                         protocolVersion,
-                        originalOfferPayload.getArbitratorSigner(),
-                        originalOfferPayload.getArbitratorSignature(),
-                        originalOfferPayload.getReserveTxKeyImages(),
+                        null,
+                        null,
+                        null,
                         originalOfferPayload.getExtraInfo());
 
-                // Save states from original data to use for the updated
-                Offer.State originalOfferState = originalOffer.getState();
-                OpenOffer.State originalOpenOfferState = originalOpenOffer.getState();
+                // cancel old offer
+                log.info("Canceling outdated offer id={}", originalOffer.getId());
+                doCancelOffer(originalOpenOffer, false);
 
-                // remove old offer
-                originalOffer.setState(Offer.State.REMOVED);
-                originalOpenOffer.setState(OpenOffer.State.CANCELED);
-                removeOpenOffer(originalOpenOffer);
-
-                // Create new Offer
+                // create new offer
                 Offer updatedOffer = new Offer(updatedPayload);
                 updatedOffer.setPriceFeedService(priceFeedService);
-                updatedOffer.setState(originalOfferState);
 
                 OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, originalOpenOffer.getTriggerPrice());
-                updatedOpenOffer.setState(originalOpenOfferState);
                 addOpenOffer(updatedOpenOffer);
                 requestPersistence();
 
