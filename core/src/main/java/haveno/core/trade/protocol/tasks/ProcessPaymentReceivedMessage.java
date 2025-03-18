@@ -125,14 +125,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
     private void processPayoutTx(PaymentReceivedMessage message) {
 
-        // adapt from 1.0.6 to 1.0.7 which changes field usage
-        // TODO: remove after future updates to allow old trades to clear
-        if (trade.getPayoutTxHex() != null && trade.getBuyer().getPaymentSentMessage() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
-            log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-            if (trade instanceof BuyerTrade) trade.getSelf().setUnsignedPayoutTxHex(trade.getPayoutTxHex());
-            trade.setPayoutTxHex(null);
-        }
-
         // update wallet
         trade.importMultisigHex();
         trade.syncAndPollWallet();
