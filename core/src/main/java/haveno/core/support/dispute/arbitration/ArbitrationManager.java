@@ -62,7 +62,6 @@ import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
-import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
@@ -463,14 +462,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
         // check daemon connection
         trade.verifyDaemonConnection();
-
-        // adapt from 1.0.6 to 1.0.7 which changes field usage
-        // TODO: remove after future updates to allow old trades to clear
-        if (trade.getPayoutTxHex() != null && trade.getBuyer().getPaymentSentMessage() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
-            log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-            if (trade instanceof BuyerTrade) trade.getSelf().setUnsignedPayoutTxHex(trade.getPayoutTxHex());
-            trade.setPayoutTxHex(null);
-        }
 
         // sign arbitrator-signed payout tx
         if (trade.getPayoutTxHex() == null) {
