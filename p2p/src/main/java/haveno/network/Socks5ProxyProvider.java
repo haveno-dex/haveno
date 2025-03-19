@@ -95,7 +95,9 @@ public class Socks5ProxyProvider {
             String[] tokens = socks5ProxyAddress.split(":");
             if (tokens.length == 2) {
                 try {
-                    return new Socks5Proxy(tokens[0], Integer.valueOf(tokens[1]));
+                    Socks5Proxy proxy = new Socks5Proxy(tokens[0], Integer.valueOf(tokens[1]));
+                    proxy.resolveAddrLocally(false);
+                    return proxy;
                 } catch (UnknownHostException e) {
                     log.error(ExceptionUtils.getStackTrace(e));
                 }
