@@ -72,6 +72,25 @@ public class Version {
             return false;
     }
 
+    public static int compare(String version1, String version2) {
+        if (version1.equals(version2))
+            return 0;
+        else if (getMajorVersion(version1) > getMajorVersion(version2))
+            return 1;
+        else if (getMajorVersion(version1) < getMajorVersion(version2))
+            return -1;
+        else if (getMinorVersion(version1) > getMinorVersion(version2))
+            return 1;
+        else if (getMinorVersion(version1) < getMinorVersion(version2))
+            return -1;
+        else if (getPatchVersion(version1) > getPatchVersion(version2))
+            return 1;
+        else if (getPatchVersion(version1) < getPatchVersion(version2))
+            return -1;
+        else
+            return 0;
+    }
+
     private static int getSubVersion(String version, int index) {
         final String[] split = version.split("\\.");
         checkArgument(split.length == 3, "Version number must be in semantic version format (contain 2 '.'). version=" + version);
