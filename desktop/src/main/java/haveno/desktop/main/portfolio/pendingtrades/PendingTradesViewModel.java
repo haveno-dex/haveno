@@ -424,7 +424,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 }
                 break;
 
-            // seller step 3
+            // seller step 3 or 4 if published
             case SELLER_CONFIRMED_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
