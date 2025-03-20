@@ -737,7 +737,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         doCancelOffer(openOffer, true);
     }
 
-    // remove open offer which thaws its key images
+    // cancel open offer which thaws its key images
     private void doCancelOffer(@NotNull OpenOffer openOffer, boolean resetAddressEntries) {
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
@@ -1391,6 +1391,32 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             Offer offer = new Offer(request.getOfferPayload());
             if (offer.isPrivateOffer() && (offer.getChallengeHash() == null || offer.getChallengeHash().length() == 0)) {
                 errorMessage = "Private offer must have challenge hash for offer " + request.offerId;
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify the trade protocol version
+            if (request.getOfferPayload().getProtocolVersion() != Version.TRADE_PROTOCOL_VERSION) {
+                errorMessage = "Unsupported protocol version: " + request.getOfferPayload().getProtocolVersion();
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify the min version number
+            if (filterManager.getDisableTradeBelowVersion() != null) {
+                if (Version.compare(request.getOfferPayload().getVersionNr(), filterManager.getDisableTradeBelowVersion()) < 0) {
+                    errorMessage = "Offer version number is too low: " + request.getOfferPayload().getVersionNr() + " < " + filterManager.getDisableTradeBelowVersion();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+            }
+
+            // verify the max version number
+            if (Version.compare(request.getOfferPayload().getVersionNr(), Version.VERSION) > 0) {
+                errorMessage = "Offer version number is too high: " + request.getOfferPayload().getVersionNr() + " > " + Version.VERSION;
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
