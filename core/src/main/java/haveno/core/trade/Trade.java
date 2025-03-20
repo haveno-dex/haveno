@@ -46,6 +46,7 @@ import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
+import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
@@ -736,6 +737,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (this instanceof ArbitratorTrade) {
             idlePayoutSyncer = new IdlePayoutSyncer();
             xmrWalletService.addWalletListener(idlePayoutSyncer);
+        }
+
+        // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed mismatch in v1.0.19, but can this check can be removed?
+        if (isBuyer()) {
+            MessageState expectedState = getPaymentSentMessageState();
+            if (expectedState != null && expectedState != getSeller().getPaymentSentMessageStateProperty().get()) {
+                log.warn("Updating unexpected payment sent message state for {} {}, expected={}, actual={}", getClass().getSimpleName(), getId(), expectedState, processModel.getPaymentSentMessageStatePropertySeller().get());
+                getSeller().getPaymentSentMessageStateProperty().set(expectedState);
+            }
         }
 
         // handle confirmations
@@ -2072,6 +2082,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isSeller()) return "Seller";
         if (isArbitrator()) return "Arbitrator";
         throw new IllegalArgumentException("Trade is not buyer, seller, or arbitrator");
+    }
+
+    private MessageState getPaymentSentMessageState() {
+        if (isPaymentReceived()) return MessageState.ACKNOWLEDGED;
+        if (getSeller().getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
+        switch (state) {
+            case BUYER_SENT_PAYMENT_SENT_MSG:
+                return MessageState.SENT;
+            case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
+                return MessageState.ARRIVED;
+            case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
+                return MessageState.STORED_IN_MAILBOX;
+            case SELLER_RECEIVED_PAYMENT_SENT_MSG:
+                return MessageState.ACKNOWLEDGED;
+            case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
+                return MessageState.FAILED;
+            default:
+                return null;
+        }
     }
 
     public String getPeerRole(TradePeer peer) {
