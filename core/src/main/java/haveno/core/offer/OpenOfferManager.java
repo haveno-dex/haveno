@@ -1396,6 +1396,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // verify max length of extra info
+            if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.MAX_EXTRA_INFO_LENGTH) {
+                errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.MAX_EXTRA_INFO_LENGTH + " but got " + offer.getOfferPayload().getExtraInfo().length();
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
             // verify the trade protocol version
             if (request.getOfferPayload().getProtocolVersion() != Version.TRADE_PROTOCOL_VERSION) {
                 errorMessage = "Unsupported protocol version: " + request.getOfferPayload().getProtocolVersion();

@@ -44,8 +44,8 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BalanceTextField;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.FundsTextField;
-import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.components.InfoInputTextField;
+import haveno.desktop.components.InputTextArea;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
@@ -76,7 +76,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
@@ -140,7 +139,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private BalanceTextField balanceTextField;
     private ToggleButton reserveExactAmountSlider;
     private ToggleButton buyerAsTakerWithoutDepositSlider;
-    protected TextArea extraInfoTextArea;
+    protected InputTextArea extraInfoTextArea;
     private FundsTextField totalToPayTextField;
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, marketBasedPriceLabel, percentagePriceDescriptionLabel, tradeFeeDescriptionLabel,
@@ -211,7 +210,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         createListeners();
 
-        balanceTextField.setFormatter(model.getBtcFormatter());
+        balanceTextField.setFormatter(model.getXmrFormatter());
 
         paymentAccountsComboBox.setConverter(GUIUtil.getPaymentAccountsComboBoxStringConverter());
         paymentAccountsComboBox.setButtonCell(GUIUtil.getComboBoxButtonCell(Res.get("shared.chooseTradingAccount"),
@@ -592,6 +591,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         triggerPriceInputTextField.validationResultProperty().bind(model.triggerPriceValidationResult);
         volumeTextField.validationResultProperty().bind(model.volumeValidationResult);
         securityDepositInputTextField.validationResultProperty().bind(model.securityDepositValidationResult);
+        extraInfoTextArea.validationResultProperty().bind(model.extraInfoValidationResult);
 
         // funding
         fundingHBox.visibleProperty().bind(model.getDataModel().getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
@@ -713,7 +713,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             triggerPriceInputTextField.setText(model.triggerPrice.get());
         };
         extraInfoFocusedListener = (observable, oldValue, newValue) -> {
-            model.onFocusOutExtraInfoTextField(oldValue, newValue);
+            model.onFocusOutExtraInfoTextArea(oldValue, newValue);
             extraInfoTextArea.setText(model.extraInfo.get());
         };
 
@@ -1097,7 +1097,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 Res.get("payment.shared.optionalExtra"), 25 + heightAdjustment);
         GridPane.setColumnSpan(extraInfoTitledGroupBg, 3);
 
-        extraInfoTextArea = new HavenoTextArea();
+        extraInfoTextArea = new InputTextArea();
         extraInfoTextArea.setPromptText(Res.get("payment.shared.extraInfo.prompt.offer"));
         extraInfoTextArea.getStyleClass().add("text-area");
         extraInfoTextArea.setWrapText(true);
@@ -1109,7 +1109,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
         GridPane.setColumnIndex(extraInfoTextArea, 0);
         GridPane.setHalignment(extraInfoTextArea, HPos.LEFT);
-        GridPane.setMargin(extraInfoTextArea, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        GridPane.setMargin(extraInfoTextArea, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 10, 0));
         gridPane.getChildren().add(extraInfoTextArea);
     }
 
