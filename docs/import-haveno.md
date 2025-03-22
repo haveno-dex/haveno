@@ -1,10 +1,16 @@
-## Importing Haveno into development environment
+# Importing Haveno dev environment
 
 This document describes how to import Haveno into an integrated development environment (IDE).
 
-## Importing Haveno into Eclipse IDE
+First [install and run a Haveno test network](installing.md), then use the following instructions to import Haveno into an IDE.
 
-These steps describe how to import Haveno into Eclipse IDE for development. You can also develop using [IntelliJ IDEA](#importing-haveno-into-intellij-idea) or VSCode if you prefer.
+## Visual Studio Code (recommended)
+
+1. Download and open Visual Studio Code: https://code.visualstudio.com/.
+2. File > Add folder to Workspace...
+3. Browse to the `haveno` git project.
+
+## Eclipse IDE
 
 > Note: Use default values unless specified otherwise.
 
@@ -26,7 +32,7 @@ These steps describe how to import Haveno into Eclipse IDE for development. You 
 
 You are now ready to make, run, and test changes to the Haveno project!
 
-## Importing Haveno into IntelliJ IDEA
+## IntelliJ IDEA
 
 > Note: These instructions are outdated and for Haveno.
 
