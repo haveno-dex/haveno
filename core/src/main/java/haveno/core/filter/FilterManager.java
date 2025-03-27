@@ -407,6 +407,10 @@ public class FilterManager {
                         .anyMatch(e -> e.equals(address));
     }
 
+    public String getDisableTradeBelowVersion() {
+        return getFilter() == null || getFilter().getDisableTradeBelowVersion() == null || getFilter().getDisableTradeBelowVersion().isEmpty() ? null : getFilter().getDisableTradeBelowVersion();
+    }
+
     public boolean requireUpdateToNewVersionForTrading() {
         if (getFilter() == null) {
             return false;

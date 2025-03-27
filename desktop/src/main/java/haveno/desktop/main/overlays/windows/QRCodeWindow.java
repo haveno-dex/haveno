@@ -37,10 +37,10 @@ import java.io.ByteArrayInputStream;
 public class QRCodeWindow extends Overlay<QRCodeWindow> {
     private static final Logger log = LoggerFactory.getLogger(QRCodeWindow.class);
     private final ImageView qrCodeImageView;
-    private final String bitcoinURI;
+    private final String moneroUri;
 
     public QRCodeWindow(String bitcoinURI) {
-        this.bitcoinURI = bitcoinURI;
+        this.moneroUri = bitcoinURI;
         final byte[] imageBytes = QRCode
                 .from(bitcoinURI)
                 .withSize(300, 300)
@@ -70,7 +70,7 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         GridPane.setHalignment(qrCodeImageView, HPos.CENTER);
         gridPane.getChildren().add(qrCodeImageView);
 
-        String request = bitcoinURI.replace("%20", " ").replace("?", "\n?").replace("&", "\n&");
+        String request = moneroUri.replace("%20", " ").replace("?", "\n?").replace("&", "\n&");
         Label infoLabel = new AutoTooltipLabel(Res.get("qRCodeWindow.request", request));
         infoLabel.setMouseTransparent(true);
         infoLabel.setWrapText(true);
@@ -86,5 +86,9 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         addButtons();
         applyStyles();
         display();
+    }
+
+    public String getClipboardText() {
+        return moneroUri;
     }
 }

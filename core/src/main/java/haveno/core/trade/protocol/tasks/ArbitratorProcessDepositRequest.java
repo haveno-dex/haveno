@@ -44,7 +44,6 @@ import java.util.UUID;
 @Slf4j
 public class ArbitratorProcessDepositRequest extends TradeTask {
 
-    private Throwable error;
     private boolean depositResponsesSent;
 
     @SuppressWarnings({"unused"})
@@ -68,7 +67,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             processDepositRequest();
             complete();
         } catch (Throwable t) {
-            this.error = t;
+            trade.getProcessModel().error = t;
             log.error("Error processing deposit request for trade {}: {}\n", trade.getId(), t.getMessage(), t);
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
             failed(t);
@@ -188,7 +187,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             trade.stateProperty().addListener((obs, oldState, newState) -> {
                 if (oldState == newState) return;
                 if (newState == Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED) {
-                    sendDepositResponsesOnce(error == null ? "Arbitrator failed to publish deposit txs within timeout for trade " + trade.getId() : error.getMessage());
+                    sendDepositResponsesOnce(trade.getProcessModel().error == null ? "Arbitrator failed to publish deposit txs within timeout for trade " + trade.getId() : trade.getProcessModel().error.getMessage());
                 } else if (newState.ordinal() >= Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS.ordinal()) {
                     sendDepositResponsesOnce(null);
                 }
@@ -230,7 +229,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
     }
 
     private void sendDepositResponse(NodeAddress nodeAddress, PubKeyRing pubKeyRing, DepositResponse response) {
-        log.info("Sending deposit response to trader={}; offerId={}, error={}", nodeAddress, trade.getId(), error);
+        log.info("Sending deposit response to trader={}; offerId={}, error={}", nodeAddress, trade.getId(), trade.getProcessModel().error);
         processModel.getP2PService().sendEncryptedDirectMessage(nodeAddress, pubKeyRing, response, new SendDirectMessageListener() {
             @Override
             public void onArrived() {

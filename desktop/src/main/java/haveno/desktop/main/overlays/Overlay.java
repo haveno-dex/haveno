@@ -765,9 +765,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                 FormBuilder.getIconForLabel(AwesomeIcon.COPY, copyIcon, "1.1em");
                 copyIcon.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
                     if (message != null) {
-                        String forClipboard = headLineLabel.getText() + System.lineSeparator() + message
-                            + System.lineSeparator() + (messageHyperlinks == null ? "" : messageHyperlinks.toString());
-                        Utilities.copyToClipboard(forClipboard);
+                        Utilities.copyToClipboard(getClipboardText());
                         Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
                         Node node = (Node) mouseEvent.getSource();
                         UserThread.runAfter(() -> tp.hide(), 1);
@@ -1081,6 +1079,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public boolean isDisplayed() {
         return isDisplayed;
+    }
+
+    public String getClipboardText() {
+        return headLineLabel.getText() + System.lineSeparator() + message
+                + System.lineSeparator() + (messageHyperlinks == null ? "" : messageHyperlinks.toString());
     }
 
     @Override

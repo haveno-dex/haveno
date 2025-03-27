@@ -79,7 +79,7 @@ public class BuyerStep4View extends TradeStepView {
         TitledGroupBg completedTradeLabel = new TitledGroupBg();
         if (trade.getDisputeState().isMediated()) {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.mediated"));
-        } else if (trade.getDisputeState().isArbitrated() && trade.getDisputes().get(0).getDisputeResultProperty().get() != null) {
+        } else if (trade.getDisputeState().isArbitrated() && trade.getDisputeResult() != null) {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.arbitrated"));
         } else {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle"));
@@ -90,8 +90,8 @@ public class BuyerStep4View extends TradeStepView {
         gridPane.getChildren().add(hBox2);
         GridPane.setRowSpan(hBox2, 5);
 
-        if (trade.getDisputeState().isNotDisputed()) {
-            addCompactTopLabelTextField(gridPane, gridRow, getBtcTradeAmountLabel(), model.getTradeVolume(), Layout.TWICE_FIRST_ROW_DISTANCE);
+        if (trade.isPaymentReceived()) {
+            addCompactTopLabelTextField(gridPane, gridRow, getXmrTradeAmountLabel(), model.getTradeVolume(), Layout.TWICE_FIRST_ROW_DISTANCE);
             addCompactTopLabelTextField(gridPane, ++gridRow, getTraditionalTradeAmountLabel(), model.getFiatVolume());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.refunded"), model.getSecurityDeposit());
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("portfolio.pending.step5_buyer.tradeFee"), model.getTradeFee());
@@ -149,7 +149,7 @@ public class BuyerStep4View extends TradeStepView {
         }
     }
 
-    protected String getBtcTradeAmountLabel() {
+    protected String getXmrTradeAmountLabel() {
         return Res.get("portfolio.pending.step5_buyer.bought");
     }
 

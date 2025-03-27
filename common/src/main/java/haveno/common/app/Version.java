@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class Version {
     // The application versions
     // We use semantic versioning with major, minor and patch
-    public static final String VERSION = "1.0.18";
+    public static final String VERSION = "1.0.19";
 
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
@@ -72,6 +72,25 @@ public class Version {
             return false;
     }
 
+    public static int compare(String version1, String version2) {
+        if (version1.equals(version2))
+            return 0;
+        else if (getMajorVersion(version1) > getMajorVersion(version2))
+            return 1;
+        else if (getMajorVersion(version1) < getMajorVersion(version2))
+            return -1;
+        else if (getMinorVersion(version1) > getMinorVersion(version2))
+            return 1;
+        else if (getMinorVersion(version1) < getMinorVersion(version2))
+            return -1;
+        else if (getPatchVersion(version1) > getPatchVersion(version2))
+            return 1;
+        else if (getPatchVersion(version1) < getPatchVersion(version2))
+            return -1;
+        else
+            return 0;
+    }
+
     private static int getSubVersion(String version, int index) {
         final String[] split = version.split("\\.");
         checkArgument(split.length == 3, "Version number must be in semantic version format (contain 2 '.'). version=" + version);
@@ -91,8 +110,9 @@ public class Version {
     // For the switch to version 2, offers created with the old version will become invalid and have to be canceled.
     // For the switch to version 3, offers created with the old version can be migrated to version 3 just by opening
     // the Haveno app.
-    // VERSION = 0.0.1 -> TRADE_PROTOCOL_VERSION = 1
-    public static final int TRADE_PROTOCOL_VERSION = 1;
+    // Version = 0.0.1 -> TRADE_PROTOCOL_VERSION = 1
+    // Version = 1.0.19 -> TRADE_PROTOCOL_VERSION = 2
+    public static final int TRADE_PROTOCOL_VERSION = 2;
     private static String p2pMessageVersion;
 
     public static String getP2PMessageVersion() {

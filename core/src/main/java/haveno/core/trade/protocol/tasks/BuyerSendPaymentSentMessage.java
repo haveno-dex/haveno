@@ -142,26 +142,26 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
     @Override
     protected void setStateSent() {
-        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+        getReceiver().setPaymentSentMessageState(MessageState.SENT);
         tryToSendAgainLater();
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateArrived() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
+        getReceiver().setPaymentSentMessageState(MessageState.ARRIVED);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG);
+        getReceiver().setPaymentSentMessageState(MessageState.STORED_IN_MAILBOX);
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateFault() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+        getReceiver().setPaymentSentMessageState(MessageState.FAILED);
         processModel.getTradeManager().requestPersistence();
     }
 
@@ -170,7 +170,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
         if (listener != null) {
-            processModel.getPaymentSentMessageStateProperty().removeListener(listener);
+            trade.getSeller().getPaymentReceivedMessageStateProperty().removeListener(listener);
         }
     }
 
@@ -185,7 +185,6 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             return;
         }
 
-        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
         if (timer != null) {
             timer.stop();
         }
@@ -194,8 +193,8 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
-            processModel.getPaymentSentMessageStateProperty().addListener(listener);
-            onMessageStateChange(processModel.getPaymentSentMessageStateProperty().get());
+            getReceiver().getPaymentSentMessageStateProperty().addListener(listener);
+            onMessageStateChange(getReceiver().getPaymentSentMessageStateProperty().get());
         }
 
         // first re-send is after 2 minutes, then increase the delay exponentially
@@ -212,12 +211,12 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
     }
 
     private void onMessageStateChange(MessageState newValue) {
-        if (newValue == MessageState.ACKNOWLEDGED) {
-            trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
-            processModel.getTradeManager().requestPersistence();
+        if (isAckedByReceiver()) {
             cleanup();
         }
     }
 
-    protected abstract boolean isAckedByReceiver();
+    protected boolean isAckedByReceiver() {
+        return getReceiver().isPaymentSentMessageAcked();
+    }
 }

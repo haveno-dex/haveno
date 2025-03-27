@@ -30,6 +30,7 @@ public class Restrictions {
     public static final double MAX_SECURITY_DEPOSIT_PCT = 0.5;
     public static BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.1);
     public static BigInteger MIN_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
+    public static int MAX_EXTRA_INFO_LENGTH = 1500;
 
     // At mediation we require a min. payout to the losing party to keep incentive for the trader to accept the
     // mediated payout. For Refund agent cases we do not have that restriction.

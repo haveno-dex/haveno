@@ -251,15 +251,15 @@ class GrpcTradesService extends TradesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 30 : 1, SECONDS));
-                            put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
-                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getConfirmPaymentSentMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getGetTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 1, SECONDS));
+                            put(getGetTradesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 1, SECONDS));
+                            put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getConfirmPaymentSentMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 3, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(3, MINUTES));
-                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
+                            put(getSendChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 75 : 4, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
                         }}
                 )));
     }

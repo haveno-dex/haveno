@@ -420,7 +420,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         havenoSetup.setRejectedTxErrorMessageHandler(msg -> new Popup().width(850).warning(msg).show());
 
-        havenoSetup.setShowPopupIfInvalidBtcConfigHandler(this::showPopupIfInvalidBtcConfig);
+        havenoSetup.setShowPopupIfInvalidXmrConfigHandler(this::showPopupIfInvalidXmrConfig);
 
         havenoSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> {
             // We copy the array as we will mutate it later
@@ -536,7 +536,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         });
     }
 
-    private void showPopupIfInvalidBtcConfig() {
+    private void showPopupIfInvalidXmrConfig() {
         preferences.setMoneroNodesOptionOrdinal(0);
         new Popup().warning(Res.get("settings.net.warn.invalidXmrConfig"))
                 .hideCloseButton()

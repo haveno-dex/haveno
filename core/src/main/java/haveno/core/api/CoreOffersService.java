@@ -159,7 +159,7 @@ public class CoreOffersService {
     }
 
     OpenOffer getMyOffer(String id) {
-        return openOfferManager.getOpenOfferById(id)
+        return openOfferManager.getOpenOffer(id)
                 .filter(open -> open.getOffer().isMyOffer(keyRing))
                 .orElseThrow(() ->
                         new IllegalStateException(format("openoffer with id '%s' not found", id)));
@@ -265,6 +265,7 @@ public class CoreOffersService {
                 if (!seenKeyImages.add(keyImage)) {
                     for (Offer offer2 : offers) {
                         if (offer == offer2) continue;
+                        if (offer2.getOfferPayload().getReserveTxKeyImages() == null) continue;
                         if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
                             log.warn("Key image {} belongs to multiple offers, seen in offer {} and {}", keyImage, offer.getId(), offer2.getId());
                             duplicateFundedOffers.add(offer2);
