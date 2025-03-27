@@ -3,9 +3,9 @@ name: ACAB
 on:
   workflow_dispatch:
   push:
-    branches: [ haveno-reto, dev ]
+    branches: [ haveno-reto-dev ]
   pull_request:
-    branches: [ haveno-reto ]
+    branches: [ haveno-reto-dev ]
     paths-ignore:
       - '**/README.md'
 
