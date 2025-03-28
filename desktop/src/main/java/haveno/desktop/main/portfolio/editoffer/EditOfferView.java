@@ -205,7 +205,8 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
                 cancelButton.setDisable(true);
                 busyAnimation.play();
                 spinnerInfoLabel.setText(Res.get("editOffer.publishOffer"));
-                //edit offer
+
+                // edit offer
                 model.onPublishOffer(() -> {
                     String key = "editOfferSuccess";
                     if (DontShowAgainLookup.showAgain(key)) {

@@ -20,6 +20,8 @@ package haveno.desktop.main.portfolio.editoffer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -226,8 +228,10 @@ class EditOfferDataModel extends MutableOfferDataModel {
 
         openOfferManager.editOpenOfferPublish(editedOffer, triggerPrice, initialState, () -> {
             openOffer = null;
-            resultHandler.handleResult();
-        }, errorMessageHandler);
+            UserThread.execute(() -> resultHandler.handleResult());
+        }, (errorMsg) -> {
+            UserThread.execute(() -> errorMessageHandler.handleErrorMessage(errorMsg));
+        });
     }
 
     public void onCancelEditOffer(ErrorMessageHandler errorMessageHandler) {
