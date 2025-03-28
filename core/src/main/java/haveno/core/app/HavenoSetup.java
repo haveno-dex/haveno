@@ -158,7 +158,7 @@ public class HavenoSetup {
             rejectedTxErrorMessageHandler;
     @Setter
     @Nullable
-    private Consumer<Boolean> displayMoneroConnectionFallbackHandler;        
+    private Consumer<String> displayMoneroConnectionFallbackHandler;        
     @Setter
     @Nullable
     private Consumer<Boolean> displayTorNetworkSettingsHandler;
@@ -430,7 +430,7 @@ public class HavenoSetup {
         getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
 
         // listen for fallback handling
-        getConnectionServiceFallbackHandlerActive().addListener((observable, oldValue, newValue) -> {
+        getConnectionServiceFallbackHandler().addListener((observable, oldValue, newValue) -> {
             if (displayMoneroConnectionFallbackHandler == null) return;
             displayMoneroConnectionFallbackHandler.accept(newValue);
         });
@@ -734,8 +734,8 @@ public class HavenoSetup {
         return xmrConnectionService.getConnectionServiceErrorMsg();
     }
 
-    public BooleanProperty getConnectionServiceFallbackHandlerActive() {
-        return xmrConnectionService.getConnectionServiceFallbackHandlerActive();
+    public StringProperty getConnectionServiceFallbackHandler() {
+        return xmrConnectionService.getConnectionServiceFallbackHandler();
     }
 
     public StringProperty getTopErrorMsg() {

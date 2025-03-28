@@ -335,25 +335,23 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             tacWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
-        havenoSetup.setDisplayMoneroConnectionFallbackHandler(show -> {
-            if (moneroConnectionFallbackPopup == null) {
+        havenoSetup.setDisplayMoneroConnectionFallbackHandler(fallbackMsg -> {
+            if (fallbackMsg != null && !fallbackMsg.isEmpty()) {
                 moneroConnectionFallbackPopup = new Popup()
-                    .headLine(Res.get("connectionFallback.headline"))
-                    .warning(Res.get("connectionFallback.msg"))
-                    .closeButtonText(Res.get("shared.no"))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(() -> {
-                        havenoSetup.getConnectionServiceFallbackHandlerActive().set(false);
-                        new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
-                    })
-                    .onClose(() -> {
-                        log.warn("User has declined to fallback to the next best available Monero node.");
-                        havenoSetup.getConnectionServiceFallbackHandlerActive().set(false);
-                    });
-            }
-            if (show) {
+                        .headLine(Res.get("connectionFallback.headline"))
+                        .warning(fallbackMsg)
+                        .closeButtonText(Res.get("shared.no"))
+                        .actionButtonText(Res.get("shared.yes"))
+                        .onAction(() -> {
+                            havenoSetup.getConnectionServiceFallbackHandler().set("");
+                            new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                        })
+                        .onClose(() -> {
+                            log.warn("User has declined to fallback to the next best available Monero node.");
+                            havenoSetup.getConnectionServiceFallbackHandler().set("");
+                        });
                 moneroConnectionFallbackPopup.show();
-            } else if (moneroConnectionFallbackPopup.isDisplayed()) {
+            } else if (moneroConnectionFallbackPopup != null && moneroConnectionFallbackPopup.isDisplayed()) {
                 moneroConnectionFallbackPopup.hide();
             }
         });
