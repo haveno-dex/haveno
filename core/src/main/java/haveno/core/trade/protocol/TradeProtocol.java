@@ -96,7 +96,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private static final String TIMEOUT_REACHED = "Timeout reached.";
     public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other wallet functions
     public static final long REPROCESS_DELAY_MS = 5000;
-    public static final String LOG_HIGHLIGHT = "\u001B[0m"; // terminal default
+    public static final String LOG_HIGHLIGHT = "\u001B[36m"; // cyan
 
     protected final ProcessModel processModel;
     protected final Trade trade;
