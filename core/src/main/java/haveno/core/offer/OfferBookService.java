@@ -36,6 +36,8 @@ package haveno.core.offer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
@@ -47,14 +49,20 @@ import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrKeyImageListener;
 import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.utils.Utils;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +75,7 @@ import monero.daemon.model.MoneroKeyImageSpentStatus;
  * Handles storage and retrieval of offers.
  * Uses an invalidation flag to only request the full offer map in case there was a change (anyone has added or removed an offer).
  */
+@Slf4j
 public class OfferBookService {
 
     private final P2PService p2PService;
@@ -75,6 +84,10 @@ public class OfferBookService {
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
     private final XmrConnectionService xmrConnectionService;
+
+    // cache validated offers
+    private List<Offer> offersCache;
+    private Object offersCacheLock = new Object();
 
     // poll key images of offers
     private XmrKeyImagePoller keyImagePoller;
@@ -115,17 +128,23 @@ public class OfferBookService {
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                UserThread.execute(() -> {
+                ThreadUtils.submitToPool(() -> {
+                    refreshOffersCache(protectedStorageEntries);
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                            maybeInitializeKeyImagePoller();
-                            keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
-                            Offer offer = new Offer(offerPayload);
-                            offer.setPriceFeedService(priceFeedService);
-                            setReservedFundsSpent(offer);
-                            synchronized (offerBookChangedListeners) {
-                                offerBookChangedListeners.forEach(listener -> listener.onAdded(offer));
+                            try {
+                                OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+                                validateOfferPayload(offerPayload, getOffers());
+                                maybeInitializeKeyImagePoller();
+                                keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
+                                Offer offer = new Offer(offerPayload);
+                                offer.setPriceFeedService(priceFeedService);
+                                updateReservedFundsSpentStatus(offer);
+                                synchronized (offerBookChangedListeners) {
+                                    offerBookChangedListeners.forEach(listener -> listener.onAdded(offer));
+                                }
+                            } catch (Exception e) {
+                                //log.warn("Ignoring added offer with invalid payload, offerId={}, makerAddress={}, error={}", offerPayload.getId(), offerPayload.getOwnerNodeAddress(), e.getMessage());
                             }
                         }
                     });
@@ -134,15 +153,16 @@ public class OfferBookService {
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                UserThread.execute(() -> {
+                ThreadUtils.submitToPool(() -> {
+                    refreshOffersCache(protectedStorageEntries);
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
                             maybeInitializeKeyImagePoller();
-                            keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                            if (!hasSharedKeyImages(offerPayload)) keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
                             Offer offer = new Offer(offerPayload);
                             offer.setPriceFeedService(priceFeedService);
-                            setReservedFundsSpent(offer);
+                            updateReservedFundsSpentStatus(offer);
                             synchronized (offerBookChangedListeners) {
                                 offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
                             }
@@ -170,6 +190,21 @@ public class OfferBookService {
                     UserThread.runAfter(OfferBookService.this::doDumpStatistics, 1);
                 }
             });
+        }
+    }
+
+    private void refreshOffersCache(Collection<ProtectedStorageEntry> protectedStorageEntries) {
+        boolean hasOfferPayload = false;
+        for (ProtectedStorageEntry protectedStorageEntry : protectedStorageEntries) {
+            if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
+                hasOfferPayload = true;
+            }
+        }
+        if (hasOfferPayload) {
+            synchronized (offersCacheLock) {
+                offersCache = null;
+                getOffers();
+            }
         }
     }
 
@@ -233,13 +268,30 @@ public class OfferBookService {
     }
 
     public List<Offer> getOffers() {
+        synchronized (offersCacheLock) {
+            if (offersCache != null) return offersCache;
+            offersCache = new ArrayList<>();
+            for (Offer p2pOffer : getP2POffers()) {
+                try {
+                    updateReservedFundsSpentStatus(p2pOffer);
+                    validateOfferPayload(p2pOffer.getOfferPayload(), offersCache);
+                    keyImagePoller.addKeyImages(p2pOffer.getOfferPayload().getReserveTxKeyImages());
+                    offersCache.add(p2pOffer);
+                } catch (Exception e) {
+                    // ignore invalid payload
+                }
+            }
+            return offersCache;
+        }
+    }
+
+    private List<Offer> getP2POffers() {
         return p2PService.getDataMap().values().stream()
                 .filter(data -> data.getProtectedStoragePayload() instanceof OfferPayload)
-                .map(data -> {
-                    OfferPayload offerPayload = (OfferPayload) data.getProtectedStoragePayload();
+                .map(data -> (OfferPayload) data.getProtectedStoragePayload())
+                .map(offerPayload -> {
                     Offer offer = new Offer(offerPayload);
                     offer.setPriceFeedService(priceFeedService);
-                    setReservedFundsSpent(offer);
                     return offer;
                 })
                 .collect(Collectors.toList());
@@ -274,6 +326,55 @@ public class OfferBookService {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    private void validateOfferPayload(OfferPayload offerPayload, Collection<Offer> offers) {
+
+        // validate offer is not banned
+        if (filterManager.isOfferIdBanned(offerPayload.getId())) {
+            throw new IllegalArgumentException("Offer is banned with offerId=" + offerPayload.getId());
+        }
+
+        // validate v3 node address compliance
+        boolean isV3NodeAddressCompliant = !OfferRestrictions.requiresNodeAddressUpdate() || Utils.isV3Address(offerPayload.getOwnerNodeAddress().getHostName());
+        if (!isV3NodeAddressCompliant) {
+            throw new IllegalArgumentException("Offer with non-V3 node address is not allowed with offerId=" + offerPayload.getId());
+        }
+
+        // validate against existing offers
+        int count = 0;
+        for (Offer offer : offers) {
+
+            // validate that no offer has overlapping but different key images
+            if (!offer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) && 
+                    !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
+                throw new IllegalArgumentException("Offer with overlapping key images already exists with offerId=" + offer.getId());
+            }
+
+            // validate that no offer has same key images, payment method, and currency
+            if (!offer.getId().equals(offerPayload.getId()) && 
+                    offer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) &&
+                    offer.getOfferPayload().getPaymentMethodId().equals(offerPayload.getPaymentMethodId()) &&
+                    offer.getOfferPayload().getBaseCurrencyCode().equals(offerPayload.getBaseCurrencyCode()) &&
+                    offer.getOfferPayload().getCounterCurrencyCode().equals(offerPayload.getCounterCurrencyCode())) {
+                throw new IllegalArgumentException("Offer with same key images, payment method, and currency already exists with offerId=" + offer.getId());
+            }
+
+            // count offers with same key images
+            if (!offer.getId().equals(offerPayload.getId()) && !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) count = Math.max(2, count + 1);
+        }
+
+        // validate max offers with same key images
+        if (count > Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) throw new IllegalArgumentException("More than " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " offers exist with same same key images as new offerId=" + offerPayload.getId());
+    }
+
+    private boolean hasSharedKeyImages(OfferPayload offerPayload) {
+        for (Offer offer : getOffers()) {
+            if (!offer.getId().equals(offerPayload.getId()) && !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     private synchronized void maybeInitializeKeyImagePoller() {
         if (keyImagePoller != null) return;
         keyImagePoller = new XmrKeyImagePoller(xmrConnectionService.getDaemon(), getKeyImageRefreshPeriodMs());
@@ -282,11 +383,9 @@ public class OfferBookService {
         keyImagePoller.addListener(new XmrKeyImageListener() {
             @Override
             public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                UserThread.execute(() -> {
-                    for (String keyImage : spentStatuses.keySet()) {
-                        updateAffectedOffers(keyImage);
-                    }
-                });
+                for (String keyImage : spentStatuses.keySet()) {
+                    updateAffectedOffers(keyImage);
+                }
             }
         });
 
@@ -315,7 +414,7 @@ public class OfferBookService {
         }
     }
 
-    private void setReservedFundsSpent(Offer offer) {
+    private void updateReservedFundsSpentStatus(Offer offer) {
         if (keyImagePoller == null) return;
         for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
             if (Boolean.TRUE.equals(keyImagePoller.isSpent(keyImage))) {

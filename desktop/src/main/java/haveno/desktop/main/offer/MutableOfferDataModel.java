@@ -204,14 +204,16 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // called before activate()
-    public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
-        addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
-        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                updateBalances();
-            }
-        };
+    public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency, boolean initAddressEntry) {
+        if (initAddressEntry) {
+            addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
+            xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
+                @Override
+                public void onBalanceChanged(BigInteger balance) {
+                    updateBalances();
+                }
+            };
+        }
 
         this.direction = direction;
         this.tradeCurrency = tradeCurrency;
@@ -278,6 +280,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     protected void updateBalances() {
+        if (addressEntry == null) return;
         super.updateBalances();
 
         // update remaining balance
@@ -316,6 +319,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 triggerPrice,
                 reserveExactAmount,
                 false, // desktop ui resets address entries on cancel
+                null,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -607,6 +611,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public void setTriggerPrice(long triggerPrice) {
         this.triggerPrice = triggerPrice;
+    }
+
+    public void setMarketPriceMargin(double marketPriceMargin) {
+        this.marketPriceMargin = marketPriceMargin;
     }
 
     public void setReserveExactAmount(boolean reserveExactAmount) {

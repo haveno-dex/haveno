@@ -23,7 +23,7 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.locale.Res;
 import haveno.core.offer.messages.SignOfferResponse;
-import haveno.core.offer.placeoffer.tasks.AddToOfferBook;
+import haveno.core.offer.placeoffer.tasks.MaybeAddToOfferBook;
 import haveno.core.offer.placeoffer.tasks.MakerProcessSignOfferResponse;
 import haveno.core.offer.placeoffer.tasks.MakerReserveOfferFunds;
 import haveno.core.offer.placeoffer.tasks.MakerSendSignOfferRequest;
@@ -135,7 +135,7 @@ public class PlaceOfferProtocol {
         );
         taskRunner.addTasks(
                 MakerProcessSignOfferResponse.class,
-                AddToOfferBook.class
+                MaybeAddToOfferBook.class
         );
 
         taskRunner.run();

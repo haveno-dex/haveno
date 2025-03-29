@@ -84,6 +84,10 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
         return item.getOffer().getShortId();
     }
 
+    String getMakerReserveTxId(OpenOfferListItem item) {
+        return item.getOpenOffer().getReserveTxHash();
+    }
+
     String getAmount(OpenOfferListItem item) {
         return (item != null) ? DisplayUtils.formatAmount(item.getOffer(), btcFormatter) : "";
     }

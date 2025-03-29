@@ -1014,6 +1014,14 @@ public class XmrWalletService extends XmrWalletBase {
         });
     }
 
+    public synchronized void cloneAddressEntries(String offerId, String cloneOfferId) {
+        List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).collect(Collectors.toList());
+        for (XmrAddressEntry entry : entries) {
+            XmrAddressEntry clonedEntry = new XmrAddressEntry(entry.getSubaddressIndex(), entry.getAddressString(), entry.getContext(), cloneOfferId, null);
+            xmrAddressEntryList.addAddressEntry(clonedEntry);
+        }
+    }
+
     public synchronized void resetAddressEntriesForOpenOffer(String offerId) {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
 
