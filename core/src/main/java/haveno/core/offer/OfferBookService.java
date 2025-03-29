@@ -128,12 +128,12 @@ public class OfferBookService {
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                refreshOffersCache(protectedStorageEntries);
-                UserThread.execute(() -> {
+                ThreadUtils.submitToPool(() -> {
+                    refreshOffersCache(protectedStorageEntries);
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
                             try {
+                                OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
                                 validateOfferPayload(offerPayload, getOffers());
                                 maybeInitializeKeyImagePoller();
                                 keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
@@ -153,8 +153,8 @@ public class OfferBookService {
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                refreshOffersCache(protectedStorageEntries);
-                UserThread.execute(() -> {
+                ThreadUtils.submitToPool(() -> {
+                    refreshOffersCache(protectedStorageEntries);
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
@@ -383,11 +383,9 @@ public class OfferBookService {
         keyImagePoller.addListener(new XmrKeyImageListener() {
             @Override
             public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                UserThread.execute(() -> {
-                    for (String keyImage : spentStatuses.keySet()) {
-                        updateAffectedOffers(keyImage);
-                    }
-                });
+                for (String keyImage : spentStatuses.keySet()) {
+                    updateAffectedOffers(keyImage);
+                }
             }
         });
 
