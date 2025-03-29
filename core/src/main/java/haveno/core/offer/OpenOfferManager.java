@@ -55,6 +55,7 @@ import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.filter.FilterManager;
+import haveno.core.locale.Res;
 import haveno.core.offer.OfferBookService.OfferBookChangedListener;
 import haveno.core.offer.messages.OfferAvailabilityRequest;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
@@ -544,11 +545,42 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            long triggerPrice,
                            boolean reserveExactAmount,
                            boolean resetAddressEntriesOnError,
+                           String fundingOfferId,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
 
+        // check funding offer and clone limit
+        OpenOffer fundingOffer = null;
+        if (fundingOfferId != null) {
+
+            // get source offer
+            Optional<OpenOffer> fundingOfferOptional = getOpenOffer(fundingOfferId);
+            if (!fundingOfferOptional.isPresent()) {
+                errorMessageHandler.handleErrorMessage("Source offer not found.");
+                return;
+            }
+            fundingOffer = fundingOfferOptional.get();
+    
+            // check clone limit
+            int numClones = getOpenOffersByReserveTxId(fundingOffer.getReserveTxHash()).size();
+            if (numClones >= 10) {
+                errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of 10 cloned offers with shared reserved funds reached.");
+                return;
+            }
+        }
+
         // create open offer
-        OpenOffer openOffer = new OpenOffer(offer, triggerPrice, reserveExactAmount);
+        OpenOffer openOffer = new OpenOffer(offer, fundingOffer == null ? triggerPrice : fundingOffer.getTriggerPrice(), fundingOffer == null ? reserveExactAmount : fundingOffer.isReserveExactAmount());
+
+        // set state from funding offer
+        if (fundingOffer != null) {
+            openOffer.setReserveTxHash(fundingOffer.getReserveTxHash());
+            openOffer.setReserveTxHex(fundingOffer.getReserveTxHex());
+            openOffer.setReserveTxKey(fundingOffer.getReserveTxKey());
+            openOffer.getOffer().getOfferPayload().setReserveTxKeyImages(fundingOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+            xmrWalletService.cloneAddressEntries(fundingOffer.getOffer().getId(), openOffer.getOffer().getId());
+            if (cannotActivateOffer(offer)) openOffer.setState(OpenOffer.State.DEACTIVATED);
+        }
 
         // schedule or post offer
         ThreadUtils.execute(() -> {
@@ -591,7 +623,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (openOffer.isPending()) {
             resultHandler.handleResult(); // ignore if pending
         } else if (offersToBeEdited.containsKey(openOffer.getId())) {
-            errorMessageHandler.handleErrorMessage("You can't activate an offer that is currently edited.");
+            errorMessageHandler.handleErrorMessage(Res.get("offerbook.cannotActivateEditedOffer.warning"));
+        } else if (cannotActivateOffer(openOffer.getOffer())) {
+            errorMessageHandler.handleErrorMessage(Res.get("offerbook.cannotActivate.warning"));
         } else {
             Offer offer = openOffer.getOffer();
             offerBookService.activateOffer(offer,
@@ -753,11 +787,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
+        boolean hasSharedReserveTx = hasSharedReserveTx(offer.getId()); // record before removing open offer
         removeOpenOffer(openOffer); 
-        closedTradableManager.add(openOffer); // TODO: don't add these to closed tradables?
+        if (!hasSharedReserveTx) closedTradableManager.add(openOffer); // do not add clones to closed trades TODO: don't add canceled offers to closed tradables?
         if (resetAddressEntries) xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
-        xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
+        if (!hasSharedReserveTx) xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
     }
 
     // close open offer after key images spent
@@ -783,6 +818,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         requestPersistence();
     }
 
+    public boolean cannotActivateOffer(Offer offer) {
+        return openOffers.stream()
+                .filter(openOffer -> !openOffer.getId().equals(offer.getId()))  // our own offer gets skipped
+                .filter(openOffer -> !openOffer.isDeactivated())  // we only check with activated offers
+                .anyMatch(openOffer ->
+                        // Offers which share our maker reserve tx will get checked if they have the same payment method
+                        // and currency.
+                        openOffer.getReserveTxHash() != null &&
+                                openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().equals(offer.getOfferPayload().getReserveTxKeyImages()) &&
+                                openOffer.getOffer().getPaymentMethodId().equalsIgnoreCase(offer.getPaymentMethodId()) &&
+                                openOffer.getOffer().getCounterCurrencyCode().equalsIgnoreCase(offer.getCounterCurrencyCode()) &&
+                                openOffer.getOffer().getBaseCurrencyCode().equalsIgnoreCase(offer.getBaseCurrencyCode()));
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -806,6 +855,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         synchronized (openOffers) {
             return new ArrayList<>(getObservableList());
         }
+    }
+
+    public List<OpenOffer> getOpenOffersByReserveTxId(String reserveTxId) {
+        synchronized (openOffers) {
+            return getOpenOffers().stream()
+                    .filter(openOffer -> openOffer.getReserveTxHash().equals(reserveTxId))
+                    .collect(Collectors.toList());
+        }
+    }
+
+    public boolean hasSharedReserveTx(String offerId) {
+        OpenOffer openOffer = getOpenOffer(offerId).orElse(null);
+        if (openOffer == null || openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty()) return false;
+        return getOpenOffersByReserveTxId(openOffer.getReserveTxHash()).size() > 1;
     }
 
     public List<SignedOffer> getSignedOffers() {
@@ -925,20 +988,25 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void removeOffersWithDuplicateKeyImages(List<OpenOffer> openOffers) {
 
         // collect offers with duplicate key images
-        Set<String> keyImages = new HashSet<>();
+        Set<OpenOffer> offersToKeep = new HashSet<>();
         Set<OpenOffer> offersToRemove = new HashSet<>();
         for (OpenOffer openOffer : openOffers) {
-            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
-            if (Collections.disjoint(keyImages, openOffer.getOffer().getOfferPayload().getReserveTxKeyImages())) {
-                keyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
-            } else {
-                offersToRemove.add(openOffer);
+            boolean toRemove = false;
+            for (OpenOffer offerToKeep : offersToKeep) {
+                if (openOffer.getReserveTxHash() != null &&
+                        !openOffer.getReserveTxHash().equals(offerToKeep.getReserveTxHash()) &&
+                        !Collections.disjoint(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), offerToKeep.getOffer().getOfferPayload().getReserveTxKeyImages())) {
+                    toRemove = true;
+                    break;
+                }
             }
+            if (toRemove) offersToRemove.add(openOffer);
+            else offersToKeep.add(openOffer);
         }
 
-        // remove offers with duplicate key images
+        // remove offers with duplicate key images and different reserve tx
         for (OpenOffer offerToRemove : offersToRemove) {
-            log.warn("Removing open offer which has duplicate key images with other open offers: {}", offerToRemove.getId());
+            log.warn("Removing open offer which has duplicate key images but different reserve tx from other open offers: {}", offerToRemove.getId());
             doCancelOffer(offerToRemove);
             openOffers.remove(offerToRemove);
         }
@@ -1018,6 +1086,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
                         if (openOffer.isAvailable()) openOffer.setState(OpenOffer.State.PENDING);
                     }
+                }
+
+                // skip if cannot activate offer
+                if (hasSharedReserveTx(openOffer.getId()) && cannotActivateOffer(openOffer.getOffer())) {
+                    resultHandler.handleResult(null);
+                    return;
                 }
 
                 // cancel offer if scheduled txs unavailable

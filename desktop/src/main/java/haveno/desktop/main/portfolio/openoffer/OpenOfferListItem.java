@@ -39,4 +39,8 @@ class OpenOfferListItem {
     public Offer getOffer() {
         return openOffer.getOffer();
     }
+
+    public String getMakerReserveTxId() {
+        return openOffer.getReserveTxHash();
+    }
 }

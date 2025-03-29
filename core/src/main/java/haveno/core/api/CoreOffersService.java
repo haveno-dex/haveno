@@ -66,9 +66,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import static java.util.Comparator.comparing;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -124,7 +122,6 @@ public class CoreOffersService {
                     return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
                 })
                 .collect(Collectors.toList());
-        offers.removeAll(getOffersWithDuplicateKeyImages(offers));
         return offers;
     }
 
@@ -143,12 +140,9 @@ public class CoreOffersService {
     }
 
     List<OpenOffer> getMyOffers() {
-        List<OpenOffer> offers = openOfferManager.getOpenOffers().stream()
+        return openOfferManager.getOpenOffers().stream()
                 .filter(o -> o.getOffer().isMyOffer(keyRing))
                 .collect(Collectors.toList());
-        Set<Offer> offersWithDuplicateKeyImages = getOffersWithDuplicateKeyImages(offers.stream().map(OpenOffer::getOffer).collect(Collectors.toList())); // TODO: this is hacky way of filtering offers with duplicate key images
-        Set<String> offerIdsWithDuplicateKeyImages = offersWithDuplicateKeyImages.stream().map(Offer::getId).collect(Collectors.toSet());
-        return offers.stream().filter(o -> !offerIdsWithDuplicateKeyImages.contains(o.getId())).collect(Collectors.toList());
     };
 
     List<OpenOffer> getMyOffers(String direction, String currencyCode) {
@@ -256,27 +250,6 @@ public class CoreOffersService {
 
     // -------------------------- PRIVATE HELPERS -----------------------------
 
-    private Set<Offer> getOffersWithDuplicateKeyImages(List<Offer> offers) {
-        Set<Offer> duplicateFundedOffers = new HashSet<Offer>();
-        Set<String> seenKeyImages = new HashSet<String>();
-        for (Offer offer : offers) {
-            if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
-            for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-                if (!seenKeyImages.add(keyImage)) {
-                    for (Offer offer2 : offers) {
-                        if (offer == offer2) continue;
-                        if (offer2.getOfferPayload().getReserveTxKeyImages() == null) continue;
-                        if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                            log.warn("Key image {} belongs to multiple offers, seen in offer {} and {}", keyImage, offer.getId(), offer2.getId());
-                            duplicateFundedOffers.add(offer2);
-                        }
-                    }
-                }
-            }
-        }
-        return duplicateFundedOffers;
-    }
-
     private void verifyPaymentAccountIsValidForNewOffer(Offer offer, PaymentAccount paymentAccount) {
         if (!isPaymentAccountValidForOffer(offer, paymentAccount)) {
             String error = format("cannot create %s offer with payment account %s",
@@ -298,6 +271,7 @@ public class CoreOffersService {
                 triggerPriceAsLong,
                 reserveExactAmount,
                 true,
+                null, // TODO: support fundingOfferId
                 resultHandler::accept,
                 errorMessageHandler);
     }

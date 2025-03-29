@@ -139,10 +139,9 @@ class EditOfferDataModel extends MutableOfferDataModel {
         allowAmountUpdate = false;
     }
 
-    @Override
     public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
         try {
-            return super.initWithData(direction, tradeCurrency);
+            return super.initWithData(direction, tradeCurrency, false);
         } catch (NullPointerException e) {
             if (e.getMessage().contains("tradeCurrency")) {
                 throw new IllegalArgumentException("Offers of removed assets cannot be edited. You can only cancel it.", e);
