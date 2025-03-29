@@ -1088,12 +1088,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     }
                 }
 
-                // skip if cannot activate offer
-                if (hasSharedReserveTx(openOffer.getId()) && cannotActivateOffer(openOffer.getOffer())) {
-                    resultHandler.handleResult(null);
-                    return;
-                }
-
                 // cancel offer if scheduled txs unavailable
                 if (openOffer.getScheduledTxHashes() != null) {
                     boolean scheduledTxsAvailable = true;
