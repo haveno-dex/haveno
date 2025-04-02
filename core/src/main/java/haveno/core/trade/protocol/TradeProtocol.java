@@ -510,6 +510,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected void handle(PaymentSentMessage message, NodeAddress peer, boolean reprocessOnError) {
         log.info(LOG_HIGHLIGHT + "handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
 
+        // ignore if not seller or arbitrator
+        if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
+            log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
+            return;
+        }
+
         // validate signature
         try {
             HavenoUtils.verifyPaymentSentMessage(trade, message);
@@ -522,11 +528,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.getBuyer().setPaymentSentMessage(message);
         trade.requestPersistence();
 
+        // process message on trade thread
         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-        if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
-            log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
-            return;
-        }
         ThreadUtils.execute(() -> {
             // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
             // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
@@ -549,7 +552,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     return;
                 }
                 latchTrade();
-                expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED)
+                expect(anyPhase()
                         .with(message)
                         .from(peer))
                         .setup(tasks(
@@ -589,6 +592,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
         log.info(LOG_HIGHLIGHT + "handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
 
+        // ignore if not buyer or arbitrator
+        if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
+            log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
+            return;
+        }
+
         // validate signature
         try {
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
@@ -601,12 +610,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.getSeller().setPaymentReceivedMessage(message);
         trade.requestPersistence();
 
+        // process message on trade thread
         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
-            if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
-                log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
-                return;
-            }
             synchronized (trade.getLock()) {
                 if (!trade.isInitialized() || trade.isShutDownStarted()) return;
                 latchTrade();
