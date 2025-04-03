@@ -72,12 +72,21 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // update to the latest peer address of our peer if message is correct
             trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
+            trade.requestPersistence();
 
             // ack and complete if already processed
             if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
                 log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
                 complete();
                 return;
+            }
+
+            // cannot process until wallet sees deposits unlocked
+            if (!trade.isDepositsUnlocked()) {
+                trade.syncAndPollWallet();
+                if (!trade.isDepositsUnlocked()) {
+                    throw new RuntimeException("Cannot process PaymentReceivedMessage until wallet sees that deposits are unlocked for " + trade.getClass().getSimpleName() + " " + trade.getId());
+                }
             }
 
             // set state
