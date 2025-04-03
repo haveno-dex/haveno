@@ -74,6 +74,7 @@ monerod1-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
+		--rpc-max-connections-per-private-ip 100 \
 
 monerod2-local:
 	./.localnet/monerod \
@@ -93,6 +94,7 @@ monerod2-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
+		--rpc-max-connections-per-private-ip 100 \
 
 monerod3-local:
 	./.localnet/monerod \
@@ -112,6 +114,7 @@ monerod3-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
+		--rpc-max-connections-per-private-ip 100 \
 
 #--proxy 127.0.0.1:49775 \
 
