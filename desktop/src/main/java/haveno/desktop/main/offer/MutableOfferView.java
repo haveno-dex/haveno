@@ -262,6 +262,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
             buyerAsTakerWithoutDepositSlider.setSelected(model.dataModel.getBuyerAsTakerWithoutDeposit().get());
 
+            triggerPriceInputTextField.setText(model.triggerPrice.get());
             extraInfoTextArea.setText(model.dataModel.extraInfo.get());
         }
     }

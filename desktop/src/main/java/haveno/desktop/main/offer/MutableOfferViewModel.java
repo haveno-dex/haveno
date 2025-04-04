@@ -501,7 +501,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         };
 
         extraInfoStringListener = (ov, oldValue, newValue) -> {
-            onExtraInfoTextAreaChanged();
+            if (newValue != null) {
+                extraInfo.set(newValue);
+                onExtraInfoTextAreaChanged();
+            }
         };
 
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
@@ -582,6 +585,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         dataModel.getVolume().removeListener(volumeListener);
         dataModel.getSecurityDepositPct().removeListener(securityDepositAsDoubleListener);
         dataModel.getBuyerAsTakerWithoutDeposit().removeListener(buyerAsTakerWithoutDepositListener);
+        dataModel.getExtraInfo().removeListener(extraInfoStringListener);
 
         //dataModel.feeFromFundingTxProperty.removeListener(feeFromFundingTxListener);
         dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
@@ -843,7 +847,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         extraInfoValidationResult.set(getExtraInfoValidationResult());
         updateButtonDisableState();
         if (extraInfoValidationResult.get().isValid) {
-            dataModel.setExtraInfo(extraInfo.get());
+            setExtraInfoToModel();
         }
     }
 

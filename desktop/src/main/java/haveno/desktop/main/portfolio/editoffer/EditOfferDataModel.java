@@ -137,6 +137,9 @@ class EditOfferDataModel extends MutableOfferDataModel {
             securityDepositPct.set(securityDepositPercent);
 
         allowAmountUpdate = false;
+
+        triggerPrice = openOffer.getTriggerPrice();
+        extraInfo.set(offer.getOfferExtraInfo());
     }
 
     @Override
@@ -164,10 +167,10 @@ class EditOfferDataModel extends MutableOfferDataModel {
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
-        setTriggerPrice(openOffer.getTriggerPrice());
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setTriggerPrice(openOffer.getTriggerPrice());
         setExtraInfo(offer.getOfferExtraInfo());
     }
 

@@ -29,6 +29,7 @@ import haveno.core.payment.validation.XmrValidator;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.AmountValidator8Decimals;
@@ -76,6 +77,16 @@ class DuplicateOfferViewModel extends MutableOfferViewModel<DuplicateOfferDataMo
     public void activate() {
         super.activate();
         dataModel.populateData(offer);
+
+        long triggerPriceAsLong = dataModel.getTriggerPrice();
+        dataModel.setTriggerPrice(triggerPriceAsLong);
+        if (triggerPriceAsLong > 0) {
+            triggerPrice.set(PriceUtil.formatMarketPrice(triggerPriceAsLong, dataModel.getCurrencyCode()));
+        } else {
+            triggerPrice.set("");
+        }
+        onTriggerPriceTextFieldChanged();
+
         triggerFocusOutOnAmountFields();
         onFocusOutPriceAsPercentageTextField(true, false);
     }
