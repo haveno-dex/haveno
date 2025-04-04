@@ -68,7 +68,6 @@ import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.value.ChangeListener;
-import lombok.Getter;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
@@ -145,8 +144,7 @@ public class XmrWalletService extends XmrWalletBase {
     private TradeManager tradeManager;
     private ExecutorService syncWalletThreadPool = Executors.newFixedThreadPool(10); // TODO: adjust based on connection type
 
-    @Getter
-    public final Object lock = new Object();
+    private final Object lock = new Object();
     private TaskLooper pollLooper;
     private boolean pollInProgress;
     private Long pollPeriodMs;
@@ -247,7 +245,11 @@ public class XmrWalletService extends XmrWalletBase {
 
     @Override
     public void saveWallet() {
-        saveWallet(!(Utilities.isWindows() && wallet != null));
+        saveWallet(shouldBackup(wallet));
+    }
+
+    private boolean shouldBackup(MoneroWallet wallet) {
+        return wallet != null && !Utilities.isWindows(); // TODO: cannot backup on windows because file is locked
     }
 
     public void saveWallet(boolean backup) {
@@ -389,7 +391,7 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroError err = null;
         String path = wallet.getPath();
         try {
-            if (save) saveWallet(wallet, true);
+            if (save) saveWallet(wallet, shouldBackup(wallet));
             wallet.close();
         } catch (MoneroError e) {
             err = e;
@@ -736,7 +738,7 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroDaemonRpc daemon = getDaemon();
         MoneroWallet wallet = getWallet();
         MoneroTx tx = null;
-        synchronized (daemon) {
+        synchronized (lock) {
             try {
 
                 // verify tx not submitted to pool
@@ -765,7 +767,7 @@ public class XmrWalletService extends XmrWalletBase {
                 BigInteger minerFeeEstimate = getFeeEstimate(tx.getWeight());
                 double minerFeeDiff = tx.getFee().subtract(minerFeeEstimate).abs().doubleValue() / minerFeeEstimate.doubleValue();
                 if (minerFeeDiff > MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + minerFeeEstimate + " but was " + tx.getFee() + ", diff%=" + minerFeeDiff);
-                log.info("Trade tx fee {} is within tolerance, diff%={}", tx.getFee(), minerFeeDiff);
+                log.info("Trade miner fee {} is within tolerance, diff%={}", tx.getFee(), minerFeeDiff);
 
                 // verify proof to fee address
                 BigInteger actualTradeFee = BigInteger.ZERO;
@@ -783,7 +785,7 @@ public class XmrWalletService extends XmrWalletBase {
                 // verify trade fee amount
                 if (!actualTradeFee.equals(tradeFeeAmount)) {
                     if (equalsWithinFractionError(actualTradeFee, tradeFeeAmount)) {
-                        log.warn("Trade tx fee amount is within fraction error, expected " + tradeFeeAmount + " but was " + actualTradeFee);
+                        log.warn("Trade fee amount is within fraction error, expected " + tradeFeeAmount + " but was " + actualTradeFee);
                     } else {
                         throw new RuntimeException("Invalid trade fee amount, expected " + tradeFeeAmount + " but was " + actualTradeFee);
                     }
@@ -922,7 +924,7 @@ public class XmrWalletService extends XmrWalletBase {
             }
 
             // shut down threads
-            synchronized (getLock()) {
+            synchronized (lock) {
                 List<Runnable> shutDownThreads = new ArrayList<>();
                 shutDownThreads.add(() -> ThreadUtils.shutDown(THREAD_ID));
                 ThreadUtils.awaitTasks(shutDownThreads);
@@ -1014,6 +1016,13 @@ public class XmrWalletService extends XmrWalletBase {
 
     public synchronized void resetAddressEntriesForOpenOffer(String offerId) {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
+
+        // skip if failed trade is scheduled for processing // TODO: do not call this function in this case?
+        if (tradeManager.hasFailedScheduledTrade(offerId)) {
+            log.warn("Refusing to reset address entries because trade is scheduled for deletion with offerId={}", offerId);
+            return;
+        }
+
         swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
         // swap trade payout to available if applicable
@@ -1162,7 +1171,7 @@ public class XmrWalletService extends XmrWalletBase {
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
         Stream<XmrAddressEntry> available = getFundedAvailableAddressEntries().stream();
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOfferById(entry.getOfferId()).isPresent()));
+        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOffer(entry.getOfferId()).isPresent()));
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutUnlocked()));
         return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.ZERO) > 0);
     }

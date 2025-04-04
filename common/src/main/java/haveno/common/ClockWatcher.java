@@ -69,7 +69,7 @@ public class ClockWatcher {
                         listeners.forEach(listener -> listener.onMissedSecondTick(missedMs));
     
                         if (missedMs > ClockWatcher.IDLE_TOLERANCE_MS) {
-                            log.info("We have been in standby mode for {} sec", missedMs / 1000);
+                            log.warn("We have been in standby mode for {} sec", missedMs / 1000);
                             listeners.forEach(listener -> listener.onAwakeFromStandby(missedMs));
                         }
                     }

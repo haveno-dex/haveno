@@ -86,7 +86,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
         havenoSetup.setDisplaySecurityRecommendationHandler(key -> log.info("onDisplaySecurityRecommendationHandler"));
         havenoSetup.setWrongOSArchitectureHandler(msg -> log.error("onWrongOSArchitectureHandler. msg={}", msg));
         havenoSetup.setRejectedTxErrorMessageHandler(errorMessage -> log.warn("setRejectedTxErrorMessageHandler. errorMessage={}", errorMessage));
-        havenoSetup.setShowPopupIfInvalidBtcConfigHandler(() -> log.error("onShowPopupIfInvalidBtcConfigHandler"));
+        havenoSetup.setShowPopupIfInvalidXmrConfigHandler(() -> log.error("onShowPopupIfInvalidXmrConfigHandler"));
         havenoSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> log.info("setRevolutAccountsUpdateHandler: revolutAccountList={}", revolutAccountList));
         havenoSetup.setOsxKeyLoggerWarningHandler(() -> log.info("setOsxKeyLoggerWarningHandler"));
         havenoSetup.setQubesOSInfoHandler(() -> log.info("setQubesOSInfoHandler"));

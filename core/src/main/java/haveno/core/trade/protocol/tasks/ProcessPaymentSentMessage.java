@@ -46,9 +46,17 @@ public class ProcessPaymentSentMessage extends TradeTask {
 
             // update latest peer address
             trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
+            trade.requestPersistence();
+
+            // cannot process until wallet sees deposits confirmed
+            if (!trade.isDepositsConfirmed()) {
+                trade.syncAndPollWallet();
+                if (!trade.isDepositsConfirmed()) {
+                    throw new RuntimeException("Cannot process PaymentSentMessage until wallet sees that deposits are confirmed for " + trade.getClass().getSimpleName() + " " + trade.getId());
+                }
+            }
 
             // update state from message
-            trade.getBuyer().setPaymentSentMessage(message);
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
             String counterCurrencyTxId = message.getCounterCurrencyTxId();

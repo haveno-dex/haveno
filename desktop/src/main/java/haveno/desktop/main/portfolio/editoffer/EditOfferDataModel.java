@@ -20,6 +20,8 @@ package haveno.desktop.main.portfolio.editoffer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -135,6 +137,9 @@ class EditOfferDataModel extends MutableOfferDataModel {
             securityDepositPct.set(securityDepositPercent);
 
         allowAmountUpdate = false;
+
+        triggerPrice = openOffer.getTriggerPrice();
+        extraInfo.set(offer.getOfferExtraInfo());
     }
 
     @Override
@@ -162,10 +167,10 @@ class EditOfferDataModel extends MutableOfferDataModel {
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
-        setTriggerPrice(openOffer.getTriggerPrice());
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setTriggerPrice(openOffer.getTriggerPrice());
         setExtraInfo(offer.getOfferExtraInfo());
     }
 
@@ -226,8 +231,10 @@ class EditOfferDataModel extends MutableOfferDataModel {
 
         openOfferManager.editOpenOfferPublish(editedOffer, triggerPrice, initialState, () -> {
             openOffer = null;
-            resultHandler.handleResult();
-        }, errorMessageHandler);
+            UserThread.execute(() -> resultHandler.handleResult());
+        }, (errorMsg) -> {
+            UserThread.execute(() -> errorMessageHandler.handleErrorMessage(errorMsg));
+        });
     }
 
     public void onCancelEditOffer(ErrorMessageHandler errorMessageHandler) {

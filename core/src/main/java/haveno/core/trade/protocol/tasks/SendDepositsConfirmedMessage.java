@@ -23,6 +23,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -37,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTask {
     private Timer timer;
-    private static final int MAX_RESEND_ATTEMPTS = 10;
+    private static final int MAX_RESEND_ATTEMPTS = 20;
     private int delayInMin = 10;
     private int resendCounter = 0;
 
@@ -52,8 +53,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         try {
             runInterceptHook();
 
-            // skip if already acked by receiver
-            if (isAckedByReceiver()) {
+            // skip if already acked or payout published
+            if (isAckedByReceiver() || trade.isPayoutPublished()) {
                 if (!isCompleted()) complete();
                 return;
             }
@@ -64,11 +65,17 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         }
     }
 
-    @Override
-    protected abstract NodeAddress getReceiverNodeAddress();
+    protected abstract TradePeer getReceiver();
 
     @Override
-    protected abstract PubKeyRing getReceiverPubKeyRing();
+    protected NodeAddress getReceiverNodeAddress() {
+        return getReceiver().getNodeAddress();
+    }
+
+    @Override
+    protected PubKeyRing getReceiverPubKeyRing() {
+        return getReceiver().getPubKeyRing();
+    }
 
     @Override
     protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
@@ -97,23 +104,24 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
 
     @Override
     protected void setStateSent() {
+        getReceiver().setDepositsConfirmedMessageState(MessageState.SENT);
         tryToSendAgainLater();
         processModel.getTradeManager().requestPersistence();
     }
 
     @Override
     protected void setStateArrived() {
-        // no additional handling
+        getReceiver().setDepositsConfirmedMessageState(MessageState.ARRIVED);
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        // no additional handling
+        getReceiver().setDepositsConfirmedMessageState(MessageState.STORED_IN_MAILBOX);
     }
 
     @Override
     protected void setStateFault() {
-        // no additional handling
+        getReceiver().setDepositsConfirmedMessageState(MessageState.FAILED);
     }
 
     private void cleanup() {
@@ -137,7 +145,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
             timer.stop();
         }
         
-        // first re-send is after 2 minutes, then double the delay each iteration
+        // first re-send is after 2 minutes, then increase the delay exponentially
         if (resendCounter == 0) {
             int shortDelay = 2;
             log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
@@ -145,13 +153,12 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         } else {
             log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
             timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = delayInMin * 2;
+            delayInMin = (int) ((double) delayInMin * 1.5);
         }
         resendCounter++;
     }
 
     private boolean isAckedByReceiver() {
-        TradePeer peer = trade.getTradePeer(getReceiverNodeAddress());
-        return peer.isDepositsConfirmedMessageAcked();
+        return getReceiver().isDepositsConfirmedMessageAcked();
     }
 }

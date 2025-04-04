@@ -18,7 +18,6 @@
 package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.network.MessageState;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.TradePeer;
@@ -40,25 +39,25 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
     
     @Override
     protected void setStateSent() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.SENT);
+        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
         super.setStateSent();
     }
 
     @Override
     protected void setStateArrived() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.ARRIVED);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
         super.setStateArrived();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.STORED_IN_MAILBOX);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG);
         super.setStateStoredInMailbox();
     }
 
     @Override
     protected void setStateFault() {
-        trade.getProcessModel().setPaymentSentMessageState(MessageState.FAILED);
+        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
         super.setStateFault();
     }
 
@@ -68,10 +67,5 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
         setStateFault();
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         complete();
-    }
-
-    @Override
-    protected boolean isAckedByReceiver() {
-        return trade.getState().ordinal() >= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal();
     }
 }

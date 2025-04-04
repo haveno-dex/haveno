@@ -178,6 +178,9 @@ public class DomainInitialisation {
         closedTradableManager.onAllServicesInitialized();
         failedTradesManager.onAllServicesInitialized();
 
+        filterManager.setFilterWarningHandler(filterWarningHandler);
+        filterManager.onAllServicesInitialized();
+
         openOfferManager.onAllServicesInitialized();
 
         balances.onAllServicesInitialized();
@@ -198,10 +201,6 @@ public class DomainInitialisation {
 
         priceFeedService.setCurrencyCodeOnInit();
         priceFeedService.startRequestingPrices();
-
-        filterManager.setFilterWarningHandler(filterWarningHandler);
-        filterManager.onAllServicesInitialized();
-
 
         mobileNotificationService.onAllServicesInitialized();
         myOfferTakenEvents.onAllServicesInitialized();

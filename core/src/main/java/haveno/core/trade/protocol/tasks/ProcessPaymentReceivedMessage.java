@@ -72,6 +72,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // update to the latest peer address of our peer if message is correct
             trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
             if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
+            trade.requestPersistence();
 
             // ack and complete if already processed
             if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
@@ -80,8 +81,13 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 return;
             }
 
-            // save message for reprocessing
-            trade.getSeller().setPaymentReceivedMessage(message);
+            // cannot process until wallet sees deposits unlocked
+            if (!trade.isDepositsUnlocked()) {
+                trade.syncAndPollWallet();
+                if (!trade.isDepositsUnlocked()) {
+                    throw new RuntimeException("Cannot process PaymentReceivedMessage until wallet sees that deposits are unlocked for " + trade.getClass().getSimpleName() + " " + trade.getId());
+                }
+            }
 
             // set state
             trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
@@ -127,14 +133,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
     }
 
     private void processPayoutTx(PaymentReceivedMessage message) {
-
-        // adapt from 1.0.6 to 1.0.7 which changes field usage
-        // TODO: remove after future updates to allow old trades to clear
-        if (trade.getPayoutTxHex() != null && trade.getBuyer().getPaymentSentMessage() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
-            log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-            if (trade instanceof BuyerTrade) trade.getSelf().setUnsignedPayoutTxHex(trade.getPayoutTxHex());
-            trade.setPayoutTxHex(null);
-        }
 
         // update wallet
         trade.importMultisigHex();

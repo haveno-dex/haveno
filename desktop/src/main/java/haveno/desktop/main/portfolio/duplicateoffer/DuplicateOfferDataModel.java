@@ -26,6 +26,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.PriceFeedService;
@@ -89,13 +90,15 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
-        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
-
-        setSecurityDepositPct(getSecurityAsPercent(offer));
-
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
+        setSecurityDepositPct(getSecurityAsPercent(offer));
+        setExtraInfo(offer.getOfferExtraInfo());
+
+        OpenOffer openOffer = openOfferManager.getOpenOffer(offer.getId()).orElse(null);
+        if (openOffer != null) setTriggerPrice(openOffer.getTriggerPrice());
     }
 
     private double getSecurityAsPercent(Offer offer) {

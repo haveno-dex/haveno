@@ -96,6 +96,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private static final String TIMEOUT_REACHED = "Timeout reached.";
     public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other wallet functions
     public static final long REPROCESS_DELAY_MS = 5000;
+    public static final String LOG_HIGHLIGHT = "\u001B[36m"; // cyan
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -106,6 +107,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected ErrorMessageHandler errorMessageHandler;
 
     private boolean depositsConfirmedTasksCalled;
+    private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -124,12 +126,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onTradeMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as TradeMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
-        ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
+        handle(message, peerNodeAddress);
     }
 
     protected void onMailboxMessage(TradeMessage message, NodeAddress peerNodeAddress) {
         log.info("Received {} as MailboxMessage from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), peerNodeAddress, message.getOfferId(), message.getUid());
-        ThreadUtils.execute(() -> handle(message, peerNodeAddress), trade.getId());
+        handle(message, peerNodeAddress);
     }
 
     private void handle(TradeMessage message, NodeAddress peerNodeAddress) {
@@ -163,7 +165,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             }
         } else if (networkEnvelope instanceof AckMessage) {
             onAckMessage((AckMessage) networkEnvelope, peer);
-            trade.onAckMessage((AckMessage) networkEnvelope, peer); // notify trade listeners
         }
     }
 
@@ -208,11 +209,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             onMailboxMessage(tradeMessage, mailboxMessage.getSenderNodeAddress());
         } else if (mailboxMessage instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) mailboxMessage;
-            if (!trade.isCompleted()) {
-                // We only apply the msg if we have not already completed the trade
-                onAckMessage(ackMessage, mailboxMessage.getSenderNodeAddress());
-            }
-            // In any case we remove the msg
+            onAckMessage(ackMessage, mailboxMessage.getSenderNodeAddress());
             processModel.getP2PService().getMailboxMessageService().removeMailboxMsg(ackMessage);
             log.info("Remove {} from the P2P network.", ackMessage.getClass().getSimpleName());
         }
@@ -240,7 +237,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected void onInitialized() {
 
         // listen for direct messages unless completed
-        if (!trade.isCompleted()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
+        if (!trade.isFinished()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
 
         // initialize trade
         synchronized (trade.getLock()) {
@@ -250,6 +247,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
             if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
             handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
+
+            // reprocess applicable messages
+            trade.reprocessApplicableMessages();
         }
 
         // send deposits confirmed message if applicable
@@ -279,24 +279,46 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
+    public boolean needsToResendPaymentReceivedMessages() {
+        return false; // seller protocol overrides
+    }
+
+    public void maybeReprocessPaymentSentMessage(boolean reprocessOnError) {
         if (trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted()) return;
             synchronized (trade.getLock()) {
 
                 // skip if no need to reprocess
-                if (trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished())) {
+                if (trade.isShutDownStarted() || trade.isBuyer() || trade.getBuyer().getPaymentSentMessage() == null || trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
                     return;
                 }
 
-                log.warn("Reprocessing payment received message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                log.warn("Reprocessing PaymentSentMessage for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                handle(trade.getBuyer().getPaymentSentMessage(), trade.getBuyer().getPaymentSentMessage().getSenderNodeAddress(), reprocessOnError);
+            }
+        }, trade.getId());
+    }
+
+    public void maybeReprocessPaymentReceivedMessage(boolean reprocessOnError) {
+        if (trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted()) return;
+            synchronized (trade.getLock()) {
+
+                // skip if no need to reprocess
+                if (trade.isShutDownStarted() || trade.isSeller() || trade.getSeller().getPaymentReceivedMessage() == null || (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished())) {
+                    return;
+                }
+
+                log.warn("Reprocessing PaymentReceivedMessage for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError);
             }
         }, trade.getId());
     }
 
     public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -333,7 +355,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
 
@@ -376,7 +398,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -422,7 +444,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -452,7 +474,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     public void handle(DepositsConfirmedMessage message, NodeAddress sender) {
-        System.out.println(getClass().getSimpleName() + ".handle(DepositsConfirmedMessage) from " + sender + " for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+        log.info(LOG_HIGHLIGHT + "handle(DepositsConfirmedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -481,12 +503,33 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     // received by seller and arbitrator
     protected void handle(PaymentSentMessage message, NodeAddress peer) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
-        if (!trade.isInitialized() || trade.isShutDown()) return;
+        handle(message, peer, true);
+    }
+
+    // received by seller and arbitrator
+    protected void handle(PaymentSentMessage message, NodeAddress peer, boolean reprocessOnError) {
+        log.info(LOG_HIGHLIGHT + "handle(PaymentSentMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
+
+        // ignore if not seller or arbitrator
         if (!(trade instanceof SellerTrade || trade instanceof ArbitratorTrade)) {
             log.warn("Ignoring PaymentSentMessage since not seller or arbitrator");
             return;
         }
+
+        // validate signature
+        try {
+            HavenoUtils.verifyPaymentSentMessage(trade, message);
+        } catch (Throwable t) {
+            log.warn("Ignoring PaymentSentMessage with invalid signature for {} {}, error={}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
+            return;
+        }
+
+        // save message for reprocessing
+        trade.getBuyer().setPaymentSentMessage(message);
+        trade.requestPersistence();
+
+        // process message on trade thread
+        if (!trade.isInitialized() || trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
             // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
             // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
@@ -494,7 +537,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // TODO A better fix would be to add a listener for the wallet sync state and process
             // the mailbox msg once wallet is ready and trade state set.
             synchronized (trade.getLock()) {
-                if (!trade.isInitialized() || trade.isShutDown()) return;
+                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
                 if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
                     log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                     handleTaskRunnerSuccess(peer, message);
@@ -509,7 +552,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     return;
                 }
                 latchTrade();
-                expect(anyPhase(Trade.Phase.DEPOSITS_CONFIRMED, Trade.Phase.DEPOSITS_UNLOCKED)
+                expect(anyPhase()
                         .with(message)
                         .from(peer))
                         .setup(tasks(
@@ -521,7 +564,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 (errorMessage) -> {
-                                    handleTaskRunnerFault(peer, message, errorMessage);
+                                    log.warn("Error processing payment sent message: " + errorMessage);
+                                    processModel.getTradeManager().requestPersistence();
+    
+                                    // schedule to reprocess message unless deleted
+                                    if (trade.getBuyer().getPaymentSentMessage() != null) {
+                                        UserThread.runAfter(() -> {
+                                            reprocessPaymentSentMessageCount++;
+                                            maybeReprocessPaymentSentMessage(reprocessOnError);
+                                        }, trade.getReprocessDelayInSeconds(reprocessPaymentSentMessageCount));
+                                    } else {
+                                        handleTaskRunnerFault(peer, message, errorMessage); // otherwise send nack
+                                    }
+                                    unlatchTrade();
                                 })))
                         .executeTasks(true);
                 awaitTradeLatch();
@@ -535,15 +590,31 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void handle(PaymentReceivedMessage message, NodeAddress peer, boolean reprocessOnError) {
-        System.out.println(getClass().getSimpleName() + ".handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
-        if (!trade.isInitialized() || trade.isShutDown()) return;
+        log.info(LOG_HIGHLIGHT + "handle(PaymentReceivedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + peer);
+
+        // ignore if not buyer or arbitrator
+        if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
+            log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
+            return;
+        }
+
+        // validate signature
+        try {
+            HavenoUtils.verifyPaymentReceivedMessage(trade, message);
+        } catch (Throwable t) {
+            log.warn("Ignoring PaymentReceivedMessage with invalid signature for {} {}, error={}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
+            return;
+        }
+
+        // save message for reprocessing
+        trade.getSeller().setPaymentReceivedMessage(message);
+        trade.requestPersistence();
+
+        // process message on trade thread
+        if (!trade.isInitialized() || trade.isShutDownStarted()) return;
         ThreadUtils.execute(() -> {
-            if (!(trade instanceof BuyerTrade || trade instanceof ArbitratorTrade)) {
-                log.warn("Ignoring PaymentReceivedMessage since not buyer or arbitrator");
-                return;
-            }
             synchronized (trade.getLock()) {
-                if (!trade.isInitialized() || trade.isShutDown()) return;
+                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
                 latchTrade();
                 Validator.checkTradeId(processModel.getOfferId(), message);
                 processModel.setTradeMessage(message);
@@ -649,48 +720,84 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
 
-        // handle ack for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
-        if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
-            if (trade.getTradePeer(sender) == trade.getSeller()) {
-                processModel.setPaymentSentAckMessage(ackMessage);
-                trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
-                processModel.getTradeManager().requestPersistence();
-            } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
-                processModel.setPaymentSentAckMessageArbitrator(ackMessage);
-            } else if (!ackMessage.isSuccess()) {
-                String err = "Received AckMessage with error state for " + ackMessage.getSourceMsgClassName() + " from "+ sender + " with tradeId " + trade.getId() + " and errorMessage=" + ackMessage.getErrorMessage();
-                log.warn(err);
-                return; // log error and ignore nack if not seller
-            }
+        // ignore if trade is completely finished
+        if (trade.isFinished())  return;
+
+        // get trade peer
+        TradePeer peer = trade.getTradePeer(sender);
+        if (peer == null) {
+            if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
+            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
+            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
+        }
+        if (peer == null) {
+            if (ackMessage.isSuccess()) log.warn("Received AckMessage from unknown peer for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
+            else log.warn("Received AckMessage with error state from unknown peer for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
+            return;
         }
 
-        if (ackMessage.isSuccess()) {
-            log.info("Received AckMessage for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
+        // update sender's node address
+        if (!peer.getNodeAddress().equals(sender)) {
+            log.info("Updating peer's node address from {} to {} using ACK message to {}", peer.getNodeAddress(), sender, ackMessage.getSourceMsgClassName());
+            peer.setNodeAddress(sender);
+        }
 
-            // handle ack for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
-            if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
-                TradePeer peer = trade.getTradePeer(sender);
-                if (peer == null) {
-
-                    // get the applicable peer based on the sourceUid
-                    if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
-                    else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
-                    else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
-                }
-                if (peer == null) log.warn("Received AckMesage for DepositsConfirmedMessage for unknown peer: " + sender);
-                else peer.setDepositsConfirmedMessageAcked(true);
-            }
-        } else {
-            log.warn("Received AckMessage with error state for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
-
-            // set trade state on deposit request nack
-            if (ackMessage.getSourceMsgClassName().equals(DepositRequest.class.getSimpleName())) {
+        // set trade state on deposit request nack
+        if (ackMessage.getSourceMsgClassName().equals(DepositRequest.class.getSimpleName())) {
+            if (!ackMessage.isSuccess()) {
                 trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
                 processModel.getTradeManager().requestPersistence();
             }
+        }
 
+        // handle ack for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
+        if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
+            peer.setDepositsConfirmedAckMessage(ackMessage);
+            processModel.getTradeManager().requestPersistence();
+        }
+
+        // handle ack for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
+        if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
+            if (trade.getTradePeer(sender) == trade.getSeller()) {
+                trade.getSeller().setPaymentSentAckMessage(ackMessage);
+                if (ackMessage.isSuccess()) trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+                else trade.setState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+                processModel.getTradeManager().requestPersistence();
+            } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
+                trade.getArbitrator().setPaymentSentAckMessage(ackMessage);
+                processModel.getTradeManager().requestPersistence();
+            } else {
+                log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
+                return;
+            }
+        }
+
+        // handle ack for PaymentReceivedMessage, which automatically re-sends if not ACKed in a certain time
+        if (ackMessage.getSourceMsgClassName().equals(PaymentReceivedMessage.class.getSimpleName())) {
+            if (trade.getTradePeer(sender) == trade.getBuyer()) {
+                trade.getBuyer().setPaymentReceivedAckMessage(ackMessage);
+                if (ackMessage.isSuccess()) trade.setStateIfValidTransitionTo(Trade.State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG);
+                else trade.setState(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
+                processModel.getTradeManager().requestPersistence();
+            } else if (trade.getTradePeer(sender) == trade.getArbitrator()) {
+                trade.getArbitrator().setPaymentReceivedAckMessage(ackMessage);
+                processModel.getTradeManager().requestPersistence();
+            } else {
+                log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
+                return;
+            }
+        }
+
+        // generic handling
+        if (ackMessage.isSuccess()) {
+            log.info("Received AckMessage for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
+        } else {
+            log.warn("Received AckMessage with error state for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
             handleError(ackMessage.getErrorMessage());
         }
+
+        // notify trade listeners
+        trade.onAckMessage(ackMessage, sender);
     }
 
     protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {

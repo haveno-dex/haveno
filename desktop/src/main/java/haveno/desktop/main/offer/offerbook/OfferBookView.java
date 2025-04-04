@@ -20,6 +20,7 @@ package haveno.desktop.main.offer.offerbook;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple3;
@@ -1082,7 +1083,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     button.setPrefWidth(10000);
                                 }
     
-                                final ImageView iconView2 = new ImageView();
+                                MaterialDesignIconView iconView2 = new MaterialDesignIconView(MaterialDesignIcon.PENCIL);
                                 final AutoTooltipButton button2 = new AutoTooltipButton();
     
                                 {
@@ -1135,7 +1136,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         title = Res.get("shared.remove");
                                         button.setOnAction(e -> onRemoveOpenOffer(offer));
 
-                                        iconView2.setId("image-edit");
+                                        iconView2.setSize("16px");
                                         button2.updateText(Res.get("shared.edit"));
                                         button2.setOnAction(e -> onEditOpenOffer(offer));
                                         button2.setManaged(true);

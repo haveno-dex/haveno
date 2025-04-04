@@ -24,6 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
@@ -43,7 +44,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
@@ -51,7 +51,6 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -91,7 +90,7 @@ public final class XmrConnectionService {
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
     @Getter
-    private final BooleanProperty connectionServiceFallbackHandlerActive = new SimpleBooleanProperty();
+    private final SimpleStringProperty connectionServiceFallbackHandler = new SimpleStringProperty();
     @Getter
     private final StringProperty connectionServiceErrorMsg = new SimpleStringProperty();
     private final LongProperty numUpdates = new SimpleLongProperty(0);
@@ -261,6 +260,7 @@ public final class XmrConnectionService {
 
     private MoneroRpcConnection getBestConnection(Collection<MoneroRpcConnection> ignoredConnections) {
         accountService.checkAccountOpen();
+        if (!fallbackApplied && lastUsedLocalSyncingNode() && !xmrLocalNode.isDetected()) return null; // user needs to explicitly allow fallback after syncing local node
         Set<MoneroRpcConnection> ignoredConnectionsSet = new HashSet<>(ignoredConnections);
         addLocalNodeIfIgnored(ignoredConnectionsSet);
         MoneroRpcConnection bestConnection = connectionManager.getBestAvailableConnection(ignoredConnectionsSet.toArray(new MoneroRpcConnection[0])); // checks connections
@@ -604,9 +604,6 @@ public final class XmrConnectionService {
                 if (coreContext.isApiUser()) connectionManager.setAutoSwitch(connectionList.getAutoSwitch());
                 else connectionManager.setAutoSwitch(true); // auto switch is always enabled on desktop ui
 
-                // start local node if applicable
-                maybeStartLocalNode();
-
                 // update connection
                 if (connectionManager.getConnection() == null || connectionManager.getAutoSwitch()) {
                     MoneroRpcConnection bestConnection = getBestConnection();
@@ -619,9 +616,6 @@ public final class XmrConnectionService {
                 MoneroRpcConnection connection = new MoneroRpcConnection(config.xmrNode, config.xmrNodeUsername, config.xmrNodePassword).setPriority(1);
                 if (isProxyApplied(connection)) connection.setProxyUri(getProxyUri());
                 connectionManager.setConnection(connection);
-
-                // start local node if applicable
-                maybeStartLocalNode();
             }
 
             // register connection listener
@@ -634,20 +628,8 @@ public final class XmrConnectionService {
         onConnectionChanged(connectionManager.getConnection());
     }
 
-    private void maybeStartLocalNode() {
-
-        // skip if seed node
-        if (HavenoUtils.isSeedNode()) return;
-
-        // start local node if offline and used as last connection
-        if (connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored()) {
-            try {
-                log.info("Starting local node");
-                xmrLocalNode.start();
-            } catch (Exception e) {
-                log.error("Unable to start local monero node, error={}\n", e.getMessage(), e);
-            }
-        }
+    private boolean lastUsedLocalSyncingNode() {
+        return connectionManager.getConnection() != null && xmrLocalNode.equalsUri(connectionManager.getConnection().getUri()) && !xmrLocalNode.isDetected() && !xmrLocalNode.shouldBeIgnored();
     }
 
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
@@ -733,12 +715,17 @@ public final class XmrConnectionService {
                     if (isShutDownStarted) return;
 
                     // invoke fallback handling on startup error
-                    boolean canFallback = isFixedConnection() || isCustomConnections();
+                    boolean canFallback = isFixedConnection() || isCustomConnections() || lastUsedLocalSyncingNode();
                     if (lastInfo == null && canFallback) {
-                        if (!connectionServiceFallbackHandlerActive.get() && (lastFallbackInvocation == null || System.currentTimeMillis() - lastFallbackInvocation > FALLBACK_INVOCATION_PERIOD_MS)) {
-                            log.warn("Failed to fetch daemon info from custom connection on startup: " + e.getMessage());
+                        if (connectionServiceFallbackHandler.get() == null || connectionServiceFallbackHandler.equals("") && (lastFallbackInvocation == null || System.currentTimeMillis() - lastFallbackInvocation > FALLBACK_INVOCATION_PERIOD_MS)) {
                             lastFallbackInvocation = System.currentTimeMillis();
-                            connectionServiceFallbackHandlerActive.set(true);
+                            if (lastUsedLocalSyncingNode()) {
+                                log.warn("Failed to fetch daemon info from local connection on startup: " + e.getMessage());
+                                connectionServiceFallbackHandler.set(Res.get("connectionFallback.localNode"));
+                            } else {
+                                log.warn("Failed to fetch daemon info from custom connection on startup: " + e.getMessage());
+                                connectionServiceFallbackHandler.set(Res.get("connectionFallback.customNode"));
+                            }
                         }
                         return;
                     }

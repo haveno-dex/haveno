@@ -399,13 +399,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             chatMessage.setSystemMessage(true);
             dispute.addAndPersistChatMessage(chatMessage);
 
-            // export latest multisig hex
-            try {
-                trade.exportMultisigHex();
-            } catch (Exception e) {
-                log.error("Failed to export multisig hex", e);
-            }
-
             // create dispute opened message
             NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
             DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,
@@ -578,8 +571,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
                     }
 
-                    // update multisig hex
-                    if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+                    // update opener's multisig hex
+                    TradePeer opener = sender == trade.getArbitrator() ? trade.getTradePeer() : sender;
+                    if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
 
                     // add chat message with price info
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
@@ -605,7 +599,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 if (trade.isArbitrator()) {
                                     TradePeer senderPeer = sender == trade.getMaker() ? trade.getTaker() : trade.getMaker();
                                     if (senderPeer != trade.getMaker() && senderPeer != trade.getTaker()) throw new RuntimeException("Sender peer is not maker or taker, address=" + senderPeer.getNodeAddress());
-                                    sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), trade.getSelf().getUpdatedMultisigHex());
+                                    sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), opener.getUpdatedMultisigHex());
                                 }
                                 tradeManager.requestPersistence();
                                 errorMessage = null;

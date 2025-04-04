@@ -24,6 +24,7 @@ import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import javafx.collections.ObservableList;
@@ -45,6 +46,7 @@ public class PreferencesTest {
 
     private Preferences preferences;
     private PersistenceManager persistenceManager;
+    private XmrNodes xmrNodes;
 
     @BeforeEach
     public void setUp() {
@@ -53,12 +55,12 @@ public class PreferencesTest {
         GlobalSettings.setLocale(en_US);
         Res.setBaseCurrencyCode("XMR");
         Res.setBaseCurrencyName("Monero");
-
         persistenceManager = mock(PersistenceManager.class);
         Config config = new Config();
-        XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences);
         preferences = new Preferences(
                 persistenceManager, config, null, null);
+        xmrNodes = new XmrNodes();
+        XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences, xmrNodes);
     }
 
     @Test

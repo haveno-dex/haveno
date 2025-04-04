@@ -711,6 +711,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     abstract String getCurrencyCodeFromPreferences(OfferDirection direction);
 
     public OpenOffer getOpenOffer(Offer offer) {
-        return openOfferManager.getOpenOfferById(offer.getId()).orElse(null);
+        return openOfferManager.getOpenOffer(offer.getId()).orElse(null);
     }
 }

@@ -47,7 +47,6 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.traderchat.TradeChatSession;
 import haveno.core.support.traderchat.TraderChatManager;
 import haveno.core.trade.ClosedTradableManager;
-import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.TradeUtil;
@@ -223,8 +222,7 @@ class CoreTradesService {
     }
 
     private Optional<Trade> getClosedTrade(String tradeId) {
-        Optional<Tradable> tradable = closedTradableManager.getTradeById(tradeId);
-        return tradable.filter((t) -> t instanceof Trade).map(value -> (Trade) value);
+        return closedTradableManager.getTradeById(tradeId);
     }
 
     List<Trade> getTrades() {
