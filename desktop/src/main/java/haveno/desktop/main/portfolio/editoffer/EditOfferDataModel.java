@@ -137,6 +137,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
             securityDepositPct.set(securityDepositPercent);
 
         allowAmountUpdate = false;
+
+        extraInfo.set(offer.getOfferExtraInfo());
     }
 
     @Override

@@ -90,12 +90,11 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
         setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
-
         setSecurityDepositPct(getSecurityAsPercent(offer));
-
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setExtraInfo(offer.getOfferExtraInfo());
     }
 
     private double getSecurityAsPercent(Offer offer) {
