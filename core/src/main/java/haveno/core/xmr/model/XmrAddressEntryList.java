@@ -110,10 +110,25 @@ public final class XmrAddressEntryList implements PersistableEnvelope, Persisted
     }
 
     public void swapToAvailable(XmrAddressEntry addressEntry) {
-        boolean setChangedByRemove = entrySet.remove(addressEntry);
-        boolean setChangedByAdd = entrySet.add(new XmrAddressEntry(addressEntry.getSubaddressIndex(), addressEntry.getAddressString(),
-                XmrAddressEntry.Context.AVAILABLE));
-        if (setChangedByRemove || setChangedByAdd) {
+        log.info("swapToAvailable addressEntry to swap={}", addressEntry);
+        if (entrySet.remove(addressEntry)) {
+            requestPersistence();
+        }
+        // If we have an address entry which shared the address with another one (shared funding use case)
+        // then we do not swap to available as we need to protect the address of the remaining entry.
+        boolean entryWithSameContextStillExists = entrySet.stream().anyMatch(entry -> {
+            if (addressEntry.getAddressString() != null) {
+                return addressEntry.getAddressString().equals(entry.getAddressString()) &&
+                        addressEntry.getContext() == entry.getContext();
+            }
+            return false;
+        });
+        if (entryWithSameContextStillExists) {
+            return;
+        }
+        // no other uses of the address context remain, so make it available
+        if (entrySet.add(new XmrAddressEntry(addressEntry.getSubaddressIndex(), addressEntry.getAddressString(),
+                XmrAddressEntry.Context.AVAILABLE))) {
             requestPersistence();
         }
     }

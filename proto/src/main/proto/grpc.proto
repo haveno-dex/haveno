@@ -528,6 +528,7 @@ message PostOfferRequest {
     bool is_private_offer = 12;
     bool buyer_as_taker_without_deposit = 13;
     string extra_info = 14;
+    string source_offer_id = 15;
 }
 
 message PostOfferReply {

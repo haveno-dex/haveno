@@ -88,7 +88,7 @@ public class CreateOfferDataModelTest {
         when(user.getPaymentAccounts()).thenReturn(paymentAccounts);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
 
-        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"), true);
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 
@@ -109,7 +109,7 @@ public class CreateOfferDataModelTest {
         when(user.findFirstPaymentAccountWithCurrency(new TraditionalCurrency("USD"))).thenReturn(zelleAccount);
         when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(revolutAccount);
 
-        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"));
+        model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"), true);
         assertEquals("USD", model.getTradeCurrencyCode().get());
     }
 }

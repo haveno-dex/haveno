@@ -117,7 +117,7 @@ public class CreateOfferViewModelTest {
             coinFormatter,
             tradeStats,
             null);
-        dataModel.initWithData(OfferDirection.BUY, new CryptoCurrency("XMR", "monero"));
+        dataModel.initWithData(OfferDirection.BUY, new CryptoCurrency("XMR", "monero"), true);
         dataModel.activate();
 
         model = new CreateOfferViewModel(dataModel,

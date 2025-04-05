@@ -36,6 +36,9 @@ package haveno.core.offer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
@@ -45,29 +48,38 @@ import haveno.core.api.XmrConnectionService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrKeyImageListener;
-import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.utils.Utils;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 /**
- * Handles storage and retrieval of offers.
- * Uses an invalidation flag to only request the full offer map in case there was a change (anyone has added or removed an offer).
+ * Handles validation and announcement of offers added or removed.
  */
+@Slf4j
 public class OfferBookService {
+
+    private final static long INVALID_OFFERS_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
@@ -75,15 +87,12 @@ public class OfferBookService {
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
     private final XmrConnectionService xmrConnectionService;
-
-    // poll key images of offers
-    private XmrKeyImagePoller keyImagePoller;
-    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
-    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
+    private final List<Offer> validOffers = new ArrayList<Offer>();
+    private final List<Offer> invalidOffers = new ArrayList<Offer>();
+    private final Map<String, Timer> invalidOfferTimers = new HashMap<>();
 
     public interface OfferBookChangedListener {
         void onAdded(Offer offer);
-
         void onRemoved(Offer offer);
     }
 
@@ -104,51 +113,45 @@ public class OfferBookService {
         this.xmrConnectionService = xmrConnectionService;
         jsonFileManager = new JsonFileManager(storageDir);
 
-        // listen for connection changes to monerod
-        xmrConnectionService.addConnectionListener((connection) -> {
-            maybeInitializeKeyImagePoller();
-            keyImagePoller.setDaemon(xmrConnectionService.getDaemon());
-            keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
-        });
-
         // listen for offers
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                UserThread.execute(() -> {
+                ThreadUtils.execute(() -> {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                            maybeInitializeKeyImagePoller();
-                            keyImagePoller.addKeyImages(offerPayload.getReserveTxKeyImages());
                             Offer offer = new Offer(offerPayload);
                             offer.setPriceFeedService(priceFeedService);
-                            setReservedFundsSpent(offer);
-                            synchronized (offerBookChangedListeners) {
-                                offerBookChangedListeners.forEach(listener -> listener.onAdded(offer));
+                            synchronized (validOffers) {
+                                try {
+                                    validateOfferPayload(offerPayload);
+                                    replaceValidOffer(offer);
+                                    announceOfferAdded(offer);
+                                } catch (IllegalArgumentException e) {
+                                    // ignore illegal offers
+                                } catch (RuntimeException e) {
+                                    replaceInvalidOffer(offer); // offer can become valid later
+                                }
                             }
                         }
                     });
-                });
+                }, OfferBookService.class.getSimpleName());
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                UserThread.execute(() -> {
+                ThreadUtils.execute(() -> {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                            maybeInitializeKeyImagePoller();
-                            keyImagePoller.removeKeyImages(offerPayload.getReserveTxKeyImages());
+                            removeValidOffer(offerPayload.getId());
                             Offer offer = new Offer(offerPayload);
                             offer.setPriceFeedService(priceFeedService);
-                            setReservedFundsSpent(offer);
-                            synchronized (offerBookChangedListeners) {
-                                offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
-                            }
+                            announceOfferRemoved(offer);
                         }
                     });
-                });
+                }, OfferBookService.class.getSimpleName());
             }
         });
 
@@ -171,6 +174,16 @@ public class OfferBookService {
                 }
             });
         }
+
+        // listen for changes to key images
+        xmrConnectionService.getKeyImagePoller().addListener(new XmrKeyImageListener() {
+            @Override
+            public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
+                for (String keyImage : spentStatuses.keySet()) {
+                    updateAffectedOffers(keyImage);
+                }
+            }
+        });
     }
 
 
@@ -178,6 +191,10 @@ public class OfferBookService {
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public boolean hasOffer(String offerId) {
+        return hasValidOffer(offerId);
+    }
+    
     public void addOffer(Offer offer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         if (filterManager.requireUpdateToNewVersionForTrading()) {
             errorMessageHandler.handleErrorMessage(Res.get("popup.warning.mandatoryUpdate.trading"));
@@ -233,16 +250,9 @@ public class OfferBookService {
     }
 
     public List<Offer> getOffers() {
-        return p2PService.getDataMap().values().stream()
-                .filter(data -> data.getProtectedStoragePayload() instanceof OfferPayload)
-                .map(data -> {
-                    OfferPayload offerPayload = (OfferPayload) data.getProtectedStoragePayload();
-                    Offer offer = new Offer(offerPayload);
-                    offer.setPriceFeedService(priceFeedService);
-                    setReservedFundsSpent(offer);
-                    return offer;
-                })
-                .collect(Collectors.toList());
+        synchronized (validOffers) {
+            return new ArrayList<>(validOffers);
+        }
     }
 
     public List<Offer> getOffersByCurrency(String direction, String currencyCode) {
@@ -266,7 +276,7 @@ public class OfferBookService {
     }
 
     public void shutDown() {
-        if (keyImagePoller != null) keyImagePoller.clearKeyImages();
+        xmrConnectionService.getKeyImagePoller().removeKeyImages(OfferBookService.class.getName());
     }
 
 
@@ -274,37 +284,145 @@ public class OfferBookService {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private synchronized void maybeInitializeKeyImagePoller() {
-        if (keyImagePoller != null) return;
-        keyImagePoller = new XmrKeyImagePoller(xmrConnectionService.getDaemon(), getKeyImageRefreshPeriodMs());
+    private void announceOfferAdded(Offer offer) {
+        xmrConnectionService.getKeyImagePoller().addKeyImages(offer.getOfferPayload().getReserveTxKeyImages(), OfferBookService.class.getSimpleName());
+        updateReservedFundsSpentStatus(offer);
+        synchronized (offerBookChangedListeners) {
+            offerBookChangedListeners.forEach(listener -> listener.onAdded(offer));
+        }
+    }
 
-        // handle when key images spent
-        keyImagePoller.addListener(new XmrKeyImageListener() {
-            @Override
-            public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                UserThread.execute(() -> {
-                    for (String keyImage : spentStatuses.keySet()) {
-                        updateAffectedOffers(keyImage);
-                    }
-                });
+    private void announceOfferRemoved(Offer offer) {
+        updateReservedFundsSpentStatus(offer);
+        removeKeyImages(offer);
+        synchronized (offerBookChangedListeners) {
+            offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
+        }
+
+        // check if invalid offers are now valid
+        synchronized (invalidOffers) {
+            for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
+                try {
+                    validateOfferPayload(invalidOffer.getOfferPayload());
+                    removeInvalidOffer(invalidOffer.getId());
+                    replaceValidOffer(invalidOffer);
+                    announceOfferAdded(invalidOffer);
+                } catch (Exception e) {
+                    // ignore
+                }
             }
-        });
-
-        // first poll after 20s
-        // TODO: remove?
-        new Thread(() -> {
-            HavenoUtils.waitFor(20000);
-            keyImagePoller.poll();
-        }).start();
+        }
     }
 
-    private long getKeyImageRefreshPeriodMs() {
-        return xmrConnectionService.isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+    private boolean hasValidOffer(String offerId) {
+        for (Offer offer : getOffers()) {
+            if (offer.getId().equals(offerId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private void replaceValidOffer(Offer offer) {
+        synchronized (validOffers) {
+            removeValidOffer(offer.getId());
+            validOffers.add(offer);
+        }
     }
 
+    private void replaceInvalidOffer(Offer offer) {
+        synchronized (invalidOffers) {
+            removeInvalidOffer(offer.getId());
+            invalidOffers.add(offer);
+
+            // remove invalid offer after timeout
+            synchronized (invalidOfferTimers) {
+                Timer timer = invalidOfferTimers.get(offer.getId());
+                if (timer != null) timer.stop();
+                timer = UserThread.runAfter(() -> {
+                    removeInvalidOffer(offer.getId());
+                }, INVALID_OFFERS_TIMEOUT);
+                invalidOfferTimers.put(offer.getId(), timer);
+            }
+        }
+    }
+
+    private void removeValidOffer(String offerId) {
+        synchronized (validOffers) {
+            validOffers.removeIf(offer -> offer.getId().equals(offerId));
+        }
+    }
+
+    private void removeInvalidOffer(String offerId) {
+        synchronized (invalidOffers) {
+            invalidOffers.removeIf(offer -> offer.getId().equals(offerId));
+
+            // remove timeout
+            synchronized (invalidOfferTimers) {
+                Timer timer = invalidOfferTimers.get(offerId);
+                if (timer != null) timer.stop();
+                invalidOfferTimers.remove(offerId);
+            }
+        }
+    }
+
+    private void validateOfferPayload(OfferPayload offerPayload) {
+
+        // validate offer is not banned
+        if (filterManager.isOfferIdBanned(offerPayload.getId())) {
+            throw new IllegalArgumentException("Offer is banned with offerId=" + offerPayload.getId());
+        }
+
+        // validate v3 node address compliance
+        boolean isV3NodeAddressCompliant = !OfferRestrictions.requiresNodeAddressUpdate() || Utils.isV3Address(offerPayload.getOwnerNodeAddress().getHostName());
+        if (!isV3NodeAddressCompliant) {
+            throw new IllegalArgumentException("Offer with non-V3 node address is not allowed with offerId=" + offerPayload.getId());
+        }
+
+        // validate against existing offers
+        synchronized (validOffers) {
+            int numOffersWithSharedKeyImages = 0;
+            for (Offer offer : validOffers) {
+
+                // validate that no offer has overlapping but different key images
+                if (!offer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) && 
+                        !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
+                    throw new RuntimeException("Offer with overlapping key images already exists with offerId=" + offer.getId());
+                }
+    
+                // validate that no offer has same key images, payment method, and currency
+                if (!offer.getId().equals(offerPayload.getId()) && 
+                        offer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) &&
+                        offer.getOfferPayload().getPaymentMethodId().equals(offerPayload.getPaymentMethodId()) &&
+                        offer.getOfferPayload().getBaseCurrencyCode().equals(offerPayload.getBaseCurrencyCode()) &&
+                        offer.getOfferPayload().getCounterCurrencyCode().equals(offerPayload.getCounterCurrencyCode())) {
+                    throw new RuntimeException("Offer with same key images, payment method, and currency already exists with offerId=" + offer.getId());
+                }
+    
+                // count offers with same key images
+                if (!offer.getId().equals(offerPayload.getId()) && !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) numOffersWithSharedKeyImages = Math.max(2, numOffersWithSharedKeyImages + 1);
+            }
+    
+            // validate max offers with same key images
+            if (numOffersWithSharedKeyImages > Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) throw new RuntimeException("More than " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " offers exist with same same key images as new offerId=" + offerPayload.getId());
+        }
+    }
+
+    private void removeKeyImages(Offer offer) {
+        Set<String> unsharedKeyImages = new HashSet<>(offer.getOfferPayload().getReserveTxKeyImages());
+        synchronized (validOffers) {
+            for (Offer validOffer : validOffers) {
+                if (validOffer.getId().equals(offer.getId())) continue;
+                unsharedKeyImages.removeAll(validOffer.getOfferPayload().getReserveTxKeyImages());
+            }
+        }
+        xmrConnectionService.getKeyImagePoller().removeKeyImages(unsharedKeyImages, OfferBookService.class.getSimpleName());
+    }
+    
     private void updateAffectedOffers(String keyImage) {
         for (Offer offer : getOffers()) {
             if (offer.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
+                updateReservedFundsSpentStatus(offer);
                 synchronized (offerBookChangedListeners) {
                     offerBookChangedListeners.forEach(listener -> {
                         listener.onRemoved(offer);
@@ -315,10 +433,9 @@ public class OfferBookService {
         }
     }
 
-    private void setReservedFundsSpent(Offer offer) {
-        if (keyImagePoller == null) return;
+    private void updateReservedFundsSpentStatus(Offer offer) {
         for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-            if (Boolean.TRUE.equals(keyImagePoller.isSpent(keyImage))) {
+            if (Boolean.TRUE.equals(xmrConnectionService.getKeyImagePoller().isSpent(keyImage))) {
                 offer.setReservedFundsSpent(true);
             }
         }

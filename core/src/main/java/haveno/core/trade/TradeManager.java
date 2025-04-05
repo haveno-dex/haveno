@@ -977,7 +977,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         removeTrade(trade, true);
 
         // TODO The address entry should have been removed already. Check and if its the case remove that.
-        xmrWalletService.resetAddressEntriesForTrade(trade.getId());
+        xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId());
         requestPersistence();
     }
 
@@ -1011,7 +1011,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (tradeOptional.isPresent()) {
             Trade trade = tradeOptional.get();
             trade.setDisputeState(disputeState);
-            xmrWalletService.resetAddressEntriesForTrade(trade.getId());
+            xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId());
             requestPersistence();
         }
     }

@@ -346,7 +346,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         List<XmrAddressEntry> addressEntries = xmrWalletService.getAddressEntries();
         List<DepositListItem> items = new ArrayList<>();
         for (XmrAddressEntry addressEntry : addressEntries) {
-            if (addressEntry.isTrade()) continue; // skip reserved for trade
+            if (addressEntry.isTradePayout()) continue; // do not show trade payout addresses
             items.add(new DepositListItem(addressEntry, xmrWalletService, formatter));
         }
 

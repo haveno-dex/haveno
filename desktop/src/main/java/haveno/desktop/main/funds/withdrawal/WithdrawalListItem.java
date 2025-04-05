@@ -77,7 +77,7 @@ class WithdrawalListItem {
     public final String getLabel() {
         if (addressEntry.isOpenOffer())
             return Res.getWithCol("shared.offerId") + " " + addressEntry.getShortOfferId();
-        else if (addressEntry.isTrade())
+        else if (addressEntry.isTradePayout())
             return Res.getWithCol("shared.tradeId") + " " + addressEntry.getShortOfferId();
         else if (addressEntry.getContext() == XmrAddressEntry.Context.ARBITRATOR)
             return Res.get("funds.withdrawal.arbitrationFee");

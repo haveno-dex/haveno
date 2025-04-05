@@ -19,13 +19,12 @@ package haveno.desktop.main.offer.offerbook;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import haveno.core.filter.FilterManager;
+
+import haveno.common.UserThread;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import static haveno.core.offer.OfferDirection.BUY;
-import haveno.core.offer.OfferRestrictions;
 import haveno.network.p2p.storage.P2PDataStorage;
-import haveno.network.utils.Utils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,6 @@ public class OfferBook {
     private final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
     private final Map<String, Integer> buyOfferCountMap = new HashMap<>();
     private final Map<String, Integer> sellOfferCountMap = new HashMap<>();
-    private final FilterManager filterManager;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -57,64 +55,47 @@ public class OfferBook {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    OfferBook(OfferBookService offerBookService, FilterManager filterManager) {
+    OfferBook(OfferBookService offerBookService) {
         this.offerBookService = offerBookService;
-        this.filterManager = filterManager;
 
         offerBookService.addOfferBookChangedListener(new OfferBookService.OfferBookChangedListener() {
             @Override
             public void onAdded(Offer offer) {
-                printOfferBookListItems("Before onAdded");
-                // We get onAdded called every time a new ProtectedStorageEntry is received.
-                // Mostly it is the same OfferPayload but the ProtectedStorageEntry is different.
-                // We filter here to only add new offers if the same offer (using equals) was not already added and it
-                // is not banned.
+                UserThread.execute(() -> {
+                    printOfferBookListItems("Before onAdded");
 
-                if (filterManager.isOfferIdBanned(offer.getId())) {
-                    log.debug("Ignored banned offer. ID={}", offer.getId());
-                    return;
-                }
-
-                if (OfferRestrictions.requiresNodeAddressUpdate() && !Utils.isV3Address(offer.getMakerNodeAddress().getHostName())) {
-                    log.debug("Ignored offer with Tor v2 node address. ID={}", offer.getId());
-                    return;
-                }
-
-                // Use offer.equals(offer) to see if the OfferBook list contains an exact
-                // match -- offer.equals(offer) includes comparisons of payload, state
-                // and errorMessage.
-                synchronized (offerBookListItems) {
-                    boolean hasSameOffer = offerBookListItems.stream().anyMatch(item -> item.getOffer().equals(offer));
-                    if (!hasSameOffer) {
-                        OfferBookListItem newOfferBookListItem = new OfferBookListItem(offer);
-                        removeDuplicateItem(newOfferBookListItem);
-                        offerBookListItems.add(newOfferBookListItem);  // Add replacement.
-                        if (log.isDebugEnabled()) {  // TODO delete debug stmt in future PR.
-                            log.debug("onAdded: Added new offer {}\n"
-                                            + "\twith newItem.payloadHash: {}",
-                                    offer.getId(),
-                                    newOfferBookListItem.hashOfPayload.getHex());
+                    // Use offer.equals(offer) to see if the OfferBook list contains an exact
+                    // match -- offer.equals(offer) includes comparisons of payload, state
+                    // and errorMessage.
+                    synchronized (offerBookListItems) {
+                        boolean hasSameOffer = offerBookListItems.stream().anyMatch(item -> item.getOffer().equals(offer));
+                        if (!hasSameOffer) {
+                            OfferBookListItem newOfferBookListItem = new OfferBookListItem(offer);
+                            removeDuplicateItem(newOfferBookListItem);
+                            offerBookListItems.add(newOfferBookListItem);  // Add replacement.
+                            if (log.isDebugEnabled()) {  // TODO delete debug stmt in future PR.
+                                log.debug("onAdded: Added new offer {}\n"
+                                                + "\twith newItem.payloadHash: {}",
+                                        offer.getId(),
+                                        newOfferBookListItem.hashOfPayload.getHex());
+                            }
+                        } else {
+                            log.debug("We have the exact same offer already in our list and ignore the onAdded call. ID={}", offer.getId());
                         }
-                    } else {
-                        log.debug("We have the exact same offer already in our list and ignore the onAdded call. ID={}", offer.getId());
+                        printOfferBookListItems("After onAdded");
                     }
-                    printOfferBookListItems("After onAdded");
-                }
+                });
             }
 
             @Override
             public void onRemoved(Offer offer) {
-                synchronized (offerBookListItems) {
-                    printOfferBookListItems("Before onRemoved");
-                    removeOffer(offer);
-                    printOfferBookListItems("After onRemoved");
-                }
-            }
-        });
-
-        filterManager.filterProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                // any notifications
+                UserThread.execute(() -> {
+                    synchronized (offerBookListItems) {
+                        printOfferBookListItems("Before onRemoved");
+                        removeOffer(offer);
+                        printOfferBookListItems("After onRemoved");
+                    }
+                });
             }
         });
     }
@@ -212,7 +193,6 @@ public class OfferBook {
                 // Investigate why....
                 offerBookListItems.clear();
                 offerBookListItems.addAll(offerBookService.getOffers().stream()
-                        .filter(this::isOfferAllowed)
                         .map(OfferBookListItem::new)
                         .collect(Collectors.toList()));
 
@@ -246,13 +226,6 @@ public class OfferBook {
 
     public Map<String, Integer> getSellOfferCountMap() {
         return sellOfferCountMap;
-    }
-
-    private boolean isOfferAllowed(Offer offer) {
-        boolean isBanned = filterManager.isOfferIdBanned(offer.getId());
-        boolean isV3NodeAddressCompliant = !OfferRestrictions.requiresNodeAddressUpdate()
-                || Utils.isV3Address(offer.getMakerNodeAddress().getHostName());
-        return !isBanned && isV3NodeAddressCompliant;
     }
 
     private void fillOfferCountMaps() {

@@ -197,7 +197,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
             }
         } else {
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(tradeId);
-            openOfferOptional.ifPresent(openOffer -> openOfferManager.closeOpenOffer(openOffer.getOffer()));
+            openOfferOptional.ifPresent(openOffer -> openOfferManager.closeSpentOffer(openOffer.getOffer()));
         }
         sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
 

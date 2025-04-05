@@ -70,6 +70,7 @@ public class DuplicateOfferView extends MutableOfferView<DuplicateOfferViewModel
     public void initWithData(OfferPayload offerPayload) {
         initWithData(offerPayload.getDirection(),
                 CurrencyUtil.getTradeCurrency(offerPayload.getCurrencyCode()).get(),
+                true,
                 null);
         model.initWithData(offerPayload);
     }

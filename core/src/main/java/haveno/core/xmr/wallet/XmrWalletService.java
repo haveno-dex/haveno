@@ -1008,10 +1008,19 @@ public class XmrWalletService extends XmrWalletBase {
     public synchronized void swapAddressEntryToAvailable(String offerId, XmrAddressEntry.Context context) {
         Optional<XmrAddressEntry> addressEntryOptional = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).findAny();
         addressEntryOptional.ifPresent(e -> {
-            log.info("swap addressEntry with address {} and offerId {} from context {} to available", e.getAddressString(), e.getOfferId(), context);
             xmrAddressEntryList.swapToAvailable(e);
             saveAddressEntryList();
         });
+    }
+
+    public synchronized void cloneAddressEntries(String offerId, String cloneOfferId) {
+        List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).collect(Collectors.toList());
+        for (XmrAddressEntry entry : entries) {
+            XmrAddressEntry clonedEntry = new XmrAddressEntry(entry.getSubaddressIndex(), entry.getAddressString(), entry.getContext(), cloneOfferId, null);
+            Optional<XmrAddressEntry> existingEntry = getAddressEntry(clonedEntry.getOfferId(), clonedEntry.getContext());
+            if (existingEntry.isPresent()) continue;
+            xmrAddressEntryList.addAddressEntry(clonedEntry);
+        }
     }
 
     public synchronized void resetAddressEntriesForOpenOffer(String offerId) {
@@ -1031,7 +1040,7 @@ public class XmrWalletService extends XmrWalletBase {
         if (trade == null || trade.isPayoutUnlocked()) swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
-    public synchronized void resetAddressEntriesForTrade(String offerId) {
+    public synchronized void swapPayoutAddressEntryToAvailable(String offerId) {
         swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
@@ -1191,26 +1200,34 @@ public class XmrWalletService extends XmrWalletBase {
 
     // TODO (woodser): update balance and other listening
     public void addBalanceListener(XmrBalanceListener listener) {
-        if (!balanceListeners.contains(listener)) balanceListeners.add(listener);
+        if (listener == null) throw new IllegalArgumentException("Cannot add null balance listener");
+        synchronized (balanceListeners) {
+            if (!balanceListeners.contains(listener)) balanceListeners.add(listener);
+        }
     }
 
     public void removeBalanceListener(XmrBalanceListener listener) {
-        balanceListeners.remove(listener);
+        if (listener == null) throw new IllegalArgumentException("Cannot add null balance listener");
+        synchronized (balanceListeners) {
+            balanceListeners.remove(listener);
+        }
     }
 
     public void updateBalanceListeners() {
         BigInteger availableBalance = getAvailableBalance();
-        for (XmrBalanceListener balanceListener : balanceListeners) {
-            BigInteger balance;
-            if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
-            else balance = availableBalance;
-            ThreadUtils.submitToPool(() -> {
-                try {
-                    balanceListener.onBalanceChanged(balance);
-                } catch (Exception e) {
-                    log.warn("Failed to notify balance listener of change: {}\n", e.getMessage(), e);
-                }
-            });
+        synchronized (balanceListeners) {
+            for (XmrBalanceListener balanceListener : balanceListeners) {
+                BigInteger balance;
+                if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
+                else balance = availableBalance;
+                ThreadUtils.submitToPool(() -> {
+                    try {
+                        balanceListener.onBalanceChanged(balance);
+                    } catch (Exception e) {
+                        log.warn("Failed to notify balance listener of change: {}\n", e.getMessage(), e);
+                    }
+                });
+            }
         }
     }
 

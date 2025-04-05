@@ -710,7 +710,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     maybePublishTradeStatistics();
 
                     // reset address entries
-                    processModel.getXmrWalletService().resetAddressEntriesForTrade(getId());
+                    processModel.getXmrWalletService().swapPayoutAddressEntryToAvailable(getId());
                 }
 
                 // handle when payout unlocks
@@ -1755,7 +1755,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // close open offer
         if (this instanceof MakerTrade && processModel.getOpenOfferManager().getOpenOffer(getId()).isPresent()) {
             log.info("Closing open offer because {} {} was restored after protocol error", getClass().getSimpleName(), getShortId());
-            processModel.getOpenOfferManager().closeOpenOffer(checkNotNull(getOffer()));
+            processModel.getOpenOfferManager().closeSpentOffer(checkNotNull(getOffer()));
         }
 
         // re-freeze outputs
@@ -2371,7 +2371,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean hasBuyerAsTakerWithoutDeposit() {
-        return getBuyer() == getTaker() && BigInteger.ZERO.equals(getBuyerSecurityDepositBeforeMiningFee());
+        return getOffer().getOfferPayload().isBuyerAsTakerWithoutDeposit();
     }
 
     @Override
@@ -2945,7 +2945,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // close open offer or reset address entries
         if (this instanceof MakerTrade) {
-            processModel.getOpenOfferManager().closeOpenOffer(getOffer());
+            processModel.getOpenOfferManager().closeSpentOffer(getOffer());
             HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_PUBLISHED, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
         } else {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());

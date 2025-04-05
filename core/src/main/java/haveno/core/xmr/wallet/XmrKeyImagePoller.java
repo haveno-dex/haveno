@@ -36,15 +36,13 @@ import haveno.core.trade.HavenoUtils;
 
 /**
  * Poll for changes to the spent status of key images.
- *
- * TODO: move to monero-java?
  */
 @Slf4j
 public class XmrKeyImagePoller {
 
     private MoneroDaemon daemon;
     private long refreshPeriodMs;
-    private List<String> keyImages = new ArrayList<String>();
+    private Map<String, Set<String>> keyImageGroups = new HashMap<String, Set<String>>();
     private Set<XmrKeyImageListener> listeners = new HashSet<XmrKeyImageListener>();
     private TaskLooper looper;
     private Map<String, MoneroKeyImageSpentStatus> lastStatuses = new HashMap<String, MoneroKeyImageSpentStatus>();
@@ -53,9 +51,6 @@ public class XmrKeyImagePoller {
 
     /**
      * Construct the listener.
-     *
-     * @param refreshPeriodMs - refresh period in milliseconds
-     * @param keyImages - key images to listen to
      */
     public XmrKeyImagePoller() {
         looper = new TaskLooper(() -> poll());
@@ -64,14 +59,13 @@ public class XmrKeyImagePoller {
     /**
      * Construct the listener.
      *
+     * @param daemon - the Monero daemon to poll
      * @param refreshPeriodMs - refresh period in milliseconds
-     * @param keyImages - key images to listen to
      */
-    public XmrKeyImagePoller(MoneroDaemon daemon, long refreshPeriodMs, String... keyImages) {
+    public XmrKeyImagePoller(MoneroDaemon daemon, long refreshPeriodMs) {
         looper = new TaskLooper(() -> poll());
         setDaemon(daemon);
         setRefreshPeriodMs(refreshPeriodMs);
-        setKeyImages(keyImages);
     }
 
     /**
@@ -132,35 +126,12 @@ public class XmrKeyImagePoller {
     }
 
     /**
-     * Get a copy of the key images being listened to.
-     *
-     * @return the key images to listen to
-     */
-    public Collection<String> getKeyImages() {
-        synchronized (keyImages) {
-            return new ArrayList<String>(keyImages);
-        }
-    }
-
-    /**
-     * Set the key images to listen to.
-     *
-     * @return the key images to listen to
-     */
-    public void setKeyImages(String... keyImages) {
-        synchronized (this.keyImages) {
-            this.keyImages.clear();
-            addKeyImages(keyImages);
-        }
-    }
-
-    /**
      * Add a key image to listen to.
      *
      * @param keyImage - the key image to listen to
      */
-    public void addKeyImage(String keyImage) {
-        addKeyImages(keyImage);
+    public void addKeyImage(String keyImage, String groupId) {
+        addKeyImages(Arrays.asList(keyImage), groupId);
     }
 
     /**
@@ -168,52 +139,45 @@ public class XmrKeyImagePoller {
      *
      * @param keyImages - key images to listen to
      */
-    public void addKeyImages(String... keyImages) {
-        addKeyImages(Arrays.asList(keyImages));
-    }
-
-    /**
-     * Add key images to listen to.
-     *
-     * @param keyImages - key images to listen to
-     */
-    public void addKeyImages(Collection<String> keyImages) {
-        synchronized (this.keyImages) {
-            for (String keyImage : keyImages) if (!this.keyImages.contains(keyImage)) this.keyImages.add(keyImage);
+    public void addKeyImages(Collection<String> keyImages, String groupId) {
+        synchronized (this.keyImageGroups) {
+            if (!keyImageGroups.containsKey(groupId)) keyImageGroups.put(groupId, new HashSet<String>());
+            Set<String> keyImagesGroup = keyImageGroups.get(groupId);
+            keyImagesGroup.addAll(keyImages);
             refreshPolling();
         }
     }
 
     /**
-     * Remove a key image to listen to.
-     *
-     * @param keyImage - the key image to unlisten to
-     */
-    public void removeKeyImage(String keyImage) {
-        removeKeyImages(keyImage);
-    }
-
-    /**
      * Remove key images to listen to.
      *
      * @param keyImages - key images to unlisten to
      */
-    public void removeKeyImages(String... keyImages) {
-        removeKeyImages(Arrays.asList(keyImages));
-    }
-
-    /**
-     * Remove key images to listen to.
-     *
-     * @param keyImages - key images to unlisten to
-     */
-    public void removeKeyImages(Collection<String> keyImages) {
-        synchronized (this.keyImages) {
-            Set<String> containedKeyImages = new HashSet<String>(keyImages);
-            containedKeyImages.retainAll(this.keyImages);
-            this.keyImages.removeAll(containedKeyImages);
+    public void removeKeyImages(Collection<String> keyImages, String groupId) {
+        synchronized (keyImageGroups) {
+            Set<String> keyImagesGroup = keyImageGroups.get(groupId);
+            if (keyImagesGroup == null) return;
+            keyImagesGroup.removeAll(keyImages);
+            if (keyImagesGroup.isEmpty()) keyImageGroups.remove(groupId);
             synchronized (lastStatuses) {
                 for (String lastKeyImage : new HashSet<>(lastStatuses.keySet())) lastStatuses.remove(lastKeyImage);
+            }
+            refreshPolling();
+        }
+    }
+
+    public void removeKeyImages(String groupId) {
+        synchronized (keyImageGroups) {
+            Set<String> keyImagesGroup = keyImageGroups.get(groupId);
+            if (keyImagesGroup == null) return;
+            keyImageGroups.remove(groupId);
+            Set<String> keyImages = getKeyImages();
+            synchronized (lastStatuses) {
+                for (String keyImage : keyImagesGroup) {
+                    if (lastStatuses.containsKey(keyImage) && !keyImages.contains(keyImage)) {
+                        lastStatuses.remove(keyImage);
+                    }
+                }
             }
             refreshPolling();
         }
@@ -223,7 +187,13 @@ public class XmrKeyImagePoller {
      * Clear the key images which stops polling.
      */
     public void clearKeyImages() {
-        setKeyImages();
+        synchronized (keyImageGroups) {
+            keyImageGroups.clear();
+            synchronized (lastStatuses) {
+                lastStatuses.clear();
+            }
+            refreshPolling();
+        }
     }
 
     /**
@@ -235,8 +205,18 @@ public class XmrKeyImagePoller {
     public Boolean isSpent(String keyImage) {
         synchronized (lastStatuses) {
             if (!lastStatuses.containsKey(keyImage)) return null;
-            return lastStatuses.get(keyImage) != MoneroKeyImageSpentStatus.NOT_SPENT;
+            return XmrKeyImagePoller.isSpent(lastStatuses.get(keyImage));
         }
+    }
+
+    /**
+     * Indicates if the given key image spent status is spent.
+     * 
+     * @param status the key image spent status to check
+     * @return true if the key image is spent, false if unspent
+     */
+    public static boolean isSpent(MoneroKeyImageSpentStatus status) {
+        return status != MoneroKeyImageSpentStatus.NOT_SPENT;
     }
 
     /**
@@ -257,16 +237,11 @@ public class XmrKeyImagePoller {
             return;
         }
 
-        // get copy of key images to fetch
-        List<String> keyImages = new ArrayList<String>(getKeyImages());
-
         // fetch spent statuses
         List<MoneroKeyImageSpentStatus> spentStatuses = null;
+        List<String> keyImages = new ArrayList<String>(getKeyImages());
         try {
-            if (keyImages.isEmpty()) spentStatuses = new ArrayList<MoneroKeyImageSpentStatus>();
-            else {
-                spentStatuses = daemon.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
-            }
+            spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : daemon.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
         } catch (Exception e) {
 
             // limit error logging
@@ -297,8 +272,8 @@ public class XmrKeyImagePoller {
     }
 
     private void refreshPolling() {
-        synchronized (keyImages) {
-            setIsPolling(keyImages.size() > 0 && listeners.size() > 0);
+        synchronized (keyImageGroups) {
+            setIsPolling(!getKeyImages().isEmpty() && listeners.size() > 0);
         }
     }
 
@@ -312,5 +287,15 @@ public class XmrKeyImagePoller {
             isPolling = false;
             looper.stop();
         }
+    }
+
+    private Set<String> getKeyImages() {
+        Set<String> allKeyImages = new HashSet<String>();
+        synchronized (keyImageGroups) {
+            for (Set<String> keyImagesGroup : keyImageGroups.values()) {
+                allKeyImages.addAll(keyImagesGroup);
+            }
+        }
+        return allKeyImages;
     }
 }

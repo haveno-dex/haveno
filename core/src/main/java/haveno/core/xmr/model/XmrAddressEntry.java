@@ -122,12 +122,12 @@ public final class XmrAddressEntry implements PersistablePayload {
         return context == Context.OFFER_FUNDING;
     }
 
-    public boolean isTrade() {
+    public boolean isTradePayout() {
         return context == Context.TRADE_PAYOUT;
     }
 
     public boolean isTradable() {
-        return isOpenOffer() || isTrade();
+        return isOpenOffer() || isTradePayout();
     }
 
     public Coin getCoinLockedInMultiSig() {

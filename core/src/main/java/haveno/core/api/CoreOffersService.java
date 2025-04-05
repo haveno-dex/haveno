@@ -43,6 +43,7 @@ import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
@@ -66,9 +67,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import static java.util.Comparator.comparing;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -124,7 +123,6 @@ public class CoreOffersService {
                     return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
                 })
                 .collect(Collectors.toList());
-        offers.removeAll(getOffersWithDuplicateKeyImages(offers));
         return offers;
     }
 
@@ -143,12 +141,9 @@ public class CoreOffersService {
     }
 
     List<OpenOffer> getMyOffers() {
-        List<OpenOffer> offers = openOfferManager.getOpenOffers().stream()
+        return openOfferManager.getOpenOffers().stream()
                 .filter(o -> o.getOffer().isMyOffer(keyRing))
                 .collect(Collectors.toList());
-        Set<Offer> offersWithDuplicateKeyImages = getOffersWithDuplicateKeyImages(offers.stream().map(OpenOffer::getOffer).collect(Collectors.toList())); // TODO: this is hacky way of filtering offers with duplicate key images
-        Set<String> offerIdsWithDuplicateKeyImages = offersWithDuplicateKeyImages.stream().map(Offer::getId).collect(Collectors.toSet());
-        return offers.stream().filter(o -> !offerIdsWithDuplicateKeyImages.contains(o.getId())).collect(Collectors.toList());
     };
 
     List<OpenOffer> getMyOffers(String direction, String currencyCode) {
@@ -179,15 +174,31 @@ public class CoreOffersService {
                              boolean isPrivateOffer,
                              boolean buyerAsTakerWithoutDeposit,
                              String extraInfo,
+                             String sourceOfferId,
                              Consumer<Offer> resultHandler,
                              ErrorMessageHandler errorMessageHandler) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
 
         PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
-        if (paymentAccount == null)
-            throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId));
+        if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId));
 
+        // clone offer if sourceOfferId given
+        if (!sourceOfferId.isEmpty()) {
+            cloneOffer(sourceOfferId,
+                    currencyCode,
+                    priceAsString,
+                    useMarketBasedPrice,
+                    marketPriceMargin,
+                    triggerPriceAsString,
+                    paymentAccountId,
+                    extraInfo,
+                    resultHandler,
+                    errorMessageHandler);
+            return;
+        }
+
+        // create new offer
         String upperCaseCurrencyCode = currencyCode.toUpperCase();
         String offerId = createOfferService.getRandomOfferId();
         OfferDirection direction = OfferDirection.valueOf(directionAsString.toUpperCase());
@@ -210,17 +221,70 @@ public class CoreOffersService {
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
 
-        // We don't support atm funding from external wallet to keep it simple.
-        boolean useSavingsWallet = true;
-        //noinspection ConstantConditions
         placeOffer(offer,
                 triggerPriceAsString,
-                useSavingsWallet,
+                true,
                 reserveExactAmount,
+                null,
                 transaction -> resultHandler.accept(offer),
                 errorMessageHandler);
     }
 
+    private void cloneOffer(String sourceOfferId,
+                    String currencyCode,
+                    String priceAsString,
+                    boolean useMarketBasedPrice,
+                    double marketPriceMargin,
+                    String triggerPriceAsString,
+                    String paymentAccountId,
+                    String extraInfo,
+                    Consumer<Offer> resultHandler,
+                    ErrorMessageHandler errorMessageHandler) {
+
+        // get source offer
+        OpenOffer sourceOpenOffer = getMyOffer(sourceOfferId);
+        Offer sourceOffer = sourceOpenOffer.getOffer();
+
+        // get trade currency (default source currency)
+        if (currencyCode.isEmpty()) currencyCode = sourceOffer.getOfferPayload().getBaseCurrencyCode();
+        if (currencyCode.equalsIgnoreCase(Res.getBaseCurrencyCode())) currencyCode = sourceOffer.getOfferPayload().getCounterCurrencyCode();
+        String upperCaseCurrencyCode = currencyCode.toUpperCase();
+
+        // get price (default source price)
+        Price price = useMarketBasedPrice ? null : priceAsString.isEmpty() ? sourceOffer.isUseMarketBasedPrice() ? null : sourceOffer.getPrice() : Price.parse(upperCaseCurrencyCode, priceAsString);
+        if (price == null) useMarketBasedPrice = true;
+
+        // get payment account
+        if (paymentAccountId.isEmpty()) paymentAccountId = sourceOffer.getOfferPayload().getMakerPaymentAccountId();
+        PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
+        if (paymentAccount == null) throw new IllegalArgumentException(format("payment acRcount with id %s not found", paymentAccountId));
+
+        // get extra info
+        if (extraInfo.isEmpty()) extraInfo = sourceOffer.getOfferPayload().getExtraInfo();
+
+        // create cloned offer
+        Offer offer = createOfferService.createClonedOffer(sourceOffer,
+                upperCaseCurrencyCode,
+                price,
+                useMarketBasedPrice,
+                exactMultiply(marketPriceMargin, 0.01),
+                paymentAccount,
+                extraInfo);
+        
+        // verify cloned offer
+        verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
+
+        // place offer
+        placeOffer(offer,
+                triggerPriceAsString,
+                true,
+                false, // ignored when cloning
+                sourceOfferId,
+                transaction -> resultHandler.accept(offer),
+                errorMessageHandler);
+    }
+
+    // TODO: this implementation is missing; implement.
     Offer editOffer(String offerId,
                     String currencyCode,
                     OfferDirection direction,
@@ -256,27 +320,6 @@ public class CoreOffersService {
 
     // -------------------------- PRIVATE HELPERS -----------------------------
 
-    private Set<Offer> getOffersWithDuplicateKeyImages(List<Offer> offers) {
-        Set<Offer> duplicateFundedOffers = new HashSet<Offer>();
-        Set<String> seenKeyImages = new HashSet<String>();
-        for (Offer offer : offers) {
-            if (offer.getOfferPayload().getReserveTxKeyImages() == null) continue;
-            for (String keyImage : offer.getOfferPayload().getReserveTxKeyImages()) {
-                if (!seenKeyImages.add(keyImage)) {
-                    for (Offer offer2 : offers) {
-                        if (offer == offer2) continue;
-                        if (offer2.getOfferPayload().getReserveTxKeyImages() == null) continue;
-                        if (offer2.getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                            log.warn("Key image {} belongs to multiple offers, seen in offer {} and {}", keyImage, offer.getId(), offer2.getId());
-                            duplicateFundedOffers.add(offer2);
-                        }
-                    }
-                }
-            }
-        }
-        return duplicateFundedOffers;
-    }
-
     private void verifyPaymentAccountIsValidForNewOffer(Offer offer, PaymentAccount paymentAccount) {
         if (!isPaymentAccountValidForOffer(offer, paymentAccount)) {
             String error = format("cannot create %s offer with payment account %s",
@@ -290,6 +333,7 @@ public class CoreOffersService {
                             String triggerPriceAsString,
                             boolean useSavingsWallet,
                             boolean reserveExactAmount,
+                            String sourceOfferId,
                             Consumer<Transaction> resultHandler,
                             ErrorMessageHandler errorMessageHandler) {
         long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCurrencyCode());
@@ -298,6 +342,7 @@ public class CoreOffersService {
                 triggerPriceAsLong,
                 reserveExactAmount,
                 true,
+                sourceOfferId,
                 resultHandler::accept,
                 errorMessageHandler);
     }

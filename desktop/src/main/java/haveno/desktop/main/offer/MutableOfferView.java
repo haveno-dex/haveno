@@ -297,11 +297,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.getDataModel().onTabSelected(isSelected);
     }
 
-    public void initWithData(OfferDirection direction, TradeCurrency tradeCurrency,
+    public void initWithData(OfferDirection direction,
+                             TradeCurrency tradeCurrency,
+                             boolean initAddressEntry,
                              OfferView.OfferActionHandler offerActionHandler) {
         this.offerActionHandler = offerActionHandler;
 
-        boolean result = model.initWithData(direction, tradeCurrency);
+        boolean result = model.initWithData(direction, tradeCurrency, initAddressEntry);
 
         if (!result) {
             new Popup().headLine(Res.get("popup.warning.noTradingAccountSetup.headline"))

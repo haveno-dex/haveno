@@ -366,7 +366,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         }
 
         // check for open offers
-        if (injector.getInstance(OpenOfferManager.class).hasOpenOffers()) {
+        if (injector.getInstance(OpenOfferManager.class).hasAvailableOpenOffers()) {
             String key = "showOpenOfferWarnPopupAtShutDown";
             if (injector.getInstance(Preferences.class).showAgain(key) && !DevEnv.isDevMode()) {
                 new Popup().warning(Res.get("popup.info.shutDownWithOpenOffers"))

@@ -444,7 +444,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 if (item != null && !empty && isMyOfferAsMaker(item.getTradable().getOffer().getOfferPayload())) {
                                     if (button == null) {
                                         button = FormBuilder.getRegularIconButton(MaterialDesignIcon.CONTENT_COPY);
-                                        button.setTooltip(new Tooltip(Res.get("shared.duplicateOffer")));
+                                        button.setTooltip(new Tooltip(Res.get("portfolio.context.offerLikeThis")));
                                         setGraphic(button);
                                     }
                                     button.setOnAction(event -> onDuplicateOffer(item.getTradable().getOffer()));
