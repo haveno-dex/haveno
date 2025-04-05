@@ -15,13 +15,16 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.portfolio.editoffer;
+package haveno.desktop.main.portfolio.cloneoffer;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+import haveno.desktop.Navigation;
+import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.main.offer.MutableOfferView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 
-import haveno.common.UserThread;
-import haveno.common.util.Tuple4;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -30,41 +33,44 @@ import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.desktop.Navigation;
-import haveno.desktop.common.view.FxmlView;
-import haveno.desktop.components.AutoTooltipButton;
-import haveno.desktop.components.BusyAnimation;
-import haveno.desktop.main.offer.MutableOfferView;
-import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
-import javafx.collections.ObservableList;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import haveno.common.UserThread;
+import haveno.common.util.Tuple4;
+
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+
+import javafx.collections.ObservableList;
+
+import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
+
 @FxmlView
-public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
+public class CloneOfferView extends MutableOfferView<CloneOfferViewModel> {
 
     private BusyAnimation busyAnimation;
-    private Button confirmButton;
+    private Button cloneButton;
     private Button cancelButton;
+    private Label spinnerInfoLabel;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private EditOfferView(EditOfferViewModel model,
-                          Navigation navigation,
-                          Preferences preferences,
-                          OfferDetailsWindow offerDetailsWindow,
-                          @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
+    private CloneOfferView(CloneOfferViewModel model,
+                        Navigation navigation,
+                        Preferences preferences,
+                        OfferDetailsWindow offerDetailsWindow,
+                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         super(model, navigation, preferences, offerDetailsWindow, btcFormatter);
     }
 
@@ -72,7 +78,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
     protected void initialize() {
         super.initialize();
 
-        addConfirmEditGroup();
+        addCloneGroup();
         renameAmountGroup();
     }
 
@@ -88,6 +94,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
     @Override
     protected void doActivate() {
         super.doActivate();
+
 
         addBindings();
 
@@ -111,7 +118,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         model.isNextButtonDisabled.setValue(false);
         cancelButton.setDisable(false);
 
-        model.onInvalidateMarketPriceMarginPct();
+        model.onInvalidateMarketPriceMargin();
         model.onInvalidatePrice();
 
         // To force re-validation of payment account validation
@@ -119,18 +126,14 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
     }
 
     @Override
-    public void onClose() {
-        model.onCancelEditOffer(errorMessage -> {
-            log.error(errorMessage);
-            new Popup().warning(Res.get("editOffer.failed", errorMessage)).show();
-        });
-    }
-
-    @Override
     protected void deactivate() {
         super.deactivate();
 
         removeBindings();
+    }
+
+    @Override
+    public void onClose() {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -145,13 +148,6 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
                 false,
                 null);
 
-        model.onStartEditOffer(errorMessage -> {
-            log.error(errorMessage);
-            new Popup().warning(Res.get("editOffer.failed", errorMessage))
-                    .onClose(this::close)
-                    .show();
-        });
-
         if (!model.isSecurityDepositValid()) {
             new Popup().warning(Res.get("editOffer.invalidDeposit"))
                     .onClose(this::close)
@@ -164,11 +160,11 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void addBindings() {
-        confirmButton.disableProperty().bind(model.isNextButtonDisabled);
+        cloneButton.disableProperty().bind(model.isNextButtonDisabled);
     }
 
     private void removeBindings() {
-        confirmButton.disableProperty().unbind();
+        cloneButton.disableProperty().unbind();
     }
 
     @Override
@@ -176,69 +172,80 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         return paymentAccounts;
     }
 
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Build UI elements
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void addConfirmEditGroup() {
+    private void addCloneGroup() {
+        Tuple4<Button, BusyAnimation, Label, HBox> tuple4 = addButtonBusyAnimationLabelAfterGroup(gridPane, 6, Res.get("cloneOffer.clone"));
 
-        int tmpGridRow = 6;
-        final Tuple4<Button, BusyAnimation, Label, HBox> editOfferTuple = addButtonBusyAnimationLabelAfterGroup(gridPane, tmpGridRow++, Res.get("editOffer.confirmEdit"));
+        HBox hBox = tuple4.fourth;
+        hBox.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setHalignment(hBox, HPos.LEFT);
 
-        final HBox editOfferConfirmationBox = editOfferTuple.fourth;
-        editOfferConfirmationBox.setAlignment(Pos.CENTER_LEFT);
-        GridPane.setHalignment(editOfferConfirmationBox, HPos.LEFT);
+        cloneButton = tuple4.first;
+        cloneButton.setMinHeight(40);
+        cloneButton.setPadding(new Insets(0, 20, 0, 20));
+        cloneButton.setGraphicTextGap(10);
 
-        confirmButton = editOfferTuple.first;
-        confirmButton.setMinHeight(40);
-        confirmButton.setPadding(new Insets(0, 20, 0, 20));
-        confirmButton.setGraphicTextGap(10);
-
-        busyAnimation = editOfferTuple.second;
-        Label spinnerInfoLabel = editOfferTuple.third;
+        busyAnimation = tuple4.second;
+        spinnerInfoLabel = tuple4.third;
 
         cancelButton = new AutoTooltipButton(Res.get("shared.cancel"));
         cancelButton.setDefaultButton(false);
         cancelButton.setOnAction(event -> close());
-        editOfferConfirmationBox.getChildren().add(cancelButton);
+        hBox.getChildren().add(cancelButton);
 
-        confirmButton.setOnAction(e -> {
-            if (model.isPriceInRange()) {
-                model.isNextButtonDisabled.setValue(true);
-                cancelButton.setDisable(true);
-                busyAnimation.play();
-                spinnerInfoLabel.setText(Res.get("editOffer.publishOffer"));
-
-                // edit offer
-                model.onPublishOffer(() -> {
-                    if (model.dataModel.hasConflictingClone()) {
-                        new Popup().warning(Res.get("editOffer.hasConflictingClone")).show();
-                    } else {
-                        String key = "editOfferSuccess";
-                        if (DontShowAgainLookup.showAgain(key)) {
-                            new Popup()
-                                    .feedback(Res.get("editOffer.success"))
-                                    .dontShowAgainId(key)
-                                    .show();
-                        }
-                    }
-                    UserThread.execute(() -> {
-                        spinnerInfoLabel.setText("");
-                        busyAnimation.stop();
-                        close();
-                    });
-                }, (message) -> {
-                    UserThread.execute(() -> {
-                        log.error(message);
-                        spinnerInfoLabel.setText("");
-                        busyAnimation.stop();
-                        model.isNextButtonDisabled.setValue(false);
-                        cancelButton.setDisable(false);
-                        new Popup().warning(Res.get("editOffer.failed", message)).show();
-                    });
-                });
-            }
+        cloneButton.setOnAction(e -> {
+            cloneButton.requestFocus();   // fix issue #5460 (when enter key used, focus is wrong)
+            onClone();
         });
+    }
+
+    private void onClone() {
+        if (model.dataModel.hasConflictingClone()) {
+            new Popup().warning(Res.get("cloneOffer.hasConflictingClone"))
+                    .actionButtonText(Res.get("shared.yes"))
+                    .onAction(this::doClone)
+                    .closeButtonText(Res.get("shared.no"))
+                    .show();
+        } else {
+            doClone();
+        }
+    }
+
+    private void doClone() {
+        if (model.isPriceInRange()) {
+            model.isNextButtonDisabled.setValue(true);
+            cancelButton.setDisable(true);
+            busyAnimation.play();
+            spinnerInfoLabel.setText(Res.get("cloneOffer.publishOffer"));
+            model.onCloneOffer(() -> {
+                UserThread.execute(() -> {
+                    String key = "cloneOfferSuccess";
+                    if (DontShowAgainLookup.showAgain(key)) {
+                        new Popup()
+                                .feedback(Res.get("cloneOffer.success"))
+                                .dontShowAgainId(key)
+                                .show();
+                    }
+                    spinnerInfoLabel.setText("");
+                    busyAnimation.stop();
+                    close();
+                });
+            },
+            errorMessage -> {
+                UserThread.execute(() -> {
+                    log.error(errorMessage);
+                    spinnerInfoLabel.setText("");
+                    busyAnimation.stop();
+                    model.isNextButtonDisabled.setValue(false);
+                    cancelButton.setDisable(false);
+                    new Popup().warning(errorMessage).show();
+                });
+            });
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -247,8 +254,8 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
 
     private void updateElementsWithDirection() {
         ImageView iconView = new ImageView();
-        iconView.setId(model.isSellOffer() ? "image-sell-white" : "image-buy-white");
-        confirmButton.setGraphic(iconView);
-        confirmButton.setId(model.isSellOffer() ? "sell-button-big" : "buy-button-big");
+        iconView.setId(model.isShownAsSellOffer() ? "image-sell-white" : "image-buy-white");
+        cloneButton.setGraphic(iconView);
+        cloneButton.setId(model.isShownAsSellOffer() ? "sell-button-big" : "buy-button-big");
     }
 }

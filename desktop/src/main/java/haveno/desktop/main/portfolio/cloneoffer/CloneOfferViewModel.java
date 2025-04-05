@@ -15,12 +15,12 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.desktop.main.portfolio.editoffer;
+package haveno.desktop.main.portfolio.cloneoffer;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import haveno.common.handlers.ErrorMessageHandler;
-import haveno.common.handlers.ResultHandler;
+import haveno.desktop.Navigation;
+import haveno.desktop.main.offer.MutableOfferViewModel;
+import haveno.desktop.main.offer.OfferViewUtil;
+
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
@@ -34,24 +34,27 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.AmountValidator8Decimals;
-import haveno.desktop.Navigation;
-import haveno.desktop.main.offer.MutableOfferViewModel;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 
-class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+
+class CloneOfferViewModel extends MutableOfferViewModel<CloneOfferDataModel> {
 
     @Inject
-    public EditOfferViewModel(EditOfferDataModel dataModel,
-                              FiatVolumeValidator fiatVolumeValidator,
-                              AmountValidator4Decimals priceValidator4Decimals,
-                              AmountValidator8Decimals priceValidator8Decimals,
-                              XmrValidator xmrValidator,
-                              SecurityDepositValidator securityDepositValidator,
-                              PriceFeedService priceFeedService,
-                              AccountAgeWitnessService accountAgeWitnessService,
-                              Navigation navigation,
-                              Preferences preferences,
-                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                              OfferUtil offerUtil) {
+    public CloneOfferViewModel(CloneOfferDataModel dataModel,
+                            FiatVolumeValidator fiatVolumeValidator,
+                            AmountValidator4Decimals priceValidator4Decimals,
+                            AmountValidator8Decimals priceValidator8Decimals,
+                            XmrValidator xmrValidator,
+                            SecurityDepositValidator securityDepositValidator,
+                            PriceFeedService priceFeedService,
+                            AccountAgeWitnessService accountAgeWitnessService,
+                            Navigation navigation,
+                            Preferences preferences,
+                            @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
+                            OfferUtil offerUtil) {
         super(dataModel,
                 fiatVolumeValidator,
                 priceValidator4Decimals,
@@ -81,7 +84,6 @@ class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
             triggerPrice.set("");
         }
         onTriggerPriceTextFieldChanged();
-        onReserveExactAmountCheckboxChanged();
     }
 
     public void applyOpenOffer(OpenOffer openOffer) {
@@ -89,19 +91,11 @@ class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
         dataModel.applyOpenOffer(openOffer);
     }
 
-    public void onStartEditOffer(ErrorMessageHandler errorMessageHandler) {
-        dataModel.onStartEditOffer(errorMessageHandler);
+    public void onCloneOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        dataModel.onCloneOffer(resultHandler, errorMessageHandler);
     }
 
-    public void onPublishOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        dataModel.onPublishOffer(resultHandler, errorMessageHandler);
-    }
-
-    public void onCancelEditOffer(ErrorMessageHandler errorMessageHandler) {
-        dataModel.onCancelEditOffer(errorMessageHandler);
-    }
-
-    public void onInvalidateMarketPriceMarginPct() {
+    public void onInvalidateMarketPriceMargin() {
         marketPriceMargin.set(FormattingUtils.formatToPercent(dataModel.getMarketPriceMarginPct()));
     }
 
@@ -118,5 +112,9 @@ class EditOfferViewModel extends MutableOfferViewModel<EditOfferDataModel> {
     public void triggerFocusOutOnAmountFields() {
         // do not update BTC Amount or minAmount here
         // issue 2798: "after a few edits of offer the BTC amount has increased"
+    }
+
+    public boolean isShownAsSellOffer() {
+        return OfferViewUtil.isShownAsSellOffer(getTradeCurrency(), dataModel.getDirection());
     }
 }

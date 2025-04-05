@@ -36,6 +36,16 @@ public class MaybeAddToOfferBook extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
             checkNotNull(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature(), "Offer's arbitrator signature is null: " + model.getOpenOffer().getOffer().getId());
+
+            // deactivate if conflicting offer exists
+            if (model.getOpenOfferManager().hasConflictingClone(model.getOpenOffer())) {
+                model.getOpenOffer().setState(OpenOffer.State.DEACTIVATED);
+                model.setOfferAddedToOfferBook(false);
+                complete();
+                return;
+            }
+
+            // add to offer book and activate if pending or available
             if (model.getOpenOffer().isPending() || model.getOpenOffer().isAvailable()) {
                 model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
                         () -> {

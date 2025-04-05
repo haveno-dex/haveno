@@ -32,6 +32,7 @@ import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
@@ -71,6 +72,8 @@ public final class XmrConnectionService {
     private static final int MIN_BROADCAST_CONNECTIONS = 0; // TODO: 0 for stagenet, 5+ for mainnet
     private static final long REFRESH_PERIOD_HTTP_MS = 20000; // refresh period when connected to remote node over http
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
+    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
+    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
     public enum XmrConnectionError {
         LOCAL,
@@ -115,6 +118,7 @@ public final class XmrConnectionService {
     @Getter
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
+    private XmrKeyImagePoller keyImagePoller;
 
     // connection switching
     private static final int EXCLUDE_CONNECTION_SECONDS = 180;
@@ -403,6 +407,17 @@ public final class XmrConnectionService {
         return lastInfo.getTargetHeight() == 0 ? chainHeight.get() : lastInfo.getTargetHeight(); // monerod sync_info's target_height returns 0 when node is fully synced
     }
 
+    public XmrKeyImagePoller getKeyImagePoller() {
+        synchronized (lock) {
+            if (keyImagePoller == null) keyImagePoller = new XmrKeyImagePoller();
+            return keyImagePoller;
+        }
+    }
+
+    private long getKeyImageRefreshPeriodMs() {
+        return isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
+    }
+
     // ----------------------------- APP METHODS ------------------------------
 
     public ReadOnlyIntegerProperty numConnectionsProperty() {
@@ -487,6 +502,13 @@ public final class XmrConnectionService {
     }
 
     private void initialize() {
+
+        // initialize key image poller
+        getKeyImagePoller();
+        new Thread(() -> {
+            HavenoUtils.waitFor(20000);
+            keyImagePoller.poll(); // TODO: keep or remove first poll?s
+        }).start();
 
         // initialize connections
         initializeConnections();
@@ -693,6 +715,10 @@ public final class XmrConnectionService {
                 numUpdates.set(numUpdates.get() + 1);
             });
         }
+
+        // update key image poller
+        keyImagePoller.setDaemon(getDaemon());
+        keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
         
         // update polling
         doPollDaemon();
