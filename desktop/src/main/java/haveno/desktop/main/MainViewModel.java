@@ -53,6 +53,7 @@ import haveno.core.user.Preferences.UseTorForXmr;
 import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
+import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.account.AccountView;
@@ -140,7 +141,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<Boolean> tradesAndUIReady;
     private final Queue<Overlay<?>> popupQueue = new PriorityQueue<>(Comparator.comparing(Overlay::getDisplayOrderPriority));
-    private Popup moneroConnectionFallbackPopup;
+    private Popup moneroConnectionErrorPopup;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -335,24 +336,59 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             tacWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
-        havenoSetup.setDisplayMoneroConnectionFallbackHandler(fallbackMsg -> {
-            if (fallbackMsg != null && !fallbackMsg.isEmpty()) {
-                moneroConnectionFallbackPopup = new Popup()
-                        .headLine(Res.get("connectionFallback.headline"))
-                        .warning(fallbackMsg)
-                        .closeButtonText(Res.get("shared.no"))
-                        .actionButtonText(Res.get("shared.yes"))
-                        .onAction(() -> {
-                            havenoSetup.getConnectionServiceFallbackHandler().set("");
-                            new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
-                        })
-                        .onClose(() -> {
-                            log.warn("User has declined to fallback to the next best available Monero node.");
-                            havenoSetup.getConnectionServiceFallbackHandler().set("");
-                        });
-                moneroConnectionFallbackPopup.show();
-            } else if (moneroConnectionFallbackPopup != null && moneroConnectionFallbackPopup.isDisplayed()) {
-                moneroConnectionFallbackPopup.hide();
+        havenoSetup.setDisplayMoneroConnectionErrorHandler(connectionError -> {
+            if (connectionError == null) {
+                if (moneroConnectionErrorPopup != null) moneroConnectionErrorPopup.hide();
+            } else {
+                switch (connectionError) {
+                    case LOCAL:
+                        moneroConnectionErrorPopup = new Popup()
+                                .headLine(Res.get("xmrConnectionError.headline"))
+                                .warning(Res.get("xmrConnectionError.localNode"))
+                                .actionButtonText(Res.get("xmrConnectionError.localNode.start"))
+                                .onAction(() -> {
+                                    log.warn("User has chosen to start local node.");
+                                    havenoSetup.getConnectionServiceError().set(null);
+                                    new Thread(() -> {
+                                        try {
+                                            HavenoUtils.xmrConnectionService.startLocalNode();
+                                        } catch (Exception e) {
+                                            log.error("Error starting local node: {}", e.getMessage(), e);
+                                            new Popup()
+                                                    .headLine(Res.get("xmrConnectionError.localNode.start.error"))
+                                                    .warning(e.getMessage())
+                                                    .closeButtonText(Res.get("shared.close"))
+                                                    .onClose(() -> havenoSetup.getConnectionServiceError().set(null))
+                                                    .show();
+                                        }
+                                    }).start();
+                                })
+                                .secondaryActionButtonText(Res.get("xmrConnectionError.localNode.fallback"))
+                                .onSecondaryAction(() -> {
+                                    log.warn("User has chosen to fallback to the next best available Monero node.");
+                                    havenoSetup.getConnectionServiceError().set(null);
+                                    new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                                })
+                                .closeButtonText(Res.get("shared.shutDown"))
+                                .onClose(HavenoApp.getShutDownHandler());
+                        break;
+                    case CUSTOM:
+                        moneroConnectionErrorPopup = new Popup()
+                                .headLine(Res.get("xmrConnectionError.headline"))
+                                .warning(Res.get("xmrConnectionError.customNode"))
+                                .actionButtonText(Res.get("shared.yes"))
+                                .onAction(() -> {
+                                    havenoSetup.getConnectionServiceError().set(null);
+                                    new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                                })
+                                .closeButtonText(Res.get("shared.no"))
+                                .onClose(() -> {
+                                    log.warn("User has declined to fallback to the next best available Monero node.");
+                                    havenoSetup.getConnectionServiceError().set(null);
+                                });
+                        break;
+                }
+                moneroConnectionErrorPopup.show();
             }
         });
         
@@ -360,10 +396,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             if (show) {
                 torNetworkSettingsWindow.show();
 
-                // bring connection fallback popup to front if displayed
-                if (moneroConnectionFallbackPopup != null && moneroConnectionFallbackPopup.isDisplayed()) {
-                    moneroConnectionFallbackPopup.hide();
-                    moneroConnectionFallbackPopup.show();
+                // bring connection error popup to front if displayed
+                if (moneroConnectionErrorPopup != null && moneroConnectionErrorPopup.isDisplayed()) {
+                    moneroConnectionErrorPopup.hide();
+                    moneroConnectionErrorPopup.show();
                 }
             } else if (torNetworkSettingsWindow.isDisplayed()) {
                 torNetworkSettingsWindow.hide();
