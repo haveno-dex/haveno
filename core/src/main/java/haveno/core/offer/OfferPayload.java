@@ -347,6 +347,10 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
         return Restrictions.getMinSecurityDeposit().max(securityDepositUnadjusted);
     }
 
+    public boolean isBuyerAsTakerWithoutDeposit() {
+        return getDirection() == OfferDirection.SELL && getBuyerSecurityDepositPct() == 0;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////

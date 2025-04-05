@@ -89,7 +89,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                     } catch (Exception e) {
 
                         // reset state with wallet lock
-                        model.getXmrWalletService().resetAddressEntriesForTrade(trade.getId());
+                        model.getXmrWalletService().swapPayoutAddressEntryToAvailable(trade.getId());
                         if (reserveTx != null) {
                             model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
                             trade.getSelf().setReserveTxKeyImages(null);

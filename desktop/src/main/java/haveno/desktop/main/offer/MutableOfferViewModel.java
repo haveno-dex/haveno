@@ -601,8 +601,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
-        boolean result = dataModel.initWithData(direction, tradeCurrency);
+    boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency, boolean initAddressEntry) {
+        boolean result = dataModel.initWithData(direction, tradeCurrency, initAddressEntry);
         if (dataModel.getAddressEntry() != null) {
             addressAsString = dataModel.getAddressEntry().getAddressString();
         }

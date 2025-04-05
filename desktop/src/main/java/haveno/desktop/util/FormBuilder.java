@@ -2340,8 +2340,8 @@ public class FormBuilder {
         return getRegularIconForLabel(icon, label, null);
     }
 
-    public static Text getRegularIconForLabel(GlyphIcons icon, Label label, String style) {
-        return getIconForLabel(icon, "1.231em", label, style);
+    public static Text getRegularIconForLabel(GlyphIcons icon, Label label, String styleClass) {
+        return getIconForLabel(icon, "1.231em", label, styleClass);
     }
 
     public static Text getIcon(GlyphIcons icon) {

@@ -173,6 +173,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         tradeCurrencyListChangeListener = c -> fillCurrencies();
 
+        // refresh filter on changes
+        offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
+            filterOffers();
+        });
+
         filterItemsListener = c -> {
             final Optional<OfferBookListItem> highestAmountOffer = filteredItems.stream()
                     .max(Comparator.comparingLong(o -> o.getOffer().getAmount().longValueExact()));

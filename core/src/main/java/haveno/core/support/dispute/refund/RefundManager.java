@@ -197,7 +197,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
             }
         } else {
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(tradeId);
-            openOfferOptional.ifPresent(openOffer -> openOfferManager.closeOpenOffer(openOffer.getOffer()));
+            openOfferOptional.ifPresent(openOffer -> openOfferManager.closeSpentOffer(openOffer.getOffer()));
         }
         sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
 
@@ -206,7 +206,7 @@ public final class RefundManager extends DisputeManager<RefundDisputeList> {
             tradeManager.closeDisputedTrade(tradeId, Trade.DisputeState.REFUND_REQUEST_CLOSED);
         } else {
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(tradeId);
-            openOfferOptional.ifPresent(openOffer -> openOfferManager.closeOpenOffer(openOffer.getOffer()));
+            openOfferOptional.ifPresent(openOffer -> openOfferManager.closeSpentOffer(openOffer.getOffer()));
         }
 
         requestPersistence();

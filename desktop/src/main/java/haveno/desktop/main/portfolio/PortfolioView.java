@@ -30,6 +30,8 @@ import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.portfolio.cloneoffer.CloneOfferView;
 import haveno.desktop.main.portfolio.closedtrades.ClosedTradesView;
 import haveno.desktop.main.portfolio.duplicateoffer.DuplicateOfferView;
 import haveno.desktop.main.portfolio.editoffer.EditOfferView;
@@ -49,7 +51,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
 
     @FXML
     Tab openOffersTab, pendingTradesTab, closedTradesTab;
-    private Tab editOpenOfferTab, duplicateOfferTab;
+    private Tab editOpenOfferTab, duplicateOfferTab, cloneOpenOfferTab;
     private final Tab failedTradesTab = new Tab(Res.get("portfolio.tab.failed").toUpperCase());
     private Tab currentTab;
     private Navigation.Listener navigationListener;
@@ -61,7 +63,8 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     private final FailedTradesManager failedTradesManager;
     private EditOfferView editOfferView;
     private DuplicateOfferView duplicateOfferView;
-    private boolean editOpenOfferViewOpen;
+    private CloneOfferView cloneOfferView;
+    private boolean editOpenOfferViewOpen, cloneOpenOfferViewOpen;
     private OpenOffer openOffer;
     private OpenOffersView openOffersView;
 
@@ -99,12 +102,16 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 navigation.navigateTo(MainView.class, PortfolioView.class, EditOfferView.class);
             else if (newValue == duplicateOfferTab) {
                 navigation.navigateTo(MainView.class, PortfolioView.class, DuplicateOfferView.class);
+            } else if (newValue == cloneOpenOfferTab) {
+                navigation.navigateTo(MainView.class, PortfolioView.class, CloneOfferView.class);
             }
 
             if (oldValue != null && oldValue == editOpenOfferTab)
                 editOfferView.onTabSelected(false);
             if (oldValue != null && oldValue == duplicateOfferTab)
                 duplicateOfferView.onTabSelected(false);
+            if (oldValue != null && oldValue == cloneOpenOfferTab)
+                cloneOfferView.onTabSelected(false);
 
         };
 
@@ -115,6 +122,8 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 onEditOpenOfferRemoved();
             if (removedTabs.size() == 1 && removedTabs.get(0).equals(duplicateOfferTab))
                 onDuplicateOfferRemoved();
+            if (removedTabs.size() == 1 && removedTabs.get(0).equals(cloneOpenOfferTab))
+                onCloneOpenOfferRemoved();
         };
     }
 
@@ -132,6 +141,16 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         if (duplicateOfferView != null) {
             duplicateOfferView.onClose();
             duplicateOfferView = null;
+        }
+
+        navigation.navigateTo(MainView.class, this.getClass(), OpenOffersView.class);
+    }
+
+    private void onCloneOpenOfferRemoved() {
+        cloneOpenOfferViewOpen = false;
+        if (cloneOfferView != null) {
+            cloneOfferView.onClose();
+            cloneOfferView = null;
         }
 
         navigation.navigateTo(MainView.class, this.getClass(), OpenOffersView.class);
@@ -166,6 +185,9 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         } else if (root.getSelectionModel().getSelectedItem() == duplicateOfferTab) {
             navigation.navigateTo(MainView.class, PortfolioView.class, DuplicateOfferView.class);
             if (duplicateOfferView != null) duplicateOfferView.onTabSelected(true);
+        } else if (root.getSelectionModel().getSelectedItem() == cloneOpenOfferTab) {
+            navigation.navigateTo(MainView.class, PortfolioView.class, CloneOfferView.class);
+            if (cloneOfferView != null) cloneOfferView.onTabSelected(true);
         }
     }
 
@@ -178,10 +200,9 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     }
 
     private void loadView(Class<? extends View> viewClass, @Nullable Object data) {
-        // we want to get activate/deactivate called, so we remove the old view on tab change
-        // TODO Don't understand the check for currentTab != editOpenOfferTab
-        if (currentTab != null && currentTab != editOpenOfferTab)
-            currentTab.setContent(null);
+
+        // nullify current tab to trigger activate/deactivate
+        if (currentTab != null) currentTab.setContent(null);
 
         View view = viewLoader.load(viewClass);
 
@@ -235,6 +256,28 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 view = viewLoader.load(OpenOffersView.class);
                 selectOpenOffersView((OpenOffersView) view);
             }
+        } else if (view instanceof CloneOfferView) {
+            if (data instanceof OpenOffer) {
+                openOffer = (OpenOffer) data;
+            }
+            if (openOffer != null) {
+                if (cloneOfferView == null) {
+                    cloneOfferView = (CloneOfferView) view;
+                    cloneOfferView.applyOpenOffer(openOffer);
+                    cloneOpenOfferTab = new Tab(Res.get("portfolio.tab.cloneOpenOffer").toUpperCase());
+                    cloneOfferView.setCloseHandler(() -> {
+                        root.getTabs().remove(cloneOpenOfferTab);
+                    });
+                    root.getTabs().add(cloneOpenOfferTab);
+                }
+                if (currentTab != cloneOpenOfferTab)
+                    cloneOfferView.onTabSelected(true);
+
+                currentTab = cloneOpenOfferTab;
+            } else {
+                view = viewLoader.load(OpenOffersView.class);
+                selectOpenOffersView((OpenOffersView) view);
+            }
         }
 
         currentTab.setContent(view.getRoot());
@@ -245,20 +288,35 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         openOffersView = view;
         currentTab = openOffersTab;
 
-        OpenOfferActionHandler openOfferActionHandler = openOffer -> {
+        EditOpenOfferHandler editOpenOfferHandler = openOffer -> {
             if (!editOpenOfferViewOpen) {
                 editOpenOfferViewOpen = true;
                 PortfolioView.this.openOffer = openOffer;
                 navigation.navigateTo(MainView.class, PortfolioView.this.getClass(), EditOfferView.class);
             } else {
-                log.error("You have already a \"Edit Offer\" tab open.");
+                new Popup().warning(Res.get("editOffer.openTabWarning")).show();
             }
         };
-        openOffersView.setOpenOfferActionHandler(openOfferActionHandler);
+        openOffersView.setEditOpenOfferHandler(editOpenOfferHandler);
+
+        CloneOpenOfferHandler cloneOpenOfferHandler = openOffer -> {
+            if (!cloneOpenOfferViewOpen) {
+                cloneOpenOfferViewOpen = true;
+                PortfolioView.this.openOffer = openOffer;
+                navigation.navigateTo(MainView.class, PortfolioView.this.getClass(), CloneOfferView.class);
+            } else {
+                new Popup().warning(Res.get("cloneOffer.openTabWarning")).show();
+            }
+        };
+        openOffersView.setCloneOpenOfferHandler(cloneOpenOfferHandler);
     }
 
-    public interface OpenOfferActionHandler {
+    public interface EditOpenOfferHandler {
         void onEditOpenOffer(OpenOffer openOffer);
+    }
+
+    public interface CloneOpenOfferHandler {
+        void onCloneOpenOffer(OpenOffer openOffer);
     }
 }
 

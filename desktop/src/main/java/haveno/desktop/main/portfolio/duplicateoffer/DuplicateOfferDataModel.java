@@ -35,13 +35,10 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.coin.CoinUtil;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -99,14 +96,6 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
 
         OpenOffer openOffer = openOfferManager.getOpenOffer(offer.getId()).orElse(null);
         if (openOffer != null) setTriggerPrice(openOffer.getTriggerPrice());
-    }
-
-    private double getSecurityAsPercent(Offer offer) {
-        BigInteger offerSellerSecurityDeposit = getBoundedSecurityDeposit(offer.getMaxSellerSecurityDeposit());
-        double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
-                offer.getAmount());
-        return Math.min(offerSellerSecurityDepositAsPercent,
-                Restrictions.getMaxSecurityDepositAsPercent());
     }
 
     @Override
