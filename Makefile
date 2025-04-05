@@ -423,6 +423,17 @@ haveno-desktop-stagenet:
 		--apiPort=3204 \
 		--useNativeXmrWallet=false \
 
+haveno-daemon-stagenet:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=Haveno \
+		--apiPassword=apitest \
+		--apiPort=3204 \
+		--useNativeXmrWallet=false \
+
 # Mainnet network
 
 monerod:
