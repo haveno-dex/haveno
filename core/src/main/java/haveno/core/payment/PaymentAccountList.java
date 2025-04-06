@@ -36,10 +36,12 @@ public class PaymentAccountList extends PersistableList<PaymentAccount> {
 
     @Override
     public Message toProtoMessage() {
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setPaymentAccountList(protobuf.PaymentAccountList.newBuilder()
-                        .addAllPaymentAccount(getList().stream().map(PaymentAccount::toProtoMessage).collect(Collectors.toList())))
-                .build();
+        synchronized (getList()) {
+            return protobuf.PersistableEnvelope.newBuilder()
+                    .setPaymentAccountList(protobuf.PaymentAccountList.newBuilder()
+                            .addAllPaymentAccount(getList().stream().map(PaymentAccount::toProtoMessage).collect(Collectors.toList())))
+                    .build();
+        }
     }
 
     public static PaymentAccountList fromProto(protobuf.PaymentAccountList proto, CoreProtoResolver coreProtoResolver) {

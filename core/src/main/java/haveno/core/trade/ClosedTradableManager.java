@@ -81,13 +81,15 @@ public class ClosedTradableManager implements PersistedDataHost {
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(persisted -> {
-                    closedTradables.setAll(persisted.getList());
-                    closedTradables.stream()
-                            .filter(tradable -> tradable.getOffer() != null)
-                            .forEach(tradable -> tradable.getOffer().setPriceFeedService(priceFeedService));
-                    completeHandler.run();
-                },
-                completeHandler);
+            synchronized (persisted.getList()) {
+                closedTradables.setAll(persisted.getList());
+                closedTradables.stream()
+                        .filter(tradable -> tradable.getOffer() != null)
+                        .forEach(tradable -> tradable.getOffer().setPriceFeedService(priceFeedService));
+            }
+            completeHandler.run();
+        },
+        completeHandler);
     }
 
     public void onAllServicesInitialized() {
@@ -96,7 +98,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public void add(Tradable tradable) {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             if (closedTradables.add(tradable)) {
                 maybeClearSensitiveData();
                 requestPersistence();
@@ -105,7 +107,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public void remove(Tradable tradable) {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             if (closedTradables.remove(tradable)) {
                 requestPersistence();
             }
@@ -117,17 +119,17 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public ObservableList<Tradable> getObservableList() {
-        synchronized (closedTradables) {
-            return closedTradables.getObservableList();
-        }
+        return closedTradables.getObservableList();
     }
 
     public List<Tradable> getTradableList() {
-        return ImmutableList.copyOf(new ArrayList<>(getObservableList()));
+        synchronized (closedTradables.getList()) {
+            return ImmutableList.copyOf(new ArrayList<>(getObservableList()));
+        }
     }
 
     public List<Trade> getClosedTrades() {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             return ImmutableList.copyOf(getObservableList().stream()
                     .filter(e -> e instanceof Trade)
                     .map(e -> (Trade) e)
@@ -136,7 +138,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public List<OpenOffer> getCanceledOpenOffers() {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             return ImmutableList.copyOf(getObservableList().stream()
                     .filter(e -> (e instanceof OpenOffer) && ((OpenOffer) e).getState().equals(CANCELED))
                     .map(e -> (OpenOffer) e)
@@ -145,19 +147,19 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public Optional<Tradable> getTradableById(String id) {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             return closedTradables.stream().filter(e -> e.getId().equals(id)).findFirst();
         }
     }
 
     public Optional<Trade> getTradeById(String id) {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             return getClosedTrades().stream().filter(e -> e.getId().equals(id)).findFirst();
         }
     }
 
     public void maybeClearSensitiveData() {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             log.info("checking closed trades eligibility for having sensitive data cleared");
             closedTradables.stream()
                 .filter(e -> e instanceof Trade)
@@ -170,11 +172,11 @@ public class ClosedTradableManager implements PersistedDataHost {
 
     public boolean canTradeHaveSensitiveDataCleared(String tradeId) {
         Instant safeDate = getSafeDateForSensitiveDataClearing();
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             return closedTradables.stream()
-            .filter(e -> e.getId().equals(tradeId))
-            .filter(e -> e.getDate().toInstant().isBefore(safeDate))
-            .count() > 0;
+                    .filter(e -> e.getId().equals(tradeId))
+                    .filter(e -> e.getDate().toInstant().isBefore(safeDate))
+                    .count() > 0;
         }
     }
 
@@ -205,9 +207,11 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public BigInteger getTotalTradeFee(List<Tradable> tradableList) {
-        return BigInteger.valueOf(tradableList.stream()
-                .mapToLong(tradable -> getTradeFee(tradable).longValueExact())
-                .sum());
+        synchronized (tradableList) {
+            return BigInteger.valueOf(tradableList.stream()
+                    .mapToLong(tradable -> getTradeFee(tradable).longValueExact())
+                    .sum());
+        }
     }
 
     private BigInteger getTradeFee(Tradable tradable) {
@@ -229,7 +233,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public void removeTrade(Trade trade) {
-        synchronized (closedTradables) {
+        synchronized (closedTradables.getList()) {
             if (closedTradables.remove(trade)) {
                 requestPersistence();
             }

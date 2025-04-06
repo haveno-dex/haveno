@@ -74,10 +74,12 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(getFileName(), persisted -> {
-                    disputeList.setAll(persisted.getList());
-                    completeHandler.run();
-                },
-                completeHandler);
+            synchronized (persisted.getList()) {
+                disputeList.setAll(persisted.getList());
+            }
+            completeHandler.run();
+        },
+        completeHandler);
     }
 
     protected String getFileName() {
@@ -145,26 +147,30 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     private void onDisputesChangeListener(List<? extends Dispute> addedList,
                                           @Nullable List<? extends Dispute> removedList) {
         if (removedList != null) {
-            removedList.forEach(dispute -> {
-                disputedTradeIds.remove(dispute.getTradeId());
+            synchronized (removedList) {
+                removedList.forEach(dispute -> {
+                    disputedTradeIds.remove(dispute.getTradeId());
+                });
+            }
+        }
+        synchronized (addedList) {
+            addedList.forEach(dispute -> {
+                // for each dispute added, keep track of its "BadgeCountProperty"
+                EasyBind.subscribe(dispute.getBadgeCountProperty(),
+                        isAlerting -> {
+                            // We get the event before the list gets updated, so we execute on next frame
+                            UserThread.execute(() -> {
+                                synchronized (disputeList.getObservableList()) {
+                                    int numAlerts = (int) disputeList.getList().stream()
+                                            .mapToLong(x -> x.getBadgeCountProperty().getValue())
+                                            .sum();
+                                    numOpenDisputes.set(numAlerts);
+                                }
+                            });
+                        });
+                disputedTradeIds.add(dispute.getTradeId());
             });
         }
-        addedList.forEach(dispute -> {
-            // for each dispute added, keep track of its "BadgeCountProperty"
-            EasyBind.subscribe(dispute.getBadgeCountProperty(),
-                    isAlerting -> {
-                        // We get the event before the list gets updated, so we execute on next frame
-                        UserThread.execute(() -> {
-                            synchronized (disputeList.getObservableList()) {
-                                int numAlerts = (int) disputeList.getList().stream()
-                                        .mapToLong(x -> x.getBadgeCountProperty().getValue())
-                                        .sum();
-                                numOpenDisputes.set(numAlerts);
-                            }
-                        });
-                    });
-            disputedTradeIds.add(dispute.getTradeId());
-        });
     }
 
     public void requestPersistence() {

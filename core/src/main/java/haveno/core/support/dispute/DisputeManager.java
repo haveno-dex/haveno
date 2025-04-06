@@ -288,14 +288,16 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         cleanupDisputes();
 
         List<Dispute> disputes = getDisputeList().getList();
-        disputes.forEach(dispute -> {
-            try {
-                DisputeValidation.validateNodeAddresses(dispute, config);
-            } catch (DisputeValidation.ValidationException e) {
-                log.error(e.toString());
-                validationExceptions.add(e);
-            }
-        });
+        synchronized (disputes) {
+            disputes.forEach(dispute -> {
+                try {
+                    DisputeValidation.validateNodeAddresses(dispute, config);
+                } catch (DisputeValidation.ValidationException e) {
+                    log.error(e.toString());
+                    validationExceptions.add(e);
+                }
+            });
+        }
 
         maybeClearSensitiveData();
     }
@@ -318,11 +320,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     public void maybeClearSensitiveData() {
         log.info("{} checking closed disputes eligibility for having sensitive data cleared", super.getClass().getSimpleName());
         Instant safeDate = closedTradableManager.getSafeDateForSensitiveDataClearing();
-        getDisputeList().getList().stream()
-                .filter(e -> e.isClosed())
-                .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
-                .forEach(Dispute::maybeClearSensitiveData);
-        requestPersistence();
+        synchronized (getDisputeList().getList()) {
+            getDisputeList().getList().stream()
+                    .filter(e -> e.isClosed())
+                    .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
+                    .forEach(Dispute::maybeClearSensitiveData);
+            requestPersistence();
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

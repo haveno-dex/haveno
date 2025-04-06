@@ -70,13 +70,15 @@ public class FailedTradesManager implements PersistedDataHost {
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(persisted -> {
-                    failedTrades.setAll(persisted.getList());
-                    failedTrades.stream()
-                            .filter(trade -> trade.getOffer() != null)
-                            .forEach(trade -> trade.getOffer().setPriceFeedService(priceFeedService));
-                    completeHandler.run();
-                },
-                completeHandler);
+            synchronized (persisted.getList()) {
+                failedTrades.setAll(persisted.getList());
+                failedTrades.stream()
+                        .filter(trade -> trade.getOffer() != null)
+                        .forEach(trade -> trade.getOffer().setPriceFeedService(priceFeedService));
+            }
+            completeHandler.run();
+        },
+        completeHandler);
     }
 
     public void onAllServicesInitialized() {
@@ -84,7 +86,7 @@ public class FailedTradesManager implements PersistedDataHost {
     }
 
     public void add(Trade trade) {
-        synchronized (failedTrades) {
+        synchronized (failedTrades.getList()) {
             if (failedTrades.add(trade)) {
                 requestPersistence();
             }
@@ -92,7 +94,7 @@ public class FailedTradesManager implements PersistedDataHost {
     }
 
     public void removeTrade(Trade trade) {
-        synchronized (failedTrades) {
+        synchronized (failedTrades.getList()) {
             if (failedTrades.remove(trade)) {
                 requestPersistence();
             }
@@ -104,26 +106,26 @@ public class FailedTradesManager implements PersistedDataHost {
     }
 
     public ObservableList<Trade> getObservableList() {
-        synchronized (failedTrades) {
+        synchronized (failedTrades.getList()) {
             return failedTrades.getObservableList();
         }
     }
 
     public Optional<Trade> getTradeById(String id) {
-        synchronized (failedTrades) {
+        synchronized (failedTrades.getList()) {
             return failedTrades.stream().filter(e -> e.getId().equals(id)).findFirst();
         }
     }
 
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
-        synchronized (failedTrades) {
+        synchronized (failedTrades.getList()) {
             return failedTrades.stream()
                     .filter(Trade::isFundsLockedIn);
         }
     }
 
     public void unFailTrade(Trade trade) {
-        synchronized (failedTrades) {
+        synchronized (failedTrades.getList()) {
             if (unFailTradeCallback == null)
                 return;
 
