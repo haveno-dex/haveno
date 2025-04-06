@@ -83,6 +83,15 @@ public class PendingTradesListItem implements FilterableListItem {
         if (StringUtils.containsIgnoreCase(getMarketDescription(), filterString)) {
             return true;
         }
+        if (StringUtils.containsIgnoreCase(getTrade().getOffer().getCombinedExtraInfo(), filterString)) {
+            return true;
+        }
+        if (getTrade().getBuyer().getPaymentAccountPayload() != null && StringUtils.containsIgnoreCase(getTrade().getBuyer().getPaymentAccountPayload().getPaymentDetails(), filterString)) {
+            return true;
+        }
+        if (getTrade().getSeller().getPaymentAccountPayload() != null && StringUtils.containsIgnoreCase(getTrade().getSeller().getPaymentAccountPayload().getPaymentDetails(), filterString)) {
+            return true;
+        }
         return StringUtils.containsIgnoreCase(getPriceAsString(), filterString);
     }
 }

@@ -248,7 +248,8 @@ public class ContractWindow extends Overlay<ContractWindow> {
         }
 
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"), contract.getMakerDepositTxHash());
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"), contract.getTakerDepositTxHash());
+        if (contract.getTakerDepositTxHash() != null)
+            addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"), contract.getTakerDepositTxHash());
 
         if (dispute.getDelayedPayoutTxId() != null)
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxId"), dispute.getDelayedPayoutTxId());

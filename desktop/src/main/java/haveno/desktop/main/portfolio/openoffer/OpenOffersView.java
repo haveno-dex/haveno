@@ -376,31 +376,34 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                 return true;
 
             Offer offer = item.getOpenOffer().getOffer();
-            if (offer.getId().contains(filterString)) {
+            if (offer.getId().toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getDate(item).contains(filterString)) {
+            if (model.getDate(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getMarketLabel(item).contains(filterString)) {
+            if (model.getMarketLabel(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getPrice(item).contains(filterString)) {
+            if (model.getPrice(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getPriceDeviation(item).contains(filterString)) {
+            if (model.getPriceDeviation(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getPaymentMethod(item).contains(filterString)) {
+            if (model.getPaymentMethod(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getVolume(item).contains(filterString)) {
+            if (model.getVolume(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getAmount(item).contains(filterString)) {
+            if (model.getAmount(item).toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
-            if (model.getDirectionLabel(item).contains(filterString)) {
+            if (model.getDirectionLabel(item).toLowerCase().contains(filterString.toLowerCase())) {
+                return true;
+            }
+            if (item.getOffer().getCombinedExtraInfo() != null && item.getOffer().getCombinedExtraInfo().toLowerCase().contains(filterString.toLowerCase())) {
                 return true;
             }
             return false;
