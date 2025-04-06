@@ -602,9 +602,28 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             nextPredicate = nextPredicate.or(offerBookListItem ->
                     offerBookListItem.getOffer().getId().toLowerCase().contains(filterText.toLowerCase()));
 
-            // filter payment method
+            // filter full payment method
             nextPredicate = nextPredicate.or(offerBookListItem ->
                     Res.get(offerBookListItem.getOffer().getPaymentMethod().getId()).toLowerCase().contains(filterText.toLowerCase()));
+
+            // filter short payment method
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                return getPaymentMethod(offerBookListItem).toLowerCase().contains(filterText.toLowerCase());
+            });
+
+            // filter currencies
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                return offerBookListItem.getOffer().getCurrencyCode().toLowerCase().contains(filterText.toLowerCase()) ||
+                        offerBookListItem.getOffer().getBaseCurrencyCode().toLowerCase().contains(filterText.toLowerCase()) ||
+                        CurrencyUtil.getNameAndCode(offerBookListItem.getOffer().getCurrencyCode()).toLowerCase().contains(filterText.toLowerCase()) ||
+                        CurrencyUtil.getNameAndCode(offerBookListItem.getOffer().getBaseCurrencyCode()).toLowerCase().contains(filterText.toLowerCase());
+            });
+
+            // filter extra info
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                return offerBookListItem.getOffer().getCombinedExtraInfo() != null &&
+                        offerBookListItem.getOffer().getCombinedExtraInfo().toLowerCase().contains(filterText.toLowerCase());
+            });
 
             filteredItems.setPredicate(predicate.and(nextPredicate));
         } else {

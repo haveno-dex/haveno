@@ -234,7 +234,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         tooltip.setShowDuration(Duration.seconds(10));
         filterTextField.setTooltip(tooltip);
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
-        HBox.setHgrow(filterTextField, Priority.NEVER);
+        HBox.setHgrow(filterTextField, Priority.ALWAYS);
 
         alertIconLabel = new Label();
         Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "2em", alertIconLabel);
