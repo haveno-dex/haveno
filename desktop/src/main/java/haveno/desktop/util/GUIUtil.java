@@ -206,15 +206,17 @@ public class GUIUtil {
                 persistenceManager.readPersisted(fileName, persisted -> {
                             StringBuilder msg = new StringBuilder();
                             HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
-                            persisted.getList().forEach(paymentAccount -> {
-                                String id = paymentAccount.getId();
-                                if (user.getPaymentAccount(id) == null) {
-                                    paymentAccounts.add(paymentAccount);
-                                    msg.append(Res.get("guiUtil.accountExport.tradingAccount", id));
-                                } else {
-                                    msg.append(Res.get("guiUtil.accountImport.noImport", id));
-                                }
-                            });
+                            synchronized (persisted.getList()) {
+                                persisted.getList().forEach(paymentAccount -> {
+                                    String id = paymentAccount.getId();
+                                    if (user.getPaymentAccount(id) == null) {
+                                        paymentAccounts.add(paymentAccount);
+                                        msg.append(Res.get("guiUtil.accountExport.tradingAccount", id));
+                                    } else {
+                                        msg.append(Res.get("guiUtil.accountImport.noImport", id));
+                                    }
+                                });
+                            }
                             user.addImportedPaymentAccounts(paymentAccounts);
                             new Popup().feedback(Res.get("guiUtil.accountImport.imported", path, msg)).show();
                         },

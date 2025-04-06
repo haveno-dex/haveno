@@ -176,18 +176,20 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // remove disputes opened by arbitrator, which is not allowed
         Set<Dispute> toRemoves = new HashSet<>();
         List<Dispute> disputes = getDisputeList().getList();
-        for (Dispute dispute : disputes) {
+        synchronized (disputes) {
+            for (Dispute dispute : disputes) {
 
-            // get dispute's trade
-            final Trade trade = tradeManager.getTrade(dispute.getTradeId());
-            if (trade == null) {
-                log.warn("Dispute trade {} does not exist", dispute.getTradeId());
-                return;
-            }
-
-            // collect dispute if owned by arbitrator
-            if (dispute.getTraderPubKeyRing().equals(trade.getArbitrator().getPubKeyRing())) {
-                toRemoves.add(dispute);
+                // get dispute's trade
+                final Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                if (trade == null) {
+                    log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+                    return;
+                }
+    
+                // collect dispute if owned by arbitrator
+                if (dispute.getTraderPubKeyRing().equals(trade.getArbitrator().getPubKeyRing())) {
+                    toRemoves.add(dispute);
+                }
             }
         }
         for (Dispute toRemove : toRemoves) {
