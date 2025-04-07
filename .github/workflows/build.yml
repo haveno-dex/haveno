@@ -1,3 +1,6 @@
+# GitHub Releases requires a tag, e.g:
+#  git tag -s 1.0.19-1 -m "haveno-v1.0.19-1"
+#  git push origin 1.0.19-1
 name: CI
 
 on:
@@ -69,10 +72,9 @@ jobs:
           "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
         shell: powershell
 
-      - name: Move Release Files on Unix
-        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+      - name: Move Release Files for Linux
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-22.04" ]; then
             mkdir ${{ github.workspace }}/release-linux-rpm
             mkdir ${{ github.workspace }}/release-linux-deb
             mkdir ${{ github.workspace }}/release-linux-flatpak
@@ -85,31 +87,36 @@ jobs:
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-rpm
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-appimage
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-flatpak
-          else
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-${{ env.VERSION }}-linux-x86_64-SNAPSHOT-all.jar.SHA-256
+        shell: bash
+      - name: Move Release Files for macOS
+        if: ${{ matrix.os == 'macos-13' }}
+        run: |
             mkdir ${{ github.workspace }}/release-macos
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-macos
-          fi
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-${{ env.VERSION }}-macos-SNAPSHOT-all.jar.SHA-256
         shell: bash
       - name: Move Release Files on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           mkdir ${{ github.workspace }}/release-windows
           Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
-          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
+          Copy-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
+          Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/haveno-${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
         shell: powershell
 
       # win
       - uses: actions/upload-artifact@v4
         name: "Windows artifacts"
-        if: ${{ matrix.os == 'windows-latest'}}
+        if: ${{ matrix.os == 'windows-latest' }}
         with:
           name: haveno-windows
           path: ${{ github.workspace }}/release-windows
       # macos
       - uses: actions/upload-artifact@v4
         name: "macOS artifacts"
-        if: ${{ matrix.os == 'macos-13'  }}
+        if: ${{ matrix.os == 'macos-13' }}
         with:
           name: haveno-macos
           path: ${{ github.workspace }}/release-macos
@@ -120,6 +127,7 @@ jobs:
         with:
           name: haveno-linux-deb
           path: ${{ github.workspace }}/release-linux-deb
+
       - uses: actions/upload-artifact@v4
         name: "Linux - rpm artifact"
         if: ${{ matrix.os == 'ubuntu-22.04' }}
@@ -140,3 +148,26 @@ jobs:
         with:
           name: haveno-linux-flatpak
           path: ${{ github.workspace }}/release-linux-flatpak
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-x86_64-installer.deb
+            ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-x86_64-installer.rpm
+            ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-x86_64.AppImage
+            ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-x86_64.flatpak
+            ${{ github.workspace }}/haveno-${{ env.VERSION }}-linux-x86_64-SNAPSHOT-all.jar.SHA-256
+            ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
+            ${{ github.workspace }}/haveno-${{ env.VERSION }}-macos-SNAPSHOT-all.jar.SHA-256
+            ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
+            ${{ github.workspace }}/haveno-${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
+
+# https://git-scm.com/docs/git-tag      - git-tag Docu
+#
+# git tag                   - lists all local tags
+# git tag -d 1.0.19-1       - delete local tag
+#
+# git ls-remote --tags      - lists all remote tags
+# git push origin --delete refs/tags/1.0.19-1      - delete remote tag
