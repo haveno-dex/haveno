@@ -1,5 +1,5 @@
 #!/bin/sh
-HAVENOHOME="$HOME/.local/share/Haveno"
+HAVENOHOME=$(find $HOME/.local/share -type d -name Haveno*)
 TORHOME="$HAVENOHOME/xmr_mainnet/tor"
 
 # Running Tor for monerod
