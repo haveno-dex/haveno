@@ -158,7 +158,7 @@ jobs:
             ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-x86_64-installer.rpm
             ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-x86_64.AppImage
             ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-x86_64.flatpak
-            ${{ github.workspace }}/linux-desktop-${{ env.VERSION }}-SNAPSHOT-all.jar.SHA-256
+            ${{ github.workspace }}/haveno-${{ env.VERSION }}-linux-x86_64-SNAPSHOT-all.jar.SHA-256
             ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
             ${{ github.workspace }}/haveno-${{ env.VERSION }}-macos-SNAPSHOT-all.jar.SHA-256
             ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
