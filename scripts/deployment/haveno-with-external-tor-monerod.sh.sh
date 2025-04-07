@@ -3,7 +3,7 @@ HAVENOHOME=$(find $HOME/.local/share -type d -name Haveno*)
 TORHOME="$HAVENOHOME/xmr_mainnet/tor"
 
 # Running Tor for monerod
-tor --RunAsDaemon 1 --PidFile $HAVENOHOME/tor-monerod-pid --SOCKSPort 9056
+tor --RunAsDaemon 1 --DisableNetwork 0 --PidFile $HAVENOHOME/tor-monerod-pid --SOCKSPort 9056
 $HAVENOHOME/monerod --rpc-bind-port 18081 --tx-proxy tor,127.0.0.1:9056 --detach --pidfile $HAVENOHOME/monerod-pid
 
 # Running Tor for Haveno and binding Haveno to external Tor + monerod
