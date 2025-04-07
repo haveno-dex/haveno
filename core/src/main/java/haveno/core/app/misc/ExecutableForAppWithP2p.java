@@ -105,21 +105,21 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
     public void gracefulShutDown(ResultHandler resultHandler) {
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
-        // ignore if shut down in progress
-        if (isShutdownInProgress) {
-            log.info("Ignoring call to gracefulShutDown, already in progress");
+        // ignore if shut down started
+        if (isShutDownStarted) {
+            log.info("Ignoring call to gracefulShutDown, already started");
             return;
         }
-        isShutdownInProgress = true;
+        isShutDownStarted = true;
 
         try {
             if (injector != null) {
 
                 // notify trade protocols and wallets to prepare for shut down
                 Set<Runnable> tasks = new HashSet<Runnable>();
+                tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
-                tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
                 try {
                     ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
                 } catch (Exception e) {

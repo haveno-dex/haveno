@@ -100,7 +100,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected AppModule module;
     protected Config config;
     @Getter
-    protected boolean isShutdownInProgress;
+    protected boolean isShutDownStarted;
     private boolean isReadOnly;
     private Thread keepRunningThread;
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
@@ -330,12 +330,12 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
-        // ignore if shut down in progress
-        if (isShutdownInProgress) {
-            log.info("Ignoring call to gracefulShutDown, already in progress");
+        // ignore if shut down started
+        if (isShutDownStarted) {
+            log.info("Ignoring call to gracefulShutDown, already started");
             return;
         }
-        isShutdownInProgress = true;
+        isShutDownStarted = true;
 
         ResultHandler resultHandler;
         if (shutdownCompletedHandler != null) {
@@ -357,9 +357,9 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
             // notify trade protocols and wallets to prepare for shut down before shutting down
             Set<Runnable> tasks = new HashSet<Runnable>();
+            tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
             tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
             tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
-            tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
             try {
                 ThreadUtils.awaitTasks(tasks, tasks.size(), 90000l); // run in parallel with timeout
             } catch (Exception e) {

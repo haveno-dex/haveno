@@ -40,8 +40,8 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     private Tor tor;
     private final String torControlHost;
     private Timer shutDownTimeoutTimer;
-    private boolean shutDownInProgress;
-    private boolean shutDownComplete;
+    private boolean isShutDownStarted;
+    private boolean isShutDownComplete;
 
     public TorNetworkNodeNetlayer(int servicePort,
                                   NetworkProtoResolver networkProtoResolver,
@@ -65,20 +65,20 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     @Override
     public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
         log.info("TorNetworkNodeNetlayer shutdown started");
-        if (shutDownComplete) {
+        if (isShutDownComplete) {
             log.info("TorNetworkNodeNetlayer shutdown already completed");
             if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
             return;
         }
-        if (shutDownInProgress) {
-            log.warn("Ignoring request to shut down because shut down is in progress");
+        if (isShutDownStarted) {
+            log.warn("Ignoring request to shut down because shut down already started");
             return;
         }
-        shutDownInProgress = true;
+        isShutDownStarted = true;
 
         shutDownTimeoutTimer = UserThread.runAfter(() -> {
             log.error("A timeout occurred at shutDown");
-            shutDownComplete = true;
+            isShutDownComplete = true;
             if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
             executor.shutdownNow();
         }, SHUT_DOWN_TIMEOUT);
@@ -96,7 +96,7 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                 log.error("Shutdown TorNetworkNodeNetlayer failed with exception", e);
             } finally {
                 shutDownTimeoutTimer.stop();
-                shutDownComplete = true;
+                isShutDownComplete = true;
                 if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
             }
         });
