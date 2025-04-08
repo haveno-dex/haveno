@@ -110,8 +110,10 @@ public abstract class XmrWalletBase {
                 try {
                     height = wallet.getHeight(); // can get read timeout while syncing
                 } catch (Exception e) {
-                    log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
-                    if (wallet != null && !isShutDownStarted) log.warn(ExceptionUtils.getStackTrace(e));
+                    if (wallet != null && !isShutDownStarted) {
+                        log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
+                        log.warn(ExceptionUtils.getStackTrace(e));
+                    }
 
                     // stop polling and release latch
                     syncProgressError = e;
