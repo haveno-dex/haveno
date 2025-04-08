@@ -808,6 +808,7 @@ public final class XmrConnectionService {
 
                 // connected to daemon
                 isConnected = true;
+                connectionServiceError.set(null);
 
                 // determine if blockchain is syncing locally
                 boolean blockchainSyncing = lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
