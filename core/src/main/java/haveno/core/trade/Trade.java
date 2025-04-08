@@ -2167,18 +2167,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (daemonRpc == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
         if (getMakerDepositTx() == null || (getTakerDepositTx() == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot set start time for trade " + getId() + " because its unlocked deposit tx is null. Is client connected to a daemon?");
 
-        long maxHeight = Math.max(getMakerDepositTx().getHeight(), hasBuyerAsTakerWithoutDeposit() ? 0l : getTakerDepositTx().getHeight());
-        long blockTime = daemonRpc.getBlockByHeight(maxHeight).getTimestamp();
+        // get unlock time of last deposit tx
+        long unlockHeight = Math.max(getMakerDepositTx().getHeight() + XmrWalletService.NUM_BLOCKS_UNLOCK - 1, hasBuyerAsTakerWithoutDeposit() ? 0l : getTakerDepositTx().getHeight() + XmrWalletService.NUM_BLOCKS_UNLOCK - 1);
+        long unlockTime = daemonRpc.getBlockByHeight(unlockHeight).getTimestamp() * 1000;
 
         // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
         // If block date is earlier than our trade date we use our trade date.
-        if (blockTime > now)
+        if (unlockTime > now)
             startTime = now;
         else
-            startTime = Math.max(blockTime, tradeTime);
+            startTime = Math.max(unlockTime, tradeTime);
 
         log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
-                new Date(startTime), new Date(tradeTime), new Date(blockTime));
+                new Date(startTime), new Date(tradeTime), new Date(unlockTime));
     }
 
     public boolean hasFailed() {
