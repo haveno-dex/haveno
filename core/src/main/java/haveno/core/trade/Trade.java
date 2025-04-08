@@ -1607,13 +1607,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
 
             // shut down trade threads
-            synchronized (getLock()) {
-                isInitialized = false;
-                isShutDown = true;
-                List<Runnable> shutDownThreads = new ArrayList<>();
-                shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
-                ThreadUtils.awaitTasks(shutDownThreads);
-            }
+            isInitialized = false;
+            isShutDown = true;
+            List<Runnable> shutDownThreads = new ArrayList<>();
+            shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
+            ThreadUtils.awaitTasks(shutDownThreads);
 
             // save and close
             if (wallet != null) {
@@ -2513,7 +2511,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         try {
             syncWallet(pollWallet);
         } catch (Exception e) {
-            if (!isShutDown && walletExists()) {
+            if (!isShutDownStarted && walletExists()) {
                 log.warn("Error syncing trade wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
             }
         }
