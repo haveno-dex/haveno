@@ -366,36 +366,37 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 log.error("Failed to notify all services to prepare for shutdown: {}\n", e.getMessage(), e);
             }
 
-            injector.getInstance(TradeManager.class).shutDown();
             injector.getInstance(PriceFeedService.class).shutDown();
             injector.getInstance(ArbitratorManager.class).shutDown();
             injector.getInstance(TradeStatisticsManager.class).shutDown();
             injector.getInstance(AvoidStandbyModeService.class).shutDown();
 
             // shut down open offer manager
-            log.info("Shutting down OpenOfferManager, OfferBookService, and P2PService");
+            log.info("Shutting down OpenOfferManager");
             injector.getInstance(OpenOfferManager.class).shutDown(() -> {
 
-                // shut down offer book service
-                injector.getInstance(OfferBookService.class).shutDown();
+                // listen for shut down of wallets setup
+                injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
 
-                // shut down p2p service
-                injector.getInstance(P2PService.class).shutDown(() -> {
+                    // shut down p2p service
+                    log.info("Shutting down P2P service");
+                    injector.getInstance(P2PService.class).shutDown(() -> {
 
-                    // shut down monero wallets and connections
-                    log.info("Shutting down wallet and connection services");
-                    injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
-                        
                         // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
                         completeShutdown(resultHandler, EXIT_SUCCESS, systemExit);
                     });
-                    injector.getInstance(BtcWalletService.class).shutDown();
-                    injector.getInstance(XmrWalletService.class).shutDown();
-                    injector.getInstance(XmrConnectionService.class).shutDown();
-                    injector.getInstance(WalletsSetup.class).shutDown();
                 });
+
+                // shut down trade and wallet services
+                log.info("Shutting down trade and wallet services");
+                injector.getInstance(OfferBookService.class).shutDown();
+                injector.getInstance(TradeManager.class).shutDown();
+                injector.getInstance(BtcWalletService.class).shutDown();
+                injector.getInstance(XmrWalletService.class).shutDown();
+                injector.getInstance(XmrConnectionService.class).shutDown();
+                injector.getInstance(WalletsSetup.class).shutDown();
             });
         } catch (Throwable t) {
             log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);

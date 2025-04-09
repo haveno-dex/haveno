@@ -2541,7 +2541,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     
             if (pollWallet) doPollWallet();
         } catch (Exception e) {
-            ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
+            if (!isShutDownStarted) ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             throw e;
         }
     }
