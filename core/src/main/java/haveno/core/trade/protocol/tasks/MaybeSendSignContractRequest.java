@@ -19,6 +19,7 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.app.Version;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.offer.OpenOffer;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
@@ -35,6 +36,7 @@ import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
@@ -87,8 +89,13 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 Integer subaddressIndex = null;
                 boolean reserveExactAmount = false;
                 if (trade instanceof MakerTrade) {
-                    reserveExactAmount = processModel.getOpenOfferManager().getOpenOffer(trade.getId()).get().isReserveExactAmount();
-                    if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+                    Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(trade.getId());
+                    if (openOffer.isPresent()) {
+                        reserveExactAmount = openOffer.get().isReserveExactAmount();
+                        if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+                    } else {
+                        throw new RuntimeException("Cannot request contract signature because open offer has been removed for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+                    }
                 }
 
                 // thaw reserved outputs
