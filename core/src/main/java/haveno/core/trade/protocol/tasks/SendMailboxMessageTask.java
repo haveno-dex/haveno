@@ -82,6 +82,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
 
                         @Override
                         public void onFault(String errorMessage) {
+                            if (processModel.getP2PService().isShutDownStarted()) return;
                             log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid(), errorMessage);
                             SendMailboxMessageTask.this.onFault(errorMessage, message);
                         }
