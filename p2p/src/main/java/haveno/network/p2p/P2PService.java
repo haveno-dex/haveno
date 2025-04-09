@@ -109,6 +109,8 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Getter
     private static NodeAddress myNodeAddress;
+    @Getter
+    private boolean isShutDownStarted = false;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -192,6 +194,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     private void doShutDown() {
         log.info("P2PService doShutDown started");
+        isShutDownStarted = true;
 
         if (p2PDataStorage != null) {
             p2PDataStorage.shutDown();
