@@ -1121,8 +1121,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (!isInitialized || isShutDownStarted) return;
             synchronized (getLock()) {
                 if (processModel.isImportMultisigHexScheduled()) {
+                    importMultisigHex();
                     processModel.setImportMultisigHexScheduled(false);
-                    ThreadUtils.submitToPool(() -> importMultisigHex());
                 }
             }
         }, getId());
