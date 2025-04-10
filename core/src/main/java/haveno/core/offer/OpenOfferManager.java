@@ -517,54 +517,54 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            String sourceOfferId,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
-
-        // check source offer and clone limit
-        OpenOffer sourceOffer = null;
-        if (sourceOfferId != null) {
-
-            // get source offer
-            Optional<OpenOffer> sourceOfferOptional = getOpenOffer(sourceOfferId);
-            if (!sourceOfferOptional.isPresent()) {
-                errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId);
-                return;
-            }
-            sourceOffer = sourceOfferOptional.get();
-    
-            // check clone limit
-            int numClones = getOpenOfferGroup(sourceOffer.getGroupId()).size();
-            if (numClones >= Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) {
-                errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " cloned offers with shared funds reached.");
-                return;
-            }
-        }
-
-        // create open offer
-        OpenOffer openOffer = new OpenOffer(offer, triggerPrice, sourceOffer == null ? reserveExactAmount : sourceOffer.isReserveExactAmount());
-
-        // set state from source offer
-        if (sourceOffer != null) {
-            openOffer.setReserveTxHash(sourceOffer.getReserveTxHash());
-            openOffer.setReserveTxHex(sourceOffer.getReserveTxHex());
-            openOffer.setReserveTxKey(sourceOffer.getReserveTxKey());
-            openOffer.setGroupId(sourceOffer.getGroupId());
-            openOffer.getOffer().getOfferPayload().setReserveTxKeyImages(sourceOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
-            xmrWalletService.cloneAddressEntries(sourceOffer.getOffer().getId(), openOffer.getOffer().getId());
-            if (hasConflictingClone(openOffer)) openOffer.setState(OpenOffer.State.DEACTIVATED);
-        }
-
-        // add the open offer
-        synchronized (processOffersLock) {
-            addOpenOffer(openOffer);
-        }
-
-        // done if source offer is pending
-        if (sourceOffer != null && sourceOffer.isPending()) {
-            resultHandler.handleResult(null);
-            return;
-        }
-
-        // schedule or post offer
         ThreadUtils.execute(() -> {
+
+            // check source offer and clone limit
+            OpenOffer sourceOffer = null;
+            if (sourceOfferId != null) {
+
+                // get source offer
+                Optional<OpenOffer> sourceOfferOptional = getOpenOffer(sourceOfferId);
+                if (!sourceOfferOptional.isPresent()) {
+                    errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId);
+                    return;
+                }
+                sourceOffer = sourceOfferOptional.get();
+
+                // check clone limit
+                int numClones = getOpenOfferGroup(sourceOffer.getGroupId()).size();
+                if (numClones >= Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) {
+                    errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " cloned offers with shared funds reached.");
+                    return;
+                }
+            }
+
+            // create open offer
+            OpenOffer openOffer = new OpenOffer(offer, triggerPrice, sourceOffer == null ? reserveExactAmount : sourceOffer.isReserveExactAmount());
+
+            // set state from source offer
+            if (sourceOffer != null) {
+                openOffer.setReserveTxHash(sourceOffer.getReserveTxHash());
+                openOffer.setReserveTxHex(sourceOffer.getReserveTxHex());
+                openOffer.setReserveTxKey(sourceOffer.getReserveTxKey());
+                openOffer.setGroupId(sourceOffer.getGroupId());
+                openOffer.getOffer().getOfferPayload().setReserveTxKeyImages(sourceOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+                xmrWalletService.cloneAddressEntries(sourceOffer.getOffer().getId(), openOffer.getOffer().getId());
+                if (hasConflictingClone(openOffer)) openOffer.setState(OpenOffer.State.DEACTIVATED);
+            }
+
+            // add the open offer
+            synchronized (processOffersLock) {
+                addOpenOffer(openOffer);
+            }
+
+            // done if source offer is pending
+            if (sourceOffer != null && sourceOffer.isPending()) {
+                resultHandler.handleResult(null);
+                return;
+            }
+
+            // schedule or post offer
             synchronized (processOffersLock) {
                 CountDownLatch latch = new CountDownLatch(1);
                 processOffer(getOpenOffers(), openOffer, (transaction) -> {
