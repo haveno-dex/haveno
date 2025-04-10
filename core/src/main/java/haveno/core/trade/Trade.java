@@ -2728,7 +2728,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet();
+            if (HavenoUtils.isUnresponsive(e)) {
+                if (isShutDownStarted) forceCloseWallet();
+                else forceRestartTradeWallet();
+            }
             else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
