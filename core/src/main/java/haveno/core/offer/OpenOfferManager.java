@@ -960,8 +960,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void cancelOpenOffersOnSpent(String keyImage) {
         synchronized (openOffers.getList()) {
             for (OpenOffer openOffer : openOffers.getList()) {
-                if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                    log.warn("Canceling open offer because reserved funds have been spent, offerId={}, state={}", openOffer.getId(), openOffer.getState());
+                if (openOffer.getState() != OpenOffer.State.RESERVED && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
+                    log.warn("Canceling open offer because reserved funds have been spent unexpectedly, offerId={}, state={}", openOffer.getId(), openOffer.getState());
                     cancelOpenOffer(openOffer, null, null);
                 }
             }

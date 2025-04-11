@@ -89,7 +89,6 @@ public class PlaceOfferProtocol {
         handleError("Offer was canceled: " + model.getOpenOffer().getOffer().getId()); // cancel is treated as error for callers to handle
     }
     
-    // TODO (woodser): switch to fluent
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
         log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
         model.setSignOfferResponse(response);
