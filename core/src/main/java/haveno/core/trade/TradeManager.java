@@ -470,6 +470,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         if (!isShutDownStarted) {
                             log.warn("Error initializing {} {}: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
                             trade.setInitError(e);
+                            trade.prependErrorMessage(e.getMessage());
                         }
                     }
                 });
@@ -1041,18 +1042,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (isShutDownStarted) return;
         synchronized (tradableList.getList()) {
             for (Trade trade : tradableList.getList()) {
-                if (!trade.isPayoutPublished()) {
-                    Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
-                    Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
-                    if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
-                        Date now = new Date();
-                        if (now.after(maxTradePeriodDate)) {
-                            trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
-                            requestPersistence();
-                        } else if (now.after(halfTradePeriodDate)) {
-                            trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
-                            requestPersistence();
-                        }
+                if (!trade.isInitialized() || trade.isPayoutPublished()) continue;
+                Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
+                Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
+                if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
+                    Date now = new Date();
+                    if (now.after(maxTradePeriodDate)) {
+                        trade.setPeriodState(Trade.TradePeriodState.TRADE_PERIOD_OVER);
+                        requestPersistence();
+                    } else if (now.after(halfTradePeriodDate)) {
+                        trade.setPeriodState(Trade.TradePeriodState.SECOND_HALF);
+                        requestPersistence();
                     }
                 }
             }
