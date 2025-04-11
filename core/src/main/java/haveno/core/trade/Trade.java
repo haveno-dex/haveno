@@ -753,11 +753,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             importMultisigHexIfScheduled();
         });
 
-        // trade is initialized
-        isInitialized = true;
-
         // done if deposit not requested or payout unlocked
         if (!isDepositRequested() || isPayoutUnlocked()) {
+            isInitialized = true;
             isFullyInitialized = true;
             return;
         }
@@ -769,13 +767,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (payoutTx != null && payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
                 log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
                 setPayoutStateUnlocked();
+                isInitialized = true;
                 isFullyInitialized = true;
                 return;
             } else {
-                log.warn("Missing trade wallet for {} {}, state={}, marked completed={}", getClass().getSimpleName(), getShortId(), getState(), isCompleted());
-                return;
+                throw new RuntimeException("Missing trade wallet for " + getClass().getSimpleName() + " " + getShortId() + ", state=" + getState() + ", marked completed=" + isCompleted());
             }
         }
+
+        // trade is initialized
+        isInitialized = true;
 
         // init syncing if deposit requested
         if (isDepositRequested()) {

@@ -689,22 +689,24 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private MoneroTxWallet createTradeTxFromSubaddress(BigInteger feeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, Integer subaddressIndex) {
+        synchronized (walletLock) {
 
-        // create tx
-        MoneroTxConfig txConfig = new MoneroTxConfig()
-                .setAccountIndex(0)
-                .setSubaddressIndices(subaddressIndex)
-                .addDestination(sendAddress, sendAmount)
-                .setSubtractFeeFrom(0) // pay mining fee from send amount
-                .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
-        if (!BigInteger.valueOf(0).equals(feeAmount)) txConfig.addDestination(feeAddress, feeAmount);
-        MoneroTxWallet tradeTx = createTx(txConfig);
+            // create tx
+            MoneroTxConfig txConfig = new MoneroTxConfig()
+                    .setAccountIndex(0)
+                    .setSubaddressIndices(subaddressIndex)
+                    .addDestination(sendAddress, sendAmount)
+                    .setSubtractFeeFrom(0) // pay mining fee from send amount
+                    .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
+            if (!BigInteger.valueOf(0).equals(feeAmount)) txConfig.addDestination(feeAddress, feeAmount);
+            MoneroTxWallet tradeTx = createTx(txConfig);
 
-        // freeze inputs
-        List<String> keyImages = new ArrayList<String>();
-        for (MoneroOutput input : tradeTx.getInputs()) keyImages.add(input.getKeyImage().getHex());
-        freezeOutputs(keyImages);
-        return tradeTx;
+            // freeze inputs
+            List<String> keyImages = new ArrayList<String>();
+            for (MoneroOutput input : tradeTx.getInputs()) keyImages.add(input.getKeyImage().getHex());
+            freezeOutputs(keyImages);
+            return tradeTx;
+        }
     }
 
     public MoneroTx verifyReserveTx(String offerId, BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendTradeAmount, BigInteger securityDeposit, String returnAddress, String txHash, String txHex, String txKey, List<String> keyImages) {

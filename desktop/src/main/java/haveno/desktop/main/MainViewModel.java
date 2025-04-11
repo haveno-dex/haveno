@@ -228,6 +228,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                         new Popup().warning("Error initializing trade" + " " + trade.getShortId() + "\n\n" +
                                 trade.getInitError().getMessage())
                                 .show();
+                        return;
                     }
 
                     // check trade period

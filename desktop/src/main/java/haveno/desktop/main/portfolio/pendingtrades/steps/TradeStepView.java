@@ -405,6 +405,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTimeLeft() {
+        if (!trade.isInitialized()) return;
         if (timeLeftTextField != null) {
 
             // TODO (woodser): extra TradeStepView created but not deactivated on trade.setState(), so deactivate when model's trade is null
