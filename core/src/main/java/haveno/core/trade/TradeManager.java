@@ -496,6 +496,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
 
                 // freeze or thaw outputs
+                if (isShutDownStarted) return;
                 xmrWalletService.fixReservedOutputs();
 
                 // reset any available funded address entries
