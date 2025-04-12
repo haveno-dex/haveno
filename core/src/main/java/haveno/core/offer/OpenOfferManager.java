@@ -937,9 +937,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Adding open offer {}", openOffer.getId());
         synchronized (openOffers.getList()) {
             openOffers.add(openOffer);
-        }
-        if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
-            xmrConnectionService.getKeyImagePoller().addKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
+                xmrConnectionService.getKeyImagePoller().addKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+            }
         }
     }
 
@@ -947,14 +947,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Removing open offer {}", openOffer.getId());
         synchronized (openOffers.getList()) {
             openOffers.remove(openOffer);
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
+                xmrConnectionService.getKeyImagePoller().removeKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+            }
         }
-        synchronized (placeOfferProtocols) {
-            PlaceOfferProtocol protocol = placeOfferProtocols.remove(openOffer.getId());
-            if (protocol != null) protocol.cancelOffer();
-        }
-        if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
-            xmrConnectionService.getKeyImagePoller().removeKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
-        }
+
+        // cancel place offer protocol
+        ThreadUtils.execute(() -> {
+            synchronized (processOffersLock) {
+                synchronized (placeOfferProtocols) {
+                    PlaceOfferProtocol protocol = placeOfferProtocols.remove(openOffer.getId());
+                    if (protocol != null) protocol.cancelOffer();
+                }
+            }
+        }, THREAD_ID);
     }
 
     private void cancelOpenOffersOnSpent(String keyImage) {
@@ -1455,7 +1461,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void signAndPostOffer(OpenOffer openOffer,
                                   boolean useSavingsWallet, // TODO: remove this?
-                                  TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+                                  TransactionResultHandler resultHandler,
+                                  ErrorMessageHandler errorMessageHandler) {
         log.info("Signing and posting offer " + openOffer.getId());
 
         // create model
