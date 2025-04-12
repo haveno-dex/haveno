@@ -197,7 +197,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.openOffers"))));
 
         offerIdColumn.setComparator(Comparator.comparing(o -> o.getOffer().getId()));
-        groupIdColumn.setComparator(Comparator.comparing(o -> o.getOpenOffer().getReserveTxHash()));
+        groupIdColumn.setComparator(Comparator.comparing(o -> o.getOpenOffer().getReserveTxHash() == null ? "" : o.getOpenOffer().getReserveTxHash()));
         directionColumn.setComparator(Comparator.comparing(o -> o.getOffer().getDirection()));
         marketColumn.setComparator(Comparator.comparing(model::getMarketLabel));
         amountColumn.setComparator(Comparator.comparing(o -> o.getOffer().getAmount()));
