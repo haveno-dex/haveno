@@ -885,7 +885,7 @@ public final class XmrConnectionService {
     }
 
     private boolean isFixedConnection() {
-        return !"".equals(config.xmrNode) && !fallbackApplied;
+        return !"".equals(config.xmrNode) && (!HavenoUtils.isLocalHost(config.xmrNode) || !xmrLocalNode.shouldBeIgnored()) && !fallbackApplied;
     }
 
     private boolean isCustomConnections() {
