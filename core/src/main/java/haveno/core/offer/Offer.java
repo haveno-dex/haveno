@@ -18,7 +18,6 @@
 package haveno.core.offer;
 
 import haveno.common.ThreadUtils;
-import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -281,7 +280,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public void setErrorMessage(String errorMessage) {
-        UserThread.await(() -> errorMessageProperty.set(errorMessage));
+        errorMessageProperty.set(errorMessage);
     }
 
 
