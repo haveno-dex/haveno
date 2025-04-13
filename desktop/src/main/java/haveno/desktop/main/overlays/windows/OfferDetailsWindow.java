@@ -211,7 +211,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             xmrDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
         } else if (placeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
-                    DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode), firstRowDistance);
+                    DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode, offer.isPrivateOffer()), firstRowDistance);
             counterCurrencyDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
             xmrDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
         } else {

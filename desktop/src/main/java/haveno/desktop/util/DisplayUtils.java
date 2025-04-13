@@ -34,6 +34,7 @@ import java.util.Optional;
 @Slf4j
 public class DisplayUtils {
     private static final int SCALE = 3;
+    private static final String LOCKED = ".locked";
 
     public static String formatDateTime(Date date) {
         return FormattingUtils.formatDateTime(date, true);
@@ -118,16 +119,16 @@ public class DisplayUtils {
 
     public static String getDirectionWithCode(OfferDirection direction, String currencyCode, boolean isPrivate) {
         if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", Res.getBaseCurrencyCode());
+            return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency" + (isPrivate ? LOCKED : ""), Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency" + (isPrivate ? LOCKED : ""), Res.getBaseCurrencyCode());
         else
-            return (direction == OfferDirection.SELL) ? Res.get(isPrivate ? "shared.buyCurrencyLocked" : "shared.buyCurrency", currencyCode) : Res.get(isPrivate ? "shared.sellCurrencyLocked" : "shared.sellCurrency", currencyCode);
+            return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency" + (isPrivate ? LOCKED : ""), currencyCode) : Res.get("shared.sellCurrency" + (isPrivate ? LOCKED : ""), currencyCode);
     }
 
-    public static String getDirectionBothSides(OfferDirection direction, boolean isLocked) {
+    public static String getDirectionBothSides(OfferDirection direction, boolean isPrivate) {
         String currencyCode = Res.getBaseCurrencyCode();
         return direction == OfferDirection.BUY ?
-                Res.get(isLocked ? "formatter.makerTakerLocked" : "formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
-                Res.get(isLocked ? "formatter.makerTakerLocked" : "formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
+                Res.get("formatter.makerTaker" + (isPrivate ? LOCKED : ""), currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
+                Res.get("formatter.makerTaker" + (isPrivate ? LOCKED : ""), currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {
@@ -170,16 +171,16 @@ public class DisplayUtils {
         }
     }
 
-    public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode) {
+    public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode, boolean isPrivate) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
         if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             return direction == OfferDirection.BUY ?
-                    Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.buy"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.sell"), baseCurrencyCode);
+                    Res.get("formatter.youAreCreatingAnOffer.traditional" + (isPrivate ? LOCKED : ""), Res.get("shared.buy"), baseCurrencyCode) :
+                    Res.get("formatter.youAreCreatingAnOffer.traditional" + (isPrivate ? LOCKED : ""), Res.get("shared.sell"), baseCurrencyCode);
         } else {
             return direction == OfferDirection.SELL ?
-                    Res.get("formatter.youAreCreatingAnOffer.crypto", Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.crypto", Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
+                    Res.get("formatter.youAreCreatingAnOffer.crypto" + (isPrivate ? LOCKED : ""), Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
+                    Res.get("formatter.youAreCreatingAnOffer.crypto" + (isPrivate ? LOCKED : ""), Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
         }
     }
 
