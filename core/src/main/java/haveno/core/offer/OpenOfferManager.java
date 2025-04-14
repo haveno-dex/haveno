@@ -1952,7 +1952,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeUpdatePersistedOffers() {
-        // We need to clone to avoid ConcurrentModificationException
         List<OpenOffer> openOffersClone = getOpenOffers();
         openOffersClone.forEach(originalOpenOffer -> {
             Offer originalOffer = originalOpenOffer.getOffer();
