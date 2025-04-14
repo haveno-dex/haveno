@@ -1467,8 +1467,8 @@ public class XmrWalletService extends XmrWalletBase {
                             log.info("Monero wallet unlocked balance={}, pending balance={}, total balance={}", unlockedBalance, balance.subtract(unlockedBalance), balance);
                         }
 
-                        // reapply connection after wallet synced (might reinitialize wallet on new thread)
-                        ThreadUtils.execute(() -> onConnectionChanged(xmrConnectionService.getConnection()), THREAD_ID);
+                        // reapply connection after wallet synced (might reinitialize wallet with proxy)
+                        onConnectionChanged(xmrConnectionService.getConnection());
 
                         // reset internal state if main wallet was swapped
                         resetIfWalletChanged();

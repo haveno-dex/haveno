@@ -57,7 +57,7 @@ public abstract class XmrWalletBase {
 
     // private
     private boolean testReconnectOnStartup = false; // test reconnecting on startup while syncing so the wallet is blocked
-    private String testReconnectMonerod1 = "http://node.community.rino.io:18081";
+    private String testReconnectMonerod1 = "http://xmr-node.cakewallet.com:18081";
     private String testReconnectMonerod2 = "http://nodex.monerujo.io:18081";
 
     public XmrWalletBase() {
