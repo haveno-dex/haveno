@@ -143,7 +143,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
-    private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 10;
+    private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     protected final Object pollLock = new Object();
     protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
