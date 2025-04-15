@@ -194,6 +194,9 @@ The arbitrator is now registered and ready to accept requests for dispute resolu
 1. Start the arbitrator's desktop application using the application launcher or e.g. `make arbitrator-desktop-mainnet` from the root of the repository.
 2. Go to the `Account` tab and click the button to unregister the arbitrator.
 
+> **Note**
+> To preserve signed accounts, the arbitrator public key must remain in the repository, even after revoking.
+
 ## Set a network filter on mainnet
 
 On mainnet, the p2p network is expected to have a filter object for offers, onions, currencies, payment methods, etc.
