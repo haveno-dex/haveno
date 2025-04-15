@@ -425,8 +425,12 @@ public class OfferBookService {
                 updateReservedFundsSpentStatus(offer);
                 synchronized (offerBookChangedListeners) {
                     offerBookChangedListeners.forEach(listener -> {
-                        listener.onRemoved(offer);
-                        listener.onAdded(offer);
+
+                        // notify off thread to avoid deadlocking
+                        new Thread(() -> {
+                            listener.onRemoved(offer);
+                            listener.onAdded(offer);
+                        }).start();
                     });
                 }
             }
