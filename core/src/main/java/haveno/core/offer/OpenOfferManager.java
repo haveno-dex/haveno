@@ -2023,7 +2023,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getAcceptedCountryCodes(),
                         originalOfferPayload.getBankId(),
                         originalOfferPayload.getAcceptedBankIds(),
-                        originalOfferPayload.getVersionNr(),
+                        Version.VERSION,
                         originalOfferPayload.getBlockHeightAtOfferCreation(),
                         originalOfferPayload.getMaxTradeLimit(),
                         originalOfferPayload.getMaxTradePeriod(),
