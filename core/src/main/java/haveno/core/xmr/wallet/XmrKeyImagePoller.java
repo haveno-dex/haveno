@@ -144,7 +144,6 @@ public class XmrKeyImagePoller {
             if (!keyImageGroups.containsKey(groupId)) keyImageGroups.put(groupId, new HashSet<String>());
             Set<String> keyImagesGroup = keyImageGroups.get(groupId);
             keyImagesGroup.addAll(keyImages);
-            refreshPolling();
         }
     }
 
@@ -159,8 +158,13 @@ public class XmrKeyImagePoller {
             if (keyImagesGroup == null) return;
             keyImagesGroup.removeAll(keyImages);
             if (keyImagesGroup.isEmpty()) keyImageGroups.remove(groupId);
+            Set<String> allKeyImages = getKeyImages();
             synchronized (lastStatuses) {
-                for (String lastKeyImage : new HashSet<>(lastStatuses.keySet())) lastStatuses.remove(lastKeyImage);
+                for (String keyImage : keyImages) {
+                    if (lastStatuses.containsKey(keyImage) && !allKeyImages.contains(keyImage)) {
+                        lastStatuses.remove(keyImage);
+                    }
+                }
             }
             refreshPolling();
         }
@@ -171,10 +175,10 @@ public class XmrKeyImagePoller {
             Set<String> keyImagesGroup = keyImageGroups.get(groupId);
             if (keyImagesGroup == null) return;
             keyImageGroups.remove(groupId);
-            Set<String> keyImages = getKeyImages();
+            Set<String> allKeyImages = getKeyImages();
             synchronized (lastStatuses) {
                 for (String keyImage : keyImagesGroup) {
-                    if (lastStatuses.containsKey(keyImage) && !keyImages.contains(keyImage)) {
+                    if (lastStatuses.containsKey(keyImage) && !allKeyImages.contains(keyImage)) {
                         lastStatuses.remove(keyImage);
                     }
                 }
@@ -265,6 +269,7 @@ public class XmrKeyImagePoller {
 
         // announce changes
         if (!changedStatuses.isEmpty()) {
+            log.info("Announcing " + changedStatuses.size() + " key image spent status changes");
             for (XmrKeyImageListener listener : new ArrayList<XmrKeyImageListener>(listeners)) {
                 listener.onSpentStatusChanged(changedStatuses);
             }
