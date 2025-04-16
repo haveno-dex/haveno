@@ -149,6 +149,20 @@ public class OfferBookService {
                             Offer offer = new Offer(offerPayload);
                             offer.setPriceFeedService(priceFeedService);
                             announceOfferRemoved(offer);
+
+                            // check if invalid offers are now valid
+                            synchronized (invalidOffers) {
+                                for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
+                                    try {
+                                        validateOfferPayload(invalidOffer.getOfferPayload());
+                                        removeInvalidOffer(invalidOffer.getId());
+                                        replaceValidOffer(invalidOffer);
+                                        announceOfferAdded(invalidOffer);
+                                    } catch (Exception e) {
+                                        // ignore
+                                    }
+                                }
+                            }
                         }
                     });
                 }, OfferBookService.class.getSimpleName());
@@ -297,20 +311,6 @@ public class OfferBookService {
         removeKeyImages(offer);
         synchronized (offerBookChangedListeners) {
             offerBookChangedListeners.forEach(listener -> listener.onRemoved(offer));
-        }
-
-        // check if invalid offers are now valid
-        synchronized (invalidOffers) {
-            for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
-                try {
-                    validateOfferPayload(invalidOffer.getOfferPayload());
-                    removeInvalidOffer(invalidOffer.getId());
-                    replaceValidOffer(invalidOffer);
-                    announceOfferAdded(invalidOffer);
-                } catch (Exception e) {
-                    // ignore
-                }
-            }
         }
     }
 
