@@ -1574,14 +1574,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
             }
 
-            // verify the max version number
-            if (Version.compare(request.getOfferPayload().getVersionNr(), Version.VERSION) > 0) {
-                errorMessage = "Offer version number is too high: " + request.getOfferPayload().getVersionNr() + " > " + Version.VERSION;
-                log.warn(errorMessage);
-                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
-                return;
-            }
-
             // verify maker and taker fees
             boolean hasBuyerAsTakerWithoutDeposit = offer.getDirection() == OfferDirection.SELL && offer.isPrivateOffer() && offer.getChallengeHash() != null && offer.getChallengeHash().length() > 0 && offer.getTakerFeePct() == 0;
             if (hasBuyerAsTakerWithoutDeposit) {
