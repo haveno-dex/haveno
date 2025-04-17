@@ -109,17 +109,18 @@ public class XmrLocalNode {
     public boolean shouldBeIgnored() {
         if (config.ignoreLocalXmrNode) return true;
 
-        // determine if local node is configured
+        // ignore if fixed connection is not local
+        if (!"".equals(config.xmrNode)) return !HavenoUtils.isLocalHost(config.xmrNode);
+
+        // check if local node is within configuration
         boolean hasConfiguredLocalNode = false;
         for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
-            if (node.getAddress() != null && equalsUri("http://" + node.getAddress() + ":" + node.getPort())) {
+            if (node.hasClearNetAddress() && equalsUri(node.getClearNetUri())) {
                 hasConfiguredLocalNode = true;
                 break;
             }
         }
-        if (!hasConfiguredLocalNode) return true;
-
-        return false;
+        return !hasConfiguredLocalNode;
     }
 
     public void addListener(XmrLocalNodeListener listener) {

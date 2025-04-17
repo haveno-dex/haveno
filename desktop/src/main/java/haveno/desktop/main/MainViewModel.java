@@ -337,7 +337,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             tacWindow.onAction(acceptedHandler::run).show();
         }, 1));
 
-        havenoSetup.setDisplayMoneroConnectionErrorHandler(connectionError -> {
+        havenoSetup.setDisplayMoneroConnectionFallbackHandler(connectionError -> {
             if (connectionError == null) {
                 if (moneroConnectionErrorPopup != null) moneroConnectionErrorPopup.hide();
             } else {
@@ -349,7 +349,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                                 .actionButtonText(Res.get("xmrConnectionError.localNode.start"))
                                 .onAction(() -> {
                                     log.warn("User has chosen to start local node.");
-                                    havenoSetup.getConnectionServiceError().set(null);
                                     new Thread(() -> {
                                         try {
                                             HavenoUtils.xmrConnectionService.startLocalNode();
@@ -359,16 +358,20 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                                                     .headLine(Res.get("xmrConnectionError.localNode.start.error"))
                                                     .warning(e.getMessage())
                                                     .closeButtonText(Res.get("shared.close"))
-                                                    .onClose(() -> havenoSetup.getConnectionServiceError().set(null))
+                                                    .onClose(() -> havenoSetup.getConnectionServiceFallbackType().set(null))
                                                     .show();
+                                        } finally {
+                                            havenoSetup.getConnectionServiceFallbackType().set(null);
                                         }
                                     }).start();
                                 })
                                 .secondaryActionButtonText(Res.get("xmrConnectionError.localNode.fallback"))
                                 .onSecondaryAction(() -> {
                                     log.warn("User has chosen to fallback to the next best available Monero node.");
-                                    havenoSetup.getConnectionServiceError().set(null);
-                                    new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                                    new Thread(() -> {
+                                        HavenoUtils.xmrConnectionService.fallbackToBestConnection();
+                                        havenoSetup.getConnectionServiceFallbackType().set(null);
+                                    }).start();
                                 })
                                 .closeButtonText(Res.get("shared.shutDown"))
                                 .onClose(HavenoApp.getShutDownHandler());
@@ -376,16 +379,35 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                     case CUSTOM:
                         moneroConnectionErrorPopup = new Popup()
                                 .headLine(Res.get("xmrConnectionError.headline"))
-                                .warning(Res.get("xmrConnectionError.customNode"))
+                                .warning(Res.get("xmrConnectionError.customNodes"))
                                 .actionButtonText(Res.get("shared.yes"))
                                 .onAction(() -> {
-                                    havenoSetup.getConnectionServiceError().set(null);
-                                    new Thread(() -> HavenoUtils.xmrConnectionService.fallbackToBestConnection()).start();
+                                    new Thread(() -> {
+                                        HavenoUtils.xmrConnectionService.fallbackToBestConnection();
+                                        havenoSetup.getConnectionServiceFallbackType().set(null);
+                                    }).start();
                                 })
                                 .closeButtonText(Res.get("shared.no"))
                                 .onClose(() -> {
                                     log.warn("User has declined to fallback to the next best available Monero node.");
-                                    havenoSetup.getConnectionServiceError().set(null);
+                                    havenoSetup.getConnectionServiceFallbackType().set(null);
+                                });
+                        break;
+                    case PROVIDED:
+                        moneroConnectionErrorPopup = new Popup()
+                                .headLine(Res.get("xmrConnectionError.headline"))
+                                .warning(Res.get("xmrConnectionError.providedNodes"))
+                                .actionButtonText(Res.get("shared.yes"))
+                                .onAction(() -> {
+                                    new Thread(() -> {
+                                        HavenoUtils.xmrConnectionService.fallbackToBestConnection();
+                                        havenoSetup.getConnectionServiceFallbackType().set(null);
+                                    }).start();
+                                })
+                                .closeButtonText(Res.get("shared.no"))
+                                .onClose(() -> {
+                                    log.warn("User has declined to fallback to the next best available Monero node.");
+                                    havenoSetup.getConnectionServiceFallbackType().set(null);
                                 });
                         break;
                 }
