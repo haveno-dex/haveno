@@ -144,6 +144,7 @@ public class XmrKeyImagePoller {
             if (!keyImageGroups.containsKey(groupId)) keyImageGroups.put(groupId, new HashSet<String>());
             Set<String> keyImagesGroup = keyImageGroups.get(groupId);
             keyImagesGroup.addAll(keyImages);
+            refreshPolling();
         }
     }
 
@@ -269,7 +270,6 @@ public class XmrKeyImagePoller {
 
         // announce changes
         if (!changedStatuses.isEmpty()) {
-            log.info("Announcing " + changedStatuses.size() + " key image spent status changes");
             for (XmrKeyImageListener listener : new ArrayList<XmrKeyImageListener>(listeners)) {
                 listener.onSpentStatusChanged(changedStatuses);
             }
