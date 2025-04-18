@@ -335,12 +335,13 @@ public class SignedWitnessService {
             String message = Utilities.encodeToHex(signedWitness.getAccountAgeWitnessHash());
             String signatureBase64 = new String(signedWitness.getSignature(), Charsets.UTF_8);
             ECKey key = ECKey.fromPublicOnly(signedWitness.getSignerPubKey());
-            if (arbitratorManager.isPublicKeyInList(Utilities.encodeToHex(key.getPubKey()))) {
+            String pubKeyHex = Utilities.encodeToHex(key.getPubKey());
+            if (arbitratorManager.isPublicKeyInList(pubKeyHex)) {
                 key.verifyMessage(message, signatureBase64);
                 verifySignatureWithECKeyResultCache.put(hash, true);
                 return true;
             } else {
-                log.warn("Provided EC key is not in list of valid arbitrators.");
+                log.warn("Provided EC key is not in list of valid arbitrators: " + pubKeyHex);
                 verifySignatureWithECKeyResultCache.put(hash, false);
                 return false;
             }
