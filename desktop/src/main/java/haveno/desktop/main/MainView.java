@@ -353,7 +353,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         settingsButtonWithBadge.getStyleClass().add("new");
 
         navigation.addListener((viewPath, data) -> {
-            UserThread.await(() -> {
+            UserThread.await(() -> { // TODO: this uses `await` to fix nagivation link from market view to offer book, but await can cause hanging, so execute should be used
                 if (viewPath.size() != 2 || viewPath.indexOf(MainView.class) != 0) return;
 
                 Class<? extends View> viewClass = viewPath.tip();
