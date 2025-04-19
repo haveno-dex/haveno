@@ -75,7 +75,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     InputTextField xmrNodesInputTextField;
     @FXML
-    TextField onionAddress, sentDataTextField, receivedDataTextField, chainHeightTextField;
+    TextField onionAddress, sentDataTextField, receivedDataTextField, chainHeightTextField, minVersionForTrading;
     @FXML
     Label p2PPeersLabel, moneroConnectionsLabel;
     @FXML
@@ -176,6 +176,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         sentDataTextField.setPromptText(Res.get("settings.net.sentDataLabel"));
         receivedDataTextField.setPromptText(Res.get("settings.net.receivedDataLabel"));
         chainHeightTextField.setPromptText(Res.get("settings.net.chainHeightLabel"));
+        minVersionForTrading.setPromptText(Res.get("filterWindow.disableTradeBelowVersion"));
         roundTripTimeColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.roundTripTimeColumn")));
         sentBytesColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.sentBytesColumn")));
         receivedBytesColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.receivedBytesColumn")));
@@ -275,7 +276,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 showShutDownPopup();
             }
         };
-        filterPropertyListener = (observable, oldValue, newValue) -> applyPreventPublicXmrNetwork();
+        filterPropertyListener = (observable, oldValue, newValue) -> applyFilter();
 
         // disable radio buttons if no nodes available
         if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
@@ -298,7 +299,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         moneroPeersToggleGroup.selectedToggleProperty().addListener(moneroPeersToggleGroupListener);
 
         if (filterManager.getFilter() != null)
-            applyPreventPublicXmrNetwork();
+            applyFilter();
 
         filterManager.filterProperty().addListener(filterPropertyListener);
 
@@ -492,7 +493,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
 
-    private void applyPreventPublicXmrNetwork() {
+    private void applyFilter() {
+
+        // prevent public xmr network
         final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
         usePublicNodesRadio.setDisable(isPublicNodesDisabled());
         if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {
@@ -501,6 +504,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             selectMoneroPeersToggle();
             onMoneroPeersToggleSelected(false);
         }
+
+        // set min version for trading
+        String minVersion = filterManager.getDisableTradeBelowVersion();
+        minVersionForTrading.textProperty().setValue(minVersion == null ? Res.get("shared.none") : minVersion);
     }
 
     private boolean isPublicNodesDisabled() {

@@ -1101,17 +1101,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 } else {
 
                     // validate non-pending state
-                    try {
-                        validateSignedState(openOffer);
-                        resultHandler.handleResult(null); // done processing if non-pending state is valid
-                        return;
-                    } catch (Exception e) {
-                        log.warn(e.getMessage());
+                    boolean skipValidation = openOffer.isDeactivated() && hasConflictingClone(openOffer) && openOffer.getOffer().getOfferPayload().getArbitratorSignature() == null; // clone with conflicting offer is deactivated and unsigned at first
+                    if (!skipValidation) {
+                        try {
+                            validateSignedState(openOffer);
+                            resultHandler.handleResult(null); // done processing if non-pending state is valid
+                            return;
+                        } catch (Exception e) {
+                            log.warn(e.getMessage());
 
-                        // reset arbitrator signature
-                        openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
-                        openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
-                        if (openOffer.isAvailable()) openOffer.setState(OpenOffer.State.PENDING);
+                            // reset arbitrator signature
+                            openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
+                            openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+                            if (openOffer.isAvailable()) openOffer.setState(OpenOffer.State.PENDING);
+                        }
                     }
                 }
 
@@ -1572,14 +1575,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
-            }
-
-            // verify the max version number
-            if (Version.compare(request.getOfferPayload().getVersionNr(), Version.VERSION) > 0) {
-                errorMessage = "Offer version number is too high: " + request.getOfferPayload().getVersionNr() + " > " + Version.VERSION;
-                log.warn(errorMessage);
-                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
-                return;
             }
 
             // verify maker and taker fees

@@ -184,10 +184,6 @@ public class XmrNodes {
             this.operator = operator;
         }
 
-        public boolean hasOnionAddress() {
-            return onionAddress != null;
-        }
-
         public String getHostNameOrAddress() {
             if (hostName != null)
                 return hostName;
@@ -195,8 +191,17 @@ public class XmrNodes {
                 return address;
         }
 
+        public boolean hasOnionAddress() {
+            return onionAddress != null;
+        }
+
         public boolean hasClearNetAddress() {
             return hostName != null || address != null;
+        }
+
+        public String getClearNetUri() {
+            if (!hasClearNetAddress()) throw new IllegalStateException("XmrNode does not have clearnet address");
+            return "http://" + getHostNameOrAddress() + ":" + port;
         }
 
         @Override

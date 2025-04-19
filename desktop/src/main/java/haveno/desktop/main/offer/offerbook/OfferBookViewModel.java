@@ -174,9 +174,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         tradeCurrencyListChangeListener = c -> fillCurrencies();
 
         // refresh filter on changes
-        offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
-            filterOffers();
-        });
+        // TODO: This is removed because it's expensive to re-filter offers for every change (high cpu for many offers).
+        // This was used to ensure offer list is fully refreshed, but is unnecessary after refactoring OfferBookService to clone offers?
+        // offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
+        //     filterOffers();
+        // });
 
         filterItemsListener = c -> {
             final Optional<OfferBookListItem> highestAmountOffer = filteredItems.stream()

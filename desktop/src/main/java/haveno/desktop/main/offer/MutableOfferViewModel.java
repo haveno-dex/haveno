@@ -19,6 +19,8 @@ package haveno.desktop.main.offer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -108,7 +110,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private String amountDescription;
     private String addressAsString;
     private final String paymentLabel;
-    private boolean createOfferRequested;
+    private boolean createOfferInProgress;
     public boolean createOfferCanceled;
 
     public final StringProperty amount = new SimpleStringProperty();
@@ -638,32 +640,37 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     void onPlaceOffer(Offer offer, Runnable resultHandler) {
-        errorMessage.set(null);
-        createOfferRequested = true;
-        createOfferCanceled = false;
-
-        dataModel.onPlaceOffer(offer, transaction -> {
-            resultHandler.run();
-            if (!createOfferCanceled) placeOfferCompleted.set(true);
+        ThreadUtils.execute(() -> {
             errorMessage.set(null);
-        }, errMessage -> {
-            createOfferRequested = false;
-            if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
-            else errorMessage.set(errMessage);
+            createOfferInProgress = true;
+            createOfferCanceled = false;
+
+            dataModel.onPlaceOffer(offer, transaction -> {
+                createOfferInProgress = false;
+                resultHandler.run();
+                if (!createOfferCanceled) placeOfferCompleted.set(true);
+                errorMessage.set(null);
+            }, errMessage -> {
+                createOfferInProgress = false;
+                if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
+                else errorMessage.set(errorMessage.get());
+
+                UserThread.execute(() -> {
+                    updateButtonDisableState();
+                    updateSpinnerInfo();
+                    resultHandler.run();
+                });
+            });
 
             UserThread.execute(() -> {
                 updateButtonDisableState();
                 updateSpinnerInfo();
-                resultHandler.run();
             });
-        });
-
-        updateButtonDisableState();
-        updateSpinnerInfo();
+        }, getClass().getSimpleName());
     }
 
     public void onCancelOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        createOfferRequested = false;
+        log.info("Canceling posting offer {}", offer.getId());
         createOfferCanceled = true;
         OpenOfferManager openOfferManager = HavenoUtils.openOfferManager;
         Optional<OpenOffer> openOffer = openOfferManager.getOpenOffer(offer.getId());
@@ -1355,7 +1362,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         inputDataValid = inputDataValid && getExtraInfoValidationResult().isValid;
 
         isNextButtonDisabled.set(!inputDataValid);
-        isPlaceOfferButtonDisabled.set(createOfferRequested || !inputDataValid || !dataModel.getIsXmrWalletFunded().get());
+        isPlaceOfferButtonDisabled.set(createOfferInProgress || !inputDataValid || !dataModel.getIsXmrWalletFunded().get());
     }
 
     private ValidationResult getExtraInfoValidationResult() {

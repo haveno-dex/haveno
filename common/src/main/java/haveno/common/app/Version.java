@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class Version {
     // The application versions
     // We use semantic versioning with major, minor and patch
-    public static final String VERSION = "1.0.19";
+    public static final String VERSION = "1.1.0";
 
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.

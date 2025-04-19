@@ -380,8 +380,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void onShowPayFundsScreen() {
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-
         nextButton.setVisible(false);
         nextButton.setManaged(false);
         nextButton.setOnAction(null);
@@ -445,13 +443,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         // temporarily disabled due to high CPU usage (per issue #4649)
         // waitingForFundsSpinner.play();
 
-        payFundsTitledGroupBg.setVisible(true);
-        totalToPayTextField.setVisible(true);
-        addressTextField.setVisible(true);
-        qrCodeImageView.setVisible(true);
-        balanceTextField.setVisible(true);
-        cancelButton2.setVisible(true);
-        reserveExactAmountSlider.setVisible(true);
+        showFundingGroup();
     }
 
     private void updateOfferElementsStyle() {
@@ -986,6 +978,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         gridPane.setVgap(5);
         GUIUtil.setDefaultTwoColumnConstraintsForGridPane(gridPane);
         scrollPane.setContent(gridPane);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
     }
 
     private void addPaymentGroup() {
@@ -1179,6 +1172,40 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         cancelButton1.setManaged(false);
     }
 
+    protected void hideFundingGroup() {
+        payFundsTitledGroupBg.setVisible(false);
+        payFundsTitledGroupBg.setManaged(false);
+        totalToPayTextField.setVisible(false);
+        totalToPayTextField.setManaged(false);
+        addressTextField.setVisible(false);
+        addressTextField.setManaged(false);
+        qrCodeImageView.setVisible(false);
+        qrCodeImageView.setManaged(false);
+        balanceTextField.setVisible(false);
+        balanceTextField.setManaged(false);
+        cancelButton2.setVisible(false);
+        cancelButton2.setManaged(false);
+        reserveExactAmountSlider.setVisible(false);
+        reserveExactAmountSlider.setManaged(false);
+    }
+
+    protected void showFundingGroup() {
+        payFundsTitledGroupBg.setVisible(true);
+        payFundsTitledGroupBg.setManaged(true);
+        totalToPayTextField.setVisible(true);
+        totalToPayTextField.setManaged(true);
+        addressTextField.setVisible(true);
+        addressTextField.setManaged(true);
+        qrCodeImageView.setVisible(true);
+        qrCodeImageView.setManaged(true);
+        balanceTextField.setVisible(true);
+        balanceTextField.setManaged(true);
+        cancelButton2.setVisible(true);
+        cancelButton2.setManaged(true);
+        reserveExactAmountSlider.setVisible(true);
+        reserveExactAmountSlider.setManaged(true);
+    }
+
     private VBox getSecurityDepositBox() {
         Tuple3<HBox, InfoInputTextField, Label> tuple = getEditableValueBoxWithInfo(
                 Res.get("createOffer.securityDeposit.prompt"));
@@ -1326,6 +1353,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         });
         cancelButton2.setDefaultButton(false);
         cancelButton2.setVisible(false);
+
+        hideFundingGroup();
     }
 
     private void openWallet() {

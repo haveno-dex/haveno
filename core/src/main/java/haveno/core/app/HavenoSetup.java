@@ -55,7 +55,7 @@ import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
-import haveno.core.api.XmrConnectionService.XmrConnectionError;
+import haveno.core.api.XmrConnectionService.XmrConnectionFallbackType;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
@@ -159,7 +159,7 @@ public class HavenoSetup {
             rejectedTxErrorMessageHandler;
     @Setter
     @Nullable
-    private Consumer<XmrConnectionError> displayMoneroConnectionErrorHandler;        
+    private Consumer<XmrConnectionFallbackType> displayMoneroConnectionFallbackHandler;        
     @Setter
     @Nullable
     private Consumer<Boolean> displayTorNetworkSettingsHandler;
@@ -431,9 +431,9 @@ public class HavenoSetup {
         getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
 
         // listen for fallback handling
-        getConnectionServiceError().addListener((observable, oldValue, newValue) -> {
-            if (displayMoneroConnectionErrorHandler == null) return;
-            displayMoneroConnectionErrorHandler.accept(newValue);
+        getConnectionServiceFallbackType().addListener((observable, oldValue, newValue) -> {
+            if (displayMoneroConnectionFallbackHandler == null) return;
+            displayMoneroConnectionFallbackHandler.accept(newValue);
         });
 
         log.info("Init P2P network");
@@ -735,8 +735,8 @@ public class HavenoSetup {
         return xmrConnectionService.getConnectionServiceErrorMsg();
     }
 
-    public ObjectProperty<XmrConnectionError> getConnectionServiceError() {
-        return xmrConnectionService.getConnectionServiceError();
+    public ObjectProperty<XmrConnectionFallbackType> getConnectionServiceFallbackType() {
+        return xmrConnectionService.getConnectionServiceFallbackType();
     }
 
     public StringProperty getTopErrorMsg() {

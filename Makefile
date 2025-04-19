@@ -485,6 +485,31 @@ arbitrator-desktop-mainnet:
 		--xmrNode=http://127.0.0.1:18081 \
 		--useNativeXmrWallet=false \
 
+arbitrator2-daemon-mainnet:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=haveno-XMR_MAINNET_arbitrator2 \
+		--apiPassword=apitest \
+		--apiPort=1205 \
+		--passwordRequired=false \
+		--xmrNode=http://127.0.0.1:18081 \
+		--useNativeXmrWallet=false \
+
+arbitrator2-desktop-mainnet:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=haveno-XMR_MAINNET_arbitrator2 \
+		--apiPassword=apitest \
+		--apiPort=1205 \
+		--xmrNode=http://127.0.0.1:18081 \
+		--useNativeXmrWallet=false \
+
 haveno-daemon-mainnet:
 	./haveno-daemon$(APP_EXT) \
 		--baseCurrencyNetwork=XMR_MAINNET \
