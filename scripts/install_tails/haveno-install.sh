@@ -124,7 +124,7 @@ OUTPUT=$(gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_fil
 if ! echo "$OUTPUT" | grep -q "Good signature from"; then
     echo_red "Verification failed: $OUTPUT"
     exit 1;
-    else 7z x "${binary_filename}" && mv haveno*.deb "${package_filename}"
+    else mv -f "${binary_filename}" "${package_filename}"
 fi
 
 echo_blue "Haveno binaries have been successfully verified."
@@ -136,7 +136,7 @@ mkdir -p "${install_dir}"
 
 # Delete old Haveno binaries
 #rm -f "${install_dir}/"*.deb*
-mv "${binary_filename}" "${package_filename}" "${key_filename}" "${signature_filename}" "${install_dir}"
+mv "${package_filename}" "${key_filename}" "${signature_filename}" "${install_dir}"
 echo_blue "Files moved to persistent directory ${install_dir}"
 
 
