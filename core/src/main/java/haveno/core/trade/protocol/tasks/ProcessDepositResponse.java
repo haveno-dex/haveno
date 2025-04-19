@@ -38,7 +38,7 @@ public class ProcessDepositResponse extends TradeTask {
         try {
           runInterceptHook();
 
-          // throw if error
+          // handle error
           DepositResponse message = (DepositResponse) processModel.getTradeMessage();
           if (message.getErrorMessage() != null) {
             log.warn("Unregistering trade {} {} because deposit response has error message={}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());

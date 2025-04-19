@@ -2648,7 +2648,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     }
                 }
                 setDepositTxs(txs);
-                if (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit())) return; // skip if either deposit tx not seen
+                if (!isPublished(getMaker().getDepositTx()) || (!hasBuyerAsTakerWithoutDeposit() && !isPublished(getTaker().getDepositTx()))) return; // skip if deposit txs not published successfully
                 setStateDepositsSeen();
 
                 // set actual security deposits
@@ -2748,6 +2748,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
             saveWalletWithDelay();
         }
+    }
+
+    private static boolean isPublished(MoneroTx tx) {
+        if (tx == null) return false;
+        if (Boolean.TRUE.equals(tx.isFailed())) return false;
+        if (!Boolean.TRUE.equals(tx.inTxPool()) && !Boolean.TRUE.equals(tx.isConfirmed())) return false;
+        return true;
     }
 
     private void syncWalletIfBehind() {
