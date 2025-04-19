@@ -105,7 +105,6 @@ public abstract class XmrWalletBase {
             // start polling wallet for progress
             syncProgressLatch = new CountDownLatch(1);
             syncProgressLooper = new TaskLooper(() -> {
-                if (wallet == null) return;
                 long height;
                 try {
                     height = wallet.getHeight(); // can get read timeout while syncing
