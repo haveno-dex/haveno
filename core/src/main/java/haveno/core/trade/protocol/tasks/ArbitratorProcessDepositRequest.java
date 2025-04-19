@@ -95,6 +95,18 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         // set peer's signature
         sender.setContractSignature(signature);
 
+        // subscribe to trade state once to send responses with ack or nack
+        if (!hasBothContractSignatures()) {
+            trade.stateProperty().addListener((obs, oldState, newState) -> {
+                if (oldState == newState) return;
+                if (newState == Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED) {
+                    sendDepositResponsesOnce(trade.getProcessModel().error == null ? "Arbitrator failed to publish deposit txs within timeout for trade " + trade.getId() : trade.getProcessModel().error.getMessage());
+                } else if (newState.ordinal() >= Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS.ordinal()) {
+                    sendDepositResponsesOnce(null);
+                }
+            });
+        }
+
         // collect expected values
         Offer offer = trade.getOffer();
         boolean isFromTaker = sender == trade.getTaker();
@@ -138,7 +150,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
         // relay deposit txs when both requests received
         MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
-        if (processModel.getMaker().getContractSignature() != null && processModel.getTaker().getContractSignature() != null) {
+        if (hasBothContractSignatures()) {
 
             // check timeout and extend just before relaying
             if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out before relaying deposit txs for {} {}" + trade.getClass().getSimpleName() + " " + trade.getShortId());
@@ -182,20 +194,13 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 throw e;
             }
         } else {
-
-            // subscribe to trade state once to send responses with ack or nack
-            trade.stateProperty().addListener((obs, oldState, newState) -> {
-                if (oldState == newState) return;
-                if (newState == Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED) {
-                    sendDepositResponsesOnce(trade.getProcessModel().error == null ? "Arbitrator failed to publish deposit txs within timeout for trade " + trade.getId() : trade.getProcessModel().error.getMessage());
-                } else if (newState.ordinal() >= Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS.ordinal()) {
-                    sendDepositResponsesOnce(null);
-                }
-            });
-
             if (processModel.getMaker().getDepositTxHex() == null) log.info("Arbitrator waiting for deposit request from maker for trade " + trade.getId());
             if (processModel.getTaker().getDepositTxHex() == null && !trade.hasBuyerAsTakerWithoutDeposit()) log.info("Arbitrator waiting for deposit request from taker for trade " + trade.getId());
         }
+    }
+
+    private boolean hasBothContractSignatures() {
+        return processModel.getMaker().getContractSignature() != null && processModel.getTaker().getContractSignature() != null;
     }
 
     private boolean isTimedOut() {
@@ -210,7 +215,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
         // log error
         if (errorMessage != null) {
-            log.warn("Sending deposit responses with error={}", errorMessage, new Throwable("Stack trace"));
+            log.warn("Sending deposit responses for tradeId={}, error={}", trade.getId(), errorMessage);
         }
 
         // create deposit response
@@ -229,7 +234,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
     }
 
     private void sendDepositResponse(NodeAddress nodeAddress, PubKeyRing pubKeyRing, DepositResponse response) {
-        log.info("Sending deposit response to trader={}; offerId={}, error={}", nodeAddress, trade.getId(), trade.getProcessModel().error);
+        log.info("Sending deposit response to trader={}; offerId={}, error={}", nodeAddress, trade.getId(), response.getErrorMessage());
         processModel.getP2PService().sendEncryptedDirectMessage(nodeAddress, pubKeyRing, response, new SendDirectMessageListener() {
             @Override
             public void onArrived() {
