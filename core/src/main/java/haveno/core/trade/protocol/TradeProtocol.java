@@ -460,9 +460,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         .using(new TradeTaskRunner(trade,
                             () -> {
                                 stopTimeout();
-                                this.errorMessageHandler = null; // TODO: set this when trade state is >= DEPOSIT_PUBLISHED
-                                handleTaskRunnerSuccess(sender, response);
-                                if (tradeResultHandler != null) tradeResultHandler.handleResult(trade); // trade is initialized
+                                
+                                // tasks may complete successfully but process an error
+                                if (trade.getInitError() == null) {
+                                    this.errorMessageHandler = null; // TODO: set this when trade state is >= DEPOSIT_PUBLISHED
+                                    handleTaskRunnerSuccess(sender, response);
+                                    if (tradeResultHandler != null) tradeResultHandler.handleResult(trade); // trade is initialized
+                                } else {
+                                    handleTaskRunnerSuccess(sender, response);
+                                    if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(trade.getInitError().getMessage());
+                                }
+
+                                this.tradeResultHandler = null;
+                                this.errorMessageHandler = null;
                             },
                             errorMessage -> {
                                 handleTaskRunnerFault(sender, response, errorMessage);
