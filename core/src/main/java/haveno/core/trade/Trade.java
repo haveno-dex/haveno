@@ -145,6 +145,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     protected final Object pollLock = new Object();
+    private final Object removeTradeOnErrorLock = new Object();
     protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
     private boolean restartInProgress;
@@ -1608,11 +1609,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
 
             // shut down trade threads
-            isInitialized = false;
             isShutDown = true;
             List<Runnable> shutDownThreads = new ArrayList<>();
             shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
             ThreadUtils.awaitTasks(shutDownThreads);
+            stopProtocolTimeout();
+            isInitialized = false;
 
             // save and close
             if (wallet != null) {
@@ -1765,24 +1767,30 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void removeTradeOnError() {
-        log.warn("removeTradeOnError() trade={}, tradeId={}, state={}", getClass().getSimpleName(), getShortId(), getState());
+        synchronized (removeTradeOnErrorLock) {
 
-        // force close and re-open wallet in case stuck
-        forceCloseWallet();
-        if (isDepositRequested()) getWallet();
+            // skip if already shut down or removed
+            if (isShutDown || !processModel.getTradeManager().hasTrade(getId())) return;
+            log.warn("removeTradeOnError() trade={}, tradeId={}, state={}", getClass().getSimpleName(), getShortId(), getState());
 
-        // shut down trade thread
-        try {
-            ThreadUtils.shutDown(getId(), 1000l);
-        } catch (Exception e) {
-            log.warn("Error shutting down trade thread for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            // force close and re-open wallet in case stuck
+            forceCloseWallet();
+            if (isDepositRequested()) getWallet();
+
+            // clear and shut down trade
+            onShutDownStarted();
+            clearAndShutDown();
+
+            // shut down trade thread
+            try {
+                ThreadUtils.shutDown(getId(), 5000l);
+            } catch (Exception e) {
+                log.warn("Error shutting down trade thread for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            }
+
+            // unregister trade
+            processModel.getTradeManager().unregisterTrade(this);
         }
-
-        // clear and shut down trade
-        clearAndShutDown();
-
-        // unregister trade
-        processModel.getTradeManager().unregisterTrade(this);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1822,6 +1830,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void startProtocolTimeout() {
         getProtocol().startTimeout(TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
+    }
+
+    public void stopProtocolTimeout() {
+        if (!isInitialized) return;
+        TradeProtocol protocol = getProtocol();
+        if (protocol == null) return;
+        protocol.stopTimeout();
     }
 
     public void setState(State state) {

@@ -842,7 +842,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
     }
 
-    protected synchronized void stopTimeout() {
+    public synchronized void stopTimeout() {
         synchronized (timeoutTimerLock) {
             if (timeoutTimer != null) {
                 timeoutTimer.stop();
