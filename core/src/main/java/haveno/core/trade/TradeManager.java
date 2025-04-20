@@ -563,8 +563,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(request.getOfferId());
             if (!openOfferOptional.isPresent()) return;
             OpenOffer openOffer = openOfferOptional.get();
-            if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
             Offer offer = openOffer.getOffer();
+
+            // check availability
+            if (openOffer.getState() != OpenOffer.State.AVAILABLE) {
+                log.warn("Ignoring InitTradeRequest to maker because offer is not available, offerId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
 
             // validate challenge
             if (openOffer.getChallenge() != null && !HavenoUtils.getChallengeHash(openOffer.getChallenge()).equals(HavenoUtils.getChallengeHash(request.getChallenge()))) {
@@ -980,9 +985,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         closedTradableManager.add(trade);
         trade.setCompleted(true);
         removeTrade(trade, true);
-
-        // TODO The address entry should have been removed already. Check and if its the case remove that.
-        xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId());
+        xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
     }
 
@@ -990,6 +993,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.warn("Unregistering {} {}", trade.getClass().getSimpleName(), trade.getId());
         removeTrade(trade, true);
         removeFailedTrade(trade);
+        xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
     }
 
@@ -1274,9 +1278,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             return offer.getDirection() == OfferDirection.SELL;
     }
 
-    // TODO (woodser): make Optional<Trade> versus Trade return types consistent
+    // TODO: make Optional<Trade> versus Trade return types consistent
     public Trade getTrade(String tradeId) {
         return getOpenTrade(tradeId).orElseGet(() -> getClosedTrade(tradeId).orElseGet(() -> getFailedTrade(tradeId).orElseGet(() -> null)));
+    }
+
+    public boolean hasTrade(String tradeId) {
+        return getTrade(tradeId) != null;
     }
 
     public Optional<Trade> getOpenTrade(String tradeId) {
