@@ -811,6 +811,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (processModel.getTradeManager() != null) processModel.getTradeManager().requestPersistence();
     }
 
+    public void persistNow(@Nullable Runnable completeHandler) {
+        processModel.getTradeManager().persistNow(completeHandler);
+    }
+
     public TradeProtocol getProtocol() {
         return processModel.getTradeManager().getTradeProtocol(this);
     }
