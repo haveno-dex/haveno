@@ -1852,7 +1852,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         this.state = state;
         requestPersistence();
-        UserThread.await(() -> {
+        UserThread.execute(() -> {
             stateProperty.set(state);
             phaseProperty.set(state.getPhase());
         });
@@ -1884,7 +1884,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         this.payoutState = payoutState;
         requestPersistence();
-        UserThread.await(() -> payoutStateProperty.set(payoutState));
+        UserThread.execute(() -> payoutStateProperty.set(payoutState));
     }
 
     public void setDisputeState(DisputeState disputeState) {
