@@ -653,7 +653,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             }, errMessage -> {
                 createOfferInProgress = false;
                 if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
-                else errorMessage.set(errorMessage.get());
+                else errorMessage.set(errMessage);
 
                 UserThread.execute(() -> {
                     updateButtonDisableState();
