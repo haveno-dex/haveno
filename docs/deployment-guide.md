@@ -5,10 +5,11 @@ This guide describes how to deploy a Haveno network:
 - Manage services on a VPS
 - Fork and build Haveno
 - Start a Monero node
-- Build and start price nodes
 - Add seed nodes
 - Add arbitrators
 - Configure trade fees and other configuration
+- Build and start price nodes
+- Set a network filter
 - Build Haveno installers for distribution
 - Send alerts to update the application and other maintenance
 
@@ -68,14 +69,6 @@ To run a private Monero node as a system service, customize and deploy private-s
 Optionally customize and deploy monero-stagenet.service and monero-stagenet.conf to run a public Monero node as a system service for Haveno clients to use.
 
 You can also start the Monero node in your current terminal session by running `make monerod` for mainnet or `make monerod-stagenet` for stagenet.
-
-## Build and start price nodes
-
-The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode.
-
-After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
-
-Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as a system service.
 
 ## Add seed nodes
 
@@ -139,7 +132,7 @@ Each seed node requires a locally running Monero node. You can use the default p
 
 Rebuild all seed nodes any time the list of registered seed nodes changes.
 
-> **Notes**
+> [!note]
 > * Avoid all seed nodes going offline at the same time. If all seed nodes go offline at the same time, the network will be reset, including registered arbitrators, the network filter object, and trade history. In that case, arbitrators need to restart or re-register, and the network filter object needs to be re-applied. This should be done immediately or clients will cancel their offers due to the signing arbitrators being unregistered and no replacements being available to re-sign.
 > * At least 2 seed nodes should be run because the seed nodes restart once per day.
 
@@ -180,34 +173,20 @@ For each arbitrator:
 
 The arbitrator is now registered and ready to accept requests for dispute resolution.
 
-**Notes**
-- Arbitrators must use a local Monero node with unrestricted RPC in order to submit and flush transactions from the pool.
-- Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
-- Remember that for the network to run correctly and people to be able to open and accept trades, at least one arbitrator must be registered on the network.
-- IMPORTANT: Do not reuse keypairs on multiple arbitrator instances.
+> [!note]
+> * Arbitrators must use a local Monero node with unrestricted RPC in order to submit and flush transactions from the pool.
+> * Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
+> * Remember that for the network to run correctly and people to be able to open and accept trades, at least one arbitrator must be registered on the network.
+> * IMPORTANT: Do not reuse keypairs on multiple arbitrator instances.
 
 ## Remove an arbitrator
 
-> **Note**
-> Ensure the arbitrator's trades are completed before retiring the instance.
+> [!warning]
+> * Ensure the arbitrator's trades are completed before retiring the instance.
+> * To preserve signed accounts, the arbitrator public key must remain in the repository, even after revoking.
 
 1. Start the arbitrator's desktop application using the application launcher or e.g. `make arbitrator-desktop-mainnet` from the root of the repository.
 2. Go to the `Account` tab and click the button to unregister the arbitrator.
-
-> **Note**
-> To preserve signed accounts, the arbitrator public key must remain in the repository, even after revoking.
-
-## Set a network filter on mainnet
-
-On mainnet, the p2p network is expected to have a filter object for offers, onions, currencies, payment methods, etc.
-
-To set the network's filter object:
-
-1. Enter `ctrl + f` in the arbitrator or other Haveno instance to open the Filter window.
-2. Enter a developer private key from the previous steps and click "Add Filter" to register.
-
-> **Note**
-> If all seed nodes are restarted at the same time, arbitrators and the filter object will become unregistered and will need to be re-registered.
 
 ## Change the default folder name for Haveno application data
 
@@ -246,9 +225,29 @@ Set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `true` for the arbitrator to assig
 
 Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR address in `getGlobalTradeFeeAddress()` to collect all trade fees to a single address (e.g. a multisig wallet shared among network administrators).
 
+## Build and start price nodes
+
+The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode.
+
+After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
+
+Customize and deploy haveno-pricenode.env and haveno-pricenode.service to run as a system service.
+
 ## Update the download URL
 
 Change every instance of `https://haveno.exchange/downloads` to your download URL. For example, `https://havenoexample.com/downloads`.
+
+## Set a network filter on mainnet
+
+On mainnet, the p2p network is expected to have a filter object for offers, onions, currencies, payment methods, etc.
+
+To set the network's filter object:
+
+1. Enter `ctrl + f` in the arbitrator or other Haveno instance to open the Filter window.
+2. Enter a developer private key from the previous steps and click "Add Filter" to register.
+
+> [!note]
+> If all seed nodes are restarted at the same time, arbitrators and the filter object will become unregistered and will need to be re-registered.
 
 ## Start users for testing
 
