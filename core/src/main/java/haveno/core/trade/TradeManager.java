@@ -546,6 +546,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         persistenceManager.requestPersistence();
     }
 
+    public void persistNow(@Nullable Runnable completeHandler) {
+        persistenceManager.persistNow(completeHandler);
+    }
+
     private void handleInitTradeRequest(InitTradeRequest request, NodeAddress sender) {
         log.info("TradeManager handling InitTradeRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
