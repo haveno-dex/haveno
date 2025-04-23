@@ -1448,7 +1448,7 @@ public class XmrWalletService extends XmrWalletBase {
                         try {
                             syncWithProgress(true); // repeat sync to latest target height
                         } catch (Exception e) {
-                            log.warn("Error syncing wallet with progress on startup: " + e.getMessage());
+                            if (wallet != null) log.warn("Error syncing wallet with progress on startup: " + e.getMessage());
                             forceCloseMainWallet();
                             requestSwitchToNextBestConnection(sourceConnection);
                             maybeInitMainWallet(true, numSyncAttempts - 1); // re-initialize wallet and sync again
