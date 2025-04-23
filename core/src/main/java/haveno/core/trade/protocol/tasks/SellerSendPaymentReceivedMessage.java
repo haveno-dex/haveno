@@ -90,8 +90,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         try {
             runInterceptHook();
 
-            // skip if already received
-            if (isReceived()) {
+            // skip if stopped
+            if (stopSending()) {
                 if (!isCompleted()) complete();
                 return;
             }
@@ -191,8 +191,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
     private void tryToSendAgainLater() {
 
-        // skip if already received
-        if (isReceived()) return;
+        // skip if stopped
+        if (stopSending()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
@@ -226,12 +226,16 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     }
 
     private void onMessageStateChange(MessageState newValue) {
-        if (isReceived()) {
+        if (isMessageReceived()) {
             cleanup();
         }
     }
 
-    protected boolean isReceived() {
+    protected boolean isMessageReceived() {
         return getReceiver().isPaymentReceivedMessageReceived();
+    }
+
+    protected boolean stopSending() {
+        return isMessageReceived() || !trade.isPaymentReceived(); // stop if received or trade state reset // TODO: also stop after some number of blocks?
     }
 }

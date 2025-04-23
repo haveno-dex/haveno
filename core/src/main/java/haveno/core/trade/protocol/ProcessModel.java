@@ -311,7 +311,7 @@ public class ProcessModel implements Model, PersistablePayload {
     void setDepositTxSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
-                MessageState.FAILED;
+                MessageState.NACKED;
         setDepositTxMessageState(messageState);
     }
 

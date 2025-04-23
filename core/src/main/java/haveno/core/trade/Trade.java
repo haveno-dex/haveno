@@ -787,12 +787,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isFinished() {
-        return isPayoutUnlocked() && isCompleted() && !getProtocol().needsToResendPaymentReceivedMessages();
+        return isPayoutUnlocked() && isCompleted();
     }
 
     public void resetToPaymentSentState() {
         setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-        for (TradePeer peer : getAllPeers()) peer.setPaymentReceivedMessage(null);
+        for (TradePeer peer : getAllPeers()) {
+            peer.setPaymentReceivedMessage(null);
+            peer.setPaymentReceivedMessageState(MessageState.UNDEFINED);
+        }
         setPayoutTxHex(null);
     }
 
@@ -2105,6 +2108,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private MessageState getPaymentSentMessageState() {
         if (isPaymentReceived()) return MessageState.ACKNOWLEDGED;
         if (getSeller().getPaymentSentMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return MessageState.ACKNOWLEDGED;
+        if (getSeller().getPaymentSentMessageStateProperty().get() == MessageState.NACKED) return MessageState.NACKED;
         switch (state) {
             case BUYER_SENT_PAYMENT_SENT_MSG:
                 return MessageState.SENT;

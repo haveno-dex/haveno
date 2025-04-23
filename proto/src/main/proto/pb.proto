@@ -216,6 +216,7 @@ message AckMessage {
     string source_id = 6; // id of source (tradeId, disputeId)
     bool success = 7; // true if source message was processed successfully
     string error_message = 8; // optional error message if source message processing failed
+    string updated_multisig_hex = 9; // data to update the multisig state
 }
 
 message PrefixedSealedAndSignedMessage {

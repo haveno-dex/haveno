@@ -53,6 +53,8 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
     private final boolean success;
     @Nullable
     private final String errorMessage;
+    @Nullable
+    private final String updatedMultisigHex;
 
     /**
      *
@@ -79,6 +81,27 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                 sourceId,
                 success,
                 errorMessage,
+                null,
+                Version.getP2PMessageVersion());
+    }
+
+    public AckMessage(NodeAddress senderNodeAddress,
+                      AckMessageSourceType sourceType,
+                      String sourceMsgClassName,
+                      String sourceUid,
+                      String sourceId,
+                      boolean success,
+                      String errorMessage,
+                      String updatedMultisigHex) {
+        this(UUID.randomUUID().toString(),
+                senderNodeAddress,
+                sourceType,
+                sourceMsgClassName,
+                sourceUid,
+                sourceId,
+                success,
+                errorMessage,
+                updatedMultisigHex,
                 Version.getP2PMessageVersion());
     }
 
@@ -95,6 +118,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                        String sourceId,
                        boolean success,
                        @Nullable String errorMessage,
+                       String updatedMultisigInfo,
                        String messageVersion) {
         super(messageVersion);
         this.uid = uid;
@@ -105,6 +129,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
         this.sourceId = sourceId;
         this.success = success;
         this.errorMessage = errorMessage;
+        this.updatedMultisigHex = updatedMultisigInfo;
     }
 
     public protobuf.AckMessage toProtoMessage() {
@@ -126,6 +151,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                 .setSuccess(success);
         Optional.ofNullable(sourceUid).ifPresent(builder::setSourceUid);
         Optional.ofNullable(errorMessage).ifPresent(builder::setErrorMessage);
+        Optional.ofNullable(updatedMultisigHex).ifPresent(builder::setUpdatedMultisigHex);
         return builder;
     }
 
@@ -139,6 +165,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                 proto.getSourceId(),
                 proto.getSuccess(),
                 proto.getErrorMessage().isEmpty() ? null : proto.getErrorMessage(),
+                proto.getUpdatedMultisigHex().isEmpty() ? null : proto.getUpdatedMultisigHex(),
                 messageVersion);
     }
 
@@ -163,6 +190,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                 ",\n     sourceId='" + sourceId + '\'' +
                 ",\n     success=" + success +
                 ",\n     errorMessage='" + errorMessage + '\'' +
+                ",\n     updatedMultisigInfo='" + updatedMultisigHex + '\'' +
                 "\n} " + super.toString();
     }
 }
