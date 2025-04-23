@@ -1367,11 +1367,16 @@ public class XmrWalletService extends XmrWalletBase {
                  }, THREAD_ID);
             } else {
 
-                // force restart main wallet if connection changed while syncing
-                if (wallet != null) {
-                    log.warn("Force restarting main wallet because connection changed while syncing");
-                    forceRestartMainWallet();
+                // check if ignored
+                if (wallet == null || isShutDownStarted) return;
+                if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
+                    updatePollPeriod();
+                    return;
                 }
+
+                // force restart main wallet if connection changed while syncing
+                log.warn("Force restarting main wallet because connection changed while syncing");
+                forceRestartMainWallet();
             }
         });
 
