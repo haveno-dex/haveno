@@ -151,6 +151,9 @@ public class SellerStep3View extends TradeStepView {
                         break;
                 }
             }
+
+            // update confirm button state
+            confirmButton.setDisable(!confirmPaymentReceivedPermitted());
         });
     }
 

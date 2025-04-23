@@ -112,6 +112,7 @@ public class BuyerStep3View extends TradeStepView {
                 iconLabel.getStyleClass().add("trade-msg-state-stored");
                 break;
             case FAILED:
+            case NACKED:
                 textFieldWithIcon.setIcon(AwesomeIcon.EXCLAMATION_SIGN);
                 iconLabel.getStyleClass().add("trade-msg-state-acknowledged");
                 break;

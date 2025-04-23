@@ -683,7 +683,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (!sender.equals(request.getTakerNodeAddress())) {
                     if (sender.equals(request.getMakerNodeAddress())) {
                         log.warn("Received InitTradeRequest from maker to arbitrator for trade that is already initializing, tradeId={}, sender={}", request.getOfferId(), sender);
-                        sendAckMessage(sender, trade.getMaker().getPubKeyRing(), request, false, "Trade is already initializing for " + getClass().getSimpleName() + " " + trade.getId());
+                        sendAckMessage(sender, trade.getMaker().getPubKeyRing(), request, false, "Trade is already initializing for " + getClass().getSimpleName() + " " + trade.getId(), null);
                     } else {
                         log.warn("Ignoring InitTradeRequest from non-taker, tradeId={}, sender={}", request.getOfferId(), sender);
                     }
@@ -1212,7 +1212,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // Getters, Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void sendAckMessage(NodeAddress peer, PubKeyRing peersPubKeyRing, TradeMessage message, boolean result, @Nullable String errorMessage) {
+    public void sendAckMessage(NodeAddress peer, PubKeyRing peersPubKeyRing, TradeMessage message, boolean result, @Nullable String errorMessage, String updatedMultisigHex) {
 
         // create ack message
         String tradeId = message.getOfferId();
@@ -1223,7 +1223,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 sourceUid,
                 tradeId,
                 result,
-                errorMessage);
+                errorMessage,
+                updatedMultisigHex);
 
         // send ack message
         log.info("Send AckMessage for {} to peer {}. tradeId={}, sourceUid={}",

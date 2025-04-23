@@ -208,21 +208,21 @@ public final class TradePeer implements PersistablePayload {
     void setDepositsConfirmedAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
-                MessageState.FAILED;
+                MessageState.NACKED;
         setDepositsConfirmedMessageState(messageState);
     }
 
     void setPaymentSentAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
-                MessageState.FAILED;
+                MessageState.NACKED;
         setPaymentSentMessageState(messageState);
     }
 
     void setPaymentReceivedAckMessage(AckMessage ackMessage) {
         MessageState messageState = ackMessage.isSuccess() ?
                 MessageState.ACKNOWLEDGED :
-                MessageState.FAILED;
+                MessageState.NACKED;
         setPaymentReceivedMessageState(messageState);
     }
 
@@ -256,7 +256,7 @@ public final class TradePeer implements PersistablePayload {
     }
 
     public boolean isPaymentReceivedMessageReceived() {
-        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX || paymentReceivedMessageStateProperty.get() == MessageState.NACKED;
     }
 
     @Override

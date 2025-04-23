@@ -23,5 +23,6 @@ public enum MessageState {
     ARRIVED,
     STORED_IN_MAILBOX,
     ACKNOWLEDGED,
-    FAILED
+    FAILED,
+    NACKED
 }
