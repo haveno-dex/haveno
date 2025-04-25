@@ -151,23 +151,23 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                                 UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                             });
                         });
-
-                        // shut down trade and wallet services
-                        log.info("Shutting down trade and wallet services");
-                        injector.getInstance(OfferBookService.class).shutDown();
-                        injector.getInstance(TradeManager.class).shutDown();
-                        injector.getInstance(BtcWalletService.class).shutDown();
-                        injector.getInstance(XmrWalletService.class).shutDown();
-                        injector.getInstance(XmrConnectionService.class).shutDown();
-                        injector.getInstance(WalletsSetup.class).shutDown();
                     });
+
+                    // shut down trade and wallet services
+                    log.info("Shutting down trade and wallet services");
+                    injector.getInstance(OfferBookService.class).shutDown();
+                    injector.getInstance(TradeManager.class).shutDown();
+                    injector.getInstance(BtcWalletService.class).shutDown();
+                    injector.getInstance(XmrWalletService.class).shutDown();
+                    injector.getInstance(XmrConnectionService.class).shutDown();
+                    injector.getInstance(WalletsSetup.class).shutDown();
                 });
 
                 // we wait max 5 sec.
                 UserThread.runAfter(() -> {
                     PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                         resultHandler.handleResult();
-                        log.info("Graceful shutdown caused a timeout. Exiting now.");
+                        log.warn("Graceful shutdown caused a timeout. Exiting now.");
                         UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                     });
                 }, 5);
