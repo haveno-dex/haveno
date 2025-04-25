@@ -804,15 +804,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 else {
                     log.warn("We received a NACK for our PaymentReceivedMessage to the buyer for {} {}", trade.getClass().getSimpleName(), trade.getId());
                     
-                    // update multisig hex
+                    // nack includes updated multisig hex since v1.1.1
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
-                    }
 
-                    // reset state if not processed
-                    if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
-                        log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        trade.resetToPaymentSentState();
+                        // reset state if not processed
+                        if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
+                            log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                            trade.resetToPaymentSentState();
+                        }
                     }
                 }
                 processModel.getTradeManager().requestPersistence();
@@ -826,15 +826,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 if (!ackMessage.isSuccess()) {
                     log.warn("We received a NACK for our PaymentReceivedMessage to the arbitrator for {} {}", trade.getClass().getSimpleName(), trade.getId());
 
-                    // update multisig hex
+                    // nack includes updated multisig hex since v1.1.1
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
-                    }
 
-                    // reset state if not processed
-                    if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
-                        log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        trade.resetToPaymentSentState();
+                        // reset state if not processed
+                        if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
+                            log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                            trade.resetToPaymentSentState();
+                        }
                     }
                 }
                 processModel.getTradeManager().requestPersistence();
