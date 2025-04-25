@@ -1457,10 +1457,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getId());
                 saveWallet(); // save wallet before creating fee estimate tx
                 MoneroTxWallet feeEstimateTx = createPayoutTx();
-                BigInteger feeEstimate = feeEstimateTx.getFee();
-                double feeDiff = payoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue(); // TODO: use BigDecimal?
-                if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new IllegalArgumentException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + payoutTx.getFee());
-                log.info("Payout tx fee {} is within tolerance, diff %={}", payoutTx.getFee(), feeDiff);
+                HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), payoutTx.getFee());
+                log.info("Payout tx fee {} is within tolerance");
             }
 
             // set signed payout tx hex

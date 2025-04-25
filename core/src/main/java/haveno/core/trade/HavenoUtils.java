@@ -96,6 +96,7 @@ public class HavenoUtils {
     public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
     public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
+    public static final double MINER_FEE_TOLERANCE_FACTOR = 5.0; // miner fees must be within 5x of each other
 
     // other configuration
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
@@ -649,5 +650,17 @@ public class HavenoUtils {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    public static void verifyMinerFee(BigInteger expected, BigInteger actual) {
+        BigInteger max = expected.max(actual);
+        BigInteger min = expected.min(actual);
+        if (min.compareTo(BigInteger.ZERO) <= 0) {
+            throw new IllegalArgumentException("Miner fees must be greater than zero");
+        }
+        double factor = divide(max, min);
+        if (factor > MINER_FEE_TOLERANCE_FACTOR) {
+            throw new IllegalArgumentException("Miner fees are not within " + MINER_FEE_TOLERANCE_FACTOR + "x of each other. Expected=" + expected + ", actual=" + actual + ", factor=" + factor);
+        }
     }
 }
