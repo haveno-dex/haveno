@@ -849,7 +849,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             log.info("Received AckMessage for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
         } else {
             log.warn("Received AckMessage with error state for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
-            handleError(ackMessage.getErrorMessage());
+            handleError("Your peer had a problem processing your message. Please ensure you and your peer are running the latest version and try again.\n\nError details:\n" + ackMessage.getErrorMessage());
         }
 
         // notify trade listeners
