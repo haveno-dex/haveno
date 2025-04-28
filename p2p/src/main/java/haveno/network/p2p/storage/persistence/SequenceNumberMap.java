@@ -19,8 +19,6 @@ package haveno.network.p2p.storage.persistence;
 
 import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.network.p2p.storage.P2PDataStorage;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,8 +31,6 @@ import java.util.stream.Collectors;
  * Hence this Persistable class.
  */
 public class SequenceNumberMap implements PersistableEnvelope {
-    @Getter
-    @Setter
     private Map<P2PDataStorage.ByteArray, P2PDataStorage.MapValue> map = new ConcurrentHashMap<>();
 
     public SequenceNumberMap() {
@@ -46,20 +42,24 @@ public class SequenceNumberMap implements PersistableEnvelope {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private SequenceNumberMap(Map<P2PDataStorage.ByteArray, P2PDataStorage.MapValue> map) {
-        this.map.putAll(map);
+        synchronized (this.map) {
+            this.map.putAll(map);
+        }
     }
 
     @Override
     public protobuf.PersistableEnvelope toProtoMessage() {
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setSequenceNumberMap(protobuf.SequenceNumberMap.newBuilder()
-                        .addAllSequenceNumberEntries(map.entrySet().stream()
-                                .map(entry -> protobuf.SequenceNumberEntry.newBuilder()
-                                        .setBytes(entry.getKey().toProtoMessage())
-                                        .setMapValue(entry.getValue().toProtoMessage())
-                                        .build())
-                                .collect(Collectors.toList())))
-                .build();
+        synchronized (map) {
+            return protobuf.PersistableEnvelope.newBuilder()
+                    .setSequenceNumberMap(protobuf.SequenceNumberMap.newBuilder()
+                            .addAllSequenceNumberEntries(map.entrySet().stream()
+                                    .map(entry -> protobuf.SequenceNumberEntry.newBuilder()
+                                            .setBytes(entry.getKey().toProtoMessage())
+                                            .setMapValue(entry.getValue().toProtoMessage())
+                                            .build())
+                                    .collect(Collectors.toList())))
+                    .build();
+        }
     }
 
     public static SequenceNumberMap fromProto(protobuf.SequenceNumberMap proto) {
@@ -74,20 +74,40 @@ public class SequenceNumberMap implements PersistableEnvelope {
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public Map<P2PDataStorage.ByteArray, P2PDataStorage.MapValue> getMap() {
+        synchronized (map) {
+            return map;
+        }
+    }
+
+    public void setMap(Map<P2PDataStorage.ByteArray, P2PDataStorage.MapValue> map) {
+        synchronized (this.map) {
+            this.map = map;
+        }
+    }
+
     // Delegates
     public int size() {
-        return map.size();
+        synchronized (map) {
+            return map.size();
+        }
     }
 
     public boolean containsKey(P2PDataStorage.ByteArray key) {
-        return map.containsKey(key);
+        synchronized (map) {
+            return map.containsKey(key);
+        }
     }
 
     public P2PDataStorage.MapValue get(P2PDataStorage.ByteArray key) {
-        return map.get(key);
+        synchronized (map) {
+            return map.get(key);
+        }
     }
 
     public void put(P2PDataStorage.ByteArray key, P2PDataStorage.MapValue value) {
-        map.put(key, value);
+        synchronized (map) {
+            map.put(key, value);
+        }
     }
 }

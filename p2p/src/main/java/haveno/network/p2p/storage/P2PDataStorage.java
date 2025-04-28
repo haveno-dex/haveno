@@ -187,7 +187,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(persisted -> {
-            sequenceNumberMap.setMap(getPurgedSequenceNumberMap(persisted.getMap()));
+            synchronized (persisted.getMap()) {
+                sequenceNumberMap.setMap(getPurgedSequenceNumberMap(persisted.getMap()));
+            }
             completeHandler.run();
         },
                 completeHandler);
@@ -198,7 +200,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     public void readPersistedSync() {
         SequenceNumberMap persisted = persistenceManager.getPersisted();
         if (persisted != null) {
-            sequenceNumberMap.setMap(getPurgedSequenceNumberMap(persisted.getMap()));
+            synchronized (persisted.getMap()) {
+                sequenceNumberMap.setMap(getPurgedSequenceNumberMap(persisted.getMap()));
+            }
         }
     }
 
@@ -641,9 +645,11 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             }
             removeFromMapAndDataStore(toRemoveList);
 
-            if (sequenceNumberMap.size() > this.maxSequenceNumberMapSizeBeforePurge) {
-                sequenceNumberMap.setMap(getPurgedSequenceNumberMap(sequenceNumberMap.getMap()));
-                requestPersistence();
+            synchronized (sequenceNumberMap.getMap()) {
+                if (sequenceNumberMap.size() > this.maxSequenceNumberMapSizeBeforePurge) {
+                    sequenceNumberMap.setMap(getPurgedSequenceNumberMap(sequenceNumberMap.getMap()));
+                    requestPersistence();
+                }
             }
         }
     }
