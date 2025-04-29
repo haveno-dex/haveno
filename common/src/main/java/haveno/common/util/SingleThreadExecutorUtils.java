@@ -19,14 +19,13 @@ package haveno.common.util;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * Utility class for creating single-threaded executors.
+ * Utility class for creating single-threaded executors with virtual threading properties.
  */
 public class SingleThreadExecutorUtils {
     
@@ -41,17 +40,17 @@ public class SingleThreadExecutorUtils {
 
     public static ExecutorService getNonDaemonSingleThreadExecutor(Class<?> aClass) {
         validateClass(aClass);
-        return getSingleThreadExecutor(aClass.getSimpleName(), false);
+        return getSingleThreadExecutor(aClass.getSimpleName());
     }
 
     public static ExecutorService getSingleThreadExecutor(String name) {
         validateName(name);
-        return getSingleThreadExecutor(name, true);
+        return createSingleThreadExecutor(name);
     }
 
     public static ListeningExecutorService getSingleThreadListeningExecutor(String name) {
         validateName(name);
-        return MoreExecutors.listeningDecorator(getSingleThreadExecutor(name));
+        return MoreExecutors.listeningDecorator(createSingleThreadExecutor(name));
     }
 
     public static ExecutorService getSingleThreadExecutor(ThreadFactory threadFactory) {
@@ -59,16 +58,16 @@ public class SingleThreadExecutorUtils {
         return Executors.newSingleThreadExecutor(threadFactory);
     }
 
-    private static ExecutorService getSingleThreadExecutor(String name, boolean isDaemonThread) {
-        ThreadFactory threadFactory = getThreadFactory(name, isDaemonThread);
+    private static ExecutorService createSingleThreadExecutor(String name) {
+        ThreadFactory threadFactory = getThreadFactory(name);
         return Executors.newSingleThreadExecutor(threadFactory);
     }
 
-    private static ThreadFactory getThreadFactory(String name, boolean isDaemonThread) {
-        return new ThreadFactoryBuilder()
-                .setNameFormat(name + "-%d")
-                .setDaemon(isDaemonThread)
-                .build();
+    private static ThreadFactory getThreadFactory(String name) {
+        // Virtual threads do not support the daemon property, so we omit it.
+        return Thread.ofVirtual()
+                .name(name + "-%d")
+                .factory();
     }
 
     private static void validateClass(Class<?> aClass) {
