@@ -55,6 +55,10 @@
     -fx-image: url("../../images/sell_red.png");
 }
 
+#image-xmr-logo {
+    -fx-image: url("../../images/xmr_logo.png");
+}
+
 #image-lock2x {
     -fx-image: url("../../images/lock@2x.png");
 }

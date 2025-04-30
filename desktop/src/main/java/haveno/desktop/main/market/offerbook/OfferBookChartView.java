@@ -65,6 +65,7 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.Tab;
@@ -636,7 +637,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
         AutoTooltipButton button = new AutoTooltipButton();
         ImageView iconView = new ImageView();
-        iconView.setId(isSellOffer ? "image-buy-white" : "image-sell-white");
+        iconView.setId("image-xmr-logo");
+        iconView.setFitHeight(24);
+        iconView.setFitWidth(24);
+        iconView.setSmooth(true);
+        button.setContentDisplay(ContentDisplay.RIGHT);
         button.setGraphic(iconView);
         button.setGraphicTextGap(10);
         button.updateText(isSellOffer ? Res.get("market.offerBook.buy") : Res.get("market.offerBook.sell"));
