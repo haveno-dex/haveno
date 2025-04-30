@@ -707,7 +707,7 @@ tree-table-view:focused {
 .nav-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 11 20;
+    -fx-padding: 11 15;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
