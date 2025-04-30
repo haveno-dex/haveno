@@ -19,11 +19,11 @@
 
     /* haveno main colors */
     -bs-color-primary: #0b65da;
-    -bs-color-primary-dark: #0c59bd;
+    -bs-color-primary-dark: white;
     -bs-text-color: #dadada;
-    -bs-background-color: #29292a;
+    -bs-background-color: black;
     -bs-background-gray: #2B2B2B;
-    -bs-content-background-gray: #1F1F1F;
+    -bs-content-background-gray: black;
 
     /* fifty shades of gray */
     -bs-color-gray-13: #bbb;
@@ -70,8 +70,8 @@
     -bs-rd-nav-border: #535353;
     -bs-rd-nav-primary-border: rgba(0, 0, 0, 0);
     -bs-rd-nav-border-color: rgba(255, 255, 255, 0.1);
-    -bs-rd-nav-background: #141414;
-    -bs-rd-nav-primary-background: rgba(255, 255, 255, 0.015);
+    -bs-rd-nav-background: black;
+    -bs-rd-nav-primary-background: black;
     -bs-rd-nav-selected: #fff;
     -bs-rd-nav-deselected: rgba(255, 255, 255, 0.45);
     -bs-rd-nav-button-hover: rgba(255, 255, 255, 0.03);
@@ -213,7 +213,7 @@
 }
 
 .jfx-tab-pane .tab-header-background {
-    -fx-background-color: derive(-bs-color-gray-background, -20%);
+    -fx-background-color: -bs-rd-nav-background;
 }
 
 /* text field */
