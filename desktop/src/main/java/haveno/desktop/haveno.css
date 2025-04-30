@@ -722,8 +722,14 @@ tree-table-view:focused {
 
 .nav-button:selected {
     -fx-background-color: -bs-background-color;
-    -fx-border-radius: 4;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
+}
+
+.nav-button:hover {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .nav-button:hover .text {
