@@ -19,7 +19,7 @@
 
     /* haveno main colors */
     -bs-color-primary: #0b65da;
-    -bs-color-primary-dark: white;
+    -bs-color-primary-dark: #0c59bd;
     -bs-text-color: #dadada;
     -bs-background-color: black;
     -bs-background-gray: #2B2B2B;
@@ -463,7 +463,7 @@
 }
 
 .nav-button:selected {
-    -fx-background-color: derive(-bs-color-primary-dark, -10%);
+    -fx-background-color: derive(white, -10%);
     -fx-effect: null;
 }
 
@@ -472,7 +472,7 @@
 }
 
 .nav-primary .nav-button:selected {
-    -fx-background-color: derive(-bs-color-primary-dark, -5%);
+    -fx-background-color: derive(white, -5%);
 }
 .table-view {
     -fx-border-color: transparent;
