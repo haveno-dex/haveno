@@ -9,7 +9,7 @@
     -fx-text-fill: #dadada;
 
     /* javafx elements */
-    -fx-accent: white;
+    -fx-accent: #0b65da;
     -fx-box-border: transparent;
     -fx-focus-color: #0c59bd;
     -fx-faint-focus-color: #0c59bd;
@@ -207,6 +207,18 @@
 /* tab pane */
 .jfx-tab-pane .tab-content-area {
     -fx-background-color: -bs-tab-content-area;
+}
+
+.jfx-tab-pane .headers-region .tab-selected-line {
+    -fx-background-color: white;
+}
+
+.jfx-tab-pane .headers-region .tab:selected .tab-container .tab-label {
+    -fx-text-fill: white;
+}
+
+.jfx-tab-pane .headers-region > .tab > .jfx-rippler {
+    -jfx-rippler-fill: white;
 }
 
 .jfx-tab-pane .viewport {
