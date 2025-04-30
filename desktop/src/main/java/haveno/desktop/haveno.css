@@ -727,9 +727,11 @@ tree-table-view:focused {
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
 }
 
+/**
 .nav-button:hover .text {
     -fx-fill: -bs-rd-nav-hover-text;
 }
+*/
 
 .nav-button:selected .text {
     -fx-fill: -bs-rd-nav-selected;
