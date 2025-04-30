@@ -150,7 +150,8 @@
     -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-font-size: 0.923em;
     -fx-font-weight: normal;
-    -fx-background-radius: 2px;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-pref-height: 32;
     -fx-min-height: -fx-pref-height;
     -fx-padding: 0 40 0 40;
