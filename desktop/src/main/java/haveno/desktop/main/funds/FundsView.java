@@ -55,9 +55,9 @@ public class FundsView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
-        depositTab.setText(Res.get("funds.tab.deposit").toUpperCase());
-        withdrawalTab.setText(Res.get("funds.tab.withdrawal").toUpperCase());
-        transactionsTab.setText(Res.get("funds.tab.transactions").toUpperCase());
+        depositTab.setText(Res.get("funds.tab.deposit"));
+        withdrawalTab.setText(Res.get("funds.tab.withdrawal"));
+        transactionsTab.setText(Res.get("funds.tab.transactions"));
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(FundsView.class) == 1)
