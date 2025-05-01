@@ -757,15 +757,14 @@ tree-table-view:focused {
 .nav-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 11 5;
-    -fx-min-width: 70;
+    -fx-padding: 11 15;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
 
 .nav-button .text {
-    -fx-font-size: .9em;
-    -fx-font-weight: medium;
+    -fx-font-size: 0.769em;
+    -fx-font-weight: bold;
     -fx-fill: -bs-rd-nav-deselected;
 }
 
