@@ -220,10 +220,14 @@
 
 .jfx-combo-box {
     -jfx-focus-color: -bs-color-primary;
-    -jfx-unfocus-color: -bs-color-gray-line;
     -fx-background-color: -bs-background-color;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
+    -fx-border-color: -bs-background-gray;
+}
+
+.jfx-combo-box, .jfx-text-field, .jfx-text-area {
+    -jfx-unfocus-color: transparent;
 }
 
 .jfx-combo-box .arrow-button {
@@ -238,7 +242,7 @@
 
 .jfx-combo-box > .arrow-button > .arrow {
     -fx-background-color: null;
-    -fx-border-color: -jfx-unfocus-color;
+    -fx-border-color: -bs-color-gray-line;
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
 }
 
@@ -519,7 +523,6 @@ tree-table-view:focused {
 
 .jfx-text-area {
     -jfx-focus-color: -bs-color-primary;
-    -jfx-unfocus-color: -bs-color-gray-line;
     -fx-background-color: -bs-background-color;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
     -fx-background-radius: 10;
