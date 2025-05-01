@@ -1265,6 +1265,7 @@ public class FormBuilder {
 
         final JFXComboBox<T> comboBox = new JFXComboBox<>();
         comboBox.setPromptText(prompt);
+        comboBox.setPadding(new Insets(top, 0, 0, 12));
 
         vBox.getChildren().addAll(label, comboBox);
 
@@ -1399,7 +1400,7 @@ public class FormBuilder {
 
         GridPane.setRowIndex(comboBox, rowIndex);
         GridPane.setColumnIndex(comboBox, 0);
-        comboBox.setPadding(new Insets(0, 10, 0, 10));
+        comboBox.setPadding(new Insets(0, 0, 0, 12));
         GridPane.setMargin(comboBox, new Insets(top + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
         gridPane.getChildren().add(comboBox);
 
