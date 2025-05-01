@@ -384,18 +384,6 @@
     -fx-border-width: 0;
 }
 
-.jfx-text-field {
-    -fx-background-radius: 4;
-}
-
-.jfx-text-field > .input-line {
-    -fx-translate-x: 0;
-}
-
-.jfx-text-field > .input-focused-line {
-    -fx-translate-x: 0;
-}
-
 .jfx-text-field-top-label {
     -fx-text-fill: -bs-color-gray-dim;
 }
