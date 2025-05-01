@@ -156,6 +156,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(tableView);
+
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         groupIdColumn.setGraphic(new AutoTooltipLabel(ColumnNames.GROUP_ID.toString()));
         paymentMethodColumn.setGraphic(new AutoTooltipLabel(ColumnNames.PAYMENT_METHOD.toString()));

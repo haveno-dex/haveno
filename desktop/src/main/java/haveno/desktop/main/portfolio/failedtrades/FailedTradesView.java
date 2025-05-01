@@ -115,6 +115,8 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(tableView);
+
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amount")));

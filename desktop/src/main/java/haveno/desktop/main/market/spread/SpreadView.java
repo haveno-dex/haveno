@@ -65,6 +65,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
     @Override
     public void initialize() {
         tableView = new TableView<>();
+        GUIUtil.applyRoundedArc(tableView);
 
         int gridRow = 0;
         GridPane.setRowIndex(tableView, gridRow);

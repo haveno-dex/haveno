@@ -730,6 +730,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
     private void createTable() {
         tableView = new TableView<>();
+        GUIUtil.applyRoundedArc(tableView);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         // date
