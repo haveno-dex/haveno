@@ -220,7 +220,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                     labelTab.setClosable(false);
                     Label offerLabel = new Label(getOfferLabel()); // use overlay for label for custom formatting
                     offerLabel.getStyleClass().add("titled-group-bg-label");
-                    offerLabel.setStyle("-fx-font-size: 1.2em;");
+                    offerLabel.setStyle("-fx-font-size: 1.1em;");
                     labelTab.setGraphic(offerLabel);
 
                     fiatOfferBookTab = new Tab(Res.get("shared.fiat"));
