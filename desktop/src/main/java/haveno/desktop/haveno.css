@@ -342,9 +342,9 @@ tree-table-view:focused {
 .jfx-text-field {
     -jfx-focus-color: -bs-color-primary;
     -fx-background-color: -bs-background-color;
+    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
 }
 
 .jfx-text-field > .input-line {
@@ -455,6 +455,8 @@ tree-table-view:focused {
     -fx-background-color: -bs-color-gray-1;
     -fx-border-width: 0;
     -fx-pref-width: 300;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .input-with-border-readonly .text-field {
