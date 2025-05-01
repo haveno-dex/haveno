@@ -2181,6 +2181,7 @@ public class FormBuilder {
 
         Label label = new AutoTooltipLabel(Res.getBaseCurrencyCode());
         label.getStyleClass().add("input-label");
+        HBox.setMargin(label, new Insets(0, 8, 0, 0));
 
         HBox box = new HBox();
         HBox.setHgrow(input, Priority.ALWAYS);
@@ -2197,6 +2198,7 @@ public class FormBuilder {
 
         Label label = new AutoTooltipLabel(Res.getBaseCurrencyCode());
         label.getStyleClass().add("input-label");
+        HBox.setMargin(label, new Insets(0, 8, 0, 0));
 
         HBox box = new HBox();
         HBox.setHgrow(infoInputTextField, Priority.ALWAYS);
