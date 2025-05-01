@@ -73,7 +73,7 @@
     -bs-rd-nav-background: black;
     -bs-rd-nav-primary-background: black;
     -bs-rd-nav-selected: black;
-    -bs-rd-nav-deselected: rgba(255, 255, 255, 0.45);
+    -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
     -bs-rd-nav-button-hover: rgba(255, 255, 255, 0.03);
     -bs-rd-nav-hover-text: black;
 
@@ -463,7 +463,7 @@
 }
 
 .nav-button:selected {
-    -fx-background-color: derive(white, -10%);
+    -fx-background-color: white;
     -fx-effect: null;
 }
 
