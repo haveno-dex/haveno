@@ -222,6 +222,13 @@
     -jfx-focus-color: -bs-color-primary;
     -jfx-unfocus-color: -bs-color-gray-line;
     -fx-background-color: -bs-background-color;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.jfx-combo-box .arrow-button {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .jfx-combo-box > .list-cell {
@@ -233,6 +240,10 @@
     -fx-background-color: null;
     -fx-border-color: -jfx-unfocus-color;
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-radius: 8;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
