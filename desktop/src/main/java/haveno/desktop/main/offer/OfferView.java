@@ -220,14 +220,14 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                     labelTab.setClosable(false);
                     Label offerLabel = new Label(getOfferLabel()); // use overlay for label for custom formatting
                     offerLabel.getStyleClass().add("titled-group-bg-label");
-                    offerLabel.setStyle("-fx-font-size: 1.4em;");
+                    offerLabel.setStyle("-fx-font-size: 1.2em;");
                     labelTab.setGraphic(offerLabel);
 
-                    fiatOfferBookTab = new Tab(Res.get("shared.fiat").toUpperCase());
+                    fiatOfferBookTab = new Tab(Res.get("shared.fiat"));
                     fiatOfferBookTab.setClosable(false);
-                    cryptoOfferBookTab = new Tab(Res.get("shared.crypto").toUpperCase());
+                    cryptoOfferBookTab = new Tab(Res.get("shared.crypto"));
                     cryptoOfferBookTab.setClosable(false);
-                    otherOfferBookTab = new Tab(Res.get("shared.other").toUpperCase());
+                    otherOfferBookTab = new Tab(Res.get("shared.other"));
                     otherOfferBookTab.setClosable(false);
                     tabPane.getTabs().addAll(labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab);
                 }

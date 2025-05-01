@@ -139,9 +139,9 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         // Has to be called before loadView
         updateAgentTabs();
 
-        tradersMediationDisputesTab.setText(Res.get("support.tab.mediation.support").toUpperCase());
-        tradersRefundDisputesTab.setText(Res.get("support.tab.refund.support").toUpperCase());
-        tradersArbitrationDisputesTab.setText(Res.get("support.tab.arbitration.support").toUpperCase());
+        tradersMediationDisputesTab.setText(Res.get("support.tab.mediation.support"));
+        tradersRefundDisputesTab.setText(Res.get("support.tab.refund.support"));
+        tradersArbitrationDisputesTab.setText(Res.get("support.tab.arbitration.support"));
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
