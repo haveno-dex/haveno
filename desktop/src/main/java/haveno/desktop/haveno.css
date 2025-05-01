@@ -482,6 +482,8 @@ tree-table-view:focused {
     -jfx-unfocus-color: -bs-color-gray-line;
     -fx-background-color: -bs-background-color;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
 }
 
 .jfx-text-area:readonly {
