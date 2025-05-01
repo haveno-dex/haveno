@@ -113,13 +113,13 @@
 
     -bs-toggle-selected: #25b135;
     -bs-warning: #db6300;
-    -bs-buy: #006600;
-    -bs-buy-focus: black;
-    -bs-buy-hover: #237b2d;
+    -bs-buy: rgb(80, 180, 90);
+    -bs-buy-focus: derive(-bs-buy, -50%);
+    -bs-buy-hover: derive(-bs-buy, -10%);
     -bs-buy-transparent: rgba(46, 163, 60, 0.3);
-    -bs-sell: #660000;
-    -bs-sell-focus: #090202;
-    -bs-sell-hover: #b42522;
+    -bs-sell: rgb(213, 63, 46);
+    -bs-sell-focus: derive(-bs-sell, -50%);
+    -bs-sell-hover: derive(-bs-sell, -10%);
     -bs-sell-transparent: rgba(216, 52, 49, 0.3);
     -bs-volume-transparent: rgba(37, 177, 54, 0.5);
     -bs-candle-stick-average-line: rgba(21, 188, 29, 0.8);

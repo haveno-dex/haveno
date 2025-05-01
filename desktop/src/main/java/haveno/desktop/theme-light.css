@@ -76,11 +76,11 @@
     -bs-toggle-selected: #7b7b7b;
     -bs-rd-tooltip-truncated: #0a0a0a;
     -bs-warning: #ff8a2b;
-    -bs-buy: #3ea34a;
+    -bs-buy: rgb(80, 180, 90);
     -bs-buy-focus: derive(-bs-buy, -50%);
     -bs-buy-hover: derive(-bs-buy, -10%);
     -bs-buy-transparent: rgba(62, 163, 74, 0.3);
-    -bs-sell: #d73030;
+    -bs-sell: rgb(213, 63, 46);
     -bs-sell-focus: derive(-bs-sell, -50%);
     -bs-sell-hover: derive(-bs-sell, -10%);
     -bs-sell-transparent: rgba(215, 48, 48, 0.3);
