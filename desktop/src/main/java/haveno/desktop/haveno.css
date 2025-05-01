@@ -381,25 +381,32 @@ tree-table-view:focused {
 
 .input-with-border {
     -fx-background-color: -bs-background-color;
-    -fx-border-width: 1;
     -fx-border-color: -bs-background-gray;
-    -fx-border-radius: 3;
     -fx-pref-height: 43;
     -fx-pref-width: 310;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 1);
+    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 0);
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-alignment: center;
 }
 
 .input-with-border .text-field {
     -fx-alignment: center-right;
-    -fx-pref-height: 43;
+    -fx-pref-height: 44;
     -fx-font-size: 1.385em;
+    -fx-background-radius: 999 0 0 999;
+    -fx-border-radius: 999 0 0 999;
+    -fx-background-color: -bs-background-color;
 }
 
 .input-with-border > .input-label {
     -fx-font-size: 0.692em;
-    -fx-min-width: 60;
-    -fx-padding: 16;
+    -fx-min-width: 45;
+    -fx-padding: 8;
     -fx-alignment: center;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-background-color: derive(-bs-background-color, 15%);
 }
 
 .input-with-border .icon {
