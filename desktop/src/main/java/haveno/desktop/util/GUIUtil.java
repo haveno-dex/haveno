@@ -84,6 +84,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -1032,5 +1033,16 @@ public class GUIUtil {
         ColumnConstraints columnConstraints2 = new ColumnConstraints();
         columnConstraints2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
+    }
+
+    public static void applyRoundedArc(TableView<?> tableView) {
+        Rectangle clip = new Rectangle();
+        clip.setArcWidth(Layout.ROUNDED_ARC);
+        clip.setArcHeight(Layout.ROUNDED_ARC);
+        tableView.setClip(clip);
+        tableView.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
+            clip.setWidth(newVal.getWidth());
+            clip.setHeight(newVal.getHeight());
+        });
     }
 }

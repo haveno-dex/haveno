@@ -144,6 +144,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(tableView);
 
         paymentLabelString = Res.get("funds.deposit.fundHavenoWallet");
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));

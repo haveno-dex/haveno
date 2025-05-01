@@ -427,6 +427,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {
         TableView<OfferListItem> tableView = new TableView<>();
+        GUIUtil.applyRoundedArc(tableView);
         tableView.setMinHeight(initialOfferTableViewHeight);
         tableView.setPrefHeight(initialOfferTableViewHeight);
         tableView.setMinWidth(480);

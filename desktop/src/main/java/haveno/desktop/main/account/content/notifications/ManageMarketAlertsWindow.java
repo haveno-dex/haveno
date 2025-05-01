@@ -26,6 +26,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
@@ -73,6 +74,7 @@ public class ManageMarketAlertsWindow extends Overlay<ManageMarketAlertsWindow> 
 
     private void addContent() {
         TableView<MarketAlertFilter> tableView = new TableView<>();
+        GUIUtil.applyRoundedArc(tableView);
         GridPane.setRowIndex(tableView, ++rowIndex);
         GridPane.setColumnSpan(tableView, 2);
         GridPane.setMargin(tableView, new Insets(10, 0, 0, 0));

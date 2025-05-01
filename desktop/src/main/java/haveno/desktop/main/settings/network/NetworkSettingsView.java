@@ -149,6 +149,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(p2pPeersTableView);
+        GUIUtil.applyRoundedArc(moneroConnectionsTableView);
+
         btcHeader.setText(Res.get("settings.net.xmrHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));

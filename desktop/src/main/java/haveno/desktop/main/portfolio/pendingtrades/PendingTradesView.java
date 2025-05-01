@@ -55,6 +55,7 @@ import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -171,6 +172,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(tableView);
+
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amount")));

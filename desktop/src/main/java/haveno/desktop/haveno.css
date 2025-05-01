@@ -1088,11 +1088,23 @@ textfield */
 }
 
 .table-view .filler {
-    -fx-background-color: -bs-color-gray-0;
+    -fx-background-color: transparent;
 }
 
 .table-view {
     -fx-control-inner-background-alt: -fx-control-inner-background;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 0;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
 }
 
 .table-view .column-header .label {
@@ -1103,12 +1115,11 @@ textfield */
 }
 
 .table-view .column-header {
-    -fx-background-color: -bs-color-gray-0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
     -fx-padding: 0;
-}
-
-.table-view .focus {
-    -fx-alignment: center-left;
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-radius: 10 10 0 0;
 }
 
 .table-view .text {
@@ -1118,17 +1129,6 @@ textfield */
 /* horizontal scrollbars are never needed and are flickering at scaling so lets turn them off */
 .table-view > .scroll-bar:horizontal {
     -fx-opacity: 0;
-}
-
-.table-view:focused {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-padding: 1;
-}
-
-.table-view:focused .table-row-cell:focused {
-    -fx-background-color: -fx-table-cell-border-color, -fx-background;
-    -fx-background-insets: 0, 0 0 1 0;
 }
 
 .offer-table .table-row-cell {

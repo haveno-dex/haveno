@@ -228,6 +228,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         root.getChildren().add(offerToolsBox);
 
         tableView = new TableView<>();
+        GUIUtil.applyRoundedArc(tableView);
 
         GridPane.setRowIndex(tableView, ++gridRow);
         GridPane.setColumnIndex(tableView, 0);
