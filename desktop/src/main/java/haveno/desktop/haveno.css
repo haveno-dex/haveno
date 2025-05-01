@@ -242,6 +242,32 @@
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
 }
 
+.combo-box-popup {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 5;
+}
+
+.combo-box-popup .scroll-pane {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 5;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 5;
+}
+
+/* Rounds the first and last list cells to create full round illusion */
+.combo-box-popup .list-cell:first-child {
+    -fx-background-radius: 10 10 0 0;
+}
+.combo-box-popup .list-cell:last-child {
+    -fx-background-radius: 0 0 10 10;
+}
+
 .combo-box-popup .list-cell:hover {
     -fx-background-radius: 8;
 }
