@@ -1789,6 +1789,8 @@ textfield */
     -fx-effect: null;
     -fx-effect: dropshadow(gaussian, -bs-color-gray-10, 10, 0, 0, 0);
     -fx-background-insets: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 /********************************************************************************************************************
