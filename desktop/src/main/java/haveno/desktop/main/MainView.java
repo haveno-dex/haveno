@@ -172,8 +172,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
         ToggleButton supportButton = new NavButton(SupportView.class, Res.get("mainView.menu.support"));
-        ToggleButton settingsButton = new NavButton(SettingsView.class, Res.get("mainView.menu.settings"));
         ToggleButton accountButton = new NavButton(AccountView.class, Res.get("mainView.menu.account"));
+        ToggleButton settingsButton = new NavButton(SettingsView.class, Res.get("mainView.menu.settings"));
 
         JFXBadge portfolioButtonWithBadge = new JFXBadge(portfolioButton);
         JFXBadge supportButtonWithBadge = new JFXBadge(supportButton);
@@ -199,10 +199,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                         fundsButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT6, keyEvent)) {
                         supportButton.fire();
-                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT7, keyEvent)) {
-                        settingsButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT8, keyEvent)) {
                         accountButton.fire();
+                    } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT7, keyEvent)) {
+                        settingsButton.fire();
                     }
                 });
             }
@@ -305,8 +305,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         primaryNav.getStyleClass().add("nav-primary");
         HBox.setHgrow(primaryNav, Priority.SOMETIMES);
 
-        HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), settingsButtonWithBadge,
-                getNavigationSpacer(), accountButton, getNavigationSpacer());
+        HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), accountButton,
+                getNavigationSpacer(), settingsButtonWithBadge, getNavigationSpacer());
         secondaryNav.getStyleClass().add("nav-secondary");
         HBox.setHgrow(secondaryNav, Priority.SOMETIMES);
 
