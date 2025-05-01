@@ -219,7 +219,7 @@
 }
 
 .jfx-combo-box {
-    -jfx-focus-color: -bs-color-primary;
+    -jfx-focus-color: transparent;
     -fx-background-color: -bs-background-color;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
