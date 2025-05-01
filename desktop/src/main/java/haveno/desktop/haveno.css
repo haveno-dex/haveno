@@ -282,6 +282,8 @@
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background: -fx-selection-bar;
     -fx-background-color: -fx-selection-bar;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
