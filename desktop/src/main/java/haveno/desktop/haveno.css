@@ -247,18 +247,21 @@
 }
 
 .combo-box-popup {
+    -fx-background-color: -bs-background-color;
     -fx-background-radius: 10;
     -fx-border-radius: 10;
     -fx-padding: 5;
 }
 
 .combo-box-popup .scroll-pane {
+    -fx-background-color: -bs-background-color;
     -fx-background-radius: 10;
     -fx-border-radius: 10;
     -fx-padding: 5;
 }
 
 .combo-box-popup > .list-view {
+    -fx-background-color: -bs-background-color;
     -fx-background-radius: 10;
     -fx-border-radius: 10;
     -fx-padding: 5;
