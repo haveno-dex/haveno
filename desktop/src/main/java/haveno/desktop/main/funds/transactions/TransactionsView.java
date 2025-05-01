@@ -127,6 +127,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(tableView);
+
         dateColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.dateTime")));
         detailsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.details")));
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));

@@ -311,6 +311,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         VBox.setVgrow(filterBox, Priority.NEVER);
 
         tableView = new TableView<>();
+        GUIUtil.applyRoundedArc(tableView);
         VBox.setVgrow(tableView, Priority.SOMETIMES);
         tableView.setMinHeight(150);
 

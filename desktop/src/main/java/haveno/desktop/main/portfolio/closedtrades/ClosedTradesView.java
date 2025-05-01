@@ -156,6 +156,8 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
     @Override
     public void initialize() {
+        GUIUtil.applyRoundedArc(tableView);
+
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE.toString().replace(" BTC", "")));
         buyerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.BUYER_SEC.toString()));
