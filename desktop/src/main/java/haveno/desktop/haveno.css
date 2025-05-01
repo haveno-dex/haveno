@@ -752,6 +752,10 @@ tree-table-view:focused {
     -fx-border-insets: 0 0 0 1;
 }
 
+.nav-price-balance .jfx-combo-box {
+    -fx-border-color: transparent;
+}
+
 .nav-price-balance .jfx-combo-box > .input-line {
     -fx-pref-height: 0px;
 }
