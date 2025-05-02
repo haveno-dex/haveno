@@ -74,7 +74,8 @@
     -bs-rd-nav-primary-background: black;
     -bs-rd-nav-selected: black;
     -bs-rd-nav-deselected: rgba(255, 255, 255, .65);
-    -bs-rd-nav-button-hover: rgba(255, 255, 255, 0.03);
+    -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
+    -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
     -bs-rd-nav-hover-text: black;
 
     -bs-content-pane-bg-top: #212121;
@@ -465,10 +466,6 @@
 .nav-button:selected {
     -fx-background-color: white;
     -fx-effect: null;
-}
-
-.nav-button:hover {
-    -fx-background-color: -bs-rd-nav-button-hover;
 }
 
 .nav-primary .nav-button:selected {
