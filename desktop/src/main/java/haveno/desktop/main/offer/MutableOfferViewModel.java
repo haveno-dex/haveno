@@ -727,7 +727,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             new Popup().warning(Res.get("shared.notEnoughFunds",
                             HavenoUtils.formatXmr(dataModel.totalToPayAsProperty().get(), true),
                             HavenoUtils.formatXmr(dataModel.getTotalBalance(), true)))
-                    .actionButtonTextWithGoTo("navigation.funds.depositFunds")
+                    .actionButtonTextWithGoTo("funds.tab.deposit")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();
         }
@@ -1056,7 +1056,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                         FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent())))
                 .actionButtonText(Res.get("createOffer.changePrice"))
                 .onAction(popup::hide)
-                .closeButtonTextWithGoTo("navigation.settings.preferences")
+                .closeButtonTextWithGoTo("settings.tab.preferences")
                 .onClose(() -> navigation.navigateTo(MainView.class, SettingsView.class, PreferencesView.class))
                 .show();
     }

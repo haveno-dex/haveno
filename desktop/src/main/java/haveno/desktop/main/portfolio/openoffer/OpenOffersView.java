@@ -472,8 +472,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
                     String key = "WithdrawFundsAfterRemoveOfferInfo";
                     if (DontShowAgainLookup.showAgain(key)) {
-                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("navigation.funds.availableForWithdrawal")))
-                                .actionButtonTextWithGoTo("navigation.funds.availableForWithdrawal")
+                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("funds.tab.withdrawal")))
+                                .actionButtonTextWithGoTo("funds.tab.withdrawal")
                                 .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class))
                                 .dontShowAgainId(key)
                                 .show();

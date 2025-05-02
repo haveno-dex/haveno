@@ -308,7 +308,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         if (!result) {
             new Popup().headLine(Res.get("popup.warning.noTradingAccountSetup.headline"))
                     .instruction(Res.get("popup.warning.noTradingAccountSetup.msg"))
-                    .actionButtonTextWithGoTo("navigation.account")
+                    .actionButtonTextWithGoTo("mainView.menu.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
                         navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
@@ -749,7 +749,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                     UserThread.runAfter(() -> new Popup().headLine(Res.get("createOffer.success.headline"))
                                     .feedback(Res.get("createOffer.success.info"))
                                     .dontShowAgainId(key)
-                                    .actionButtonTextWithGoTo("navigation.portfolio.myOpenOffers")
+                                    .actionButtonTextWithGoTo("portfolio.tab.openOffers")
                                     .onAction(this::closeAndGoToOpenOffers)
                                     .onClose(this::closeAndGoToOpenOffers)
                                     .show(),

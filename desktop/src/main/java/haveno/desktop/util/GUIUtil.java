@@ -674,7 +674,7 @@ public class GUIUtil {
         String currencyName = Config.baseCurrencyNetwork().getCurrencyName();
         new Popup().information(Res.get("payment.fasterPayments.newRequirements.info", currencyName))
                 .width(900)
-                .actionButtonTextWithGoTo("navigation.account")
+                .actionButtonTextWithGoTo("mainView.menu.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
                     navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
@@ -743,7 +743,7 @@ public class GUIUtil {
         if (user.currentPaymentAccountProperty().get() == null) {
             new Popup().headLine(Res.get("popup.warning.noTradingAccountSetup.headline"))
                     .instruction(Res.get("popup.warning.noTradingAccountSetup.msg"))
-                    .actionButtonTextWithGoTo("navigation.account")
+                    .actionButtonTextWithGoTo("mainView.menu.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
                         navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);

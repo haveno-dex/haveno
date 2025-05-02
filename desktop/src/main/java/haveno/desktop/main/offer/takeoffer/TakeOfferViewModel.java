@@ -256,7 +256,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             new Popup().warning(Res.get("shared.notEnoughFunds",
                     HavenoUtils.formatXmr(dataModel.getTotalToPay().get(), true),
                     HavenoUtils.formatXmr(dataModel.getTotalAvailableBalance(), true)))
-                    .actionButtonTextWithGoTo("navigation.funds.depositFunds")
+                    .actionButtonTextWithGoTo("funds.tab.deposit")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();
             return false;
