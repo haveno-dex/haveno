@@ -1307,7 +1307,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button .jfx-rippler {
-    -jfx-rippler-fill: -fx-accent;
+    -jfx-rippler-fill: none;
 }
 
 .tab:disabled .jfx-rippler {
@@ -1360,7 +1360,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region > .tab > .jfx-rippler {
-    -jfx-rippler-fill: -fx-accent;
+    -jfx-rippler-fill: none;
 }
 
 .jfx-tab-pane .headers-region .tab:closable {

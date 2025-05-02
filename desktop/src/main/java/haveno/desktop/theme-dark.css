@@ -218,7 +218,7 @@
 }
 
 .jfx-tab-pane .headers-region > .tab > .jfx-rippler {
-    -jfx-rippler-fill: white;
+    -jfx-rippler-fill: none;
 }
 
 .jfx-tab-pane .viewport {
