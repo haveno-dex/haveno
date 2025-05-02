@@ -67,6 +67,7 @@ import haveno.network.p2p.P2PService;
 import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
@@ -79,6 +80,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -431,32 +433,43 @@ public class GUIUtil {
 
                     HBox box = new HBox();
                     box.setSpacing(20);
-                    Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
-                    currencyType.getStyleClass().add("currency-label-small");
+                    Label label = new AutoTooltipLabel(
+                        CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
+                    label.getStyleClass().add("currency-label-small");
                     Label currency = new AutoTooltipLabel(item.getCode());
                     currency.getStyleClass().add("currency-label");
                     Label offers = new AutoTooltipLabel(item.getName());
                     offers.getStyleClass().add("currency-label");
 
-                    box.getChildren().addAll(currencyType, currency, offers);
-
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
-                            currencyType.setText(Res.get("shared.all"));
+                            label.setText(Res.get("shared.all"));
                             currency.setText(Res.get("list.currency.showAll"));
                             break;
                         case GUIUtil.EDIT_FLAG:
-                            currencyType.setText(Res.get("shared.edit"));
+                            label.setText(Res.get("shared.edit"));
                             currency.setText(Res.get("list.currency.editList"));
                             break;
                         default:
+
+                            // use icons for crypto
+                            if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                                ImageView iconView = new ImageView();
+                                iconView.setId("image-" + item.getCode().toLowerCase() + "-logo");
+                                iconView.setFitHeight(24);
+                                iconView.setFitWidth(24);
+                                iconView.setSmooth(true);
+                                label.setText("");
+                                label.setGraphic(iconView);
+                            }
                             offerCountOptional.ifPresent(numOffer -> offers.setText(offers.getText() + " (" + numOffer + " " +
                                     (numOffer == 1 ? postFixSingle : postFixMulti) + ")"));
                     }
+
+                    box.getChildren().addAll(label, currency, offers);
 
                     setGraphic(box);
 

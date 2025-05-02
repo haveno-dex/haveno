@@ -55,10 +55,6 @@
     -fx-image: url("../../images/sell_red.png");
 }
 
-#image-xmr-logo {
-    -fx-image: url("../../images/xmr_logo.png");
-}
-
 #image-lock2x {
     -fx-image: url("../../images/lock@2x.png");
 }
@@ -303,4 +299,43 @@
 
 #image-new-trade-protocol-screenshot {
     -fx-image: url("../../images/new_trade_protocol_screenshot.png");
+}
+
+/**
+ * Crypto logos.
+ */
+ #image-btc-logo {
+    -fx-image: url("../../images/btc_logo.png");
+}
+
+#image-bch-logo {
+    -fx-image: url("../../images/bch_logo.png");
+}
+
+#image-dai-erc20-logo {
+    -fx-image: url("../../images/dai-erc20_logo.png");
+}
+
+#image-eth-logo {
+    -fx-image: url("../../images/eth_logo.png");
+}
+
+#image-ltc-logo {
+    -fx-image: url("../../images/ltc_logo.png");
+}
+
+#image-usdc-erc20-logo {
+    -fx-image: url("../../images/usdc-erc20_logo.png");
+}
+
+#image-usdt-erc20-logo {
+    -fx-image: url("../../images/usdt-erc20_logo.png");
+}
+
+#image-usdt-trc20-logo {
+    -fx-image: url("../../images/usdt-trc20_logo.png");
+}
+
+#image-xmr-logo {
+    -fx-image: url("../../images/xmr_logo.png");
 }
