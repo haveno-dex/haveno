@@ -2088,7 +2088,6 @@ textfield */
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 0;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
     -fx-background-radius: 15;
@@ -2099,11 +2098,10 @@ textfield */
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 0;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 0 0 15px 15px;
+    -fx-border-radius: 0 0 15px 15px;
 }
 
 .notification-popup-headline, peer-info-popup-headline {
