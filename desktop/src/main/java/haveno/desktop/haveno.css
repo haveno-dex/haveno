@@ -248,22 +248,22 @@
 
 .combo-box-popup {
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
 .combo-box-popup .scroll-pane {
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
 .combo-box-popup > .list-view {
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
@@ -282,8 +282,8 @@
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background: -fx-selection-bar;
     -fx-background-color: -fx-selection-bar;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
@@ -530,8 +530,8 @@ tree-table-view:focused {
     -jfx-focus-color: -bs-color-primary;
     -fx-background-color: -bs-background-color;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .jfx-text-area:readonly {
@@ -1097,16 +1097,16 @@ textfield */
     -fx-control-inner-background-alt: -fx-control-inner-background;
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
     -fx-padding: 0;
 }
 
 .table-view .column-header-background {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .table-view .column-header .label {
