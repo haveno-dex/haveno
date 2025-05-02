@@ -631,7 +631,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
                 UserThread.runAfter(() -> new Popup().warning(newValue + "\n\n" +
                                 Res.get("takeOffer.alreadyPaidInFunds"))
-                        .actionButtonTextWithGoTo("navigation.funds.availableForWithdrawal")
+                        .actionButtonTextWithGoTo("funds.tab.withdrawal")
                         .onAction(() -> {
                             errorPopupDisplayed.set(true);
                             model.resetOfferWarning();
@@ -693,7 +693,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 if (DontShowAgainLookup.showAgain(key)) {
                     UserThread.runAfter(() -> new Popup().headLine(Res.get("takeOffer.success.headline"))
                             .feedback(Res.get("takeOffer.success.info"))
-                            .actionButtonTextWithGoTo("navigation.portfolio.pending")
+                            .actionButtonTextWithGoTo("portfolio.tab.pendingTrades")
                             .dontShowAgainId(key)
                             .onAction(() -> {
                                 UserThread.runAfter(
