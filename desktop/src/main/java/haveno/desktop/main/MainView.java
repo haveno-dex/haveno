@@ -298,8 +298,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        HBox primaryNav = new HBox(marketButton, getNavigationSeparator(), buyButton, getNavigationSeparator(),
-                sellButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator(), fundsButton);
+        HBox primaryNav = new HBox(marketButton, getNavigationSpacer(), buyButton, getNavigationSpacer(),
+                sellButton, getNavigationSpacer(), portfolioButtonWithBadge, getNavigationSpacer(), fundsButton);
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");
@@ -308,23 +308,22 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), accountButton,
                 getNavigationSpacer(), settingsButtonWithBadge, getNavigationSpacer());
         secondaryNav.getStyleClass().add("nav-secondary");
-        HBox.setHgrow(secondaryNav, Priority.SOMETIMES);
+        HBox.setHgrow(secondaryNav, Priority.ALWAYS);
 
-        secondaryNav.setAlignment(Pos.CENTER);
+        secondaryNav.setAlignment(Pos.CENTER_LEFT);
 
         HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
                 getNavigationSeparator(), pendingBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
-        priceAndBalance.setMaxHeight(41);
 
         priceAndBalance.setAlignment(Pos.CENTER);
-        priceAndBalance.setSpacing(9);
+        priceAndBalance.setSpacing(12);
         priceAndBalance.getStyleClass().add("nav-price-balance");
 
-        HBox navPane = new HBox(primaryNav, secondaryNav, getNavigationSpacer(),
+        HBox navPane = new HBox(primaryNav, getNavigationSeparator(), secondaryNav, getNavigationSpacer(),
                 priceAndBalance) {{
-            setLeftAnchor(this, 0d);
-            setRightAnchor(this, 0d);
-            setTopAnchor(this, 0d);
+            setLeftAnchor(this, 25d);
+            setRightAnchor(this, 25d);
+            setTopAnchor(this, 20d);
             setPadding(new Insets(0, 0, 0, 0));
             getStyleClass().add("top-navigation");
         }};
@@ -334,7 +333,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             getStyleClass().add("content-pane");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 57d);
+            setTopAnchor(this, 90d);
             setBottomAnchor(this, 0d);
         }};
 
@@ -398,8 +397,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Separator getNavigationSeparator() {
         final Separator separator = new Separator(Orientation.VERTICAL);
         HBox.setHgrow(separator, Priority.ALWAYS);
-        separator.setMaxHeight(22);
         separator.setMaxWidth(Double.MAX_VALUE);
+        separator.getStyleClass().add("nav-separator");
         return separator;
     }
 
@@ -407,6 +406,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Region getNavigationSpacer() {
         final Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
+        spacer.getStyleClass().add("nav-spacer");
         return spacer;
     }
 
@@ -825,6 +825,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
             this.setToggleGroup(navButtons);
             this.getStyleClass().add("nav-button");
+            this.setMinWidth(Region.USE_PREF_SIZE); // prevent squashing content
+            this.setPrefWidth(Region.USE_COMPUTED_SIZE);
+
             // Japanese fonts are dense, increase top nav button text size
             if (model.getPreferences() != null && "ja".equals(model.getPreferences().getUserLanguage())) {
                 this.getStyleClass().add("nav-button-japanese");
