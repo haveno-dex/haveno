@@ -690,7 +690,7 @@ tree-table-view:focused {
 
 /* Main UI */
 #base-content-container {
-    -fx-background-color: -bs-background-gray;
+    -fx-background-color: -bs-color-gray-background;
 }
 
 .content-pane {
@@ -717,8 +717,8 @@ tree-table-view:focused {
     -fx-background-color: -bs-rd-nav-background;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-pref-height: 57;
-    -fx-padding: 0 11 0 0;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .top-navigation .separator:vertical .line {
@@ -729,23 +729,35 @@ tree-table-view:focused {
 
 .nav-primary {
     -fx-background-color: -bs-rd-nav-primary-background;
-    -fx-padding: 0 11 0 11;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-width: 0 0 0 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-min-width: 410;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 9 9 9 11;
 }
 
 .nav-secondary {
-    -fx-padding: 0 11 0 11;
-    -fx-min-width: 296;
+    -fx-padding: 9 0 9 9;
+}
+
+.nav-separator {
+    -fx-max-width: 1;
+    -fx-min-width: 1;
+    -fx-border-color: transparent transparent transparent -bs-rd-separator-dark;
+    -fx-border-width: 1;
+    -fx-border-insets: 0 0 0 1;
+}
+
+.nav-spacer {
+    -fx-max-width: 10;
+    -fx-min-width: 10;
 }
 
 .nav-price-balance {
-    -fx-background-color: -bs-color-gray-background;
-    -fx-background-radius: 3;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 1);
-    -fx-pref-height: 41;
-    -fx-padding: 0 10 0 0;
+    -fx-background-color: -bs-rd-nav-background;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 0 15 0 0;
 }
 
 .nav-price-balance .separator:vertical .line {
@@ -769,7 +781,7 @@ tree-table-view:focused {
 .nav-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 11 15;
+    -fx-padding: 9 15;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
@@ -2148,7 +2160,7 @@ textfield */
 }
 
 #price-feed-combo > .list-cell {
-    -fx-text-fill: -bs-text-color;
+    -fx-text-fill: -bs-rd-font-balance;
     -fx-font-family: "IBM Plex Sans";
 }
 
