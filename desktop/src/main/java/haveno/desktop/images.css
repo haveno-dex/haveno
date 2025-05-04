@@ -301,6 +301,18 @@
     -fx-image: url("../../images/new_trade_protocol_screenshot.png");
 }
 
+#image-support {
+    -fx-image: url("../../images/support.png");
+}
+
+#image-account {
+    -fx-image: url("../../images/account.png");
+}
+
+#image-settings {
+    -fx-image: url("../../images/settings.png");
+}
+
 /**
  * Crypto logos.
  */

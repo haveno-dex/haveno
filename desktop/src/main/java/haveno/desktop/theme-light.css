@@ -41,7 +41,9 @@
     -bs-rd-green: #0b65da;
     -bs-rd-green-dark: #3EA34A;
     -bs-rd-nav-selected: #0b65da;
-    -bs-rd-nav-deselected: rgba(255, 255, 255, 0.75);
+    -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
+    -bs-rd-nav-secondary-selected: -fx-accent;
+    -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
     -bs-rd-nav-background: #0b65da;
     -bs-rd-nav-primary-background: #0b65da;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
@@ -132,4 +134,8 @@
 .toggle-button-no-slider {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
+}
+
+#image-logo-landscape {
+    -fx-image: url("../../images/logo_landscape_light.png");
 }
