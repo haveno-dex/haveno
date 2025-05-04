@@ -20,7 +20,7 @@
     /* haveno main colors */
     -bs-color-primary: #0b65da;
     -bs-color-primary-dark: #0c59bd;
-    -bs-text-color: #dadada;
+    -bs-text-color: white;
     -bs-background-color: #29292a;
     -bs-background-gray: black;
     -bs-content-background-gray: black;
@@ -73,7 +73,9 @@
     -bs-rd-nav-background: rgb(15, 15, 15);
     -bs-rd-nav-primary-background: rgb(15, 15, 15);
     -bs-rd-nav-selected: black;
-    -bs-rd-nav-deselected: rgba(255, 255, 255, .65);
+    -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
+    -bs-rd-nav-secondary-selected: rgba(255, 255, 255, 1);
+    -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
     -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
     -bs-rd-nav-hover-text: black;
@@ -556,4 +558,8 @@
 
 .toggle-button-no-slider:selected {
     -fx-background-color: -bs-color-gray-bbb;
+}
+
+#image-logo-landscape {
+    -fx-image: url("../../images/logo_landscape_dark.png");
 }
