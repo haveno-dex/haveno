@@ -70,8 +70,8 @@
     -bs-rd-nav-border: #535353;
     -bs-rd-nav-primary-border: rgba(0, 0, 0, 0);
     -bs-rd-nav-border-color: rgba(255, 255, 255, 0.1);
-    -bs-rd-nav-background: #29292a;
-    -bs-rd-nav-primary-background: #29292a;
+    -bs-rd-nav-background: rgb(15, 15, 15);
+    -bs-rd-nav-primary-background: rgb(15, 15, 15);
     -bs-rd-nav-selected: black;
     -bs-rd-nav-deselected: rgba(255, 255, 255, .65);
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
