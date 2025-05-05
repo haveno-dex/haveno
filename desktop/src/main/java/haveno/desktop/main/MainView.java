@@ -322,8 +322,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         }};
         navPane.setAlignment(Pos.CENTER);
 
-        HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), accountButton,
-                getNavigationSpacer(), settingsButtonWithBadge, getNavigationSpacer());
+        HBox secondaryNav = new HBox(supportButtonWithBadge, accountButton, settingsButtonWithBadge);
         secondaryNav.getStyleClass().add("nav-secondary");
         secondaryNav.setAlignment(Pos.CENTER_RIGHT); // TODO: check for LTR language
         secondaryNav.setMouseTransparent(false);
