@@ -823,7 +823,7 @@ tree-table-view:focused {
 
 .nav-secondary-button {
     -fx-cursor: hand;
-    -fx-background-color: rgba(0, 0, 0, 0.0001); /* Fix JavaFX quirk where overlaid button with transparent background does not reliably show hand cursor */
+    -fx-background-color: rgba(0, 0, 0, 0.001); /* Fix JavaFX quirk where overlaid button with transparent background does not reliably show hand cursor */
     -fx-background-insets: 0;
     -fx-padding: 9 15;
     -fx-border-color: transparent;
