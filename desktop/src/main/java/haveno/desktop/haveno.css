@@ -744,7 +744,7 @@ tree-table-view:focused {
 }
 
 .nav-secondary {
-    -fx-padding: 9 9 9 9;
+    -fx-padding: 9 15 9 9;
 }
 
 .nav-separator {
@@ -782,7 +782,7 @@ tree-table-view:focused {
 }
 
 .jfx-badge > .nav-button,
-.jfx-badge > .secondary-nav-button {
+.jfx-badge > .nav-secondary-button {
     -fx-translate-y: 1;
 }
 
@@ -821,33 +821,34 @@ tree-table-view:focused {
     -fx-fill: -bs-rd-nav-selected;
 }
 
-.secondary-nav-button {
+.nav-secondary-button {
     -fx-cursor: hand;
-    -fx-background-color: transparent;
+    -fx-background-color: rgba(0, 0, 0, 0.0001); /* Fix JavaFX quirk where overlaid button with transparent background does not reliably show hand cursor */
+    -fx-background-insets: 0;
     -fx-padding: 9 15;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 1px 0;
 }
 
-.secondary-nav-button .text {
+.nav-secondary-button .text {
     -fx-font-size: 0.93em;
     -fx-font-weight: medium;
     -fx-fill: -bs-rd-nav-secondary-deselected;
 }
 
-.secondary-nav-button-japanese .text {
+.nav-secondary-button-japanese .text {
     -fx-font-size: 1em;
 }
 
-.secondary-nav-button:selected {
+.nav-secondary-button:selected {
     -fx-border-color: transparent transparent -bs-rd-nav-secondary-selected transparent;
     -fx-border-width: 0 0 1px 0;
 }
 
-.secondary-nav-button:hover {
+.nav-secondary-button:hover {
 }
 
-.secondary-nav-button:selected .text {
+.nav-secondary-button:selected .text {
     -fx-fill: -bs-rd-nav-secondary-selected;
 }
 
@@ -1398,7 +1399,7 @@ textfield */
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-text-fill: -bs-rd-font-light;
     -fx-padding: 14;
-    -fx-font-size: .9em;
+    -fx-font-size: .93em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
 }
