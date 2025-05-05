@@ -1543,6 +1543,10 @@ textfield */
     -fx-background-insets: 0;
 }
 
+.toggle-button-no-slider:hover {
+    -fx-cursor: hand;
+}
+
 #trade-fee-textfield {
     -fx-font-size: 0.9em;
     -fx-alignment: center-right;
