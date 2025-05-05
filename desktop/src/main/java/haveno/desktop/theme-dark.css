@@ -44,6 +44,8 @@
     -bs-color-gray-aaa: #29292a;
     -bs-color-gray-fafa: #0a0a0a;
     -bs-color-gray-background: black;
+    -bs-color-background-button-background: rgb(18, 18, 18);
+    -bs-color-background-button-border: rgb(51, 51, 51);
 
     /* lesser used colors */
     -bs-color-blue-5: #0a4576;
@@ -550,14 +552,12 @@
 }
 
 .toggle-button-no-slider {
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
-    -fx-background-radius: 3;
-    -fx-background-insets: 0, 1;
+    -fx-background-color: -bs-color-background-button-background;
+    -fx-border-color: -bs-color-background-button-border;
 }
 
 .toggle-button-no-slider:selected {
-    -fx-background-color: -bs-color-gray-bbb;
+    -fx-background-color: -bs-color-gray-ccc;
 }
 
 #image-logo-landscape {
