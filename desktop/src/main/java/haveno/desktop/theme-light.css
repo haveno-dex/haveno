@@ -131,11 +131,6 @@
     -fx-background-color: -bs-color-gray-3;
 }
 
-.toggle-button-no-slider {
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
-}
-
 #image-logo-landscape {
     -fx-image: url("../../images/logo_landscape_light.png");
 }
