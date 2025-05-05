@@ -884,11 +884,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         SecondaryNavButton(Class<? extends View> viewClass, String title, String iconId) {
             super(viewClass, title);
-            this.getStyleClass().setAll("secondary-nav-button");
+            this.getStyleClass().setAll("nav-secondary-button");
 
             // Japanese fonts are dense, increase top nav button text size
             if (model.getPreferences() != null && "ja".equals(model.getPreferences().getUserLanguage())) {
-                this.getStyleClass().setAll("secondary-nav-button-japanese");
+                this.getStyleClass().setAll("nav-secondary-button-japanese");
             }
 
             // add icon
