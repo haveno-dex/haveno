@@ -46,6 +46,7 @@
     -bs-color-gray-background: black;
     -bs-color-background-button-background: rgb(18, 18, 18);
     -bs-color-background-button-border: rgb(51, 51, 51);
+    -bs-color-background-table-header: rgb(15, 15, 15);
 
     /* lesser used colors */
     -bs-color-blue-5: #0a4576;
@@ -170,7 +171,7 @@
 }
 
 .table-view .column-header {
-    -fx-background-color: derive(-bs-background-color,-50%);
+    -fx-background-color: -bs-color-background-table-header;
     -fx-border-width: 0;
 }
 
