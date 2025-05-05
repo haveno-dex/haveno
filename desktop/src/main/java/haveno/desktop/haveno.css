@@ -795,7 +795,7 @@ tree-table-view:focused {
 }
 
 .nav-button .text {
-    -fx-font-size: 0.93em;
+    -fx-font-size: 0.95em;
     -fx-font-weight: medium;
     -fx-fill: -bs-rd-nav-deselected;
 }
@@ -831,7 +831,7 @@ tree-table-view:focused {
 }
 
 .nav-secondary-button .text {
-    -fx-font-size: 0.93em;
+    -fx-font-size: 0.95em;
     -fx-font-weight: medium;
     -fx-fill: -bs-rd-nav-secondary-deselected;
 }
@@ -1399,7 +1399,7 @@ textfield */
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-text-fill: -bs-rd-font-light;
     -fx-padding: 14;
-    -fx-font-size: .93em;
+    -fx-font-size: .95em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
 }
