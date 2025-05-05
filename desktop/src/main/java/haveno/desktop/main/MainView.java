@@ -324,8 +324,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         HBox secondaryNav = new HBox(supportButtonWithBadge, accountButton, settingsButtonWithBadge);
         secondaryNav.getStyleClass().add("nav-secondary");
-        secondaryNav.setAlignment(Pos.CENTER_RIGHT); // TODO: check for LTR language
-        secondaryNav.setMouseTransparent(false);
+        secondaryNav.setAlignment(Pos.CENTER_RIGHT);
         secondaryNav.setPickOnBounds(false);
         HBox.setHgrow(secondaryNav, Priority.ALWAYS);
         AnchorPane.setLeftAnchor(secondaryNav, 0.0);
@@ -339,7 +338,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setTopAnchor(this, 95d);
         }};
         secondaryNavContainer.setPickOnBounds(false);
-        secondaryNavContainer.setMouseTransparent(false);
         secondaryNavContainer.getChildren().add(secondaryNav);
 
         // if (rootContainer.getNodeOrientation() == NodeOrientation.LEFT_TO_RIGHT) {
@@ -898,8 +896,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setGraphicTextGap(10);
             setGraphic(imageView);
 
-            // show cursor hand on hover
-            this.setMouseTransparent(false);
+            // show cursor hand on any hover
             this.setPickOnBounds(true);
         }
 
