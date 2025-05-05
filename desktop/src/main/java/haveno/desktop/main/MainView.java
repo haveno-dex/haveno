@@ -900,7 +900,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
             // show cursor hand on hover
             this.setMouseTransparent(false);
-            this.setPickOnBounds(false);
+            this.setPickOnBounds(true);
         }
 
     }
