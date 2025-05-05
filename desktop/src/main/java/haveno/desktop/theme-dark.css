@@ -554,10 +554,14 @@
 .toggle-button-no-slider {
     -fx-background-color: -bs-color-background-button-background;
     -fx-border-color: -bs-color-background-button-border;
+    -fx-padding: 4 13 4 13;
+    -fx-border-width: 1px;
 }
 
 .toggle-button-no-slider:selected {
     -fx-background-color: -bs-color-gray-ccc;
+    -fx-padding: 5 14 5 14;
+    -fx-border-width: 0px;
 }
 
 #image-logo-landscape {
