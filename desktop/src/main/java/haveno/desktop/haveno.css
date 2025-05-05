@@ -1131,6 +1131,14 @@ textfield */
 
 .table-view .column-header.first-column {
     -fx-padding: 0 0 0 10;
+    -fx-background-radius: 15 0 0 0;
+    -fx-border-radius: 15 0 0 0;
+}
+
+.table-view .column-header.last-column {
+    -fx-background-radius: 0 15 0 0;
+    -fx-border-radius: 0 15 0 0;
+
 }
 
 .number-column.table-cell {
@@ -1169,8 +1177,6 @@ textfield */
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 0;
-    -fx-background-radius: 10 10 0 0;
-    -fx-border-radius: 10 10 0 0;
 }
 
 .table-view .text {

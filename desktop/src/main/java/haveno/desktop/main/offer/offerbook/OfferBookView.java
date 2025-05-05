@@ -1069,7 +1069,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 setSortable(false);
             }
         };
-        column.getStyleClass().addAll("last-column", "avatar-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
                 new Callback<>() {
