@@ -186,17 +186,17 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
 
-        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
-        matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
-        matchingOffersToggleButton.setPrefHeight(27);
-        Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
-        Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
-
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
         noDepositOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         noDepositOffersToggleButton.setPrefHeight(27);
         Tooltip noDepositOffersTooltip = new Tooltip(Res.get("offerbook.noDepositOffers"));
         Tooltip.install(noDepositOffersToggleButton, noDepositOffersTooltip);
+
+        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
+        matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
+        matchingOffersToggleButton.setPrefHeight(27);
+        Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
+        Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
 
         createOfferButton = new AutoTooltipButton("");
         createOfferButton.setMinHeight(40);
@@ -219,7 +219,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
-                filterBox, matchingOffersToggleButton, noDepositOffersToggleButton, getSpacer(), createOfferButtonStack);
+                filterBox, noDepositOffersToggleButton, matchingOffersToggleButton, getSpacer(), createOfferButtonStack);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);

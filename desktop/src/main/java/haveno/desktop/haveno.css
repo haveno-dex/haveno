@@ -1526,6 +1526,17 @@ textfield */
     -fx-background-color: -bs-color-gray-1;
 }
 
+.toggle-button-no-slider {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-padding: 5 14 5 14;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+}
+
 #trade-fee-textfield {
     -fx-font-size: 0.9em;
     -fx-alignment: center-right;
