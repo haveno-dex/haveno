@@ -46,7 +46,9 @@
     -bs-color-gray-background: black;
     -bs-color-background-button-background: rgb(18, 18, 18);
     -bs-color-background-button-border: rgb(51, 51, 51);
-    -bs-color-background-table-header: rgb(15, 15, 15);
+    -bs-color-background-table-header: rgb(9, 9, 9);
+    -bs-color-background-table-cell-even: rgb(9, 9, 9);
+    -bs-color-background-table-cell-odd: rgb(19, 19, 19);
 
     /* lesser used colors */
     -bs-color-blue-5: #0a4576;
@@ -180,16 +182,15 @@
     -fx-border-width: 0;
 }
 
+/** These must be set here or it changes hover behavior on rows. */
 .table-view .table-row-cell:even .table-cell {
-    -fx-background-color: derive(-bs-background-color, -5%);
-    -fx-border-color: derive(-bs-background-color, -5%);
+    -fx-background-color: -bs-color-background-table-cell-even;
+    -fx-border-color: -bs-color-background-table-cell-even;
 }
-
 .table-view .table-row-cell:odd .table-cell {
-    -fx-background-color: derive(-bs-background-color,-30%);
-    -fx-border-color: derive(-bs-background-color,-30%);
+    -fx-background-color: -bs-color-background-table-cell-odd;
+    -fx-border-color: -bs-color-background-table-cell-odd;
 }
-
 .table-view .table-row-cell:selected .table-cell {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
@@ -367,7 +368,6 @@
 }
 
 .list-view .list-cell:odd, .list-view .list-cell:even {
-    -fx-background-color: -bs-background-color;
     -fx-border-width: 0;
 }
 

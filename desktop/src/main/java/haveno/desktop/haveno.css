@@ -1068,12 +1068,12 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .table-view .table-row-cell:even .table-cell {
-    -fx-background-color: derive(-bs-background-color, 5%);
-    -fx-border-color: derive(-bs-background-color,5%);
+    -fx-background-color: -bs-color-background-table-cell-even;
+    -fx-border-color: -bs-color-background-table-cell-even;
 }
 .table-view .table-row-cell:odd .table-cell {
-    -fx-background-color: derive(-bs-background-color,-5%);
-    -fx-border-color: derive(-bs-background-color,-5%);
+    -fx-background-color: -bs-color-background-table-cell-odd;
+    -fx-border-color: -bs-color-background-table-cell-odd;
 }
 .table-view .table-row-cell:hover .table-cell,
 .table-view .table-row-cell:selected .table-cell {
