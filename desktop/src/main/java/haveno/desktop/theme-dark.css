@@ -49,6 +49,7 @@
     -bs-color-background-table-header: rgb(9, 9, 9);
     -bs-color-background-table-cell-even: rgb(9, 9, 9);
     -bs-color-background-table-cell-odd: rgb(19, 19, 19);
+    -bs-color-table-cell-faded: -bs-color-gray-ccc;
 
     /* lesser used colors */
     -bs-color-blue-5: #0a4576;
