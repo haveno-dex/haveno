@@ -570,3 +570,7 @@
 #image-logo-landscape {
     -fx-image: url("../../images/logo_landscape_dark.png");
 }
+
+.table-view .placeholder {
+    -fx-background-color: -bs-color-background-table-header;
+}
