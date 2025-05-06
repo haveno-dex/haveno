@@ -43,9 +43,10 @@
     -bs-color-gray-bbb: #5a5a5a;
     -bs-color-gray-aaa: #29292a;
     -bs-color-gray-fafa: #0a0a0a;
+    -bs-color-gray-18: rgb(18, 18, 18);
     -bs-color-gray-background: black;
     -bs-color-background-button-background: rgb(18, 18, 18);
-    -bs-color-background-button-border: rgb(51, 51, 51);
+    -bs-color-background-button-border: rgb(65, 65, 65);
     -bs-color-background-table-header: rgb(9, 9, 9);
     -bs-color-background-table-cell-even: rgb(9, 9, 9);
     -bs-color-background-table-cell-odd: rgb(19, 19, 19);
@@ -236,9 +237,9 @@
 /* text field */
 .jfx-text-field, .jfx-text-area,
 .jfx-combo-box, .jfx-combo-box > .list-cell {
-    -fx-background-color: derive(-bs-background-color, 15%);
     -fx-prompt-text-fill: -bs-color-gray-6;
     -fx-text-fill: -bs-color-gray-12;
+    -fx-border-width: 1;
 }
 
 .jfx-text-area:readonly, .jfx-text-field:readonly,
