@@ -1158,8 +1158,6 @@ textfield */
 
 .table-view {
     -fx-control-inner-background-alt: -fx-control-inner-background;
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 0;
@@ -1180,8 +1178,6 @@ textfield */
 }
 
 .table-view .column-header {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
     -fx-padding: 0;
 }
 
