@@ -1075,6 +1075,12 @@ textfield */
     -fx-background-color: -bs-color-background-table-cell-odd;
     -fx-border-color: -bs-color-background-table-cell-odd;
 }
+.table-view .table-row-cell.row-faded .table-cell .text {
+    -fx-fill: -bs-color-table-cell-faded;
+}
+.cell-faded {
+    -fx-opacity: 0.4;
+}
 .table-view .table-row-cell:hover .table-cell,
 .table-view .table-row-cell:selected .table-cell {
     -fx-background: -fx-accent;
