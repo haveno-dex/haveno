@@ -1115,10 +1115,6 @@ textfield */
     -fx-padding: 2 0 2 0;
 }
 
-.table-view .column-header.last-column {
-    -fx-padding: 0 10 0 0;
-}
-
 .table-view .column-header.last-column .label {
     -fx-alignment: center-right;
 }
@@ -1142,9 +1138,9 @@ textfield */
 }
 
 .table-view .column-header.last-column {
+    -fx-padding: 0 10 0 0;
     -fx-background-radius: 0 15 0 0;
     -fx-border-radius: 0 15 0 0;
-
 }
 
 .number-column.table-cell {
