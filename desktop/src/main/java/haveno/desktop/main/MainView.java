@@ -340,16 +340,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         secondaryNavContainer.setPickOnBounds(false);
         secondaryNavContainer.getChildren().add(secondaryNav);
 
-        // if (rootContainer.getNodeOrientation() == NodeOrientation.LEFT_TO_RIGHT) {
-        //     log.warn("CENTERING RIGHT");
-        //     rightButtons.setAlignment(Pos.CENTER_RIGHT);
-        //     StackPane.setMargin(rightButtons, new Insets(5, 10, 0, 0));
-        // } else {
-        //     rightButtons.setAlignment(Pos.CENTER_LEFT);
-        //     log.warn("CENTERING LEFT");
-        //     StackPane.setMargin(rightButtons, new Insets(5, 0, 0, 10));
-        // }
-
         AnchorPane contentContainer = new AnchorPane() {{
             getStyleClass().add("content-pane");
             setLeftAnchor(this, 0d);
