@@ -222,7 +222,7 @@
     -jfx-focus-color: transparent;
     -fx-background-color: -bs-background-color;
     -fx-border-color: -bs-background-gray;
-    -fx-padding: 5 14;
+    -fx-padding: 4 14;
 }
 
 .jfx-combo-box .prompt-container {
@@ -1544,9 +1544,9 @@ textfield */
     -fx-border-radius: 999;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
-    -fx-padding: 5 14 5 14;
-    -fx-border-width: 0;
-    -fx-border-color: transparent;
+    -fx-padding: 9 18 9 18;
+    -fx-border-width: 1px;
+    -fx-border-color: -bs-color-background-button-border;
     -fx-background-insets: 0;
 }
 

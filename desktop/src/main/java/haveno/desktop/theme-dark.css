@@ -556,16 +556,29 @@
 
 .toggle-button-no-slider {
     -fx-background-color: -bs-color-background-button-background;
-    -fx-border-color: -bs-color-background-button-border;
-    -fx-padding: 4 13 4 13;
-    -fx-border-width: 1px;
 }
 
 .toggle-button-no-slider:selected {
     -fx-text-fill: white;
     -fx-background-color: -bs-color-gray-ccc;
-    -fx-padding: 5 14 5 14;
-    -fx-border-width: 0px;
+    -fx-border-color: -bs-color-gray-ccc;
+    -fx-border-width: 1px;
+}
+
+.toggle-button-no-slider:hover {
+    -fx-cursor: hand;
+    -fx-background-color: -bs-color-gray-ddd;
+    -fx-border-color: -bs-color-gray-ddd;
+}
+
+.toggle-button-no-slider:selected:hover {
+    -fx-cursor: hand;
+    -fx-background-color: -bs-color-gray-3;
+    -fx-border-color: -bs-color-gray-3;
+}
+
+.toggle-button-no-slider:pressed,  .toggle-button-no-slider:selected:hover:pressed {
+    -fx-background-color: -bs-color-gray-bbb;
 }
 
 #image-logo-landscape {

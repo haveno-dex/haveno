@@ -188,7 +188,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
         noDepositOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
-        noDepositOffersToggleButton.setPrefHeight(27);
         Tooltip noDepositOffersTooltip = new Tooltip(Res.get("offerbook.noDepositOffers"));
         Tooltip.install(noDepositOffersToggleButton, noDepositOffersTooltip);
 
