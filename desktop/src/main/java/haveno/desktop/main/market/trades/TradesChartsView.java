@@ -866,7 +866,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         // paymentMethod
         TableColumn<TradeStatistics3ListItem, TradeStatistics3ListItem> paymentMethodColumn = new AutoTooltipTableColumn<>(Res.get("shared.paymentMethod"));
-        paymentMethodColumn.getStyleClass().add("number-column");
+        paymentMethodColumn.getStyleClass().addAll("number-column", "last-column");
         paymentMethodColumn.setCellValueFactory((tradeStatistics) -> new ReadOnlyObjectWrapper<>(tradeStatistics.getValue()));
         paymentMethodColumn.setCellFactory(
                 new Callback<>() {
