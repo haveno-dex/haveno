@@ -107,7 +107,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private ListChangeListener<OfferBookListItem> changeListener;
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
     private final double dataLimitFactor = 3;
-    private final double initialOfferTableViewHeight = 121;
+    private final double initialOfferTableViewHeight = 88; // decrease as MainView's content-pane's top anchor increases
     private final Function<Double, Double> offerTableViewHeight = (screenSize) -> {
         // initial visible row count=5, header height=30
         double pixelsPerOfferTableRow = (initialOfferTableViewHeight - 30) / 5.0;
@@ -661,7 +661,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         vBox.setPadding(new Insets(0, 0, 0, 0));
         vBox.setSpacing(10);
         vBox.setFillWidth(true);
-        vBox.setMinHeight(190);
+        //vBox.setMinHeight(190);
         vBox.getChildren().addAll(titleButtonBox, tableView);
 
         return new Tuple4<>(tableView, vBox, button, titleLabel);
