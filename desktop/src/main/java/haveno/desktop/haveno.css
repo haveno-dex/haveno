@@ -221,13 +221,23 @@
 .jfx-combo-box {
     -jfx-focus-color: transparent;
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
     -fx-border-color: -bs-background-gray;
+    -fx-padding: 5 14;
+}
+
+.jfx-combo-box .prompt-container {
+    -fx-padding: 0 0 14 0;
+}
+
+.jfx-text-field, .jfx-text-area {
+    -fx-padding: 9 18;
 }
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
     -jfx-unfocus-color: transparent;
+    -fx-border-color: -bs-color-background-button-border;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .jfx-combo-box .arrow-button {
@@ -351,7 +361,6 @@ tree-table-view:focused {
 .jfx-text-field {
     -jfx-focus-color: -bs-color-primary;
     -fx-background-color: -bs-background-color;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
@@ -561,7 +570,7 @@ tree-table-view:focused {
     -jfx-default-color: -bs-color-primary;
 }
 
-.jfx-date-picker .jfx-text-field .jfx-text-area {
+.jfx-date-picker {
     -fx-padding: 0.333333em 0em 0.333333em 0em;
 }
 

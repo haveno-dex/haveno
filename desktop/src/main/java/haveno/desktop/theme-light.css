@@ -109,6 +109,7 @@
     -bs-prompt-text: -fx-control-inner-background;
     -bs-soft-red: #aa4c3b;
     -bs-turquoise-light: #11eeee;
+    -bs-color-background-button-border: -bs-background-gray;
     -bs-color-background-table-cell-even: derive(-bs-background-color, 5%);
     -bs-color-background-table-cell-odd: derive(-bs-background-color, -5%);
     -bs-color-table-cell-faded: -bs-color-gray-ccc;
