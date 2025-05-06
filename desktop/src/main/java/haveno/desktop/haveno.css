@@ -230,7 +230,7 @@
 }
 
 .jfx-text-field, .jfx-text-area {
-    -fx-padding: 9 18;
+    -fx-padding: 9 18 9 18;
 }
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
@@ -365,21 +365,12 @@ tree-table-view:focused {
     -fx-border-radius: 999;
 }
 
-.jfx-text-field > .input-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-field > .input-focused-line {
-    -fx-translate-x: -0.333333em;
-}
-
 .jfx-text-field-top-label {
     -fx-text-fill: -bs-color-gray-dim;
 }
 
 .jfx-text-field:readonly, .hyperlink-with-icon {
     -fx-background-color: -bs-color-gray-1;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
 }
 
 .jfx-text-field:readonly > .input-line {
