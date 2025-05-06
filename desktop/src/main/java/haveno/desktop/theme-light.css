@@ -111,6 +111,7 @@
     -bs-turquoise-light: #11eeee;
     -bs-color-background-table-cell-even: derive(-bs-background-color, 5%);
     -bs-color-background-table-cell-odd: derive(-bs-background-color, -5%);
+    -bs-color-table-cell-faded: -bs-color-gray-ccc;
 
     /* Monero orange color code */
     -xmr-orange: #f26822;

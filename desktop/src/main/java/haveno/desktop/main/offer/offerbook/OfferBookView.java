@@ -1119,7 +1119,12 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     // https://github.com/bisq-network/bisq/issues/4986
                                     if (tableRow != null) {
                                         canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
-                                        tableRow.setOpacity(canTakeOfferResult.isValid() || myOffer ? 1 : 0.4);
+                                        if (canTakeOfferResult.isValid() || myOffer) {
+                                            tableRow.getStyleClass().remove("row-faded");
+                                        } else {
+                                            if (!tableRow.getStyleClass().contains("row-faded")) tableRow.getStyleClass().add("row-faded");
+                                            hbox.getStyleClass().add("cell-faded");
+                                        }
 
                                         if (myOffer) {
                                             button.setDefaultButton(false);
@@ -1182,8 +1187,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     button.setOnAction(null);
                                     button2.setOnAction(null);
                                     if (tableRow != null) {
-                                        tableRow.setOpacity(1);
                                         tableRow.setOnMousePressed(null);
+                                        tableRow.getStyleClass().remove("row-faded");
                                     }
                                 }
                             }
