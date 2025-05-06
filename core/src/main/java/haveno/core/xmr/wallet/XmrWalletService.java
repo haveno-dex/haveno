@@ -1785,7 +1785,7 @@ public class XmrWalletService extends XmrWalletBase {
         List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
                 MONERO_WALLET_RPC_PATH,
                 "--rpc-login",
-                MONERO_WALLET_RPC_USERNAME + ":" + getWalletPassword(),
+                MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_DEFAULT_PASSWORD,
                 "--wallet-dir", walletDir.toString()));
 
         // omit --mainnet flag since it does not exist
