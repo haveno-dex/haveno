@@ -41,5 +41,5 @@ public class Layout {
     public static final double GRID_GAP = 5d;
     public static final double LIST_ROW_HEIGHT = 34;
     public static final double ROUNDED_ARC = 10;
-    public static final double TEXT_FIELD_PADDING_DISTANCE = 7d;
+    public static final double FLOATING_ICON_Y = 10; // adjust when .jfx-text-field padding is changed for right icons on make/take offer
 }

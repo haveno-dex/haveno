@@ -21,6 +21,7 @@ import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.desktop.components.controlsfx.control.PopOver;
+import haveno.desktop.util.Layout;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.Node;
@@ -58,7 +59,7 @@ public class InfoTextField extends AnchorPane {
         textField.setId("info-field");
 
         infoIcon = getIcon(AwesomeIcon.INFO_SIGN);
-        infoIcon.setLayoutY(10);
+        infoIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         infoIcon.getStyleClass().addAll("icon", "info");
 
         AnchorPane.setRightAnchor(infoIcon, 7.0);
