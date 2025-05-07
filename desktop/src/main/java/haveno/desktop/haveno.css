@@ -502,7 +502,7 @@ tree-table-view:focused {
 }
 
 .input-with-border-readonly .icon {
-    -fx-padding: 2;
+    -fx-padding: 4.5;
 }
 
 .jfx-badge .badge-pane {
