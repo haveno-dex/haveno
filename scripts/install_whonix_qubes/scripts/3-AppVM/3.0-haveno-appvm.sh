@@ -1,5 +1,5 @@
 #!/bin/zsh
-## ./haveno-on-qubes/scripts/3.0-haveno-appvm_taker.sh 
+## ./haveno-on-qubes/scripts/3.0-haveno-appvm_taker.sh
 
 ## Function to print messages in blue:
 echo_blue() {
@@ -42,7 +42,7 @@ whonix_firewall
 ### Create Desktop Launcher:
 echo_blue "Creating desktop launcher ..."
 mkdir -p /home/$(ls /home)/\.local/share/applications
-sed 's|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --torControlPort=9051 --torControlUseSafeCookieAuth --torControlCookieFile=/var/run/tor/control.authcookie --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on|g' /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+sed 's|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on|g' /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
 chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
 
 
