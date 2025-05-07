@@ -51,13 +51,14 @@ public class InfoTextField extends AnchorPane {
         arrowLocation = PopOver.ArrowLocation.RIGHT_TOP;
         textField = new HavenoTextField();
         textField.setLabelFloat(true);
+        textField.getStyleClass().add("label-float");
         textField.setEditable(false);
         textField.textProperty().bind(text);
         textField.setFocusTraversable(false);
         textField.setId("info-field");
 
         infoIcon = getIcon(AwesomeIcon.INFO_SIGN);
-        infoIcon.setLayoutY(5);
+        infoIcon.setLayoutY(10);
         infoIcon.getStyleClass().addAll("icon", "info");
 
         AnchorPane.setRightAnchor(infoIcon, 7.0);

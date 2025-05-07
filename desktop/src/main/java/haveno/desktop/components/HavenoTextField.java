@@ -1,16 +1,18 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
+import haveno.desktop.util.GUIUtil;
 import javafx.scene.control.Skin;
 
 public class HavenoTextField extends JFXTextField {
 
     public HavenoTextField(String value) {
         super(value);
+        GUIUtil.initFilledStyle(this);
     }
 
     public HavenoTextField() {
-        super();
+        this(null);
     }
 
     @Override

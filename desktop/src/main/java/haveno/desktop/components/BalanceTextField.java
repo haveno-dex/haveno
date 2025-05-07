@@ -47,6 +47,7 @@ public class BalanceTextField extends AnchorPane {
     public BalanceTextField(String label) {
         textField = new HavenoTextField();
         textField.setLabelFloat(true);
+        textField.getStyleClass().add("label-float");
         textField.setPromptText(label);
         textField.setFocusTraversable(false);
         textField.setEditable(false);
