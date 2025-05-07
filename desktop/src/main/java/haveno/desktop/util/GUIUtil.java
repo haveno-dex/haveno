@@ -25,6 +25,7 @@ import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.googlecode.jcsv.writer.CSVWriter;
 import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
+import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -1056,5 +1057,21 @@ public class GUIUtil {
             clip.setWidth(newVal.getWidth());
             clip.setHeight(newVal.getHeight());
         });
+    }
+
+    public static void initFilledStyle(JFXTextField textField) {
+        textField.textProperty().addListener((observable, oldValue, newValue) -> {
+            setFilledStyle(textField);
+        });
+    }
+
+    private static void setFilledStyle(JFXTextField textField) {
+        if (textField.getText() != null && !textField.getText().isEmpty()) {
+            if (!textField.getStyleClass().contains("filled")) {
+                textField.getStyleClass().add("filled");
+            }
+        } else {
+            textField.getStyleClass().remove("filled");
+        }
     }
 }

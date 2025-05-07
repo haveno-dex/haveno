@@ -228,8 +228,21 @@
     -fx-padding: 0 0 14 0;
 }
 
-.jfx-text-field, .jfx-text-area {
+.jfx-text-area {
     -fx-padding: 9 18 9 18;
+}
+
+.jfx-text-field {
+    -fx-padding: 9 18 9 18;
+}
+
+.jfx-text-field.label-float .prompt-container {
+    -fx-translate-y: 0px;
+}
+
+.jfx-text-field.filled.label-float .prompt-container,
+.jfx-text-field.label-float:focused .prompt-container {
+    -fx-translate-y: -7px;
 }
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
@@ -370,7 +383,6 @@ tree-table-view:focused {
 
 .jfx-text-field:readonly, .hyperlink-with-icon {
     -fx-background-color: -bs-color-gray-1;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
 }
 
 .jfx-text-field:readonly > .input-line {
