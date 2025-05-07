@@ -474,6 +474,7 @@ tree-table-view:focused {
     -fx-alignment: center-right;
     -fx-font-size: 1em;
     -fx-background-color: -bs-color-gray-1;
+    -fx-border-width: 0;
 }
 
 .input-with-border-readonly .text-field > .input-line {
