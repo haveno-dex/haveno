@@ -370,6 +370,7 @@ tree-table-view:focused {
 
 .jfx-text-field:readonly, .hyperlink-with-icon {
     -fx-background-color: -bs-color-gray-1;
+    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
 }
 
 .jfx-text-field:readonly > .input-line {
