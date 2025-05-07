@@ -20,6 +20,7 @@ package haveno.desktop.components;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
+import haveno.desktop.util.Layout;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -47,7 +48,7 @@ public class FundsTextField extends InfoTextField {
         textField.textProperty().bind(Bindings.concat(textProperty())); // TODO: removed `, " ", fundsStructure` for haveno to fix "Funds needed: .123 XMR (null)" bug
 
         Label copyIcon = getIcon(AwesomeIcon.COPY);
-        copyIcon.setLayoutY(10);
+        copyIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         copyIcon.getStyleClass().addAll("icon", "highlight");
         Tooltip.install(copyIcon, new Tooltip(Res.get("shared.copyToClipboard")));
         copyIcon.setOnMouseClicked(e -> {
