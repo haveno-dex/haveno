@@ -242,7 +242,7 @@
 
 .jfx-text-field.filled.label-float .prompt-container,
 .jfx-text-field.label-float:focused .prompt-container {
-    -fx-translate-y: -7px;
+    -fx-translate-y: -6.5px;
 }
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
