@@ -55,6 +55,7 @@ public class AddressTextField extends AnchorPane {
         textField.setId("address-text-field");
         textField.setEditable(false);
         textField.setLabelFloat(true);
+        textField.getStyleClass().add("label-float");
         textField.setPromptText(label);
 
         textField.textProperty().bind(address);
@@ -70,14 +71,14 @@ public class AddressTextField extends AnchorPane {
 
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
         Label extWalletIcon = new Label();
-        extWalletIcon.setLayoutY(3);
+        extWalletIcon.setLayoutY(10);
         extWalletIcon.getStyleClass().addAll("icon", "highlight");
         extWalletIcon.setTooltip(new Tooltip(tooltipText));
         AwesomeDude.setIcon(extWalletIcon, AwesomeIcon.SIGNIN);
         extWalletIcon.setOnMouseClicked(e -> openWallet());
 
         Label copyIcon = new Label();
-        copyIcon.setLayoutY(3);
+        copyIcon.setLayoutY(10);
         copyIcon.getStyleClass().addAll("icon", "highlight");
         Tooltip.install(copyIcon, new Tooltip(Res.get("addressTextField.copyToClipboard")));
         AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);

@@ -617,6 +617,7 @@ public class FormBuilder {
         JFXTextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setLabelFloat(true);
+        textArea.getStyleClass().add("label-float");
         textArea.setWrapText(true);
 
         GridPane.setRowIndex(textArea, rowIndex);
@@ -808,6 +809,7 @@ public class FormBuilder {
 
         InputTextField inputTextField = new InputTextField();
         inputTextField.setLabelFloat(true);
+        inputTextField.getStyleClass().add("label-float");
         inputTextField.setPromptText(title);
         GridPane.setRowIndex(inputTextField, rowIndex);
         GridPane.setColumnIndex(inputTextField, 0);
@@ -1006,8 +1008,10 @@ public class FormBuilder {
         InputTextField inputTextField1 = new InputTextField();
         inputTextField1.setPromptText(title1);
         inputTextField1.setLabelFloat(true);
+        inputTextField1.getStyleClass().add("label-float");
         InputTextField inputTextField2 = new InputTextField();
         inputTextField2.setLabelFloat(true);
+        inputTextField2.getStyleClass().add("label-float");
         inputTextField2.setPromptText(title2);
 
         HBox hBox = new HBox();
@@ -1391,6 +1395,7 @@ public class FormBuilder {
     public static <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         JFXComboBox<T> comboBox = new JFXComboBox<>();
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
         comboBox.setMaxWidth(Double.MAX_VALUE);
 
@@ -1410,6 +1415,7 @@ public class FormBuilder {
     public static <T> AutocompleteComboBox<T> addAutocompleteComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         var comboBox = new AutocompleteComboBox<T>();
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
         comboBox.setMaxWidth(Double.MAX_VALUE);
 
@@ -1471,6 +1477,7 @@ public class FormBuilder {
         AutocompleteComboBox<T> comboBox = new AutocompleteComboBox<>();
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
         topLabelVBox2.getChildren().addAll(topLabel2, comboBox);
 
         hBox.getChildren().addAll(topLabelVBox1, topLabelVBox2);
@@ -1530,6 +1537,7 @@ public class FormBuilder {
         JFXComboBox<T> comboBox = new JFXComboBox<>();
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
 
         TextField textField = new HavenoTextField();
 

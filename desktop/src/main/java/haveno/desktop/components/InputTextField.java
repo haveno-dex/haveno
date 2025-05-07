@@ -20,6 +20,7 @@ package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
 import haveno.core.util.validation.InputValidator;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.validation.JFXInputValidator;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -67,6 +68,7 @@ public class InputTextField extends JFXTextField {
 
     public InputTextField() {
         super();
+        GUIUtil.initFilledStyle(this);
 
         getValidators().add(jfxValidationWrapper);
 

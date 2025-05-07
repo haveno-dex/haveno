@@ -47,7 +47,7 @@ public class FundsTextField extends InfoTextField {
         textField.textProperty().bind(Bindings.concat(textProperty())); // TODO: removed `, " ", fundsStructure` for haveno to fix "Funds needed: .123 XMR (null)" bug
 
         Label copyIcon = getIcon(AwesomeIcon.COPY);
-        copyIcon.setLayoutY(5);
+        copyIcon.setLayoutY(10);
         copyIcon.getStyleClass().addAll("icon", "highlight");
         Tooltip.install(copyIcon, new Tooltip(Res.get("shared.copyToClipboard")));
         copyIcon.setOnMouseClicked(e -> {
