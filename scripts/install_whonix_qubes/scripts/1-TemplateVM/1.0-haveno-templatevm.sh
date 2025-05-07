@@ -3,8 +3,8 @@
 
 
 function remote {
-	if [[ -z $PRECOMPILED_URL || -z $FINGERPRINT ]]; then
-	    printf "\nNo arguments provided!\n\nThis script requires two arguments to be provided:\nBinary URL & PGP Fingerprint\n\nPlease review documentation and try again.\n\nExiting now ...\n"
+	if [[ -z $PACKAGE_URL || -z $FINGERPRINT ]]; then
+	    printf "\nNo arguments provided!\n\nThis script requires two arguments to be provided:\nPackage URL & PGP Fingerprint\n\nPlease review documentation and try again.\n\nExiting now ...\n"
 	    exit 1
 	fi
 	## Update & Upgrade
@@ -32,12 +32,11 @@ function remote {
 
 
 	## Define URL & PGP Fingerprint etc. vars:
-	user_url=$PRECOMPILED_URL
+	user_url=$PACKAGE_URL
 	base_url=$(printf ${user_url} | awk -F'/' -v OFS='/' '{$NF=""}1')
 	expected_fingerprint=$FINGERPRINT
-	binary_filename=$(awk -F'/' '{ print $NF }' <<< "$user_url")
-	package_filename="haveno.deb"
-	signature_filename="${binary_filename}.sig"
+	package_filename=$(awk -F'/' '{ print $NF }' <<< "$user_url")
+	signature_filename="${package_filename}.sig"
 	key_filename="$(printf "$expected_fingerprint" | tr -d ' ' | sed -E 's/.*(................)/\1/' )".asc
 	wget_flags="--tries=10 --timeout=10 --waitretry=5 --retry-connrefused --show-progress"
 
@@ -46,7 +45,6 @@ function remote {
 	printf "\nUser URL=$user_url\n"
 	printf "\nBase URL=$base_url\n"
 	printf "\nFingerprint=$expected_fingerprint\n"
-	printf "\nBinary Name=$binary_filename\n"
 	printf "\nPackage Name=$package_filename\n"
 	printf "\nSig Filename=$signature_filename\n"
 	printf "\nKey Filename=$key_filename\n"
@@ -94,7 +92,7 @@ function remote {
 	## Verify the downloaded binary with the signature:
 	echo_blue "Verifying the signature of the downloaded file ..."
 	if gpg --digest-algo SHA256 --verify "${signature_filename}" >/dev/null 2>&1; then
-	    7z x "${binary_filename}" && mv haveno*.deb "${package_filename}";
+	    mkdir -p /usr/share/desktop-directories;
 	    else echo_red "Verification failed!" && sleep 5
 	    exit 1;
 	fi
@@ -172,7 +170,7 @@ if ! [[ $# -eq 2 || $# -eq 3 ]] ; then
 fi
 
 if [[ $# -eq 2 ]] ; then
-    PRECOMPILED_URL=$1
+		PACKAGE_URL=$1
     FINGERPRINT=$2
     remote
 fi
