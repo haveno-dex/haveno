@@ -200,7 +200,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         createOfferButton = new AutoTooltipButton("");
         createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
-        createOfferButton.setStyle("-fx-padding: 0 15 0 15;");
+        createOfferButton.setStyle("-fx-padding: 7 25 7 25;");
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         disabledCreateOfferButtonTooltip.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -210,7 +210,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         disabledCreateOfferButtonTooltip.setManaged(false);
         disabledCreateOfferButtonTooltip.setVisible(false);
 
-        var createOfferButtonStack = new StackPane(createOfferButton, disabledCreateOfferButtonTooltip);
+        var createOfferVBox = new VBox(createOfferButton, disabledCreateOfferButtonTooltip);
+        createOfferVBox.setAlignment(Pos.BOTTOM_RIGHT);
 
         Tuple3<VBox, Label, AutoTooltipTextField> autoToolTipTextField = addTopLabelAutoToolTipTextField("");
         VBox filterBox = autoToolTipTextField.first;
@@ -218,7 +219,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
-                filterBox, noDepositOffersToggleButton, matchingOffersToggleButton, getSpacer(), createOfferButtonStack);
+                filterBox, noDepositOffersToggleButton, matchingOffersToggleButton, getSpacer(), createOfferVBox);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
@@ -1287,8 +1288,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     private void updateCreateOfferButton() {
         createOfferButton.setText(Res.get("offerbook.createNewOffer",
-                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
-                getTradeCurrencyCode()).toUpperCase());
+                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy").toUpperCase() : Res.get("shared.sell").toUpperCase(),
+                getTradeCurrencyCode()));
     }
 
     abstract String getTradeCurrencyCode();
