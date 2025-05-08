@@ -73,13 +73,11 @@ If you are not able to contribute code and want to contribute development resour
 
 To incentivize development and reward contributors, we adopt a simple bounty system. Contributors may be awarded bounties after completing a task (resolving an issue). Take a look at the [issues labeled '💰bounty'](https://github.com/haveno-dex/haveno/issues?q=is%3Aopen+is%3Aissue+label%3A%F0%9F%92%B0bounty) in the main `haveno` repository. [Details and conditions for receiving a bounty](docs/bounties.md).
 
-## Support and sponsorships
+## Support
 
-To bring Haveno to life, we need resources. If you have the possibility, please consider [becoming a sponsor](https://haveno.exchange/sponsors/) or donating to the project:
+To bring Haveno to life, we need resources. If you have the possibility, please consider donating to the project:
 
-<p>
+<p align="center">
   <img src="https://raw.githubusercontent.com/haveno-dex/haveno/master/media/donate_monero.png" alt="Donate Monero" width="115" height="115"><br>
   <code>47fo8N5m2VVW4uojadGQVJ34LFR9yXwDrZDRugjvVSjcTWV2WFSoc1XfNpHmxwmVtfNY9wMBch6259G6BXXFmhU49YG1zfB</code>
 </p>
-
-If you are using a wallet that supports OpenAlias (like the 'official' CLI and GUI wallets), you can simply put `fund@haveno.exchange` as the "receiver" address.
