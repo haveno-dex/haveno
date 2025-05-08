@@ -361,7 +361,7 @@ public class FormBuilder {
         textField.setPrefWidth(Layout.INITIAL_WINDOW_WIDTH);
 
         Button button = new AutoTooltipButton("...");
-        button.setStyle("-fx-min-width: 26; -fx-pref-height: 26; -fx-padding: 0 0 10 0; -fx-background-color: -fx-background;");
+        button.setStyle("-fx-min-width: 32; -fx-padding: 0 0 10 0; -fx-background-color: -fx-background;");
         button.managedProperty().bind(button.visibleProperty());
 
         HBox hbox = new HBox(textField, button);
