@@ -221,11 +221,7 @@
     -jfx-focus-color: transparent;
     -fx-background-color: -bs-background-color;
     -fx-border-color: -bs-background-gray;
-    -fx-padding: 4 14;
-}
-
-.jfx-combo-box .prompt-container {
-    -fx-padding: 0 0 14 0;
+    -fx-padding: 4 14 4 14;
 }
 
 .jfx-text-area {
