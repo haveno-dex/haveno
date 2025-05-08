@@ -178,12 +178,14 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         currencyComboBoxContainer = currencyBoxTuple.first;
         currencyComboBox = currencyBoxTuple.third;
         currencyComboBox.setPrefWidth(250);
+        currencyComboBox.getStyleClass().add("input-with-border");
 
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
+        paymentMethodComboBox.getStyleClass().add("input-with-border");
 
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
         noDepositOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
@@ -216,6 +218,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         VBox filterBox = autoToolTipTextField.first;
         filterInputField = autoToolTipTextField.third;
         filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
+        filterInputField.getStyleClass().add("input-with-border");
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
                 filterBox, noDepositOffersToggleButton, matchingOffersToggleButton, getSpacer(), createOfferVBox);
