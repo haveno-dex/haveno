@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: cached-localnet
+          name: cached-localnet-${{ matrix.os }}
           path: .localnet
           overwrite: true
       - name: Install dependencies
