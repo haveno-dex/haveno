@@ -147,13 +147,13 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 
 ##### In `haveno-template` TemplateVM:
 ```shell
-% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "<PACKAGE_ARCHIVE_URL>" "<PACKAGE_PGP_FINGERPRINT>"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "<PACKAGE_URL>" "<PACKAGE_PGP_FINGERPRINT>"
 ```
 
 <p style="text-align: center;">Example:</p>
 
 ```shell
-% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno-linux-deb.zip" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
 #### *TemplateVM Using Precompiled Package From `git` Repository (CLI)*
@@ -195,10 +195,9 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 
 ```shell
 # export https_proxy=http://127.0.0.1:8082
-# curl -sSLo /tmp/hashes.txt https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt
-# curl -sSLo /tmp/hashes.txt.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt.sig
-# curl -sSLo /tmp/haveno.zip https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
-# curl -sSLo /tmp/haveno.zip.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
+# curl -sSLo /tmp/haveno.deb https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-installer.deb
+# curl -sSLo /tmp/haveno.deb.sig https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-installer.deb.sig
+# curl -sSLo /tmp/haveno-jar.SHA-256 https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-SNAPSHOT-all.jar.SHA-256
 ```
 
 <p style="text-align: center;">Note:</p>
@@ -207,28 +206,22 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
 
 ```shell
-# curl -sSLo /tmp/hashes.txt https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt
-# curl -sSLo /tmp/hashes.txt.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/1.0.18-hashes.txt.sig
-# curl -sSLo /tmp/haveno.zip https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip
-# curl -sSLo /tmp/haveno.zip.sig https://github.com/havenoexample/haveno-example/releases/download/v1.0.18/haveno_amd64_deb-latest.zip.sig
+# curl -sSLo /tmp/haveno.deb https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-installer.deb
+# curl -sSLo /tmp/haveno.deb.sig https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-installer.deb.sig
+# curl -sSLo /tmp/haveno-jar.SHA-256 https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-SNAPSHOT-all.jar.SHA-256
 ```
 
 <p style="text-align: center;">Note:</p>
 <p style="text-align: center;"><em>Above are dummy URLS which MUST be replaced with actual working URLs</em></p>
 
-###### Verify Release Files
+###### Verify & Install Package File
 ```shell
-# if gpg --digest-algo SHA256 --verify /tmp/hashes.txt.sig >/dev/null 2>&1; then printf $'SHASUM file has a VALID signature!\n'; else printf $'SHASUMS failed signature check\n' && sleep 5 && exit 1; fi
-```
-
-###### Verify Hash, Unpack & Install Package
-```shell
-# if [[ $(cat /tmp/hashes.txt) =~ $(sha512sum /tmp/haveno*.zip | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && mkdir -p /usr/share/desktop-directories && cd /tmp && unzip /tmp/haveno*.zip && apt install -y /tmp/haveno*.deb; else printf $'WARNING: Bad Hash!\n' && exit; fi
+# if gpg --digest-algo SHA256 --verify /tmp/haveno.deb.sig >/dev/null 2>&1; then printf $'PACKAGE file has a VALID signature!\n' && mkdir -p /usr/share/desktop-directories && apt install -y /tmp/haveno*.deb; else printf $'PACKAGE failed signature check\n' && sleep 5 && exit 1; fi
 ```
 
 ###### Verify Jar
 ```shell
-# if [[ $(cat /tmp/desktop*.SHA-256) =~ $(sha256sum /opt/haveno/lib/app/desktop*.jar | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && printf 'Happy trading!\n'; else printf $'WARNING: Bad Hash!\n' && exit; fi
+# if [[ $(cat /tmp/haveno-jar.SHA-256) =~ $(sha256sum /opt/haveno/lib/app/desktop*.jar | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && printf 'Happy trading!\n'; else printf $'WARNING: Bad Hash!\n' && exit; fi
 ```
 
 #### *TemplateVM Building From Source via `git` Repository (Scripted)*
