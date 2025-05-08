@@ -536,8 +536,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private void updateOfferElementsStyle() {
         GridPane.setColumnSpan(firstRowHBox, 1);
 
-        final String activeInputStyle = "input-with-border";
-        final String readOnlyInputStyle = "input-with-border-readonly";
+        final String activeInputStyle = "offer-input";
+        final String readOnlyInputStyle = "offer-input-readonly";
         amountValueCurrencyBox.getStyleClass().remove(activeInputStyle);
         amountValueCurrencyBox.getStyleClass().add(readOnlyInputStyle);
         priceAsPercentageValueCurrencyBox.getStyleClass().remove(activeInputStyle);

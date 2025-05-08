@@ -2205,7 +2205,7 @@ public class FormBuilder {
         HBox.setHgrow(input, Priority.ALWAYS);
         input.setMaxWidth(Double.MAX_VALUE);
         box.setAlignment(Pos.CENTER_LEFT);
-        box.getStyleClass().add("input-with-border");
+        box.getStyleClass().add("offer-input");
         box.getChildren().addAll(input, label);
         return new Tuple3<>(box, input, label);
     }
@@ -2223,7 +2223,7 @@ public class FormBuilder {
         HBox.setHgrow(infoInputTextField, Priority.ALWAYS);
         infoInputTextField.setMaxWidth(Double.MAX_VALUE);
         box.setAlignment(Pos.CENTER_LEFT);
-        box.getStyleClass().add("input-with-border");
+        box.getStyleClass().add("offer-input");
         box.getChildren().addAll(infoInputTextField, label);
         return new Tuple3<>(box, infoInputTextField, label);
     }
