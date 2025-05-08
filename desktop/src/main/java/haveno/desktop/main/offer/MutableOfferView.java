@@ -449,8 +449,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void updateOfferElementsStyle() {
         GridPane.setColumnSpan(firstRowHBox, 2);
 
-        String activeInputStyle = "input-with-border";
-        String readOnlyInputStyle = "input-with-border-readonly";
+        String activeInputStyle = "offer-input";
+        String readOnlyInputStyle = "offer-input-readonly";
         amountValueCurrencyBox.getStyleClass().remove(activeInputStyle);
         amountValueCurrencyBox.getStyleClass().add(readOnlyInputStyle);
         priceAsPercentageValueCurrencyBox.getStyleClass().remove(activeInputStyle);
@@ -1007,11 +1007,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentAccountsComboBox = tradingAccountBoxTuple.third;
         paymentAccountsComboBox.setMinWidth(tradingAccountBoxTuple.first.getMinWidth());
         paymentAccountsComboBox.setPrefWidth(tradingAccountBoxTuple.first.getMinWidth());
+        paymentAccountsComboBox.getStyleClass().add("input-with-border");
         editOfferElements.add(tradingAccountBoxTuple.first);
 
         // we display either currencyComboBox (multi currency account) or currencyTextField (single)
         currencyComboBox = currencyBoxTuple.third;
         currencyComboBox.setMaxWidth(tradingAccountBoxTuple.first.getMinWidth() / 2);
+        currencyComboBox.getStyleClass().add("input-with-border");
         editOfferElements.add(currencySelection);
         currencyComboBox.setConverter(new StringConverter<>() {
             @Override

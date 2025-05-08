@@ -254,7 +254,7 @@
     -fx-text-fill: -bs-color-gray-11;
 }
 
-.input-with-border {
+.offer-input {
     -fx-border-color: -bs-color-gray-2;
     -fx-border-width: 0 0 10 0;
 }
@@ -426,7 +426,7 @@
     -fx-background-color: derive(-bs-background-color, -15%);
 }
 
-.input-with-border {
+.offer-input {
     -fx-border-width: 0;
     -fx-border-color: -bs-background-color;
 }

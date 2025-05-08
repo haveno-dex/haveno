@@ -220,7 +220,6 @@
 .jfx-combo-box {
     -jfx-focus-color: transparent;
     -fx-background-color: -bs-background-color;
-    -fx-border-color: -bs-background-gray;
     -fx-padding: 4 14 4 14;
 }
 
@@ -245,7 +244,6 @@
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
     -jfx-unfocus-color: transparent;
-    -fx-border-color: -bs-color-background-button-border;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
@@ -439,6 +437,10 @@ tree-table-view:focused {
 }
 
 .input-with-border {
+    -fx-border-color: -bs-color-background-button-border;
+}
+
+.offer-input {
     -fx-background-color: -bs-background-color;
     -fx-border-color: -bs-background-gray;
     -fx-pref-height: 43;
@@ -449,7 +451,7 @@ tree-table-view:focused {
     -fx-alignment: center;
 }
 
-.input-with-border .text-field {
+.offer-input .text-field {
     -fx-alignment: center-right;
     -fx-pref-height: 44;
     -fx-font-size: 1.385em;
@@ -459,7 +461,7 @@ tree-table-view:focused {
     -fx-border-color: transparent;
 }
 
-.input-with-border > .input-label {
+.offer-input > .input-label {
     -fx-font-size: 0.692em;
     -fx-min-width: 45;
     -fx-padding: 8;
@@ -469,11 +471,11 @@ tree-table-view:focused {
     -fx-background-color: derive(-bs-background-color, 15%);
 }
 
-.input-with-border .icon {
+.offer-input .icon {
     -fx-padding: 10;
 }
 
-.input-with-border-readonly {
+.offer-input-readonly {
     -fx-background-color: -bs-color-gray-1;
     -fx-border-width: 0;
     -fx-pref-width: 300;
@@ -481,25 +483,25 @@ tree-table-view:focused {
     -fx-border-radius: 999;
 }
 
-.input-with-border-readonly .text-field {
+.offer-input-readonly .text-field {
     -fx-alignment: center-right;
     -fx-font-size: 1em;
     -fx-background-color: -bs-color-gray-1;
     -fx-border-width: 0;
 }
 
-.input-with-border-readonly .text-field > .input-line {
+.offer-input-readonly .text-field > .input-line {
     -fx-background-color: transparent;
 }
 
-.input-with-border-readonly > .input-label {
+.offer-input-readonly > .input-label {
     -fx-font-size: 0.692em;
     -fx-min-width: 30;
     -fx-padding: 8;
     -fx-alignment: center;
 }
 
-.input-with-border-readonly .icon {
+.offer-input-readonly .icon {
     -fx-padding: 4.5;
 }
 
