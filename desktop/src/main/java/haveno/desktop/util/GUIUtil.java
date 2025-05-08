@@ -25,7 +25,6 @@ import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.googlecode.jcsv.writer.CSVWriter;
 import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
-import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -79,6 +78,7 @@ import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
@@ -1059,19 +1059,35 @@ public class GUIUtil {
         });
     }
 
-    public static void initFilledStyle(JFXTextField textField) {
+    public static void initFilledStyle(TextField textField) {
         textField.textProperty().addListener((observable, oldValue, newValue) -> {
             setFilledStyle(textField);
         });
     }
 
-    private static void setFilledStyle(JFXTextField textField) {
+    private static void setFilledStyle(TextField textField) {
         if (textField.getText() != null && !textField.getText().isEmpty()) {
             if (!textField.getStyleClass().contains("filled")) {
                 textField.getStyleClass().add("filled");
             }
         } else {
             textField.getStyleClass().remove("filled");
+        }
+    }
+
+    public static void initFilledStyle(ComboBox<?> comboBox) {
+        comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            setFilledStyle(comboBox);
+        });
+    }
+    
+    private static void setFilledStyle(ComboBox<?> comboBox) {
+        if (comboBox.getValue() != null) {
+            if (!comboBox.getStyleClass().contains("filled")) {
+                comboBox.getStyleClass().add("filled");
+            }
+        } else {
+            comboBox.getStyleClass().remove("filled");
         }
     }
 }

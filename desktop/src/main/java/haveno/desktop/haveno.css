@@ -237,7 +237,9 @@
 }
 
 .jfx-text-field.filled.label-float .prompt-container,
-.jfx-text-field.label-float:focused .prompt-container {
+.jfx-text-field.label-float:focused .prompt-container,
+.jfx-combo-box.filled.label-float .prompt-container,
+.jfx-combo-box.label-float:focused .prompt-container {
     -fx-translate-y: -6.5px;
 }
 

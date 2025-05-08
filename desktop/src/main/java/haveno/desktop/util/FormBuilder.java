@@ -1232,6 +1232,7 @@ public class FormBuilder {
 
     public static <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, int top) {
         final JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox);
 
         GridPane.setRowIndex(comboBox, rowIndex);
         GridPane.setMargin(comboBox, new Insets(top, 0, 0, 0));
@@ -1268,6 +1269,7 @@ public class FormBuilder {
         VBox vBox = getTopLabelVBox(top);
 
         final JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox);
         comboBox.setPromptText(prompt);
         comboBox.setPadding(new Insets(top, 0, 0, 12));
 
@@ -1394,6 +1396,7 @@ public class FormBuilder {
 
     public static <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox);
         comboBox.setLabelFloat(true);
         comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
@@ -1507,7 +1510,9 @@ public class FormBuilder {
         hBox.setSpacing(10);
 
         ComboBox<T> comboBox1 = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox1);
         ComboBox<R> comboBox2 = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox2);
         hBox.getChildren().addAll(comboBox1, comboBox2);
 
         final Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, hBox, top);
@@ -1535,6 +1540,7 @@ public class FormBuilder {
         hBox.setSpacing(10);
 
         JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox);
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
         comboBox.getStyleClass().add("label-float");
@@ -1580,6 +1586,7 @@ public class FormBuilder {
         button.setDefaultButton(true);
 
         ComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox);
 
         hBox.getChildren().addAll(comboBox, button);
 
@@ -1614,6 +1621,7 @@ public class FormBuilder {
         hBox.setSpacing(10);
 
         ComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.initFilledStyle(comboBox);
         TextField textField = new TextField(textFieldText);
         textField.setEditable(false);
         textField.setMouseTransparent(true);
