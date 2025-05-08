@@ -43,7 +43,11 @@ jobs:
         run: ./gradlew build --stacktrace --scan
       - name: Build with Gradle without tests
         if: ${{ matrix.arch == 'aarch64' }}
-        run: ./gradlew build --stacktrace --scan -x test
+        run: |
+          ./gradlew build --stacktrace --scan -x test
+          echo "::warning title=Tests Skipped::Tests were intentionally skipped for aarch64 build \
+          because JavaFX 21.x.x doesn't currently support the ARM64 architecture. \
+          This should be revisited when JavaFX is next updated."
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -79,6 +83,9 @@ jobs:
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies -x test
           ./gradlew packageInstallers
+          echo "::warning title=Tests Skipped::Tests were intentionally skipped for aarch64 build \
+          because JavaFX 21.x.x doesn't currently support the ARM64 architecture. \
+          This should be revisited when JavaFX is next updated."
         working-directory: .
 
       # get version from jar
