@@ -152,6 +152,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         GUIUtil.applyRoundedArc(p2pPeersTableView);
         GUIUtil.applyRoundedArc(moneroConnectionsTableView);
 
+        onionAddress.getStyleClass().add("label-float");
+        sentDataTextField.getStyleClass().add("label-float");
+        receivedDataTextField.getStyleClass().add("label-float");
+        chainHeightTextField.getStyleClass().add("label-float");
+        minVersionForTrading.getStyleClass().add("label-float");
+
         btcHeader.setText(Res.get("settings.net.xmrHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));
