@@ -1052,13 +1052,13 @@ public class GUIUtil {
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
     }
 
-    public static void initFilledStyle(TextField textField) {
+    public static void applyFilledStyle(TextField textField) {
         textField.textProperty().addListener((observable, oldValue, newValue) -> {
-            setFilledStyle(textField);
+            updateFilledStyle(textField);
         });
     }
 
-    private static void setFilledStyle(TextField textField) {
+    private static void updateFilledStyle(TextField textField) {
         if (textField.getText() != null && !textField.getText().isEmpty()) {
             if (!textField.getStyleClass().contains("filled")) {
                 textField.getStyleClass().add("filled");
@@ -1068,13 +1068,13 @@ public class GUIUtil {
         }
     }
 
-    public static void initFilledStyle(ComboBox<?> comboBox) {
+    public static void applyFilledStyle(ComboBox<?> comboBox) {
         comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
-            setFilledStyle(comboBox);
+            updateFilledStyle(comboBox);
         });
     }
     
-    private static void setFilledStyle(ComboBox<?> comboBox) {
+    private static void updateFilledStyle(ComboBox<?> comboBox) {
         if (comboBox.getValue() != null) {
             if (!comboBox.getStyleClass().contains("filled")) {
                 comboBox.getStyleClass().add("filled");

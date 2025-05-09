@@ -8,7 +8,7 @@ public class HavenoTextField extends JFXTextField {
 
     public HavenoTextField(String value) {
         super(value);
-        GUIUtil.initFilledStyle(this);
+        GUIUtil.applyFilledStyle(this);
     }
 
     public HavenoTextField() {
