@@ -1193,9 +1193,10 @@ textfield */
 }
 
 .table-view .column-header {
-    -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 0;
+    -fx-background-color: -bs-color-background-table-header;
+    -fx-border-width: 0;
 }
 
 .table-view .text {
