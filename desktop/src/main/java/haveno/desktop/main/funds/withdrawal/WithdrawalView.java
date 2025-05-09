@@ -144,7 +144,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
         amountLabel = feeTuple3.first;
         amountTextField = feeTuple3.second;
-        amountTextField.setMinWidth(180);
+        amountTextField.setMinWidth(200);
         HyperlinkWithIcon sendMaxLink = feeTuple3.third;
 
         withdrawMemoTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
