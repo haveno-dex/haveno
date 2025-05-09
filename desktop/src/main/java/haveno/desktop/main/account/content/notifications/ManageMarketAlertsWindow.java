@@ -74,7 +74,7 @@ public class ManageMarketAlertsWindow extends Overlay<ManageMarketAlertsWindow> 
 
     private void addContent() {
         TableView<MarketAlertFilter> tableView = new TableView<>();
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
         GridPane.setRowIndex(tableView, ++rowIndex);
         GridPane.setColumnSpan(tableView, 2);
         GridPane.setMargin(tableView, new Insets(10, 0, 0, 0));

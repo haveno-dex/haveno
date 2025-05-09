@@ -122,6 +122,7 @@ public class LockedView extends ActivatableView<VBox, Void> {
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         balanceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.balanceWithCur", Res.getBaseCurrencyCode())));
 
+        GUIUtil.applyTableStyle(tableView);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.locked.noFunds")));
 
@@ -250,7 +251,6 @@ public class LockedView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setDateColumnCellFactory() {
-        dateColumn.getStyleClass().add("first-column");
         dateColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         dateColumn.setCellFactory(new Callback<>() {
 
@@ -342,7 +342,6 @@ public class LockedView extends ActivatableView<VBox, Void> {
     }
 
     private void setBalanceColumnCellFactory() {
-        balanceColumn.getStyleClass().add("last-column");
         balanceColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         balanceColumn.setCellFactory(
                 new Callback<>() {

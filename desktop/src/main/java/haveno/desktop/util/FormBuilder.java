@@ -2466,7 +2466,7 @@ public class FormBuilder {
         if (groupStyle != null) titledGroupBg.getStyleClass().add(groupStyle);
 
         TableView<T> tableView = new TableView<>();
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
         GridPane.setRowIndex(tableView, rowIndex);
         GridPane.setMargin(tableView, new Insets(top + 30, -10, 5, -10));
         gridPane.getChildren().add(tableView);

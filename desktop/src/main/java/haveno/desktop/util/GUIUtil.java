@@ -65,6 +65,7 @@ import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccoun
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -76,6 +77,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -1048,17 +1050,6 @@ public class GUIUtil {
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
     }
 
-    public static void applyRoundedArc(TableView<?> tableView) {
-        Rectangle clip = new Rectangle();
-        clip.setArcWidth(Layout.ROUNDED_ARC);
-        clip.setArcHeight(Layout.ROUNDED_ARC);
-        tableView.setClip(clip);
-        tableView.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
-            clip.setWidth(newVal.getWidth());
-            clip.setHeight(newVal.getHeight());
-        });
-    }
-
     public static void initFilledStyle(TextField textField) {
         textField.textProperty().addListener((observable, oldValue, newValue) -> {
             setFilledStyle(textField);
@@ -1088,6 +1079,55 @@ public class GUIUtil {
             }
         } else {
             comboBox.getStyleClass().remove("filled");
+        }
+    }
+
+    public static void applyTableStyle(TableView<?> tableView) {
+        applyRoundedArc(tableView);
+        applyEdgeColumnStyleClasses(tableView);
+    }
+
+    private static void applyRoundedArc(TableView<?> tableView) {
+        Rectangle clip = new Rectangle();
+        clip.setArcWidth(Layout.ROUNDED_ARC);
+        clip.setArcHeight(Layout.ROUNDED_ARC);
+        tableView.setClip(clip);
+        tableView.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
+            clip.setWidth(newVal.getWidth());
+            clip.setHeight(newVal.getHeight());
+        });
+    }
+
+    private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
+        ListChangeListener<TableColumn<T, ?>> listener = change -> {
+            while (change.next()) {
+                if (change.wasPermutated() || change.wasReplaced()
+                        || change.wasAdded() || change.wasRemoved()) {
+                    updateEdgeColumnStyleClasses(tableView);
+                }
+            }
+        };
+
+        tableView.getColumns().addListener(listener);
+        updateEdgeColumnStyleClasses(tableView);
+    }
+
+    private static <T> void updateEdgeColumnStyleClasses(TableView<T> tableView) {
+        var columns = tableView.getColumns();
+        for (TableColumn<T, ?> col : columns) {
+            col.getStyleClass().removeAll("first-column", "last-column");
+        }
+
+        if (!columns.isEmpty()) {
+            TableColumn<T, ?> first = columns.get(0);
+            TableColumn<T, ?> last = columns.get(columns.size() - 1);
+
+            if (!first.getStyleClass().contains("first-column")) {
+                first.getStyleClass().add("first-column");
+            }
+            if (!last.getStyleClass().contains("last-column")) {
+                last.getStyleClass().add("last-column");
+            }
         }
     }
 }

@@ -156,7 +156,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     @Override
     public void initialize() {
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
 
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         groupIdColumn.setGraphic(new AutoTooltipLabel(ColumnNames.GROUP_ID.toString()));
@@ -529,7 +529,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void setOfferIdColumnCellFactory() {
         offerIdColumn.setCellValueFactory((openOfferListItem) -> new ReadOnlyObjectWrapper<>(openOfferListItem.getValue()));
-        offerIdColumn.getStyleClass().addAll("number-column", "first-column");
+        offerIdColumn.getStyleClass().addAll("number-column");
         offerIdColumn.setCellFactory(
                 new Callback<>() {
 
@@ -905,7 +905,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setRemoveColumnCellFactory() {
-        removeItemColumn.getStyleClass().addAll("last-column", "avatar-column");
+        removeItemColumn.getStyleClass().addAll("avatar-column");
         removeItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
         removeItemColumn.setCellFactory(
                 new Callback<>() {

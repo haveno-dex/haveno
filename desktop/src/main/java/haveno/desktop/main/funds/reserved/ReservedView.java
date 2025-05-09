@@ -122,6 +122,7 @@ public class ReservedView extends ActivatableView<VBox, Void> {
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         balanceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.balanceWithCur", Res.getBaseCurrencyCode())));
 
+        GUIUtil.applyTableStyle(tableView);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.reserved.noFunds")));
 
@@ -249,7 +250,6 @@ public class ReservedView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setDateColumnCellFactory() {
-        dateColumn.getStyleClass().add("first-column");
         dateColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         dateColumn.setCellFactory(new Callback<>() {
 
@@ -313,7 +313,6 @@ public class ReservedView extends ActivatableView<VBox, Void> {
     }
 
     private void setAddressColumnCellFactory() {
-        addressColumn.getStyleClass().add("last-column");
         addressColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
 
         addressColumn.setCellFactory(

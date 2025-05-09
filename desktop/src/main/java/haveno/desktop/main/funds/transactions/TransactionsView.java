@@ -127,7 +127,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
 
         dateColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.dateTime")));
         detailsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.details")));
@@ -171,11 +171,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         keyEventEventHandler = event -> {
             // Not intended to be public to users as the feature is not well tested
             if (Utilities.isAltOrCtrlPressed(KeyCode.R, event)) {
-                if (revertTxColumn.isVisible()) {
-                    confidenceColumn.getStyleClass().remove("last-column");
-                } else {
-                    confidenceColumn.getStyleClass().add("last-column");
-                }
                 revertTxColumn.setVisible(!revertTxColumn.isVisible());
             }
         };
@@ -267,7 +262,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setDateColumnCellFactory() {
-        dateColumn.getStyleClass().add("first-column");
         dateColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         dateColumn.setMaxWidth(200);
@@ -479,7 +473,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void setConfidenceColumnCellFactory() {
-        confidenceColumn.getStyleClass().add("last-column");
         confidenceColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         confidenceColumn.setCellFactory(
@@ -506,7 +499,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void setRevertTxColumnCellFactory() {
-        revertTxColumn.getStyleClass().add("last-column");
         revertTxColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         revertTxColumn.setCellFactory(
