@@ -64,6 +64,8 @@ import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.HPos;
@@ -1098,17 +1100,26 @@ public class GUIUtil {
         });
     }
 
-    private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
-        ListChangeListener<TableColumn<T, ?>> listener = change -> {
-            while (change.next()) {
-                if (change.wasPermutated() || change.wasReplaced()
-                        || change.wasAdded() || change.wasRemoved()) {
-                    updateEdgeColumnStyleClasses(tableView);
-                }
-            }
+    public static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
+        ListChangeListener<TableColumn<T, ?>> columnListener = change -> {
+            updateEdgeColumnStyleClasses(tableView);
         };
 
-        tableView.getColumns().addListener(listener);
+        tableView.getColumns().addListener(columnListener);
+        tableView.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            if (newSkin != null) {
+                Platform.runLater(() -> {
+                    addScrollBarVisibilityListener(tableView);
+                    updateEdgeColumnStyleClasses(tableView);
+                });
+            }
+        });
+
+        // react to size changes
+        ChangeListener<Number> sizeListener = (obs, oldVal, newVal) -> updateEdgeColumnStyleClasses(tableView);
+        tableView.heightProperty().addListener(sizeListener);
+        tableView.widthProperty().addListener(sizeListener);
+
         updateEdgeColumnStyleClasses(tableView);
     }
 
@@ -1125,8 +1136,25 @@ public class GUIUtil {
             if (!first.getStyleClass().contains("first-column")) {
                 first.getStyleClass().add("first-column");
             }
-            if (!last.getStyleClass().contains("last-column")) {
+
+            boolean hasVerticalScrollBar = tableView.lookupAll(".scroll-bar")
+                    .stream()
+                    .filter(node -> node instanceof ScrollBar)
+                    .map(node -> (ScrollBar) node)
+                    .anyMatch(scrollBar -> scrollBar.getOrientation() == Orientation.VERTICAL
+                            && scrollBar.isVisible());
+
+            if (!last.getStyleClass().contains("last-column") && !hasVerticalScrollBar) {
                 last.getStyleClass().add("last-column");
+            }
+        }
+    }
+
+    private static void addScrollBarVisibilityListener(TableView<?> tableView) {
+        for (Node node : tableView.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar sb && sb.getOrientation() == Orientation.VERTICAL) {
+                sb.visibleProperty().addListener((obs, wasVisible, isNowVisible) ->
+                    Platform.runLater(() -> updateEdgeColumnStyleClasses(tableView)));
             }
         }
     }
