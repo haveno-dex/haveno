@@ -149,7 +149,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private ComboBox<TradeCurrency> currencyComboBox;
     private ImageView qrCodeImageView;
-    private VBox currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
+    private VBox paymentAccountsSelection, currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
     private HBox fundingHBox, firstRowHBox, secondRowHBox, placeOfferBox, amountValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, volumeValueCurrencyBox, priceValueCurrencyBox,
             minAmountValueCurrencyBox, securityDepositAndFeeBox, triggerPriceHBox;
@@ -425,7 +425,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
         });
 
-        paymentAccountsComboBox.setDisable(true);
+        paymentAccountsSelection.setDisable(true);
+        currencySelection.setDisable(true);
 
         editOfferElements.forEach(node -> {
             node.setMouseTransparent(true);
@@ -995,8 +996,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         final Tuple3<VBox, Label, ComboBox<TradeCurrency>> currencyBoxTuple = addTopLabelComboBox(
                 Res.get("shared.currency"), Res.get("list.currency.select"));
 
+        paymentAccountsSelection = tradingAccountBoxTuple.first;
         currencySelection = currencyBoxTuple.first;
-        paymentGroupBox.getChildren().addAll(tradingAccountBoxTuple.first, currencySelection);
+        paymentGroupBox.getChildren().addAll(paymentAccountsSelection, currencySelection);
 
         GridPane.setRowIndex(paymentGroupBox, gridRow);
         GridPane.setColumnSpan(paymentGroupBox, 2);
@@ -1008,7 +1010,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentAccountsComboBox.setMinWidth(tradingAccountBoxTuple.first.getMinWidth());
         paymentAccountsComboBox.setPrefWidth(tradingAccountBoxTuple.first.getMinWidth());
         paymentAccountsComboBox.getStyleClass().add("input-with-border");
-        editOfferElements.add(tradingAccountBoxTuple.first);
+        editOfferElements.add(paymentAccountsSelection);
 
         // we display either currencyComboBox (multi currency account) or currencyTextField (single)
         currencyComboBox = currencyBoxTuple.third;
