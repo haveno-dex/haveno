@@ -238,7 +238,9 @@
 .jfx-text-field.filled.label-float .prompt-container,
 .jfx-text-field.label-float:focused .prompt-container,
 .jfx-combo-box.filled.label-float .prompt-container,
-.jfx-combo-box.label-float:focused .prompt-container {
+.jfx-combo-box.label-float:focused .prompt-container,
+.jfx-password-field.filled.label-float .prompt-container,
+.jfx-password-field.label-float:focused .prompt-container {
     -fx-translate-y: -6.5px;
 }
 
@@ -416,7 +418,7 @@ tree-table-view:focused {
     -fx-background-color: -bs-background-color;
     -fx-background-radius: 3 3 0 0;
     -jfx-focus-color: -bs-color-primary;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-padding: 7 18 7 18;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }

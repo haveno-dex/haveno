@@ -68,7 +68,7 @@ public class InputTextField extends JFXTextField {
 
     public InputTextField() {
         super();
-        GUIUtil.initFilledStyle(this);
+        GUIUtil.applyFilledStyle(this);
 
         getValidators().add(jfxValidationWrapper);
 
