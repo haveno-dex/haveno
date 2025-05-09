@@ -48,8 +48,8 @@
     -bs-color-background-button-background: rgb(18, 18, 18);
     -bs-color-background-button-border: rgb(65, 65, 65);
     -bs-color-background-table-header: rgb(9, 9, 9);
-    -bs-color-background-table-cell-even: rgb(9, 9, 9);
-    -bs-color-background-table-cell-odd: rgb(19, 19, 19);
+    -bs-color-background-table-cell-even: rgb(19, 19, 19);
+    -bs-color-background-table-cell-odd: rgb(9, 9, 9);
     -bs-color-table-cell-faded: -bs-color-gray-ccc;
 
     /* lesser used colors */
