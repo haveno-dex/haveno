@@ -258,6 +258,11 @@
     -fx-font-family: "IBM Plex Sans Medium";
 }
 
+/* TODO: otherwise combo box with "odd" class is opacity 0.4? */
+.jfx-combo-box > .list-cell:odd, .jfx-combo-box > .list-cell:even {
+    -fx-opacity: 1.0;
+}
+
 .jfx-combo-box > .arrow-button > .arrow {
     -fx-background-color: null;
     -fx-border-color: -bs-color-gray-line;
