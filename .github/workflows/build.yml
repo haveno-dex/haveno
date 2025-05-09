@@ -81,18 +81,18 @@ jobs:
         shell: powershell
       - name: Build Haveno Installer with tests
         if: matrix.skip_tests == false
-        run: |
-          ./gradlew clean build --refresh-keys --refresh-dependencies
-          ./gradlew packageInstallers
+        run: ./gradlew clean build --refresh-keys --refresh-dependencies
         working-directory: .
       - name: Build Haveno Installer without tests
         if: matrix.skip_tests == true
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies -x test
-          ./gradlew packageInstallers
           echo "::warning title=Tests Skipped::Tests were intentionally skipped for linux/aarch64 builds \
           as JavaFX 21.x.x doesn't currently support the linux/aarch64 architecture. \
           This should be revisited when JavaFX is next updated."
+        working-directory: .
+      - name: Package Haveno Installer
+        run: ./gradlew packageInstallers
         working-directory: .
 
       # get version from jar
