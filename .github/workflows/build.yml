@@ -38,15 +38,17 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
           cache: gradle
+      # JavaFX 21.x.x doesn't support linux/aarch64
+      # So skip tests on linux/aarch64 until JavaFX is updated
       - name: Build with Gradle with tests
-        if: matrix.arch == 'x86_64'
+        if: matrix.arch == 'x86_64' || runner.os == 'MacOS'
         run: ./gradlew build --stacktrace --scan
       - name: Build with Gradle without tests
-        if: matrix.arch == 'aarch64'
+        if: matrix.arch == 'aarch64' && runner.os == 'Linux'
         run: |
           ./gradlew build --stacktrace --scan -x test
-          echo "::warning title=Tests Skipped::Tests were intentionally skipped for aarch64 builds \
-          as JavaFX 21.x.x doesn't currently support the aarch64 architecture. \
+          echo "::warning title=Tests Skipped::Tests were intentionally skipped for linux/aarch64 builds \
+          as JavaFX 21.x.x doesn't currently support the linux/aarch64 architecture. \
           This should be revisited when JavaFX is next updated."
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -72,19 +74,21 @@ jobs:
           Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
           .\wix314.exe /quiet /norestart
         shell: powershell
+      # JavaFX 21.x.x doesn't support linux/aarch64
+      # So skip tests on linux/aarch64 until JavaFX is updated
       - name: Build Haveno Installer with tests
-        if: matrix.arch == 'x86_64'
+        if: matrix.arch == 'x86_64' || runner.os == 'MacOS'
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies
           ./gradlew packageInstallers
         working-directory: .
       - name: Build Haveno Installer without tests
-        if: matrix.arch == 'aarch64'
+        if: matrix.arch == 'aarch64' && runner.os == 'Linux'
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies -x test
           ./gradlew packageInstallers
-          echo "::warning title=Tests Skipped::Tests were intentionally skipped for aarch64 builds \
-          as JavaFX 21.x.x doesn't currently support the aarch64 architecture. \
+          echo "::warning title=Tests Skipped::Tests were intentionally skipped for linux/aarch64 builds \
+          as JavaFX 21.x.x doesn't currently support the linux/aarch64 architecture. \
           This should be revisited when JavaFX is next updated."
         working-directory: .
 
