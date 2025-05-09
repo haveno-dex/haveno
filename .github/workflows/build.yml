@@ -14,11 +14,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-13, macos-15, windows-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-13, macos-15, windows-latest]
         include:
-            - os: ubuntu-22.04
+            - os: ubuntu-24.04
               arch: x86_64
-            - os: ubuntu-22.04-arm
+            - os: ubuntu-24.04-arm
               arch: aarch64
             - os: macos-13
               arch: x86_64
@@ -38,6 +38,11 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
           cache: gradle
+      - name: Create local share directory
+        # ubuntu-24.04 Github runners do not have `~/.local/share` directory by default.
+        # This causes issues when testing `FileTransferSend`
+        if: runner.os == 'Linux'
+        run: mkdir -p ~/.local/share
       - name: Build with Gradle with tests
         if: ${{ !(runner.os == 'Linux' && matrix.arch == 'aarch64') }}
         run: ./gradlew build --stacktrace --scan
