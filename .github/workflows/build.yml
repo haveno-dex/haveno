@@ -18,14 +18,21 @@ jobs:
         include:
             - os: ubuntu-22.04
               arch: x86_64
+              skip_tests: false
             - os: ubuntu-22.04-arm
               arch: aarch64
+              # JavaFX 21.x.x doesn't support `linux/aarch64`
+              # So skip tests until JavaFX is updated
+              skip_tests: true
             - os: macos-13
               arch: x86_64
+              skip_tests: false
             - os: macos-15
               arch: aarch64
+              skip_tests: false
             - os: windows-latest
               arch: x86_64
+              skip_tests: false
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -38,13 +45,11 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
           cache: gradle
-      # JavaFX 21.x.x doesn't support linux/aarch64
-      # So skip tests on linux/aarch64 until JavaFX is updated
       - name: Build with Gradle with tests
-        if: matrix.arch == 'x86_64' || runner.os == 'MacOS'
+        if: matrix.skip_tests == false
         run: ./gradlew build --stacktrace --scan
       - name: Build with Gradle without tests
-        if: matrix.arch == 'aarch64' && runner.os == 'Linux'
+        if: matrix.skip_tests == true
         run: |
           ./gradlew build --stacktrace --scan -x test
           echo "::warning title=Tests Skipped::Tests were intentionally skipped for linux/aarch64 builds \
@@ -74,16 +79,14 @@ jobs:
           Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
           .\wix314.exe /quiet /norestart
         shell: powershell
-      # JavaFX 21.x.x doesn't support linux/aarch64
-      # So skip tests on linux/aarch64 until JavaFX is updated
       - name: Build Haveno Installer with tests
-        if: matrix.arch == 'x86_64' || runner.os == 'MacOS'
+        if: matrix.skip_tests == false
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies
           ./gradlew packageInstallers
         working-directory: .
       - name: Build Haveno Installer without tests
-        if: matrix.arch == 'aarch64' && runner.os == 'Linux'
+        if: matrix.skip_tests == true
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies -x test
           ./gradlew packageInstallers
