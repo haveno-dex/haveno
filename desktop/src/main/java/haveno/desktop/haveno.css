@@ -763,7 +763,7 @@ tree-table-view:focused {
     -fx-border-color: -bs-rd-nav-primary-border;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-padding: 9 0 9 11;
+    -fx-padding: 9 0 5 20;
 }
 
 .nav-secondary {
@@ -787,7 +787,7 @@ tree-table-view:focused {
     -fx-background-color: -bs-rd-nav-background;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-padding: 0 15 0 0;
+    -fx-padding: 0 20 0 0;
 }
 
 .nav-price-balance .separator:vertical .line {
