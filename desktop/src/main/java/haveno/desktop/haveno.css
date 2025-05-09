@@ -1538,7 +1538,7 @@ textfield */
 }
 
 #payment-info {
-    -fx-background-color: -bs-content-background-gray;
+    -fx-background-color: -bs-color-gray-fafa;
 }
 
 .toggle-button-active {
