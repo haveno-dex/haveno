@@ -428,7 +428,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {
         TableView<OfferListItem> tableView = new TableView<>();
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
         tableView.setMinHeight(initialOfferTableViewHeight);
         tableView.setPrefHeight(initialOfferTableViewHeight);
         tableView.setMinWidth(480);
@@ -492,7 +492,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         volumeColumn.setMinWidth(115);
         volumeColumn.setSortable(false);
         volumeColumn.textProperty().bind(volumeColumnLabel);
-        volumeColumn.getStyleClass().addAll("number-column", "first-column");
+        volumeColumn.getStyleClass().addAll("number-column");
         volumeColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         volumeColumn.setCellFactory(
                 new Callback<>() {
@@ -585,7 +585,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             }
         };
 
-        avatarColumn.getStyleClass().addAll("last-column", "avatar-column");
+        avatarColumn.getStyleClass().addAll("avatar-column");
         avatarColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         avatarColumn.setCellFactory(
                 new Callback<>() {

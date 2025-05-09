@@ -172,7 +172,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     @Override
     public void initialize() {
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
 
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
@@ -610,7 +610,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setTradeIdColumnCellFactory() {
-        tradeIdColumn.getStyleClass().add("first-column");
         tradeIdColumn.setCellValueFactory((pendingTradesListItem) -> new ReadOnlyObjectWrapper<>(pendingTradesListItem.getValue()));
         tradeIdColumn.setCellFactory(
                 new Callback<>() {
@@ -824,7 +823,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @SuppressWarnings("UnusedReturnValue")
     private TableColumn<PendingTradesListItem, PendingTradesListItem> setAvatarColumnCellFactory() {
         avatarColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
-        avatarColumn.getStyleClass().addAll("last-column", "avatar-column");
+        avatarColumn.getStyleClass().add("avatar-column");
         avatarColumn.setCellFactory(
                 new Callback<>() {
 
@@ -863,7 +862,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @SuppressWarnings("UnusedReturnValue")
     private TableColumn<PendingTradesListItem, PendingTradesListItem> setChatColumnCellFactory() {
         chatColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
-        chatColumn.getStyleClass().addAll("last-column", "avatar-column");
+        chatColumn.getStyleClass().addAll("avatar-column");
         chatColumn.setSortable(false);
         chatColumn.setCellFactory(
                 new Callback<>() {
