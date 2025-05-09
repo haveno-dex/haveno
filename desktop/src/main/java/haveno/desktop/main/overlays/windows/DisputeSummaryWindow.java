@@ -419,7 +419,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         sellerPayoutAmountInputTextField = new InputTextField();
         sellerPayoutAmountInputTextField.setLabelFloat(true);
-        buyerPayoutAmountInputTextField.getStyleClass().add("label-float");
+        sellerPayoutAmountInputTextField.getStyleClass().add("label-float");
         sellerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.seller"));
         sellerPayoutAmountInputTextField.setEditable(false);
 
