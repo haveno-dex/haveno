@@ -140,6 +140,7 @@
     -fx-image: url("../../images/logo_landscape_light.png");
 }
 
+/** In light mode, we want a border around all inputs. */
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
     -fx-border-color: -bs-color-background-button-border;
 }
