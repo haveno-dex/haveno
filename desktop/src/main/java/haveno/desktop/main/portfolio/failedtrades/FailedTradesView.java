@@ -115,7 +115,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
     @Override
     public void initialize() {
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
 
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
@@ -387,7 +387,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     }
 
     private void setTradeIdColumnCellFactory() {
-        tradeIdColumn.getStyleClass().add("first-column");
         tradeIdColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
         tradeIdColumn.setCellFactory(
                 new Callback<>() {
@@ -457,7 +456,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     }
 
     private void setStateColumnCellFactory() {
-        stateColumn.getStyleClass().add("last-column");
         stateColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
         stateColumn.setCellFactory(
                 new Callback<>() {

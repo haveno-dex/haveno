@@ -230,7 +230,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         root.getChildren().add(offerToolsBox);
 
         tableView = new TableView<>();
-        GUIUtil.applyRoundedArc(tableView);
+        GUIUtil.applyTableStyle(tableView);
 
         GridPane.setRowIndex(tableView, ++gridRow);
         GridPane.setColumnIndex(tableView, 0);
@@ -408,14 +408,12 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                     if (showAll) {
                         volumeColumn.setTitleWithHelpText(Res.get("shared.amountMinMax"), Res.get("shared.amountHelp"));
                         priceColumn.setTitle(Res.get("shared.price"));
-                        priceColumn.getStyleClass().remove("first-column");
 
                         if (!tableView.getColumns().contains(marketColumn))
                             tableView.getColumns().add(0, marketColumn);
                     } else {
                         volumeColumn.setTitleWithHelpText(Res.get("offerbook.volume", code), Res.get("shared.amountHelp"));
                         priceColumn.setTitle(CurrencyUtil.getPriceWithCurrencyCode(code));
-                        priceColumn.getStyleClass().add("first-column");
 
                         tableView.getColumns().remove(marketColumn);
                     }
@@ -818,7 +816,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 setMinWidth(40);
             }
         };
-        column.getStyleClass().addAll("number-column", "first-column");
+        column.getStyleClass().addAll("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
                 new Callback<>() {
@@ -1246,7 +1244,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 setSortable(true);
             }
         };
-        column.getStyleClass().addAll("last-column", "avatar-column");
+        column.getStyleClass().addAll("avatar-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
                 new Callback<>() {
