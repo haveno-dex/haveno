@@ -509,7 +509,7 @@ tree-table-view:focused {
 }
 
 .offer-input-readonly .icon {
-    -fx-padding: 6.5;
+    -fx-padding: 3;
 }
 
 .jfx-badge .badge-pane {
