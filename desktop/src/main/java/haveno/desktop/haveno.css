@@ -220,7 +220,7 @@
 .jfx-combo-box {
     -jfx-focus-color: transparent;
     -jfx-unfocus-color: transparent;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-padding: 2 14 2 14;
 }
 
@@ -234,7 +234,7 @@
     -jfx-unfocus-color: transparent;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
 }
 
 .jfx-text-field.label-float .prompt-container {
@@ -278,21 +278,21 @@
 }
 
 .combo-box-popup {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
 .combo-box-popup .scroll-pane {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
 .combo-box-popup > .list-view {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 5;
@@ -415,7 +415,7 @@ tree-table-view:focused {
 }
 
 .jfx-password-field {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-background-radius: 3 3 0 0;
     -jfx-focus-color: transparent;
     -jfx-unfocus-color: transparent;
@@ -445,11 +445,11 @@ tree-table-view:focused {
 }
 
 .input-with-border {
-    -fx-border-color: -bs-color-background-button-border;
+    -fx-border-color: -bs-color-border-form-field;
 }
 
 .offer-input {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-border-color: -bs-background-gray;
     -fx-pref-height: 43;
     -fx-pref-width: 310;
@@ -465,7 +465,7 @@ tree-table-view:focused {
     -fx-font-size: 1.385em;
     -fx-background-radius: 999 0 0 999;
     -fx-border-radius: 999 0 0 999;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-border-color: transparent;
 }
 
@@ -476,7 +476,7 @@ tree-table-view:focused {
     -fx-alignment: center;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-background-color: derive(-bs-background-color, 15%);
+    -fx-background-color: derive(-bs-color-background-form-field, 15%);
 }
 
 .offer-input .icon {
@@ -553,7 +553,7 @@ tree-table-view:focused {
 .jfx-text-area {
     -jfx-focus-color: transparent;
     -jfx-unfocus-color: transparent;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
@@ -1351,17 +1351,17 @@ textfield */
 }
 
 .text-area-no-border {
-    -fx-border-color: -bs-background-color;
+    -fx-border-color: -bs-color-background-form-field;
 }
 
 .text-area-no-border .content {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
 }
 
 .text-area-no-border:focused {
     -fx-focus-color: transparent;
     -fx-unfocus-color: transparent;
-    -fx-faint-focus-color: -bs-background-color;
+    -fx-faint-focus-color: -bs-color-background-form-field;
 }
 
 /*******************************************************************************
@@ -1560,7 +1560,7 @@ textfield */
     -fx-faint-focus-color: transparent;
     -fx-padding: 7 18 7 18;
     -fx-border-width: 1px;
-    -fx-border-color: -bs-color-background-button-border;
+    -fx-border-color: -bs-color-border-form-field;
     -fx-background-insets: 0;
 }
 
@@ -2180,7 +2180,7 @@ textfield */
 .popup-bg, .notification-popup-bg, .peer-info-popup-bg {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
     -fx-background-radius: 15;
@@ -2190,7 +2190,7 @@ textfield */
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
     -fx-background-radius: 0 0 15px 15px;
