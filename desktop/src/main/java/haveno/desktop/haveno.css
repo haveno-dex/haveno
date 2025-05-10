@@ -219,6 +219,7 @@
 
 .jfx-combo-box {
     -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-background-color;
     -fx-padding: 2 14 2 14;
 }
@@ -229,6 +230,11 @@
 
 .jfx-text-field {
     -fx-padding: 7 18 7 18;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-background-color: -bs-background-color;
 }
 
 .jfx-text-field.label-float .prompt-container {
@@ -373,13 +379,6 @@ tree-table-view:focused {
     -fx-background-insets: 0;
 }
 
-.jfx-text-field {
-    -jfx-focus-color: -bs-color-primary;
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
-}
-
 .jfx-text-field-top-label {
     -fx-text-fill: -bs-color-gray-dim;
 }
@@ -417,7 +416,8 @@ tree-table-view:focused {
 .jfx-password-field {
     -fx-background-color: -bs-background-color;
     -fx-background-radius: 3 3 0 0;
-    -jfx-focus-color: -bs-color-primary;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
     -fx-padding: 7 18 7 18;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
@@ -427,13 +427,9 @@ tree-table-view:focused {
     -fx-translate-x: -0.333333em;
 }
 
-.jfx-password-field > .input-focused-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-field:error, .jfx-password-field:error, .jfx-text-area:error {
-    -jfx-focus-color: -bs-rd-error-red;
-    -jfx-unfocus-color: -bs-rd-error-red;
+.jfx-combo-box:error,
+.jfx-text-field:error {
+    -fx-text-fill: -bs-rd-error-red;
 }
 
 .jfx-text-field .error-label, .jfx-password-field .error-label, .jfx-text-area .error-label {
@@ -554,7 +550,8 @@ tree-table-view:focused {
 }
 
 .jfx-text-area {
-    -jfx-focus-color: -bs-color-primary;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-background-color;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
     -fx-background-radius: 15;
@@ -566,10 +563,6 @@ tree-table-view:focused {
 }
 
 .jfx-text-area > .input-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-area > .input-focused-line {
     -fx-translate-x: -0.333333em;
 }
 
@@ -1365,7 +1358,8 @@ textfield */
 }
 
 .text-area-no-border:focused {
-    -fx-focus-color: -bs-background-color;
+    -fx-focus-color: transparent;
+    -fx-unfocus-color: transparent;
     -fx-faint-focus-color: -bs-background-color;
 }
 
