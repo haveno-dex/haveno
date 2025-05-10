@@ -399,14 +399,13 @@
     -fx-background-color: derive(-bs-background-color, 15%);
 }
 .jfx-combo-box:error,
-.jfx-text-field:error{
+.jfx-text-field:error {
     -fx-text-fill: -bs-rd-error-red;
     -fx-background-color: -bs-rd-error-field;
 }
 
 .jfx-combo-box:error:focused,
 .jfx-text-field:error:focused{
-    -fx-text-fill: -bs-rd-error-red;
     -fx-background-color: derive(-bs-rd-error-field, -5%);
 }
 
