@@ -1157,9 +1157,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     } else {
                                         boolean isSellOffer = OfferViewUtil.isShownAsSellOffer(offer);
                                         boolean isPrivateOffer = offer.isPrivateOffer();
-                                        iconView.setId(isPrivateOffer ? "image-lock2x" : isSellOffer ? "image-buy-white" : "image-sell-white");
-                                        iconView.setFitHeight(16);
-                                        iconView.setFitWidth(16);
+                                        if (isPrivateOffer) {
+                                            button.setGraphic(FormBuilder.getIcon(AwesomeIcon.LOCK, "16px"));
+                                        } else {
+                                            iconView.setId(isSellOffer ? "image-buy-white" : "image-sell-white");
+                                            iconView.setFitHeight(16);
+                                            iconView.setFitWidth(16);
+                                        }
                                         button.setId(isSellOffer ? "buy-button" : "sell-button");
                                         button.setStyle("-fx-text-fill: white");
                                         title = Res.get("offerbook.takeOffer");
