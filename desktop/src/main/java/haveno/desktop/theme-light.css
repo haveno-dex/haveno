@@ -109,11 +109,13 @@
     -bs-prompt-text: -fx-control-inner-background;
     -bs-soft-red: #aa4c3b;
     -bs-turquoise-light: #11eeee;
-    -bs-color-background-button-border: -bs-background-gray;
+    -bs-color-border-form-field: -bs-background-gray;
     -bs-color-background-table-header: derive(-bs-background-color, -5%);
     -bs-color-background-table-cell-even: derive(-bs-background-color, 5%);
     -bs-color-background-table-cell-odd: derive(-bs-background-color, -5%);
     -bs-color-table-cell-faded: -bs-color-gray-ccc;
+    -bs-color-background-form-field: white;
+
 
     /* Monero orange color code */
     -xmr-orange: #f26822;
@@ -142,5 +144,5 @@
 
 /** All inputs have border in light mode. */
 .jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field {
-    -fx-border-color: -bs-color-background-button-border;
+    -fx-border-color: -bs-color-border-form-field;
 }

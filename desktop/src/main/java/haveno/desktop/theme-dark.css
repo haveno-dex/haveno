@@ -21,7 +21,7 @@
     -bs-color-primary: #0b65da;
     -bs-color-primary-dark: #0c59bd;
     -bs-text-color: white;
-    -bs-background-color: #29292a;
+    -bs-background-color: black;
     -bs-background-gray: black;
     -bs-content-background-gray: black;
 
@@ -45,8 +45,8 @@
     -bs-color-gray-fafa: #0a0a0a;
     -bs-color-gray-18: rgb(18, 18, 18);
     -bs-color-gray-background: black;
-    -bs-color-background-button-background: rgb(18, 18, 18);
-    -bs-color-background-button-border: rgb(65, 65, 65);
+    -bs-color-background-form-field: rgb(18, 18, 18);
+    -bs-color-border-form-field: rgb(65, 65, 65);
     -bs-color-background-table-header: rgb(9, 9, 9);
     -bs-color-background-table-cell-even: rgb(19, 19, 19);
     -bs-color-background-table-cell-odd: rgb(9, 9, 9);
@@ -554,7 +554,7 @@
 }
 
 .toggle-button-no-slider {
-    -fx-background-color: -bs-color-background-button-background;
+    -fx-background-color: -bs-color-background-form-field;
 }
 
 .toggle-button-no-slider:selected {
