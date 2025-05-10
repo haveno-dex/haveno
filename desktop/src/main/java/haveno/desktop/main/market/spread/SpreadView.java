@@ -65,6 +65,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
     @Override
     public void initialize() {
         tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
 
         int gridRow = 0;
         GridPane.setRowIndex(tableView, gridRow);
@@ -144,7 +145,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
                 setMinWidth(160);
             }
         };
-        column.getStyleClass().addAll("number-column", "first-column");
+        column.getStyleClass().addAll("number-column");
         column.setCellValueFactory((item) -> new ReadOnlyObjectWrapper<>(item.getValue()));
         column.setCellFactory(
                 new Callback<>() {
@@ -289,7 +290,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
                 setMinWidth(110);
             }
         };
-        column.getStyleClass().addAll("number-column", "last-column");
+        column.getStyleClass().addAll("number-column");
         column.setCellValueFactory((item) -> new ReadOnlyObjectWrapper<>(item.getValue()));
         column.setCellFactory(
                 new Callback<>() {

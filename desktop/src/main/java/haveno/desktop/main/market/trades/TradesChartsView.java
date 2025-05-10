@@ -686,6 +686,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         currencyComboBox = currencyComboBoxTuple.third;
         currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.trade"),
                 Res.get("shared.trades"), model.preferences));
+        currencyComboBox.getStyleClass().add("input-with-border");
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -730,6 +731,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
     private void createTable() {
         tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         // date
@@ -739,7 +741,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
                 setMaxWidth(240);
             }
         };
-        dateColumn.getStyleClass().addAll("number-column", "first-column");
+        dateColumn.getStyleClass().addAll("number-column");
         dateColumn.setCellValueFactory((tradeStatistics) -> new ReadOnlyObjectWrapper<>(tradeStatistics.getValue()));
         dateColumn.setCellFactory(
                 new Callback<>() {
@@ -865,7 +867,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         // paymentMethod
         TableColumn<TradeStatistics3ListItem, TradeStatistics3ListItem> paymentMethodColumn = new AutoTooltipTableColumn<>(Res.get("shared.paymentMethod"));
-        paymentMethodColumn.getStyleClass().add("number-column");
+        paymentMethodColumn.getStyleClass().addAll("number-column");
         paymentMethodColumn.setCellValueFactory((tradeStatistics) -> new ReadOnlyObjectWrapper<>(tradeStatistics.getValue()));
         paymentMethodColumn.setCellFactory(
                 new Callback<>() {

@@ -311,6 +311,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         VBox.setVgrow(filterBox, Priority.NEVER);
 
         tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
         VBox.setVgrow(tableView, Priority.SOMETIMES);
         tableView.setMinHeight(150);
 
@@ -955,7 +956,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             {
                 setMaxWidth(80);
                 setMinWidth(65);
-                getStyleClass().addAll("first-column", "avatar-column");
+                getStyleClass().addAll("avatar-column");
                 setSortable(false);
             }
         };
@@ -1352,7 +1353,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 setMinWidth(50);
             }
         };
-        column.getStyleClass().add("last-column");
         column.setCellValueFactory((dispute) -> new ReadOnlyObjectWrapper<>(dispute.getValue()));
         column.setCellFactory(
                 new Callback<>() {

@@ -64,7 +64,10 @@ import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -76,14 +79,18 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -430,32 +437,43 @@ public class GUIUtil {
 
                     HBox box = new HBox();
                     box.setSpacing(20);
-                    Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
-                    currencyType.getStyleClass().add("currency-label-small");
+                    Label label = new AutoTooltipLabel(
+                        CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
+                    label.getStyleClass().add("currency-label-small");
                     Label currency = new AutoTooltipLabel(item.getCode());
                     currency.getStyleClass().add("currency-label");
                     Label offers = new AutoTooltipLabel(item.getName());
                     offers.getStyleClass().add("currency-label");
 
-                    box.getChildren().addAll(currencyType, currency, offers);
-
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
-                            currencyType.setText(Res.get("shared.all"));
+                            label.setText(Res.get("shared.all"));
                             currency.setText(Res.get("list.currency.showAll"));
                             break;
                         case GUIUtil.EDIT_FLAG:
-                            currencyType.setText(Res.get("shared.edit"));
+                            label.setText(Res.get("shared.edit"));
                             currency.setText(Res.get("list.currency.editList"));
                             break;
                         default:
+
+                            // use icons for crypto
+                            if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                                ImageView iconView = new ImageView();
+                                iconView.setId("image-" + item.getCode().toLowerCase() + "-logo");
+                                iconView.setFitHeight(24);
+                                iconView.setFitWidth(24);
+                                iconView.setSmooth(true);
+                                label.setText("");
+                                label.setGraphic(iconView);
+                            }
                             offerCountOptional.ifPresent(numOffer -> offers.setText(offers.getText() + " (" + numOffer + " " +
                                     (numOffer == 1 ? postFixSingle : postFixMulti) + ")"));
                     }
+
+                    box.getChildren().addAll(label, currency, offers);
 
                     setGraphic(box);
 
@@ -673,7 +691,7 @@ public class GUIUtil {
         String currencyName = Config.baseCurrencyNetwork().getCurrencyName();
         new Popup().information(Res.get("payment.fasterPayments.newRequirements.info", currencyName))
                 .width(900)
-                .actionButtonTextWithGoTo("navigation.account")
+                .actionButtonTextWithGoTo("mainView.menu.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
                     navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
@@ -742,7 +760,7 @@ public class GUIUtil {
         if (user.currentPaymentAccountProperty().get() == null) {
             new Popup().headLine(Res.get("popup.warning.noTradingAccountSetup.headline"))
                     .instruction(Res.get("popup.warning.noTradingAccountSetup.msg"))
-                    .actionButtonTextWithGoTo("navigation.account")
+                    .actionButtonTextWithGoTo("mainView.menu.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
                         navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
@@ -1032,5 +1050,112 @@ public class GUIUtil {
         ColumnConstraints columnConstraints2 = new ColumnConstraints();
         columnConstraints2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
+    }
+
+    public static void applyFilledStyle(TextField textField) {
+        textField.textProperty().addListener((observable, oldValue, newValue) -> {
+            updateFilledStyle(textField);
+        });
+    }
+
+    private static void updateFilledStyle(TextField textField) {
+        if (textField.getText() != null && !textField.getText().isEmpty()) {
+            if (!textField.getStyleClass().contains("filled")) {
+                textField.getStyleClass().add("filled");
+            }
+        } else {
+            textField.getStyleClass().remove("filled");
+        }
+    }
+
+    public static void applyFilledStyle(ComboBox<?> comboBox) {
+        comboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            updateFilledStyle(comboBox);
+        });
+    }
+    
+    private static void updateFilledStyle(ComboBox<?> comboBox) {
+        if (comboBox.getValue() != null) {
+            if (!comboBox.getStyleClass().contains("filled")) {
+                comboBox.getStyleClass().add("filled");
+            }
+        } else {
+            comboBox.getStyleClass().remove("filled");
+        }
+    }
+
+    public static void applyTableStyle(TableView<?> tableView) {
+        applyRoundedArc(tableView);
+        applyEdgeColumnStyleClasses(tableView);
+    }
+
+    private static void applyRoundedArc(TableView<?> tableView) {
+        Rectangle clip = new Rectangle();
+        clip.setArcWidth(Layout.ROUNDED_ARC);
+        clip.setArcHeight(Layout.ROUNDED_ARC);
+        tableView.setClip(clip);
+        tableView.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
+            clip.setWidth(newVal.getWidth());
+            clip.setHeight(newVal.getHeight());
+        });
+    }
+
+    public static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
+        ListChangeListener<TableColumn<T, ?>> columnListener = change -> {
+            updateEdgeColumnStyleClasses(tableView);
+        };
+
+        tableView.getColumns().addListener(columnListener);
+        tableView.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            if (newSkin != null) {
+                Platform.runLater(() -> {
+                    addScrollBarVisibilityListener(tableView);
+                    updateEdgeColumnStyleClasses(tableView);
+                });
+            }
+        });
+
+        // react to size changes
+        ChangeListener<Number> sizeListener = (obs, oldVal, newVal) -> updateEdgeColumnStyleClasses(tableView);
+        tableView.heightProperty().addListener(sizeListener);
+        tableView.widthProperty().addListener(sizeListener);
+
+        updateEdgeColumnStyleClasses(tableView);
+    }
+
+    private static <T> void updateEdgeColumnStyleClasses(TableView<T> tableView) {
+        var columns = tableView.getColumns();
+        for (TableColumn<T, ?> col : columns) {
+            col.getStyleClass().removeAll("first-column", "last-column");
+        }
+
+        if (!columns.isEmpty()) {
+            TableColumn<T, ?> first = columns.get(0);
+            TableColumn<T, ?> last = columns.get(columns.size() - 1);
+
+            if (!first.getStyleClass().contains("first-column")) {
+                first.getStyleClass().add("first-column");
+            }
+
+            boolean hasVerticalScrollBar = tableView.lookupAll(".scroll-bar")
+                    .stream()
+                    .filter(node -> node instanceof ScrollBar)
+                    .map(node -> (ScrollBar) node)
+                    .anyMatch(scrollBar -> scrollBar.getOrientation() == Orientation.VERTICAL
+                            && scrollBar.isVisible());
+
+            if (!last.getStyleClass().contains("last-column") && !hasVerticalScrollBar) {
+                last.getStyleClass().add("last-column");
+            }
+        }
+    }
+
+    private static void addScrollBarVisibilityListener(TableView<?> tableView) {
+        for (Node node : tableView.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar sb && sb.getOrientation() == Orientation.VERTICAL) {
+                sb.visibleProperty().addListener((obs, wasVisible, isNowVisible) ->
+                    Platform.runLater(() -> updateEdgeColumnStyleClasses(tableView)));
+            }
+        }
     }
 }

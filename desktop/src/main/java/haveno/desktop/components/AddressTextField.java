@@ -24,6 +24,7 @@ import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -55,6 +56,7 @@ public class AddressTextField extends AnchorPane {
         textField.setId("address-text-field");
         textField.setEditable(false);
         textField.setLabelFloat(true);
+        textField.getStyleClass().add("label-float");
         textField.setPromptText(label);
 
         textField.textProperty().bind(address);
@@ -70,14 +72,14 @@ public class AddressTextField extends AnchorPane {
 
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
         Label extWalletIcon = new Label();
-        extWalletIcon.setLayoutY(3);
+        extWalletIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         extWalletIcon.getStyleClass().addAll("icon", "highlight");
         extWalletIcon.setTooltip(new Tooltip(tooltipText));
         AwesomeDude.setIcon(extWalletIcon, AwesomeIcon.SIGNIN);
         extWalletIcon.setOnMouseClicked(e -> openWallet());
 
         Label copyIcon = new Label();
-        copyIcon.setLayoutY(3);
+        copyIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         copyIcon.getStyleClass().addAll("icon", "highlight");
         Tooltip.install(copyIcon, new Tooltip(Res.get("addressTextField.copyToClipboard")));
         AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);

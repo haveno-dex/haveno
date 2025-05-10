@@ -150,9 +150,9 @@
     -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-font-size: 0.923em;
     -fx-font-weight: normal;
-    -fx-background-radius: 2px;
-    -fx-pref-height: 32;
-    -fx-min-height: -fx-pref-height;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-min-height: 32;
     -fx-padding: 0 40 0 40;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 2, 0, 0, 0, 1);
     -fx-cursor: hand;
@@ -218,9 +218,47 @@
 }
 
 .jfx-combo-box {
-    -jfx-focus-color: -bs-color-primary;
-    -jfx-unfocus-color: -bs-color-gray-line;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-background-color;
+    -fx-padding: 2 14 2 14;
+}
+
+.jfx-text-area {
+    -fx-padding: 7 18 7 18;
+}
+
+.jfx-text-field {
+    -fx-padding: 7 18 7 18;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-background-color: -bs-background-color;
+}
+
+.jfx-text-field.label-float .prompt-container {
+    -fx-translate-y: 0px;
+}
+
+.jfx-text-field.filled.label-float .prompt-container,
+.jfx-text-field.label-float:focused .prompt-container,
+.jfx-combo-box.filled.label-float .prompt-container,
+.jfx-combo-box.label-float:focused .prompt-container,
+.jfx-password-field.filled.label-float .prompt-container,
+.jfx-password-field.label-float:focused .prompt-container {
+    -fx-translate-y: -6.5px;
+}
+
+.jfx-combo-box, .jfx-text-field, .jfx-text-area {
+    -jfx-unfocus-color: transparent;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.jfx-combo-box .arrow-button {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .jfx-combo-box > .list-cell {
@@ -228,15 +266,55 @@
     -fx-font-family: "IBM Plex Sans Medium";
 }
 
+/* TODO: otherwise combo box with "odd" class is opacity 0.4? */
+.jfx-combo-box > .list-cell:odd, .jfx-combo-box > .list-cell:even {
+    -fx-opacity: 1.0;
+}
+
 .jfx-combo-box > .arrow-button > .arrow {
     -fx-background-color: null;
-    -fx-border-color: -jfx-unfocus-color;
+    -fx-border-color: -bs-color-gray-line;
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
+}
+
+.combo-box-popup {
+    -fx-background-color: -bs-background-color;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 5;
+}
+
+.combo-box-popup .scroll-pane {
+    -fx-background-color: -bs-background-color;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 5;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -bs-background-color;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 5;
+}
+
+/* Rounds the first and last list cells to create full round illusion */
+.combo-box-popup .list-cell:first-child {
+    -fx-background-radius: 10 10 0 0;
+}
+.combo-box-popup .list-cell:last-child {
+    -fx-background-radius: 0 0 10 10;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-radius: 8;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background: -fx-selection-bar;
     -fx-background-color: -fx-selection-bar;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
@@ -301,21 +379,6 @@ tree-table-view:focused {
     -fx-background-insets: 0;
 }
 
-.jfx-text-field {
-    -jfx-focus-color: -bs-color-primary;
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 3 3 0 0;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
-}
-
-.jfx-text-field > .input-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-field > .input-focused-line {
-    -fx-translate-x: -0.333333em;
-}
-
 .jfx-text-field-top-label {
     -fx-text-fill: -bs-color-gray-dim;
 }
@@ -331,6 +394,10 @@ tree-table-view:focused {
 
 .jfx-text-field:readonly > .input-focused-line {
     -fx-background-color: transparent;
+}
+
+.jfx-combo-box:readonly, .jfx-text-field:readonly, .jfx-text-area:readonly {
+    -fx-border-color: transparent;
 }
 
 .jfx-text-field:disabled > .input-line {
@@ -350,21 +417,20 @@ tree-table-view:focused {
 .jfx-password-field {
     -fx-background-color: -bs-background-color;
     -fx-background-radius: 3 3 0 0;
-    -jfx-focus-color: -bs-color-primary;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
+    -fx-padding: 7 18 7 18;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .jfx-password-field > .input-line {
     -fx-translate-x: -0.333333em;
 }
 
-.jfx-password-field > .input-focused-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-field:error, .jfx-password-field:error, .jfx-text-area:error {
-    -jfx-focus-color: -bs-rd-error-red;
-    -jfx-unfocus-color: -bs-rd-error-red;
+.jfx-combo-box:error,
+.jfx-text-field:error {
+    -fx-text-fill: -bs-rd-error-red;
 }
 
 .jfx-text-field .error-label, .jfx-password-field .error-label, .jfx-text-area .error-label {
@@ -379,57 +445,72 @@ tree-table-view:focused {
 }
 
 .input-with-border {
+    -fx-border-color: -bs-color-background-button-border;
+}
+
+.offer-input {
     -fx-background-color: -bs-background-color;
-    -fx-border-width: 1;
     -fx-border-color: -bs-background-gray;
-    -fx-border-radius: 3;
     -fx-pref-height: 43;
     -fx-pref-width: 310;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 1);
-}
-
-.input-with-border .text-field {
-    -fx-alignment: center-right;
-    -fx-pref-height: 43;
-    -fx-font-size: 1.385em;
-}
-
-.input-with-border > .input-label {
-    -fx-font-size: 0.692em;
-    -fx-min-width: 60;
-    -fx-padding: 16;
+    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 0);
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-alignment: center;
 }
 
-.input-with-border .icon {
+.offer-input .text-field {
+    -fx-alignment: center-right;
+    -fx-pref-height: 44;
+    -fx-font-size: 1.385em;
+    -fx-background-radius: 999 0 0 999;
+    -fx-border-radius: 999 0 0 999;
+    -fx-background-color: -bs-background-color;
+    -fx-border-color: transparent;
+}
+
+.offer-input > .input-label {
+    -fx-font-size: 0.692em;
+    -fx-min-width: 45;
+    -fx-padding: 8;
+    -fx-alignment: center;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-background-color: derive(-bs-background-color, 15%);
+}
+
+.offer-input .icon {
     -fx-padding: 10;
 }
 
-.input-with-border-readonly {
+.offer-input-readonly {
     -fx-background-color: -bs-color-gray-1;
     -fx-border-width: 0;
     -fx-pref-width: 300;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
-.input-with-border-readonly .text-field {
+.offer-input-readonly .text-field {
     -fx-alignment: center-right;
     -fx-font-size: 1em;
     -fx-background-color: -bs-color-gray-1;
+    -fx-border-width: 0;
 }
 
-.input-with-border-readonly .text-field > .input-line {
+.offer-input-readonly .text-field > .input-line {
     -fx-background-color: transparent;
 }
 
-.input-with-border-readonly > .input-label {
+.offer-input-readonly > .input-label {
     -fx-font-size: 0.692em;
     -fx-min-width: 30;
     -fx-padding: 8;
     -fx-alignment: center;
 }
 
-.input-with-border-readonly .icon {
-    -fx-padding: 2;
+.offer-input-readonly .icon {
+    -fx-padding: 3;
 }
 
 .jfx-badge .badge-pane {
@@ -470,10 +551,12 @@ tree-table-view:focused {
 }
 
 .jfx-text-area {
-    -jfx-focus-color: -bs-color-primary;
-    -jfx-unfocus-color: -bs-color-gray-line;
+    -jfx-focus-color: transparent;
+    -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-background-color;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .jfx-text-area:readonly {
@@ -481,10 +564,6 @@ tree-table-view:focused {
 }
 
 .jfx-text-area > .input-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-area > .input-focused-line {
     -fx-translate-x: -0.333333em;
 }
 
@@ -501,7 +580,7 @@ tree-table-view:focused {
     -jfx-default-color: -bs-color-primary;
 }
 
-.jfx-date-picker .jfx-text-field .jfx-text-area {
+.jfx-date-picker {
     -fx-padding: 0.333333em 0em 0.333333em 0em;
 }
 
@@ -632,7 +711,7 @@ tree-table-view:focused {
 
 /* Main UI */
 #base-content-container {
-    -fx-background-color: -bs-background-gray;
+    -fx-background-color: -bs-color-gray-background;
 }
 
 .content-pane {
@@ -659,8 +738,8 @@ tree-table-view:focused {
     -fx-background-color: -bs-rd-nav-background;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-pref-height: 57;
-    -fx-padding: 0 11 0 0;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .top-navigation .separator:vertical .line {
@@ -669,25 +748,42 @@ tree-table-view:focused {
     -fx-border-insets: 0 0 0 1;
 }
 
+.nav-logo {
+    -fx-max-width: 180;
+    -fx-min-width: 180;
+}
+
 .nav-primary {
     -fx-background-color: -bs-rd-nav-primary-background;
-    -fx-padding: 0 11 0 11;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-width: 0 0 0 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-min-width: 410;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 9 0 9 20;
 }
 
 .nav-secondary {
-    -fx-padding: 0 11 0 11;
-    -fx-min-width: 296;
+    -fx-padding: 9 15 9 9;
+}
+
+.nav-separator {
+    -fx-max-width: 1;
+    -fx-min-width: 1;
+    -fx-border-color: transparent transparent transparent -bs-rd-separator-dark;
+    -fx-border-width: 1;
+    -fx-border-insets: 0 0 0 1;
+}
+
+.nav-spacer {
+    -fx-max-width: 10;
+    -fx-min-width: 10;
 }
 
 .nav-price-balance {
-    -fx-background-color: -bs-color-gray-background;
-    -fx-background-radius: 3;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 1);
-    -fx-pref-height: 41;
-    -fx-padding: 0 10 0 0;
+    -fx-background-color: -bs-rd-nav-background;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 0 20 0 0;
 }
 
 .nav-price-balance .separator:vertical .line {
@@ -696,23 +792,30 @@ tree-table-view:focused {
     -fx-border-insets: 0 0 0 1;
 }
 
+.nav-price-balance .jfx-combo-box {
+    -fx-border-color: transparent;
+}
+
 .nav-price-balance .jfx-combo-box > .input-line {
     -fx-pref-height: 0px;
 }
 
-.jfx-badge > .nav-button {
+.jfx-badge > .nav-button,
+.jfx-badge > .nav-secondary-button {
     -fx-translate-y: 1;
 }
 
 .nav-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 11;
+    -fx-padding: 9 15;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .nav-button .text {
-    -fx-font-size: 0.769em;
-    -fx-font-weight: bold;
+    -fx-font-size: 0.95em;
+    -fx-font-weight: medium;
     -fx-fill: -bs-rd-nav-deselected;
 }
 
@@ -722,12 +825,48 @@ tree-table-view:focused {
 
 .nav-button:selected {
     -fx-background-color: -bs-background-color;
-    -fx-border-radius: 4;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
+}
+
+.top-navigation .nav-button:hover {
+    -fx-background-color: -bs-rd-nav-button-hover;
+}
+
+.nav-primary .nav-button:hover {
+    -fx-background-color: -bs-rd-nav-primary-button-hover;
 }
 
 .nav-button:selected .text {
     -fx-fill: -bs-rd-nav-selected;
+}
+
+.nav-secondary-button {
+    -fx-cursor: hand;
+    -fx-padding: 9 15;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.nav-secondary-button .text {
+    -fx-font-size: 0.95em;
+    -fx-font-weight: medium;
+    -fx-fill: -bs-rd-nav-secondary-deselected;
+}
+
+.nav-secondary-button-japanese .text {
+    -fx-font-size: 1em;
+}
+
+.nav-secondary-button:selected {
+    -fx-border-color: transparent transparent -bs-rd-nav-secondary-selected transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.nav-secondary-button:hover {
+}
+
+.nav-secondary-button:selected .text {
+    -fx-fill: -bs-rd-nav-secondary-selected;
 }
 
 .nav-balance-display {
@@ -948,12 +1087,18 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .table-view .table-row-cell:even .table-cell {
-    -fx-background-color: derive(-bs-background-color, 5%);
-    -fx-border-color: derive(-bs-background-color,5%);
+    -fx-background-color: -bs-color-background-table-cell-even;
+    -fx-border-color: -bs-color-background-table-cell-even;
 }
 .table-view .table-row-cell:odd .table-cell {
-    -fx-background-color: derive(-bs-background-color,-5%);
-    -fx-border-color: derive(-bs-background-color,-5%);
+    -fx-background-color: -bs-color-background-table-cell-odd;
+    -fx-border-color: -bs-color-background-table-cell-odd;
+}
+.table-view .table-row-cell.row-faded .table-cell .text {
+    -fx-fill: -bs-color-table-cell-faded;
+}
+.cell-faded {
+    -fx-opacity: 0.4;
 }
 .table-view .table-row-cell:hover .table-cell,
 .table-view .table-row-cell:selected .table-cell {
@@ -989,10 +1134,6 @@ textfield */
     -fx-padding: 2 0 2 0;
 }
 
-.table-view .column-header.last-column {
-    -fx-padding: 0 10 0 0;
-}
-
 .table-view .column-header.last-column .label {
     -fx-alignment: center-right;
 }
@@ -1011,6 +1152,14 @@ textfield */
 
 .table-view .column-header.first-column {
     -fx-padding: 0 0 0 10;
+    -fx-background-radius: 15 0 0 0;
+    -fx-border-radius: 15 0 0 0;
+}
+
+.table-view .column-header.last-column {
+    -fx-padding: 0 10 0 0;
+    -fx-background-radius: 0 15 0 0;
+    -fx-border-radius: 0 15 0 0;
 }
 
 .number-column.table-cell {
@@ -1019,11 +1168,21 @@ textfield */
 }
 
 .table-view .filler {
-    -fx-background-color: -bs-color-gray-0;
+    -fx-background-color: transparent;
 }
 
 .table-view {
     -fx-control-inner-background-alt: -fx-control-inner-background;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 0;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .table-view .column-header .label {
@@ -1034,12 +1193,10 @@ textfield */
 }
 
 .table-view .column-header {
-    -fx-background-color: -bs-color-gray-0;
+    -fx-border-color: transparent;
     -fx-padding: 0;
-}
-
-.table-view .focus {
-    -fx-alignment: center-left;
+    -fx-background-color: -bs-color-background-table-header;
+    -fx-border-width: 0;
 }
 
 .table-view .text {
@@ -1049,17 +1206,6 @@ textfield */
 /* horizontal scrollbars are never needed and are flickering at scaling so lets turn them off */
 .table-view > .scroll-bar:horizontal {
     -fx-opacity: 0;
-}
-
-.table-view:focused {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-padding: 1;
-}
-
-.table-view:focused .table-row-cell:focused {
-    -fx-background-color: -fx-table-cell-border-color, -fx-background;
-    -fx-background-insets: 0, 0 0 1 0;
 }
 
 .offer-table .table-row-cell {
@@ -1213,7 +1359,8 @@ textfield */
 }
 
 .text-area-no-border:focused {
-    -fx-focus-color: -bs-background-color;
+    -fx-focus-color: transparent;
+    -fx-unfocus-color: transparent;
     -fx-faint-focus-color: -bs-background-color;
 }
 
@@ -1238,7 +1385,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button .jfx-rippler {
-    -jfx-rippler-fill: -fx-accent;
+    -jfx-rippler-fill: none;
 }
 
 .tab:disabled .jfx-rippler {
@@ -1277,7 +1424,7 @@ textfield */
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-text-fill: -bs-rd-font-light;
     -fx-padding: 14;
-    -fx-font-size: 0.769em;
+    -fx-font-size: .95em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
 }
@@ -1291,7 +1438,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region > .tab > .jfx-rippler {
-    -jfx-rippler-fill: -fx-accent;
+    -jfx-rippler-fill: none;
 }
 
 .jfx-tab-pane .headers-region .tab:closable {
@@ -1395,7 +1542,7 @@ textfield */
 }
 
 #payment-info {
-    -fx-background-color: -bs-content-background-gray;
+    -fx-background-color: -bs-color-gray-fafa;
 }
 
 .toggle-button-active {
@@ -1404,6 +1551,21 @@ textfield */
 
 .toggle-button-inactive {
     -fx-background-color: -bs-color-gray-1;
+}
+
+.toggle-button-no-slider {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-padding: 7 18 7 18;
+    -fx-border-width: 1px;
+    -fx-border-color: -bs-color-background-button-border;
+    -fx-background-insets: 0;
+}
+
+.toggle-button-no-slider:hover {
+    -fx-cursor: hand;
 }
 
 #trade-fee-textfield {
@@ -1734,6 +1896,8 @@ textfield */
     -fx-effect: null;
     -fx-effect: dropshadow(gaussian, -bs-color-gray-10, 10, 0, 0, 0);
     -fx-background-insets: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 /********************************************************************************************************************
@@ -2017,18 +2181,20 @@ textfield */
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 0;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-background-color;
-    -fx-background-radius: 0;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
+    -fx-background-radius: 0 0 15px 15px;
+    -fx-border-radius: 0 0 15px 15px;
 }
 
 .notification-popup-headline, peer-info-popup-headline {
@@ -2041,12 +2207,16 @@ textfield */
     -fx-font-size: 0.846em;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .peer-info-popup-bg {
     -fx-font-size: 0.846em;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .account-status-title {
@@ -2069,7 +2239,7 @@ textfield */
 }
 
 #price-feed-combo > .list-cell {
-    -fx-text-fill: -bs-text-color;
+    -fx-text-fill: -bs-rd-font-balance;
     -fx-font-family: "IBM Plex Sans";
 }
 

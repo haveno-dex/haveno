@@ -65,6 +65,7 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.Tab;
@@ -106,7 +107,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private ListChangeListener<OfferBookListItem> changeListener;
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
     private final double dataLimitFactor = 3;
-    private final double initialOfferTableViewHeight = 121;
+    private final double initialOfferTableViewHeight = 88; // decrease as MainView's content-pane's top anchor increases
     private final Function<Double, Double> offerTableViewHeight = (screenSize) -> {
         // initial visible row count=5, header height=30
         double pixelsPerOfferTableRow = (initialOfferTableViewHeight - 30) / 5.0;
@@ -136,6 +137,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         this.currencyComboBox = currencyComboBoxTuple.third;
         this.currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers"), model.preferences));
+        this.currencyComboBox.getStyleClass().add("input-with-border");
 
         createChart();
 
@@ -426,6 +428,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {
         TableView<OfferListItem> tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
         tableView.setMinHeight(initialOfferTableViewHeight);
         tableView.setPrefHeight(initialOfferTableViewHeight);
         tableView.setMinWidth(480);
@@ -489,7 +492,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         volumeColumn.setMinWidth(115);
         volumeColumn.setSortable(false);
         volumeColumn.textProperty().bind(volumeColumnLabel);
-        volumeColumn.getStyleClass().addAll("number-column", "first-column");
+        volumeColumn.getStyleClass().addAll("number-column");
         volumeColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         volumeColumn.setCellFactory(
                 new Callback<>() {
@@ -582,7 +585,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             }
         };
 
-        avatarColumn.getStyleClass().addAll("last-column", "avatar-column");
+        avatarColumn.getStyleClass().addAll("avatar-column");
         avatarColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         avatarColumn.setCellFactory(
                 new Callback<>() {
@@ -636,7 +639,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
         AutoTooltipButton button = new AutoTooltipButton();
         ImageView iconView = new ImageView();
-        iconView.setId(isSellOffer ? "image-buy-white" : "image-sell-white");
+        iconView.setId("image-xmr-logo");
+        iconView.setFitHeight(24);
+        iconView.setFitWidth(24);
+        iconView.setSmooth(true);
+        button.setContentDisplay(ContentDisplay.RIGHT);
         button.setGraphic(iconView);
         button.setGraphicTextGap(10);
         button.updateText(isSellOffer ? Res.get("market.offerBook.buy") : Res.get("market.offerBook.sell"));
@@ -655,7 +662,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         vBox.setPadding(new Insets(0, 0, 0, 0));
         vBox.setSpacing(10);
         vBox.setFillWidth(true);
-        vBox.setMinHeight(190);
+        //vBox.setMinHeight(190);
         vBox.getChildren().addAll(titleButtonBox, tableView);
 
         return new Tuple4<>(tableView, vBox, button, titleLabel);

@@ -156,6 +156,8 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
+
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE.toString().replace(" BTC", "")));
         buyerSecurityDepositColumn.setGraphic(new AutoTooltipLabel(ColumnNames.BUYER_SEC.toString()));
@@ -326,7 +328,6 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     }
 
     private void setTradeIdColumnCellFactory() {
-        tradeIdColumn.getStyleClass().add("first-column");
         tradeIdColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
         tradeIdColumn.setCellFactory(
                 new Callback<>() {
@@ -463,7 +464,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
     @SuppressWarnings("UnusedReturnValue")
     private TableColumn<ClosedTradesListItem, ClosedTradesListItem> setAvatarColumnCellFactory() {
-        avatarColumn.getStyleClass().addAll("last-column", "avatar-column");
+        avatarColumn.getStyleClass().add("avatar-column");
         avatarColumn.setCellValueFactory((item) -> new ReadOnlyObjectWrapper<>(item.getValue()));
         avatarColumn.setCellFactory(
                 new Callback<>() {

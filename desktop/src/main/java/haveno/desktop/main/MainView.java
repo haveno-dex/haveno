@@ -92,6 +92,7 @@ import static javafx.scene.layout.AnchorPane.setRightAnchor;
 import static javafx.scene.layout.AnchorPane.setTopAnchor;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -165,15 +166,15 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         if (LanguageUtil.isDefaultLanguageRTL())
             MainView.rootContainer.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
 
-        ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market").toUpperCase());
-        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyXmr").toUpperCase());
-        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellXmr").toUpperCase());
-        ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
-        ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
+        ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market"));
+        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyXmr"));
+        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellXmr"));
+        ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio"));
+        ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds"));
 
-        ToggleButton supportButton = new NavButton(SupportView.class, Res.get("mainView.menu.support"));
-        ToggleButton accountButton = new NavButton(AccountView.class, Res.get("mainView.menu.account"));
-        ToggleButton settingsButton = new NavButton(SettingsView.class, Res.get("mainView.menu.settings"));
+        ToggleButton supportButton = new SecondaryNavButton(SupportView.class, Res.get("mainView.menu.support"), "image-support");
+        ToggleButton accountButton = new SecondaryNavButton(AccountView.class, Res.get("mainView.menu.account"), "image-account");
+        ToggleButton settingsButton = new SecondaryNavButton(SettingsView.class, Res.get("mainView.menu.settings"), "image-settings");
 
         JFXBadge portfolioButtonWithBadge = new JFXBadge(portfolioButton);
         JFXBadge supportButtonWithBadge = new JFXBadge(supportButton);
@@ -298,47 +299,56 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        HBox primaryNav = new HBox(marketButton, getNavigationSeparator(), buyButton, getNavigationSeparator(),
-                sellButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator(), fundsButton);
+        HBox primaryNav = new HBox(getLogoPane(), marketButton, getNavigationSpacer(), buyButton, getNavigationSpacer(),
+                sellButton, getNavigationSpacer(), portfolioButtonWithBadge, getNavigationSpacer(), fundsButton);
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");
         HBox.setHgrow(primaryNav, Priority.SOMETIMES);
 
-        HBox secondaryNav = new HBox(supportButtonWithBadge, getNavigationSpacer(), accountButton,
-                getNavigationSpacer(), settingsButtonWithBadge, getNavigationSpacer());
-        secondaryNav.getStyleClass().add("nav-secondary");
-        HBox.setHgrow(secondaryNav, Priority.SOMETIMES);
-
-        secondaryNav.setAlignment(Pos.CENTER);
-
         HBox priceAndBalance = new HBox(marketPriceBox.second, getNavigationSeparator(), availableBalanceBox.second,
                 getNavigationSeparator(), pendingBalanceBox.second, getNavigationSeparator(), reservedBalanceBox.second);
-        priceAndBalance.setMaxHeight(41);
 
         priceAndBalance.setAlignment(Pos.CENTER);
-        priceAndBalance.setSpacing(9);
+        priceAndBalance.setSpacing(12);
         priceAndBalance.getStyleClass().add("nav-price-balance");
 
-        HBox navPane = new HBox(primaryNav, secondaryNav, getNavigationSpacer(),
-                priceAndBalance) {{
-            setLeftAnchor(this, 0d);
-            setRightAnchor(this, 0d);
-            setTopAnchor(this, 0d);
+        HBox navPane = new HBox(primaryNav, getNavigationSpacer(), priceAndBalance) {{
+            setLeftAnchor(this, 25d);
+            setRightAnchor(this, 25d);
+            setTopAnchor(this, 20d);
             setPadding(new Insets(0, 0, 0, 0));
             getStyleClass().add("top-navigation");
         }};
         navPane.setAlignment(Pos.CENTER);
 
+        HBox secondaryNav = new HBox(supportButtonWithBadge, accountButton, settingsButtonWithBadge);
+        secondaryNav.getStyleClass().add("nav-secondary");
+        secondaryNav.setAlignment(Pos.CENTER_RIGHT);
+        secondaryNav.setPickOnBounds(false);
+        HBox.setHgrow(secondaryNav, Priority.ALWAYS);
+        AnchorPane.setLeftAnchor(secondaryNav, 0.0);
+        AnchorPane.setRightAnchor(secondaryNav, 0.0);
+        AnchorPane.setTopAnchor(secondaryNav, 0.0);
+
+        AnchorPane secondaryNavContainer = new AnchorPane() {{
+            setId("nav-secondary-container");
+            setLeftAnchor(this, 0d);
+            setRightAnchor(this, 0d);
+            setTopAnchor(this, 95d);
+        }};
+        secondaryNavContainer.setPickOnBounds(false);
+        secondaryNavContainer.getChildren().add(secondaryNav);
+
         AnchorPane contentContainer = new AnchorPane() {{
             getStyleClass().add("content-pane");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 57d);
+            setTopAnchor(this, 95d);
             setBottomAnchor(this, 0d);
         }};
 
-        AnchorPane applicationContainer = new AnchorPane(navPane, contentContainer) {{
+        AnchorPane applicationContainer = new AnchorPane(navPane, contentContainer, secondaryNavContainer) {{
             setId("application-container");
         }};
 
@@ -398,15 +408,32 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Separator getNavigationSeparator() {
         final Separator separator = new Separator(Orientation.VERTICAL);
         HBox.setHgrow(separator, Priority.ALWAYS);
-        separator.setMaxHeight(22);
         separator.setMaxWidth(Double.MAX_VALUE);
+        separator.getStyleClass().add("nav-separator");
         return separator;
+    }
+
+    @NotNull
+    private Pane getLogoPane() {
+        ImageView logo = new ImageView();
+        logo.setId("image-logo-landscape");
+        logo.setPreserveRatio(true);
+        logo.setFitHeight(40);
+        logo.setSmooth(true);
+        logo.setCache(true);
+
+        final Pane pane = new Pane();
+        HBox.setHgrow(pane, Priority.ALWAYS);
+        pane.getStyleClass().add("nav-logo");
+        pane.getChildren().add(logo);
+        return pane;
     }
 
     @NotNull
     private Region getNavigationSpacer() {
         final Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
+        spacer.getStyleClass().add("nav-spacer");
         return spacer;
     }
 
@@ -825,6 +852,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
             this.setToggleGroup(navButtons);
             this.getStyleClass().add("nav-button");
+            this.setMinWidth(Region.USE_PREF_SIZE); // prevent squashing content
+            this.setPrefWidth(Region.USE_COMPUTED_SIZE);
+
             // Japanese fonts are dense, increase top nav button text size
             if (model.getPreferences() != null && "ja".equals(model.getPreferences().getUserLanguage())) {
                 this.getStyleClass().add("nav-button-japanese");
@@ -833,6 +863,31 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             this.selectedProperty().addListener((ov, oldValue, newValue) -> this.setMouseTransparent(newValue));
 
             this.setOnAction(e -> navigation.navigateTo(MainView.class, viewClass));
+        }
+
+    }
+
+    private class SecondaryNavButton extends NavButton {
+
+        SecondaryNavButton(Class<? extends View> viewClass, String title, String iconId) {
+            super(viewClass, title);
+            this.getStyleClass().setAll("nav-secondary-button");
+
+            // Japanese fonts are dense, increase top nav button text size
+            if (model.getPreferences() != null && "ja".equals(model.getPreferences().getUserLanguage())) {
+                this.getStyleClass().setAll("nav-secondary-button-japanese");
+            }
+
+            // add icon
+            ImageView imageView = new ImageView();
+            imageView.setId(iconId);
+            imageView.setFitWidth(15);
+            imageView.setPreserveRatio(true);
+            setGraphicTextGap(10);
+            setGraphic(imageView);
+
+            // show cursor hand on any hover
+            this.setPickOnBounds(true);
         }
 
     }

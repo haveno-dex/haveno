@@ -144,6 +144,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
 
         paymentLabelString = Res.get("funds.deposit.fundHavenoWallet");
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
@@ -377,7 +378,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setUsageColumnCellFactory() {
-        usageColumn.getStyleClass().add("last-column");
         usageColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         usageColumn.setCellFactory(new Callback<>() {
 
@@ -401,7 +401,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
     }
 
     private void setAddressColumnCellFactory() {
-        addressColumn.getStyleClass().add("first-column");
         addressColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
 
         addressColumn.setCellFactory(

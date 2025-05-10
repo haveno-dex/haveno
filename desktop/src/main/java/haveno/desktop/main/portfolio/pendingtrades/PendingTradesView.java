@@ -55,6 +55,7 @@ import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -171,6 +172,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
+
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amount")));
@@ -607,7 +610,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setTradeIdColumnCellFactory() {
-        tradeIdColumn.getStyleClass().add("first-column");
         tradeIdColumn.setCellValueFactory((pendingTradesListItem) -> new ReadOnlyObjectWrapper<>(pendingTradesListItem.getValue()));
         tradeIdColumn.setCellFactory(
                 new Callback<>() {
@@ -821,7 +823,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @SuppressWarnings("UnusedReturnValue")
     private TableColumn<PendingTradesListItem, PendingTradesListItem> setAvatarColumnCellFactory() {
         avatarColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
-        avatarColumn.getStyleClass().addAll("last-column", "avatar-column");
+        avatarColumn.getStyleClass().add("avatar-column");
         avatarColumn.setCellFactory(
                 new Callback<>() {
 
@@ -860,7 +862,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @SuppressWarnings("UnusedReturnValue")
     private TableColumn<PendingTradesListItem, PendingTradesListItem> setChatColumnCellFactory() {
         chatColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
-        chatColumn.getStyleClass().addAll("last-column", "avatar-column");
+        chatColumn.getStyleClass().addAll("avatar-column");
         chatColumn.setSortable(false);
         chatColumn.setCellFactory(
                 new Callback<>() {
