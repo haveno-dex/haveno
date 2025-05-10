@@ -293,6 +293,8 @@
 
 .combo-box-popup > .list-view {
     -fx-background-color: -bs-color-background-form-field;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-translate-y: 4;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 5;
