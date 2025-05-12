@@ -1352,18 +1352,18 @@ textfield */
     -fx-border-color: -bs-background-gray;
 }
 
-.text-area-no-border {
-    -fx-border-color: -bs-color-background-form-field;
+.text-area-popup {
+    -fx-border-color: -bs-color-background-popup;
 }
 
-.text-area-no-border .content {
-    -fx-background-color: -bs-color-background-form-field;
+.text-area-popup .content {
+    -fx-background-color: -bs-color-background-popup;
 }
 
-.text-area-no-border:focused {
+.text-area-popup:focused {
     -fx-focus-color: transparent;
     -fx-unfocus-color: transparent;
-    -fx-faint-focus-color: -bs-color-background-form-field;
+    -fx-faint-focus-color: -bs-color-background-popup;
 }
 
 /*******************************************************************************
@@ -2182,7 +2182,7 @@ textfield */
 .popup-bg, .notification-popup-bg, .peer-info-popup-bg {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-color: -bs-color-background-popup;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
     -fx-background-radius: 15;
@@ -2192,7 +2192,7 @@ textfield */
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-color: -bs-color-background-popup;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
     -fx-background-radius: 0 0 15px 15px;
