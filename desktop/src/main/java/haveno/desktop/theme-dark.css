@@ -43,8 +43,8 @@
     -bs-color-gray-bbb: #5a5a5a;
     -bs-color-gray-aaa: #29292a;
     -bs-color-gray-fafa: #0a0a0a;
-    -bs-color-gray-18: rgb(18, 18, 18);
     -bs-color-gray-background: black;
+    -bs-color-background-popup: rgb(31, 31, 31);
     -bs-color-background-form-field: rgb(18, 18, 18);
     -bs-color-border-form-field: rgb(65, 65, 65);
     -bs-color-background-table-header: rgb(9, 9, 9);

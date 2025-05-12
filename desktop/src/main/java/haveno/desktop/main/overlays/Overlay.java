@@ -852,7 +852,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (message != null) {
             messageTextArea = new TextArea(truncatedMessage);
             messageTextArea.setEditable(false);
-            messageTextArea.getStyleClass().add("text-area-no-border");
+            messageTextArea.getStyleClass().add("text-area-popup");
             messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
                 if (newScene != null) {
                     // avoid javafx css warning
