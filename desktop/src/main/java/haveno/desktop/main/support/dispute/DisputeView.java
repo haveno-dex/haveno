@@ -223,12 +223,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     @Override
     public void initialize() {
-        Label label = new AutoTooltipLabel(Res.get("support.filter"));
-        HBox.setMargin(label, new Insets(5, 0, 0, 0));
-        HBox.setHgrow(label, Priority.NEVER);
-
         filterTextField = new InputTextField();
-        filterTextField.setPromptText(Res.get("support.filter.prompt"));
+        filterTextField.setPromptText(Res.get("filter.prompt.disputes"));
         Tooltip tooltip = new Tooltip();
         tooltip.setShowDelay(Duration.millis(100));
         tooltip.setShowDuration(Duration.seconds(10));
@@ -298,8 +294,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
         HBox filterBox = new HBox();
         filterBox.setSpacing(5);
-        filterBox.getChildren().addAll(label,
-                filterTextField,
+        filterBox.getChildren().addAll(filterTextField,
                 alertIconLabel,
                 spacer,
                 reOpenButton,

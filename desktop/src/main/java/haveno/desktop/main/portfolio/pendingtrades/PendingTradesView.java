@@ -284,6 +284,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         tableView.setMaxHeight(200);
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
+        filterBox.setPromptText(Res.get("filter.prompt.trades"));
         filterBox.activate();
 
         updateMoveTradeToFailedColumnState();
