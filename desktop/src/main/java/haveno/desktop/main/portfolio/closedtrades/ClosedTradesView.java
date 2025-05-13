@@ -254,6 +254,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         tableView.setItems(sortedList);
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
+        filterBox.setPromptText(Res.get("filter.prompt.trades"));
         filterBox.activate();
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));

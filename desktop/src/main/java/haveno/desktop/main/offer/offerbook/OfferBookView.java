@@ -217,7 +217,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tuple3<VBox, Label, AutoTooltipTextField> autoToolTipTextField = addTopLabelAutoToolTipTextField("");
         VBox filterBox = autoToolTipTextField.first;
         filterInputField = autoToolTipTextField.third;
-        filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
+        filterInputField.setPromptText(Res.get("filter.prompt.offers"));
         filterInputField.getStyleClass().add("input-with-border");
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
