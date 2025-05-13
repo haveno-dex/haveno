@@ -47,9 +47,9 @@
     -bs-color-background-popup: rgb(31, 31, 31);
     -bs-color-background-form-field: rgb(18, 18, 18);
     -bs-color-border-form-field: rgb(65, 65, 65);
-    -bs-color-background-table-header: rgb(9, 9, 9);
-    -bs-color-background-table-cell-even: rgb(19, 19, 19);
-    -bs-color-background-table-cell-odd: rgb(9, 9, 9);
+    -bs-color-background-pane: rgb(9, 9, 9);
+    -bs-color-background-row-even: rgb(19, 19, 19);
+    -bs-color-background-row-odd: rgb(9, 9, 9);
     -bs-color-table-cell-faded: -bs-color-gray-ccc;
 
     /* lesser used colors */
@@ -175,7 +175,7 @@
 }
 
 .table-view .column-header {
-    -fx-background-color: -bs-color-background-table-header;
+    -fx-background-color: -bs-color-background-pane;
     -fx-border-width: 0;
 }
 
@@ -184,14 +184,14 @@
     -fx-border-width: 0;
 }
 
-/** These must be set here or it changes hover behavior on rows. */
+/** These must be set to override default styles */
 .table-view .table-row-cell:even .table-cell {
-    -fx-background-color: -bs-color-background-table-cell-even;
-    -fx-border-color: -bs-color-background-table-cell-even;
+    -fx-background-color: -bs-color-background-row-even;
+    -fx-border-color: -bs-color-background-row-even;
 }
 .table-view .table-row-cell:odd .table-cell {
-    -fx-background-color: -bs-color-background-table-cell-odd;
-    -fx-border-color: -bs-color-background-table-cell-odd;
+    -fx-background-color: -bs-color-background-row-odd;
+    -fx-border-color: -bs-color-background-row-odd;
 }
 .table-view .table-row-cell:selected .table-cell {
     -fx-background: -fx-accent;
@@ -350,7 +350,7 @@
 }
 
 .combo-box-popup > .list-view{
-    -fx-background-color:  -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 .jfx-combo-box > .arrow-button > .arrow {
