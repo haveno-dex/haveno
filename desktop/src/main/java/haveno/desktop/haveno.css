@@ -1950,10 +1950,12 @@ textfield */
 
 #charts .default-color0.chart-series-area-line {
     -fx-stroke: -bs-sell;
+    -fx-stroke-width: 2px;
 }
 
 #charts .default-color1.chart-series-area-line, #charts-dao .default-color0.chart-series-area-line {
     -fx-stroke: -bs-buy;
+    -fx-stroke-width: 2px;
 }
 
 /* The .chart-line-symbol rules change the color of the legend symbol */
@@ -2081,13 +2083,6 @@ textfield */
     -fx-stroke-width: 2px;
 }
 
-#charts .default-color0.chart-series-area-fill {
-    -fx-fill: -bs-sell-transparent;
-}
-
-#charts .default-color1.chart-series-area-fill, #charts-dao .default-color0.chart-series-area-fill {
-    -fx-fill: -bs-buy-transparent;
-}
 .chart-vertical-grid-lines {
     -fx-stroke: transparent;
 }

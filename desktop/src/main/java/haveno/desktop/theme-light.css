@@ -147,3 +147,17 @@
 .jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field {
     -fx-border-color: -bs-color-border-form-field;
 }
+
+#charts .default-color0.chart-series-area-fill {
+    -fx-fill: linear-gradient(to bottom,
+        rgba(215, 48, 48, 0.45) 0%,
+        rgba(215, 48, 48, 0.0) 100%
+    );
+}
+
+#charts .default-color1.chart-series-area-fill {
+    -fx-fill: linear-gradient(to bottom,
+        rgba(62, 163, 74, 0.45) 0%,
+        rgba(62, 163, 74, 0.0) 100%
+    );
+}
