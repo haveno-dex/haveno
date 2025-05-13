@@ -88,6 +88,7 @@ public class VerifyDisputeResultSignatureWindow extends Overlay<VerifyDisputeRes
         addMultilineLabel(gridPane, ++rowIndex, Res.get("support.sigCheck.popup.info"), 0, width);
         textArea = addTopLabelTextArea(gridPane, ++rowIndex, Res.get("support.sigCheck.popup.msg.label"),
                 Res.get("support.sigCheck.popup.msg.prompt")).second;
+        textArea.getStyleClass().add("input-with-border");
         resultTextField = addTopLabelTextField(gridPane, ++rowIndex, Res.get("support.sigCheck.popup.result")).second;
     }
 }
