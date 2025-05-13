@@ -455,6 +455,7 @@ tree-table-view:focused {
 }
 
 .input-with-border {
+    -fx-border-width: 1;
     -fx-border-color: -bs-color-border-form-field;
 }
 
@@ -564,7 +565,7 @@ tree-table-view:focused {
     -jfx-focus-color: transparent;
     -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-color-background-form-field;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-padding: 9 9 9 9;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
 }
@@ -575,6 +576,12 @@ tree-table-view:focused {
 
 .jfx-text-area > .input-line {
     -fx-translate-x: -0.333333em;
+}
+
+.text-area .viewport {
+    -fx-background-color: transparent;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .wallet-seed-words {
