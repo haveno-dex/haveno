@@ -40,7 +40,6 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;

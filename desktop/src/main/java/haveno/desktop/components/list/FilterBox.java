@@ -17,7 +17,6 @@
 
 package haveno.desktop.components.list;
 
-import haveno.core.locale.Res;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.beans.value.ChangeListener;
