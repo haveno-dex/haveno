@@ -278,21 +278,21 @@
 }
 
 .combo-box-popup {
-    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-color: -bs-color-background-pane;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
 .combo-box-popup .scroll-pane {
-    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-color: -bs-color-background-pane;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 5;
 }
 
 .combo-box-popup > .list-view {
-    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-color: -bs-color-background-pane;
     -fx-border-color: -bs-color-border-form-field;
     -fx-translate-y: 4;
     -fx-background-radius: 15;
@@ -379,6 +379,14 @@ tree-table-view:focused {
 .table-row-cell:filled > .table-cell:selected,
 .tree-table-row-cell:filled > .tree-table-cell:selected {
     -fx-background-insets: 0;
+}
+
+/* combo box list view */
+.combo-box .list-view .list-cell:odd {
+    -fx-background-color: -bs-color-background-pane;
+}
+.combo-box .list-view .list-cell:even {
+    -fx-background-color: -bs-color-background-pane;
 }
 
 .jfx-text-field-top-label {
@@ -616,14 +624,14 @@ tree-table-view:focused {
 
 .scroll-bar:horizontal .track,
 .scroll-bar:vertical .track {
-    -fx-background-color: -bs-background-color;
-    -fx-border-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
+    -fx-border-color: -bs-color-background-pane;
     -fx-background-radius: 0;
 }
 
 .scroll-bar:vertical .track-background,
 .scroll-bar:horizontal .track-background {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
 }
@@ -654,7 +662,7 @@ tree-table-view:focused {
 .scroll-bar:vertical .decrement-button,
 .scroll-bar:horizontal .increment-button,
 .scroll-bar:horizontal .decrement-button {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
     -fx-padding: 1;
 }
 
@@ -663,12 +671,12 @@ tree-table-view:focused {
 .scroll-bar:horizontal .decrement-arrow,
 .scroll-bar:vertical .decrement-arrow {
     -fx-shape: null;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 .scroll-bar:vertical:focused,
 .scroll-bar:horizontal:focused {
-    -fx-background-color: -bs-background-color, -bs-color-gray-ccc, -bs-color-gray-ddd;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 /* Behavior */
@@ -1089,12 +1097,12 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .table-view .table-row-cell:even .table-cell {
-    -fx-background-color: -bs-color-background-table-cell-even;
-    -fx-border-color: -bs-color-background-table-cell-even;
+    -fx-background-color: -bs-color-background-row-even;
+    -fx-border-color: -bs-color-background-row-even;
 }
 .table-view .table-row-cell:odd .table-cell {
-    -fx-background-color: -bs-color-background-table-cell-odd;
-    -fx-border-color: -bs-color-background-table-cell-odd;
+    -fx-background-color: -bs-color-background-row-odd;
+    -fx-border-color: -bs-color-background-row-odd;
 }
 .table-view .table-row-cell.row-faded .table-cell .text {
     -fx-fill: -bs-color-table-cell-faded;
@@ -1197,7 +1205,7 @@ textfield */
 .table-view .column-header {
     -fx-border-color: transparent;
     -fx-padding: 0;
-    -fx-background-color: -bs-color-background-table-header;
+    -fx-background-color: -bs-color-background-pane;
     -fx-border-width: 0;
 }
 
