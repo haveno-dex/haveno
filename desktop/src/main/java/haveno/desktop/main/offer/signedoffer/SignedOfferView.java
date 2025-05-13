@@ -98,10 +98,6 @@ public class SignedOfferView extends ActivatableViewAndModel<VBox, SignedOffersV
 
     @Override
     public void initialize() {
-        Label label = new AutoTooltipLabel(Res.get("support.filter"));
-        HBox.setMargin(label, new Insets(5, 0, 0, 0));
-        HBox.setHgrow(label, Priority.NEVER);
-
         filterTextField = new InputTextField();
         Tooltip tooltip = new Tooltip();
         tooltip.setShowDelay(Duration.millis(100));
@@ -120,6 +116,7 @@ public class SignedOfferView extends ActivatableViewAndModel<VBox, SignedOffersV
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
         filterBox.initialize(filteredList, tableView);
+        filterBox.setPromptText(Res.get("filter.prompt.offers"));
         filterBox.activate();
 
         contextMenu = new ContextMenu();
