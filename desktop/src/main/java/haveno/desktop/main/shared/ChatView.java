@@ -204,6 +204,7 @@ public class ChatView extends AnchorPane {
         inputTextArea = new HavenoTextArea();
         inputTextArea.setPrefHeight(70);
         inputTextArea.setWrapText(true);
+        inputTextArea.getStyleClass().add("input-with-border");
 
         if (!supportSession.isDisputeAgent()) {
             inputTextArea.setPromptText(Res.get("support.input.prompt"));

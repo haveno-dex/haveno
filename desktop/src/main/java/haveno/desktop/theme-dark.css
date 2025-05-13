@@ -239,7 +239,6 @@
 .jfx-combo-box, .jfx-combo-box > .list-cell {
     -fx-prompt-text-fill: -bs-color-gray-6;
     -fx-text-fill: -bs-color-gray-12;
-    -fx-border-width: 1;
 }
 
 .jfx-text-area:readonly, .jfx-text-field:readonly,
