@@ -563,7 +563,7 @@
 }
 
 .table-view .placeholder {
-    -fx-background-color: -bs-color-background-table-header;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 #charts .default-color0.chart-series-area-fill {
