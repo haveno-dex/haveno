@@ -50,7 +50,9 @@
     -bs-color-background-pane: rgb(15, 15, 15);
     -bs-color-background-row-even: rgb(19, 19, 19);
     -bs-color-background-row-odd: rgb(9, 9, 9);
-    -bs-color-table-cell-faded: -bs-color-gray-ccc;
+    -bs-color-table-cell-dim: -bs-color-gray-ccc;
+    -bs-text-color-dim1: rgb(87, 87, 87);
+    -bs-text-color-dim2: rgb(130, 130, 130);
 
     /* lesser used colors */
     -bs-color-blue-5: #0a4576;

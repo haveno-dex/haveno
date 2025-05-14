@@ -1112,7 +1112,7 @@ textfield */
     -fx-border-color: -bs-color-background-row-odd;
 }
 .table-view .table-row-cell.row-faded .table-cell .text {
-    -fx-fill: -bs-color-table-cell-faded;
+    -fx-fill: -bs-color-table-cell-dim;
 }
 .cell-faded {
     -fx-opacity: 0.4;
@@ -1190,6 +1190,10 @@ textfield */
     -fx-padding: 0;
 }
 
+.table-view .table-row-cell .label {
+    -fx-text-fill: -bs-text-color;
+}
+
 .table-view .column-header-background {
     -fx-background-color: -bs-color-background-pane;
     -fx-border-color: -bs-color-border-form-field;
@@ -1201,6 +1205,7 @@ textfield */
     -fx-font-weight: normal;
     -fx-font-size: 0.923em;
     -fx-padding: 6 0 6 0;
+    -fx-text-fill: -bs-text-color;
 }
 
 .table-view .column-header {
@@ -1208,9 +1213,6 @@ textfield */
     -fx-background-color: -bs-color-background-pane;
 }
 
-.table-view .text {
-    -fx-fill: -bs-text-color;
-}
 
 /* horizontal scrollbars are never needed and are flickering at scaling so lets turn them off */
 .table-view > .scroll-bar:horizontal {
@@ -1334,6 +1336,14 @@ textfield */
     -fx-pref-width: 300px;
     -fx-min-height: 35px;
     -fx-padding: 5 25 5 25;
+}
+
+.table-view.offer-table .column-header .label {
+    -fx-text-fill: -bs-text-color-dim1;
+}
+
+.table-view.offer-table .table-row-cell .label {
+    -fx-text-fill: -bs-text-color-dim2;
 }
 
 /*******************************************************************************
