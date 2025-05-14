@@ -113,9 +113,11 @@
     -bs-color-background-pane: -bs-background-color;
     -bs-color-background-row-even: -bs-color-background-pane;
     -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
-    -bs-color-table-cell-faded: -bs-color-gray-ccc;
+    -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-color-background-popup: white;
     -bs-color-background-form-field: white;
+    -bs-text-color-dim1: black;
+    -bs-text-color-dim2: black;
 
 
     /* Monero orange color code */
