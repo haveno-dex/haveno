@@ -586,12 +586,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     public void setDirection(OfferDirection direction) {
         model.initWithDirection(direction);
-        ImageView iconView = new ImageView();
-        createOfferButton.setGraphic(iconView);
+        createOfferButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode()));
         createOfferButton.setContentDisplay(ContentDisplay.RIGHT);
-        iconView.setId("image-xmr-logo");
-        iconView.setFitHeight(24);
-        iconView.setFitWidth(24);
         createOfferButton.setId(direction == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
         avatarColumn.setTitle(direction == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
         if (direction == OfferDirection.SELL) {

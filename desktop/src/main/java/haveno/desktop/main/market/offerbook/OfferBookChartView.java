@@ -72,7 +72,6 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -238,11 +237,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
                     sellHeaderLabel.setText(Res.get("market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
                     sellButton.updateText(Res.get("shared.sellCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
-                    sellButton.getGraphic().setId(GUIUtil.getImageId(viewBaseCurrencyCode));
+                    sellButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
 
                     buyHeaderLabel.setText(Res.get("market.offerBook.buyOffersHeaderLabel", viewBaseCurrencyCode));
                     buyButton.updateText(Res.get("shared.buyCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
-                    buyButton.getGraphic().setId(GUIUtil.getImageId(viewBaseCurrencyCode));
+                    buyButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
 
                     priceColumnLabel.set(Res.get("shared.priceWithCur", viewPriceCurrencyCode));
 
@@ -641,12 +640,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         titleLabel.getStyleClass().add("table-title");
 
         AutoTooltipButton button = new AutoTooltipButton();
-        ImageView iconView = new ImageView();
-        iconView.setFitHeight(24);
-        iconView.setFitWidth(24);
-        iconView.setSmooth(true);
         button.setContentDisplay(ContentDisplay.RIGHT);
-        button.setGraphic(iconView);
         button.setGraphicTextGap(10);
         button.updateText(isSellOffer ? Res.get("market.offerBook.buy") : Res.get("market.offerBook.sell"));
         button.setMinHeight(32);
