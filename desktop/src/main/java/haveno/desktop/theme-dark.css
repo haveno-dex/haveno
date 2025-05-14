@@ -471,22 +471,6 @@
     -fx-border-color: transparent;
 }
 
-.table-view .table-cell {
-    -fx-padding: 6 0 4 0;
-    -fx-text-fill: -bs-text-color;
-}
-.table-view .table-cell.last-column {
-    -fx-padding: 6 10 4 0;
-}
-
-.table-view .table-cell.last-column.avatar-column {
-    -fx-padding: 6 0 4 0;
-}
-
-.table-view .table-cell.first-column {
-    -fx-padding: 6 0 4 10;
-}
-
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-cursor: hand;
     -jfx-disable-animation: true;
