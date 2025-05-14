@@ -1085,7 +1085,11 @@ public class GUIUtil {
     }
 
     public static void applyTableStyle(TableView<?> tableView) {
-        applyRoundedArc(tableView);
+        applyTableStyle(tableView, true);
+    }
+
+    public static void applyTableStyle(TableView<?> tableView, boolean applyRoundedArc) {
+        if (applyRoundedArc) applyRoundedArc(tableView);
         applyEdgeColumnStyleClasses(tableView);
     }
 
@@ -1100,7 +1104,7 @@ public class GUIUtil {
         });
     }
 
-    public static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
+    private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
         ListChangeListener<TableColumn<T, ?>> columnListener = change -> {
             updateEdgeColumnStyleClasses(tableView);
         };
