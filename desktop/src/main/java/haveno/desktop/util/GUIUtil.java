@@ -462,7 +462,7 @@ public class GUIUtil {
                             // use icons for crypto
                             if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
                                 ImageView iconView = new ImageView();
-                                iconView.setId("image-" + item.getCode().toLowerCase() + "-logo");
+                                iconView.setId(getImageId(item.getCode()));
                                 iconView.setFitHeight(24);
                                 iconView.setFitWidth(24);
                                 iconView.setSmooth(true);
@@ -1144,5 +1144,9 @@ public class GUIUtil {
                 last.getStyleClass().add("last-column");
             }
         }
+    }
+
+    public static String getImageId(String currencyCode) {
+        return "image-" + currencyCode.toLowerCase() + "-logo";
     }
 }
