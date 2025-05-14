@@ -90,6 +90,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -461,13 +462,8 @@ public class GUIUtil {
 
                             // use icons for crypto
                             if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
-                                ImageView iconView = new ImageView();
-                                iconView.setId(getImageId(item.getCode()));
-                                iconView.setFitHeight(24);
-                                iconView.setFitWidth(24);
-                                iconView.setSmooth(true);
                                 label.setText("");
-                                label.setGraphic(iconView);
+                                label.setGraphic(getCurrencyIcon(item.getCode()));
                             }
                             offerCountOptional.ifPresent(numOffer -> offers.setText(offers.getText() + " (" + numOffer + " " +
                                     (numOffer == 1 ? postFixSingle : postFixMulti) + ")"));
@@ -1146,7 +1142,32 @@ public class GUIUtil {
         }
     }
 
-    public static String getImageId(String currencyCode) {
+    public static ImageView getCurrencyIcon(String currencyCode) {
+        if (currencyCode == null) return null;
+        ImageView iconView = new ImageView();
+        iconView.setFitHeight(24);
+        iconView.setFitWidth(24);
+        iconView.setSmooth(true);
+        iconView.setId(getImageId(currencyCode));
+        return iconView;
+    }
+
+    public static StackPane getCurrencyIconWithBorder(String currencyCode) {
+        if (currencyCode == null) return null;
+        StackPane circleWrapper = new StackPane(getCurrencyIcon(currencyCode));
+        circleWrapper.setPrefSize(24, 24);
+        circleWrapper.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 50%;" +
+            "-fx-border-radius: 50%;" +
+            "-fx-border-color: white;" + 
+            "-fx-border-width: 1px;"
+        );
+        return circleWrapper;
+    }
+
+    private static String getImageId(String currencyCode) {
+        if (currencyCode == null) return null;
         return "image-" + currencyCode.toLowerCase() + "-logo";
     }
 }
