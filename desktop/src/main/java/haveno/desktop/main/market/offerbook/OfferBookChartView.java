@@ -238,9 +238,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
                     sellHeaderLabel.setText(Res.get("market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
                     sellButton.updateText(Res.get("shared.sellCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
+                    sellButton.getGraphic().setId(GUIUtil.getImageId(viewBaseCurrencyCode));
 
                     buyHeaderLabel.setText(Res.get("market.offerBook.buyOffersHeaderLabel", viewBaseCurrencyCode));
                     buyButton.updateText(Res.get("shared.buyCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
+                    buyButton.getGraphic().setId(GUIUtil.getImageId(viewBaseCurrencyCode));
 
                     priceColumnLabel.set(Res.get("shared.priceWithCur", viewPriceCurrencyCode));
 
@@ -640,7 +642,6 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
         AutoTooltipButton button = new AutoTooltipButton();
         ImageView iconView = new ImageView();
-        iconView.setId("image-xmr-logo");
         iconView.setFitHeight(24);
         iconView.setFitWidth(24);
         iconView.setSmooth(true);
