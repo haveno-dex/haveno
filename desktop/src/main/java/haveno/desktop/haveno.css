@@ -1326,11 +1326,22 @@ textfield */
 
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
-    -fx-padding: 25 20 25 20;
+    -fx-padding: 25 15 25 15;
     -fx-background-radius: 15 15 0 0;
     -fx-border-radius: 15 15 0 0;
-    -fx-border-width: 0 0 1 0;
-    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-width: 0 0 0 0;
+}
+
+.offer-table-top .label {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 1.1em;
+    -fx-font-weight: bold;
+}
+
+.offer-table-top .jfx-button {
+    -fx-pref-width: 350px;
+    -fx-min-height: 35px;
+    -fx-padding: 5 25 5 25;
 }
 
 /*******************************************************************************
