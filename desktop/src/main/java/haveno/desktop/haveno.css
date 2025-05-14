@@ -1197,9 +1197,8 @@ textfield */
 
 .table-view .column-header-background {
     -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-width: 0 0 1 0;
 }
 
 .table-view .column-header .label {
@@ -1211,9 +1210,7 @@ textfield */
 
 .table-view .column-header {
     -fx-border-color: transparent;
-    -fx-padding: 0;
     -fx-background-color: -bs-color-background-pane;
-    -fx-border-width: 0;
 }
 
 .table-view .text {
