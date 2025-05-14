@@ -110,9 +110,9 @@
     -bs-soft-red: #aa4c3b;
     -bs-turquoise-light: #11eeee;
     -bs-color-border-form-field: -bs-background-gray;
-    -bs-color-background-pane: derive(-bs-background-color, -5%);
-    -bs-color-background-row-even: derive(-bs-background-color, 5%);
-    -bs-color-background-row-odd: derive(-bs-background-color, -5%);
+    -bs-color-background-pane: -bs-background-color;
+    -bs-color-background-row-even: -bs-color-background-pane;
+    -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
     -bs-color-table-cell-faded: -bs-color-gray-ccc;
     -bs-color-background-popup: white;
     -bs-color-background-form-field: white;
