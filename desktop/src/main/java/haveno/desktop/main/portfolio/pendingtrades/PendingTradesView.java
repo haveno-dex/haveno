@@ -978,6 +978,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                     HBox hBox = new HBox();
                                     hBox.setSpacing(0);
+                                    hBox.setAlignment(Pos.CENTER);
+                                    hBox.setTranslateX(7); // correlates with .compact-button, .table-cell .jfx-button, .action-button.compact-button
                                     hBox.getChildren().addAll(warnIconButton, trashIconButton);
                                     setGraphic(hBox);
                                 } else {

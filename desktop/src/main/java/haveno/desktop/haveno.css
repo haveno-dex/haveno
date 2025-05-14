@@ -172,7 +172,7 @@
 }
 
 .compact-button, .table-cell .jfx-button, .action-button.compact-button {
-    -fx-padding: 0 10 0 10;
+    -fx-padding: 0 7 0 7;
 }
 
 .tiny-button,
@@ -1170,14 +1170,10 @@ textfield */
 
 .table-view .column-header.first-column {
     -fx-padding: 0 0 0 15;
-    -fx-background-radius: 15 0 0 0;
-    -fx-border-radius: 15 0 0 0;
 }
 
 .table-view .column-header.last-column {
     -fx-padding: 0 15 0 0;
-    -fx-background-radius: 0 15 0 0;
-    -fx-border-radius: 0 15 0 0;
 }
 
 .number-column.table-cell {
@@ -1191,13 +1187,11 @@ textfield */
 
 .table-view {
     -fx-control-inner-background-alt: -fx-control-inner-background;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
     -fx-padding: 0;
 }
 
 .table-view .column-header-background {
-    -fx-background-color: transparent;
+    -fx-background-color: -bs-color-background-pane;
     -fx-border-color: -bs-color-border-form-field;
     -fx-border-width: 0 0 1 0;
 }

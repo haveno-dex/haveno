@@ -1113,7 +1113,6 @@ public class GUIUtil {
         tableView.skinProperty().addListener((obs, oldSkin, newSkin) -> {
             if (newSkin != null) {
                 Platform.runLater(() -> {
-                    addScrollBarVisibilityListener(tableView);
                     updateEdgeColumnStyleClasses(tableView);
                 });
             }
@@ -1141,24 +1140,8 @@ public class GUIUtil {
                 first.getStyleClass().add("first-column");
             }
 
-            boolean hasVerticalScrollBar = tableView.lookupAll(".scroll-bar")
-                    .stream()
-                    .filter(node -> node instanceof ScrollBar)
-                    .map(node -> (ScrollBar) node)
-                    .anyMatch(scrollBar -> scrollBar.getOrientation() == Orientation.VERTICAL
-                            && scrollBar.isVisible());
-
-            if (!last.getStyleClass().contains("last-column") && !hasVerticalScrollBar) {
+            if (!last.getStyleClass().contains("last-column")) {
                 last.getStyleClass().add("last-column");
-            }
-        }
-    }
-
-    private static void addScrollBarVisibilityListener(TableView<?> tableView) {
-        for (Node node : tableView.lookupAll(".scroll-bar")) {
-            if (node instanceof ScrollBar sb && sb.getOrientation() == Orientation.VERTICAL) {
-                sb.visibleProperty().addListener((obs, wasVisible, isNowVisible) ->
-                    Platform.runLater(() -> updateEdgeColumnStyleClasses(tableView)));
             }
         }
     }
