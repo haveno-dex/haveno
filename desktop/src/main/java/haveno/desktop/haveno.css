@@ -1304,6 +1304,35 @@ textfield */
     -fx-cell-size: 47px;
 }
 
+.table-view.offer-table {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.table-view.offer-table .column-header.first-column {
+    -fx-background-radius: 0;
+    -fx-border-radius: 50 0 0 0;
+}
+
+.table-view.offer-table .column-header.last-column {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0 50 0 0;;
+}
+
+.table-view.offer-table .table-row-cell {
+    -fx-background: -fx-accent;
+    -fx-background-color: -bs-color-gray-6;
+}
+
+.offer-table-top {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-padding: 25 20 25 20;
+    -fx-background-radius: 15 15 0 0;
+    -fx-border-radius: 15 15 0 0;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: -bs-color-border-form-field;
+}
+
 /*******************************************************************************
  *                                                                             *
  * Icons                                                                       *

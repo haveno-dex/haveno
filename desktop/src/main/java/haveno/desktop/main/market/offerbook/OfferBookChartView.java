@@ -632,6 +632,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tableView.setPlaceholder(placeholder);
 
         HBox titleButtonBox = new HBox();
+        titleButtonBox.getStyleClass().add("offer-table-top");
         titleButtonBox.setAlignment(Pos.CENTER);
 
         Label titleLabel = new AutoTooltipLabel();
@@ -660,7 +661,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         VBox vBox = new VBox();
         VBox.setVgrow(tableView, Priority.ALWAYS);
         vBox.setPadding(new Insets(0, 0, 0, 0));
-        vBox.setSpacing(10);
+        vBox.setSpacing(0);
         vBox.setFillWidth(true);
         //vBox.setMinHeight(190);
         vBox.getChildren().addAll(titleButtonBox, tableView);
