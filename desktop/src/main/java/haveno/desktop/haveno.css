@@ -1137,44 +1137,45 @@ textfield */
 
 .table-view .table-cell {
     -fx-alignment: center-left;
-    -fx-padding: 2 0 2 0;
+    -fx-padding: 6 0 4 0;
+    -fx-text-fill: -bs-text-color;
     /*-fx-padding: 3 0 2 0;*/
 }
 
 .table-view .table-cell.last-column {
     -fx-alignment: center-right;
-    -fx-padding: 2 10 2 0;
+    -fx-padding: 6 15 4 0;
 }
 
-.table-view .table-cell.last-column.avatar-column {
+.table-view .table-cell.avatar-column {
     -fx-alignment: center;
-    -fx-padding: 2 0 2 0;
+    -fx-padding: 6 0 4 0;
+}
+
+.table-view .table-cell.first-column {
+    -fx-padding: 6 0 4 15;
 }
 
 .table-view .column-header.last-column .label {
     -fx-alignment: center-right;
 }
 
-.table-view .column-header.last-column.avatar-column {
+.table-view .column-header.avatar-column {
     -fx-padding: 0;
 }
 
-.table-view .column-header.last-column.avatar-column .label {
+.table-view .column-header.avatar-column .label {
     -fx-alignment: center;
 }
 
-.table-view .table-cell.first-column {
-    -fx-padding: 2 0 2 10;
-}
-
 .table-view .column-header.first-column {
-    -fx-padding: 0 0 0 10;
+    -fx-padding: 0 0 0 15;
     -fx-background-radius: 15 0 0 0;
     -fx-border-radius: 15 0 0 0;
 }
 
 .table-view .column-header.last-column {
-    -fx-padding: 0 10 0 0;
+    -fx-padding: 0 15 0 0;
     -fx-background-radius: 0 15 0 0;
     -fx-border-radius: 0 15 0 0;
 }
