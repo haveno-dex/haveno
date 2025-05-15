@@ -24,6 +24,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.apache.commons.lang3.StringUtils;
@@ -180,6 +181,10 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         if (matchingListSize() > 0) {
             comboBoxListViewSkin.getPopupContent().autosize();
             show();
+            if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView) {
+                listView.applyCss();
+                listView.layout();
+            }
         } else {
             hide();
         }
