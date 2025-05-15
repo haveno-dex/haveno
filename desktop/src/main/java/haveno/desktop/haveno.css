@@ -1338,11 +1338,12 @@ textfield */
     -fx-padding: 5 25 5 25;
 }
 
-.table-view.offer-table .column-header .label {
+.table-view.non-interactive-table .column-header .label {
     -fx-text-fill: -bs-text-color-dim1;
 }
 
-.table-view.offer-table .table-row-cell .label {
+.table-view.non-interactive-table .table-cell,
+.table-view.non-interactive-table .table-cell .label {
     -fx-text-fill: -bs-text-color-dim2;
 }
 
