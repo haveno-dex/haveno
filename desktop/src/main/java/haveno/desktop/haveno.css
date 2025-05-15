@@ -1158,20 +1158,20 @@ textfield */
 .table-view .column-header.last-column .label {
 }
 
-.table-view .column-header.avatar-column {
-    -fx-padding: 0;
-}
-
-.table-view .column-header.avatar-column .label {
-    -fx-alignment: center;
-}
-
 .table-view .column-header.first-column {
     -fx-padding: 0 0 0 15;
 }
 
 .table-view .column-header.last-column {
     -fx-padding: 0 15 0 0;
+}
+
+.table-view .column-header.avatar-column {
+    -fx-padding: 0;
+}
+
+.table-view .column-header.avatar-column .label {
+    -fx-alignment: center;
 }
 
 .number-column.table-cell {
