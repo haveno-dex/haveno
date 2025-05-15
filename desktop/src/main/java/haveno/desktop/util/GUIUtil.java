@@ -333,6 +333,13 @@ public class GUIUtil {
                             currency.setText(Res.get("list.currency.editList"));
                             break;
                         default:
+
+                            // use icons for crypto
+                            if (CurrencyUtil.isCryptoCurrency(code)) {
+                                currencyType.setText("");
+                                currencyType.setGraphic(getCurrencyIcon(code));
+                            }
+
                             if (preferences.isSortMarketCurrenciesNumerically()) {
                                 offers.setText(offers.getText() + " (" + item.numTrades + " " +
                                         (item.numTrades == 1 ? postFixSingle : postFixMulti) + ")");
