@@ -1143,7 +1143,6 @@ textfield */
 }
 
 .table-view .table-cell.last-column {
-    -fx-alignment: center-right;
     -fx-padding: 6 15 4 0;
 }
 
@@ -1157,7 +1156,6 @@ textfield */
 }
 
 .table-view .column-header.last-column .label {
-    -fx-alignment: center-right;
 }
 
 .table-view .column-header.avatar-column {
