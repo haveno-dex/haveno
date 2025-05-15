@@ -80,6 +80,8 @@
     -fx-padding: 5;
     -fx-background-color: -bs-volume-transparent;
     -fx-background-insets: 0;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
 }
 
 .chart-alternative-row-fill {
