@@ -454,11 +454,6 @@ tree-table-view:focused {
     -fx-font-size: 1em;
 }
 
-.input-with-border {
-    -fx-border-width: 1;
-    -fx-border-color: -bs-color-border-form-field;
-}
-
 .offer-input {
     -fx-background-color: -bs-color-background-form-field;
     -fx-border-color: -bs-background-gray;
@@ -2531,7 +2526,7 @@ textfield */
 
 /********************************************************************************************************************
  *                                                                                                                  *
- * Popover                                                                                                    *
+ * Popover                                                                                                          *
  *                                                                                                                  *
  ********************************************************************************************************************/
 .popover > .content {
@@ -2545,4 +2540,14 @@ textfield */
 .popover > .border {
     -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-transparent-dark) !important;
     -fx-fill: -bs-background-color !important;
+}
+
+/********************************************************************************************************************
+ *                                                                                                                  *
+ * Other                                                                                                          *
+ *                                                                                                                  *
+ ********************************************************************************************************************/
+.input-with-border {
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field;
 }
