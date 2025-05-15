@@ -340,7 +340,6 @@ public class ReservedView extends ActivatableView<VBox, Void> {
     }
 
     private void setBalanceColumnCellFactory() {
-        balanceColumn.getStyleClass().add("last-column");
         balanceColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         balanceColumn.setCellFactory(
                 new Callback<>() {
