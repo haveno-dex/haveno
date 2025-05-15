@@ -733,6 +733,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         tableView = new TableView<>();
         GUIUtil.applyTableStyle(tableView);
         VBox.setVgrow(tableView, Priority.ALWAYS);
+        tableView.getStyleClass().add("non-interactive-table");
 
         // date
         TableColumn<TradeStatistics3ListItem, TradeStatistics3ListItem> dateColumn = new AutoTooltipTableColumn<>(Res.get("shared.dateTime")) {
