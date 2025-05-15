@@ -1318,7 +1318,7 @@ textfield */
 
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
-    -fx-padding: 15 15 0 15;
+    -fx-padding: 15 15 5 15;
     -fx-background-radius: 15 15 0 0;
     -fx-border-radius: 15 15 0 0;
     -fx-border-width: 0 0 0 0;
