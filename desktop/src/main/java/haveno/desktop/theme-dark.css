@@ -133,7 +133,7 @@
     -bs-sell-focus: derive(-bs-sell, -50%);
     -bs-sell-hover: derive(-bs-sell, -10%);
     -bs-sell-transparent: rgba(216, 52, 49, 0.3);
-    -bs-volume-transparent: rgba(37, 177, 54, 0.5);
+    -bs-volume-transparent: rgba(84, 182, 94, 1);
     -bs-candle-stick-average-line: rgba(21, 188, 29, 0.8);
     -bs-candle-stick-loss: #ee6563;
     -bs-candle-stick-won: #15bc1d;
