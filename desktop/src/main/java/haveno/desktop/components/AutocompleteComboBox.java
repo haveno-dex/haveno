@@ -45,6 +45,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private List<? extends T> extendedList;
     private List<T> matchingList;
     private JFXComboBoxListViewSkin<T> comboBoxListViewSkin;
+    private boolean selectAllShortcut = false;
 
     public AutocompleteComboBox() {
         this(FXCollections.observableArrayList());
@@ -154,6 +155,27 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private void reactToQueryChanges() {
         getEditor().addEventHandler(KeyEvent.KEY_RELEASED, (KeyEvent event) -> {
+
+            // ignore ctrl and command keys
+            if (event.getCode() == KeyCode.CONTROL || event.getCode() == KeyCode.COMMAND || event.getCode() == KeyCode.META) {
+                event.consume();
+                return;
+            }
+
+            // handle select all
+            boolean isSelectAll = event.getCode() == KeyCode.A && (event.isControlDown() || event.isMetaDown());
+            if (isSelectAll) {
+                getEditor().selectAll();
+                selectAllShortcut = true;
+                event.consume();
+                return;
+            }
+            if (event.getCode() == KeyCode.A && selectAllShortcut) { // 'A' can be received after ctrl/cmd
+                selectAllShortcut = false;
+                event.consume();
+                return;
+            }
+
             UserThread.execute(() -> {
                 String query = getEditor().getText();
                 var exactMatch = list.stream().anyMatch(item -> asString(item).equalsIgnoreCase(query));
