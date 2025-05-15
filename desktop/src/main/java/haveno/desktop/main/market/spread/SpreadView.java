@@ -66,6 +66,7 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
     public void initialize() {
         tableView = new TableView<>();
         GUIUtil.applyTableStyle(tableView);
+        tableView.getStyleClass().add("non-interactive-table");
 
         int gridRow = 0;
         GridPane.setRowIndex(tableView, gridRow);
