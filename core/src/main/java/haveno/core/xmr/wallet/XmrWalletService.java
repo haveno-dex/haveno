@@ -471,6 +471,7 @@ public class XmrWalletService extends XmrWalletBase {
             moneroTxConfig.setSubtractFeeFrom(0);
         }
 
+        return createTx(moneroTxConfig);
     }
 
     /**
