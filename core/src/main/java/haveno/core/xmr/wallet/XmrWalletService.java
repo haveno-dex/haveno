@@ -464,9 +464,13 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
-        MoneroTxWallet tx = createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
-        //printTxs("XmrWalletService.createTx", tx);
-        return tx;
+        MoneroTxConfig moneroTxConfig = new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false);
+
+        if (destinations.size() == 1 && destinations.getFirst().getAmount().compareTo(new BigInteger("0")) == 0) {
+            destinations.getFirst().setAmount(wallet.getUnlockedBalance());
+            moneroTxConfig.setSubtractFeeFrom(0);
+        }
+
     }
 
     /**
