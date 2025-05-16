@@ -65,10 +65,12 @@ import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccoun
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -1176,5 +1178,27 @@ public class GUIUtil {
     private static String getImageId(String currencyCode) {
         if (currencyCode == null) return null;
         return "image-" + currencyCode.toLowerCase() + "-logo";
+    }
+
+    public static void adjustHeightAutomatically(TextArea textArea) {
+        textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
+            if (newScene != null) {
+                // avoid javafx css warning
+                boolean isLightTheme = newScene.getStylesheets().stream().anyMatch(url -> url.contains("theme-light.css"));
+                CssTheme.loadSceneStyles(newScene, isLightTheme ? CssTheme.CSS_THEME_LIGHT : CssTheme.CSS_THEME_DARK, false);
+                textArea.applyCss();
+                var text = textArea.lookup(".text");
+
+                textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
+                    Insets padding = textArea.getInsets();
+                    double topBottomPadding = padding.getTop() + padding.getBottom();
+                    return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight() + topBottomPadding;
+                }, text.boundsInLocalProperty()));
+
+                text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
+                    Platform.runLater(() -> textArea.requestLayout());
+                });
+            }
+        });
     }
 }
