@@ -212,10 +212,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public boolean isSellOffer(OfferDirection direction) {
-        // for cryptocurrency, buy direction is to buy XMR, so we need sell offers
-        // for traditional currency, buy direction is to sell XMR, so we need buy offers
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
-        return isCryptoCurrency ? direction == OfferDirection.BUY : direction == OfferDirection.SELL;
+        return direction == OfferDirection.SELL;
     }
 
     public boolean isMyOffer(Offer offer) {
