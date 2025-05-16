@@ -218,10 +218,14 @@
 }
 
 .jfx-combo-box {
-    -jfx-focus-color: transparent;
-    -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-color-background-form-field;
     -fx-padding: 2 14 2 14;
+}
+
+.input-line, .input-focused-line {
+    -fx-background-color: transparent;
+    visibility: hidden;
+    -fx-max-height: 0;
 }
 
 .jfx-text-area {
@@ -230,8 +234,6 @@
 
 .jfx-text-field {
     -fx-padding: 7 18 7 18;
-    -jfx-focus-color: transparent;
-    -jfx-unfocus-color: transparent;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
     -fx-background-color: -bs-color-background-form-field;
@@ -251,7 +253,6 @@
 }
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
-    -jfx-unfocus-color: transparent;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
@@ -427,8 +428,6 @@ tree-table-view:focused {
 .jfx-password-field {
     -fx-background-color: -bs-color-background-form-field;
     -fx-background-radius: 3 3 0 0;
-    -jfx-focus-color: transparent;
-    -jfx-unfocus-color: transparent;
     -fx-padding: 7 18 7 18;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
@@ -557,8 +556,6 @@ tree-table-view:focused {
 }
 
 .jfx-text-area {
-    -jfx-focus-color: transparent;
-    -jfx-unfocus-color: transparent;
     -fx-background-color: -bs-color-background-form-field;
     -fx-padding: 9 9 9 9;
     -fx-background-radius: 15;
@@ -598,10 +595,12 @@ tree-table-view:focused {
 
 .jfx-date-picker .jfx-text-field .jfx-text-area > .input-line {
     -fx-translate-x: 0em;
+    -fx-background-color: transparent;
 }
 
 .jfx-date-picker .jfx-text-field .jfx-text-area > .input-focused-line {
     -fx-translate-x: 0em;
+    -fx-background-color: transparent;
 }
 
 .jfx-date-picker > .arrow-button > .arrow {
@@ -1412,8 +1411,6 @@ textfield */
 }
 
 .text-area-popup:focused {
-    -fx-focus-color: transparent;
-    -fx-unfocus-color: transparent;
     -fx-faint-focus-color: -bs-color-background-popup;
 }
 
@@ -1609,8 +1606,6 @@ textfield */
 .toggle-button-no-slider {
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
     -fx-padding: 7 18 7 18;
     -fx-border-width: 1px;
     -fx-border-color: -bs-color-border-form-field;
