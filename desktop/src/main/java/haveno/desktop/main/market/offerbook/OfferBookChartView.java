@@ -231,17 +231,20 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                             return null;
                         }
                     });
+                    
+                    boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
+                    String viewBaseCurrencyCode = isCrypto ? code : Res.getBaseCurrencyCode();
+                    String viewPriceCurrencyCode = isCrypto ? Res.getBaseCurrencyCode() : code;
 
-                    String viewBaseCurrencyCode = CurrencyUtil.isCryptoCurrency(code) ? code : Res.getBaseCurrencyCode();
-                    String viewPriceCurrencyCode = CurrencyUtil.isCryptoCurrency(code) ? Res.getBaseCurrencyCode() : code;
-
-                    sellHeaderLabel.setText(Res.get("market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
-                    sellButton.updateText(Res.get("shared.sellCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
+                    sellHeaderLabel.setText(Res.get(isCrypto ? "market.offerBook.buyOffersHeaderLabel" : "market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
+                    sellButton.updateText(Res.get(isCrypto ? "shared.buyCurrency" : "shared.sellCurrency", viewBaseCurrencyCode));
                     sellButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
+                    sellButton.setId(isCrypto ? "buy-button-big" : "sell-button-big");
 
-                    buyHeaderLabel.setText(Res.get("market.offerBook.buyOffersHeaderLabel", viewBaseCurrencyCode));
-                    buyButton.updateText(Res.get("shared.buyCurrency", viewBaseCurrencyCode, viewPriceCurrencyCode));
+                    buyHeaderLabel.setText(Res.get(isCrypto ? "market.offerBook.sellOffersHeaderLabel" : "market.offerBook.buyOffersHeaderLabel", viewBaseCurrencyCode));
+                    buyButton.updateText(Res.get(isCrypto ? "shared.sellCurrency" : "shared.buyCurrency", viewBaseCurrencyCode));
                     buyButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
+                    buyButton.setId(isCrypto ? "sell-button-big" : "buy-button-big");
 
                     priceColumnLabel.set(Res.get("shared.priceWithCur", viewPriceCurrencyCode));
 
@@ -644,7 +647,6 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         button.setGraphicTextGap(10);
         button.updateText(isSellOffer ? Res.get("market.offerBook.buy") : Res.get("market.offerBook.sell"));
         button.setMinHeight(32);
-        button.setId(isSellOffer ? "buy-button-big" : "sell-button-big");
         button.setOnAction(e -> model.goToOfferView(direction));
 
         Region spacer = new Region();

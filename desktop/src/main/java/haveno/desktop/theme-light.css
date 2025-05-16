@@ -83,11 +83,9 @@
     -bs-buy: rgb(80, 180, 90);
     -bs-buy-focus: derive(-bs-buy, -50%);
     -bs-buy-hover: derive(-bs-buy, -10%);
-    -bs-buy-transparent: rgba(62, 163, 74, 0.3);
     -bs-sell: rgb(213, 63, 46);
     -bs-sell-focus: derive(-bs-sell, -50%);
     -bs-sell-hover: derive(-bs-sell, -10%);
-    -bs-sell-transparent: rgba(215, 48, 48, 0.3);
     -bs-volume-transparent: rgba(84, 182, 94, 1);
     -bs-candle-stick-average-line: -bs-rd-green;
     -bs-candle-stick-loss: #fe3001;
@@ -152,14 +150,14 @@
 
 #charts .default-color0.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,
-        rgba(215, 48, 48, 0.45) 0%,
-        rgba(215, 48, 48, 0.0) 100%
+        rgba(62, 163, 74, 0.45) 0%,
+        rgba(62, 163, 74, 0.0) 100%
     );
 }
 
 #charts .default-color1.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,
-        rgba(62, 163, 74, 0.45) 0%,
-        rgba(62, 163, 74, 0.0) 100%
+        rgba(215, 48, 48, 0.45) 0%,
+        rgba(215, 48, 48, 0.0) 100%
     );
 }
