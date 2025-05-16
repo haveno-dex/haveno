@@ -46,6 +46,7 @@
     -bs-color-gray-background: black;
     -bs-color-background-popup: rgb(31, 31, 31);
     -bs-color-background-form-field: rgb(18, 18, 18);
+    -bs-color-background-form-field-readonly: rgb(18, 18, 18);
     -bs-color-border-form-field: rgb(65, 65, 65);
     -bs-color-background-pane: rgb(15, 15, 15);
     -bs-color-background-row-even: rgb(19, 19, 19);
@@ -241,12 +242,14 @@
     -fx-text-fill: -bs-color-gray-12;
 }
 
-.jfx-text-area:readonly, .jfx-text-field:readonly,
+.jfx-text-area:readonly,
+.jfx-text-field:readonly,
 .hyperlink-with-icon {
     -fx-background: -bs-background-color;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field-readonly;
     -fx-prompt-text-fill: -bs-color-gray-2;
     -fx-text-fill: -bs-color-gray-3;
+    -fx-border-color: transparent;
 }
 .jfx-combo-box > .text,
 .jfx-text-field-top-label, .jfx-text-area-top-label {
