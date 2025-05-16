@@ -79,6 +79,12 @@ public final class DomesticWireTransferAccount extends CountryBasedPaymentAccoun
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(
+           PaymentAccountFormField.FieldId.HOLDER_NAME,
+           PaymentAccountFormField.FieldId.BANK_NAME,
+           PaymentAccountFormField.FieldId.BRANCH_ID,
+           PaymentAccountFormField.FieldId.ACCOUNT_NR,
+           PaymentAccountFormField.FieldId.HOLDER_ADDRESS
+       );
     }
 }

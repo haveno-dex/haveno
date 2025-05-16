@@ -17,10 +17,14 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.RtgsAccountPayload;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class RtgsAccount extends IfscBasedAccount {
@@ -44,5 +48,14 @@ public final class RtgsAccount extends IfscBasedAccount {
 
     public String getMessageForAccountCreation() {
         return "payment.rtgs.info.account";
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.BRANCH_ID
+        );
     }
 }
