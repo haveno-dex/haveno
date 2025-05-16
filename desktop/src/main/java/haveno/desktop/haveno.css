@@ -822,7 +822,7 @@ tree-table-view:focused {
 
 .nav-button .text {
     -fx-font-size: 0.95em;
-    -fx-font-weight: medium;
+    -fx-font-weight: 500;
     -fx-fill: -bs-rd-nav-deselected;
 }
 
@@ -856,7 +856,7 @@ tree-table-view:focused {
 
 .nav-secondary-button .text {
     -fx-font-size: 0.95em;
-    -fx-font-weight: medium;
+    -fx-font-weight: 500;
     -fx-fill: -bs-rd-nav-secondary-deselected;
 }
 
