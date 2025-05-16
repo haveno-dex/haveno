@@ -365,10 +365,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             extraInfoTextArea.setText(offer.getCombinedExtraInfo());
             extraInfoTextArea.getStyleClass().add("text-area");
             extraInfoTextArea.setWrapText(true);
-            extraInfoTextArea.setPrefHeight(75);
-            extraInfoTextArea.setMinHeight(75);
-            extraInfoTextArea.setMaxHeight(150);
+            extraInfoTextArea.setMaxHeight(300);
             extraInfoTextArea.setEditable(false);
+            GUIUtil.adjustHeightAutomatically(extraInfoTextArea);
             GridPane.setRowIndex(extraInfoTextArea, lastGridRowNoFundingRequired);
             GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
             GridPane.setColumnIndex(extraInfoTextArea, 0);
