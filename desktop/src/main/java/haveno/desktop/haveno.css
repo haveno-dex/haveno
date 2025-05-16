@@ -407,10 +407,6 @@ tree-table-view:focused {
     -fx-background-color: transparent;
 }
 
-.jfx-combo-box:readonly, .jfx-text-field:readonly, .jfx-text-area:readonly {
-    -fx-border-color: transparent;
-}
-
 .jfx-text-field:disabled > .input-line {
     -fx-background-color: transparent;
     -fx-border-width: 0;
