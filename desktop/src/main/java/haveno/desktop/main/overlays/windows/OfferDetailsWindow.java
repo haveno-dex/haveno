@@ -45,7 +45,6 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.editor.PasswordPopup;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
@@ -58,8 +57,6 @@ import haveno.desktop.util.Layout;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -319,23 +316,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo"), "", 0).second;
             textArea.setText(offer.getCombinedExtraInfo());
             textArea.setMaxHeight(200);
-            textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
-                if (newScene != null) {
-                    // avoid javafx css warning
-                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
-                    textArea.applyCss();
-                    var text = textArea.lookup(".text");
-
-                    textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
-                        return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
-                    }, text.boundsInLocalProperty()));
-
-                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
-                        Platform.runLater(() -> textArea.requestLayout());
-                    });
-                }
-            });
-            textArea.setEditable(false);
+            GUIUtil.adjustHeightAutomatically(textArea);
         }
 
         // get amount reserved for the offer
