@@ -48,7 +48,15 @@ public final class JapanBankAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_CODE,
+            PaymentAccountFormField.FieldId.BANK_BRANCH_NAME,
+            PaymentAccountFormField.FieldId.BANK_BRANCH_CODE,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_NUMBER
+        );
     }
 
     // bank code

@@ -1903,6 +1903,41 @@ message PaymentAccountForm {
         PAYPAL = 17;
         VENMO = 18;
         PAYSAFE = 19;
+        CAPITUAL = 20;
+        CELPAY = 21;
+        MONESE = 22;
+        SATISPAY = 23;
+        TIKKIE = 24;
+        VERSE = 25;
+        ACH_TRANSFER = 26;
+        DOMESTIC_WIRE_TRANSFER = 27;
+        JAPAN_BANK = 28;
+        ALI_PAY = 29;
+        WECHAT_PAY = 30;
+        PROMPT_PAY = 31;
+        NEFT = 32;
+        RTGS = 33;
+        IMPS = 34;
+        UPI = 35;
+        PAYTM = 36;
+        NEQUI = 37;
+        BIZUM = 38;
+        PIX = 39;
+        HAL_CASH = 40;
+        MONEY_BEAM = 41;
+        SWISH = 42;
+        POPMONEY = 43;
+        US_POSTAL_MONEY_ORDER = 44;
+        INTERAC_E_TRANSFER = 45;
+        CASH_DEPOSIT = 46;
+        WESTERN_UNION = 47;
+        NATIONAL_BANK = 48;
+        SAME_BANK = 49;
+        SPECIFIC_BANKS = 50;
+        AMAZON_GIFT_CARD = 51;
+        PERFECT_MONEY = 52;
+        ADVANCED_CASH = 53;
+        PAYSERA = 54;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -1970,6 +2005,7 @@ message PaymentAccountFormField {
         USERNAME = 57;
         EMAIL_OR_MOBILE_NR_OR_USERNAME = 58;
         EMAIL_OR_MOBILE_NR_OR_CASHTAG = 59;
+        VIRTUAL_PAYMENT_ADDRESS = 60;
     }
     enum Component {
         TEXT = 0;

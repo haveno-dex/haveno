@@ -48,7 +48,7 @@ public final class CashDepositAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(PaymentAccountFormField.FieldId.BANK_ID, PaymentAccountFormField.FieldId.REQUIREMENTS);
     }
 
     @Override

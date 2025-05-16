@@ -821,6 +821,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setMinLength(10);
             field.setMaxLength(150);
             break;
+        case VIRTUAL_PAYMENT_ADDRESS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.upi.virtualPaymentAddress"));
+            break;
         default:
             throw new RuntimeException("Unhandled form field: " + field);
         }

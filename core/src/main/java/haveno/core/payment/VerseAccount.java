@@ -79,6 +79,6 @@ public final class VerseAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(PaymentAccountFormField.FieldId.HOLDER_NAME);
     }
 }
