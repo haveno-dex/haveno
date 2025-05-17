@@ -2542,3 +2542,8 @@ textfield */
     -fx-border-width: 1;
     -fx-border-color: -bs-color-border-form-field;
 }
+
+
+.highlight-text {
+    -fx-text-fill: -fx-dark-text-color !important;
+}
