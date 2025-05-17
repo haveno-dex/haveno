@@ -1326,15 +1326,6 @@ textfield */
     -fx-padding: 5 25 5 25;
 }
 
-.table-view.non-interactive-table .column-header .label {
-    -fx-text-fill: -bs-text-color-dim1;
-}
-
-.table-view.non-interactive-table .table-cell,
-.table-view.non-interactive-table .table-cell .label {
-    -fx-text-fill: -bs-text-color-dim2;
-}
-
 /*******************************************************************************
  *                                                                             *
  * Icons                                                                       *
@@ -2543,6 +2534,34 @@ textfield */
     -fx-border-color: -bs-color-border-form-field;
 }
 
+.table-view.non-interactive-table .column-header .label {
+    -fx-text-fill: -bs-text-color-dim1;
+}
+
+.table-view.non-interactive-table .table-cell,
+.table-view.non-interactive-table .table-cell .label,
+.table-view.non-interactive-table .label,
+.table-view.non-interactive-table .text,
+.table-view.non-interactive-table .hyperlink,
+.table-view.non-interactive-table .hyperlink-with-icon,
+.table-view.non-interactive-table .table-row-cell .hyperlink .text {
+    -fx-text-fill: -bs-text-color-dim2;
+}
+
+.table-view.non-interactive-table .hyperlink,
+.table-view.non-interactive-table .hyperlink-with-icon,
+.table-view.non-interactive-table .table-row-cell .hyperlink .text {
+    -fx-fill: -bs-text-color-dim2;
+}
+
+.table-view.non-interactive-table .table-cell.highlight-text,
+.table-view.non-interactive-table .table-cell.highlight-text .label,
+.table-view.non-interactive-table .table-cell.highlight-text .text,
+.table-view.non-interactive-table .table-cell.highlight-text .hyperlink,
+.table-view.non-interactive-table .table-cell.highlight-text .hyperlink .text {
+    -fx-fill: -fx-dark-text-color;
+    -fx-text-fill: -fx-dark-text-color;
+}
 
 .highlight-text {
     -fx-text-fill: -fx-dark-text-color !important;
