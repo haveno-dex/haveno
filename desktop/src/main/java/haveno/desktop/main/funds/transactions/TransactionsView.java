@@ -141,6 +141,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
+        tableView.getStyleClass().add("non-interactive-table");
 
         setDateColumnCellFactory();
         setDetailsColumnCellFactory();
@@ -396,6 +397,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setAmountColumnCellFactory() {
         amountColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        amountColumn.getStyleClass().add("highlight-text");
         amountColumn.setCellFactory(
                 new Callback<>() {
 
@@ -423,6 +425,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setTxFeeColumnCellFactory() {
         txFeeColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        txFeeColumn.getStyleClass().add("highlight-text");
         txFeeColumn.setCellFactory(
                 new Callback<>() {
 
@@ -449,6 +452,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setMemoColumnCellFactory() {
         memoColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        memoColumn.getStyleClass().add("highlight-text");
         memoColumn.setCellFactory(
                 new Callback<>() {
 

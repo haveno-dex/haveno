@@ -198,11 +198,20 @@
 .table-view .table-row-cell:selected .table-cell .label,
 .table-view .table-row-cell:selected .table-cell .text,
 .table-view .table-row-cell:selected .table-cell .hyperlink,
-.table-view .table-row-cell:selected .table-cell .hyperlink-with-icon {
+.table-view .table-row-cell:selected .table-cell .hyperlink .text,
+.table-view .table-row-cell:selected .table-cell .hyperlink-with-icon,
+.table-view .table-row-cell:selected .table-cell .hyperlink-with-icon .text {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
     -fx-border-color: -fx-selection-bar;
     -fx-text-fill: -fx-dark-text-color;
+}
+
+.table-view .table-row-cell:selected .table-cell .hyperlink,
+.table-view .table-row-cell:selected .table-cell .hyperlink .text,
+.table-view .table-row-cell:selected .table-cell .hyperlink-with-icon,
+.table-view .table-row-cell:selected .table-cell .hyperlink-with-icon .text {
+    -fx-fill: -fx-dark-text-color;
 }
 
 .table-row-cell {
