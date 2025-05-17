@@ -535,7 +535,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         }
         removeAccountRows();
         addAccountButton.setDisable(false);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.selectedAccount"), Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.GROUP_DISTANCE);
         paymentMethodForm = getPaymentMethodForm(current);
         if (paymentMethodForm != null) {
             paymentMethodForm.addFormForEditAccount();
