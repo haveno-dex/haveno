@@ -504,7 +504,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         extraInfoStringListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
-                extraInfo.set(newValue);
+                extraInfo.set(newValue.trim());
                 UserThread.execute(() -> onExtraInfoTextAreaChanged());
             }
         };

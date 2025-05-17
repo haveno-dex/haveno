@@ -362,7 +362,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
             // attach extra info text area
             extraInfoTextArea = addCompactTopLabelTextArea(gridPane, ++lastGridRowNoFundingRequired, Res.get("payment.shared.extraInfo.noDeposit"), "").second;
-            extraInfoTextArea.setText(offer.getCombinedExtraInfo());
+            extraInfoTextArea.setText(offer.getCombinedExtraInfo().trim());
             extraInfoTextArea.getStyleClass().add("text-area");
             extraInfoTextArea.setWrapText(true);
             extraInfoTextArea.setMaxHeight(300);
@@ -1146,7 +1146,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
                         .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getCombinedExtraInfo())
+                        .instruction(offer.getCombinedExtraInfo().trim())
                         .actionButtonText(Res.get("shared.iConfirm"))
                         .closeButtonText(Res.get("shared.close"))
                         .width(Layout.INITIAL_WINDOW_WIDTH)
