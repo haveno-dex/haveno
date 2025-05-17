@@ -1181,6 +1181,10 @@ public class GUIUtil {
     }
 
     public static void adjustHeightAutomatically(TextArea textArea) {
+        adjustHeightAutomatically(textArea, null);
+    }
+
+    public static void adjustHeightAutomatically(TextArea textArea, Double maxHeight) {
         textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
             if (newScene != null) {
                 // avoid javafx css warning
@@ -1192,7 +1196,8 @@ public class GUIUtil {
                 textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
                     Insets padding = textArea.getInsets();
                     double topBottomPadding = padding.getTop() + padding.getBottom();
-                    return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight() + topBottomPadding;
+                    double prefHeight = textArea.getFont().getSize() + text.getBoundsInLocal().getHeight() + topBottomPadding;
+                    return maxHeight == null ? prefHeight : Math.min(prefHeight, maxHeight);
                 }, text.boundsInLocalProperty()));
 
                 text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {

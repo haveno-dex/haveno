@@ -18,6 +18,7 @@
 package haveno.desktop.main.overlays.windows;
 
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -28,6 +29,7 @@ import static haveno.desktop.util.FormBuilder.addTextArea;
 
 public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
     private String preamble;
+    private static final double MAX_TEXT_AREA_HEIGHT = 250;
 
     public GenericMessageWindow() {
         super();
@@ -57,17 +59,7 @@ public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
         textArea.setText(message);
         textArea.setEditable(false);
         textArea.setWrapText(true);
-        // sizes the textArea to fit within its parent container
-        double verticalSizePercentage = ensureRange(countLines(message) / 20.0, 0.2, 0.7);
-        textArea.setPrefSize(Layout.INITIAL_WINDOW_WIDTH, Layout.INITIAL_WINDOW_HEIGHT * verticalSizePercentage);
-    }
-
-    private static int countLines(String str) {
-        String[] lines = str.split("\r\n|\r|\n");
-        return  lines.length;
-    }
-
-    private static double ensureRange(double value, double min, double max) {
-        return Math.min(Math.max(value, min), max);
+        textArea.setPrefWidth(Layout.INITIAL_WINDOW_WIDTH);
+        GUIUtil.adjustHeightAutomatically(textArea, MAX_TEXT_AREA_HEIGHT);
     }
 }
