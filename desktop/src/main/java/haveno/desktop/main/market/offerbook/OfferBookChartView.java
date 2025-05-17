@@ -106,7 +106,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private ListChangeListener<OfferBookListItem> changeListener;
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
     private final double dataLimitFactor = 3;
-    private final double initialOfferTableViewHeight = 88; // decrease as MainView's content-pane's top anchor increases
+    private final double initialOfferTableViewHeight = 82; // decrease as MainView's content-pane's top anchor increases
     private final Function<Double, Double> offerTableViewHeight = (screenSize) -> {
         // initial visible row count=5, header height=30
         double pixelsPerOfferTableRow = (initialOfferTableViewHeight - 30) / 5.0;
