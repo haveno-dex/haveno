@@ -710,7 +710,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         };
         extraInfoFocusedListener = (observable, oldValue, newValue) -> {
             model.onFocusOutExtraInfoTextArea(oldValue, newValue);
-            extraInfoTextArea.setText(model.extraInfo.get());
+
+            // avoid setting text area to empty text because blinking caret does not appear
+            if (model.extraInfo.get() != null && !model.extraInfo.get().isEmpty()) {
+                extraInfoTextArea.setText(model.extraInfo.get());
+            }
         };
 
         errorMessageListener = (o, oldValue, newValue) -> {
@@ -1098,6 +1102,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(extraInfoTitledGroupBg, 3);
 
         extraInfoTextArea = new InputTextArea();
+        extraInfoTextArea.setText("");
         extraInfoTextArea.setPromptText(Res.get("payment.shared.extraInfo.prompt.offer"));
         extraInfoTextArea.getStyleClass().add("text-area");
         extraInfoTextArea.setWrapText(true);
