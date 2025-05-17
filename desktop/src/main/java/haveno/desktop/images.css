@@ -23,16 +23,29 @@
     -fx-image: url("../../images/alert_round.png");
 }
 
+#image-red_circle_solid {
+    -fx-image: url("../../images/red_circle_solid.png");
+}
+
+
 #image-green_circle {
     -fx-image: url("../../images/green_circle.png");
+}
+
+#image-green_circle_solid {
+    -fx-image: url("../../images/green_circle_solid.png");
 }
 
 #image-yellow_circle {
   -fx-image: url("../../images/yellow_circle.png");
 }
 
-#image-blue_circle {
-    -fx-image: url("../../images/blue_circle.png");
+#image-yellow_circle_solid {
+  -fx-image: url("../../images/yellow_circle_solid.png");
+}
+
+#image-blue_circle_solid {
+    -fx-image: url("../../images/blue_circle_solid.png");
 }
 
 #image-remove {
