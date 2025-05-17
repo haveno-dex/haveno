@@ -314,7 +314,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         }
         if (showOfferExtraInfo) {
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo"), "", 0).second;
-            textArea.setText(offer.getCombinedExtraInfo());
+            textArea.setText(offer.getCombinedExtraInfo().trim());
             textArea.setMaxHeight(200);
             GUIUtil.adjustHeightAutomatically(textArea);
         }
