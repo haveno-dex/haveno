@@ -73,6 +73,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -126,6 +127,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Label xmrSplashInfo;
     private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
+    private static final int networkIconSize = 20;
 
     public static StackPane getRootContainer() {
         return MainView.rootContainer;
@@ -614,9 +616,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         ImageView splashP2PNetworkIcon = new ImageView();
         splashP2PNetworkIcon.setId("image-connection-tor");
+        splashP2PNetworkIcon.setFitWidth(networkIconSize);
+        splashP2PNetworkIcon.setFitHeight(networkIconSize);
         splashP2PNetworkIcon.setVisible(false);
         splashP2PNetworkIcon.setManaged(false);
-        HBox.setMargin(splashP2PNetworkIcon, new Insets(0, 0, 5, 0));
+        HBox.setMargin(splashP2PNetworkIcon, new Insets(0, 0,0, 0));
         splashP2PNetworkIcon.setOnMouseClicked(e -> {
             torNetworkSettingsWindow.show();
         });
@@ -630,6 +634,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             splashP2PNetworkIcon.setId(newValue);
             splashP2PNetworkIcon.setVisible(true);
             splashP2PNetworkIcon.setManaged(true);
+            splashP2PNetworkIcon.setFitWidth(networkIconSize);
+            splashP2PNetworkIcon.setFitHeight(networkIconSize);
 
             // if we can connect in 10 sec. we know that tor is working
             showTorNetworkSettingsTimer.stop();
@@ -758,9 +764,13 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkLabel.textProperty().bind(model.getP2PNetworkInfo());
 
         ImageView p2PNetworkIcon = new ImageView();
-        setRightAnchor(p2PNetworkIcon, 10d);
-        setBottomAnchor(p2PNetworkIcon, 5d);
+        setRightAnchor(p2PNetworkIcon, 8d);
+        setBottomAnchor(p2PNetworkIcon, 6d);
+        p2PNetworkIcon.setPickOnBounds(true);
+        p2PNetworkIcon.setCursor(Cursor.HAND);
         p2PNetworkIcon.setOpacity(0.4);
+        p2PNetworkIcon.setFitWidth(networkIconSize);
+        p2PNetworkIcon.setFitHeight(networkIconSize);
         p2PNetworkIcon.idProperty().bind(model.getP2PNetworkIconId());
         p2PNetworkLabel.idProperty().bind(model.getP2pNetworkLabelId());
         model.getP2pNetworkWarnMsg().addListener((ov, oldValue, newValue) -> {
@@ -776,8 +786,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         });
 
         ImageView p2PNetworkStatusIcon = new ImageView();
+        p2PNetworkStatusIcon.setPickOnBounds(true);
+        p2PNetworkStatusIcon.setCursor(Cursor.HAND);
+        p2PNetworkStatusIcon.setFitWidth(networkIconSize);
+        p2PNetworkStatusIcon.setFitHeight(networkIconSize);
         setRightAnchor(p2PNetworkStatusIcon, 30d);
-        setBottomAnchor(p2PNetworkStatusIcon, 7d);
+        setBottomAnchor(p2PNetworkStatusIcon, 6d);
         Tooltip p2pNetworkStatusToolTip = new Tooltip();
         Tooltip.install(p2PNetworkStatusIcon, p2pNetworkStatusToolTip);
         p2PNetworkStatusIcon.setOnMouseEntered(e -> p2pNetworkStatusToolTip.setText(model.getP2pConnectionSummary()));
