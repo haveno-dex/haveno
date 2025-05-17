@@ -53,7 +53,7 @@
                         <PropertyValueFactory property="address"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="90">
+                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="110">
                     <cellValueFactory>
                         <PropertyValueFactory property="connected"/>
                     </cellValueFactory>
