@@ -74,6 +74,7 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -223,6 +224,9 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), config.useDevModeHeader);
         });
         CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), config.useDevModeHeader);
+        
+        // set initial background color
+        scene.setFill(CssTheme.isDarkTheme() ? Color.BLACK : Color.WHITE);
 
         return scene;
     }

@@ -362,13 +362,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
             // attach extra info text area
             extraInfoTextArea = addCompactTopLabelTextArea(gridPane, ++lastGridRowNoFundingRequired, Res.get("payment.shared.extraInfo.noDeposit"), "").second;
-            extraInfoTextArea.setText(offer.getCombinedExtraInfo());
+            extraInfoTextArea.setText(offer.getCombinedExtraInfo().trim());
             extraInfoTextArea.getStyleClass().add("text-area");
             extraInfoTextArea.setWrapText(true);
-            extraInfoTextArea.setPrefHeight(75);
-            extraInfoTextArea.setMinHeight(75);
-            extraInfoTextArea.setMaxHeight(150);
+            extraInfoTextArea.setMaxHeight(300);
             extraInfoTextArea.setEditable(false);
+            GUIUtil.adjustHeightAutomatically(extraInfoTextArea);
             GridPane.setRowIndex(extraInfoTextArea, lastGridRowNoFundingRequired);
             GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
             GridPane.setColumnIndex(extraInfoTextArea, 0);
@@ -536,8 +535,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private void updateOfferElementsStyle() {
         GridPane.setColumnSpan(firstRowHBox, 1);
 
-        final String activeInputStyle = "input-with-border";
-        final String readOnlyInputStyle = "input-with-border-readonly";
+        final String activeInputStyle = "offer-input";
+        final String readOnlyInputStyle = "offer-input-readonly";
         amountValueCurrencyBox.getStyleClass().remove(activeInputStyle);
         amountValueCurrencyBox.getStyleClass().add(readOnlyInputStyle);
         priceAsPercentageValueCurrencyBox.getStyleClass().remove(activeInputStyle);
@@ -631,7 +630,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
                 UserThread.runAfter(() -> new Popup().warning(newValue + "\n\n" +
                                 Res.get("takeOffer.alreadyPaidInFunds"))
-                        .actionButtonTextWithGoTo("navigation.funds.availableForWithdrawal")
+                        .actionButtonTextWithGoTo("funds.tab.withdrawal")
                         .onAction(() -> {
                             errorPopupDisplayed.set(true);
                             model.resetOfferWarning();
@@ -693,7 +692,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 if (DontShowAgainLookup.showAgain(key)) {
                     UserThread.runAfter(() -> new Popup().headLine(Res.get("takeOffer.success.headline"))
                             .feedback(Res.get("takeOffer.success.info"))
-                            .actionButtonTextWithGoTo("navigation.portfolio.pending")
+                            .actionButtonTextWithGoTo("portfolio.tab.pendingTrades")
                             .dontShowAgainId(key)
                             .onAction(() -> {
                                 UserThread.runAfter(
@@ -1147,7 +1146,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             UserThread.runAfter(() -> {
                 new GenericMessageWindow()
                         .preamble(Res.get("payment.tradingRestrictions"))
-                        .instruction(offer.getCombinedExtraInfo())
+                        .instruction(offer.getCombinedExtraInfo().trim())
                         .actionButtonText(Res.get("shared.iConfirm"))
                         .closeButtonText(Res.get("shared.close"))
                         .width(Layout.INITIAL_WINDOW_WIDTH)
