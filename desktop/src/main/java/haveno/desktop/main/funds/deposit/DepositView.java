@@ -155,6 +155,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         // set loading placeholder
         Label placeholderLabel = new Label("Loading...");
         tableView.setPlaceholder(placeholderLabel);
+        tableView.getStyleClass().add("non-interactive-table");
 
         ThreadUtils.execute(() -> {
 
@@ -390,7 +391,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
                     public void updateItem(final DepositListItem item, boolean empty) {
                         super.updateItem(item, empty);
                         if (item != null && !empty) {
-                            setGraphic(new AutoTooltipLabel(item.getUsage()));
+                            Label usageLabel = new AutoTooltipLabel(item.getUsage());
+                            usageLabel.getStyleClass().add("highlight-text");
+                            setGraphic(usageLabel);
                         } else {
                             setGraphic(null);
                         }
@@ -433,6 +436,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     private void setBalanceColumnCellFactory() {
         balanceColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        balanceColumn.getStyleClass().add("highlight-text");
         balanceColumn.setCellFactory(new Callback<>() {
 
             @Override
