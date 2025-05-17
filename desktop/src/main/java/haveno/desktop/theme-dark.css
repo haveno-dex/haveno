@@ -194,10 +194,15 @@
     -fx-background-color: -bs-color-background-row-odd;
     -fx-border-color: -bs-color-background-row-odd;
 }
-.table-view .table-row-cell:selected .table-cell {
+.table-view .table-row-cell:selected .table-cell,
+.table-view .table-row-cell:selected .table-cell .label,
+.table-view .table-row-cell:selected .table-cell .text,
+.table-view .table-row-cell:selected .table-cell .hyperlink,
+.table-view .table-row-cell:selected .table-cell .hyperlink-with-icon {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
     -fx-border-color: -fx-selection-bar;
+    -fx-text-fill: -fx-dark-text-color;
 }
 
 .table-row-cell {
