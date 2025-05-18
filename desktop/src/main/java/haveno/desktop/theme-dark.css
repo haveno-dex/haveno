@@ -594,3 +594,36 @@
         rgba(213, 63, 46, 0.0) 100%
     );
 }
+
+.table-view .table-row-cell .label {
+    -fx-text-fill: -bs-text-color;
+}
+
+.table-view.non-interactive-table .table-cell,
+.table-view.non-interactive-table .table-cell .label,
+.table-view.non-interactive-table .label,
+.table-view.non-interactive-table .text,
+.table-view.non-interactive-table .hyperlink,
+.table-view.non-interactive-table .hyperlink-with-icon,
+.table-view.non-interactive-table .table-row-cell .hyperlink .text {
+    -fx-text-fill: -bs-text-color-dim2;
+}
+
+.table-view.non-interactive-table .hyperlink,
+.table-view.non-interactive-table .hyperlink-with-icon,
+.table-view.non-interactive-table .table-row-cell .hyperlink .text {
+    -fx-fill: -bs-text-color-dim2;
+}
+
+.table-view.non-interactive-table .table-cell.highlight-text,
+.table-view.non-interactive-table .table-cell.highlight-text .label,
+.table-view.non-interactive-table .table-cell.highlight-text .text,
+.table-view.non-interactive-table .table-cell.highlight-text .hyperlink,
+.table-view.non-interactive-table .table-cell.highlight-text .hyperlink .text {
+    -fx-text-fill: -fx-dark-text-color;
+}
+
+/* Match specificity to override. */
+.table-view.non-interactive-table .table-cell.highlight-text .zero-decimals {
+    -fx-text-fill: -bs-color-gray-3;
+}
