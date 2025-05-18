@@ -85,6 +85,9 @@
     -fx-fill: -bs-color-gray-6;
 }
 
+.zero-decimals {
+    -fx-text-fill: -bs-color-gray-3;
+}
 
 .confirmation-label {
     -fx-font-size: 1.077em;
@@ -1178,10 +1181,6 @@ textfield */
     -fx-padding: 0;
 }
 
-.table-view .table-row-cell .label {
-    -fx-text-fill: -bs-text-color;
-}
-
 .table-view .column-header-background {
     -fx-background-color: -bs-color-background-pane;
     -fx-border-color: -bs-color-border-form-field;
@@ -1200,7 +1199,6 @@ textfield */
     -fx-border-color: transparent;
     -fx-background-color: -bs-color-background-pane;
 }
-
 
 /* horizontal scrollbars are never needed and are flickering at scaling so lets turn them off */
 .table-view > .scroll-bar:horizontal {
@@ -2560,35 +2558,7 @@ textfield */
     -fx-text-fill: -bs-text-color-dim1;
 }
 
-.table-view.non-interactive-table .table-cell,
-.table-view.non-interactive-table .table-cell .label,
-.table-view.non-interactive-table .label,
-.table-view.non-interactive-table .text,
-.table-view.non-interactive-table .hyperlink,
-.table-view.non-interactive-table .hyperlink-with-icon,
-.table-view.non-interactive-table .table-row-cell .hyperlink .text {
-    -fx-text-fill: -bs-text-color-dim2;
-}
-
-.table-view.non-interactive-table .hyperlink,
-.table-view.non-interactive-table .hyperlink-with-icon,
-.table-view.non-interactive-table .table-row-cell .hyperlink .text {
-    -fx-fill: -bs-text-color-dim2;
-}
-
-.table-view.non-interactive-table .table-cell.highlight-text,
-.table-view.non-interactive-table .table-cell.highlight-text .label,
-.table-view.non-interactive-table .table-cell.highlight-text .text,
-.table-view.non-interactive-table .table-cell.highlight-text .hyperlink,
-.table-view.non-interactive-table .table-cell.highlight-text .hyperlink .text {
-    -fx-text-fill: -fx-dark-text-color;
-}
 
 .highlight-text {
     -fx-text-fill: -fx-dark-text-color !important;
-}
-
-.zero-decimals,
-.table-view.non-interactive-table .table-cell.highlight-text .zero-decimals { /* Match specificity with the above to override */
-    -fx-text-fill: -bs-color-gray-3;
 }
