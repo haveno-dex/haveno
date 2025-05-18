@@ -44,7 +44,8 @@
     -bs-color-gray-aaa: #29292a;
     -bs-color-gray-fafa: #0a0a0a;
     -bs-color-gray-background: black;
-    -bs-color-background-popup: rgb(31, 31, 31);
+    -bs-color-background-popup: rgb(38, 38, 38);
+    -bs-color-background-popup-overlay: rgb(9, 9, 9);
     -bs-color-background-form-field: rgb(18, 18, 18);
     -bs-color-background-form-field-readonly: rgb(18, 18, 18);
     -bs-color-border-form-field: rgb(65, 65, 65);
