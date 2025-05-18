@@ -1812,7 +1812,7 @@ textfield */
 .titled-group-bg, .titled-group-bg-active {
     -fx-body-color: -bs-color-gray-background;
     -fx-border-color: -bs-rd-separator;
-    -fx-border-width: 0 0 1 0;
+    -fx-border-width: 0 0 0 0;
     -fx-background-color: transparent;
     -fx-background-insets: 0;
 }
