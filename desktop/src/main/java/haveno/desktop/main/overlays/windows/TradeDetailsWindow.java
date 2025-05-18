@@ -38,8 +38,9 @@ import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
+
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
@@ -48,12 +49,9 @@ import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -127,7 +125,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     @Override
     protected void createGridPane() {
         super.createGridPane();
-        gridPane.setPadding(new Insets(35, 40, 30, 40));
         gridPane.getStyleClass().add("grid-pane");
     }
 
@@ -229,22 +226,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
             textArea.setText(offer.getCombinedExtraInfo().trim());
             textArea.setMaxHeight(200);
-            textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
-                if (newScene != null) {
-                    // avoid javafx css warning
-                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
-                    textArea.applyCss();
-                    var text = textArea.lookup(".text");
-
-                    textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
-                        return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
-                    }, text.boundsInLocalProperty()));
-
-                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
-                        Platform.runLater(() -> textArea.requestLayout());
-                    });
-                }
-            });
+            GUIUtil.adjustHeightAutomatically(textArea);
             textArea.setEditable(false);
         }
 

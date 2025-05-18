@@ -1386,14 +1386,26 @@ textfield */
 }
 
 .text-area-popup {
-    -fx-border-color: -bs-color-background-popup;
+    -fx-border-color: -bs-color-background-popup-overlay;
 }
 
 .text-area-popup .content {
-    -fx-background-color: -bs-color-background-popup;
+    -fx-background-color: -bs-color-background-popup-overlay;
 }
 
 .text-area-popup:focused {
+    -fx-faint-focus-color: -bs-color-background-popup-overlay;
+}
+
+.notification-popup-bg .text-area-popup, .peer-info-popup-bg .text-area-popup {
+    -fx-border-color: -bs-color-background-popup;
+}
+
+.notification-popup-bg .text-area-popup .content, .peer-info-popup-bg .text-area-popup .content{
+    -fx-background-color: -bs-color-background-popup;
+}
+
+.notification-popup-bg .text-area-popup:focused, .peer-info-popup-bg .text-area-popup:focused {
     -fx-faint-focus-color: -bs-color-background-popup;
 }
 
@@ -1925,10 +1937,10 @@ textfield */
     -fx-background-color: -bs-content-background-gray;
     -fx-background-radius: 5;
     -fx-effect: null;
-    -fx-effect: dropshadow(gaussian, -bs-color-gray-10, 10, 0, 0, 0);
     -fx-background-insets: 10;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
+    -fx-padding: 35, 40, 30, 40;
 }
 
 /********************************************************************************************************************
@@ -2203,7 +2215,18 @@ textfield */
     -fx-text-fill: -bs-rd-error-red;
 }
 
-.popup-bg, .notification-popup-bg, .peer-info-popup-bg {
+.popup-bg {
+    -fx-font-size: 1.077em;
+    -fx-background-color: -bs-color-background-popup-overlay;
+    -fx-background-radius: 5;
+    -fx-effect: null;
+    -fx-background-insets: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 35, 40, 30, 40;
+}
+
+.notification-popup-bg, .peer-info-popup-bg {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-color-background-popup;
@@ -2216,9 +2239,8 @@ textfield */
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-color-background-popup;
+    -fx-background-color: -bs-color-background-popup-overlay;
     -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
     -fx-background-radius: 0 0 15px 15px;
     -fx-border-radius: 0 0 15px 15px;
 }

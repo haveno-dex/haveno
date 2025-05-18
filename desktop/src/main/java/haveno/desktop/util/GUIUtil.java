@@ -1188,8 +1188,7 @@ public class GUIUtil {
         textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
             if (newScene != null) {
                 // avoid javafx css warning
-                boolean isLightTheme = newScene.getStylesheets().stream().anyMatch(url -> url.contains("theme-light.css"));
-                CssTheme.loadSceneStyles(newScene, isLightTheme ? CssTheme.CSS_THEME_LIGHT : CssTheme.CSS_THEME_DARK, false);
+                CssTheme.loadSceneStyles(newScene, CssTheme.getCurrentTheme(), false);
                 textArea.applyCss();
                 var text = textArea.lookup(".text");
 
