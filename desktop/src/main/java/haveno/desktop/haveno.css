@@ -85,9 +85,6 @@
     -fx-fill: -bs-color-gray-6;
 }
 
-.zero-decimals {
-    -fx-text-fill: -bs-color-gray-3;
-}
 
 .confirmation-label {
     -fx-font-size: 1.077em;
@@ -2559,10 +2556,14 @@ textfield */
 .table-view.non-interactive-table .table-cell.highlight-text .text,
 .table-view.non-interactive-table .table-cell.highlight-text .hyperlink,
 .table-view.non-interactive-table .table-cell.highlight-text .hyperlink .text {
-    -fx-fill: -fx-dark-text-color;
     -fx-text-fill: -fx-dark-text-color;
 }
 
 .highlight-text {
     -fx-text-fill: -fx-dark-text-color !important;
+}
+
+.zero-decimals,
+.table-view.non-interactive-table .table-cell.highlight-text .zero-decimals { /* Match specificity with the above to override */
+    -fx-text-fill: -bs-color-gray-3;
 }
