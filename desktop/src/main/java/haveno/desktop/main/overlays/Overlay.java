@@ -853,22 +853,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             messageTextArea = new TextArea(truncatedMessage);
             messageTextArea.setEditable(false);
             messageTextArea.getStyleClass().add("text-area-popup");
-            messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
-                if (newScene != null) {
-                    // avoid javafx css warning
-                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
-                    messageTextArea.applyCss();
-                    var text = messageTextArea.lookup(".text");
-
-                    messageTextArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
-                        return messageTextArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
-                    }, text.boundsInLocalProperty()));
-
-                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
-                        Platform.runLater(() -> messageTextArea.requestLayout());
-                    });
-                }
-            });
+            GUIUtil.adjustHeightAutomatically(messageTextArea);
             messageTextArea.setWrapText(true);
 
             Region messageRegion;
