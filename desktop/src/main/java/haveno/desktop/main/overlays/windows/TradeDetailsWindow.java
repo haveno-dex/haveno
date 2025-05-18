@@ -167,7 +167,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), paymentMethodText);
 
         // second group
-        rows = 7;
+        rows = 5;
 
         if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
             rows++;
