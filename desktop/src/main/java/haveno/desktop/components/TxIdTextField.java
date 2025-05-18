@@ -29,6 +29,7 @@ import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -70,12 +71,12 @@ public class TxIdTextField extends AnchorPane {
         txConfidenceIndicator.setProgress(0);
         txConfidenceIndicator.setVisible(false);
         AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
-        AnchorPane.setTopAnchor(txConfidenceIndicator, 3.0);
+        AnchorPane.setTopAnchor(txConfidenceIndicator, Layout.FLOATING_ICON_Y);
         progressIndicatorTooltip = new Tooltip("-");
         txConfidenceIndicator.setTooltip(progressIndicatorTooltip);
 
         copyIcon = new Label();
-        copyIcon.setLayoutY(3);
+        copyIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         copyIcon.getStyleClass().addAll("icon", "highlight");
         copyIcon.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
         AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
@@ -89,7 +90,7 @@ public class TxIdTextField extends AnchorPane {
         AwesomeDude.setIcon(blockExplorerIcon, AwesomeIcon.EXTERNAL_LINK);
         blockExplorerIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(blockExplorerIcon, 52.0);
-        AnchorPane.setTopAnchor(blockExplorerIcon, 4.0);
+        AnchorPane.setTopAnchor(blockExplorerIcon, Layout.FLOATING_ICON_Y);
 
         missingTxWarningIcon = new Label();
         missingTxWarningIcon.getStyleClass().addAll("icon", "error-icon");
@@ -97,7 +98,7 @@ public class TxIdTextField extends AnchorPane {
         missingTxWarningIcon.setTooltip(new Tooltip(Res.get("txIdTextField.missingTx.warning.tooltip")));
         missingTxWarningIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(missingTxWarningIcon, 52.0);
-        AnchorPane.setTopAnchor(missingTxWarningIcon, 4.0);
+        AnchorPane.setTopAnchor(missingTxWarningIcon, Layout.FLOATING_ICON_Y);
         missingTxWarningIcon.setVisible(false);
         missingTxWarningIcon.setManaged(false);
 
