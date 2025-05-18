@@ -33,7 +33,6 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -42,8 +41,6 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -140,6 +137,8 @@ public abstract class Overlay<T extends Overlay<T>> {
             this.changeBackgroundType = changeBackgroundType;
         }
     }
+
+    private static int numBackgroundEffects = 0;
 
     protected final static double DEFAULT_WIDTH = 668;
     protected Stage stage;
@@ -739,6 +738,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void addEffectToBackground() {
+        numBackgroundEffects++;
+        if (numBackgroundEffects > 1) return;
         if (type.changeBackgroundType == ChangeBackgroundType.BlurUltraLight)
             MainView.blurUltraLight();
         else if (type.changeBackgroundType == ChangeBackgroundType.BlurLight)
@@ -808,6 +809,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void removeEffectFromBackground() {
+        numBackgroundEffects--;
+        if (numBackgroundEffects > 0) return;
         MainView.removeEffect();
     }
 
