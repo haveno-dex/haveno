@@ -1419,6 +1419,7 @@ public class FormBuilder {
 
     public static <T> AutocompleteComboBox<T> addAutocompleteComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         var comboBox = new AutocompleteComboBox<T>();
+        GUIUtil.applyFilledStyle(comboBox);
         comboBox.setLabelFloat(true);
         comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
