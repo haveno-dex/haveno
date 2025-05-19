@@ -106,12 +106,12 @@ public class Transitions {
         node.setMouseTransparent(true);
         GaussianBlur blur = new GaussianBlur(0.0);
         Timeline timeline = new Timeline();
-        KeyValue kv1 = new KeyValue(blur.radiusProperty(), blurRadius);
+        KeyValue kv1 = new KeyValue(blur.radiusProperty(), CssTheme.isDarkTheme() ? blurRadius * 1.25 : blurRadius);
         KeyFrame kf1 = new KeyFrame(Duration.millis(getDuration(duration)), kv1);
         ColorAdjust darken = new ColorAdjust();
         darken.setBrightness(0.0);
         blur.setInput(darken);
-        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), CssTheme.isDarkTheme() ? brightness * -0.2 : brightness);
+        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), CssTheme.isDarkTheme() ? brightness * -0.10 : brightness);
         KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration(duration)), kv2);
         timeline.getKeyFrames().addAll(kf1, kf2);
         node.setEffect(blur);
