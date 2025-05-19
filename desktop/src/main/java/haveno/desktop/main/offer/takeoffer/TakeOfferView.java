@@ -127,13 +127,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private GridPane gridPane;
     private TitledGroupBg noFundingRequiredTitledGroupBg;
     private Label noFundingRequiredLabel;
-    private int lastGridRowNoFundingRequired;
+    private int gridRowNoFundingRequired;
     private TitledGroupBg payFundsTitledGroupBg;
     private TitledGroupBg advancedOptionsGroup;
     private VBox priceAsPercentageInputBox, amountRangeBox;
     private HBox fundingHBox, amountValueCurrencyBox, priceValueCurrencyBox, volumeValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, minAmountValueCurrencyBox, advancedOptionsBox,
-            takeOfferBox, buttonBox, firstRowHBox;
+            takeOfferBox, nextButtonBox, firstRowHBox;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private TextArea extraInfoTextArea;
     private Label amountDescriptionLabel,
@@ -142,7 +142,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             volumeCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, offerAvailabilityLabel, priceAsPercentageDescription,
             tradeFeeDescriptionLabel, resultLabel, tradeFeeInXmrLabel, xLabel,
-            fakeXLabel;
+            fakeXLabel, extraInfoLabel;
     private InputTextField amountTextField;
     private TextField paymentMethodTextField, currencyTextField, priceTextField, priceAsPercentageTextField,
             volumeTextField, amountRangeTextField;
@@ -200,7 +200,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         createListeners();
 
-        addButtons();
+        addNextButtons();
         addOfferAvailabilityLabel();
         addFundingGroup();
 
@@ -361,19 +361,26 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (offer.hasBuyerAsTakerWithoutDeposit() && offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
 
             // attach extra info text area
-            extraInfoTextArea = addCompactTopLabelTextArea(gridPane, ++lastGridRowNoFundingRequired, Res.get("payment.shared.extraInfo.noDeposit"), "").second;
+            //updateOfferElementsStyle();
+            Tuple2<Label, TextArea> extraInfoTuple = addCompactTopLabelTextArea(gridPane, ++gridRowNoFundingRequired, Res.get("payment.shared.extraInfo.noDeposit"), "");
+            extraInfoLabel = extraInfoTuple.first;
+            extraInfoLabel.setVisible(false);
+            extraInfoLabel.setManaged(false);
+            extraInfoTextArea = extraInfoTuple.second;
+            extraInfoTextArea.setVisible(false);
+            extraInfoTextArea.setManaged(false);
             extraInfoTextArea.setText(offer.getCombinedExtraInfo().trim());
             extraInfoTextArea.getStyleClass().add("text-area");
             extraInfoTextArea.setWrapText(true);
             extraInfoTextArea.setMaxHeight(300);
             extraInfoTextArea.setEditable(false);
             GUIUtil.adjustHeightAutomatically(extraInfoTextArea);
-            GridPane.setRowIndex(extraInfoTextArea, lastGridRowNoFundingRequired);
+            GridPane.setRowIndex(extraInfoTextArea, gridRowNoFundingRequired);
             GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
             GridPane.setColumnIndex(extraInfoTextArea, 0);
 
             // move up take offer buttons
-            GridPane.setRowIndex(takeOfferBox, lastGridRowNoFundingRequired + 1);
+            GridPane.setRowIndex(takeOfferBox, gridRowNoFundingRequired + 1);
             GridPane.setMargin(takeOfferBox, new Insets(15, 0, 0, 0));
         }
     }
@@ -496,6 +503,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (model.getOffer().hasBuyerAsTakerWithoutDeposit()) {
             noFundingRequiredTitledGroupBg.setVisible(true);
             noFundingRequiredLabel.setVisible(true);
+            extraInfoLabel.setVisible(true);
+            extraInfoLabel.setManaged(true);
+            extraInfoTextArea.setVisible(true);
+            extraInfoTextArea.setManaged(true);
         } else {
             payFundsTitledGroupBg.setVisible(true);
             totalToPayTextField.setVisible(true);
@@ -836,11 +847,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         advancedOptionsBox.getChildren().addAll(tradeFeeFieldsBox);
     }
 
-    private void addButtons() {
+    private void addNextButtons() {
         Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++gridRow,
                 Res.get("shared.nextStep"), Res.get("shared.cancel"), 15, true);
 
-        buttonBox = tuple.third;
+        nextButtonBox = tuple.third;
 
         nextButton = tuple.first;
         nextButton.setMaxWidth(200);
@@ -869,7 +880,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         offerAvailabilityBusyAnimation = new BusyAnimation(false);
         offerAvailabilityLabel = new AutoTooltipLabel(Res.get("takeOffer.fundsBox.isOfferAvailable"));
         HBox.setMargin(offerAvailabilityLabel, new Insets(6, 0, 0, 0));
-        buttonBox.getChildren().addAll(offerAvailabilityBusyAnimation, offerAvailabilityLabel);
+        nextButtonBox.getChildren().addAll(offerAvailabilityBusyAnimation, offerAvailabilityLabel);
     }
 
     private void addFundingGroup() {
@@ -889,7 +900,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         noFundingRequiredLabel.setPadding(new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
         GridPane.setHalignment(noFundingRequiredLabel, HPos.LEFT);
         gridPane.getChildren().add(noFundingRequiredLabel);
-        lastGridRowNoFundingRequired = gridRow;
+        gridRowNoFundingRequired = gridRow;
 
         // funding title
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
