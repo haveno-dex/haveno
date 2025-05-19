@@ -105,6 +105,12 @@
     -fx-font-size: 1.077em;
     -fx-font-family: "IBM Plex Mono";
     -fx-padding: 0 !important;
+    -fx-border-width: 0;
+    -fx-translate-x: -2;
+}
+
+.confirmation-text-field-as-label-icon {
+    -fx-translate-y: -7;
 }
 
 /* Other UI Elements */
