@@ -581,7 +581,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         // create P2PNetworkBox
         splashP2PNetworkLabel = new AutoTooltipLabel();
         splashP2PNetworkLabel.setWrapText(true);
-        splashP2PNetworkLabel.setMaxWidth(500);
+        splashP2PNetworkLabel.setMaxWidth(700);
         splashP2PNetworkLabel.setTextAlignment(TextAlignment.CENTER);
         splashP2PNetworkLabel.getStyleClass().add("sub-info");
         splashP2PNetworkLabel.textProperty().bind(model.getP2PNetworkInfo());
