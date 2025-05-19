@@ -134,11 +134,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     }
 
     public static void blurLight() {
-        transitions.blur(MainView.rootContainer, Transitions.DEFAULT_DURATION, -0.6, false, 5);
+        transitions.blur(MainView.rootContainer, Transitions.DEFAULT_DURATION, -0.6, false, 20);
     }
 
     public static void blurUltraLight() {
-        transitions.blur(MainView.rootContainer, Transitions.DEFAULT_DURATION, -0.6, false, 2);
+        transitions.blur(MainView.rootContainer, Transitions.DEFAULT_DURATION, -0.6, false, 20);
     }
 
     public static void darken() {
