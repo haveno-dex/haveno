@@ -1942,13 +1942,12 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .grid-pane {
-    -fx-background-color: -bs-content-background-gray;
-    -fx-background-radius: 5;
-    -fx-effect: null;
+    -fx-background-color: -bs-color-background-popup-overlay;
     -fx-background-insets: 10;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 35, 40, 30, 40;
+    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 15, 0, 0, 0);
 }
 
 /********************************************************************************************************************
@@ -2226,12 +2225,11 @@ textfield */
 .popup-bg {
     -fx-font-size: 1.077em;
     -fx-background-color: -bs-color-background-popup-overlay;
-    -fx-background-radius: 5;
-    -fx-effect: null;
     -fx-background-insets: 10;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 35, 40, 30, 40;
+    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 15, 0, 0, 0);
 }
 
 .notification-popup-bg, .peer-info-popup-bg {
@@ -2251,6 +2249,7 @@ textfield */
     -fx-background-insets: 44;
     -fx-background-radius: 0 0 15px 15px;
     -fx-border-radius: 0 0 15px 15px;
+    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
 }
 
 .notification-popup-headline, peer-info-popup-headline {
