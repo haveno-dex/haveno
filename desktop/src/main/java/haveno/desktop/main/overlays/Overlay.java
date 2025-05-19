@@ -138,7 +138,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         }
     }
 
-    private static int numBackgroundEffects = 0;
+    private static int numOverlays = 0;
 
     protected final static double DEFAULT_WIDTH = 668;
     protected Stage stage;
@@ -738,8 +738,11 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void addEffectToBackground() {
-        numBackgroundEffects++;
-        if (numBackgroundEffects > 1) return;
+        numOverlays++;
+        if (numOverlays > 1) {
+            getRootContainer().getStyleClass().add("popup-dropshadow");
+        }
+        if (numOverlays > 1) return;
         if (type.changeBackgroundType == ChangeBackgroundType.BlurUltraLight)
             MainView.blurUltraLight();
         else if (type.changeBackgroundType == ChangeBackgroundType.BlurLight)
@@ -809,8 +812,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void removeEffectFromBackground() {
-        numBackgroundEffects--;
-        if (numBackgroundEffects > 0) return;
+        numOverlays--;
+        if (numOverlays > 0) return;
         MainView.removeEffect();
     }
 
