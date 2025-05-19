@@ -171,11 +171,11 @@
     -fx-text-fill: -bs-background-color;
 }
 
-.action-button.compact-button {
+.action-button.compact-button, .compact-button  {
     -fx-padding: 0 15 0 15;
 }
 
-.compact-button, .table-cell .jfx-button {
+.table-cell .jfx-button {
     -fx-padding: 0 7 0 7;
 }
 
