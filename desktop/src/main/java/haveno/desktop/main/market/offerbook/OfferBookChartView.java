@@ -95,7 +95,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private AnchorPane chartPane;
     private AutocompleteComboBox<CurrencyListItem> currencyComboBox;
     private Subscription tradeCurrencySubscriber;
-    private final StringProperty volumeColumnLabel = new SimpleStringProperty();
+    private final StringProperty volumeSellColumnLabel = new SimpleStringProperty();
+    private final StringProperty volumeBuyColumnLabel = new SimpleStringProperty();
+    private final StringProperty amountSellColumnLabel = new SimpleStringProperty();
+    private final StringProperty amountBuyColumnLabel = new SimpleStringProperty();
     private final StringProperty priceColumnLabel = new SimpleStringProperty();
     private AutoTooltipButton sellButton;
     private AutoTooltipButton buyButton;
@@ -201,7 +204,6 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tradeCurrencySubscriber = EasyBind.subscribe(model.selectedTradeCurrencyProperty,
                 tradeCurrency -> {
                     String code = tradeCurrency.getCode();
-                    volumeColumnLabel.set(Res.get("offerbook.volume", code));
                     xAxis.setTickLabelFormatter(new StringConverter<>() {
                         final int cryptoPrecision = 3;
                         final DecimalFormat df = new DecimalFormat(",###");
@@ -351,6 +353,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private synchronized void updateChartData() {
+        volumeSellColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), VolumeUtil.formatVolume(model.getTotalVolume(OfferDirection.SELL))));
+        volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), VolumeUtil.formatVolume(model.getTotalVolume(OfferDirection.BUY))));
+        amountSellColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(OfferDirection.SELL)));
+        amountBuyColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(OfferDirection.BUY)));
+
         seriesBuy.getData().clear();
         seriesSell.getData().clear();
         areaChart.getData().clear();
@@ -491,11 +498,13 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                     }
                 });
 
+        boolean isSellTable = model.isSellOffer(direction);
+
         // volume
         TableColumn<OfferListItem, OfferListItem> volumeColumn = new TableColumn<>();
         volumeColumn.setMinWidth(115);
         volumeColumn.setSortable(false);
-        volumeColumn.textProperty().bind(volumeColumnLabel);
+        volumeColumn.textProperty().bind(isSellTable ? volumeSellColumnLabel : volumeBuyColumnLabel);
         volumeColumn.getStyleClass().addAll("number-column");
         volumeColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         volumeColumn.setCellFactory(
@@ -553,7 +562,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                 });
 
         // amount
-        TableColumn<OfferListItem, OfferListItem> amountColumn = new AutoTooltipTableColumn<>(Res.get("shared.XMRMinMax"));
+        TableColumn<OfferListItem, OfferListItem> amountColumn = new TableColumn<>();
+        amountColumn.textProperty().bind(isSellTable ? amountSellColumnLabel : amountBuyColumnLabel);
         amountColumn.setMinWidth(115);
         amountColumn.setSortable(false);
         amountColumn.getStyleClass().add("number-column");
@@ -577,10 +587,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                     }
                 });
 
-        boolean isSellOffer = model.isSellOffer(direction);
-
         // trader avatar
-        TableColumn<OfferListItem, OfferListItem> avatarColumn = new AutoTooltipTableColumn<>(isSellOffer ?
+        TableColumn<OfferListItem, OfferListItem> avatarColumn = new AutoTooltipTableColumn<>(isSellTable ?
                 Res.get("shared.sellerUpperCase") : Res.get("shared.buyerUpperCase")) {
             {
                 setMinWidth(80);
@@ -645,7 +653,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         AutoTooltipButton button = new AutoTooltipButton();
         button.setContentDisplay(ContentDisplay.RIGHT);
         button.setGraphicTextGap(10);
-        button.updateText(isSellOffer ? Res.get("market.offerBook.buy") : Res.get("market.offerBook.sell"));
+        button.updateText(isSellTable ? Res.get("market.offerBook.buy") : Res.get("market.offerBook.sell"));
         button.setMinHeight(32);
         button.setOnAction(e -> model.goToOfferView(direction));
 
