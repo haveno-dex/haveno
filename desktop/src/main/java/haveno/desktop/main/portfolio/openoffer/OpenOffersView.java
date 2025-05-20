@@ -231,7 +231,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     return row;
                 });
 
-        filterTextField.setPromptText(Res.get("filter.prompt.offers"));
+        filterTextField.setPromptText(Res.get("shared.filter"));
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
         searchBox.setSpacing(5);
         HBox.setHgrow(searchBoxSpacer, Priority.ALWAYS);
