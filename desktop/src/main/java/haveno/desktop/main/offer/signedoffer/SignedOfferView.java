@@ -115,7 +115,7 @@ public class SignedOfferView extends ActivatableViewAndModel<VBox, SignedOffersV
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
         filterBox.initialize(filteredList, tableView);
-        filterBox.setPromptText(Res.get("filter.prompt.offers"));
+        filterBox.setPromptText(Res.get("shared.filter"));
         filterBox.activate();
 
         contextMenu = new ContextMenu();

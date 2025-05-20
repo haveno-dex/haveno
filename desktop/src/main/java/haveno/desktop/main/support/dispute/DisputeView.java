@@ -224,7 +224,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     @Override
     public void initialize() {
         filterTextField = new InputTextField();
-        filterTextField.setPromptText(Res.get("filter.prompt.disputes"));
+        filterTextField.setPromptText(Res.get("shared.filter"));
         Tooltip tooltip = new Tooltip();
         tooltip.setShowDelay(Duration.millis(100));
         tooltip.setShowDuration(Duration.seconds(10));
