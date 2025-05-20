@@ -111,7 +111,7 @@ public class Transitions {
         ColorAdjust darken = new ColorAdjust();
         darken.setBrightness(0.0);
         blur.setInput(darken);
-        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), CssTheme.isDarkTheme() ? brightness * -0.15 : brightness);
+        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), CssTheme.isDarkTheme() ? brightness * -0.13 : brightness);
         KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration(duration)), kv2);
         timeline.getKeyFrames().addAll(kf1, kf2);
         node.setEffect(blur);
