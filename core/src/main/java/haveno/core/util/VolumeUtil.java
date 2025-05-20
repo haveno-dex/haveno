@@ -51,6 +51,7 @@ import org.bitcoinj.utils.MonetaryFormat;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Collection;
 import java.util.Locale;
 
 public class VolumeUtil {
@@ -186,5 +187,36 @@ public class VolumeUtil {
 
     private static MonetaryFormat getMonetaryFormat(String currencyCode) {
         return CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode) ? VOLUME_FORMAT_UNIT : VOLUME_FORMAT_PRECISE;
+    }
+
+    public static Volume sum(Collection<Volume> volumes) {
+        if (volumes == null || volumes.isEmpty()) {
+            return null;
+        }   
+        Volume sum = null;
+        for (Volume volume : volumes) {
+            if (sum == null) {
+                sum = volume;
+            } else {
+                if (!sum.getCurrencyCode().equals(volume.getCurrencyCode())) {
+                    throw new IllegalArgumentException("Cannot sum volumes with different currencies");
+                }
+                sum = add(sum, volume);
+            }
+        }
+        return sum;
+    }
+
+    public static Volume add(Volume volume1, Volume volume2) {
+        if (volume1 == null) return volume2;
+        if (volume2 == null) return volume1;
+        if (!volume1.getCurrencyCode().equals(volume2.getCurrencyCode())) {
+            throw new IllegalArgumentException("Cannot add volumes with different currencies");
+        }
+        if (volume1.getMonetary() instanceof CryptoMoney) {
+            return new Volume(((CryptoMoney) volume1.getMonetary()).add((CryptoMoney) volume2.getMonetary()));
+        } else {
+            return new Volume(((TraditionalMoney) volume1.getMonetary()).add((TraditionalMoney) volume2.getMonetary()));
+        }
     }
 }
