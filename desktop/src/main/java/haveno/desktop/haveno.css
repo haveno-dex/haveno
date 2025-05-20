@@ -107,6 +107,7 @@
     -fx-padding: 0 !important;
     -fx-border-width: 0;
     -fx-translate-x: -2;
+    -fx-text-fill: -bs-rd-font-dark-gray !important;
 }
 
 .confirmation-text-field-as-label-icon {
