@@ -226,8 +226,8 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
             textArea.setText(offer.getCombinedExtraInfo().trim());
             textArea.setMaxHeight(200);
-            GUIUtil.adjustHeightAutomatically(textArea);
             textArea.setEditable(false);
+            GUIUtil.adjustHeightAutomatically(textArea);
         }
 
         if (contract != null) {
