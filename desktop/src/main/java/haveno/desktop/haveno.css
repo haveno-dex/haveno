@@ -2351,6 +2351,7 @@ textfield */
 
 #toggle-left:hover, #toggle-right:hover, #toggle-center:hover {
     -fx-background-color: -bs-toggle-selected;
+    -fx-cursor: hand;
 }
 
 /********************************************************************************************************************
