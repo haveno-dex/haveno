@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOfferManager;
@@ -213,6 +214,29 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     public boolean isSellOffer(OfferDirection direction) {
         return direction == OfferDirection.SELL;
+    }
+
+    public double getTotalAmount(OfferDirection direction) {
+        synchronized (offerBookListItems) {
+            return offerBookListItems.stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                            && e.getDirection().equals(direction))
+                    .mapToDouble(item -> HavenoUtils.atomicUnitsToXmr(item.getAmount()))
+                    .sum();
+        }
+    }
+
+    public Volume getTotalVolume(OfferDirection direction) {
+        synchronized (offerBookListItems) {
+             List<Volume> volumes = offerBookListItems.stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                            && e.getDirection().equals(direction))
+                    .map(Offer::getVolume)
+                    .collect(Collectors.toList());
+            return VolumeUtil.sum(volumes);
+        }
     }
 
     public boolean isMyOffer(Offer offer) {
