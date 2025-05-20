@@ -170,7 +170,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             }
         };
 
-        filterLabel.setText(Res.get("filter.prompt.trades"));
+        filterLabel.setText(Res.get("shared.filter"));
         HBox.setMargin(filterLabel, new Insets(5, 0, 0, 10));
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
         searchBox.setSpacing(5);
