@@ -81,6 +81,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -1095,6 +1096,7 @@ public class GUIUtil {
 
     public static void applyTableStyle(TableView<?> tableView, boolean applyRoundedArc) {
         if (applyRoundedArc) applyRoundedArc(tableView);
+        addSpacerColumns(tableView);
         applyEdgeColumnStyleClasses(tableView);
     }
 
@@ -1107,6 +1109,27 @@ public class GUIUtil {
             clip.setWidth(newVal.getWidth());
             clip.setHeight(newVal.getHeight());
         });
+    }
+
+    private static <T> void addSpacerColumns(TableView<T> tableView) {
+        TableColumn<T, Void> leftSpacer = new TableColumn<>();
+        TableColumn<T, Void> rightSpacer = new TableColumn<>();
+
+        configureSpacerColumn(leftSpacer);
+        configureSpacerColumn(rightSpacer);
+
+        tableView.getColumns().add(0, leftSpacer);
+        tableView.getColumns().add(rightSpacer);
+    }
+
+    private static void configureSpacerColumn(TableColumn<?, ?> column) {
+        column.setPrefWidth(15);
+        column.setMaxWidth(15);
+        column.setMinWidth(15);
+        column.setReorderable(false);
+        column.setResizable(false);
+        column.setSortable(false);
+        column.setCellFactory(col -> new TableCell<>()); // empty cell
     }
 
     private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
