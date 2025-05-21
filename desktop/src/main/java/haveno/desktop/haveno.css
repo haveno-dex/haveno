@@ -1143,7 +1143,7 @@ textfield */
 }
 
 .table-view .table-cell.last-column {
-    -fx-padding: 6 15 4 0;
+    -fx-padding: 6 0 4 0;
 }
 
 .table-view .table-cell.avatar-column {
@@ -1152,18 +1152,18 @@ textfield */
 }
 
 .table-view .table-cell.first-column {
-    -fx-padding: 6 0 4 15;
+    -fx-padding: 6 0 4 0;
 }
 
 .table-view .column-header.last-column .label {
 }
 
 .table-view .column-header.first-column {
-    -fx-padding: 0 0 0 15;
+    -fx-padding: 0 0 0 0;
 }
 
 .table-view .column-header.last-column {
-    -fx-padding: 0 15 0 0;
+    -fx-padding: 0 0 0 0;
 }
 
 .table-view .column-header.avatar-column {
