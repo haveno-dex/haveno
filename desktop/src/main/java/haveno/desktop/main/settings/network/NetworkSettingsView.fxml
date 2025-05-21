@@ -108,6 +108,9 @@
     </HavenoTextField>
 
     <VBox GridPane.rowIndex="6" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
+        <GridPane.margin>
+            <Insets top="0" right="0" bottom="10" left="0"/>
+        </GridPane.margin>
         <AutoTooltipLabel fx:id="p2PPeersLabel" styleClass="small-text"/>
         <TableView fx:id="p2pPeersTableView">
             <columns>
