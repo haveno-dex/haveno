@@ -2250,7 +2250,7 @@ textfield */
 }
 
 .popup-dropshadow {
-    -fx-effect: dropshadow(gaussian, -bs-text-color-dark, 15, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 20, 0, 0, 0);
 }
 
 .notification-popup-headline, peer-info-popup-headline {
@@ -2531,7 +2531,7 @@ textfield */
 }
 
 .popover > .border {
-    -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-dark) !important;
+    -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-dropshadow) !important;
     -fx-fill: -bs-background-color !important;
 }
 
