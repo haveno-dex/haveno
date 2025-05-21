@@ -114,7 +114,7 @@
     -bs-rd-font-confirmation-label: #504f52;
     -bs-rd-font-balance-label: #999999;
 
-    -bs-text-color-dark: rgba(45, 45, 49, 0.54);
+    -bs-text-color-dropshadow: rgba(45, 45, 49, .75);
     -bs-text-color-dropshadow-light-mode: transparent;
     -bs-text-color-transparent: rgba(29, 29, 33, 0.2);
     -bs-color-gray-line: #504f52;
