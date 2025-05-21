@@ -2301,23 +2301,33 @@ textfield */
 #toggle-left {
     -fx-border-radius: 4 0 0 4;
     -fx-border-color: -bs-rd-separator-dark;
-    -fx-border-style: solid;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-style: transparent;
+    -fx-border-width: 0 0 0 0;
+    -fx-border-insets: 0;
+    -fx-background-insets: 0;
     -fx-background-radius: 4 0 0 4;
     -fx-background-color: -bs-background-color;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
 }
 
 #toggle-center {
     -fx-border-radius: 0;
     -fx-border-color: -bs-rd-separator-dark;
-    -fx-border-style: solid;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-style: transparent;
+    -fx-border-width: 0 0 0 0;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
     -fx-background-color: -bs-background-color;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
+}
+
+#toggle-right {
+    -fx-border-radius: 0 4 4 0;
+    -fx-border-style: transparent;
+    -fx-border-width: 0;
+    -fx-border-insets: 0;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0 4 4 0;
+    -fx-background-color: -bs-background-color;
 }
 
 #toggle-center:selected, #toggle-left:selected, #toggle-right:selected {
@@ -2325,15 +2335,7 @@ textfield */
     -fx-background-color: -bs-toggle-selected;
 }
 
-#toggle-right {
-    -fx-border-radius: 0 4 4 0;
-    -fx-border-width: 0;
-    -fx-background-radius: 0 4 4 0;
-    -fx-background-color: -bs-background-color;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
-}
-
-#toggle-left:hover, #toggle-right:hover, #toggle-center:hover {
+#toggle-left:hover, #toggle-right:hover, #toggle-center:hover { 
     -fx-background-color: -bs-toggle-selected;
     -fx-cursor: hand;
 }
