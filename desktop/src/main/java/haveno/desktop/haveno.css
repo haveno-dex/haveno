@@ -2330,8 +2330,13 @@ textfield */
     -fx-background-color: -bs-background-color;
 }
 
+#toggle-center:focused, #toggle-left::focused, #toggle-right::focused {
+    -fx-text-fill: -bs-text-color;
+    -fx-background-color: -bs-toggle-selected;
+}
+
 #toggle-center:selected, #toggle-left:selected, #toggle-right:selected {
-    -fx-text-fill: -bs-background-color;
+    -fx-text-fill: -bs-text-color;
     -fx-background-color: -bs-toggle-selected;
 }
 
