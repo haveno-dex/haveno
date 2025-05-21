@@ -2232,11 +2232,11 @@ textfield */
 }
 
 .notification-popup-bg, .peer-info-popup-bg {
-    -fx-font-size: 1.077em;
+    -fx-font-size: 0.846em;
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-color-background-popup;
     -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
     -fx-background-radius: 15;
     -fx-border-radius: 15;
 }
@@ -2250,29 +2250,13 @@ textfield */
 }
 
 .popup-dropshadow {
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 15, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dark, 15, 0, 0, 0);
 }
 
 .notification-popup-headline, peer-info-popup-headline {
     -fx-font-size: 1.077em;
     /*-fx-font-weight: bold;*/
     -fx-text-fill: -bs-color-primary;
-}
-
-.notification-popup-bg {
-    -fx-font-size: 0.846em;
-    -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
-}
-
-.peer-info-popup-bg {
-    -fx-font-size: 0.846em;
-    -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
 }
 
 .account-status-title {
@@ -2547,7 +2531,7 @@ textfield */
 }
 
 .popover > .border {
-    -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-transparent-dark) !important;
+    -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-dark) !important;
     -fx-fill: -bs-background-color !important;
 }
 

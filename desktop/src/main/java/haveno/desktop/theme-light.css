@@ -70,7 +70,8 @@
     -bs-rd-font-lighter: #a7a7a7;
     -bs-rd-font-confirmation-label: #504f52;
     -bs-rd-font-balance-label: #bbbbbb;
-    -bs-text-color-transparent-dark: rgba(0, 0, 0, 0.54);
+    -bs-text-color-dark: rgba(0, 0, 0, 0.54);
+    -bs-text-color-dropshadow-light-mode: rgba(0, 0, 0, 0.54);
     -bs-text-color-transparent: rgba(0, 0, 0, 0.2);
     -bs-color-gray-line: #979797;
     -bs-rd-separator: #dbdbdb;
