@@ -119,7 +119,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         Notification(AnimationType.SlideFromRightTop, ChangeBackgroundType.BlurLight),
 
         BackgroundInfo(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.BlurUltraLight),
-        Feedback(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.Darken),
+        Feedback(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.BlurLight),
 
         Information(AnimationType.FadeInAtCenter, ChangeBackgroundType.BlurLight),
         Instruction(AnimationType.ScaleFromCenter, ChangeBackgroundType.BlurLight),
