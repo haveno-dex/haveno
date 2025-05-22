@@ -126,7 +126,8 @@
     -bs-rd-message-bubble: #0086c6;
     -bs-rd-tooltip-truncated: #afaeb0;
 
-    -bs-toggle-selected: #0b65da;
+    /*-bs-toggle-selected: rgb(12, 89, 189);*/
+    -bs-toggle-selected: #0f87c3;
     -bs-warning: #db6300;
     -bs-buy: rgb(80, 180, 90);
     -bs-buy-focus: derive(-bs-buy, -50%);
