@@ -81,6 +81,10 @@ public class TextFieldWithCopyIcon extends AnchorPane {
         AnchorPane.setRightAnchor(copyIcon, 5.0);
         AnchorPane.setRightAnchor(textField, 30.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
+        AnchorPane.setTopAnchor(copyIcon, 0.0);
+        AnchorPane.setBottomAnchor(copyIcon, 0.0);
+        AnchorPane.setTopAnchor(textField, 0.0);
+        AnchorPane.setBottomAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
         getChildren().addAll(textField, copyIcon);
     }
