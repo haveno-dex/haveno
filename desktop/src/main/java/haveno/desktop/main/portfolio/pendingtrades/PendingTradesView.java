@@ -978,6 +978,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                     HBox hBox = new HBox();
                                     hBox.setSpacing(0);
+                                    //hBox.setAlignment(Pos.CENTER); // so spacing is consistent with column to the left
                                     hBox.getChildren().addAll(warnIconButton, trashIconButton);
                                     setGraphic(hBox);
                                 } else {
