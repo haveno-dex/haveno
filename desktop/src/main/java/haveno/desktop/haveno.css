@@ -2346,7 +2346,7 @@ textfield */
 }
 
 #toggle-center:selected, #toggle-left:selected, #toggle-right:selected {
-    -fx-text-fill: -bs-text-color;
+    -fx-text-fill: white;
     -fx-background-color: -bs-toggle-selected;
 }
 
