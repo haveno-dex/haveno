@@ -59,6 +59,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -218,12 +219,14 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     public double getTotalAmount(OfferDirection direction) {
         synchronized (offerBookListItems) {
-            return offerBookListItems.stream()
+            List<Offer> offerList = offerBookListItems.stream()
                     .map(OfferBookListItem::getOffer)
                     .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                             && e.getDirection().equals(direction))
-                    .mapToDouble(item -> HavenoUtils.atomicUnitsToXmr(item.getAmount()))
-                    .sum();
+                    .collect(Collectors.toList());
+            BigInteger sum = BigInteger.ZERO;
+            for (Offer offer : offerList) sum = sum.add(offer.getAmount());
+            return HavenoUtils.atomicUnitsToXmr(sum);
         }
     }
 
