@@ -951,7 +951,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             {
                 setMaxWidth(80);
                 setMinWidth(65);
-                getStyleClass().addAll("avatar-column");
                 setSortable(false);
             }
         };
