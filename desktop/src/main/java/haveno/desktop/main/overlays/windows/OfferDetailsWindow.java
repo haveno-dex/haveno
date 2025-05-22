@@ -383,7 +383,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         if (offerChallenge != null) {
             addSeparator(gridPane, ++rowIndex);
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), offerChallenge);
+            Label label = addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), offerChallenge).first;
+            label.getStyleClass().add("bold-text");
         }
 
         if (placeOfferHandlerOptional.isPresent()) {

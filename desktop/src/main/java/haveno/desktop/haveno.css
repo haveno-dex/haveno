@@ -2570,3 +2570,8 @@ textfield */
 .highlight-text {
     -fx-text-fill: -fx-dark-text-color !important;
 }
+
+.bold-text {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-weight: bold;
+}
