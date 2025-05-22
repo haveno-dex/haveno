@@ -69,6 +69,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -1134,13 +1135,15 @@ public class GUIUtil {
 
     private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
         ListChangeListener<TableColumn<T, ?>> columnListener = change -> {
-            updateEdgeColumnStyleClasses(tableView);
+            UserThread.execute(() -> {
+                updateEdgeColumnStyleClasses(tableView);
+            });
         };
 
         tableView.getColumns().addListener(columnListener);
         tableView.skinProperty().addListener((obs, oldSkin, newSkin) -> {
             if (newSkin != null) {
-                Platform.runLater(() -> {
+                UserThread.execute(() -> {
                     updateEdgeColumnStyleClasses(tableView);
                 });
             }
@@ -1155,21 +1158,57 @@ public class GUIUtil {
     }
 
     private static <T> void updateEdgeColumnStyleClasses(TableView<T> tableView) {
-        var columns = tableView.getColumns();
+        ObservableList<TableColumn<T, ?>> columns = tableView.getColumns();
+
+        // find columns with "first-column" and "last-column" classes
+        TableColumn<T, ?> firstCol = null;
+        TableColumn<T, ?> lastCol = null;
         for (TableColumn<T, ?> col : columns) {
-            col.getStyleClass().removeAll("first-column", "last-column");
+            if (col.getStyleClass().contains("first-column")) {
+                firstCol = col;
+            } else if (col.getStyleClass().contains("last-column")) {
+                lastCol = col;
+            }
         }
 
-        if (!columns.isEmpty()) {
-            TableColumn<T, ?> first = columns.get(0);
-            TableColumn<T, ?> last = columns.get(columns.size() - 1);
+        // handle if columns do not exist
+        if (firstCol == null || lastCol == null) {
+            if (firstCol != null) throw new IllegalStateException("Missing column with 'last-column'");
+            if (lastCol != null) throw new IllegalStateException("Missing column with 'first-column'");
 
-            if (!first.getStyleClass().contains("first-column")) {
-                first.getStyleClass().add("first-column");
+            // remove all classes
+            for (TableColumn<T, ?> col : columns) {
+                col.getStyleClass().removeAll("first-column", "last-column");
             }
 
-            if (!last.getStyleClass().contains("last-column")) {
-                last.getStyleClass().add("last-column");
+            // apply first and last classes
+            if (!columns.isEmpty()) {
+                TableColumn<T, ?> first = columns.get(0);
+                TableColumn<T, ?> last = columns.get(columns.size() - 1);
+
+                if (!first.getStyleClass().contains("first-column")) {
+                    first.getStyleClass().add("first-column");
+                }
+
+                if (!last.getStyleClass().contains("last-column")) {
+                    last.getStyleClass().add("last-column");
+                }
+            }
+        } else {
+
+            // done if correct order
+            if (columns.get(0) == firstCol && columns.get(columns.size() - 1) == lastCol) {
+                return;
+            }
+
+            // set first and last columns
+            if (columns.get(0) != firstCol) {
+                columns.remove(firstCol);
+                columns.add(0, firstCol);
+            }
+            if (columns.get(columns.size() - 1) != lastCol) {
+                columns.remove(lastCol);
+                columns.add(firstCol == lastCol ? columns.size() - 1 : columns.size(), lastCol);
             }
         }
     }
