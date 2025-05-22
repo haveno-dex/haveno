@@ -503,10 +503,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (model.getOffer().hasBuyerAsTakerWithoutDeposit()) {
             noFundingRequiredTitledGroupBg.setVisible(true);
             noFundingRequiredLabel.setVisible(true);
-            extraInfoLabel.setVisible(true);
-            extraInfoLabel.setManaged(true);
-            extraInfoTextArea.setVisible(true);
-            extraInfoTextArea.setManaged(true);
+            if (model.getOffer().getCombinedExtraInfo() != null && !model.getOffer().getCombinedExtraInfo().isEmpty()) {
+                extraInfoLabel.setVisible(true);
+                extraInfoLabel.setManaged(true);
+                extraInfoTextArea.setVisible(true);
+                extraInfoTextArea.setManaged(true);
+            }
         } else {
             payFundsTitledGroupBg.setVisible(true);
             totalToPayTextField.setVisible(true);
