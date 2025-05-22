@@ -106,12 +106,10 @@
     -fx-font-family: "IBM Plex Mono";
     -fx-padding: 0 !important;
     -fx-border-width: 0;
-    -fx-translate-x: -2;
     -fx-text-fill: -bs-rd-font-dark-gray !important;
 }
 
 .confirmation-text-field-as-label-icon {
-    -fx-translate-y: -7;
 }
 
 /* Other UI Elements */
@@ -1948,6 +1946,18 @@ textfield */
     -fx-background-radius: 15;
     -fx-border-radius: 15;
     -fx-padding: 35, 40, 30, 40;
+}
+
+.grid-pane-separator {
+    -fx-border-color: transparent transparent -bs-rd-separator-dark transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-translate-y: -1;
+}
+
+.grid-pane .text-area {
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-text-fill: -bs-text-color;
 }
 
 /********************************************************************************************************************

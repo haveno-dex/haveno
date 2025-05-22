@@ -135,6 +135,24 @@ public class FormBuilder {
         return titledGroupBg;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Divider
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public static Region addSeparator(GridPane gridPane, int rowIndex) {
+        Region separator = new Region();
+        separator.getStyleClass().add("grid-pane-separator");
+        separator.setPrefHeight(1);
+        separator.setMinHeight(1);
+        separator.setMaxHeight(1);
+        GridPane.setRowIndex(separator, rowIndex);
+        GridPane.setColumnIndex(separator, 0);
+        GridPane.setColumnSpan(separator, 2);
+        gridPane.getChildren().add(separator);
+        separator.setPrefHeight(1);
+        GridPane.setMargin(separator, new Insets(0, 0, 3, 0));
+        return separator;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label
@@ -490,6 +508,7 @@ public class FormBuilder {
         GridPane.setColumnIndex(textArea, 1);
         GridPane.setMargin(label, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label, HPos.LEFT);
+        GridPane.setValignment(label, VPos.TOP);
         GridPane.setMargin(textArea, new Insets(top, 0, 0, 0));
 
         return new Tuple2<>(label, textArea);
@@ -1818,6 +1837,7 @@ public class FormBuilder {
 
         return new Tuple2<>(label, textFieldWithCopyIcon);
     }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label  + AddressTextField
     ///////////////////////////////////////////////////////////////////////////////////////////
