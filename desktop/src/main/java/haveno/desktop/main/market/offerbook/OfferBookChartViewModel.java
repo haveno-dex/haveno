@@ -239,6 +239,10 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         }
     }
 
+    public boolean isCrypto() {
+        return CurrencyUtil.isCryptoCurrency(getCurrencyCode());
+    }
+
     public boolean isMyOffer(Offer offer) {
         return openOfferManager.isMyOffer(offer);
     }
