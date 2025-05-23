@@ -408,14 +408,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             VBox vbox = new VBox(13);
             vbox.setAlignment(Pos.TOP_CENTER);
             VBox.setVgrow(vbox, Priority.ALWAYS);
-            //vbox.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
             vbox.getStyleClass().addAll("passphrase-copy-box");
 
             // add passphrase
             JFXTextField centerLabel = new JFXTextField(offerChallenge);
             centerLabel.getStyleClass().add("confirmation-value");
             centerLabel.setAlignment(Pos.CENTER);
-            vbox.getChildren().add(centerLabel);
+            centerLabel.setFocusTraversable(false);
 
             // add copy button
             Label copyIcon = new Label();
@@ -427,7 +426,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             copyButton.setGraphicTextGap(10);
             copyButton.setOnAction(e -> Utilities.copyToClipboard(offerChallenge));
             copyButton.setId("buy-button");
-            vbox.getChildren().add(copyButton);
+            vbox.getChildren().addAll(centerLabel, copyButton);
 
             // add vbox to grid pane in next column
             GridPane.setRowIndex(vbox, rowIndex);
