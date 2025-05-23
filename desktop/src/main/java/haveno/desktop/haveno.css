@@ -2567,7 +2567,7 @@ textfield */
     -fx-text-fill: -fx-dark-text-color !important;
 }
 
-.details-text-area {
+.grid-pane .text-area {
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-background-color: transparent !important;
