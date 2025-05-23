@@ -2235,10 +2235,9 @@ textfield */
 .popup-bg {
     -fx-font-size: 1.077em;
     -fx-background-color: -bs-color-background-popup-overlay;
-    -fx-background-insets: 10;
+    -fx-background-insets: 44;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
-    -fx-padding: 35, 40, 30, 40;
 }
 
 .notification-popup-bg, .peer-info-popup-bg {
