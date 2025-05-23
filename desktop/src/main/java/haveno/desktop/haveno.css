@@ -2564,12 +2564,39 @@ textfield */
     -fx-text-fill: -bs-text-color-dim1;
 }
 
-
 .highlight-text {
     -fx-text-fill: -fx-dark-text-color !important;
 }
 
-.bold-text {
+.regular-text-color {
     -fx-text-fill: -bs-text-color;
-    -fx-font-weight: bold;
+}
+
+.passphrase-copy-box {
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 13;
+    -fx-background-insets: 0;
+}
+
+.passphrase-copy-box > .jfx-text-field {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.passphrase-copy-box .label {
+    -fx-text-fill: white;
+    -fx-padding: 0;
+}
+
+.passphrase-copy-box .jfx-button {
+    -fx-padding: 3 12 3 12;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-min-height: 0;
+    -fx-font-size: 1.077em;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-weight: normal;
 }

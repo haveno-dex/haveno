@@ -20,10 +20,17 @@ package haveno.desktop.main.overlays.windows;
 import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXTextField;
+
+
+import de.jensd.fx.fontawesome.AwesomeDude;
+import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
+import haveno.common.util.Utilities;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -51,6 +58,7 @@ import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGr
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addLabel;
 import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.GUIUtil;
@@ -60,13 +68,19 @@ import java.util.List;
 import java.util.Optional;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
@@ -383,8 +397,42 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         if (offerChallenge != null) {
             addSeparator(gridPane, ++rowIndex);
-            Label label = addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), offerChallenge).first;
-            label.getStyleClass().add("bold-text");
+
+            // add label
+            Label label = addLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), 0);
+            label.getStyleClass().addAll("confirmation-label", "regular-text-color");
+            GridPane.setHalignment(label, HPos.LEFT);
+            GridPane.setValignment(label, VPos.TOP);
+
+            // add vbox with copy passphrase and copy button
+            VBox vbox = new VBox(13);
+            vbox.setAlignment(Pos.TOP_CENTER);
+            VBox.setVgrow(vbox, Priority.ALWAYS);
+            //vbox.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            vbox.getStyleClass().addAll("passphrase-copy-box");
+
+            // add passphrase
+            JFXTextField centerLabel = new JFXTextField(offerChallenge);
+            centerLabel.getStyleClass().add("confirmation-value");
+            centerLabel.setAlignment(Pos.CENTER);
+            vbox.getChildren().add(centerLabel);
+
+            // add copy button
+            Label copyIcon = new Label();
+            copyIcon.getStyleClass().addAll("icon", "highlight");
+            copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+            AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
+            JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyIcon);
+            copyButton.setContentDisplay(ContentDisplay.LEFT);
+            copyButton.setGraphicTextGap(10);
+            copyButton.setOnAction(e -> Utilities.copyToClipboard(offerChallenge));
+            copyButton.setId("buy-button");
+            vbox.getChildren().add(copyButton);
+
+            // add vbox to grid pane in next column
+            GridPane.setRowIndex(vbox, rowIndex);
+            GridPane.setColumnIndex(vbox, 1);
+            gridPane.getChildren().add(vbox);
         }
 
         if (placeOfferHandlerOptional.isPresent()) {
