@@ -2568,10 +2568,6 @@ textfield */
     -fx-text-fill: -fx-dark-text-color !important;
 }
 
-.regular-text-color {
-    -fx-text-fill: -bs-text-color;
-}
-
 .details-text-area {
     -fx-background-radius: 8;
     -fx-border-radius: 8;
@@ -2602,7 +2598,7 @@ textfield */
 }
 
 .passphrase-copy-box .jfx-button {
-    -fx-padding: 3 12 3 12;
+    -fx-padding: 4 12 4 12;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
     -fx-min-height: 0;
