@@ -625,3 +625,7 @@
 .table-view.non-interactive-table .table-cell.highlight-text .zero-decimals {
     -fx-text-fill: -bs-color-gray-3;
 }
+
+.regular-text-color {
+    -fx-text-fill: -bs-text-color;
+}
