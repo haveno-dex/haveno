@@ -248,6 +248,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void animateHide() {
         animateHide(() -> {
+            numOverlays--;
             removeEffectFromBackground();
 
             if (stage != null)
@@ -540,6 +541,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     layout();
 
+                    numOverlays++;
+                    if (numOverlays > 1) {
+                        getRootContainer().getStyleClass().add("popup-dropshadow");
+                    }
+
                     addEffectToBackground();
 
                     // On Linux the owner stage does not move the child stage as it does on Mac
@@ -738,10 +744,6 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void addEffectToBackground() {
-        numOverlays++;
-        if (numOverlays > 1) {
-            getRootContainer().getStyleClass().add("popup-dropshadow");
-        }
         if (numOverlays > 1) return;
         if (type.changeBackgroundType == ChangeBackgroundType.BlurUltraLight)
             MainView.blurUltraLight();
@@ -812,7 +814,6 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void removeEffectFromBackground() {
-        numOverlays--;
         if (numOverlays > 0) return;
         MainView.removeEffect();
     }
