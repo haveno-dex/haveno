@@ -1949,7 +1949,7 @@ textfield */
 }
 
 .grid-pane-separator {
-    -fx-border-color: transparent transparent -bs-rd-separator-dark transparent;
+    -fx-border-color: -bs-rd-separator;
     -fx-border-width: 0 0 1 0;
     -fx-translate-y: -2;
 }
