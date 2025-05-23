@@ -235,6 +235,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
             addSeparator(gridPane, ++rowIndex);
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
+            textArea.getStyleClass().add("details-text-area");
             textArea.setText(offer.getCombinedExtraInfo().trim());
             textArea.setMaxHeight(200);
             textArea.setEditable(false);

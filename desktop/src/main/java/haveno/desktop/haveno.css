@@ -2572,6 +2572,16 @@ textfield */
     -fx-text-fill: -bs-text-color;
 }
 
+.details-text-area {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-background-color: transparent !important;
+    -fx-font-size: 1.077em;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-weight: normal;
+    -fx-max-height: 150 !important;
+}
+
 .passphrase-copy-box {
     -fx-border-width: 1;
     -fx-border-color: -bs-color-border-form-field;
