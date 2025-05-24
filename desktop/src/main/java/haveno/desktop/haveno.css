@@ -2567,13 +2567,20 @@ textfield */
     -fx-text-fill: -fx-dark-text-color !important;
 }
 
-.grid-pane .text-area {
+.grid-pane .text-area,
+.flat-text-area-with-border {
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-background-color: transparent !important;
     -fx-font-size: 1.077em;
     -fx-font-family: "IBM Plex Sans";
     -fx-font-weight: normal;
+    -fx-text-fill: -bs-rd-font-dark-gray !important;
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field !important;
+}
+
+.grid-pane .text-area {
     -fx-max-height: 150 !important;
 }
 
