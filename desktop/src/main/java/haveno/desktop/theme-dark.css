@@ -604,13 +604,13 @@
 .table-view.non-interactive-table .hyperlink,
 .table-view.non-interactive-table .hyperlink-with-icon,
 .table-view.non-interactive-table .table-row-cell .hyperlink .text {
-    -fx-text-fill: -bs-text-color-dim2;
+    -fx-text-fill: -bs-color-gray-dim;
 }
 
 .table-view.non-interactive-table .hyperlink,
 .table-view.non-interactive-table .hyperlink-with-icon,
 .table-view.non-interactive-table .table-row-cell .hyperlink .text {
-    -fx-fill: -bs-text-color-dim2;
+    -fx-fill: -bs-color-gray-dim;
 }
 
 .table-view.non-interactive-table .table-cell.highlight-text,

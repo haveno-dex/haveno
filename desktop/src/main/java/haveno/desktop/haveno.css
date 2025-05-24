@@ -2560,7 +2560,7 @@ textfield */
 }
 
 .table-view.non-interactive-table .column-header .label {
-    -fx-text-fill: -bs-text-color-dim1;
+    -fx-text-fill: -bs-text-color-dim2;
 }
 
 .highlight-text {
