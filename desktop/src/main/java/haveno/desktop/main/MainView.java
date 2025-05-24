@@ -541,6 +541,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         ImageView logo = new ImageView();
         logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-splash-logo" : "image-splash-testnet-logo");
+        logo.setFitWidth(400);
+        logo.setPreserveRatio(true);
+        logo.setSmooth(true);
 
         // createBitcoinInfoBox
         xmrSplashInfo = new AutoTooltipLabel();
