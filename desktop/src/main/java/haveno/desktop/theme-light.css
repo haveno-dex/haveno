@@ -158,3 +158,8 @@
         rgba(215, 48, 48, 0.0) 100%
     );
 }
+
+/* All inputs have border in light mode. */
+.jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field {
+    -fx-border-color: -bs-color-border-form-field;
+}
