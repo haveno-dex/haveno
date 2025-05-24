@@ -226,9 +226,14 @@
     -fx-border-width: 1;
 }
 
+.jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field, .toggle-button-no-slider {
+    -fx-padding: 7 14 7 14;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
 .jfx-combo-box {
     -fx-background-color: -bs-color-background-form-field;
-    -fx-padding: 2 14 2 14;
 }
 
 .input-line, .input-focused-line {
@@ -237,12 +242,7 @@
     -fx-max-height: 0;
 }
 
-.jfx-text-area {
-    -fx-padding: 7 18 7 18;
-}
-
 .jfx-text-field {
-    -fx-padding: 7 18 7 18;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
     -fx-background-color: -bs-color-background-form-field;
@@ -258,12 +258,8 @@
 .jfx-combo-box.label-float:focused .prompt-container,
 .jfx-password-field.filled.label-float .prompt-container,
 .jfx-password-field.label-float:focused .prompt-container {
+    -fx-translate-x: -14px;
     -fx-translate-y: -5.5px;
-}
-
-.jfx-combo-box, .jfx-text-field, .jfx-text-area {
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
 }
 
 .jfx-combo-box .arrow-button {
@@ -279,6 +275,11 @@
 /* TODO: otherwise combo box with "odd" class is opacity 0.4? */
 .jfx-combo-box > .list-cell:odd, .jfx-combo-box > .list-cell:even {
     -fx-opacity: 1.0;
+}
+
+.jfx-combo-box > .list-cell:filled,
+.jfx-combo-box > .text-field {
+    -fx-padding: 0 !important;
 }
 
 .jfx-combo-box > .arrow-button > .arrow {
@@ -431,10 +432,6 @@ tree-table-view:focused {
 
 .jfx-password-field {
     -fx-background-color: -bs-color-background-form-field;
-    -fx-background-radius: 3 3 0 0;
-    -fx-padding: 7 18 7 18;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
 }
 
 .jfx-password-field > .input-line {
@@ -1606,9 +1603,6 @@ textfield */
 }
 
 .toggle-button-no-slider {
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
-    -fx-padding: 7 18 7 18;
     -fx-border-width: 1px;
     -fx-border-color: -bs-color-border-form-field;
     -fx-background-insets: 0;
@@ -1637,7 +1631,7 @@ textfield */
 
 .combo-box-editor-bold {
     -fx-font-weight: bold;
-    -fx-padding: 5 8 5 8 !important;
+    -fx-padding: 0 !important;
     -fx-text-fill: -bs-text-color;
     -fx-font-family: "IBM Plex Sans Medium";
 }
