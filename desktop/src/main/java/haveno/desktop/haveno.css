@@ -258,7 +258,7 @@
 .jfx-combo-box.label-float:focused .prompt-container,
 .jfx-password-field.filled.label-float .prompt-container,
 .jfx-password-field.label-float:focused .prompt-container {
-    -fx-translate-y: -6.5px;
+    -fx-translate-y: -5.5px;
 }
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area {
@@ -2560,6 +2560,8 @@ textfield */
 .input-with-border {
     -fx-border-width: 1;
     -fx-border-color: -bs-color-border-form-field;
+    -fx-border-insets: 1 0 1 0;
+    -fx-background-insets: 1 0 1 0;
 }
 
 .table-view.non-interactive-table .column-header .label {

@@ -387,6 +387,7 @@ public class FormBuilder {
         hbox.setSpacing(8);
 
         VBox vbox = getTopLabelVBox(0);
+        vbox.setSpacing(2);
         vbox.getChildren().addAll(getTopLabel(title), hbox);
 
         gridPane.getChildren().add(vbox);
