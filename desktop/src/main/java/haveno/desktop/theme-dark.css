@@ -635,9 +635,9 @@
 }
 
 #image-splash-logo {
-    -fx-image: url("../../images/logo_splash_dark.png");
+    -fx-image: url("../../images/logo_splash.png");
 }
 
 #image-splash-testnet-logo {
-    -fx-image: url("../../images/logo_splash_testnet_dark.png");
+    -fx-image: url("../../images/logo_splash_testnet.png");
 }
