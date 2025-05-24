@@ -629,3 +629,15 @@
 .regular-text-color {
     -fx-text-fill: -bs-text-color;
 }
+
+#toggle-left, #toggle-center, #toggle-right {
+    -fx-border-color: black;
+}
+
+#image-splash-logo {
+    -fx-image: url("../../images/logo_splash_dark.png");
+}
+
+#image-splash-testnet-logo {
+    -fx-image: url("../../images/logo_splash_testnet_dark.png");
+}
