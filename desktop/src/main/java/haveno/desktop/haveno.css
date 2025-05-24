@@ -2309,8 +2309,9 @@ textfield */
 
 #toggle-left {
     -fx-border-radius: 4 0 0 4;
-    -fx-border-color: -bs-rd-separator-dark;
-    -fx-border-width: 0 0 0 0;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-style: solid;
+    -fx-border-width: 1 1 1 1;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
     -fx-background-radius: 4 0 0 4;
@@ -2319,8 +2320,9 @@ textfield */
 
 #toggle-center {
     -fx-border-radius: 0;
-    -fx-border-color: -bs-rd-separator-dark;
-    -fx-border-width: 0 0 0 0;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-style: solid;
+    -fx-border-width: 1 1 1 0;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
@@ -2329,8 +2331,8 @@ textfield */
 
 #toggle-right {
     -fx-border-radius: 0 4 4 0;
-    -fx-border-color: -bs-rd-separator-dark;
-    -fx-border-width: 0;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-width: 1 1 1 0;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
     -fx-background-radius: 0 4 4 0;
@@ -2345,6 +2347,7 @@ textfield */
 #toggle-center:selected, #toggle-left:selected, #toggle-right:selected {
     -fx-text-fill: white;
     -fx-background-color: -bs-toggle-selected;
+    /*-fx-border-width: 0;*/
 }
 
 #toggle-left:hover, #toggle-right:hover, #toggle-center:hover { 
