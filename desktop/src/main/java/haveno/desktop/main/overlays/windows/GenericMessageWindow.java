@@ -56,6 +56,7 @@ public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
         }
         checkNotNull(message, "message must not be null");
         TextArea textArea = addTextArea(gridPane, ++rowIndex, "", 10);
+        textArea.getStyleClass().add("flat-text-area-with-border");
         textArea.setText(message);
         textArea.setEditable(false);
         textArea.setWrapText(true);
