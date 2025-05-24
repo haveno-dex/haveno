@@ -2599,6 +2599,7 @@ textfield */
 .passphrase-copy-box > .jfx-text-field {
     -fx-padding: 0;
     -fx-background-color: transparent;
+    -fx-border-width: 0;
 }
 
 .passphrase-copy-box .label {
