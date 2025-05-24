@@ -370,7 +370,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             extraInfoTextArea.setVisible(false);
             extraInfoTextArea.setManaged(false);
             extraInfoTextArea.setText(offer.getCombinedExtraInfo().trim());
-            extraInfoTextArea.getStyleClass().add("text-area");
+            extraInfoTextArea.getStyleClass().addAll("text-area", "flat-text-area-with-border");
             extraInfoTextArea.setWrapText(true);
             extraInfoTextArea.setMaxHeight(300);
             extraInfoTextArea.setEditable(false);
