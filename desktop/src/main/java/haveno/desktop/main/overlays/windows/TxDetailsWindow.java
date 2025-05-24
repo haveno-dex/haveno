@@ -30,7 +30,6 @@ import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 import java.math.BigInteger;
 
@@ -50,21 +49,20 @@ public class TxDetailsWindow extends Overlay<TxDetailsWindow> {
         this.item = item;
         rowIndex = -1;
         width = 918;
+        if (headLine == null)
+            headLine = Res.get("txDetailsWindow.headline");
         createGridPane();
         gridPane.setHgap(15);
         addHeadLine();
         addContent();
         addButtons();
-        addDontShowAgainCheckBox();
         applyStyles();
         display();
     }
 
     protected void addContent() {
-        int rows = 10;
         MoneroTxWallet tx = item.getTx();
         String memo = tx.getNote();
-        if (memo != null && !"".equals(memo)) rows++;
         String txKey = null;
         boolean isOutgoing = tx.getOutgoingTransfer() != null;
         if (isOutgoing) {
@@ -74,18 +72,11 @@ public class TxDetailsWindow extends Overlay<TxDetailsWindow> {
                 // TODO (monero-java): wallet.getTxKey() should return null if key does not exist instead of throwing exception
             }
         }
-        if (txKey != null && !"".equals(txKey)) rows++;
-
-        // add title
-        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("txDetailsWindow.headline"));
-        Region spacer = new Region();
-        spacer.setMinHeight(15);
-        gridPane.add(spacer, 0, ++rowIndex);
 
         // add sent or received note
         String resKey = isOutgoing ? "txDetailsWindow.xmr.noteSent" : "txDetailsWindow.xmr.noteReceived";
         GridPane.setColumnSpan(addMultilineLabel(gridPane, ++rowIndex, Res.get(resKey), 0), 2);
-        spacer = new Region();
+        Region spacer = new Region();
         spacer.setMinHeight(15);
         gridPane.add(spacer, 0, ++rowIndex);
 

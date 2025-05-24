@@ -33,7 +33,6 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -42,8 +41,6 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -122,7 +119,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         Notification(AnimationType.SlideFromRightTop, ChangeBackgroundType.BlurLight),
 
         BackgroundInfo(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.BlurUltraLight),
-        Feedback(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.Darken),
+        Feedback(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.BlurLight),
 
         Information(AnimationType.FadeInAtCenter, ChangeBackgroundType.BlurLight),
         Instruction(AnimationType.ScaleFromCenter, ChangeBackgroundType.BlurLight),
@@ -140,6 +137,8 @@ public abstract class Overlay<T extends Overlay<T>> {
             this.changeBackgroundType = changeBackgroundType;
         }
     }
+
+    private static int numOverlays = 0;
 
     protected final static double DEFAULT_WIDTH = 668;
     protected Stage stage;
@@ -249,6 +248,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void animateHide() {
         animateHide(() -> {
+            numOverlays--;
             removeEffectFromBackground();
 
             if (stage != null)
@@ -541,6 +541,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     layout();
 
+                    numOverlays++;
+                    if (numOverlays > 1) {
+                        getRootContainer().getStyleClass().add("popup-dropshadow");
+                    }
+
                     addEffectToBackground();
 
                     // On Linux the owner stage does not move the child stage as it does on Mac
@@ -739,6 +744,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void addEffectToBackground() {
+        if (numOverlays > 1) return;
         if (type.changeBackgroundType == ChangeBackgroundType.BlurUltraLight)
             MainView.blurUltraLight();
         else if (type.changeBackgroundType == ChangeBackgroundType.BlurLight)
@@ -808,6 +814,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void removeEffectFromBackground() {
+        if (numOverlays > 0) return;
         MainView.removeEffect();
     }
 
@@ -852,23 +859,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (message != null) {
             messageTextArea = new TextArea(truncatedMessage);
             messageTextArea.setEditable(false);
-            messageTextArea.getStyleClass().add("text-area-no-border");
-            messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
-                if (newScene != null) {
-                    // avoid javafx css warning
-                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
-                    messageTextArea.applyCss();
-                    var text = messageTextArea.lookup(".text");
-
-                    messageTextArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
-                        return messageTextArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
-                    }, text.boundsInLocalProperty()));
-
-                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
-                        Platform.runLater(() -> messageTextArea.requestLayout());
-                    });
-                }
-            });
+            messageTextArea.getStyleClass().add("text-area-popup");
+            GUIUtil.adjustHeightAutomatically(messageTextArea);
             messageTextArea.setWrapText(true);
 
             Region messageRegion;

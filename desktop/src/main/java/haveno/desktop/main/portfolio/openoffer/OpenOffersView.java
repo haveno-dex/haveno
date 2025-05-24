@@ -116,8 +116,6 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     @FXML
     HBox searchBox;
     @FXML
-    AutoTooltipLabel filterLabel;
-    @FXML
     InputTextField filterTextField;
     @FXML
     Pane searchBoxSpacer;
@@ -156,6 +154,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
+
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         groupIdColumn.setGraphic(new AutoTooltipLabel(ColumnNames.GROUP_ID.toString()));
         paymentMethodColumn.setGraphic(new AutoTooltipLabel(ColumnNames.PAYMENT_METHOD.toString()));
@@ -231,8 +231,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     return row;
                 });
 
-        filterLabel.setText(Res.get("shared.filter"));
-        HBox.setMargin(filterLabel, new Insets(5, 0, 0, 10));
+        filterTextField.setPromptText(Res.get("shared.filter"));
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
         searchBox.setSpacing(5);
         HBox.setHgrow(searchBoxSpacer, Priority.ALWAYS);
@@ -470,8 +469,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
                     String key = "WithdrawFundsAfterRemoveOfferInfo";
                     if (DontShowAgainLookup.showAgain(key)) {
-                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("navigation.funds.availableForWithdrawal")))
-                                .actionButtonTextWithGoTo("navigation.funds.availableForWithdrawal")
+                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("funds.tab.withdrawal")))
+                                .actionButtonTextWithGoTo("funds.tab.withdrawal")
                                 .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class))
                                 .dontShowAgainId(key)
                                 .show();
@@ -527,7 +526,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void setOfferIdColumnCellFactory() {
         offerIdColumn.setCellValueFactory((openOfferListItem) -> new ReadOnlyObjectWrapper<>(openOfferListItem.getValue()));
-        offerIdColumn.getStyleClass().addAll("number-column", "first-column");
+        offerIdColumn.getStyleClass().addAll("number-column");
         offerIdColumn.setCellFactory(
                 new Callback<>() {
 
@@ -903,7 +902,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setRemoveColumnCellFactory() {
-        removeItemColumn.getStyleClass().addAll("last-column", "avatar-column");
+        removeItemColumn.getStyleClass().addAll("avatar-column");
         removeItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
         removeItemColumn.setCellFactory(
                 new Callback<>() {

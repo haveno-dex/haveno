@@ -127,6 +127,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
+
         dateColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.dateTime")));
         detailsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.details")));
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
@@ -139,6 +141,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
+        tableView.getStyleClass().add("non-interactive-table");
 
         setDateColumnCellFactory();
         setDetailsColumnCellFactory();
@@ -169,11 +172,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         keyEventEventHandler = event -> {
             // Not intended to be public to users as the feature is not well tested
             if (Utilities.isAltOrCtrlPressed(KeyCode.R, event)) {
-                if (revertTxColumn.isVisible()) {
-                    confidenceColumn.getStyleClass().remove("last-column");
-                } else {
-                    confidenceColumn.getStyleClass().add("last-column");
-                }
                 revertTxColumn.setVisible(!revertTxColumn.isVisible());
             }
         };
@@ -265,7 +263,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setDateColumnCellFactory() {
-        dateColumn.getStyleClass().add("first-column");
         dateColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         dateColumn.setMaxWidth(200);
@@ -400,6 +397,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setAmountColumnCellFactory() {
         amountColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        amountColumn.getStyleClass().add("highlight-text");
         amountColumn.setCellFactory(
                 new Callback<>() {
 
@@ -427,6 +425,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setTxFeeColumnCellFactory() {
         txFeeColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        txFeeColumn.getStyleClass().add("highlight-text");
         txFeeColumn.setCellFactory(
                 new Callback<>() {
 
@@ -453,6 +452,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setMemoColumnCellFactory() {
         memoColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        memoColumn.getStyleClass().add("highlight-text");
         memoColumn.setCellFactory(
                 new Callback<>() {
 
@@ -477,7 +477,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void setConfidenceColumnCellFactory() {
-        confidenceColumn.getStyleClass().add("last-column");
         confidenceColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         confidenceColumn.setCellFactory(
@@ -504,7 +503,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void setRevertTxColumnCellFactory() {
-        revertTxColumn.getStyleClass().add("last-column");
         revertTxColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         revertTxColumn.setCellFactory(

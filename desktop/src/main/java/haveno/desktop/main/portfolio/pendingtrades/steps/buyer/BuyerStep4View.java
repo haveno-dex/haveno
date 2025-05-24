@@ -142,7 +142,7 @@ public class BuyerStep4View extends TradeStepView {
         if (!DevEnv.isDevMode()) {
             UserThread.runAfter(() -> new Popup().headLine(Res.get("portfolio.pending.step5_buyer.tradeCompleted.headline"))
                     .feedback(Res.get("portfolio.pending.step5_buyer.tradeCompleted.msg"))
-                    .actionButtonTextWithGoTo("navigation.portfolio.closedTrades")
+                    .actionButtonTextWithGoTo("portfolio.tab.history")
                     .onAction(() -> model.dataModel.navigation.navigateTo(MainView.class, PortfolioView.class, ClosedTradesView.class))
                     .dontShowAgainId("tradeCompleteWithdrawCompletedInfo")
                     .show(), 500, TimeUnit.MILLISECONDS);

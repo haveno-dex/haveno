@@ -37,7 +37,7 @@ import javafx.util.Duration;
 @Singleton
 public class Transitions {
 
-    public final static int DEFAULT_DURATION = 600;
+    public final static int DEFAULT_DURATION = 400;
 
     private final Preferences preferences;
     private Timeline removeEffectTimeLine;
@@ -96,7 +96,7 @@ public class Transitions {
 
     // Blur
     public void blur(Node node) {
-        blur(node, DEFAULT_DURATION, -0.1, false, 15);
+        blur(node, DEFAULT_DURATION, -0.1, false, 45);
     }
 
     public void blur(Node node, int duration, double brightness, boolean removeNode, double blurRadius) {
@@ -111,7 +111,7 @@ public class Transitions {
         ColorAdjust darken = new ColorAdjust();
         darken.setBrightness(0.0);
         blur.setInput(darken);
-        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), brightness);
+        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), CssTheme.isDarkTheme() ? brightness * -0.13 : brightness);
         KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration(duration)), kv2);
         timeline.getKeyFrames().addAll(kf1, kf2);
         node.setEffect(blur);

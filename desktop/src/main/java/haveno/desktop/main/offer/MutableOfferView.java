@@ -149,7 +149,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private ComboBox<TradeCurrency> currencyComboBox;
     private ImageView qrCodeImageView;
-    private VBox currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
+    private VBox paymentAccountsSelection, currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
     private HBox fundingHBox, firstRowHBox, secondRowHBox, placeOfferBox, amountValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, volumeValueCurrencyBox, priceValueCurrencyBox,
             minAmountValueCurrencyBox, securityDepositAndFeeBox, triggerPriceHBox;
@@ -308,7 +308,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         if (!result) {
             new Popup().headLine(Res.get("popup.warning.noTradingAccountSetup.headline"))
                     .instruction(Res.get("popup.warning.noTradingAccountSetup.msg"))
-                    .actionButtonTextWithGoTo("navigation.account")
+                    .actionButtonTextWithGoTo("mainView.menu.account")
                     .onAction(() -> {
                         navigation.setReturnPath(navigation.getCurrentPath());
                         navigation.navigateTo(MainView.class, AccountView.class, TraditionalAccountsView.class);
@@ -425,7 +425,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
         });
 
-        paymentAccountsComboBox.setDisable(true);
+        paymentAccountsSelection.setDisable(true);
+        currencySelection.setDisable(true);
 
         editOfferElements.forEach(node -> {
             node.setMouseTransparent(true);
@@ -449,8 +450,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void updateOfferElementsStyle() {
         GridPane.setColumnSpan(firstRowHBox, 2);
 
-        String activeInputStyle = "input-with-border";
-        String readOnlyInputStyle = "input-with-border-readonly";
+        String activeInputStyle = "offer-input";
+        String readOnlyInputStyle = "offer-input-readonly";
         amountValueCurrencyBox.getStyleClass().remove(activeInputStyle);
         amountValueCurrencyBox.getStyleClass().add(readOnlyInputStyle);
         priceAsPercentageValueCurrencyBox.getStyleClass().remove(activeInputStyle);
@@ -709,7 +710,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         };
         extraInfoFocusedListener = (observable, oldValue, newValue) -> {
             model.onFocusOutExtraInfoTextArea(oldValue, newValue);
-            extraInfoTextArea.setText(model.extraInfo.get());
+
+            // avoid setting text area to empty text because blinking caret does not appear
+            if (model.extraInfo.get() != null && !model.extraInfo.get().isEmpty()) {
+                extraInfoTextArea.setText(model.extraInfo.get());
+            }
         };
 
         errorMessageListener = (o, oldValue, newValue) -> {
@@ -749,7 +754,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                     UserThread.runAfter(() -> new Popup().headLine(Res.get("createOffer.success.headline"))
                                     .feedback(Res.get("createOffer.success.info"))
                                     .dontShowAgainId(key)
-                                    .actionButtonTextWithGoTo("navigation.portfolio.myOpenOffers")
+                                    .actionButtonTextWithGoTo("portfolio.tab.openOffers")
                                     .onAction(this::closeAndGoToOpenOffers)
                                     .onClose(this::closeAndGoToOpenOffers)
                                     .show(),
@@ -995,8 +1000,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         final Tuple3<VBox, Label, ComboBox<TradeCurrency>> currencyBoxTuple = addTopLabelComboBox(
                 Res.get("shared.currency"), Res.get("list.currency.select"));
 
+        paymentAccountsSelection = tradingAccountBoxTuple.first;
         currencySelection = currencyBoxTuple.first;
-        paymentGroupBox.getChildren().addAll(tradingAccountBoxTuple.first, currencySelection);
+        paymentGroupBox.getChildren().addAll(paymentAccountsSelection, currencySelection);
 
         GridPane.setRowIndex(paymentGroupBox, gridRow);
         GridPane.setColumnSpan(paymentGroupBox, 2);
@@ -1007,11 +1013,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentAccountsComboBox = tradingAccountBoxTuple.third;
         paymentAccountsComboBox.setMinWidth(tradingAccountBoxTuple.first.getMinWidth());
         paymentAccountsComboBox.setPrefWidth(tradingAccountBoxTuple.first.getMinWidth());
-        editOfferElements.add(tradingAccountBoxTuple.first);
+        paymentAccountsComboBox.getStyleClass().add("input-with-border");
+        editOfferElements.add(paymentAccountsSelection);
 
         // we display either currencyComboBox (multi currency account) or currencyTextField (single)
         currencyComboBox = currencyBoxTuple.third;
         currencyComboBox.setMaxWidth(tradingAccountBoxTuple.first.getMinWidth() / 2);
+        currencyComboBox.getStyleClass().add("input-with-border");
         editOfferElements.add(currencySelection);
         currencyComboBox.setConverter(new StringConverter<>() {
             @Override
@@ -1094,6 +1102,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(extraInfoTitledGroupBg, 3);
 
         extraInfoTextArea = new InputTextArea();
+        extraInfoTextArea.setText("");
         extraInfoTextArea.setPromptText(Res.get("payment.shared.extraInfo.prompt.offer"));
         extraInfoTextArea.getStyleClass().add("text-area");
         extraInfoTextArea.setWrapText(true);

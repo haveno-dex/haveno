@@ -20,10 +20,17 @@ package haveno.desktop.main.overlays.windows;
 import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXTextField;
+
+
+import de.jensd.fx.fontawesome.AwesomeDude;
+import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
+import haveno.common.util.Utilities;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -45,30 +52,35 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.editor.PasswordPopup;
 import haveno.desktop.main.overlays.popups.Popup;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addLabel;
+import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.slf4j.Logger;
@@ -218,17 +230,22 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
                     DisplayUtils.getDirectionBothSides(direction, offer.isPrivateOffer()), firstRowDistance);
         }
+
         String amount = Res.get("shared.xmrAmount");
+        addSeparator(gridPane, ++rowIndex);
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, amount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(tradeAmount, true));
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + counterCurrencyDirectionInfo,
                     VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
         } else {
             addConfirmationLabelLabel(gridPane, ++rowIndex, amount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(offer.getAmount(), true));
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.minXmrAmount"),
                     HavenoUtils.formatXmr(offer.getMinAmount(), true));
+            addSeparator(gridPane, ++rowIndex);
             String volume = VolumeUtil.formatVolumeWithCode(offer.getVolume());
             String minVolume = "";
             if (offer.getVolume() != null && offer.getMinVolume() != null &&
@@ -239,6 +256,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         }
 
         String priceLabel = Res.get("shared.price");
+        addSeparator(gridPane, ++rowIndex);
         if (takeOfferHandlerOptional.isPresent()) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, priceLabel, FormattingUtils.formatPrice(tradePrice));
         } else {
@@ -264,6 +282,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         final PaymentAccount myPaymentAccount = user.getPaymentAccount(makerPaymentAccountId);
         String countryCode = offer.getCountryCode();
         boolean isMyOffer = offer.isMyOffer(keyRing);
+        addSeparator(gridPane, ++rowIndex);
         if (isMyOffer && makerPaymentAccountId != null && myPaymentAccount != null) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.myTradingAccount"), myPaymentAccount.getAccountName());
         } else {
@@ -272,6 +291,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         }
 
         if (showXmrAutoConf) {
+            addSeparator(gridPane, ++rowIndex);
             String isAutoConf = offer.isXmrAutoConf() ?
                     Res.get("shared.yes") :
                     Res.get("shared.no");
@@ -280,8 +300,10 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
         if (showAcceptedBanks) {
             if (paymentMethod.equals(PaymentMethod.SAME_BANK)) {
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.bankId"), acceptedBanks.get(0));
             } else if (isSpecificBanks) {
+                addSeparator(gridPane, ++rowIndex);
                 String value = Joiner.on(", ").join(acceptedBanks);
                 String acceptedBanksLabel = Res.get("shared.acceptedBanks");
                 Tooltip tooltip = new Tooltip(acceptedBanksLabel + " " + value);
@@ -291,6 +313,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             }
         }
         if (showAcceptedCountryCodes) {
+            addSeparator(gridPane, ++rowIndex);
             String countries;
             Tooltip tooltip = null;
             if (CountryUtil.containsAllSepaEuroCountries(acceptedCountryCodes)) {
@@ -313,29 +336,16 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         }
 
         if (isF2F) {
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("payment.f2f.city"), offer.getF2FCity());
         }
         if (showOfferExtraInfo) {
+            addSeparator(gridPane, ++rowIndex);
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo"), "", 0).second;
-            textArea.setText(offer.getCombinedExtraInfo());
+            textArea.setText(offer.getCombinedExtraInfo().trim());
             textArea.setMaxHeight(200);
-            textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
-                if (newScene != null) {
-                    // avoid javafx css warning
-                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
-                    textArea.applyCss();
-                    var text = textArea.lookup(".text");
-
-                    textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
-                        return textArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
-                    }, text.boundsInLocalProperty()));
-
-                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
-                        Platform.runLater(() -> textArea.requestLayout());
-                    });
-                }
-            });
             textArea.setEditable(false);
+            GUIUtil.adjustHeightAutomatically(textArea);
         }
 
         // get amount reserved for the offer
@@ -358,10 +368,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
                 Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.makersOnion"),
                 offer.getMakerNodeAddress().getFullAddress());
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.creationDate"),
                 DisplayUtils.formatDateTime(offer.getDate()));
+        addSeparator(gridPane, ++rowIndex);
         String value = Res.getWithColAndCap("shared.buyer") +
                 " " +
                 HavenoUtils.formatXmr(takeOfferHandlerOptional.isPresent() ? offer.getOfferPayload().getBuyerSecurityDepositForTradeAmount(tradeAmount) : offer.getOfferPayload().getMaxBuyerSecurityDeposit(), true) +
@@ -372,15 +385,54 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
 
         if (reservedAmount != null) {
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.reservedAmount"),  HavenoUtils.formatXmr(reservedAmount, true));
         }
 
-        if (countryCode != null && !isF2F)
+        if (countryCode != null && !isF2F) {
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.countryBank"),
                     CountryUtil.getNameAndCode(countryCode));
+        }
 
-        if (offerChallenge != null)
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), offerChallenge);
+        if (offerChallenge != null) {
+            addSeparator(gridPane, ++rowIndex);
+
+            // add label
+            Label label = addLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), 0);
+            label.getStyleClass().addAll("confirmation-label", "regular-text-color");
+            GridPane.setHalignment(label, HPos.LEFT);
+            GridPane.setValignment(label, VPos.TOP);
+
+            // add vbox with copy passphrase and copy button
+            VBox vbox = new VBox(13);
+            vbox.setAlignment(Pos.TOP_CENTER);
+            VBox.setVgrow(vbox, Priority.ALWAYS);
+            vbox.getStyleClass().addAll("passphrase-copy-box");
+
+            // add passphrase
+            JFXTextField centerLabel = new JFXTextField(offerChallenge);
+            centerLabel.getStyleClass().add("confirmation-value");
+            centerLabel.setAlignment(Pos.CENTER);
+            centerLabel.setFocusTraversable(false);
+
+            // add copy button
+            Label copyIcon = new Label();
+            copyIcon.getStyleClass().addAll("icon", "highlight");
+            copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+            AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
+            JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyIcon);
+            copyButton.setContentDisplay(ContentDisplay.LEFT);
+            copyButton.setGraphicTextGap(10);
+            copyButton.setOnAction(e -> Utilities.copyToClipboard(offerChallenge));
+            copyButton.setId("buy-button");
+            vbox.getChildren().addAll(centerLabel, copyButton);
+
+            // add vbox to grid pane in next column
+            GridPane.setRowIndex(vbox, rowIndex);
+            GridPane.setColumnIndex(vbox, 1);
+            gridPane.getChildren().add(vbox);
+        }
 
         if (placeOfferHandlerOptional.isPresent()) {
             addTitledGroupBg(gridPane, ++rowIndex, 1, Res.get("offerDetailsWindow.commitment"), Layout.GROUP_DISTANCE);
