@@ -267,6 +267,18 @@
     -fx-border-radius: 999;
 }
 
+.jfx-combo-box:hover {
+    -fx-cursor: hand;
+}
+
+.jfx-combo-box:editable:hover {
+    -fx-cursor: null;
+}
+
+.jfx-combo-box .arrow-button:hover {
+    -fx-cursor: hand;
+}
+
 .jfx-combo-box > .list-cell {
     -fx-text-fill: -bs-text-color;
     -fx-font-family: "IBM Plex Sans Medium";
@@ -321,6 +333,10 @@
 
 .combo-box-popup .list-cell:hover {
     -fx-background-radius: 8;
+}
+
+.combo-box-popup > .list-view:hover {
+    -fx-cursor: hand;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
