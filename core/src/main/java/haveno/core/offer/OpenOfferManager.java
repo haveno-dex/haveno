@@ -1189,7 +1189,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         } else if (openOffer.getOffer().getOfferPayload().getArbitratorSignature() == null) {
             throw new IllegalArgumentException("Offer " + openOffer.getId() + " has no arbitrator signature");
         } else if (arbitrator == null) {
-            throw new IllegalArgumentException("Offer " + openOffer.getId() + " signed by unavailable arbitrator");
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " signed by unregistered arbitrator");
         } else if (!HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
             throw new IllegalArgumentException("Offer " + openOffer.getId() + " has invalid arbitrator signature");
         } else if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null || openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty() || openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty()) {
