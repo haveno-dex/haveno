@@ -572,6 +572,10 @@ tree-table-view:focused {
     -jfx-size: 8;
 }
 
+.jfx-toggle-button:hover {
+    -fx-cursor: hand;
+}
+
 .jfx-text-area {
     -fx-background-color: -bs-color-background-form-field;
     -fx-padding: 9 9 9 9;
