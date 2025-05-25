@@ -26,6 +26,7 @@ import haveno.common.util.Tuple3;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.util.FormattingUtils;
@@ -354,9 +355,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private synchronized void updateChartData() {
-        volumeSellColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), VolumeUtil.formatVolume(model.getTotalVolume(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL))));
+        Volume volumeSell = model.getTotalVolume(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL);
+        Volume volumeBuy = model.getTotalVolume(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY);;
+        volumeSellColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), volumeSell == null ? "" : "(" + VolumeUtil.formatVolume(volumeSell) + ")"));
         amountSellColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL)));
-        volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), VolumeUtil.formatVolume(model.getTotalVolume(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY))));
+        volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), volumeBuy == null ? "" : "(" + VolumeUtil.formatVolume(volumeBuy) + ")"));
         amountBuyColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY)));
 
         seriesSell.getData().clear();

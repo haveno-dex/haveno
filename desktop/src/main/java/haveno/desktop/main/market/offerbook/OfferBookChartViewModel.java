@@ -238,7 +238,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                             && e.getDirection().equals(direction))
                     .map(Offer::getVolume)
                     .collect(Collectors.toList());
-            return VolumeUtil.sum(volumes);
+            try {
+                return VolumeUtil.sum(volumes);
+            } catch (Exception e) {
+                // log.error("Cannot compute total volume because prices are unavailable, currency={}, direction={}",
+                //         selectedTradeCurrencyProperty.get().getCode(), direction);
+                return null; // expected before prices are available
+            }
         }
     }
 
