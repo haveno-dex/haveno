@@ -263,7 +263,6 @@
     -fx-background-color: -bs-color-background-form-field-readonly;
     -fx-prompt-text-fill: -bs-color-gray-2;
     -fx-text-fill: -bs-color-gray-3;
-    -fx-border-color: transparent;
 }
 .jfx-combo-box > .text,
 .jfx-text-field-top-label, .jfx-text-area-top-label {
