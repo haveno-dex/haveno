@@ -826,7 +826,6 @@ public class FormBuilder {
     }
 
     public static InputTextField addInputTextField(GridPane gridPane, int rowIndex, String title, double top) {
-
         InputTextField inputTextField = new InputTextField();
         inputTextField.setLabelFloat(true);
         inputTextField.getStyleClass().add("label-float");
