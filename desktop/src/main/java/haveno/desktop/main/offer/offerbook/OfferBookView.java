@@ -194,7 +194,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
         matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
-        matchingOffersToggleButton.setPrefHeight(27);
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
         Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
 
