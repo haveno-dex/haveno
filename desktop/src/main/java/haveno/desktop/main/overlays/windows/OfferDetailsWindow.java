@@ -404,7 +404,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             GridPane.setHalignment(label, HPos.LEFT);
             GridPane.setValignment(label, VPos.TOP);
 
-            // add vbox with copy passphrase and copy button
+            // add vbox with passphrase and copy button
             VBox vbox = new VBox(13);
             vbox.setAlignment(Pos.TOP_CENTER);
             VBox.setVgrow(vbox, Priority.ALWAYS);
@@ -420,7 +420,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             Label copyIcon = new Label();
             copyIcon.getStyleClass().addAll("icon", "highlight");
             copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
-            AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
+            AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY, "1.1em");
             JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyIcon);
             copyButton.setContentDisplay(ContentDisplay.LEFT);
             copyButton.setGraphicTextGap(10);
