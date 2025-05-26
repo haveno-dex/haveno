@@ -24,8 +24,8 @@ import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextField;
 
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
@@ -80,6 +80,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -417,13 +418,15 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             centerLabel.setFocusTraversable(false);
 
             // add copy button
-            Label copyIcon = new Label();
-            copyIcon.getStyleClass().addAll("icon", "highlight");
-            copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
-            AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY, "1.1em");
-            JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyIcon);
+            Label copyLabel = new Label();
+            copyLabel.getStyleClass().addAll("icon", "highlight");
+            copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+            MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
+            copyIcon.setFill(Color.WHITE);
+            copyLabel.setGraphic(copyIcon);
+            JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyLabel);
             copyButton.setContentDisplay(ContentDisplay.LEFT);
-            copyButton.setGraphicTextGap(10);
+            copyButton.setGraphicTextGap(8);
             copyButton.setOnAction(e -> Utilities.copyToClipboard(offerChallenge));
             copyButton.setId("buy-button");
             vbox.getChildren().addAll(centerLabel, copyButton);
