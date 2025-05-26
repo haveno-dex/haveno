@@ -341,7 +341,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setId("nav-secondary-container");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 95d);
+            setTopAnchor(this, 94d);
         }};
         secondaryNavContainer.setPickOnBounds(false);
         secondaryNavContainer.getChildren().add(secondaryNav);

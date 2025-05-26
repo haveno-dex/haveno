@@ -560,7 +560,8 @@ tree-table-view:focused {
 }
 
 .jfx-badge {
-    -fx-padding: -3 0 0 0;
+    -fx-padding: -2 0 0 0;
+    -fx-border-insets: 0 0 0 0;
 }
 
 .jfx-toggle-button,
@@ -796,7 +797,7 @@ tree-table-view:focused {
 }
 
 .nav-secondary {
-    -fx-padding: 9 15 9 9;
+    -fx-padding: 0 14 0 0;
 }
 
 .nav-separator {
@@ -875,7 +876,7 @@ tree-table-view:focused {
 
 .nav-secondary-button {
     -fx-cursor: hand;
-    -fx-padding: 9 15;
+    -fx-padding: 9 14;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 1px 0;
 }
@@ -1473,7 +1474,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button {
-    -fx-padding: 0 0 2 0;
+    -fx-padding: 0 0 0 0;
 }
 
 .jfx-tab-pane .headers-region .tab:selected .tab-container .tab-close-button > .jfx-svg-glyph {
@@ -1493,7 +1494,7 @@ textfield */
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-text-fill: -bs-rd-font-light;
-    -fx-padding: 14;
+    -fx-padding: 9 14;
     -fx-font-size: .95em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
