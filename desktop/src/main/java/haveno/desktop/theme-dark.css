@@ -85,7 +85,7 @@
     -bs-rd-nav-primary-background: rgb(15, 15, 15);
     -bs-rd-nav-selected: black;
     -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
-    -bs-rd-nav-secondary-selected: rgba(255, 255, 255, 1);
+    -bs-rd-nav-secondary-selected: -fx-accent;
     -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
     -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
@@ -233,12 +233,13 @@
     -fx-background-color: -bs-tab-content-area;
 }
 
-.jfx-tab-pane .headers-region .tab-selected-line {
-    -fx-background-color: white;
-}
 
 .jfx-tab-pane .headers-region .tab:selected .tab-container .tab-label {
     -fx-text-fill: white;
+}
+
+.nav-secondary-button:selected .text {
+    -fx-fill: white;
 }
 
 .jfx-tab-pane .headers-region > .tab > .jfx-rippler {
