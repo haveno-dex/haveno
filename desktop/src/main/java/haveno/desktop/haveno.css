@@ -876,7 +876,8 @@ tree-table-view:focused {
 
 .nav-secondary-button {
     -fx-cursor: hand;
-    -fx-padding: 9 14;
+    -fx-padding: 9 2 9 2;
+    -fx-border-insets: 0 12 1 12;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 1px 0;
 }
