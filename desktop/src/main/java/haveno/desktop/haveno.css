@@ -2326,34 +2326,34 @@ textfield */
 }
 
 #toggle-left {
-    -fx-border-radius: 4 0 0 4;
+    -fx-border-radius: 5 5 5 5;
     -fx-border-color: -bs-color-border-form-field;
     -fx-border-style: solid;
     -fx-border-width: 1 1 1 1;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
-    -fx-background-radius: 4 0 0 4;
+    -fx-background-radius: 5 5 5 5;
     -fx-background-color: -bs-background-color;
 }
 
 #toggle-center {
-    -fx-border-radius: 0;
+    -fx-border-radius: 5 5 5 5;
     -fx-border-color: -bs-color-border-form-field;
     -fx-border-style: solid;
-    -fx-border-width: 1 1 1 0;
+    -fx-border-width: 1 1 1 1;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
-    -fx-background-radius: 0;
+    -fx-background-radius: 5 5 5 5;
     -fx-background-color: -bs-background-color;
 }
 
 #toggle-right {
-    -fx-border-radius: 0 4 4 0;
+    -fx-border-radius: 5 5 5 5;
     -fx-border-color: -bs-color-border-form-field;
-    -fx-border-width: 1 1 1 0;
+    -fx-border-width: 1 1 1 1;
     -fx-border-insets: 0;
     -fx-background-insets: 0;
-    -fx-background-radius: 0 4 4 0;
+    -fx-background-radius: 5 5 5 5;
     -fx-background-color: -bs-background-color;
 }
 
