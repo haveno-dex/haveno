@@ -32,6 +32,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.LanguageUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.MarketPrice;
+import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -127,6 +128,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Label xmrSplashInfo;
     private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
+    private final Preferences preferences;
     private static final int networkIconSize = 20;
 
     public static StackPane getRootContainer() {
@@ -154,12 +156,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                     CachingViewLoader viewLoader,
                     Navigation navigation,
                     Transitions transitions,
-                    TorNetworkSettingsWindow torNetworkSettingsWindow) {
+                    TorNetworkSettingsWindow torNetworkSettingsWindow,
+                    Preferences preferences) {
         super(model);
         this.viewLoader = viewLoader;
         this.navigation = navigation;
         MainView.transitions = transitions;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
+        this.preferences = preferences;
     }
 
     @Override
@@ -758,13 +762,33 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         setRightAnchor(versionBox, 10d);
         setBottomAnchor(versionBox, 7d);
 
+        // Dark mode toggle
+        ImageView useDarkModeIcon = new ImageView();
+        useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode" : "image-light-mode");
+        useDarkModeIcon.setFitHeight(networkIconSize);
+        useDarkModeIcon.setPreserveRatio(true);
+        useDarkModeIcon.setPickOnBounds(true);
+        useDarkModeIcon.setCursor(Cursor.HAND);
+        setRightAnchor(useDarkModeIcon, 8d);
+        setBottomAnchor(useDarkModeIcon, 6d);
+        Tooltip modeToolTip = new Tooltip();
+        Tooltip.install(useDarkModeIcon, modeToolTip);
+        useDarkModeIcon.setOnMouseEntered(e -> modeToolTip.setText(Res.get(preferences.getCssTheme() == 1 ? "setting.preferences.useLightMode" : "setting.preferences.useDarkMode")));
+        useDarkModeIcon.setOnMouseClicked(e -> {
+            preferences.setCssTheme(preferences.getCssTheme() != 1);
+        });
+        preferences.getCssThemeProperty().addListener((observable, oldValue, newValue) -> {
+            useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode" : "image-light-mode");
+        });
+
         // P2P Network
         Label p2PNetworkLabel = new AutoTooltipLabel();
         p2PNetworkLabel.setId("footer-pane");
         p2PNetworkLabel.textProperty().bind(model.getP2PNetworkInfo());
 
+        double networkIconRightAnchor = 54d;
         ImageView p2PNetworkIcon = new ImageView();
-        setRightAnchor(p2PNetworkIcon, 8d);
+        setRightAnchor(p2PNetworkIcon, networkIconRightAnchor);
         setBottomAnchor(p2PNetworkIcon, 6d);
         p2PNetworkIcon.setPickOnBounds(true);
         p2PNetworkIcon.setCursor(Cursor.HAND);
@@ -790,7 +814,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkStatusIcon.setCursor(Cursor.HAND);
         p2PNetworkStatusIcon.setFitWidth(networkIconSize);
         p2PNetworkStatusIcon.setFitHeight(networkIconSize);
-        setRightAnchor(p2PNetworkStatusIcon, 30d);
+        setRightAnchor(p2PNetworkStatusIcon, networkIconRightAnchor + 22);
         setBottomAnchor(p2PNetworkStatusIcon, 6d);
         Tooltip p2pNetworkStatusToolTip = new Tooltip();
         Tooltip.install(p2PNetworkStatusIcon, p2pNetworkStatusToolTip);
@@ -832,10 +856,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER_RIGHT);
         vBox.getChildren().addAll(p2PNetworkLabel, p2pNetworkProgressBar);
-        setRightAnchor(vBox, 53d);
+        setRightAnchor(vBox, networkIconRightAnchor + 45);
         setBottomAnchor(vBox, 5d);
 
-        return new AnchorPane(separator, xmrInfoLabel, versionBox, vBox, p2PNetworkStatusIcon, p2PNetworkIcon) {{
+        return new AnchorPane(separator, xmrInfoLabel, versionBox, vBox, p2PNetworkStatusIcon, p2PNetworkIcon, useDarkModeIcon) {{
             setId("footer-pane");
             setMinHeight(30);
             setMaxHeight(30);
