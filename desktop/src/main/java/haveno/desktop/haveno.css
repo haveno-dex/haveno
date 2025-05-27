@@ -266,6 +266,7 @@
 .jfx-combo-box .arrow-button {
     -fx-background-radius: 999;
     -fx-border-radius: 999;
+    -fx-padding: 0;
 }
 
 .jfx-combo-box:hover {
@@ -292,7 +293,7 @@
 
 .jfx-combo-box > .list-cell:filled,
 .jfx-combo-box > .text-field {
-    -fx-padding: 0 !important;
+    -fx-padding: 0;
 }
 
 .jfx-combo-box > .arrow-button > .arrow {
@@ -813,26 +814,6 @@ tree-table-view:focused {
     -fx-min-width: 10;
 }
 
-.nav-price-balance {
-    -fx-background-color: -bs-rd-nav-background;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
-    -fx-padding: 0 20 0 0;
-}
-
-.nav-price-balance .separator:vertical .line {
-    -fx-border-color: transparent transparent transparent -bs-rd-separator-dark;
-    -fx-border-width: 1;
-    -fx-border-insets: 0 0 0 1;
-}
-
-.nav-price-balance .jfx-combo-box {
-    -fx-border-color: transparent;
-}
-
-.nav-price-balance .jfx-combo-box > .input-line {
-    -fx-pref-height: 0px;
-}
 
 .jfx-badge > .nav-button,
 .jfx-badge > .nav-secondary-button {
@@ -909,10 +890,34 @@ tree-table-view:focused {
     -fx-text-fill: -bs-rd-font-balance;
 }
 
+.nav-price-balance {
+    -fx-background-color: -bs-rd-nav-background;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 0 20 0 0;
+}
+
+.nav-price-balance .separator:vertical .line {
+    -fx-border-color: transparent transparent transparent -bs-rd-separator-dark;
+    -fx-border-width: 1;
+    -fx-border-insets: 0 0 0 1;
+}
+
+.nav-price-balance .jfx-combo-box {
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-pref-width: 190;
+}
+
+.nav-price-balance .jfx-combo-box > .input-line {
+    -fx-pref-height: 0px;
+}
+
 .nav-balance-label {
     -fx-font-size: 0.769em;
     -fx-alignment: center-left;
     -fx-text-fill: -bs-rd-font-balance-label;
+    -fx-padding: 0;
 }
 
 #nav-alert-label {
