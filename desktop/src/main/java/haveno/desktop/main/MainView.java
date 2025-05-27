@@ -480,7 +480,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         priceComboBox.setVisibleRowCount(12);
         priceComboBox.setFocusTraversable(false);
         priceComboBox.setId("price-feed-combo");
-        priceComboBox.setPadding(new Insets(0, -4, -4, 0));
         priceComboBox.setCellFactory(p -> getPriceFeedComboBoxListCell());
         ListCell<PriceFeedComboBoxItem> buttonCell = getPriceFeedComboBoxListCell();
         buttonCell.setId("price-feed-combo");
@@ -491,7 +490,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         updateMarketPriceLabel(marketPriceLabel);
 
         marketPriceLabel.getStyleClass().add("nav-balance-label");
-        marketPriceLabel.setPadding(new Insets(-2, 0, 4, 9));
 
         marketPriceBox.getChildren().addAll(priceComboBox, marketPriceLabel);
 
