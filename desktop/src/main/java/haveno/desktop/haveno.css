@@ -1635,6 +1635,8 @@ textfield */
     -fx-border-color: -bs-color-border-form-field;
     -fx-background-insets: 0;
     -fx-pref-height: 36px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
 }
 
 .toggle-button-no-slider:hover {
