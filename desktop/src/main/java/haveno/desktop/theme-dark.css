@@ -630,10 +630,6 @@
     -fx-text-fill: -bs-text-color;
 }
 
-#toggle-left, #toggle-center, #toggle-right {
-    -fx-border-color: black;
-}
-
 #image-splash-logo {
     -fx-image: url("../../images/logo_splash.png");
 }
