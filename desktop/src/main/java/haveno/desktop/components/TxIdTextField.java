@@ -52,7 +52,7 @@ public class TxIdTextField extends AnchorPane {
     private final TextField textField;
     private final Tooltip progressIndicatorTooltip;
     private final TxConfidenceIndicator txConfidenceIndicator;
-    private final Label copyIcon, blockExplorerIcon, missingTxWarningIcon;
+    private final Label copyLabel, blockExplorerIcon, missingTxWarningIcon;
 
     private MoneroWalletListener walletListener;
     private ChangeListener<Number> tradeListener;
@@ -75,12 +75,12 @@ public class TxIdTextField extends AnchorPane {
         progressIndicatorTooltip = new Tooltip("-");
         txConfidenceIndicator.setTooltip(progressIndicatorTooltip);
 
-        copyIcon = new Label();
-        copyIcon.setLayoutY(Layout.FLOATING_ICON_Y);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        copyIcon.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
-        AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        AnchorPane.setRightAnchor(copyIcon, 30.0);
+        copyLabel = new Label();
+        copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        copyLabel.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        AnchorPane.setRightAnchor(copyLabel, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("txIdTextField.blockExplorerIcon.tooltip"));
 
@@ -109,7 +109,7 @@ public class TxIdTextField extends AnchorPane {
         AnchorPane.setRightAnchor(textField, 80.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
-        getChildren().addAll(textField, missingTxWarningIcon, blockExplorerIcon, copyIcon, txConfidenceIndicator);
+        getChildren().addAll(textField, missingTxWarningIcon, blockExplorerIcon, copyLabel, txConfidenceIndicator);
     }
 
     public void setup(@Nullable String txId) {
@@ -132,8 +132,8 @@ public class TxIdTextField extends AnchorPane {
             textField.setId("address-text-field-error");
             blockExplorerIcon.setVisible(false);
             blockExplorerIcon.setManaged(false);
-            copyIcon.setVisible(false);
-            copyIcon.setManaged(false);
+            copyLabel.setVisible(false);
+            copyLabel.setManaged(false);
             txConfidenceIndicator.setVisible(false);
             missingTxWarningIcon.setVisible(true);
             missingTxWarningIcon.setManaged(true);
@@ -159,7 +159,7 @@ public class TxIdTextField extends AnchorPane {
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
         blockExplorerIcon.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
-        copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(txId));
+        copyLabel.setOnMouseClicked(e -> Utilities.copyToClipboard(txId));
         txConfidenceIndicator.setVisible(true);
 
         // update off main thread
@@ -178,7 +178,7 @@ public class TxIdTextField extends AnchorPane {
         trade = null;
         textField.setOnMouseClicked(null);
         blockExplorerIcon.setOnMouseClicked(null);
-        copyIcon.setOnMouseClicked(null);
+        copyLabel.setOnMouseClicked(null);
         textField.setText("");
     }
 

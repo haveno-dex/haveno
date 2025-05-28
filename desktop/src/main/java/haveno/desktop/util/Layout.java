@@ -41,5 +41,5 @@ public class Layout {
     public static final double GRID_GAP = 5d;
     public static final double LIST_ROW_HEIGHT = 34;
     public static final double ROUNDED_ARC = 20;
-    public static final double FLOATING_ICON_Y = 7; // adjust when .jfx-text-field padding is changed for right icons
+    public static final double FLOATING_ICON_Y = 9; // adjust when .jfx-text-field padding is changed for right icons
 }

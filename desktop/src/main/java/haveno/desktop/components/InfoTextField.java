@@ -59,7 +59,7 @@ public class InfoTextField extends AnchorPane {
         textField.setId("info-field");
 
         infoIcon = getIcon(AwesomeIcon.INFO_SIGN);
-        infoIcon.setLayoutY(Layout.FLOATING_ICON_Y);
+        infoIcon.setLayoutY(Layout.FLOATING_ICON_Y - 2);
         infoIcon.getStyleClass().addAll("icon", "info");
 
         AnchorPane.setRightAnchor(infoIcon, 7.0);

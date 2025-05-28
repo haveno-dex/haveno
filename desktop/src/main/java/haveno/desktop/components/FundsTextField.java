@@ -17,9 +17,9 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
@@ -29,8 +29,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static haveno.desktop.util.FormBuilder.getIcon;
 
 public class FundsTextField extends InfoTextField {
     public static final Logger log = LoggerFactory.getLogger(FundsTextField.class);
@@ -47,11 +45,12 @@ public class FundsTextField extends InfoTextField {
         textField.textProperty().unbind();
         textField.textProperty().bind(Bindings.concat(textProperty())); // TODO: removed `, " ", fundsStructure` for haveno to fix "Funds needed: .123 XMR (null)" bug
 
-        Label copyIcon = getIcon(AwesomeIcon.COPY);
-        copyIcon.setLayoutY(Layout.FLOATING_ICON_Y);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        Tooltip.install(copyIcon, new Tooltip(Res.get("shared.copyToClipboard")));
-        copyIcon.setOnMouseClicked(e -> {
+        Label copyLabel = new Label();
+        copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        Tooltip.install(copyLabel, new Tooltip(Res.get("shared.copyToClipboard")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        copyLabel.setOnMouseClicked(e -> {
             String text = getText();
             if (text != null && text.length() > 0) {
                 String copyText;
@@ -65,11 +64,11 @@ public class FundsTextField extends InfoTextField {
             }
         });
 
-        AnchorPane.setRightAnchor(copyIcon, 30.0);
+        AnchorPane.setRightAnchor(copyLabel, 30.0);
         AnchorPane.setRightAnchor(infoIcon, 62.0);
         AnchorPane.setRightAnchor(textField, 55.0);
 
-        getChildren().add(copyIcon);
+        getChildren().add(copyLabel);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
