@@ -19,6 +19,8 @@ package haveno.desktop.main.overlays;
 
 import com.google.common.reflect.TypeToken;
 import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -168,7 +170,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected boolean showScrollPane = false;
 
     protected TextArea messageTextArea;
-    protected Label headlineIcon, copyIcon, headLineLabel;
+    protected Label headlineIcon, copyLabel, headLineLabel;
     protected String headLine, message, closeButtonText, actionButtonText,
             secondaryActionButtonText, dontShowAgainId, dontShowAgainText,
             truncatedMessage;
@@ -766,12 +768,13 @@ public abstract class Overlay<T extends Overlay<T>> {
 
 
         if (headLineLabel != null) {
-            if (copyIcon != null) {
-                copyIcon.getStyleClass().add("popup-icon-information");
-                copyIcon.setManaged(true);
-                copyIcon.setVisible(true);
-                FormBuilder.getIconForLabel(AwesomeIcon.COPY, copyIcon, "1.1em");
-                copyIcon.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
+            if (copyLabel != null) {
+                copyLabel.getStyleClass().add("popup-icon-information");
+                copyLabel.setManaged(true);
+                copyLabel.setVisible(true);
+                MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
+                copyLabel.setGraphic(copyIcon);
+                copyLabel.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
                     if (message != null) {
                         Utilities.copyToClipboard(getClipboardText());
                         Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
@@ -838,15 +841,15 @@ public abstract class Overlay<T extends Overlay<T>> {
                 headLineLabel.setStyle(headlineStyle);
 
             if (message != null) {
-                copyIcon = new Label();
-                copyIcon.setManaged(false);
-                copyIcon.setVisible(false);
-                copyIcon.setPadding(new Insets(3));
-                copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+                copyLabel = new Label();
+                copyLabel.setManaged(false);
+                copyLabel.setVisible(false);
+                copyLabel.setPadding(new Insets(3));
+                copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
                 final Pane spacer = new Pane();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
                 spacer.setMinSize(Layout.PADDING, 1);
-                hBox.getChildren().addAll(headlineIcon, headLineLabel, spacer, copyIcon);
+                hBox.getChildren().addAll(headlineIcon, headLineLabel, spacer, copyLabel);
             } else {
                 hBox.getChildren().addAll(headlineIcon, headLineLabel);
             }

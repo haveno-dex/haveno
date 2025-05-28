@@ -43,7 +43,8 @@ import com.google.common.io.ByteStreams;
 
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
-
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import javafx.stage.FileChooser;
 
 import javafx.scene.Node;
@@ -272,7 +273,7 @@ public class ChatView extends AnchorPane {
                     ImageView arrow = new ImageView();
                     Label headerLabel = new AutoTooltipLabel();
                     Label messageLabel = new AutoTooltipLabel();
-                    Label copyIcon = new Label();
+                    Label copyLabel = new Label();
                     HBox attachmentsBox = new HBox();
                     AnchorPane messageAnchorPane = new AnchorPane();
                     Label statusIcon = new Label();
@@ -293,10 +294,10 @@ public class ChatView extends AnchorPane {
                         statusIcon.getStyleClass().add("small-text");
                         statusInfoLabel.getStyleClass().add("small-text");
                         statusInfoLabel.setPadding(new Insets(3, 0, 0, 0));
-                        copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+                        copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
                         statusHBox.setSpacing(5);
                         statusHBox.getChildren().addAll(statusIcon, statusInfoLabel);
-                        messageAnchorPane.getChildren().addAll(bg, arrow, headerLabel, messageLabel, copyIcon, attachmentsBox, statusHBox);
+                        messageAnchorPane.getChildren().addAll(bg, arrow, headerLabel, messageLabel, copyLabel, attachmentsBox, statusHBox);
                     }
 
                     @Override
@@ -304,7 +305,7 @@ public class ChatView extends AnchorPane {
                         UserThread.execute(() -> {
                             super.updateItem(message, empty);
                             if (message != null && !empty) {
-                                copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(messageLabel.getText()));
+                                copyLabel.setOnMouseClicked(e -> Utilities.copyToClipboard(messageLabel.getText()));
                                 messageLabel.setOnMouseClicked(event -> {
                                     if (2 > event.getClickCount()) {
                                         return;
@@ -320,7 +321,7 @@ public class ChatView extends AnchorPane {
                                 AnchorPane.clearConstraints(headerLabel);
                                 AnchorPane.clearConstraints(arrow);
                                 AnchorPane.clearConstraints(messageLabel);
-                                AnchorPane.clearConstraints(copyIcon);
+                                AnchorPane.clearConstraints(copyLabel);
                                 AnchorPane.clearConstraints(statusHBox);
                                 AnchorPane.clearConstraints(attachmentsBox);
     
@@ -329,7 +330,7 @@ public class ChatView extends AnchorPane {
                                 AnchorPane.setTopAnchor(headerLabel, 0d);
                                 AnchorPane.setBottomAnchor(arrow, bottomBorder + 5d);
                                 AnchorPane.setTopAnchor(messageLabel, 25d);
-                                AnchorPane.setTopAnchor(copyIcon, 25d);
+                                AnchorPane.setTopAnchor(copyLabel, 25d);
                                 AnchorPane.setBottomAnchor(attachmentsBox, bottomBorder + 10);
     
                                 boolean senderIsTrader = message.isSenderIsTrader();
@@ -342,20 +343,20 @@ public class ChatView extends AnchorPane {
                                 headerLabel.getStyleClass().removeAll("message-header", "my-message-header", "success-text",
                                         "highlight-static");
                                 messageLabel.getStyleClass().removeAll("my-message", "message");
-                                copyIcon.getStyleClass().removeAll("my-message", "message");
+                                copyLabel.getStyleClass().removeAll("my-message", "message");
     
                                 if (message.isSystemMessage()) {
                                     headerLabel.getStyleClass().addAll("message-header", "success-text");
                                     bg.setId("message-bubble-green");
                                     messageLabel.getStyleClass().add("my-message");
-                                    copyIcon.getStyleClass().add("my-message");
+                                    copyLabel.getStyleClass().add("my-message");
                                     message.addWeakMessageStateListener(() -> UserThread.execute(() -> updateMsgState(message)));
                                     updateMsgState(message);
                                 } else if (isMyMsg) {
                                     headerLabel.getStyleClass().add("my-message-header");
                                     bg.setId("message-bubble-blue");
                                     messageLabel.getStyleClass().add("my-message");
-                                    copyIcon.getStyleClass().add("my-message");
+                                    copyLabel.getStyleClass().add("my-message");
                                     if (supportSession.isClient())
                                         arrow.setId("bubble_arrow_blue_left");
                                     else
@@ -376,7 +377,7 @@ public class ChatView extends AnchorPane {
                                     headerLabel.getStyleClass().add("message-header");
                                     bg.setId("message-bubble-grey");
                                     messageLabel.getStyleClass().add("message");
-                                    copyIcon.getStyleClass().add("message");
+                                    copyLabel.getStyleClass().add("message");
                                     if (supportSession.isClient())
                                         arrow.setId("bubble_arrow_grey_right");
                                     else
@@ -390,7 +391,7 @@ public class ChatView extends AnchorPane {
                                     AnchorPane.setRightAnchor(bg, border);
                                     AnchorPane.setLeftAnchor(messageLabel, padding);
                                     AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight);
-                                    AnchorPane.setRightAnchor(copyIcon, padding);
+                                    AnchorPane.setRightAnchor(copyLabel, padding);
                                     AnchorPane.setLeftAnchor(attachmentsBox, padding);
                                     AnchorPane.setRightAnchor(attachmentsBox, padding);
                                     AnchorPane.setLeftAnchor(statusHBox, padding);
@@ -401,7 +402,7 @@ public class ChatView extends AnchorPane {
                                     AnchorPane.setLeftAnchor(arrow, border);
                                     AnchorPane.setLeftAnchor(messageLabel, padding + arrowWidth);
                                     AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight);
-                                    AnchorPane.setRightAnchor(copyIcon, padding);
+                                    AnchorPane.setRightAnchor(copyLabel, padding);
                                     AnchorPane.setLeftAnchor(attachmentsBox, padding + arrowWidth);
                                     AnchorPane.setRightAnchor(attachmentsBox, padding);
                                     AnchorPane.setRightAnchor(statusHBox, padding);
@@ -412,7 +413,7 @@ public class ChatView extends AnchorPane {
                                     AnchorPane.setRightAnchor(arrow, border);
                                     AnchorPane.setLeftAnchor(messageLabel, padding);
                                     AnchorPane.setRightAnchor(messageLabel, msgLabelPaddingRight + arrowWidth);
-                                    AnchorPane.setRightAnchor(copyIcon, padding + arrowWidth);
+                                    AnchorPane.setRightAnchor(copyLabel, padding + arrowWidth);
                                     AnchorPane.setLeftAnchor(attachmentsBox, padding);
                                     AnchorPane.setRightAnchor(attachmentsBox, padding + arrowWidth);
                                     AnchorPane.setLeftAnchor(statusHBox, padding);
@@ -455,8 +456,9 @@ public class ChatView extends AnchorPane {
                                 }
     
                                 // Need to set it here otherwise style is not correct
-                                AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY, "16.0");
-                                copyIcon.getStyleClass().addAll("icon", "copy-icon-disputes");
+                                copyLabel.getStyleClass().addAll("icon", "copy-icon-disputes");
+                                MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "16.0");
+                                copyLabel.setGraphic(copyIcon);
     
                                 // TODO There are still some cell rendering issues on updates
                                 setGraphic(messageAnchorPane);
@@ -466,7 +468,7 @@ public class ChatView extends AnchorPane {
     
                                 messageAnchorPane.prefWidthProperty().unbind();
     
-                                copyIcon.setOnMouseClicked(null);
+                                copyLabel.setOnMouseClicked(null);
                                 messageLabel.setOnMouseClicked(null);
                                 setGraphic(null);
                             }

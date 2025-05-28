@@ -418,7 +418,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
             // add copy button
             Label copyLabel = new Label();
-            copyLabel.getStyleClass().addAll("icon", "highlight");
+            copyLabel.getStyleClass().addAll("icon");
             copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
             MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
             copyIcon.setFill(Color.WHITE);

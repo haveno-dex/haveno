@@ -39,7 +39,7 @@
     -fx-text-fill: -bs-color-primary;
 }
 
-.highlight, .highlight-static {
+.highlight, .highlight-static, .highlight.label .glyph-icon  {
     -fx-text-fill: -fx-accent;
     -fx-fill: -fx-accent;
 }
@@ -971,6 +971,10 @@ tree-table-view:focused {
 
 .copy-icon-disputes {
     -fx-text-fill: -bs-background-color;
+}
+
+.copy-icon-disputes.label .glyph-icon {
+    -fx-fill: -bs-background-color;
 }
 
 .copy-icon:hover {
@@ -2257,6 +2261,13 @@ textfield */
     -fx-text-fill: -bs-rd-error-red;
 }
 
+.popup-headline-information.label .glyph-icon,
+.popup-headline-warning.label .glyph-icon,
+.popup-icon-information.label .glyph-icon,
+.popup-icon-warning.label .glyph-icon {
+    -fx-fill: -bs-color-primary;
+}
+
 .popup-bg {
     -fx-font-size: 1.077em;
     -fx-background-color: -bs-color-background-popup-overlay;
@@ -2386,8 +2397,16 @@ textfield */
     -fx-text-fill: -bs-text-color;
 }
 
+.message.label .glyph-icon {
+    -fx-fill: -bs-text-color;
+}
+
 .my-message {
     -fx-text-fill: -bs-background-color;
+}
+
+.my-message.label .glyph-icon {
+    -fx-fill: -bs-background-color;
 }
 
 .message-header {

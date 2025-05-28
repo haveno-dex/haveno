@@ -28,6 +28,7 @@ import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.CorruptedStorageFileHandler;
@@ -1274,5 +1275,9 @@ public class GUIUtil {
         Label lockLabel = FormBuilder.getIcon(AwesomeIcon.LOCK, "16px");
         lockLabel.setStyle(lockLabel.getStyle() + " -fx-text-fill: white;");
         return lockLabel;
+    }
+
+    public static MaterialDesignIconView getCopyIcon() {
+        return new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.35em");
     }
 }

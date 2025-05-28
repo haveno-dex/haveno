@@ -78,22 +78,22 @@ public class AddressTextField extends AnchorPane {
         AwesomeDude.setIcon(extWalletIcon, AwesomeIcon.SIGNIN);
         extWalletIcon.setOnMouseClicked(e -> openWallet());
 
-        Label copyIcon = new Label();
-        copyIcon.setLayoutY(Layout.FLOATING_ICON_Y);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        Tooltip.install(copyIcon, new Tooltip(Res.get("addressTextField.copyToClipboard")));
-        AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        copyIcon.setOnMouseClicked(e -> {
+        Label copyLabel = new Label();
+        copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        Tooltip.install(copyLabel, new Tooltip(Res.get("addressTextField.copyToClipboard")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        copyLabel.setOnMouseClicked(e -> {
             if (address.get() != null && address.get().length() > 0)
                 Utilities.copyToClipboard(address.get());
         });
 
-        AnchorPane.setRightAnchor(copyIcon, 30.0);
+        AnchorPane.setRightAnchor(copyLabel, 30.0);
         AnchorPane.setRightAnchor(extWalletIcon, 5.0);
         AnchorPane.setRightAnchor(textField, 55.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
 
-        getChildren().addAll(textField, copyIcon, extWalletIcon);
+        getChildren().addAll(textField, copyLabel, extWalletIcon);
     }
 
     private void openWallet() {
