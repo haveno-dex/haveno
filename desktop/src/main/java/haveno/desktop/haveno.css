@@ -894,7 +894,7 @@ tree-table-view:focused {
     -fx-background-color: -bs-rd-nav-background;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-padding: 0 20 0 0;
+    -fx-padding: 0 20 0 5;
 }
 
 .nav-price-balance .separator:vertical .line {
@@ -906,7 +906,7 @@ tree-table-view:focused {
 .nav-price-balance .jfx-combo-box {
     -fx-border-color: transparent;
     -fx-padding: 0;
-    -fx-pref-width: 190;
+    -fx-pref-width: 180;
 }
 
 .nav-price-balance .jfx-combo-box > .input-line {
