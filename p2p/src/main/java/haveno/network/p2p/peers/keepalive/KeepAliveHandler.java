@@ -173,7 +173,7 @@ class KeepAliveHandler implements MessageListener {
         boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
         if (logWarning) {
             log.warn(msg);
-            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            if (numThrottledWarnings > 0) log.warn("Possible DoS attack detected. {} warnings were throttled since the last log entry", numThrottledWarnings);
             numThrottledWarnings = 0;
             lastLoggedWarningTs = System.currentTimeMillis();
         } else {
