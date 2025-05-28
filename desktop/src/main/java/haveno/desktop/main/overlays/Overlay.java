@@ -139,6 +139,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     private static int numOverlays = 0;
+    private static int numBlurEffects = 0;
 
     protected final static double DEFAULT_WIDTH = 668;
     protected Stage stage;
@@ -242,13 +243,13 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (gridPane != null) {
             animateHide();
         }
+        numOverlays--;
         isDisplayed = false;
         isHiddenProperty.set(true);
     }
 
     protected void animateHide() {
         animateHide(() -> {
-            numOverlays--;
             removeEffectFromBackground();
 
             if (stage != null)
@@ -744,7 +745,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void addEffectToBackground() {
-        if (numOverlays > 1) return;
+        numBlurEffects++;
+        if (numBlurEffects > 1) return;
         if (type.changeBackgroundType == ChangeBackgroundType.BlurUltraLight)
             MainView.blurUltraLight();
         else if (type.changeBackgroundType == ChangeBackgroundType.BlurLight)
@@ -814,7 +816,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void removeEffectFromBackground() {
-        if (numOverlays > 0) return;
+        numBlurEffects--;
+        if (numBlurEffects > 0) return;
         MainView.removeEffect();
     }
 
