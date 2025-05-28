@@ -22,6 +22,7 @@ import com.google.common.base.Suppliers;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
+import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
@@ -159,6 +160,13 @@ public class TransactionsListItem {
                         }
                     } else {
                         details = Res.get("funds.tx.unknown", tradeId);
+                        if (trade instanceof ArbitratorTrade) {
+                            if (txId.equals(trade.getMaker().getDepositTxHash())) {
+                                details = Res.get("funds.tx.makerTradeFee", tradeId);
+                            } else if (txId.equals(trade.getTaker().getDepositTxHash())) {
+                                details = Res.get("funds.tx.takerTradeFee", tradeId);
+                            }
+                        }
                     }
                 }
             }
