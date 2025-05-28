@@ -54,7 +54,7 @@ public final class CryptoCurrency extends TradeCurrency {
 
     public static CryptoCurrency fromProto(protobuf.TradeCurrency proto) {
         return new CryptoCurrency(proto.getCode(),
-                proto.getName(),
+                CurrencyUtil.getNameByCode(proto.getCode()),
                 proto.getCryptoCurrency().getIsAsset());
     }
 
