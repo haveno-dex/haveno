@@ -32,14 +32,14 @@
     </padding>
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="dateColumn" minWidth="180" maxWidth="180"/>
-            <TableColumn fx:id="detailsColumn" minWidth="220" maxWidth="220"/>
-            <TableColumn fx:id="addressColumn" minWidth="260"/>
+            <TableColumn fx:id="dateColumn" minWidth="100" maxWidth="180"/>
+            <TableColumn fx:id="detailsColumn" minWidth="180" maxWidth="220"/>
+            <TableColumn fx:id="addressColumn" minWidth="250"/>
             <TableColumn fx:id="transactionColumn" minWidth="180"/>
             <TableColumn fx:id="amountColumn" minWidth="110" maxWidth="110"/>
             <TableColumn fx:id="txFeeColumn" minWidth="110" maxWidth="110"/>
-            <TableColumn fx:id="confidenceColumn" minWidth="60" maxWidth="130"/>
-            <TableColumn fx:id="memoColumn" minWidth="40"/>
+            <TableColumn fx:id="confidenceColumn" minWidth="70" maxWidth="130"/>
+            <TableColumn fx:id="memoColumn" minWidth="40" maxWidth="250"/>
             <TableColumn fx:id="revertTxColumn" sortable="false" minWidth="110" maxWidth="110" visible="false"/>
         </columns>
     </TableView>
