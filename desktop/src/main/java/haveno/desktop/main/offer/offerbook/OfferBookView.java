@@ -1153,9 +1153,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         boolean isSellOffer = OfferViewUtil.isShownAsSellOffer(offer);
                                         boolean isPrivateOffer = offer.isPrivateOffer();
                                         if (isPrivateOffer) {
-                                            Label lockLabel = FormBuilder.getIcon(AwesomeIcon.LOCK, "16px");
-                                            lockLabel.setStyle(lockLabel.getStyle() + " -fx-text-fill: white;");
-                                            button.setGraphic(lockLabel);
+                                            button.setGraphic(GUIUtil.getLockLabel());
                                         } else {
                                             iconView.setId(isSellOffer ? "image-buy-white" : "image-sell-white");
                                             iconView.setFitHeight(16);

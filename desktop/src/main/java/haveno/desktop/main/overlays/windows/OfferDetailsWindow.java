@@ -23,7 +23,6 @@ import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextField;
 
-
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
@@ -473,9 +472,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 Res.get("offerDetailsWindow.confirm.taker", Res.get("shared.buy")) :
                 Res.get("offerDetailsWindow.confirm.taker", Res.get("shared.sell"));
 
-        ImageView iconView = new ImageView();
-        iconView.setId(isBuyerRole ? "image-buy-white" : "image-sell-white");
-
         Tuple4<Button, BusyAnimation, Label, HBox> placeOfferTuple = addButtonBusyAnimationLabelAfterGroup(gridPane,
                 ++rowIndex, 1,
                 isPlaceOffer ? placeOfferButtonText : takeOfferButtonText);
@@ -483,10 +479,17 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         AutoTooltipButton confirmButton = (AutoTooltipButton) placeOfferTuple.first;
         confirmButton.setMinHeight(40);
         confirmButton.setPadding(new Insets(0, 20, 0, 20));
-        confirmButton.setGraphic(iconView);
         confirmButton.setGraphicTextGap(10);
         confirmButton.setId(isBuyerRole ? "buy-button-big" : "sell-button-big");
         confirmButton.updateText(isPlaceOffer ? placeOfferButtonText : takeOfferButtonText);
+
+        if (offer.hasBuyerAsTakerWithoutDeposit()) {
+            confirmButton.setGraphic(GUIUtil.getLockLabel());
+        } else {
+            ImageView iconView = new ImageView();
+            iconView.setId(isBuyerRole ? "image-buy-white" : "image-sell-white");
+            confirmButton.setGraphic(iconView);
+        }
 
         busyAnimation = placeOfferTuple.second;
         Label spinnerInfoLabel = placeOfferTuple.third;

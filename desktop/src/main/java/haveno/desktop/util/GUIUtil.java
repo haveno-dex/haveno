@@ -25,6 +25,8 @@ import com.googlecode.jcsv.CSVStrategy;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.googlecode.jcsv.writer.CSVWriter;
 import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
+
+import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -1266,5 +1268,11 @@ public class GUIUtil {
                 });
             }
         });
+    }
+
+    public static Label getLockLabel() {
+        Label lockLabel = FormBuilder.getIcon(AwesomeIcon.LOCK, "16px");
+        lockLabel.setStyle(lockLabel.getStyle() + " -fx-text-fill: white;");
+        return lockLabel;
     }
 }
