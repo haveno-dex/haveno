@@ -428,6 +428,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             copyButton.setGraphicTextGap(8);
             copyButton.setOnAction(e -> Utilities.copyToClipboard(offerChallenge));
             copyButton.setId("buy-button");
+            copyButton.setFocusTraversable(false);
             vbox.getChildren().addAll(centerLabel, copyButton);
 
             // add vbox to grid pane in next column
