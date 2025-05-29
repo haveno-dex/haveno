@@ -265,6 +265,11 @@
     -fx-prompt-text-fill: -bs-color-gray-2;
     -fx-text-fill: -bs-color-gray-3;
 }
+
+.popover > .content .text-field {
+    -fx-background-color: -bs-color-background-form-field !important;
+}
+
 .jfx-combo-box > .text,
 .jfx-text-field-top-label, .jfx-text-area-top-label {
     -fx-text-fill: -bs-color-gray-11;

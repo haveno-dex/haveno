@@ -423,7 +423,7 @@ tree-table-view:focused {
 }
 
 .jfx-text-field:readonly, .hyperlink-with-icon {
-    -fx-background-color: -bs-color-gray-1;
+    -fx-background-color: -bs-color-background-form-field-readonly;
 }
 
 .jfx-text-field:readonly > .input-line {
@@ -2582,15 +2582,25 @@ textfield */
  ********************************************************************************************************************/
 .popover > .content {
     -fx-padding: 10;
+    -fx-background-color: -bs-color-background-popup;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-background-insets: 1;
 }
 
 .popover > .content .default-text {
     -fx-text-fill: -bs-text-color;
 }
 
+.popover > .content .text-field {
+    -fx-background-color: -bs-color-background-form-field-readonly !important;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
 .popover > .border {
     -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-dropshadow) !important;
-    -fx-fill: -bs-background-color !important;
+    -fx-fill: -bs-color-background-popup !important;
 }
 
 /********************************************************************************************************************
