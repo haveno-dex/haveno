@@ -339,8 +339,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         if (model.isRange()) {
             amountRangeTextField.setText(model.getAmountRange());
             amountRangeBox.setVisible(true);
+            amountRangeBox.setManaged(true);
         } else {
             amountTextField.setDisable(true);
+            amountTextField.setManaged(true);
         }
 
         priceTextField.setText(model.getPrice());
@@ -496,13 +498,16 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
 
         cancelButton2.setVisible(true);
+        cancelButton2.setManaged(true);
 
         // temporarily disabled due to high CPU usage (per issue #4649)
         //waitingForFundsBusyAnimation.play();
 
         if (model.getOffer().hasBuyerAsTakerWithoutDeposit()) {
             noFundingRequiredTitledGroupBg.setVisible(true);
+            noFundingRequiredTitledGroupBg.setManaged(true);
             noFundingRequiredLabel.setVisible(true);
+            noFundingRequiredLabel.setManaged(true);
             if (model.getOffer().getCombinedExtraInfo() != null && !model.getOffer().getCombinedExtraInfo().isEmpty()) {
                 extraInfoLabel.setVisible(true);
                 extraInfoLabel.setManaged(true);
@@ -511,10 +516,15 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         } else {
             payFundsTitledGroupBg.setVisible(true);
+            payFundsTitledGroupBg.setManaged(true);
             totalToPayTextField.setVisible(true);
+            totalToPayTextField.setManaged(true);
             addressTextField.setVisible(true);
+            addressTextField.setManaged(true);
             qrCodeImageView.setVisible(true);
+            qrCodeImageView.setManaged(true);
             balanceTextField.setVisible(true);
+            balanceTextField.setManaged(true);
         }
 
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
@@ -675,6 +685,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (isOfferAvailable) {
                 offerAvailabilityBusyAnimation.stop();
                 offerAvailabilityBusyAnimation.setVisible(false);
+                offerAvailabilityBusyAnimation.setManaged(false);
                 if (!model.isRange() && !model.showPayFundsScreenDisplayed.get())
                     showNextStepAfterAmountIsSet();
             }
@@ -893,10 +904,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         noFundingRequiredTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(noFundingRequiredTitledGroupBg, 2);
         noFundingRequiredTitledGroupBg.setVisible(false);
+        noFundingRequiredTitledGroupBg.setManaged(false);
 
         // no funding required description
         noFundingRequiredLabel = new AutoTooltipLabel(Res.get("takeOffer.fundsBox.noFundingRequiredDescription"));
         noFundingRequiredLabel.setVisible(false);
+        noFundingRequiredLabel.setManaged(false);
         //GridPane.setRowSpan(noFundingRequiredLabel, 1);
         GridPane.setRowIndex(noFundingRequiredLabel, gridRow);
         noFundingRequiredLabel.setPadding(new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
@@ -910,13 +923,16 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
+        payFundsTitledGroupBg.setManaged(false);
 
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
                 Res.get("shared.totalsNeeded"), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
         totalToPayTextField.setVisible(false);
+        totalToPayTextField.setManaged(false);
 
         qrCodeImageView = new ImageView();
         qrCodeImageView.setVisible(false);
+        qrCodeImageView.setManaged(false);
         qrCodeImageView.setFitHeight(150);
         qrCodeImageView.setFitWidth(150);
         qrCodeImageView.getStyleClass().add("qr-code");
@@ -933,9 +949,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletAddress"));
         addressTextField.setVisible(false);
+        addressTextField.setManaged(false);
 
         balanceTextField = addBalanceTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletBalance"));
         balanceTextField.setVisible(false);
+        balanceTextField.setManaged(false);
 
         fundingHBox = new HBox();
         fundingHBox.setVisible(false);
@@ -1012,6 +1030,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         });
         cancelButton2.setDefaultButton(false);
         cancelButton2.setVisible(false);
+        cancelButton2.setManaged(false);
     }
 
     private void openWallet() {
@@ -1112,6 +1131,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         fakeXLabel = new Label();
         fakeXIcon = getIconForLabel(MaterialDesignIcon.CLOSE, "2em", fakeXLabel);
         fakeXLabel.setVisible(false); // we just use it to get the same layout as the upper row
+        fakeXIcon.setManaged(false);
         fakeXLabel.getStyleClass().add("opaque-icon-character");
 
         HBox hBox = new HBox();
