@@ -109,6 +109,7 @@
     -bs-soft-red: #aa4c3b;
     -bs-turquoise-light: #11eeee;
     -bs-color-border-form-field: -bs-background-gray;
+    -bs-color-background-form-field-readonly: -bs-color-gray-1;
     -bs-color-background-pane: -bs-background-color;
     -bs-color-background-row-even: -bs-color-background-pane;
     -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
