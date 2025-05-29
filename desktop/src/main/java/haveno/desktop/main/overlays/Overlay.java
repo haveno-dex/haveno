@@ -245,13 +245,13 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (gridPane != null) {
             animateHide();
         }
-        numOverlays--;
         isDisplayed = false;
         isHiddenProperty.set(true);
     }
 
     protected void animateHide() {
         animateHide(() -> {
+            numOverlays--;
             removeEffectFromBackground();
 
             if (stage != null)
