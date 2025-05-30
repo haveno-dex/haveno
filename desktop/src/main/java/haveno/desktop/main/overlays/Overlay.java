@@ -35,6 +35,7 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
+import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -140,7 +141,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         }
     }
 
-    private static int numOverlays = 0;
+    private static int numCenterOverlays = 0;
     private static int numBlurEffects = 0;
 
     protected final static double DEFAULT_WIDTH = 668;
@@ -251,7 +252,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void animateHide() {
         animateHide(() -> {
-            numOverlays--;
+            if (isCentered()) numCenterOverlays--;
             removeEffectFromBackground();
 
             if (stage != null)
@@ -544,8 +545,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     layout();
 
-                    numOverlays++;
-                    if (numOverlays > 1) {
+                    // add dropshadow if light mode or multiple centered overlays
+                    if (isCentered()) {
+                        numCenterOverlays++;
+                    }
+                    if (!CssTheme.isDarkTheme() || numCenterOverlays > 1) {
                         getRootContainer().getStyleClass().add("popup-dropshadow");
                     }
 
@@ -1090,5 +1094,11 @@ public abstract class Overlay<T extends Overlay<T>> {
                 "headLine='" + headLine + '\'' +
                 ", message='" + message + '\'' +
                 '}';
+    }
+
+    private boolean isCentered() {
+        if (type.animationType == AnimationType.SlideDownFromCenterTop) return false;
+        if (type.animationType == AnimationType.SlideFromRightTop) return false;
+        return true;
     }
 }
