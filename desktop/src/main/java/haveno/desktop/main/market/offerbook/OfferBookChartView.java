@@ -366,8 +366,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         seriesBuy.getData().clear();
         areaChart.getData().clear();
 
-        seriesSell.getData().addAll(model.isCrypto() ? filterOutliersBuy(model.getBuyData()) : filterOutliersSell(model.getSellData()));
-        seriesBuy.getData().addAll(model.isCrypto() ? filterOutliersSell(model.getSellData()) : filterOutliersBuy(model.getBuyData()));
+        seriesSell.getData().addAll(filterOutliersSell(model.getSellData()));
+        seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData()));
 
         areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
     }
