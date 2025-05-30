@@ -65,9 +65,22 @@ public class FileTransferSender extends FileTransferSession {
                               boolean isTest,
                               @Nullable FileTransferSession.FtpCallback callback) {
         super(networkNode, peerNodeAddress, tradeId, traderId, traderRole, callback);
-        zipFilePath = Utilities.getUserDataDir() + FileSystems.getDefault().getSeparator() + zipId + ".zip";
+        Path baseDir = isTest ? createTempTestDir() : Utilities.getUserDataDir().toPath();
+        zipFilePath = baseDir.resolve(zipId + ".zip").toString();
         this.isTest = isTest;
         updateProgress();
+    }
+
+    private Path createTempTestDir() {
+        try {
+            Path tempDir = Files.createTempDirectory("haveno");
+            tempDir.toFile().deleteOnExit();
+            return tempDir;
+        } catch (IOException e) {
+            log.error("Failed to create temporary directory for test", e);
+            // Fall back to user data dir if temp dir creation fails
+            return Utilities.getUserDataDir().toPath();
+        }
     }
 
     public void createZipFileToSend() {
