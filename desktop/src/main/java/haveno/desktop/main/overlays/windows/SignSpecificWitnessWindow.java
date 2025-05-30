@@ -67,6 +67,7 @@ public class SignSpecificWitnessWindow extends Overlay<SignSpecificWitnessWindow
 
         gridPane.setPrefHeight(600);
         gridPane.getColumnConstraints().get(1).setHgrow(Priority.NEVER);
+        gridPane.getStyleClass().add("popup-with-input");
         headLine(Res.get("popup.accountSigning.singleAccountSelect.headline"));
         type = Type.Attention;
 

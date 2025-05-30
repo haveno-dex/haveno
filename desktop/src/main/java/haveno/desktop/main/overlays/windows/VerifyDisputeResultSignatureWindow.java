@@ -77,6 +77,7 @@ public class VerifyDisputeResultSignatureWindow extends Overlay<VerifyDisputeRes
         gridPane.setVgap(5);
         gridPane.setPadding(new Insets(64, 64, 64, 64));
         gridPane.setPrefWidth(width);
+        gridPane.getStyleClass().add("popup-with-input");
 
         ColumnConstraints columnConstraints1 = new ColumnConstraints();
         columnConstraints1.setHalignment(HPos.RIGHT);

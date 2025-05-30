@@ -188,7 +188,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     protected void createGridPane() {
         super.createGridPane();
         gridPane.setPadding(new Insets(35, 40, 30, 40));
-        gridPane.getStyleClass().add("grid-pane");
+        gridPane.getStyleClass().addAll("grid-pane", "popup-with-input");
         gridPane.getColumnConstraints().get(0).setHalignment(HPos.LEFT);
         gridPane.setPrefWidth(width);
     }

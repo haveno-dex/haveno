@@ -1422,15 +1422,15 @@ textfield */
 }
 
 .text-area-popup {
-    -fx-border-color: -bs-color-background-popup-overlay;
+    -fx-border-color: -bs-color-background-popup-blur;
 }
 
 .text-area-popup .content {
-    -fx-background-color: -bs-color-background-popup-overlay;
+    -fx-background-color: -bs-color-background-popup-blur;
 }
 
 .text-area-popup:focused {
-    -fx-faint-focus-color: -bs-color-background-popup-overlay;
+    -fx-faint-focus-color: -bs-color-background-popup-blur;
 }
 
 .notification-popup-bg .text-area-popup, .peer-info-popup-bg .text-area-popup {
@@ -1970,7 +1970,7 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .grid-pane {
-    -fx-background-color: -bs-color-background-popup-overlay;
+    -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 10;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
@@ -2270,7 +2270,7 @@ textfield */
 
 .popup-bg {
     -fx-font-size: 1.077em;
-    -fx-background-color: -bs-color-background-popup-overlay;
+    -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 44;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
@@ -2289,7 +2289,7 @@ textfield */
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-color-background-popup-overlay;
+    -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 44;
     -fx-background-radius: 0 0 15px 15px;
 }
@@ -2672,4 +2672,8 @@ textfield */
     -fx-font-size: 1.077em;
     -fx-font-family: "IBM Plex Sans";
     -fx-font-weight: normal;
+}
+
+.popup-with-input {
+    -fx-background-color: -bs-color-background-popup-input;
 }

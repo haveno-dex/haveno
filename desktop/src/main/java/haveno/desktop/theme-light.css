@@ -115,7 +115,8 @@
     -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-color-background-popup: white;
-    -bs-color-background-popup-overlay: white;
+    -bs-color-background-popup-blur: white;
+    -bs-color-background-popup-input: -bs-color-gray-background;
     -bs-color-background-form-field: white;
     -bs-text-color-dim1: black;
     -bs-text-color-dim2: black;
