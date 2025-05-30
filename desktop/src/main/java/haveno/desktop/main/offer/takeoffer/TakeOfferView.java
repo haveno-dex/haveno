@@ -94,6 +94,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -108,6 +109,8 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import net.glxn.qrgen.QRCode;
@@ -153,6 +156,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private Button nextButton, cancelButton1, cancelButton2;
     private AutoTooltipButton takeOfferButton, fundFromSavingsWalletButton;
     private ImageView qrCodeImageView;
+    private StackPane qrCodePane;
     private BusyAnimation waitingForFundsBusyAnimation, offerAvailabilityBusyAnimation;
     private Notification walletFundedNotification;
     private OfferView.CloseHandler closeHandler;
@@ -521,8 +525,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             totalToPayTextField.setManaged(true);
             addressTextField.setVisible(true);
             addressTextField.setManaged(true);
-            qrCodeImageView.setVisible(true);
-            qrCodeImageView.setManaged(true);
+            qrCodePane.setVisible(true);
+            qrCodePane.setManaged(true);
             balanceTextField.setVisible(true);
             balanceTextField.setManaged(true);
         }
@@ -931,21 +935,27 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         totalToPayTextField.setManaged(false);
 
         qrCodeImageView = new ImageView();
-        qrCodeImageView.setVisible(false);
-        qrCodeImageView.setManaged(false);
         qrCodeImageView.setFitHeight(150);
         qrCodeImageView.setFitWidth(150);
         qrCodeImageView.getStyleClass().add("qr-code");
-        Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-        qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
+
+        StackPane xmrLogo = GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), 26, 2);
+        qrCodePane = new StackPane(qrCodeImageView, xmrLogo);
+        qrCodePane.setCursor(Cursor.HAND);
+        qrCodePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        Tooltip.install(qrCodePane, new Tooltip(Res.get("shared.openLargeQRWindow")));
+        qrCodePane.setOnMouseClicked(e -> UserThread.runAfter(
                         () -> new QRCodeWindow(getMoneroURI()).show(),
                         200, TimeUnit.MILLISECONDS));
-        GridPane.setRowIndex(qrCodeImageView, gridRow);
-        GridPane.setColumnIndex(qrCodeImageView, 1);
-        GridPane.setRowSpan(qrCodeImageView, 3);
-        GridPane.setValignment(qrCodeImageView, VPos.BOTTOM);
-        GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
-        gridPane.getChildren().add(qrCodeImageView);
+        GridPane.setRowIndex(qrCodePane, gridRow);
+        GridPane.setColumnIndex(qrCodePane, 1);
+        GridPane.setRowSpan(qrCodePane, 3);
+        GridPane.setValignment(qrCodePane, VPos.BOTTOM);
+        GridPane.setMargin(qrCodePane, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
+        gridPane.getChildren().add(qrCodePane);
+
+        qrCodePane.setVisible(false);
+        qrCodePane.setManaged(false);
 
         addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletAddress"));
         addressTextField.setVisible(false);

@@ -78,6 +78,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -89,6 +90,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import monero.common.MoneroUtils;
@@ -111,6 +114,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @FXML
     TableColumn<DepositListItem, DepositListItem> addressColumn, balanceColumn, confirmationsColumn, usageColumn;
     private ImageView qrCodeImageView;
+    private StackPane qrCodePane;
     private AddressTextField addressTextField;
     private Button generateNewAddressButton;
     private TitledGroupBg titledGroupBg;
@@ -196,15 +200,20 @@ public class DepositView extends ActivatableView<VBox, Void> {
                 qrCodeImageView.setFitHeight(150);
                 qrCodeImageView.setFitWidth(150);
                 qrCodeImageView.getStyleClass().add("qr-code");
-                Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-                qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
+
+                StackPane xmrLogo = GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), 26, 2);
+                qrCodePane = new StackPane(qrCodeImageView, xmrLogo);
+                qrCodePane.setCursor(Cursor.HAND);
+                qrCodePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+                Tooltip.install(qrCodePane, new Tooltip(Res.get("shared.openLargeQRWindow")));
+                qrCodePane.setOnMouseClicked(e -> UserThread.runAfter(
                                 () -> new QRCodeWindow(getPaymentUri()).show(),
                                 200, TimeUnit.MILLISECONDS));
-                GridPane.setRowIndex(qrCodeImageView, gridRow);
-                GridPane.setRowSpan(qrCodeImageView, 4);
-                GridPane.setColumnIndex(qrCodeImageView, 1);
-                GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 10));
-                gridPane.getChildren().add(qrCodeImageView);
+                GridPane.setRowIndex(qrCodePane, gridRow);
+                GridPane.setRowSpan(qrCodePane, 4);
+                GridPane.setColumnIndex(qrCodePane, 1);
+                GridPane.setMargin(qrCodePane, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 10));
+                gridPane.getChildren().add(qrCodePane);
         
                 addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.address"), Layout.FIRST_ROW_DISTANCE);
                 addressTextField.setPaymentLabel(paymentLabelString);
@@ -215,8 +224,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
         
                 titledGroupBg.setVisible(false);
                 titledGroupBg.setManaged(false);
-                qrCodeImageView.setVisible(false);
-                qrCodeImageView.setManaged(false);
+                qrCodePane.setVisible(false);
+                qrCodePane.setManaged(false);
                 addressTextField.setVisible(false);
                 addressTextField.setManaged(false);
                 amountTextField.setManaged(false);
@@ -312,8 +321,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private void fillForm(String address) {
         titledGroupBg.setVisible(true);
         titledGroupBg.setManaged(true);
-        qrCodeImageView.setVisible(true);
-        qrCodeImageView.setManaged(true);
+        qrCodePane.setVisible(true);
+        qrCodePane.setManaged(true);
         addressTextField.setVisible(true);
         addressTextField.setManaged(true);
         amountTextField.setManaged(true);

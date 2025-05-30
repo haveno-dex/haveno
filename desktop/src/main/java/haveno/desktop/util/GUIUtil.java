@@ -1217,25 +1217,34 @@ public class GUIUtil {
     }
 
     public static ImageView getCurrencyIcon(String currencyCode) {
+        return getCurrencyIcon(currencyCode, 24);
+    }
+
+    public static ImageView getCurrencyIcon(String currencyCode, int size) {
         if (currencyCode == null) return null;
         ImageView iconView = new ImageView();
-        iconView.setFitHeight(24);
-        iconView.setFitWidth(24);
+        iconView.setFitHeight(size);
+        iconView.setFitWidth(size);
         iconView.setSmooth(true);
         iconView.setId(getImageId(currencyCode));
         return iconView;
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {
+        return getCurrencyIconWithBorder(currencyCode, 24, 1);
+    }
+
+    public static StackPane getCurrencyIconWithBorder(String currencyCode, int size, double borderWidth) {
         if (currencyCode == null) return null;
-        StackPane circleWrapper = new StackPane(getCurrencyIcon(currencyCode));
-        circleWrapper.setPrefSize(24, 24);
+        StackPane circleWrapper = new StackPane(getCurrencyIcon(currencyCode, size));
+        circleWrapper.setPrefSize(size, size);
+        circleWrapper.setMaxSize(size, size);
         circleWrapper.setStyle(
             "-fx-background-color: white;" +
             "-fx-background-radius: 50%;" +
             "-fx-border-radius: 50%;" +
-            "-fx-border-color: white;" + 
-            "-fx-border-width: 1px;"
+            "-fx-border-color: white;" +
+            "-fx-border-width: " + borderWidth + "px;"
         );
         return circleWrapper;
     }
