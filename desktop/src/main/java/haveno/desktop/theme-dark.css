@@ -169,7 +169,7 @@
     /* Monero orange color code */
     -xmr-orange: #f26822;
 
-    -bs-support-chat-background: #cccccc;
+    -bs-support-chat-background: rgb(125, 125, 125);
 }
 
 /* table view */
