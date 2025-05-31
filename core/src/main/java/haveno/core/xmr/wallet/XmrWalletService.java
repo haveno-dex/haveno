@@ -767,7 +767,7 @@ public class XmrWalletService extends XmrWalletBase {
                 // verify miner fee
                 BigInteger minerFeeEstimate = getFeeEstimate(tx.getWeight());
                 HavenoUtils.verifyMinerFee(minerFeeEstimate, tx.getFee());
-                log.info("Trade miner fee {} is within tolerance");
+                log.info("Trade miner fee {} is within tolerance", tx.getFee());
 
                 // verify proof to fee address
                 BigInteger actualTradeFee = BigInteger.ZERO;
