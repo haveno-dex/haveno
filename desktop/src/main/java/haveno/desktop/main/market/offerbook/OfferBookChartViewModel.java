@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOfferManager;
@@ -58,6 +59,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -212,10 +214,42 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public boolean isSellOffer(OfferDirection direction) {
-        // for cryptocurrency, buy direction is to buy XMR, so we need sell offers
-        // for traditional currency, buy direction is to sell XMR, so we need buy offers
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
-        return isCryptoCurrency ? direction == OfferDirection.BUY : direction == OfferDirection.SELL;
+        return direction == OfferDirection.SELL;
+    }
+
+    public double getTotalAmount(OfferDirection direction) {
+        synchronized (offerBookListItems) {
+            List<Offer> offerList = offerBookListItems.stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                            && e.getDirection().equals(direction))
+                    .collect(Collectors.toList());
+            BigInteger sum = BigInteger.ZERO;
+            for (Offer offer : offerList) sum = sum.add(offer.getAmount());
+            return HavenoUtils.atomicUnitsToXmr(sum);
+        }
+    }
+
+    public Volume getTotalVolume(OfferDirection direction) {
+        synchronized (offerBookListItems) {
+             List<Volume> volumes = offerBookListItems.stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                            && e.getDirection().equals(direction))
+                    .map(Offer::getVolume)
+                    .collect(Collectors.toList());
+            try {
+                return VolumeUtil.sum(volumes);
+            } catch (Exception e) {
+                // log.error("Cannot compute total volume because prices are unavailable, currency={}, direction={}",
+                //         selectedTradeCurrencyProperty.get().getCode(), direction);
+                return null; // expected before prices are available
+            }
+        }
+    }
+
+    public boolean isCrypto() {
+        return CurrencyUtil.isCryptoCurrency(getCurrencyCode());
     }
 
     public boolean isMyOffer(Offer offer) {

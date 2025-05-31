@@ -113,7 +113,7 @@ public class SignPaymentAccountsWindow extends Overlay<SignPaymentAccountsWindow
         // We want to have more space to read list entries... initial screen does not look so nice now, but
         // dynamically updating height of window is a bit tricky.... @christoph feel free to improve if you like...
         gridPane.setPrefHeight(600);
-
+        gridPane.getStyleClass().add("popup-with-input");
         gridPane.getColumnConstraints().get(1).setHgrow(Priority.NEVER);
 
         headLine(Res.get("popup.accountSigning.selectAccounts.headline"));

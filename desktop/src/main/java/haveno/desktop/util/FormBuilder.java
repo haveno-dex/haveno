@@ -135,6 +135,24 @@ public class FormBuilder {
         return titledGroupBg;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Divider
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public static Region addSeparator(GridPane gridPane, int rowIndex) {
+        Region separator = new Region();
+        separator.getStyleClass().add("grid-pane-separator");
+        separator.setPrefHeight(1);
+        separator.setMinHeight(1);
+        separator.setMaxHeight(1);
+        GridPane.setRowIndex(separator, rowIndex);
+        GridPane.setColumnIndex(separator, 0);
+        GridPane.setColumnSpan(separator, 2);
+        gridPane.getChildren().add(separator);
+        separator.setPrefHeight(1);
+        GridPane.setMargin(separator, new Insets(0, 0, 3, 0));
+        return separator;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label
@@ -361,7 +379,7 @@ public class FormBuilder {
         textField.setPrefWidth(Layout.INITIAL_WINDOW_WIDTH);
 
         Button button = new AutoTooltipButton("...");
-        button.setStyle("-fx-min-width: 26; -fx-pref-height: 26; -fx-padding: 0 0 10 0; -fx-background-color: -fx-background;");
+        button.setStyle("-fx-min-width: 32; -fx-padding: 0 0 10 0; -fx-background-color: -fx-background;");
         button.managedProperty().bind(button.visibleProperty());
 
         HBox hbox = new HBox(textField, button);
@@ -369,6 +387,7 @@ public class FormBuilder {
         hbox.setSpacing(8);
 
         VBox vbox = getTopLabelVBox(0);
+        vbox.setSpacing(2);
         vbox.getChildren().addAll(getTopLabel(title), hbox);
 
         gridPane.getChildren().add(vbox);
@@ -490,6 +509,7 @@ public class FormBuilder {
         GridPane.setColumnIndex(textArea, 1);
         GridPane.setMargin(label, new Insets(top, 0, 0, 0));
         GridPane.setHalignment(label, HPos.LEFT);
+        GridPane.setValignment(label, VPos.TOP);
         GridPane.setMargin(textArea, new Insets(top, 0, 0, 0));
 
         return new Tuple2<>(label, textArea);
@@ -617,6 +637,7 @@ public class FormBuilder {
         JFXTextArea textArea = new HavenoTextArea();
         textArea.setPromptText(prompt);
         textArea.setLabelFloat(true);
+        textArea.getStyleClass().add("label-float");
         textArea.setWrapText(true);
 
         GridPane.setRowIndex(textArea, rowIndex);
@@ -805,9 +826,9 @@ public class FormBuilder {
     }
 
     public static InputTextField addInputTextField(GridPane gridPane, int rowIndex, String title, double top) {
-
         InputTextField inputTextField = new InputTextField();
         inputTextField.setLabelFloat(true);
+        inputTextField.getStyleClass().add("label-float");
         inputTextField.setPromptText(title);
         GridPane.setRowIndex(inputTextField, rowIndex);
         GridPane.setColumnIndex(inputTextField, 0);
@@ -884,6 +905,8 @@ public class FormBuilder {
 
     public static PasswordTextField addPasswordTextField(GridPane gridPane, int rowIndex, String title, double top) {
         PasswordTextField passwordField = new PasswordTextField();
+        passwordField.getStyleClass().addAll("label-float");
+        GUIUtil.applyFilledStyle(passwordField);
         passwordField.setPromptText(title);
         GridPane.setRowIndex(passwordField, rowIndex);
         GridPane.setColumnIndex(passwordField, 0);
@@ -1006,8 +1029,10 @@ public class FormBuilder {
         InputTextField inputTextField1 = new InputTextField();
         inputTextField1.setPromptText(title1);
         inputTextField1.setLabelFloat(true);
+        inputTextField1.getStyleClass().add("label-float");
         InputTextField inputTextField2 = new InputTextField();
         inputTextField2.setLabelFloat(true);
+        inputTextField2.getStyleClass().add("label-float");
         inputTextField2.setPromptText(title2);
 
         HBox hBox = new HBox();
@@ -1228,6 +1253,7 @@ public class FormBuilder {
 
     public static <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, int top) {
         final JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox);
 
         GridPane.setRowIndex(comboBox, rowIndex);
         GridPane.setMargin(comboBox, new Insets(top, 0, 0, 0));
@@ -1264,7 +1290,9 @@ public class FormBuilder {
         VBox vBox = getTopLabelVBox(top);
 
         final JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox);
         comboBox.setPromptText(prompt);
+        comboBox.setPadding(new Insets(top, 0, 0, 12));
 
         vBox.getChildren().addAll(label, comboBox);
 
@@ -1389,7 +1417,9 @@ public class FormBuilder {
 
     public static <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox);
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
         comboBox.setMaxWidth(Double.MAX_VALUE);
 
@@ -1399,6 +1429,7 @@ public class FormBuilder {
 
         GridPane.setRowIndex(comboBox, rowIndex);
         GridPane.setColumnIndex(comboBox, 0);
+        comboBox.setPadding(new Insets(0, 0, 0, 12));
         GridPane.setMargin(comboBox, new Insets(top + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
         gridPane.getChildren().add(comboBox);
 
@@ -1407,7 +1438,9 @@ public class FormBuilder {
 
     public static <T> AutocompleteComboBox<T> addAutocompleteComboBox(GridPane gridPane, int rowIndex, String title, double top) {
         var comboBox = new AutocompleteComboBox<T>();
+        GUIUtil.applyFilledStyle(comboBox);
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
         comboBox.setMaxWidth(Double.MAX_VALUE);
 
@@ -1469,6 +1502,7 @@ public class FormBuilder {
         AutocompleteComboBox<T> comboBox = new AutocompleteComboBox<>();
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
         topLabelVBox2.getChildren().addAll(topLabel2, comboBox);
 
         hBox.getChildren().addAll(topLabelVBox1, topLabelVBox2);
@@ -1498,7 +1532,9 @@ public class FormBuilder {
         hBox.setSpacing(10);
 
         ComboBox<T> comboBox1 = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox1);
         ComboBox<R> comboBox2 = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox2);
         hBox.getChildren().addAll(comboBox1, comboBox2);
 
         final Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, hBox, top);
@@ -1526,8 +1562,10 @@ public class FormBuilder {
         hBox.setSpacing(10);
 
         JFXComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox);
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
+        comboBox.getStyleClass().add("label-float");
 
         TextField textField = new HavenoTextField();
 
@@ -1570,6 +1608,7 @@ public class FormBuilder {
         button.setDefaultButton(true);
 
         ComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox);
 
         hBox.getChildren().addAll(comboBox, button);
 
@@ -1604,6 +1643,7 @@ public class FormBuilder {
         hBox.setSpacing(10);
 
         ComboBox<T> comboBox = new JFXComboBox<>();
+        GUIUtil.applyFilledStyle(comboBox);
         TextField textField = new TextField(textFieldText);
         textField.setEditable(false);
         textField.setMouseTransparent(true);
@@ -1797,6 +1837,7 @@ public class FormBuilder {
 
         return new Tuple2<>(label, textFieldWithCopyIcon);
     }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label  + AddressTextField
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -2181,11 +2222,13 @@ public class FormBuilder {
 
         Label label = new AutoTooltipLabel(Res.getBaseCurrencyCode());
         label.getStyleClass().add("input-label");
+        HBox.setMargin(label, new Insets(0, 8, 0, 0));
 
         HBox box = new HBox();
         HBox.setHgrow(input, Priority.ALWAYS);
         input.setMaxWidth(Double.MAX_VALUE);
-        box.getStyleClass().add("input-with-border");
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.getStyleClass().add("offer-input");
         box.getChildren().addAll(input, label);
         return new Tuple3<>(box, input, label);
     }
@@ -2197,11 +2240,13 @@ public class FormBuilder {
 
         Label label = new AutoTooltipLabel(Res.getBaseCurrencyCode());
         label.getStyleClass().add("input-label");
+        HBox.setMargin(label, new Insets(0, 8, 0, 0));
 
         HBox box = new HBox();
         HBox.setHgrow(infoInputTextField, Priority.ALWAYS);
         infoInputTextField.setMaxWidth(Double.MAX_VALUE);
-        box.getStyleClass().add("input-with-border");
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.getStyleClass().add("offer-input");
         box.getChildren().addAll(infoInputTextField, label);
         return new Tuple3<>(box, infoInputTextField, label);
     }
@@ -2444,6 +2489,7 @@ public class FormBuilder {
         if (groupStyle != null) titledGroupBg.getStyleClass().add(groupStyle);
 
         TableView<T> tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
         GridPane.setRowIndex(tableView, rowIndex);
         GridPane.setMargin(tableView, new Insets(top + 30, -10, 5, -10));
         gridPane.getChildren().add(tableView);

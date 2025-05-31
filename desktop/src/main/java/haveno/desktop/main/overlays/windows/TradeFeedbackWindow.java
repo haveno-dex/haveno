@@ -40,7 +40,7 @@ public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {
     @Override
     public void show() {
         headLine(Res.get("tradeFeedbackWindow.title"));
-        message(Res.get("tradeFeedbackWindow.msg.part1"));
+        //message(Res.get("tradeFeedbackWindow.msg.part1")); // TODO: this message part has padding which remaining message does not have
         hideCloseButton();
         actionButtonText(Res.get("shared.close"));
 
@@ -50,6 +50,17 @@ public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {
     @Override
     protected void addMessage() {
         super.addMessage();
+
+        AutoTooltipLabel messageLabel1 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part1"));
+        messageLabel1.setMouseTransparent(true);
+        messageLabel1.setWrapText(true);
+        GridPane.setHalignment(messageLabel1, HPos.LEFT);
+        GridPane.setHgrow(messageLabel1, Priority.ALWAYS);
+        GridPane.setRowIndex(messageLabel1, ++rowIndex);
+        GridPane.setColumnIndex(messageLabel1, 0);
+        GridPane.setColumnSpan(messageLabel1, 2);
+        gridPane.getChildren().add(messageLabel1);
+        GridPane.setMargin(messageLabel1, new Insets(10, 0, 10, 0));
 
         AutoTooltipLabel messageLabel2 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part2"));
         messageLabel2.setMouseTransparent(true);

@@ -25,6 +25,7 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.core.api.CoreDisputesService;
+import haveno.core.api.CoreDisputesService.PayoutSuggestion;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
@@ -138,6 +139,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     public void show(Dispute dispute) {
         this.dispute = dispute;
         this.trade = tradeManager.getTrade(dispute.getTradeId());
+        this.payoutSuggestion = null;
 
         rowIndex = -1;
         width = 1150;
@@ -186,7 +188,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     protected void createGridPane() {
         super.createGridPane();
         gridPane.setPadding(new Insets(35, 40, 30, 40));
-        gridPane.getStyleClass().add("grid-pane");
+        gridPane.getStyleClass().addAll("grid-pane", "popup-with-input");
         gridPane.getColumnConstraints().get(0).setHalignment(HPos.LEFT);
         gridPane.setPrefWidth(width);
     }
@@ -243,7 +245,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             reasonWasPeerWasLateRadioButton.setDisable(true);
             reasonWasTradeAlreadySettledRadioButton.setDisable(true);
 
-            applyPayoutAmounts(tradeAmountToggleGroup.selectedToggleProperty().get());
             applyTradeAmountRadioButtonStates();
         }
 
@@ -412,11 +413,13 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private void addPayoutAmountTextFields() {
         buyerPayoutAmountInputTextField = new InputTextField();
         buyerPayoutAmountInputTextField.setLabelFloat(true);
+        buyerPayoutAmountInputTextField.getStyleClass().add("label-float");
         buyerPayoutAmountInputTextField.setEditable(false);
         buyerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.buyer"));
 
         sellerPayoutAmountInputTextField = new InputTextField();
         sellerPayoutAmountInputTextField.setLabelFloat(true);
+        sellerPayoutAmountInputTextField.getStyleClass().add("label-float");
         sellerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.seller"));
         sellerPayoutAmountInputTextField.setEditable(false);
 
@@ -724,6 +727,10 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     private void applyTradeAmountRadioButtonStates() {
 
+        if (payoutSuggestion == null) {
+            payoutSuggestion = getPayoutSuggestionFromDisputeResult();
+        }
+
         BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
         BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
 
@@ -746,6 +753,22 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             case CUSTOM:
                 customRadioButton.setSelected(true);
                 break;
+        }
+    }
+
+    // TODO: Persist the payout suggestion to DisputeResult like Bisq upstream?
+    // That would be a better design, but it's not currently needed.
+    private PayoutSuggestion getPayoutSuggestionFromDisputeResult() {
+        if (disputeResult.getBuyerPayoutAmountBeforeCost().equals(BigInteger.ZERO)) {
+            return PayoutSuggestion.SELLER_GETS_ALL;
+        } else if (disputeResult.getSellerPayoutAmountBeforeCost().equals(BigInteger.ZERO)) {
+            return PayoutSuggestion.BUYER_GETS_ALL;
+        } else if (disputeResult.getBuyerPayoutAmountBeforeCost().equals(trade.getAmount().add(trade.getBuyer().getSecurityDeposit()))) {
+            return PayoutSuggestion.BUYER_GETS_TRADE_AMOUNT;
+        } else if (disputeResult.getSellerPayoutAmountBeforeCost().equals(trade.getAmount().add(trade.getSeller().getSecurityDeposit()))) {
+            return PayoutSuggestion.SELLER_GETS_TRADE_AMOUNT;
+        } else {
+            return PayoutSuggestion.CUSTOM;
         }
     }
 }

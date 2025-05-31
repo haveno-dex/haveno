@@ -58,6 +58,10 @@ public class CssTheme {
             scene.getStylesheets().add(cssThemeFolder + "theme-dev.css");
     }
 
+    public static int getCurrentTheme() {
+        return currentCSSTheme;
+    }
+
     public static boolean isDarkTheme() {
         return currentCSSTheme == CSS_THEME_DARK;
     }

@@ -20,13 +20,17 @@ package haveno.desktop.main.overlays.windows;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
 import org.slf4j.Logger;
@@ -38,11 +42,12 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
     private static final Logger log = LoggerFactory.getLogger(QRCodeWindow.class);
     private final ImageView qrCodeImageView;
     private final String moneroUri;
+    int qrCodeSize = 250;
 
-    public QRCodeWindow(String bitcoinURI) {
-        this.moneroUri = bitcoinURI;
+    public QRCodeWindow(String moneroUri) {
+        this.moneroUri = moneroUri;
         final byte[] imageBytes = QRCode
-                .from(bitcoinURI)
+                .from(moneroUri)
                 .withSize(300, 300)
                 .to(ImageType.PNG)
                 .stream()
@@ -65,10 +70,14 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         addHeadLine();
         addMessage();
 
-        GridPane.setRowIndex(qrCodeImageView, ++rowIndex);
-        GridPane.setColumnSpan(qrCodeImageView, 2);
-        GridPane.setHalignment(qrCodeImageView, HPos.CENTER);
-        gridPane.getChildren().add(qrCodeImageView);
+        StackPane xmrLogo = GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), 43, 3);
+        StackPane qrCodePane = new StackPane(qrCodeImageView, xmrLogo);
+        qrCodePane.setCursor(Cursor.HAND);
+        qrCodePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        GridPane.setRowIndex(qrCodePane, ++rowIndex);
+        GridPane.setColumnSpan(qrCodePane, 2);
+        GridPane.setHalignment(qrCodePane, HPos.CENTER);
+        gridPane.getChildren().add(qrCodePane);
 
         String request = moneroUri.replace("%20", " ").replace("?", "\n?").replace("&", "\n&");
         Label infoLabel = new AutoTooltipLabel(Res.get("qRCodeWindow.request", request));
