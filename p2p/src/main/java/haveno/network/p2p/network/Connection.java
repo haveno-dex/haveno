@@ -872,7 +872,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
                         }
 
-                        ThreadUtils.execute(() -> onMessage(networkEnvelope, this), THREAD_ID);
+                        onMessage(networkEnvelope, this);
                         ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
                 } catch (InvalidClassException e) {
