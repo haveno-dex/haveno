@@ -661,7 +661,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 ErrorMessageHandler errorMessageHandler) {
         log.info("Canceling open offer: {}", openOffer.getId());
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
-            if (openOffer.isAvailable()) {
+            if (isOnOfferBook(openOffer)) {
                 openOffer.setState(OpenOffer.State.CANCELED);
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                         () -> {
@@ -681,6 +681,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         } else {
             if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't cancel an offer that is currently edited.");
         }
+    }
+
+    private boolean isOnOfferBook(OpenOffer openOffer) {
+        return openOffer.isAvailable() || openOffer.isReserved();
     }
 
     public void editOpenOfferStart(OpenOffer openOffer,

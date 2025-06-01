@@ -88,7 +88,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                         }
                     } catch (Exception e) {
 
-                        // reset state with wallet lock
+                        // reset state
                         model.getXmrWalletService().swapPayoutAddressEntryToAvailable(trade.getId());
                         if (reserveTx != null) {
                             model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
@@ -101,11 +101,12 @@ public class TakerReserveTradeFunds extends TradeTask {
                     // reset protocol timeout
                     trade.startProtocolTimeout();
 
-                    // update trade state
-                    trade.getTaker().setReserveTxHash(reserveTx.getHash());
-                    trade.getTaker().setReserveTxHex(reserveTx.getFullHex());
-                    trade.getTaker().setReserveTxKey(reserveTx.getKey());
-                    trade.getTaker().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
+                    // update state
+                    trade.getSelf().setReserveTxHash(reserveTx.getHash());
+                    trade.getSelf().setReserveTxHex(reserveTx.getFullHex());
+                    trade.getSelf().setReserveTxKey(reserveTx.getKey());
+                    trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
+                    trade.getXmrWalletService().freezeOutputs(HavenoUtils.getInputKeyImages(reserveTx));
                 }
             }
 
