@@ -2770,8 +2770,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     pollInProgress = false;
                 }
             }
-            saveWalletWithDelay();
         }
+        
+        saveWalletWithDelay();
     }
 
     private static boolean isPublished(MoneroTx tx) {
