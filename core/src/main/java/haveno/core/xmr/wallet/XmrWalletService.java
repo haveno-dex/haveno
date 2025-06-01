@@ -1994,6 +1994,9 @@ public class XmrWalletService extends XmrWalletBase {
         // poll wallet
         try {
 
+            // skip if shut down started
+            if (isShutDownStarted) return;
+
             // skip if daemon not synced
             MoneroDaemonInfo lastInfo = xmrConnectionService.getLastInfo();
             if (lastInfo == null) {
@@ -2059,16 +2062,16 @@ public class XmrWalletService extends XmrWalletBase {
                     pollInProgress = false;
                 }
             }
+            saveWalletWithDelay();
+        }
 
-            // cache wallet info last
-            synchronized (walletLock) {
-                if (wallet != null && !isShutDownStarted) {
-                    try {
-                        cacheWalletInfo();
-                        saveWalletWithDelay();
-                    } catch (Exception e) {
-                        log.warn("Error caching wallet info: " + e.getMessage() + "\n", e);
-                    }
+        // cache wallet info last
+        synchronized (walletLock) {
+            if (wallet != null && !isShutDownStarted) {
+                try {
+                    cacheWalletInfo();
+                } catch (Exception e) {
+                    log.warn("Error caching wallet info: " + e.getMessage() + "\n", e);
                 }
             }
         }

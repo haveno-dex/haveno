@@ -2637,6 +2637,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // poll wallet
         try {
 
+            // skip if shut down started
+            if (isShutDownStarted) return;
+
             // skip if payout unlocked
             if (isPayoutUnlocked()) return;
 
