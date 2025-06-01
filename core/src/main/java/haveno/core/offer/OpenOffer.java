@@ -276,6 +276,10 @@ public final class OpenOffer implements Tradable {
         return state == State.AVAILABLE;
     }
 
+    public boolean isReserved() {
+        return state == State.RESERVED;
+    }
+
     public boolean isDeactivated() {
         return state == State.DEACTIVATED;
     }

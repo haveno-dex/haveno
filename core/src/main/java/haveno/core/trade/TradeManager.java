@@ -997,7 +997,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.warn("Unregistering {} {}", trade.getClass().getSimpleName(), trade.getId());
         removeTrade(trade, true);
         removeFailedTrade(trade);
-        xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
+        if (!trade.isMaker()) xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
     }
 
