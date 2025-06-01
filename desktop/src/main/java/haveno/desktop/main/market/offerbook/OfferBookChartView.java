@@ -111,9 +111,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
     private final double dataLimitFactor = 3;
     private final double initialOfferTableViewHeight = 78; // decrease as MainView's content-pane's top anchor increases
+    private final double offerTableExtraMarginBottom = 0;
     private final Function<Double, Double> offerTableViewHeight = (screenSize) -> {
         // initial visible row count=5, header height=30
-        double pixelsPerOfferTableRow = (initialOfferTableViewHeight - 30) / 5.0;
+        double pixelsPerOfferTableRow = (initialOfferTableViewHeight - offerTableExtraMarginBottom) / 5.0;
         int extraRows = screenSize <= INITIAL_WINDOW_HEIGHT ? 0 : (int) ((screenSize - INITIAL_WINDOW_HEIGHT) / pixelsPerOfferTableRow);
         return extraRows == 0 ? initialOfferTableViewHeight : Math.ceil(initialOfferTableViewHeight + ((extraRows + 1) * pixelsPerOfferTableRow));
     };
