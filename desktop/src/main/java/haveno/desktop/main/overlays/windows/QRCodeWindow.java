@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.overlays.Overlay;
@@ -33,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 
 public class QRCodeWindow extends Overlay<QRCodeWindow> {
     private static final Logger log = LoggerFactory.getLogger(QRCodeWindow.class);
@@ -90,5 +92,13 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
 
     public String getClipboardText() {
         return moneroUri;
+    }
+
+    private void openWallet() {
+        try {
+            Utilities.openURI(URI.create(moneroUri));
+        } catch (Exception e) {
+            log.warn(e.getMessage());
+        }
     }
 }
