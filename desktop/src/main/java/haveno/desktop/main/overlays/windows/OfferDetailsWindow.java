@@ -69,6 +69,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -426,7 +427,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyLabel);
             copyButton.setContentDisplay(ContentDisplay.LEFT);
             copyButton.setGraphicTextGap(8);
-            copyButton.setOnAction(e -> Utilities.copyToClipboard(offerChallenge));
+            copyButton.setOnMouseClicked(e -> {
+                Utilities.copyToClipboard(offerChallenge);
+                Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                Node node = (Node) e.getSource();
+                UserThread.runAfter(() -> tp.hide(), 1);
+                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
+            });
             copyButton.setId("buy-button");
             copyButton.setFocusTraversable(false);
             vbox.getChildren().addAll(centerLabel, copyButton);

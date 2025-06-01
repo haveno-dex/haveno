@@ -31,6 +31,8 @@ import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
+import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -80,6 +82,7 @@ public class TxIdTextField extends AnchorPane {
         copyLabel.getStyleClass().addAll("icon", "highlight");
         copyLabel.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
         copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        copyLabel.setCursor(Cursor.HAND);
         AnchorPane.setRightAnchor(copyLabel, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("txIdTextField.blockExplorerIcon.tooltip"));
@@ -159,7 +162,13 @@ public class TxIdTextField extends AnchorPane {
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
         blockExplorerIcon.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
-        copyLabel.setOnMouseClicked(e -> Utilities.copyToClipboard(txId));
+        copyLabel.setOnMouseClicked(e -> {
+            Utilities.copyToClipboard(txId);
+            Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+            Node node = (Node) e.getSource();
+            UserThread.runAfter(() -> tp.hide(), 1);
+            tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
+        });
         txConfidenceIndicator.setVisible(true);
 
         // update off main thread

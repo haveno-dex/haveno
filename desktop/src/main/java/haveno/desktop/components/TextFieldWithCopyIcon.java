@@ -18,12 +18,15 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
+
+import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -71,6 +74,10 @@ public class TextFieldWithCopyIcon extends AnchorPane {
                     copyText = text;
                 }
                 Utilities.copyToClipboard(copyText);
+                Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                Node node = (Node) e.getSource();
+                UserThread.runAfter(() -> tp.hide(), 1);
+                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
             }
         });
         textField = new JFXTextField();

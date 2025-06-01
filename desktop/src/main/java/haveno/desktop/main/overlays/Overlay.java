@@ -52,6 +52,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
@@ -778,6 +779,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                 copyLabel.setVisible(true);
                 MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
                 copyLabel.setGraphic(copyIcon);
+                copyLabel.setCursor(Cursor.HAND);
                 copyLabel.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
                     if (message != null) {
                         Utilities.copyToClipboard(getClipboardText());
