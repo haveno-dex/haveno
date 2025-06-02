@@ -67,6 +67,7 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         addHeadLine();
         addMessage();
 
+        qrCodeImageView.setOnMouseClicked(event -> openWallet());
         GridPane.setRowIndex(qrCodeImageView, ++rowIndex);
         GridPane.setColumnSpan(qrCodeImageView, 2);
         GridPane.setHalignment(qrCodeImageView, HPos.CENTER);

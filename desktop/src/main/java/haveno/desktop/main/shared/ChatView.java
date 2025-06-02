@@ -26,7 +26,7 @@ import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
-
+import haveno.desktop.util.Layout;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportManager;
 import haveno.core.support.SupportSession;
@@ -305,7 +305,13 @@ public class ChatView extends AnchorPane {
                         UserThread.execute(() -> {
                             super.updateItem(message, empty);
                             if (message != null && !empty) {
-                                copyLabel.setOnMouseClicked(e -> Utilities.copyToClipboard(messageLabel.getText()));
+                                copyLabel.setOnMouseClicked(e -> {
+                                    Utilities.copyToClipboard(messageLabel.getText());
+                                    Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                                    Node node = (Node) e.getSource();
+                                    UserThread.runAfter(() -> tp.hide(), 1);
+                                    tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
+                                });
                                 messageLabel.setOnMouseClicked(event -> {
                                     if (2 > event.getClickCount()) {
                                         return;
