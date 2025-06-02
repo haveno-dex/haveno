@@ -319,7 +319,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         priceAndBalance.setSpacing(12);
         priceAndBalance.getStyleClass().add("nav-price-balance");
 
-        HBox navPane = new HBox(primaryNav, getNavigationSpacer(), priceAndBalance) {{
+        HBox navPane = new HBox(primaryNav, priceAndBalance) {{
             setLeftAnchor(this, 25d);
             setRightAnchor(this, 25d);
             setTopAnchor(this, 20d);
