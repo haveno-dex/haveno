@@ -207,7 +207,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             rows++;
         }
 
-        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get(offer.isPrivateOffer() ? "shared.Offer" : "shared.Offer"));
+        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
 
         String counterCurrencyDirectionInfo = "";
         String xmrDirectionInfo = "";
@@ -366,9 +366,9 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (offerChallenge != null)
             rows++;
 
-        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
+        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.COMPACT_GROUP_DISTANCE);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
-                Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+                Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.makersOnion"),
                 offer.getMakerNodeAddress().getFullAddress());
@@ -445,16 +445,16 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         }
 
         if (placeOfferHandlerOptional.isPresent()) {
-            addTitledGroupBg(gridPane, ++rowIndex, 1, Res.get("offerDetailsWindow.commitment"), Layout.GROUP_DISTANCE);
+            addTitledGroupBg(gridPane, ++rowIndex, 1, Res.get("offerDetailsWindow.commitment"), Layout.COMPACT_GROUP_DISTANCE);
             final Tuple2<Label, Label> labelLabelTuple2 = addConfirmationLabelLabel(gridPane, rowIndex, Res.get("offerDetailsWindow.agree"), Res.get("createOffer.tac"),
-                    Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+                    Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
             labelLabelTuple2.second.setWrapText(true);
 
             addConfirmAndCancelButtons(true);
         } else if (takeOfferHandlerOptional.isPresent()) {
-            addTitledGroupBg(gridPane, ++rowIndex, 1, Res.get("shared.contract"), Layout.GROUP_DISTANCE);
+            addTitledGroupBg(gridPane, ++rowIndex, 1, Res.get("shared.contract"), Layout.COMPACT_GROUP_DISTANCE);
             final Tuple2<Label, Label> labelLabelTuple2 = addConfirmationLabelLabel(gridPane, rowIndex, Res.get("offerDetailsWindow.tac"), Res.get("takeOffer.tac"),
-                    Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+                    Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
             labelLabelTuple2.second.setWrapText(true);
 
             addConfirmAndCancelButtons(false);

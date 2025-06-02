@@ -202,9 +202,9 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTradePeerNodeAddress() != null)
             rows++;
 
-        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
+        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.COMPACT_GROUP_DISTANCE);
         addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.tradeId"),
-                trade.getId(), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+                trade.getId(), Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeDate"),
                 DisplayUtils.formatDateTime(trade.getDate()));
