@@ -784,8 +784,8 @@ tree-table-view:focused {
 }
 
 .nav-logo {
-    -fx-max-width: 180;
-    -fx-min-width: 180;
+    -fx-max-width: 190;
+    -fx-min-width: 155;
 }
 
 .nav-primary {
