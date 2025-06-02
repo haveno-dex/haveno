@@ -143,6 +143,14 @@
     -fx-background-color: -bs-color-gray-3;
 }
 
+#image-logo-splash {
+    -fx-image: url("../../images/logo_splash_light.png");
+}
+
+#image-logo-splash-testnet {
+    -fx-image: url("../../images/logo_splash_testnet_light.png");
+}
+
 #image-logo-landscape {
     -fx-image: url("../../images/logo_landscape_light.png");
 }

@@ -577,6 +577,14 @@
     -fx-background-color: -bs-color-gray-bbb;
 }
 
+#image-logo-splash {
+    -fx-image: url("../../images/logo_splash_dark.png");
+}
+
+#image-logo-splash-testnet {
+    -fx-image: url("../../images/logo_splash_testnet_dark.png");
+}
+
 #image-logo-landscape {
     -fx-image: url("../../images/logo_landscape_dark.png");
 }
@@ -634,12 +642,4 @@
 
 .regular-text-color {
     -fx-text-fill: -bs-text-color;
-}
-
-#image-splash-logo {
-    -fx-image: url("../../images/logo_splash.png");
-}
-
-#image-splash-testnet-logo {
-    -fx-image: url("../../images/logo_splash_testnet.png");
 }

@@ -1,16 +1,3 @@
-/* splash screen */
-/*noinspection CssUnknownTarget*/
-#image-splash-logo {
-    -fx-image: url("../../images/logo_splash.png");
-}
-
-/* splash screen testnet */
-/*noinspection CssUnknownTarget*/
-#image-splash-testnet-logo {
-    -fx-image: url("../../images/logo_splash_testnet.png");
-}
-
-/* shared*/
 #image-info {
     -fx-image: url("../../images/info.png");
 }
@@ -326,10 +313,7 @@
     -fx-image: url("../../images/settings.png");
 }
 
-/**
- * Crypto logos.
- */
- #image-btc-logo {
+#image-btc-logo {
     -fx-image: url("../../images/btc_logo.png");
 }
 
