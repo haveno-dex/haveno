@@ -42,4 +42,6 @@ public class Layout {
     public static final double LIST_ROW_HEIGHT = 34;
     public static final double ROUNDED_ARC = 20;
     public static final double FLOATING_ICON_Y = 9; // adjust when .jfx-text-field padding is changed for right icons
+    public static final double DETAILS_WINDOW_WIDTH = 950;
+    public static final double DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT = 100;
 }

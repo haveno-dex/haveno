@@ -106,7 +106,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         this.trade = trade;
 
         rowIndex = -1;
-        width = 1118;
+        width = Layout.DETAILS_WINDOW_WIDTH;
         createGridPane();
         addContent();
         display();
@@ -236,9 +236,9 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             addSeparator(gridPane, ++rowIndex);
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
             textArea.setText(offer.getCombinedExtraInfo().trim());
-            textArea.setMaxHeight(200);
+            textArea.setMaxHeight(Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
             textArea.setEditable(false);
-            GUIUtil.adjustHeightAutomatically(textArea);
+            GUIUtil.adjustHeightAutomatically(textArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
         }
 
         if (contract != null) {

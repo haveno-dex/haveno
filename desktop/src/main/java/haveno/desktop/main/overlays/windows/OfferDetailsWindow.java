@@ -128,7 +128,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         this.tradePrice = tradePrice;
 
         rowIndex = -1;
-        width = 1118;
+        width = Layout.DETAILS_WINDOW_WIDTH;
         createGridPane();
         addContent();
         display();
@@ -137,7 +137,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     public void show(Offer offer) {
         this.offer = offer;
         rowIndex = -1;
-        width = 1118;
+        width = Layout.DETAILS_WINDOW_WIDTH;
         createGridPane();
         addContent();
         display();
@@ -344,9 +344,9 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             addSeparator(gridPane, ++rowIndex);
             TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo"), "", 0).second;
             textArea.setText(offer.getCombinedExtraInfo().trim());
-            textArea.setMaxHeight(200);
+            textArea.setMaxHeight(Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
             textArea.setEditable(false);
-            GUIUtil.adjustHeightAutomatically(textArea);
+            GUIUtil.adjustHeightAutomatically(textArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
         }
 
         // get amount reserved for the offer
