@@ -75,7 +75,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     @FXML
     InputTextField xmrNodesInputTextField;
     @FXML
-    TextField onionAddress, sentDataTextField, receivedDataTextField, chainHeightTextField, minVersionForTrading;
+    TextField onionAddress, sentDataTextField, receivedDataTextField, chainHeightTextField;
     @FXML
     Label p2PPeersLabel, moneroConnectionsLabel;
     @FXML
@@ -156,7 +156,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         sentDataTextField.getStyleClass().add("label-float");
         receivedDataTextField.getStyleClass().add("label-float");
         chainHeightTextField.getStyleClass().add("label-float");
-        minVersionForTrading.getStyleClass().add("label-float");
 
         btcHeader.setText(Res.get("settings.net.xmrHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
@@ -183,7 +182,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         sentDataTextField.setPromptText(Res.get("settings.net.sentDataLabel"));
         receivedDataTextField.setPromptText(Res.get("settings.net.receivedDataLabel"));
         chainHeightTextField.setPromptText(Res.get("settings.net.chainHeightLabel"));
-        minVersionForTrading.setPromptText(Res.get("filterWindow.disableTradeBelowVersion"));
         roundTripTimeColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.roundTripTimeColumn")));
         sentBytesColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.sentBytesColumn")));
         receivedBytesColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.receivedBytesColumn")));
@@ -510,10 +508,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             selectMoneroPeersToggle();
             onMoneroPeersToggleSelected(false);
         }
-
-        // set min version for trading
-        String minVersion = filterManager.getDisableTradeBelowVersion();
-        minVersionForTrading.textProperty().setValue(minVersion == null ? Res.get("shared.none") : minVersion);
     }
 
     private boolean isPublicNodesDisabled() {

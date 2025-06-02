@@ -162,10 +162,7 @@
     <HavenoTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
-    <HavenoTextField fx:id="minVersionForTrading" GridPane.rowIndex="10" editable="false"
-                   focusTraversable="false" labelFloat="true"/>
-
-    <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="11" GridPane.columnIndex="0"/>
+    <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
 
     <columnConstraints>
         <ColumnConstraints hgrow="ALWAYS" minWidth="500"/>
