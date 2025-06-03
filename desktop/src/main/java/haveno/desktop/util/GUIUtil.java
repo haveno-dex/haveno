@@ -1296,11 +1296,11 @@ public class GUIUtil {
 
 
     public static Tuple2<StackPane, ImageView> getSmallXmrQrCodePane() {
-        return getXmrQrCodePane(150, 26, 2);
+        return getXmrQrCodePane(150, disablePaymentUriLabel ? 30 : 26, 2);
     }
 
     public static Tuple2<StackPane, ImageView> getBigXmrQrCodePane() {
-        return getXmrQrCodePane(250, 43, 3);
+        return getXmrQrCodePane(250, disablePaymentUriLabel ? 45 : 43, 3);
     }
 
     private static Tuple2<StackPane, ImageView> getXmrQrCodePane(int qrCodeSize, int logoSize, int logoBorderWidth) {
