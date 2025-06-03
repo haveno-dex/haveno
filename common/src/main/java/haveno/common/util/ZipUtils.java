@@ -104,6 +104,10 @@ public class ZipUtils {
             int count;
             while ((entry = zipStream.getNextEntry()) != null) {
                 File file = new File(dir, entry.getName());
+                if (!file.toPath().normalize().startsWith(dir.toPath())) {
+                    throw new SecurityException("ZIP entry contains path traversal attempt: " + entry.getName());
+                }
+                
                 if (entry.isDirectory()) {
                     file.mkdirs();
                 } else {
