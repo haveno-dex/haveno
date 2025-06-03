@@ -324,6 +324,7 @@ public class GUIUtil {
 
                     HBox box = new HBox();
                     box.setSpacing(20);
+                    box.setAlignment(Pos.CENTER_LEFT);
                     Label currencyType = new AutoTooltipLabel(
                             CurrencyUtil.isTraditionalCurrency(code) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
 
@@ -349,7 +350,8 @@ public class GUIUtil {
                             // use icons for crypto
                             if (CurrencyUtil.isCryptoCurrency(code)) {
                                 currencyType.setText("");
-                                currencyType.setGraphic(getCurrencyIcon(code));
+                                StackPane iconWrapper = new StackPane(getCurrencyIcon(code)); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
+                                currencyType.setGraphic(iconWrapper);
                             }
 
                             if (preferences.isSortMarketCurrenciesNumerically()) {
@@ -1228,9 +1230,10 @@ public class GUIUtil {
     public static ImageView getCurrencyIcon(String currencyCode, double size) {
         if (currencyCode == null) return null;
         ImageView iconView = new ImageView();
-        iconView.setFitHeight(size);
         iconView.setFitWidth(size);
+        iconView.setPreserveRatio(true);
         iconView.setSmooth(true);
+        iconView.setCache(true);
         iconView.setId(getImageId(currencyCode));
         return iconView;
     }
