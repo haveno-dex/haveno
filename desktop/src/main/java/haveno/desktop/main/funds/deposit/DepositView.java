@@ -368,10 +368,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     @NotNull
     private String getPaymentUri() {
-        return MoneroUtils.getPaymentUri(new MoneroTxConfig()
-                .setAddress(addressTextField.getAddress())
-                .setAmount(HavenoUtils.coinToAtomicUnits(getAmount()))
-                .setNote(paymentLabelString));
+        return GUIUtil.getMoneroURI(addressTextField.getAddress(), HavenoUtils.coinToAtomicUnits(getAmount()), paymentLabelString);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

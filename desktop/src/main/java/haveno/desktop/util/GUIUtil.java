@@ -147,6 +147,8 @@ public class GUIUtil {
     public final static int AMOUNT_DECIMALS_WITH_ZEROS = 3;
     public final static int AMOUNT_DECIMALS = 4;
 
+    public static final boolean disablePaymentUriLabel = true; // universally disable payment uri labels, allowing bigger xmr logo overlays
+
     private static Preferences preferences;
 
     public static void setPreferences(Preferences preferences) {
@@ -711,10 +713,10 @@ public class GUIUtil {
     }
 
     public static String getMoneroURI(String address, BigInteger amount, String label) {
-        return MoneroUtils.getPaymentUri(new MoneroTxConfig()
-                .setAddress(address)
-                .setAmount(amount)
-                .setNote(label));
+        MoneroTxConfig txConfig = new MoneroTxConfig().setAddress(address);
+        if (amount != null) txConfig.setAmount(amount);
+        if (label != null && !label.isEmpty() && !disablePaymentUriLabel) txConfig.setNote(label);
+        return MoneroUtils.getPaymentUri(txConfig);
     }
 
     public static boolean isBootstrappedOrShowPopup(P2PService p2PService) {
