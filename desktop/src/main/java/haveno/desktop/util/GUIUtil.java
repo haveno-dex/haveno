@@ -76,6 +76,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -1224,7 +1225,7 @@ public class GUIUtil {
         return getCurrencyIcon(currencyCode, 24);
     }
 
-    public static ImageView getCurrencyIcon(String currencyCode, int size) {
+    public static ImageView getCurrencyIcon(String currencyCode, double size) {
         if (currencyCode == null) return null;
         ImageView iconView = new ImageView();
         iconView.setFitHeight(size);
@@ -1235,14 +1236,24 @@ public class GUIUtil {
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {
-        return getCurrencyIconWithBorder(currencyCode, 24, 1);
+        return getCurrencyIconWithBorder(currencyCode, 25, 1);
     }
 
-    public static StackPane getCurrencyIconWithBorder(String currencyCode, int size, double borderWidth) {
+    public static StackPane getCurrencyIconWithBorder(String currencyCode, double size, double borderWidth) {
         if (currencyCode == null) return null;
-        StackPane circleWrapper = new StackPane(getCurrencyIcon(currencyCode, size));
+
+        ImageView icon = getCurrencyIcon(currencyCode, size);
+        icon.setFitWidth(size - 2 * borderWidth);
+        icon.setFitHeight(size - 2 * borderWidth);
+        icon.setPreserveRatio(true);
+        icon.setSmooth(true);
+        icon.setCache(true);
+
+        StackPane circleWrapper = new StackPane(icon);
         circleWrapper.setPrefSize(size, size);
         circleWrapper.setMaxSize(size, size);
+        circleWrapper.setMinSize(size, size);
+
         circleWrapper.setStyle(
             "-fx-background-color: white;" +
             "-fx-background-radius: 50%;" +
@@ -1250,6 +1261,9 @@ public class GUIUtil {
             "-fx-border-color: white;" +
             "-fx-border-width: " + borderWidth + "px;"
         );
+
+        StackPane.setAlignment(icon, Pos.CENTER);
+
         return circleWrapper;
     }
 
@@ -1296,11 +1310,11 @@ public class GUIUtil {
 
 
     public static Tuple2<StackPane, ImageView> getSmallXmrQrCodePane() {
-        return getXmrQrCodePane(150, disablePaymentUriLabel ? 30 : 26, 2);
+        return getXmrQrCodePane(150, disablePaymentUriLabel ? 32 : 28, 2);
     }
 
     public static Tuple2<StackPane, ImageView> getBigXmrQrCodePane() {
-        return getXmrQrCodePane(250, disablePaymentUriLabel ? 45 : 43, 3);
+        return getXmrQrCodePane(250, disablePaymentUriLabel ? 47 : 45, 3);
     }
 
     private static Tuple2<StackPane, ImageView> getXmrQrCodePane(int qrCodeSize, int logoSize, int logoBorderWidth) {
