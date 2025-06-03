@@ -85,6 +85,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.util.StringConverter;
@@ -149,6 +150,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private ComboBox<TradeCurrency> currencyComboBox;
     private ImageView qrCodeImageView;
+    private StackPane qrCodePane;
     private VBox paymentAccountsSelection, currencySelection, fixedPriceBox, percentagePriceBox, currencyTextFieldBox, triggerPriceVBox;
     private HBox fundingHBox, firstRowHBox, secondRowHBox, placeOfferBox, amountValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, volumeValueCurrencyBox, priceValueCurrencyBox,
@@ -1188,8 +1190,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         totalToPayTextField.setManaged(false);
         addressTextField.setVisible(false);
         addressTextField.setManaged(false);
-        qrCodeImageView.setVisible(false);
-        qrCodeImageView.setManaged(false);
+        qrCodePane.setVisible(false);
+        qrCodePane.setManaged(false);
         balanceTextField.setVisible(false);
         balanceTextField.setManaged(false);
         cancelButton2.setVisible(false);
@@ -1205,8 +1207,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         totalToPayTextField.setManaged(true);
         addressTextField.setVisible(true);
         addressTextField.setManaged(true);
-        qrCodeImageView.setVisible(true);
-        qrCodeImageView.setManaged(true);
+        qrCodePane.setVisible(true);
+        qrCodePane.setManaged(true);
         balanceTextField.setVisible(true);
         balanceTextField.setManaged(true);
         cancelButton2.setVisible(true);
@@ -1248,21 +1250,23 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         totalToPayTextField.setVisible(false);
         GridPane.setMargin(totalToPayTextField, new Insets(60 + heightAdjustment, 10, 0, 0));
 
-        qrCodeImageView = new ImageView();
-        qrCodeImageView.setVisible(false);
-        qrCodeImageView.setFitHeight(150);
-        qrCodeImageView.setFitWidth(150);
-        qrCodeImageView.getStyleClass().add("qr-code");
-        Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-        qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
+        Tuple2<StackPane, ImageView> qrCodeTuple = GUIUtil.getSmallXmrQrCodePane();
+        qrCodePane = qrCodeTuple.first;
+        qrCodeImageView = qrCodeTuple.second;
+
+        Tooltip.install(qrCodePane, new Tooltip(Res.get("shared.openLargeQRWindow")));
+        qrCodePane.setOnMouseClicked(e -> UserThread.runAfter(
                         () -> new QRCodeWindow(getMoneroURI()).show(),
                         200, TimeUnit.MILLISECONDS));
-        GridPane.setRowIndex(qrCodeImageView, gridRow);
-        GridPane.setColumnIndex(qrCodeImageView, 1);
-        GridPane.setRowSpan(qrCodeImageView, 3);
-        GridPane.setValignment(qrCodeImageView, VPos.BOTTOM);
-        GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
-        gridPane.getChildren().add(qrCodeImageView);
+        GridPane.setRowIndex(qrCodePane, gridRow);
+        GridPane.setColumnIndex(qrCodePane, 1);
+        GridPane.setRowSpan(qrCodePane, 3);
+        GridPane.setValignment(qrCodePane, VPos.BOTTOM);
+        GridPane.setMargin(qrCodePane, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
+        gridPane.getChildren().add(qrCodePane);
+
+        qrCodePane.setVisible(false);
+        qrCodePane.setManaged(false);
 
         addressTextField = addAddressTextField(gridPane, ++gridRow,
                 Res.get("shared.tradeWalletAddress"));

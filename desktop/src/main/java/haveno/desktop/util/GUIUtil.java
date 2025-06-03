@@ -76,6 +76,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
@@ -97,6 +98,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
@@ -1219,25 +1221,34 @@ public class GUIUtil {
     }
 
     public static ImageView getCurrencyIcon(String currencyCode) {
+        return getCurrencyIcon(currencyCode, 24);
+    }
+
+    public static ImageView getCurrencyIcon(String currencyCode, int size) {
         if (currencyCode == null) return null;
         ImageView iconView = new ImageView();
-        iconView.setFitHeight(24);
-        iconView.setFitWidth(24);
+        iconView.setFitHeight(size);
+        iconView.setFitWidth(size);
         iconView.setSmooth(true);
         iconView.setId(getImageId(currencyCode));
         return iconView;
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {
+        return getCurrencyIconWithBorder(currencyCode, 24, 1);
+    }
+
+    public static StackPane getCurrencyIconWithBorder(String currencyCode, int size, double borderWidth) {
         if (currencyCode == null) return null;
-        StackPane circleWrapper = new StackPane(getCurrencyIcon(currencyCode));
-        circleWrapper.setPrefSize(24, 24);
+        StackPane circleWrapper = new StackPane(getCurrencyIcon(currencyCode, size));
+        circleWrapper.setPrefSize(size, size);
+        circleWrapper.setMaxSize(size, size);
         circleWrapper.setStyle(
             "-fx-background-color: white;" +
             "-fx-background-radius: 50%;" +
             "-fx-border-radius: 50%;" +
-            "-fx-border-color: white;" + 
-            "-fx-border-width: 1px;"
+            "-fx-border-color: white;" +
+            "-fx-border-width: " + borderWidth + "px;"
         );
         return circleWrapper;
     }
@@ -1281,5 +1292,28 @@ public class GUIUtil {
 
     public static MaterialDesignIconView getCopyIcon() {
         return new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.35em");
+    }
+
+
+    public static Tuple2<StackPane, ImageView> getSmallXmrQrCodePane() {
+        return getXmrQrCodePane(150, 26, 2);
+    }
+
+    public static Tuple2<StackPane, ImageView> getBigXmrQrCodePane() {
+        return getXmrQrCodePane(250, 43, 3);
+    }
+
+    private static Tuple2<StackPane, ImageView> getXmrQrCodePane(int qrCodeSize, int logoSize, int logoBorderWidth) {
+        ImageView qrCodeImageView = new ImageView();
+        qrCodeImageView.setFitHeight(qrCodeSize);
+        qrCodeImageView.setFitWidth(qrCodeSize);
+        qrCodeImageView.getStyleClass().add("qr-code");
+
+        StackPane xmrLogo = GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), logoSize, logoBorderWidth);
+        StackPane qrCodePane = new StackPane(qrCodeImageView, xmrLogo);
+        qrCodePane.setCursor(Cursor.HAND);
+        qrCodePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        return new Tuple2<>(qrCodePane, qrCodeImageView);
     }
 }

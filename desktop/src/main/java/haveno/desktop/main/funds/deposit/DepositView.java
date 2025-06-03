@@ -40,6 +40,7 @@ import com.google.inject.name.Named;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
@@ -89,10 +90,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
-import monero.common.MoneroUtils;
-import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroWalletListener;
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
@@ -111,6 +111,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @FXML
     TableColumn<DepositListItem, DepositListItem> addressColumn, balanceColumn, confirmationsColumn, usageColumn;
     private ImageView qrCodeImageView;
+    private StackPane qrCodePane;
     private AddressTextField addressTextField;
     private Button generateNewAddressButton;
     private TitledGroupBg titledGroupBg;
@@ -192,19 +193,19 @@ public class DepositView extends ActivatableView<VBox, Void> {
                 titledGroupBg = addTitledGroupBg(gridPane, gridRow, 4, Res.get("funds.deposit.fundWallet"));
                 titledGroupBg.getStyleClass().add("last");
         
-                qrCodeImageView = new ImageView();
-                qrCodeImageView.setFitHeight(150);
-                qrCodeImageView.setFitWidth(150);
-                qrCodeImageView.getStyleClass().add("qr-code");
-                Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
-                qrCodeImageView.setOnMouseClicked(e -> UserThread.runAfter(
+                Tuple2<StackPane, ImageView> qrCodeTuple = GUIUtil.getSmallXmrQrCodePane();
+                qrCodePane = qrCodeTuple.first;
+                qrCodeImageView = qrCodeTuple.second;
+
+                Tooltip.install(qrCodePane, new Tooltip(Res.get("shared.openLargeQRWindow")));
+                qrCodePane.setOnMouseClicked(e -> UserThread.runAfter(
                                 () -> new QRCodeWindow(getPaymentUri()).show(),
                                 200, TimeUnit.MILLISECONDS));
-                GridPane.setRowIndex(qrCodeImageView, gridRow);
-                GridPane.setRowSpan(qrCodeImageView, 4);
-                GridPane.setColumnIndex(qrCodeImageView, 1);
-                GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 10));
-                gridPane.getChildren().add(qrCodeImageView);
+                GridPane.setRowIndex(qrCodePane, gridRow);
+                GridPane.setRowSpan(qrCodePane, 4);
+                GridPane.setColumnIndex(qrCodePane, 1);
+                GridPane.setMargin(qrCodePane, new Insets(Layout.FIRST_ROW_DISTANCE, 0, 0, 10));
+                gridPane.getChildren().add(qrCodePane);
         
                 addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.address"), Layout.FIRST_ROW_DISTANCE);
                 addressTextField.setPaymentLabel(paymentLabelString);
@@ -215,8 +216,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
         
                 titledGroupBg.setVisible(false);
                 titledGroupBg.setManaged(false);
-                qrCodeImageView.setVisible(false);
-                qrCodeImageView.setManaged(false);
+                qrCodePane.setVisible(false);
+                qrCodePane.setManaged(false);
                 addressTextField.setVisible(false);
                 addressTextField.setManaged(false);
                 amountTextField.setManaged(false);
@@ -312,8 +313,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private void fillForm(String address) {
         titledGroupBg.setVisible(true);
         titledGroupBg.setManaged(true);
-        qrCodeImageView.setVisible(true);
-        qrCodeImageView.setManaged(true);
+        qrCodePane.setVisible(true);
+        qrCodePane.setManaged(true);
         addressTextField.setVisible(true);
         addressTextField.setManaged(true);
         amountTextField.setManaged(true);
