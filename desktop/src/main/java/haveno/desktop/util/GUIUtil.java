@@ -149,6 +149,7 @@ public class GUIUtil {
     public final static int NUM_DECIMALS_PRECISE = 7;
     public final static int AMOUNT_DECIMALS_WITH_ZEROS = 3;
     public final static int AMOUNT_DECIMALS = 4;
+    private final static String NUM_OFFERS_SPACING = "   ";
 
     public static final boolean disablePaymentUriLabel = true; // universally disable payment uri labels, allowing bigger xmr logo overlays
 
@@ -325,35 +326,37 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     box.setAlignment(Pos.CENTER_LEFT);
-                    Label currencyType = new AutoTooltipLabel(getCurrencyType(code));
-                    currencyType.getStyleClass().add("currency-label-small");
-                    Label currency = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.tradeCurrency.getNameAndCode() : code);
-                    currency.getStyleClass().add("currency-label");
-                    Label offers = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.tradeCurrency.getName());
-                    offers.getStyleClass().add("currency-label");
+                    Label label1 = new AutoTooltipLabel(getCurrencyType(code));
+                    label1.getStyleClass().add("currency-label-small");
+                    Label label2 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.tradeCurrency.getNameAndCode() : code);
+                    label2.getStyleClass().add("currency-label");
+                    Label label3 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.tradeCurrency.getName());
+                    label3.getStyleClass().add("currency-label");
 
-                    box.getChildren().addAll(currencyType, currency, offers);
+                    box.getChildren().addAll(label1, label2, label3);
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
-                            currencyType.setText(Res.get("shared.all"));
-                            currency.setText(Res.get("list.currency.showAll"));
+                            label1.setText(Res.get("shared.all"));
+                            label2.setText(Res.get("list.currency.showAll"));
                             break;
                         case GUIUtil.EDIT_FLAG:
-                            currencyType.setText(Res.get("shared.edit"));
-                            currency.setText(Res.get("list.currency.editList"));
+                            label1.setText(Res.get("shared.edit"));
+                            label2.setText(Res.get("list.currency.editList"));
                             break;
                         default:
 
                             // use icons for crypto
                             if (CurrencyUtil.isCryptoCurrency(code)) {
-                                currencyType.setText("");
+                                label1.setText("");
                                 StackPane iconWrapper = new StackPane(getCurrencyIcon(code)); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
-                                currencyType.setGraphic(iconWrapper);
+                                label1.setGraphic(iconWrapper);
                             }
 
                             if (preferences.isSortMarketCurrenciesNumerically()) {
-                                offers.setText((!offers.getText().isEmpty() ? offers.getText() + " " : "") + "(" + item.numTrades + " " +
+                                boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
+                                Label offersTarget = isCrypto ? label2 : label3;
+                                offersTarget.setText((!offersTarget.getText().isEmpty() ? offersTarget.getText() + NUM_OFFERS_SPACING : "") + "(" + item.numTrades + " " +
                                         (item.numTrades == 1 ? postFixSingle : postFixMulti) + ")");
                             }
                     }
@@ -458,36 +461,39 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
 
-                    Label label = new AutoTooltipLabel(getCurrencyType(item.getCode()));
-                    label.getStyleClass().add("currency-label-small");
-                    Label currency = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.getNameAndCode() : code);
-                    currency.getStyleClass().add("currency-label");
-                    Label offers = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.getName());
-                    offers.getStyleClass().add("currency-label");
+                    Label label1 = new AutoTooltipLabel(getCurrencyType(item.getCode()));
+                    label1.getStyleClass().add("currency-label-small");
+                    Label label2 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.getNameAndCode() : code);
+                    label2.getStyleClass().add("currency-label");
+                    Label label3 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.getName());
+                    label3.getStyleClass().add("currency-label");
 
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
-                            label.setText(Res.get("shared.all"));
-                            currency.setText(Res.get("list.currency.showAll"));
+                            label1.setText(Res.get("shared.all"));
+                            label2.setText(Res.get("list.currency.showAll"));
                             break;
                         case GUIUtil.EDIT_FLAG:
-                            label.setText(Res.get("shared.edit"));
-                            currency.setText(Res.get("list.currency.editList"));
+                            label1.setText(Res.get("shared.edit"));
+                            label2.setText(Res.get("list.currency.editList"));
                             break;
                         default:
 
                             // use icons for crypto
                             if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
-                                label.setText("");
-                                label.setGraphic(getCurrencyIcon(item.getCode()));
+                                label1.setText("");
+                                label1.setGraphic(getCurrencyIcon(item.getCode()));
                             }
-                            offerCountOptional.ifPresent(numOffer -> offers.setText(offers.getText() + " (" + numOffer + " " +
+
+                            boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
+                            Label offersTarget = isCrypto ? label2 : label3;
+                            offerCountOptional.ifPresent(numOffer -> offersTarget.setText((!offersTarget.getText().isEmpty() ? offersTarget.getText() + NUM_OFFERS_SPACING : "") + "(" + numOffer + " " +
                                     (numOffer == 1 ? postFixSingle : postFixMulti) + ")"));
                     }
 
-                    box.getChildren().addAll(label, currency, offers);
+                    box.getChildren().addAll(label1, label2, label3);
 
                     setGraphic(box);
 
@@ -509,18 +515,18 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(10);
 
-                    Label label = new AutoTooltipLabel(getCurrencyType(item.getCode()));
-                    label.getStyleClass().add("currency-label-small");
-                    Label currency = new AutoTooltipLabel(item.getNameAndCode());
-                    currency.getStyleClass().add("currency-label");
+                    Label label1 = new AutoTooltipLabel(getCurrencyType(item.getCode()));
+                    label1.getStyleClass().add("currency-label-small");
+                    Label label2 = new AutoTooltipLabel(item.getNameAndCode());
+                    label2.getStyleClass().add("currency-label");
 
                     // use icons for crypto
                     if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
-                        label.setText("");
-                        label.setGraphic(getCurrencyIcon(item.getCode()));
+                        label1.setText("");
+                        label1.setGraphic(getCurrencyIcon(item.getCode()));
                     }
 
-                    box.getChildren().addAll(label, currency);
+                    box.getChildren().addAll(label1, label2);
 
                     setGraphic(box);
 
