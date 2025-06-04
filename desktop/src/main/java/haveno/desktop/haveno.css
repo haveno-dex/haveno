@@ -293,7 +293,7 @@
 
 .jfx-combo-box > .list-cell:filled,
 .jfx-combo-box > .text-field {
-    -fx-padding: 0;
+    -fx-padding: 0 !important;
 }
 
 .jfx-combo-box > .arrow-button > .arrow {
