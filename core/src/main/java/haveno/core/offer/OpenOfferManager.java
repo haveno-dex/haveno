@@ -1618,6 +1618,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
             } else {
 
+                // verify public offer (remove to generally allow private offers)
+                if (offer.isPrivateOffer() || offer.getChallengeHash() != null) {
+                    errorMessage = "Private offer " + request.offerId + " is not valid. It must have direction SELL, taker fee of 0, and a challenge hash.";
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
                 // verify maker's trade fee
                 if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
                     errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_PCT + " but got " + offer.getMakerFeePct();
