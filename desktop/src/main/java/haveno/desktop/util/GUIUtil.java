@@ -325,13 +325,11 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     box.setAlignment(Pos.CENTER_LEFT);
-                    Label currencyType = new AutoTooltipLabel(
-                            CurrencyUtil.isTraditionalCurrency(code) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
-
+                    Label currencyType = new AutoTooltipLabel(getCurrencyType(code));
                     currencyType.getStyleClass().add("currency-label-small");
-                    Label currency = new AutoTooltipLabel(code);
+                    Label currency = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.tradeCurrency.getNameAndCode() : code);
                     currency.getStyleClass().add("currency-label");
-                    Label offers = new AutoTooltipLabel(item.tradeCurrency.getName());
+                    Label offers = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.tradeCurrency.getName());
                     offers.getStyleClass().add("currency-label");
 
                     box.getChildren().addAll(currencyType, currency, offers);
@@ -355,7 +353,7 @@ public class GUIUtil {
                             }
 
                             if (preferences.isSortMarketCurrenciesNumerically()) {
-                                offers.setText(offers.getText() + " (" + item.numTrades + " " +
+                                offers.setText((!offers.getText().isEmpty() ? offers.getText() + " " : "") + "(" + item.numTrades + " " +
                                         (item.numTrades == 1 ? postFixSingle : postFixMulti) + ")");
                             }
                     }
@@ -460,12 +458,11 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
 
-                    Label label = new AutoTooltipLabel(
-                        CurrencyUtil.isTraditionalCurrency(item.getCode()) ? Res.get("shared.traditional") : Res.get("shared.crypto"));
+                    Label label = new AutoTooltipLabel(getCurrencyType(item.getCode()));
                     label.getStyleClass().add("currency-label-small");
-                    Label currency = new AutoTooltipLabel(item.getCode());
+                    Label currency = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.getNameAndCode() : code);
                     currency.getStyleClass().add("currency-label");
-                    Label offers = new AutoTooltipLabel(item.getName());
+                    Label offers = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.getName());
                     offers.getStyleClass().add("currency-label");
 
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
@@ -499,6 +496,55 @@ public class GUIUtil {
                 }
             }
         };
+    }
+
+    public static Callback<ListView<TradeCurrency>, ListCell<TradeCurrency>> getTradeCurrencyCellFactoryNameAndCode() {
+        return p -> new ListCell<>() {
+            @Override
+            protected void updateItem(TradeCurrency item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (item != null && !empty) {
+
+                    HBox box = new HBox();
+                    box.setSpacing(10);
+
+                    Label label = new AutoTooltipLabel(getCurrencyType(item.getCode()));
+                    label.getStyleClass().add("currency-label-small");
+                    Label currency = new AutoTooltipLabel(item.getNameAndCode());
+                    currency.getStyleClass().add("currency-label");
+
+                    // use icons for crypto
+                    if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                        label.setText("");
+                        label.setGraphic(getCurrencyIcon(item.getCode()));
+                    }
+
+                    box.getChildren().addAll(label, currency);
+
+                    setGraphic(box);
+
+                } else {
+                    setGraphic(null);
+                }
+            }
+        };
+    }
+    
+    private static String getCurrencyType(String code) {
+        if (CurrencyUtil.isFiatCurrency(code)) {
+            return Res.get("shared.fiat");
+        } else if (CurrencyUtil.isTraditionalCurrency(code)) {
+            return Res.get("shared.traditional");
+        } else if (CurrencyUtil.isCryptoCurrency(code)) {
+            return Res.get("shared.crypto");
+        } else {
+            return "";
+        }
+    }
+
+    private static String getCurrencyType(PaymentMethod method) {
+        return method.isTraditional() ? Res.get("shared.traditional") : Res.get("shared.crypto");
     }
 
     public static ListCell<PaymentMethod> getPaymentMethodButtonCell() {
@@ -536,9 +582,7 @@ public class GUIUtil {
 
                     HBox box = new HBox();
                     box.setSpacing(20);
-                    Label paymentType = new AutoTooltipLabel(
-                            method.isTraditional() ? Res.get("shared.traditional") : Res.get("shared.crypto"));
-
+                    Label paymentType = new AutoTooltipLabel(getCurrencyType(method));
                     paymentType.getStyleClass().add("currency-label-small");
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));
                     paymentMethod.getStyleClass().add("currency-label");
