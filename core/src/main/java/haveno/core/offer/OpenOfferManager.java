@@ -1175,9 +1175,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         return;
                     } else if (openOffer.getScheduledTxHashes() == null) {
                         scheduleWithEarliestTxs(openOffers, openOffer);
-                        resultHandler.handleResult(null);
-                        return;
                     }
+
+                    resultHandler.handleResult(null);
+                    return;
                 }
             } catch (Exception e) {
                 if (!openOffer.isCanceled()) log.error("Error processing offer: {}\n", e.getMessage(), e);
