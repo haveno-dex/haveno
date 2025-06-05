@@ -35,6 +35,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public final class DisputeClosedMessage extends DisputeMessage {
     private final DisputeResult disputeResult;
     private final NodeAddress senderNodeAddress;
+    @Nullable
     private final String updatedMultisigHex;
     @Nullable
     private final String unsignedPayoutTxHex;
@@ -44,7 +45,7 @@ public final class DisputeClosedMessage extends DisputeMessage {
                                 NodeAddress senderNodeAddress,
                                 String uid,
                                 SupportType supportType,
-                                String updatedMultisigHex,
+                                @Nullable String updatedMultisigHex,
                                 @Nullable String unsignedPayoutTxHex,
                                 boolean deferPublishPayout) {
         this(disputeResult,
@@ -85,9 +86,9 @@ public final class DisputeClosedMessage extends DisputeMessage {
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                 .setUid(uid)
                 .setType(SupportType.toProtoMessage(supportType))
-                .setUpdatedMultisigHex(updatedMultisigHex)
                 .setDeferPublishPayout(deferPublishPayout);
         Optional.ofNullable(unsignedPayoutTxHex).ifPresent(e -> builder.setUnsignedPayoutTxHex(unsignedPayoutTxHex));
+        Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
         return getNetworkEnvelopeBuilder().setDisputeClosedMessage(builder).build();
     }
 
@@ -98,7 +99,7 @@ public final class DisputeClosedMessage extends DisputeMessage {
                 proto.getUid(),
                 messageVersion,
                 SupportType.fromProto(proto.getType()),
-                proto.getUpdatedMultisigHex(),
+                ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getUnsignedPayoutTxHex()),
                 proto.getDeferPublishPayout());
     }
