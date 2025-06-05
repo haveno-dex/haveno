@@ -762,7 +762,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         // Dark mode toggle
         ImageView useDarkModeIcon = new ImageView();
-        useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode" : "image-light-mode");
+        useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode-toggle" : "image-light-mode-toggle");
         useDarkModeIcon.setFitHeight(networkIconSize);
         useDarkModeIcon.setPreserveRatio(true);
         useDarkModeIcon.setPickOnBounds(true);
@@ -776,7 +776,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             preferences.setCssTheme(preferences.getCssTheme() != 1);
         });
         preferences.getCssThemeProperty().addListener((observable, oldValue, newValue) -> {
-            useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode" : "image-light-mode");
+            useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode-toggle" : "image-light-mode-toggle");
         });
 
         // P2P Network

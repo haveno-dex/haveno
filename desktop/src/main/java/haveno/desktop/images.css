@@ -365,10 +365,10 @@
     -fx-image: url("../../images/xmr_logo.png");
 }
 
-#image-dark-mode {
-    -fx-image: url("../../images/dark_mode.png");   
+#image-dark-mode-toggle {
+    -fx-image: url("../../images/dark_mode_toggle.png");   
 }
 
-#image-light-mode {
-    -fx-image: url("../../images/light_mode.png");
+#image-light-mode-toggle {
+    -fx-image: url("../../images/light_mode_toggle.png");
 }
