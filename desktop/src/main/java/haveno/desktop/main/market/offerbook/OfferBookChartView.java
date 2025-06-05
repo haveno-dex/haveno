@@ -356,11 +356,19 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private synchronized void updateChartData() {
+
+        // update volume headers
         Volume volumeSell = model.getTotalVolume(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL);
-        Volume volumeBuy = model.getTotalVolume(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY);;
-        volumeSellColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), volumeSell == null ? "" : "(" + VolumeUtil.formatVolume(volumeSell) + ")"));
+        Volume volumeBuy = model.getTotalVolume(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY);
+        String formattedVolumeSell = volumeSell == null ? null : VolumeUtil.formatVolume(volumeSell);
+        String formattedVolumeBuy = volumeBuy == null ? null : VolumeUtil.formatVolume(volumeBuy);
+        if (model.getSellData().isEmpty()) formattedVolumeSell = "0.0";
+        if (model.getBuyData().isEmpty()) formattedVolumeBuy = "0.0";
+        volumeSellColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), formattedVolumeSell == null ? "" : "(" + formattedVolumeSell + ")"));
+        volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), formattedVolumeBuy == null ? "" : "(" + formattedVolumeBuy + ")"));
+
+        // update amount headers
         amountSellColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL)));
-        volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), volumeBuy == null ? "" : "(" + VolumeUtil.formatVolume(volumeBuy) + ")"));
         amountBuyColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY)));
 
         seriesSell.getData().clear();
