@@ -622,7 +622,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkIcon.setFitHeight(networkIconSize);
         splashP2PNetworkIcon.setVisible(false);
         splashP2PNetworkIcon.setManaged(false);
-        HBox.setMargin(splashP2PNetworkIcon, new Insets(0, 0,0, 0));
+        HBox.setMargin(splashP2PNetworkIcon, new Insets(0, 0, 0, 0));
         splashP2PNetworkIcon.setOnMouseClicked(e -> {
             torNetworkSettingsWindow.show();
         });
