@@ -291,7 +291,7 @@
     -fx-opacity: 1.0;
 }
 
-.jfx-combo-box > .list-cell:filled,
+.jfx-combo-box > .list-cell,
 .jfx-combo-box > .text-field {
     -fx-padding: 0 !important;
 }
