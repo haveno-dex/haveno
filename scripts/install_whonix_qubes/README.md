@@ -35,7 +35,7 @@ $ bash 0.0-dom0.sh && bash 0.1-dom0.sh && bash 0.2-dom0.sh
 <p style="text-align: center;">Example:</p>
 
 ```shell
-% sudo bash 1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.1.1/haveno-v1.1.1-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
+% sudo bash 1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
 ### *Via Source*
