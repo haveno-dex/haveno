@@ -17,10 +17,14 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.UpiAccountPayload;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class UpiAccount extends IfscBasedAccount {
@@ -31,6 +35,11 @@ public final class UpiAccount extends IfscBasedAccount {
     @Override
     protected PaymentAccountPayload createPayload() {
         return new UpiAccountPayload(paymentMethod.getId(), id);
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return List.of(PaymentAccountFormField.FieldId.VIRTUAL_PAYMENT_ADDRESS);
     }
 
     public void setVirtualPaymentAddress(String virtualPaymentAddress) {

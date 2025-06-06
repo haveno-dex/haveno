@@ -50,7 +50,7 @@ public final class USPostalMoneyOrderAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(PaymentAccountFormField.FieldId.POSTAL_ADDRESS, PaymentAccountFormField.FieldId.HOLDER_NAME);
     }
 
     public void setPostalAddress(String postalAddress) {
