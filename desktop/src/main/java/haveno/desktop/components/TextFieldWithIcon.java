@@ -21,6 +21,7 @@ import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.UserThread;
+import haveno.desktop.util.Layout;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -53,10 +54,10 @@ public class TextFieldWithIcon extends AnchorPane {
 
         iconLabel = new Label();
         iconLabel.setLayoutX(0);
-        iconLabel.setLayoutY(3);
+        iconLabel.setLayoutY(Layout.FLOATING_ICON_Y);
 
         dummyTextField.widthProperty().addListener((observable, oldValue, newValue) -> {
-            iconLabel.setLayoutX(dummyTextField.widthProperty().get() + 20);
+            iconLabel.setLayoutX(dummyTextField.widthProperty().get() + 20 + Layout.FLOATING_ICON_Y);
         });
 
         getChildren().addAll(textField, dummyTextField, iconLabel);

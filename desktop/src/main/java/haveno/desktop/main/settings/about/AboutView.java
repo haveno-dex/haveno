@@ -19,6 +19,7 @@ package haveno.desktop.main.settings.about;
 
 import com.google.inject.Inject;
 import haveno.common.app.Version;
+import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
@@ -35,16 +36,18 @@ import javafx.scene.layout.GridPane;
 @FxmlView
 public class AboutView extends ActivatableView<GridPane, Void> {
 
+private final FilterManager filterManager;
     private int gridRow = 0;
 
     @Inject
-    public AboutView() {
+    public AboutView(FilterManager filterManager) {
         super();
+        this.filterManager = filterManager;
     }
 
     @Override
     public void initialize() {
-        addTitledGroupBg(root, gridRow, 4, Res.get("setting.about.aboutHaveno"));
+        addTitledGroupBg(root, gridRow, 5, Res.get("setting.about.aboutHaveno"));
 
         Label label = addLabel(root, gridRow, Res.get("setting.about.about"), Layout.TWICE_FIRST_ROW_DISTANCE);
         label.setWrapText(true);
@@ -77,8 +80,11 @@ public class AboutView extends ActivatableView<GridPane, Void> {
         if (isXmr)
             addCompactTopLabelTextField(root, ++gridRow, Res.get("setting.about.feeEstimation.label"), "Monero node");
 
-        addTitledGroupBg(root, ++gridRow, 2, Res.get("setting.about.versionDetails"), Layout.GROUP_DISTANCE);
+        String minVersion = filterManager.getDisableTradeBelowVersion() == null ? Res.get("shared.none") : filterManager.getDisableTradeBelowVersion();
+        
+        addTitledGroupBg(root, ++gridRow, 3, Res.get("setting.about.versionDetails"), Layout.GROUP_DISTANCE);
         addCompactTopLabelTextField(root, gridRow, Res.get("setting.about.version"), Version.VERSION, Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+        addCompactTopLabelTextField(root, ++gridRow, Res.get("filterWindow.disableTradeBelowVersion"), minVersion);
         addCompactTopLabelTextField(root, ++gridRow,
                 Res.get("setting.about.subsystems.label"),
                 Res.get("setting.about.subsystems.val",

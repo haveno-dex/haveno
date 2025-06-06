@@ -188,7 +188,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     protected void createGridPane() {
         super.createGridPane();
         gridPane.setPadding(new Insets(35, 40, 30, 40));
-        gridPane.getStyleClass().add("grid-pane");
+        gridPane.getStyleClass().addAll("grid-pane", "popup-with-input");
         gridPane.getColumnConstraints().get(0).setHalignment(HPos.LEFT);
         gridPane.setPrefWidth(width);
     }
@@ -413,11 +413,13 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private void addPayoutAmountTextFields() {
         buyerPayoutAmountInputTextField = new InputTextField();
         buyerPayoutAmountInputTextField.setLabelFloat(true);
+        buyerPayoutAmountInputTextField.getStyleClass().add("label-float");
         buyerPayoutAmountInputTextField.setEditable(false);
         buyerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.buyer"));
 
         sellerPayoutAmountInputTextField = new InputTextField();
         sellerPayoutAmountInputTextField.setLabelFloat(true);
+        sellerPayoutAmountInputTextField.getStyleClass().add("label-float");
         sellerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.seller"));
         sellerPayoutAmountInputTextField.setEditable(false);
 

@@ -17,9 +17,12 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
@@ -27,31 +30,35 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 
 public class QRCodeWindow extends Overlay<QRCodeWindow> {
     private static final Logger log = LoggerFactory.getLogger(QRCodeWindow.class);
-    private final ImageView qrCodeImageView;
+    private final StackPane qrCodePane;
     private final String moneroUri;
 
-    public QRCodeWindow(String bitcoinURI) {
-        this.moneroUri = bitcoinURI;
+    public QRCodeWindow(String moneroUri) {
+        this.moneroUri = moneroUri;
+
+        Tuple2<StackPane, ImageView> qrCodeTuple = GUIUtil.getBigXmrQrCodePane();
+        qrCodePane = qrCodeTuple.first;
+        ImageView qrCodeImageView = qrCodeTuple.second;
+        
         final byte[] imageBytes = QRCode
-                .from(bitcoinURI)
+                .from(moneroUri)
                 .withSize(300, 300)
                 .to(ImageType.PNG)
                 .stream()
                 .toByteArray();
         Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
-        qrCodeImageView = new ImageView(qrImage);
-        qrCodeImageView.setFitHeight(250);
-        qrCodeImageView.setFitWidth(250);
-        qrCodeImageView.getStyleClass().add("qr-code");
+        qrCodeImageView.setImage(qrImage);
 
         type = Type.Information;
         width = 468;
@@ -65,10 +72,11 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         addHeadLine();
         addMessage();
 
-        GridPane.setRowIndex(qrCodeImageView, ++rowIndex);
-        GridPane.setColumnSpan(qrCodeImageView, 2);
-        GridPane.setHalignment(qrCodeImageView, HPos.CENTER);
-        gridPane.getChildren().add(qrCodeImageView);
+        qrCodePane.setOnMouseClicked(event -> openWallet());
+        GridPane.setRowIndex(qrCodePane, ++rowIndex);
+        GridPane.setColumnSpan(qrCodePane, 2);
+        GridPane.setHalignment(qrCodePane, HPos.CENTER);
+        gridPane.getChildren().add(qrCodePane);
 
         String request = moneroUri.replace("%20", " ").replace("?", "\n?").replace("&", "\n&");
         Label infoLabel = new AutoTooltipLabel(Res.get("qRCodeWindow.request", request));
@@ -90,5 +98,13 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
 
     public String getClipboardText() {
         return moneroUri;
+    }
+
+    private void openWallet() {
+        try {
+            Utilities.openURI(URI.create(moneroUri));
+        } catch (Exception e) {
+            log.warn(e.getMessage());
+        }
     }
 }

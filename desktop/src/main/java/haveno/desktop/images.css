@@ -1,16 +1,3 @@
-/* splash screen */
-/*noinspection CssUnknownTarget*/
-#image-splash-logo {
-    -fx-image: url("../../images/logo_splash.png");
-}
-
-/* splash screen testnet */
-/*noinspection CssUnknownTarget*/
-#image-splash-testnet-logo {
-    -fx-image: url("../../images/logo_splash_testnet.png");
-}
-
-/* shared*/
 #image-info {
     -fx-image: url("../../images/info.png");
 }
@@ -23,16 +10,29 @@
     -fx-image: url("../../images/alert_round.png");
 }
 
+#image-red_circle_solid {
+    -fx-image: url("../../images/red_circle_solid.png");
+}
+
+
 #image-green_circle {
     -fx-image: url("../../images/green_circle.png");
+}
+
+#image-green_circle_solid {
+    -fx-image: url("../../images/green_circle_solid.png");
 }
 
 #image-yellow_circle {
   -fx-image: url("../../images/yellow_circle.png");
 }
 
-#image-blue_circle {
-    -fx-image: url("../../images/blue_circle.png");
+#image-yellow_circle_solid {
+  -fx-image: url("../../images/yellow_circle_solid.png");
+}
+
+#image-blue_circle_solid {
+    -fx-image: url("../../images/blue_circle_solid.png");
 }
 
 #image-remove {
@@ -299,4 +299,60 @@
 
 #image-new-trade-protocol-screenshot {
     -fx-image: url("../../images/new_trade_protocol_screenshot.png");
+}
+
+#image-support {
+    -fx-image: url("../../images/support.png");
+}
+
+#image-account {
+    -fx-image: url("../../images/account.png");
+}
+
+#image-settings {
+    -fx-image: url("../../images/settings.png");
+}
+
+#image-btc-logo {
+    -fx-image: url("../../images/btc_logo.png");
+}
+
+#image-bch-logo {
+    -fx-image: url("../../images/bch_logo.png");
+}
+
+#image-dai-erc20-logo {
+    -fx-image: url("../../images/dai-erc20_logo.png");
+}
+
+#image-eth-logo {
+    -fx-image: url("../../images/eth_logo.png");
+}
+
+#image-ltc-logo {
+    -fx-image: url("../../images/ltc_logo.png");
+}
+
+#image-usdc-erc20-logo {
+    -fx-image: url("../../images/usdc-erc20_logo.png");
+}
+
+#image-usdt-erc20-logo {
+    -fx-image: url("../../images/usdt-erc20_logo.png");
+}
+
+#image-usdt-trc20-logo {
+    -fx-image: url("../../images/usdt-trc20_logo.png");
+}
+
+#image-xmr-logo {
+    -fx-image: url("../../images/xmr_logo.png");
+}
+
+#image-dark-mode-toggle {
+    -fx-image: url("../../images/dark_mode_toggle.png");   
+}
+
+#image-light-mode-toggle {
+    -fx-image: url("../../images/light_mode_toggle.png");
 }

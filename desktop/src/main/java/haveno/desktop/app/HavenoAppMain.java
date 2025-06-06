@@ -216,7 +216,10 @@ public class HavenoAppMain extends HavenoExecutable {
 
             // Set the dialog content
             VBox vbox = new VBox(10);
-            vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByPath("logo_splash.png")), passwordField, errorMessageField, versionField);
+            ImageView logoImageView = new ImageView(ImageUtil.getImageByPath("logo_splash_light.png"));
+            logoImageView.setFitWidth(342);
+            logoImageView.setPreserveRatio(true);
+            vbox.getChildren().addAll(logoImageView, passwordField, errorMessageField, versionField);
             vbox.setAlignment(Pos.TOP_CENTER);
             getDialogPane().setContent(vbox);
 

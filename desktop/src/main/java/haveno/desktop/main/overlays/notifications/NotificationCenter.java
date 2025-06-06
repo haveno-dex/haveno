@@ -216,7 +216,7 @@ public class NotificationCenter {
             if (DontShowAgainLookup.showAgain(key)) {
                 Notification notification = new Notification().tradeHeadLine(trade.getShortId()).message(message);
                 if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(PendingTradesView.class)) {
-                    notification.actionButtonTextWithGoTo("navigation.portfolio.pending")
+                    notification.actionButtonTextWithGoTo("portfolio.tab.pendingTrades")
                             .onAction(() -> {
                                 DontShowAgainLookup.dontShowAgain(key, true);
                                 navigation.navigateTo(MainView.class, PortfolioView.class, PendingTradesView.class);
@@ -318,7 +318,7 @@ public class NotificationCenter {
     private void goToSupport(Trade trade, String message, Class<? extends DisputeView> viewClass) {
         Notification notification = new Notification().disputeHeadLine(trade.getShortId()).message(message);
         if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(viewClass)) {
-            notification.actionButtonTextWithGoTo("navigation.support")
+            notification.actionButtonTextWithGoTo("mainView.menu.support")
                     .onAction(() -> navigation.navigateTo(MainView.class, SupportView.class, viewClass))
                     .show();
         } else {

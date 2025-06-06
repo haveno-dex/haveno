@@ -216,7 +216,7 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
         }
         removeAccountRows();
         addAccountButton.setDisable(false);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.selectedAccount"), Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.GROUP_DISTANCE);
         paymentMethodForm = getPaymentMethodForm(current);
         paymentMethodForm.addFormForEditAccount();
         gridRow = paymentMethodForm.getGridRow();

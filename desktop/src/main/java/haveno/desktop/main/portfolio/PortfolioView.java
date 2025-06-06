@@ -80,9 +80,9 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         failedTradesTab.setClosable(false);
 
-        openOffersTab.setText(Res.get("portfolio.tab.openOffers").toUpperCase());
-        pendingTradesTab.setText(Res.get("portfolio.tab.pendingTrades").toUpperCase());
-        closedTradesTab.setText(Res.get("portfolio.tab.history").toUpperCase());
+        openOffersTab.setText(Res.get("portfolio.tab.openOffers"));
+        pendingTradesTab.setText(Res.get("portfolio.tab.pendingTrades"));
+        closedTradesTab.setText(Res.get("portfolio.tab.history"));
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(PortfolioView.class) == 1)

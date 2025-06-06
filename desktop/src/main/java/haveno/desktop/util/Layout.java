@@ -25,7 +25,7 @@ public class Layout {
     public static final double FIRST_ROW_DISTANCE = 20d;
     public static final double COMPACT_FIRST_ROW_DISTANCE = 10d;
     public static final double TWICE_FIRST_ROW_DISTANCE = 20d * 2;
-    public static final double FLOATING_LABEL_DISTANCE = 18d;
+    public static final double FLOATING_LABEL_DISTANCE = 23d;
     public static final double GROUP_DISTANCE = 40d;
     public static final double COMPACT_GROUP_DISTANCE = 30d;
     public static final double GROUP_DISTANCE_WITHOUT_SEPARATOR = 20d;
@@ -33,6 +33,7 @@ public class Layout {
     public static final double COMPACT_FIRST_ROW_AND_GROUP_DISTANCE = COMPACT_GROUP_DISTANCE + FIRST_ROW_DISTANCE;
     public static final double COMPACT_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE = COMPACT_GROUP_DISTANCE + COMPACT_FIRST_ROW_DISTANCE;
     public static final double COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR = GROUP_DISTANCE_WITHOUT_SEPARATOR + COMPACT_FIRST_ROW_DISTANCE;
+    public static final double TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE = COMPACT_GROUP_DISTANCE + TWICE_FIRST_ROW_DISTANCE;
     public static final double TWICE_FIRST_ROW_AND_GROUP_DISTANCE = GROUP_DISTANCE + TWICE_FIRST_ROW_DISTANCE;
     public static final double PADDING_WINDOW = 20d;
     public static double PADDING = 10d;
@@ -40,4 +41,8 @@ public class Layout {
     public static final double SPACING_V_BOX = 5d;
     public static final double GRID_GAP = 5d;
     public static final double LIST_ROW_HEIGHT = 34;
+    public static final double ROUNDED_ARC = 20;
+    public static final double FLOATING_ICON_Y = 9; // adjust when .jfx-text-field padding is changed for right icons
+    public static final double DETAILS_WINDOW_WIDTH = 950;
+    public static final double DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT = 150;
 }

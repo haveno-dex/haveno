@@ -36,6 +36,7 @@ import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.geometry.Insets;
 import javafx.scene.control.CheckBox;
@@ -201,6 +202,8 @@ public class AssetsForm extends PaymentMethodForm {
         ((AutocompleteComboBox<TradeCurrency>) currencyComboBox).setAutocompleteItems(
                 CurrencyUtil.getActiveSortedCryptoCurrencies(filterManager));
         currencyComboBox.setVisibleRowCount(Math.min(currencyComboBox.getItems().size(), 10));
+
+        currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactoryNameAndCode());
 
         currencyComboBox.setConverter(new StringConverter<>() {
             @Override

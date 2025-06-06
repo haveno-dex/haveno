@@ -86,12 +86,12 @@ public class AccountView extends ActivatableView<TabPane, Void> {
 
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
 
-        traditionalAccountsTab.setText(Res.get("account.menu.paymentAccount").toUpperCase());
-        cryptoAccountsTab.setText(Res.get("account.menu.altCoinsAccountView").toUpperCase());
-        passwordTab.setText(Res.get("account.menu.password").toUpperCase());
-        seedWordsTab.setText(Res.get("account.menu.seedWords").toUpperCase());
-        //walletInfoTab.setText(Res.get("account.menu.walletInfo").toUpperCase());
-        backupTab.setText(Res.get("account.menu.backup").toUpperCase());
+        traditionalAccountsTab.setText(Res.get("account.menu.paymentAccount"));
+        cryptoAccountsTab.setText(Res.get("account.menu.altCoinsAccountView"));
+        passwordTab.setText(Res.get("account.menu.password"));
+        seedWordsTab.setText(Res.get("account.menu.seedWords"));
+        //walletInfoTab.setText(Res.get("account.menu.walletInfo"));
+        backupTab.setText(Res.get("account.menu.backup"));
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(AccountView.class) == 1) {

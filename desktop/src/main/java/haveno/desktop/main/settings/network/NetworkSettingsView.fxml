@@ -53,7 +53,7 @@
                         <PropertyValueFactory property="address"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="90">
+                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="110">
                     <cellValueFactory>
                         <PropertyValueFactory property="connected"/>
                     </cellValueFactory>
@@ -108,6 +108,9 @@
     </HavenoTextField>
 
     <VBox GridPane.rowIndex="6" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
+        <GridPane.margin>
+            <Insets top="0" right="0" bottom="10" left="0"/>
+        </GridPane.margin>
         <AutoTooltipLabel fx:id="p2PPeersLabel" styleClass="small-text"/>
         <TableView fx:id="p2pPeersTableView">
             <columns>
@@ -159,10 +162,7 @@
     <HavenoTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
                    focusTraversable="false" labelFloat="true"/>
 
-    <HavenoTextField fx:id="minVersionForTrading" GridPane.rowIndex="10" editable="false"
-                   focusTraversable="false" labelFloat="true"/>
-
-    <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="11" GridPane.columnIndex="0"/>
+    <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
 
     <columnConstraints>
         <ColumnConstraints hgrow="ALWAYS" minWidth="500"/>

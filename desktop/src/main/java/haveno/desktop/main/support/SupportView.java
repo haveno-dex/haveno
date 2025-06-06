@@ -139,9 +139,9 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         // Has to be called before loadView
         updateAgentTabs();
 
-        tradersMediationDisputesTab.setText(Res.get("support.tab.mediation.support").toUpperCase());
-        tradersRefundDisputesTab.setText(Res.get("support.tab.refund.support").toUpperCase());
-        tradersArbitrationDisputesTab.setText(Res.get("support.tab.arbitration.support").toUpperCase());
+        tradersMediationDisputesTab.setText(Res.get("support.tab.mediation.support"));
+        tradersRefundDisputesTab.setText(Res.get("support.tab.refund.support"));
+        tradersArbitrationDisputesTab.setText(Res.get("support.tab.arbitration.support"));
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
@@ -221,16 +221,16 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
         // We might get that method called before we have the map is filled in the arbitratorManager
         if (arbitratorTab != null) {
-            arbitratorTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.arbitrator")).toUpperCase());
+            arbitratorTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.arbitrator")));
         }
         if (signedOfferTab != null) {
-            signedOfferTab.setText(Res.get("support.tab.SignedOffers").toUpperCase());
+            signedOfferTab.setText(Res.get("support.tab.SignedOffers"));
         }
         if (mediatorTab != null) {
-            mediatorTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.mediator")).toUpperCase());
+            mediatorTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.mediator")));
         }
         if (refundAgentTab != null) {
-            refundAgentTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.refundAgentForSupportStaff")).toUpperCase());
+            refundAgentTab.setText(Res.get("support.tab.ArbitratorsSupportTickets", Res.get("shared.refundAgentForSupportStaff")));
         }
     }
 

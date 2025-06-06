@@ -46,6 +46,7 @@ import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.addLabelExplorerAddressTextField;
 import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
@@ -137,15 +138,20 @@ public class ContractWindow extends Overlay<ContractWindow> {
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("contractWindow.title"));
         addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
                 Layout.TWICE_FIRST_ROW_DISTANCE);
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("contractWindow.dates"),
                 DisplayUtils.formatDateTime(offer.getDate()) + " / " + DisplayUtils.formatDateTime(dispute.getTradeDate()));
         String currencyCode = offer.getCurrencyCode();
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.offerType"),
                 DisplayUtils.getDirectionBothSides(offer.getDirection(), offer.isPrivateOffer()));
+        addSeparator(gridPane, ++rowIndex);        
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(contract.getPrice()));
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradeAmount"),
                 HavenoUtils.formatXmr(contract.getTradeAmount(), true));
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 VolumeUtil.formatVolumeLabel(currencyCode, ":"),
@@ -157,16 +163,20 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 Res.getWithColAndCap("shared.seller") +
                 " " +
                 HavenoUtils.formatXmr(offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(contract.getTradeAmount()), true);
+        addSeparator(gridPane, ++rowIndex);                
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("contractWindow.xmrAddresses"),
                 contract.getBuyerPayoutAddressString() + " / " + contract.getSellerPayoutAddressString());
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("contractWindow.onions"),
                 contract.getBuyerNodeAddress().getFullAddress() + " / " + contract.getSellerNodeAddress().getFullAddress());
 
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("contractWindow.accountAge"),
@@ -176,16 +186,19 @@ public class ContractWindow extends Overlay<ContractWindow> {
         DisputeManager<? extends DisputeList<Dispute>> disputeManager = getDisputeManager(dispute);
         String nrOfDisputesAsBuyer = disputeManager != null ? disputeManager.getNrOfDisputes(true, contract) : "";
         String nrOfDisputesAsSeller = disputeManager != null ? disputeManager.getNrOfDisputes(false, contract) : "";
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("contractWindow.numDisputes"),
                 nrOfDisputesAsBuyer + " / " + nrOfDisputesAsSeller);
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("shared.paymentDetails", Res.get("shared.buyer")),
                 dispute.getBuyerPaymentAccountPayload() != null
                         ? dispute.getBuyerPaymentAccountPayload().getPaymentDetails()
                         : "NA");
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("shared.paymentDetails", Res.get("shared.seller")),
@@ -219,6 +232,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
             NodeAddress agentNodeAddress = disputeManager.getAgentNodeAddress(dispute);
             if (agentNodeAddress != null) {
                 String value = agentMatrixUserName + " (" + agentNodeAddress.getFullAddress() + ")";
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex, title, value);
             }
         }
@@ -232,40 +246,53 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 countries = CountryUtil.getCodesString(acceptedCountryCodes);
                 tooltip = new Tooltip(CountryUtil.getNamesByCodesString(acceptedCountryCodes));
             }
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.acceptedTakerCountries"), countries)
                     .second.setTooltip(tooltip);
         }
 
         if (showAcceptedBanks) {
             if (offer.getPaymentMethod().equals(PaymentMethod.SAME_BANK)) {
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.bankName"), acceptedBanks.get(0));
             } else if (offer.getPaymentMethod().equals(PaymentMethod.SPECIFIC_BANKS)) {
                 String value = Joiner.on(", ").join(acceptedBanks);
                 Tooltip tooltip = new Tooltip(Res.get("shared.acceptedBanks") + value);
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.acceptedBanks"), value)
                         .second.setTooltip(tooltip);
             }
         }
 
+        addSeparator(gridPane, ++rowIndex);
         addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"), contract.getMakerDepositTxHash());
-        if (contract.getTakerDepositTxHash() != null)
+        if (contract.getTakerDepositTxHash() != null) {
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"), contract.getTakerDepositTxHash());
+        }
 
-        if (dispute.getDelayedPayoutTxId() != null)
+        if (dispute.getDelayedPayoutTxId() != null) {
+            addSeparator(gridPane, ++rowIndex);
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxId"), dispute.getDelayedPayoutTxId());
+        }
 
         if (dispute.getDonationAddressOfDelayedPayoutTx() != null) {
+            addSeparator(gridPane, ++rowIndex);
             addLabelExplorerAddressTextField(gridPane, ++rowIndex, Res.get("shared.delayedPayoutTxReceiverAddress"),
                     dispute.getDonationAddressOfDelayedPayoutTx());
         }
 
-        if (dispute.getPayoutTxSerialized() != null)
+        if (dispute.getPayoutTxSerialized() != null) {
+            addSeparator(gridPane, ++rowIndex);
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.payoutTxId"), dispute.getPayoutTxId());
+        }
 
-        if (dispute.getContractHash() != null)
+        if (dispute.getContractHash() != null) {
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("contractWindow.contractHash"),
                     Utils.HEX.encode(dispute.getContractHash())).second.setMouseTransparent(false);
+        }
 
+        addSeparator(gridPane, ++rowIndex);
         Button viewContractButton = addConfirmationLabelButton(gridPane, ++rowIndex, Res.get("shared.contractAsJson"),
                 Res.get("shared.viewContractAsJson"), 0).second;
         viewContractButton.setDefaultButton(false);

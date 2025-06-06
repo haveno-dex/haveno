@@ -23,6 +23,7 @@ import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
+import haveno.desktop.util.GUIUtil;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -38,19 +39,19 @@ public class ExplorerAddressTextField extends AnchorPane {
 
     @Getter
     private final TextField textField;
-    private final Label copyIcon, missingAddressWarningIcon;
+    private final Label copyLabel, missingAddressWarningIcon;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public ExplorerAddressTextField() {
-        copyIcon = new Label();
-        copyIcon.setLayoutY(3);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        copyIcon.setTooltip(new Tooltip(Res.get("explorerAddressTextField.copyToClipboard")));
-        AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        AnchorPane.setRightAnchor(copyIcon, 30.0);
+        copyLabel = new Label();
+        copyLabel.setLayoutY(3);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        copyLabel.setTooltip(new Tooltip(Res.get("explorerAddressTextField.copyToClipboard")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        AnchorPane.setRightAnchor(copyLabel, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("explorerAddressTextField.blockExplorerIcon.tooltip"));
 
@@ -71,27 +72,27 @@ public class ExplorerAddressTextField extends AnchorPane {
         AnchorPane.setRightAnchor(textField, 80.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
-        getChildren().addAll(textField, missingAddressWarningIcon, copyIcon);
+        getChildren().addAll(textField, missingAddressWarningIcon, copyLabel);
     }
 
     public void setup(@Nullable String address) {
         if (address == null) {
             textField.setText(Res.get("shared.na"));
             textField.setId("address-text-field-error");
-            copyIcon.setVisible(false);
-            copyIcon.setManaged(false);
+            copyLabel.setVisible(false);
+            copyLabel.setManaged(false);
             missingAddressWarningIcon.setVisible(true);
             missingAddressWarningIcon.setManaged(true);
             return;
         }
 
         textField.setText(address);
-        copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(address));
+        copyLabel.setOnMouseClicked(e -> Utilities.copyToClipboard(address));
     }
 
     public void cleanup() {
         textField.setOnMouseClicked(null);
-        copyIcon.setOnMouseClicked(null);
+        copyLabel.setOnMouseClicked(null);
         textField.setText("");
     }
 }
