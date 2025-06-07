@@ -406,6 +406,13 @@ public class CurrencyUtil {
                 removedCryptoCurrency.isPresent() ? removedCryptoCurrency.get().getName() : Res.get("shared.na");
             return getCryptoCurrency(currencyCode).map(TradeCurrency::getName).orElse(xmrOrRemovedAsset);
         }
+        if (isTraditionalNonFiatCurrency(currencyCode)) {
+            return getTraditionalNonFiatCurrencies().stream()
+                    .filter(currency -> currency.getCode().equals(currencyCode))
+                    .findAny()
+                    .map(TradeCurrency::getName)
+                    .orElse(currencyCode);
+        }
         try {
             return Currency.getInstance(currencyCode).getDisplayName();
         } catch (Throwable t) {
