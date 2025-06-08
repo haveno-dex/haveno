@@ -71,7 +71,7 @@ public class PasswordPopup extends Overlay<PasswordPopup> {
 
     @Override
     public void show() {
-        actionButtonText("CONFIRM");
+        actionButtonText("Confirm");
         createGridPane();
         addHeadLine();
         addContent();

@@ -31,15 +31,15 @@ public class AutoTooltipButton extends JFXButton {
     }
 
     public AutoTooltipButton(String text) {
-        super(text.toUpperCase());
+        super(text);
     }
 
     public AutoTooltipButton(String text, Node graphic) {
-        super(text.toUpperCase(), graphic);
+        super(text, graphic);
     }
 
     public void updateText(String text) {
-        setText(text.toUpperCase());
+        setText(text);
     }
 
     @Override

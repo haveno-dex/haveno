@@ -39,7 +39,7 @@
     -fx-text-fill: -bs-color-primary;
 }
 
-.highlight, .highlight-static {
+.highlight, .highlight-static, .highlight.label .glyph-icon  {
     -fx-text-fill: -fx-accent;
     -fx-fill: -fx-accent;
 }
@@ -105,6 +105,11 @@
     -fx-font-size: 1.077em;
     -fx-font-family: "IBM Plex Mono";
     -fx-padding: 0 !important;
+    -fx-border-width: 0;
+    -fx-text-fill: -bs-rd-font-dark-gray !important;
+}
+
+.confirmation-text-field-as-label-icon {
 }
 
 /* Other UI Elements */
@@ -150,9 +155,9 @@
     -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-font-size: 0.923em;
     -fx-font-weight: normal;
-    -fx-background-radius: 2px;
-    -fx-pref-height: 32;
-    -fx-min-height: -fx-pref-height;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-min-height: 32;
     -fx-padding: 0 40 0 40;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 2, 0, 0, 0, 1);
     -fx-cursor: hand;
@@ -171,8 +176,12 @@
     -fx-text-fill: -bs-background-color;
 }
 
-.compact-button, .table-cell .jfx-button, .action-button.compact-button {
-    -fx-padding: 0 10 0 10;
+.action-button.compact-button, .compact-button  {
+    -fx-padding: 0 15 0 15;
+}
+
+.table-cell .jfx-button {
+    -fx-padding: 0 7 0 7;
 }
 
 .tiny-button,
@@ -217,10 +226,59 @@
     -fx-border-width: 1;
 }
 
+.jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field, .toggle-button-no-slider {
+    -fx-padding: 7 14 7 14;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-border-color: transparent;
+}
+
 .jfx-combo-box {
-    -jfx-focus-color: -bs-color-primary;
-    -jfx-unfocus-color: -bs-color-gray-line;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-form-field;
+}
+
+.input-line, .input-focused-line {
+    -fx-background-color: transparent;
+    visibility: hidden;
+    -fx-max-height: 0;
+}
+
+.jfx-text-field {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-background-color: -bs-color-background-form-field;
+}
+
+.jfx-text-field.label-float .prompt-container {
+    -fx-translate-y: 0px;
+}
+
+.jfx-text-field.filled.label-float .prompt-container,
+.jfx-text-field.label-float:focused .prompt-container,
+.jfx-combo-box.filled.label-float .prompt-container,
+.jfx-combo-box.label-float:focused .prompt-container,
+.jfx-password-field.filled.label-float .prompt-container,
+.jfx-password-field.label-float:focused .prompt-container {
+    -fx-translate-x: -14px;
+    -fx-translate-y: -5.5px;
+}
+
+.jfx-combo-box .arrow-button {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 0 0 0 10;
+}
+
+.jfx-combo-box:hover {
+    -fx-cursor: hand;
+}
+
+.jfx-combo-box:editable:hover {
+    -fx-cursor: null;
+}
+
+.jfx-combo-box .arrow-button:hover {
+    -fx-cursor: hand;
 }
 
 .jfx-combo-box > .list-cell {
@@ -228,15 +286,66 @@
     -fx-font-family: "IBM Plex Sans Medium";
 }
 
+/* TODO: otherwise combo box with "odd" class is opacity 0.4? */
+.jfx-combo-box > .list-cell:odd, .jfx-combo-box > .list-cell:even {
+    -fx-opacity: 1.0;
+}
+
+.jfx-combo-box > .list-cell,
+.jfx-combo-box > .text-field {
+    -fx-padding: 0 !important;
+}
+
 .jfx-combo-box > .arrow-button > .arrow {
     -fx-background-color: null;
-    -fx-border-color: -jfx-unfocus-color;
+    -fx-border-color: -bs-color-gray-line;
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
+}
+
+.combo-box-popup {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 5;
+}
+
+.combo-box-popup .scroll-pane {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 5;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-translate-y: 4;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 5;
+}
+
+/* Rounds the first and last list cells to create full round illusion */
+.combo-box-popup .list-cell:first-child {
+    -fx-background-radius: 10 10 0 0;
+}
+.combo-box-popup .list-cell:last-child {
+    -fx-background-radius: 0 0 10 10;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-radius: 8;
+}
+
+.combo-box-popup > .list-view:hover {
+    -fx-cursor: hand;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background: -fx-selection-bar;
     -fx-background-color: -fx-selection-bar;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
@@ -301,19 +410,12 @@ tree-table-view:focused {
     -fx-background-insets: 0;
 }
 
-.jfx-text-field {
-    -jfx-focus-color: -bs-color-primary;
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 3 3 0 0;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+/* combo box list view */
+.combo-box .list-view .list-cell:odd {
+    -fx-background-color: -bs-color-background-pane;
 }
-
-.jfx-text-field > .input-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-field > .input-focused-line {
-    -fx-translate-x: -0.333333em;
+.combo-box .list-view .list-cell:even {
+    -fx-background-color: -bs-color-background-pane;
 }
 
 .jfx-text-field-top-label {
@@ -321,8 +423,7 @@ tree-table-view:focused {
 }
 
 .jfx-text-field:readonly, .hyperlink-with-icon {
-    -fx-background-color: -bs-color-gray-1;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-background-color: -bs-color-background-form-field-readonly;
 }
 
 .jfx-text-field:readonly > .input-line {
@@ -348,23 +449,16 @@ tree-table-view:focused {
 }
 
 .jfx-password-field {
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 3 3 0 0;
-    -jfx-focus-color: -bs-color-primary;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-background-color: -bs-color-background-form-field;
 }
 
 .jfx-password-field > .input-line {
     -fx-translate-x: -0.333333em;
 }
 
-.jfx-password-field > .input-focused-line {
-    -fx-translate-x: -0.333333em;
-}
-
-.jfx-text-field:error, .jfx-password-field:error, .jfx-text-area:error {
-    -jfx-focus-color: -bs-rd-error-red;
-    -jfx-unfocus-color: -bs-rd-error-red;
+.jfx-combo-box:error,
+.jfx-text-field:error {
+    -fx-text-fill: -bs-rd-error-red;
 }
 
 .jfx-text-field .error-label, .jfx-password-field .error-label, .jfx-text-area .error-label {
@@ -378,58 +472,69 @@ tree-table-view:focused {
     -fx-font-size: 1em;
 }
 
-.input-with-border {
-    -fx-background-color: -bs-background-color;
-    -fx-border-width: 1;
+.offer-input {
+    -fx-background-color: -bs-color-background-form-field;
     -fx-border-color: -bs-background-gray;
-    -fx-border-radius: 3;
     -fx-pref-height: 43;
     -fx-pref-width: 310;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 1);
-}
-
-.input-with-border .text-field {
-    -fx-alignment: center-right;
-    -fx-pref-height: 43;
-    -fx-font-size: 1.385em;
-}
-
-.input-with-border > .input-label {
-    -fx-font-size: 0.692em;
-    -fx-min-width: 60;
-    -fx-padding: 16;
+    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 0);
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-alignment: center;
 }
 
-.input-with-border .icon {
+.offer-input .text-field {
+    -fx-alignment: center-right;
+    -fx-pref-height: 44;
+    -fx-font-size: 1.385em;
+    -fx-background-radius: 999 0 0 999;
+    -fx-border-radius: 999 0 0 999;
+    -fx-background-color: -bs-color-background-form-field;
+    -fx-border-color: transparent;
+}
+
+.offer-input > .input-label {
+    -fx-font-size: 0.692em;
+    -fx-min-width: 45;
+    -fx-padding: 8;
+    -fx-alignment: center;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-background-color: derive(-bs-color-background-form-field, 15%);
+}
+
+.offer-input .icon {
     -fx-padding: 10;
 }
 
-.input-with-border-readonly {
+.offer-input-readonly {
     -fx-background-color: -bs-color-gray-1;
     -fx-border-width: 0;
     -fx-pref-width: 300;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
-.input-with-border-readonly .text-field {
+.offer-input-readonly .text-field {
     -fx-alignment: center-right;
     -fx-font-size: 1em;
     -fx-background-color: -bs-color-gray-1;
+    -fx-border-width: 0;
 }
 
-.input-with-border-readonly .text-field > .input-line {
+.offer-input-readonly .text-field > .input-line {
     -fx-background-color: transparent;
 }
 
-.input-with-border-readonly > .input-label {
+.offer-input-readonly > .input-label {
     -fx-font-size: 0.692em;
     -fx-min-width: 30;
     -fx-padding: 8;
     -fx-alignment: center;
 }
 
-.input-with-border-readonly .icon {
-    -fx-padding: 2;
+.offer-input-readonly .icon {
+    -fx-padding: 3;
 }
 
 .jfx-badge .badge-pane {
@@ -456,7 +561,8 @@ tree-table-view:focused {
 }
 
 .jfx-badge {
-    -fx-padding: -3 0 0 0;
+    -fx-padding: -2 0 0 0;
+    -fx-border-insets: 0 0 0 0;
 }
 
 .jfx-toggle-button,
@@ -469,11 +575,15 @@ tree-table-view:focused {
     -jfx-size: 8;
 }
 
+.jfx-toggle-button:hover {
+    -fx-cursor: hand;
+}
+
 .jfx-text-area {
-    -jfx-focus-color: -bs-color-primary;
-    -jfx-unfocus-color: -bs-color-gray-line;
-    -fx-background-color: -bs-background-color;
-    -fx-padding: 0.333333em 0.333333em 0.333333em 0.333333em;
+    -fx-background-color: -bs-color-background-form-field;
+    -fx-padding: 9 9 9 9;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .jfx-text-area:readonly {
@@ -484,8 +594,10 @@ tree-table-view:focused {
     -fx-translate-x: -0.333333em;
 }
 
-.jfx-text-area > .input-focused-line {
-    -fx-translate-x: -0.333333em;
+.text-area .viewport {
+    -fx-background-color: transparent;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .wallet-seed-words {
@@ -501,16 +613,18 @@ tree-table-view:focused {
     -jfx-default-color: -bs-color-primary;
 }
 
-.jfx-date-picker .jfx-text-field .jfx-text-area {
+.jfx-date-picker {
     -fx-padding: 0.333333em 0em 0.333333em 0em;
 }
 
 .jfx-date-picker .jfx-text-field .jfx-text-area > .input-line {
     -fx-translate-x: 0em;
+    -fx-background-color: transparent;
 }
 
 .jfx-date-picker .jfx-text-field .jfx-text-area > .input-focused-line {
     -fx-translate-x: 0em;
+    -fx-background-color: transparent;
 }
 
 .jfx-date-picker > .arrow-button > .arrow {
@@ -535,14 +649,14 @@ tree-table-view:focused {
 
 .scroll-bar:horizontal .track,
 .scroll-bar:vertical .track {
-    -fx-background-color: -bs-background-color;
-    -fx-border-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
+    -fx-border-color: -bs-color-background-pane;
     -fx-background-radius: 0;
 }
 
 .scroll-bar:vertical .track-background,
 .scroll-bar:horizontal .track-background {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
 }
@@ -573,7 +687,7 @@ tree-table-view:focused {
 .scroll-bar:vertical .decrement-button,
 .scroll-bar:horizontal .increment-button,
 .scroll-bar:horizontal .decrement-button {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
     -fx-padding: 1;
 }
 
@@ -582,12 +696,12 @@ tree-table-view:focused {
 .scroll-bar:horizontal .decrement-arrow,
 .scroll-bar:vertical .decrement-arrow {
     -fx-shape: null;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 .scroll-bar:vertical:focused,
 .scroll-bar:horizontal:focused {
-    -fx-background-color: -bs-background-color, -bs-color-gray-ccc, -bs-color-gray-ddd;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 /* Behavior */
@@ -632,7 +746,7 @@ tree-table-view:focused {
 
 /* Main UI */
 #base-content-container {
-    -fx-background-color: -bs-background-gray;
+    -fx-background-color: -bs-color-gray-background;
 }
 
 .content-pane {
@@ -659,8 +773,8 @@ tree-table-view:focused {
     -fx-background-color: -bs-rd-nav-background;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-pref-height: 57;
-    -fx-padding: 0 11 0 0;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .top-navigation .separator:vertical .line {
@@ -669,50 +783,54 @@ tree-table-view:focused {
     -fx-border-insets: 0 0 0 1;
 }
 
+.nav-logo {
+    -fx-max-width: 190;
+    -fx-min-width: 155;
+}
+
 .nav-primary {
     -fx-background-color: -bs-rd-nav-primary-background;
-    -fx-padding: 0 11 0 11;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-width: 0 0 0 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-min-width: 410;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 9 0 9 20;
 }
 
 .nav-secondary {
-    -fx-padding: 0 11 0 11;
-    -fx-min-width: 296;
+    -fx-padding: 0 14 0 0;
 }
 
-.nav-price-balance {
-    -fx-background-color: -bs-color-gray-background;
-    -fx-background-radius: 3;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 1);
-    -fx-pref-height: 41;
-    -fx-padding: 0 10 0 0;
-}
-
-.nav-price-balance .separator:vertical .line {
+.nav-separator {
+    -fx-max-width: 1;
+    -fx-min-width: 1;
     -fx-border-color: transparent transparent transparent -bs-rd-separator-dark;
     -fx-border-width: 1;
     -fx-border-insets: 0 0 0 1;
 }
 
-.nav-price-balance .jfx-combo-box > .input-line {
-    -fx-pref-height: 0px;
+.nav-spacer {
+    -fx-max-width: 10;
+    -fx-min-width: 10;
 }
 
-.jfx-badge > .nav-button {
+
+.jfx-badge > .nav-button,
+.jfx-badge > .nav-secondary-button {
     -fx-translate-y: 1;
 }
 
 .nav-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 11;
+    -fx-padding: 9 15;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
 }
 
 .nav-button .text {
-    -fx-font-size: 0.769em;
-    -fx-font-weight: bold;
+    -fx-font-size: 0.95em;
+    -fx-font-weight: 500;
     -fx-fill: -bs-rd-nav-deselected;
 }
 
@@ -722,12 +840,49 @@ tree-table-view:focused {
 
 .nav-button:selected {
     -fx-background-color: -bs-background-color;
-    -fx-border-radius: 4;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
+}
+
+.top-navigation .nav-button:hover {
+    -fx-background-color: -bs-rd-nav-button-hover;
+}
+
+.nav-primary .nav-button:hover {
+    -fx-background-color: -bs-rd-nav-primary-button-hover;
 }
 
 .nav-button:selected .text {
     -fx-fill: -bs-rd-nav-selected;
+}
+
+.nav-secondary-button {
+    -fx-cursor: hand;
+    -fx-padding: 9 2 9 2;
+    -fx-border-insets: 0 12 1 12;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.nav-secondary-button .text {
+    -fx-font-size: 0.95em;
+    -fx-font-weight: 500;
+    -fx-fill: -bs-rd-nav-secondary-deselected;
+}
+
+.nav-secondary-button-japanese .text {
+    -fx-font-size: 1em;
+}
+
+.nav-secondary-button:selected {
+    -fx-border-color: transparent transparent -bs-rd-nav-secondary-selected transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.nav-secondary-button:hover {
+}
+
+.nav-secondary-button:selected .text {
+    -fx-fill: -bs-rd-nav-secondary-selected;
 }
 
 .nav-balance-display {
@@ -735,10 +890,34 @@ tree-table-view:focused {
     -fx-text-fill: -bs-rd-font-balance;
 }
 
+.nav-price-balance {
+    -fx-background-color: -bs-rd-nav-background;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 0 20 0 20;
+}
+
+.nav-price-balance .separator:vertical .line {
+    -fx-border-color: transparent transparent transparent -bs-rd-separator-dark;
+    -fx-border-width: 1;
+    -fx-border-insets: 0 0 0 1;
+}
+
+.nav-price-balance .jfx-combo-box {
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-pref-width: 180;
+}
+
+.nav-price-balance .jfx-combo-box > .input-line {
+    -fx-pref-height: 0px;
+}
+
 .nav-balance-label {
     -fx-font-size: 0.769em;
     -fx-alignment: center-left;
     -fx-text-fill: -bs-rd-font-balance-label;
+    -fx-padding: 0;
 }
 
 #nav-alert-label {
@@ -792,6 +971,10 @@ tree-table-view:focused {
 
 .copy-icon-disputes {
     -fx-text-fill: -bs-background-color;
+}
+
+.copy-icon-disputes.label .glyph-icon {
+    -fx-fill: -bs-background-color;
 }
 
 .copy-icon:hover {
@@ -948,12 +1131,18 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .table-view .table-row-cell:even .table-cell {
-    -fx-background-color: derive(-bs-background-color, 5%);
-    -fx-border-color: derive(-bs-background-color,5%);
+    -fx-background-color: -bs-color-background-row-even;
+    -fx-border-color: -bs-color-background-row-even;
 }
 .table-view .table-row-cell:odd .table-cell {
-    -fx-background-color: derive(-bs-background-color,-5%);
-    -fx-border-color: derive(-bs-background-color,-5%);
+    -fx-background-color: -bs-color-background-row-odd;
+    -fx-border-color: -bs-color-background-row-odd;
+}
+.table-view .table-row-cell.row-faded .table-cell .text {
+    -fx-fill: -bs-color-table-cell-dim;
+}
+.cell-faded {
+    -fx-opacity: 0.4;
 }
 .table-view .table-row-cell:hover .table-cell,
 .table-view .table-row-cell:selected .table-cell {
@@ -975,42 +1164,41 @@ textfield */
 
 .table-view .table-cell {
     -fx-alignment: center-left;
-    -fx-padding: 2 0 2 0;
+    -fx-padding: 6 0 4 0;
+    -fx-text-fill: -bs-text-color;
     /*-fx-padding: 3 0 2 0;*/
 }
 
 .table-view .table-cell.last-column {
-    -fx-alignment: center-right;
-    -fx-padding: 2 10 2 0;
+    -fx-padding: 6 0 4 0;
 }
 
-.table-view .table-cell.last-column.avatar-column {
+.table-view .table-cell.avatar-column {
     -fx-alignment: center;
-    -fx-padding: 2 0 2 0;
-}
-
-.table-view .column-header.last-column {
-    -fx-padding: 0 10 0 0;
-}
-
-.table-view .column-header.last-column .label {
-    -fx-alignment: center-right;
-}
-
-.table-view .column-header.last-column.avatar-column {
-    -fx-padding: 0;
-}
-
-.table-view .column-header.last-column.avatar-column .label {
-    -fx-alignment: center;
+    -fx-padding: 6 0 4 0;
 }
 
 .table-view .table-cell.first-column {
-    -fx-padding: 2 0 2 10;
+    -fx-padding: 6 0 4 0;
+}
+
+.table-view .column-header.last-column .label {
 }
 
 .table-view .column-header.first-column {
-    -fx-padding: 0 0 0 10;
+    -fx-padding: 0 0 0 0;
+}
+
+.table-view .column-header.last-column {
+    -fx-padding: 0 0 0 0;
+}
+
+.table-view .column-header.avatar-column {
+    -fx-padding: 0;
+}
+
+.table-view .column-header.avatar-column .label {
+    -fx-alignment: center;
 }
 
 .number-column.table-cell {
@@ -1019,47 +1207,36 @@ textfield */
 }
 
 .table-view .filler {
-    -fx-background-color: -bs-color-gray-0;
+    -fx-background-color: transparent;
 }
 
 .table-view {
     -fx-control-inner-background-alt: -fx-control-inner-background;
+    -fx-padding: 0;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-width: 0 0 1 0;
 }
 
 .table-view .column-header .label {
     -fx-alignment: center-left;
     -fx-font-weight: normal;
     -fx-font-size: 0.923em;
-    -fx-padding: 0;
+    -fx-padding: 6 0 6 0;
+    -fx-text-fill: -bs-text-color;
 }
 
 .table-view .column-header {
-    -fx-background-color: -bs-color-gray-0;
-    -fx-padding: 0;
-}
-
-.table-view .focus {
-    -fx-alignment: center-left;
-}
-
-.table-view .text {
-    -fx-fill: -bs-text-color;
+    -fx-border-color: transparent;
+    -fx-background-color: -bs-color-background-pane;
 }
 
 /* horizontal scrollbars are never needed and are flickering at scaling so lets turn them off */
 .table-view > .scroll-bar:horizontal {
     -fx-opacity: 0;
-}
-
-.table-view:focused {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-padding: 1;
-}
-
-.table-view:focused .table-row-cell:focused {
-    -fx-background-color: -fx-table-cell-border-color, -fx-background;
-    -fx-background-insets: 0, 0 0 1 0;
 }
 
 .offer-table .table-row-cell {
@@ -1141,6 +1318,46 @@ textfield */
     -fx-cell-size: 47px;
 }
 
+.table-view.offer-table {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.table-view.offer-table .column-header.first-column {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.table-view.offer-table .column-header.last-column {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.table-view.offer-table .table-row-cell {
+    -fx-background: -fx-accent;
+    -fx-background-color: -bs-color-gray-6;
+}
+
+.offer-table-top {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-padding: 15 15 5 15;
+    -fx-background-radius: 15 15 0 0;
+    -fx-border-radius: 15 15 0 0;
+    -fx-border-width: 0 0 0 0;
+}
+
+.offer-table-top .label {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 1.1em;
+    -fx-font-weight: bold;
+}
+
+.offer-table-top .jfx-button {
+    -fx-pref-width: 300px;
+    -fx-min-height: 35px;
+    -fx-padding: 5 25 5 25;
+}
+
 /*******************************************************************************
  *                                                                             *
  * Icons                                                                       *
@@ -1204,17 +1421,28 @@ textfield */
     -fx-border-color: -bs-background-gray;
 }
 
-.text-area-no-border {
-    -fx-border-color: -bs-background-color;
+.text-area-popup {
+    -fx-border-color: -bs-color-background-popup-blur;
 }
 
-.text-area-no-border .content {
-    -fx-background-color: -bs-background-color;
+.text-area-popup .content {
+    -fx-background-color: -bs-color-background-popup-blur;
 }
 
-.text-area-no-border:focused {
-    -fx-focus-color: -bs-background-color;
-    -fx-faint-focus-color: -bs-background-color;
+.text-area-popup:focused {
+    -fx-faint-focus-color: -bs-color-background-popup-blur;
+}
+
+.notification-popup-bg .text-area-popup, .peer-info-popup-bg .text-area-popup {
+    -fx-border-color: -bs-color-background-popup;
+}
+
+.notification-popup-bg .text-area-popup .content, .peer-info-popup-bg .text-area-popup .content{
+    -fx-background-color: -bs-color-background-popup;
+}
+
+.notification-popup-bg .text-area-popup:focused, .peer-info-popup-bg .text-area-popup:focused {
+    -fx-faint-focus-color: -bs-color-background-popup;
 }
 
 /*******************************************************************************
@@ -1238,7 +1466,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button .jfx-rippler {
-    -jfx-rippler-fill: -fx-accent;
+    -jfx-rippler-fill: none;
 }
 
 .tab:disabled .jfx-rippler {
@@ -1256,7 +1484,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button {
-    -fx-padding: 0 0 2 0;
+    -fx-padding: 0 0 0 0;
 }
 
 .jfx-tab-pane .headers-region .tab:selected .tab-container .tab-close-button > .jfx-svg-glyph {
@@ -1276,8 +1504,8 @@ textfield */
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-text-fill: -bs-rd-font-light;
-    -fx-padding: 14;
-    -fx-font-size: 0.769em;
+    -fx-padding: 9 14;
+    -fx-font-size: .95em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
 }
@@ -1291,7 +1519,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region > .tab > .jfx-rippler {
-    -jfx-rippler-fill: -fx-accent;
+    -jfx-rippler-fill: none;
 }
 
 .jfx-tab-pane .headers-region .tab:closable {
@@ -1395,7 +1623,7 @@ textfield */
 }
 
 #payment-info {
-    -fx-background-color: -bs-content-background-gray;
+    -fx-background-color: -bs-color-gray-fafa;
 }
 
 .toggle-button-active {
@@ -1404,6 +1632,19 @@ textfield */
 
 .toggle-button-inactive {
     -fx-background-color: -bs-color-gray-1;
+}
+
+.toggle-button-no-slider {
+    -fx-border-width: 1px;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-background-insets: 0;
+    -fx-pref-height: 36px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toggle-button-no-slider:hover {
+    -fx-cursor: hand;
 }
 
 #trade-fee-textfield {
@@ -1425,7 +1666,7 @@ textfield */
 
 .combo-box-editor-bold {
     -fx-font-weight: bold;
-    -fx-padding: 5 8 5 8 !important;
+    -fx-padding: 0 !important;
     -fx-text-fill: -bs-text-color;
     -fx-font-family: "IBM Plex Sans Medium";
 }
@@ -1454,6 +1695,15 @@ textfield */
     -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-alignment: center-left;
     -fx-pref-height: 35px;
+}
+
+.offer-label {
+    -fx-background-color: rgb(50, 95, 182);
+    -fx-text-fill: white;
+    -fx-font-weight: normal;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-padding: 0 6 0 6;
 }
 
 /* Offer */
@@ -1619,7 +1869,7 @@ textfield */
 .titled-group-bg, .titled-group-bg-active {
     -fx-body-color: -bs-color-gray-background;
     -fx-border-color: -bs-rd-separator;
-    -fx-border-width: 0 0 1 0;
+    -fx-border-width: 0 0 0 0;
     -fx-background-color: transparent;
     -fx-background-insets: 0;
 }
@@ -1729,11 +1979,23 @@ textfield */
  *                                                                             *
  ******************************************************************************/
 .grid-pane {
-    -fx-background-color: -bs-content-background-gray;
-    -fx-background-radius: 5;
-    -fx-effect: null;
-    -fx-effect: dropshadow(gaussian, -bs-color-gray-10, 10, 0, 0, 0);
+    -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 10;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 35, 40, 30, 40;
+}
+
+.grid-pane-separator {
+    -fx-border-color: -bs-rd-separator;
+    -fx-border-width: 0 0 1 0;
+    -fx-translate-y: -2;
+}
+
+.grid-pane .text-area {
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-text-fill: -bs-text-color;
 }
 
 /********************************************************************************************************************
@@ -1762,24 +2024,26 @@ textfield */
     -fx-text-alignment: center;
 }
 
-#charts .chart-plot-background, #charts-dao .chart-plot-background {
-    -fx-background-color: -bs-background-color;
+.chart-pane, .chart-plot-background, #charts .chart-plot-background {
+    -fx-background-color: transparent;
 }
 
 #charts .default-color0.chart-area-symbol {
-    -fx-background-color: -bs-sell, -bs-background-color;
-}
-
-#charts .default-color1.chart-area-symbol, #charts-dao .default-color0.chart-area-symbol {
     -fx-background-color: -bs-buy, -bs-background-color;
 }
 
+#charts .default-color1.chart-area-symbol, #charts-dao .default-color0.chart-area-symbol {
+    -fx-background-color: -bs-sell, -bs-background-color;
+}
+
 #charts .default-color0.chart-series-area-line {
-    -fx-stroke: -bs-sell;
+    -fx-stroke: -bs-buy;
+    -fx-stroke-width: 2px;
 }
 
 #charts .default-color1.chart-series-area-line, #charts-dao .default-color0.chart-series-area-line {
-    -fx-stroke: -bs-buy;
+    -fx-stroke: -bs-sell;
+    -fx-stroke-width: 2px;
 }
 
 /* The .chart-line-symbol rules change the color of the legend symbol */
@@ -1907,13 +2171,6 @@ textfield */
     -fx-stroke-width: 2px;
 }
 
-#charts .default-color0.chart-series-area-fill {
-    -fx-fill: -bs-sell-transparent;
-}
-
-#charts .default-color1.chart-series-area-fill, #charts-dao .default-color0.chart-series-area-fill {
-    -fx-fill: -bs-buy-transparent;
-}
 .chart-vertical-grid-lines {
     -fx-stroke: transparent;
 }
@@ -2013,40 +2270,47 @@ textfield */
     -fx-text-fill: -bs-rd-error-red;
 }
 
-.popup-bg, .notification-popup-bg, .peer-info-popup-bg {
+.popup-headline-information.label .glyph-icon,
+.popup-headline-warning.label .glyph-icon,
+.popup-icon-information.label .glyph-icon,
+.popup-icon-warning.label .glyph-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.popup-bg {
     -fx-font-size: 1.077em;
-    -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 0;
+    -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+}
+
+.notification-popup-bg, .peer-info-popup-bg {
+    -fx-font-size: 0.846em;
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-background-color: -bs-color-background-popup;
+    -fx-background-insets: 44;
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 0;
+    -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, 0, 0);
+    -fx-background-radius: 0 0 15px 15px;
+}
+
+.popup-dropshadow {
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 20, 0, 0, 0);
 }
 
 .notification-popup-headline, peer-info-popup-headline {
     -fx-font-size: 1.077em;
     /*-fx-font-weight: bold;*/
     -fx-text-fill: -bs-color-primary;
-}
-
-.notification-popup-bg {
-    -fx-font-size: 0.846em;
-    -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
-}
-
-.peer-info-popup-bg {
-    -fx-font-size: 0.846em;
-    -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-transparent-dark, 44, 0, -1, 3);
 }
 
 .account-status-title {
@@ -2069,7 +2333,7 @@ textfield */
 }
 
 #price-feed-combo > .list-cell {
-    -fx-text-fill: -bs-text-color;
+    -fx-text-fill: -bs-rd-font-balance;
     -fx-font-family: "IBM Plex Sans";
 }
 
@@ -2089,42 +2353,48 @@ textfield */
 }
 
 #toggle-left {
-    -fx-border-radius: 4 0 0 4;
     -fx-border-color: -bs-rd-separator-dark;
+    -fx-border-radius: 4 0 0 4;
     -fx-border-style: solid;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-width: 1 1 1 1;
     -fx-background-radius: 4 0 0 4;
+    -fx-border-insets: 0;
+    -fx-background-insets: 1 1 1 1;
     -fx-background-color: -bs-background-color;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
 }
 
 #toggle-center {
-    -fx-border-radius: 0;
     -fx-border-color: -bs-rd-separator-dark;
+    -fx-border-radius: 0;
     -fx-border-style: solid;
-    -fx-border-width: 0 1 0 0;
+    -fx-border-width: 1 1 1 0;
     -fx-border-insets: 0;
-    -fx-background-insets: 0;
+    -fx-background-insets: 1 1 1 0;
     -fx-background-radius: 0;
     -fx-background-color: -bs-background-color;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
 }
 
-#toggle-center:selected, #toggle-left:selected, #toggle-right:selected {
-    -fx-text-fill: -bs-background-color;
-    -fx-background-color: -bs-toggle-selected;
-}
-
 #toggle-right {
+    -fx-border-color: -bs-rd-separator-dark;
     -fx-border-radius: 0 4 4 0;
-    -fx-border-width: 0;
+    -fx-border-width: 1 1 1 0;
+    -fx-border-insets: 0;
+    -fx-background-insets: 1 1 1 0;
     -fx-background-radius: 0 4 4 0;
     -fx-background-color: -bs-background-color;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 4, 0, 0, 0, 2);
 }
 
+#toggle-center:selected, #toggle-left:selected, #toggle-right:selected {
+    -fx-text-fill: white;
+    -fx-background-color: -bs-toggle-selected;
+}
+
 #toggle-left:hover, #toggle-right:hover, #toggle-center:hover {
     -fx-background-color: -bs-toggle-selected;
+    -fx-cursor: hand;
 }
 
 /********************************************************************************************************************
@@ -2136,8 +2406,16 @@ textfield */
     -fx-text-fill: -bs-text-color;
 }
 
+.message.label .glyph-icon {
+    -fx-fill: -bs-text-color;
+}
+
 .my-message {
     -fx-text-fill: -bs-background-color;
+}
+
+.my-message.label .glyph-icon {
+    -fx-fill: -bs-background-color;
 }
 
 .message-header {
@@ -2308,18 +2586,103 @@ textfield */
 
 /********************************************************************************************************************
  *                                                                                                                  *
- * Popover                                                                                                    *
+ * Popover                                                                                                          *
  *                                                                                                                  *
  ********************************************************************************************************************/
 .popover > .content {
     -fx-padding: 10;
+    -fx-background-color: -bs-color-background-popup;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-background-insets: 1;
 }
 
 .popover > .content .default-text {
     -fx-text-fill: -bs-text-color;
 }
 
+.popover > .content .text-field {
+    -fx-background-color: -bs-color-background-form-field-readonly !important;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
 .popover > .border {
-    -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-transparent-dark) !important;
-    -fx-fill: -bs-background-color !important;
+    -fx-stroke: linear-gradient(to bottom, -bs-text-color-transparent, -bs-text-color-dropshadow) !important;
+    -fx-fill: -bs-color-background-popup !important;
+}
+
+/********************************************************************************************************************
+ *                                                                                                                  *
+ * Other                                                                                                          *
+ *                                                                                                                  *
+ ********************************************************************************************************************/
+.input-with-border {
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-insets: 1 0 1 0;
+    -fx-background-insets: 1 0 1 0;
+}
+
+.table-view.non-interactive-table .column-header .label {
+    -fx-text-fill: -bs-text-color-dim2;
+}
+
+.highlight-text {
+    -fx-text-fill: -fx-dark-text-color !important;
+}
+
+.grid-pane .text-area,
+.flat-text-area-with-border {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-font-size: 1.077em;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-weight: normal;
+    -fx-text-fill: -bs-rd-font-dark-gray !important;
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field !important;
+}
+
+.grid-pane .text-area:readonly,
+.flat-text-area-with-border {
+    -fx-background-color: transparent !important;
+}
+
+.grid-pane .text-area {
+    -fx-max-height: 150 !important;
+}
+
+.passphrase-copy-box {
+    -fx-border-width: 1;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 13;
+    -fx-background-insets: 0;
+}
+
+.passphrase-copy-box > .jfx-text-field {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.passphrase-copy-box .label {
+    -fx-text-fill: white;
+    -fx-padding: 0;
+}
+
+.passphrase-copy-box .jfx-button {
+    -fx-padding: 5 15 5 15;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-min-height: 0;
+    -fx-font-size: 1.077em;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-weight: normal;
+}
+
+.popup-with-input {
+    -fx-background-color: -bs-color-background-popup-input;
 }

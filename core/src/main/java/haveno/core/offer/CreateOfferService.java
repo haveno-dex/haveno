@@ -134,10 +134,12 @@ public class CreateOfferService {
         // must nullify empty string so contracts match
         if ("".equals(extraInfo)) extraInfo = null;
 
-        // verify buyer as taker security deposit
+        // verify config for private no deposit offers
         boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
-        if (!isBuyerMaker && !isPrivateOffer && buyerAsTakerWithoutDeposit) {
-            throw new IllegalArgumentException("Buyer as taker deposit is required for public offers");
+        if (buyerAsTakerWithoutDeposit || isPrivateOffer) {
+            if (isBuyerMaker) throw new IllegalArgumentException("Buyer must be taker for private offers without deposit");
+            if (!buyerAsTakerWithoutDeposit) throw new IllegalArgumentException("Must set buyer as taker without deposit for private offers");
+            if (!isPrivateOffer) throw new IllegalArgumentException("Must set offer to private for buyer as taker without deposit");
         }
 
         // verify fixed price xor market price with margin

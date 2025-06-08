@@ -102,7 +102,7 @@ import org.apache.commons.lang3.StringUtils;
 @FxmlView
 public class PreferencesView extends ActivatableViewAndModel<GridPane, PreferencesViewModel> {
     private final User user;
-    private TextField btcExplorerTextField;
+    private TextField xmrExplorerTextField;
     private ComboBox<String> userLanguageComboBox;
     private ComboBox<Country> userCountryComboBox;
     private ComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
@@ -220,9 +220,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         userCountryComboBox.setButtonCell(GUIUtil.getComboBoxButtonCell(Res.get("shared.country"), userCountryComboBox,
                 false));
 
-        Tuple2<TextField, Button> btcExp = addTextFieldWithEditButton(root, ++gridRow, Res.get("setting.preferences.explorer"));
-        btcExplorerTextField = btcExp.first;
-        editCustomBtcExplorer = btcExp.second;
+        Tuple2<TextField, Button> xmrExp = addTextFieldWithEditButton(root, ++gridRow, Res.get("setting.preferences.explorer"));
+        xmrExplorerTextField = xmrExp.first;
+        editCustomBtcExplorer = xmrExp.second;
 
         // deviation
         deviationInputTextField = addInputTextField(root, ++gridRow,
@@ -688,7 +688,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         });
 
-        btcExplorerTextField.setText(preferences.getBlockChainExplorer().name);
+        xmrExplorerTextField.setText(preferences.getBlockChainExplorer().name);
 
         deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent()));
         deviationInputTextField.textProperty().addListener(deviationListener);
@@ -779,7 +779,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     .actionButtonText(Res.get("shared.save"))
                     .onAction(() -> {
                         preferences.setBlockChainExplorer(urlWindow.getEditedBlockChainExplorer());
-                        btcExplorerTextField.setText(preferences.getBlockChainExplorer().name);
+                        xmrExplorerTextField.setText(preferences.getBlockChainExplorer().name);
                     })
                     .closeButtonText(Res.get("shared.cancel"))
                     .onClose(urlWindow::hide)

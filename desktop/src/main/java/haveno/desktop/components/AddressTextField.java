@@ -20,14 +20,17 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXTextField;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
@@ -55,6 +58,7 @@ public class AddressTextField extends AnchorPane {
         textField.setId("address-text-field");
         textField.setEditable(false);
         textField.setLabelFloat(true);
+        textField.getStyleClass().add("label-float");
         textField.setPromptText(label);
 
         textField.textProperty().bind(address);
@@ -70,28 +74,32 @@ public class AddressTextField extends AnchorPane {
 
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
         Label extWalletIcon = new Label();
-        extWalletIcon.setLayoutY(3);
+        extWalletIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         extWalletIcon.getStyleClass().addAll("icon", "highlight");
         extWalletIcon.setTooltip(new Tooltip(tooltipText));
         AwesomeDude.setIcon(extWalletIcon, AwesomeIcon.SIGNIN);
         extWalletIcon.setOnMouseClicked(e -> openWallet());
 
-        Label copyIcon = new Label();
-        copyIcon.setLayoutY(3);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        Tooltip.install(copyIcon, new Tooltip(Res.get("addressTextField.copyToClipboard")));
-        AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        copyIcon.setOnMouseClicked(e -> {
+        Label copyLabel = new Label();
+        copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        Tooltip.install(copyLabel, new Tooltip(Res.get("addressTextField.copyToClipboard")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        copyLabel.setOnMouseClicked(e -> {
             if (address.get() != null && address.get().length() > 0)
                 Utilities.copyToClipboard(address.get());
+                Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                Node node = (Node) e.getSource();
+                UserThread.runAfter(() -> tp.hide(), 1);
+                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
         });
 
-        AnchorPane.setRightAnchor(copyIcon, 30.0);
+        AnchorPane.setRightAnchor(copyLabel, 30.0);
         AnchorPane.setRightAnchor(extWalletIcon, 5.0);
         AnchorPane.setRightAnchor(textField, 55.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
 
-        getChildren().addAll(textField, copyIcon, extWalletIcon);
+        getChildren().addAll(textField, copyLabel, extWalletIcon);
     }
 
     private void openWallet() {

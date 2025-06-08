@@ -85,7 +85,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (!trade.isDepositsUnlocked()) {
                 trade.syncAndPollWallet();
                 if (!trade.isDepositsUnlocked()) {
-                    throw new RuntimeException("Cannot process PaymentReceivedMessage until wallet sees that deposits are unlocked for " + trade.getClass().getSimpleName() + " " + trade.getId());
+                    throw new RuntimeException("Cannot process PaymentReceivedMessage until the trade wallet sees that the deposits are unlocked for " + trade.getClass().getSimpleName() + " " + trade.getId());
                 }
             }
 

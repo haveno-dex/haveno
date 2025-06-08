@@ -91,7 +91,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Callback;
@@ -179,29 +178,29 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         currencyComboBoxContainer = currencyBoxTuple.first;
         currencyComboBox = currencyBoxTuple.third;
         currencyComboBox.setPrefWidth(250);
+        currencyComboBox.getStyleClass().add("input-with-border");
 
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
-
-        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
-        matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
-        matchingOffersToggleButton.setPrefHeight(27);
-        Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
-        Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
+        paymentMethodComboBox.getStyleClass().add("input-with-border");
 
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
         noDepositOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
-        noDepositOffersToggleButton.setPrefHeight(27);
         Tooltip noDepositOffersTooltip = new Tooltip(Res.get("offerbook.noDepositOffers"));
         Tooltip.install(noDepositOffersToggleButton, noDepositOffersTooltip);
+
+        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
+        matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
+        Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
+        Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
 
         createOfferButton = new AutoTooltipButton("");
         createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
-        createOfferButton.setStyle("-fx-padding: 0 15 0 15;");
+        createOfferButton.setStyle("-fx-padding: 7 25 7 25;");
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         disabledCreateOfferButtonTooltip.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -211,15 +210,17 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         disabledCreateOfferButtonTooltip.setManaged(false);
         disabledCreateOfferButtonTooltip.setVisible(false);
 
-        var createOfferButtonStack = new StackPane(createOfferButton, disabledCreateOfferButtonTooltip);
+        var createOfferVBox = new VBox(createOfferButton, disabledCreateOfferButtonTooltip);
+        createOfferVBox.setAlignment(Pos.BOTTOM_RIGHT);
 
         Tuple3<VBox, Label, AutoTooltipTextField> autoToolTipTextField = addTopLabelAutoToolTipTextField("");
         VBox filterBox = autoToolTipTextField.first;
         filterInputField = autoToolTipTextField.third;
-        filterInputField.setPromptText(Res.get("market.offerBook.filterPrompt"));
+        filterInputField.setPromptText(Res.get("shared.filter"));
+        filterInputField.getStyleClass().add("input-with-border");
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
-                filterBox, matchingOffersToggleButton, noDepositOffersToggleButton, getSpacer(), createOfferButtonStack);
+                filterBox, noDepositOffersToggleButton, matchingOffersToggleButton, getSpacer(), createOfferVBox);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
@@ -228,6 +229,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         root.getChildren().add(offerToolsBox);
 
         tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
 
         GridPane.setRowIndex(tableView, ++gridRow);
         GridPane.setColumnIndex(tableView, 0);
@@ -405,14 +407,12 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                     if (showAll) {
                         volumeColumn.setTitleWithHelpText(Res.get("shared.amountMinMax"), Res.get("shared.amountHelp"));
                         priceColumn.setTitle(Res.get("shared.price"));
-                        priceColumn.getStyleClass().remove("first-column");
 
                         if (!tableView.getColumns().contains(marketColumn))
                             tableView.getColumns().add(0, marketColumn);
                     } else {
                         volumeColumn.setTitleWithHelpText(Res.get("offerbook.volume", code), Res.get("shared.amountHelp"));
                         priceColumn.setTitle(CurrencyUtil.getPriceWithCurrencyCode(code));
-                        priceColumn.getStyleClass().add("first-column");
 
                         tableView.getColumns().remove(marketColumn);
                     }
@@ -585,9 +585,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     public void setDirection(OfferDirection direction) {
         model.initWithDirection(direction);
-        ImageView iconView = new ImageView();
-        createOfferButton.setGraphic(iconView);
-        iconView.setId(direction == OfferDirection.SELL ? "image-sell-white" : "image-buy-white");
+        createOfferButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode()));
+        createOfferButton.setContentDisplay(ContentDisplay.RIGHT);
         createOfferButton.setId(direction == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
         avatarColumn.setTitle(direction == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
         if (direction == OfferDirection.SELL) {
@@ -750,8 +749,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 () -> {
                     log.debug(Res.get("offerbook.removeOffer.success"));
                     if (DontShowAgainLookup.showAgain(key))
-                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("navigation.funds.availableForWithdrawal")))
-                                .actionButtonTextWithGoTo("navigation.funds.availableForWithdrawal")
+                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("funds.tab.withdrawal")))
+                                .actionButtonTextWithGoTo("funds.tab.withdrawal")
                                 .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class))
                                 .dontShowAgainId(key)
                                 .show();
@@ -769,7 +768,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         new Popup().headLine(headline)
                 .instruction(Res.get("offerbook.warning.noMatchingAccount.msg"))
-                .actionButtonTextWithGoTo("navigation.account")
+                .actionButtonTextWithGoTo("mainView.menu.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
                     navigation.navigateTo(MainView.class, AccountView.class, accountViewClass);
@@ -812,7 +811,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 setMinWidth(40);
             }
         };
-        column.getStyleClass().addAll("number-column", "first-column");
+        column.getStyleClass().addAll("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
                 new Callback<>() {
@@ -1065,7 +1064,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 setSortable(false);
             }
         };
-        column.getStyleClass().addAll("last-column", "avatar-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
                 new Callback<>() {
@@ -1116,7 +1114,12 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     // https://github.com/bisq-network/bisq/issues/4986
                                     if (tableRow != null) {
                                         canTakeOfferResult = model.offerFilterService.canTakeOffer(offer, false);
-                                        tableRow.setOpacity(canTakeOfferResult.isValid() || myOffer ? 1 : 0.4);
+                                        if (canTakeOfferResult.isValid() || myOffer) {
+                                            tableRow.getStyleClass().remove("row-faded");
+                                        } else {
+                                            if (!tableRow.getStyleClass().contains("row-faded")) tableRow.getStyleClass().add("row-faded");
+                                            hbox.getStyleClass().add("cell-faded");
+                                        }
 
                                         if (myOffer) {
                                             button.setDefaultButton(false);
@@ -1149,12 +1152,16 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     } else {
                                         boolean isSellOffer = OfferViewUtil.isShownAsSellOffer(offer);
                                         boolean isPrivateOffer = offer.isPrivateOffer();
-                                        iconView.setId(isPrivateOffer ? "image-lock2x" : isSellOffer ? "image-buy-white" : "image-sell-white");
-                                        iconView.setFitHeight(16);
-                                        iconView.setFitWidth(16);
+                                        if (isPrivateOffer) {
+                                            button.setGraphic(GUIUtil.getLockLabel());
+                                        } else {
+                                            iconView.setId(isSellOffer ? "image-buy-white" : "image-sell-white");
+                                            iconView.setFitHeight(16);
+                                            iconView.setFitWidth(16);
+                                        }
                                         button.setId(isSellOffer ? "buy-button" : "sell-button");
                                         button.setStyle("-fx-text-fill: white");
-                                        title = Res.get("offerbook.takeOffer");
+                                        title = Res.get(isSellOffer ? "mainView.menu.buyXmr" : "mainView.menu.sellXmr");
                                         button.setTooltip(new Tooltip(Res.get("offerbook.takeOfferButton.tooltip", model.getDirectionLabelTooltip(offer))));
                                         button.setOnAction(e -> onTakeOffer(offer));
                                         button2.setManaged(false);
@@ -1179,8 +1186,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     button.setOnAction(null);
                                     button2.setOnAction(null);
                                     if (tableRow != null) {
-                                        tableRow.setOpacity(1);
                                         tableRow.setOnMousePressed(null);
+                                        tableRow.getStyleClass().remove("row-faded");
                                     }
                                 }
                             }
@@ -1236,7 +1243,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 setSortable(true);
             }
         };
-        column.getStyleClass().addAll("last-column", "avatar-column");
+        column.getStyleClass().addAll("avatar-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
         column.setCellFactory(
                 new Callback<>() {
@@ -1280,8 +1287,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     private void updateCreateOfferButton() {
         createOfferButton.setText(Res.get("offerbook.createNewOffer",
-                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
-                getTradeCurrencyCode()).toUpperCase());
+                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy").toUpperCase() : Res.get("shared.sell").toUpperCase(),
+                getTradeCurrencyCode()));
     }
 
     abstract String getTradeCurrencyCode();

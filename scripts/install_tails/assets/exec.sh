@@ -59,4 +59,4 @@ fi
 
 
 echo_blue "Starting Haveno..."
-/opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --userDataDir=${data_dir} --useTorForXmr=on --socks5ProxyXmrAddress=127.0.0.1:9050
+/opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --userDataDir=${data_dir} --useTorForXmr=on --socks5ProxyXmrAddress=127.0.0.1:9062

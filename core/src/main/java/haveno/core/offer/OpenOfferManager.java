@@ -661,7 +661,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 ErrorMessageHandler errorMessageHandler) {
         log.info("Canceling open offer: {}", openOffer.getId());
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
-            if (openOffer.isAvailable()) {
+            if (isOnOfferBook(openOffer)) {
                 openOffer.setState(OpenOffer.State.CANCELED);
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                         () -> {
@@ -681,6 +681,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         } else {
             if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't cancel an offer that is currently edited.");
         }
+    }
+
+    private boolean isOnOfferBook(OpenOffer openOffer) {
+        return openOffer.isAvailable() || openOffer.isReserved();
     }
 
     public void editOpenOfferStart(OpenOffer openOffer,
@@ -1171,9 +1175,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         return;
                     } else if (openOffer.getScheduledTxHashes() == null) {
                         scheduleWithEarliestTxs(openOffers, openOffer);
-                        resultHandler.handleResult(null);
-                        return;
                     }
+
+                    resultHandler.handleResult(null);
+                    return;
                 }
             } catch (Exception e) {
                 if (!openOffer.isCanceled()) log.error("Error processing offer: {}\n", e.getMessage(), e);
@@ -1189,7 +1194,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         } else if (openOffer.getOffer().getOfferPayload().getArbitratorSignature() == null) {
             throw new IllegalArgumentException("Offer " + openOffer.getId() + " has no arbitrator signature");
         } else if (arbitrator == null) {
-            throw new IllegalArgumentException("Offer " + openOffer.getId() + " signed by unavailable arbitrator");
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " signed by unregistered arbitrator");
         } else if (!HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
             throw new IllegalArgumentException("Offer " + openOffer.getId() + " has invalid arbitrator signature");
         } else if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null || openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty() || openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty()) {
@@ -1613,6 +1618,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     return;
                 }
             } else {
+
+                // verify public offer (remove to generally allow private offers)
+                if (offer.isPrivateOffer() || offer.getChallengeHash() != null) {
+                    errorMessage = "Private offer " + request.offerId + " is not valid. It must have direction SELL, taker fee of 0, and a challenge hash.";
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
 
                 // verify maker's trade fee
                 if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {

@@ -86,7 +86,7 @@ public final class TraditionalCurrency extends TradeCurrency {
     }
 
     public static TraditionalCurrency fromProto(protobuf.TradeCurrency proto) {
-        return new TraditionalCurrency(proto.getCode(), proto.getName());
+        return new TraditionalCurrency(proto.getCode(), CurrencyUtil.getNameByCode(proto.getCode()));
     }
 
 

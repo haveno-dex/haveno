@@ -18,6 +18,8 @@
 package haveno.desktop.util;
 
 import com.google.common.collect.Lists;
+
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
 import javafx.collections.FXCollections;
@@ -92,14 +94,13 @@ public class CurrencyList {
     }
 
     private Comparator<CurrencyListItem> getComparator() {
-        Comparator<CurrencyListItem> result;
         if (preferences.isSortMarketCurrenciesNumerically()) {
-            Comparator<CurrencyListItem> byCount = Comparator.comparingInt(left -> left.numTrades);
-            result = byCount.reversed();
+            return Comparator
+                .comparingInt((CurrencyListItem item) -> item.numTrades).reversed()
+                .thenComparing(item -> CurrencyUtil.isCryptoCurrency(item.tradeCurrency.getCode()) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
         } else {
-            result = Comparator.comparing(item -> item.tradeCurrency);
+            return Comparator.comparing(item -> CurrencyUtil.isCryptoCurrency(item.tradeCurrency.getCode()) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
         }
-        return result;
     }
 
     private Map<TradeCurrency, Integer> countTrades(List<TradeCurrency> currencies) {
