@@ -305,8 +305,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
+        // add spacer to center the nav buttons when window is small
+        Region rightSpacer = new Region();
+        HBox.setHgrow(rightSpacer, Priority.ALWAYS);
+
         HBox primaryNav = new HBox(getLogoPane(), marketButton, getNavigationSpacer(), buyButton, getNavigationSpacer(),
-                sellButton, getNavigationSpacer(), portfolioButtonWithBadge, getNavigationSpacer(), fundsButton);
+                sellButton, getNavigationSpacer(), portfolioButtonWithBadge, getNavigationSpacer(), fundsButton, rightSpacer);
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");
