@@ -288,14 +288,16 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         cleanupDisputes();
 
         List<Dispute> disputes = getDisputeList().getList();
-        disputes.forEach(dispute -> {
-            try {
-                DisputeValidation.validateNodeAddresses(dispute, config);
-            } catch (DisputeValidation.ValidationException e) {
-                log.error(e.toString());
-                validationExceptions.add(e);
-            }
-        });
+        synchronized (disputes) {
+            disputes.forEach(dispute -> {
+                try {
+                    DisputeValidation.validateNodeAddresses(dispute, config);
+                } catch (DisputeValidation.ValidationException e) {
+                    log.error(e.toString());
+                    validationExceptions.add(e);
+                }
+            });
+        }
 
         maybeClearSensitiveData();
     }
@@ -318,11 +320,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     public void maybeClearSensitiveData() {
         log.info("{} checking closed disputes eligibility for having sensitive data cleared", super.getClass().getSimpleName());
         Instant safeDate = closedTradableManager.getSafeDateForSensitiveDataClearing();
-        getDisputeList().getList().stream()
-                .filter(e -> e.isClosed())
-                .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
-                .forEach(Dispute::maybeClearSensitiveData);
-        requestPersistence();
+        synchronized (getDisputeList().getList()) {
+            getDisputeList().getList().stream()
+                    .filter(e -> e.isClosed())
+                    .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
+                    .forEach(Dispute::maybeClearSensitiveData);
+            requestPersistence();
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -398,13 +402,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     p2PService.getAddress());
             chatMessage.setSystemMessage(true);
             dispute.addAndPersistChatMessage(chatMessage);
-
-            // export latest multisig hex
-            try {
-                trade.exportMultisigHex();
-            } catch (Exception e) {
-                log.error("Failed to export multisig hex", e);
-            }
 
             // create dispute opened message
             NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
@@ -578,8 +575,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
                     }
 
-                    // update multisig hex
-                    if (message.getUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+                    // update opener's multisig hex
+                    TradePeer opener = sender == trade.getArbitrator() ? trade.getTradePeer() : sender;
+                    if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
 
                     // add chat message with price info
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
@@ -605,7 +603,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 if (trade.isArbitrator()) {
                                     TradePeer senderPeer = sender == trade.getMaker() ? trade.getTaker() : trade.getMaker();
                                     if (senderPeer != trade.getMaker() && senderPeer != trade.getTaker()) throw new RuntimeException("Sender peer is not maker or taker, address=" + senderPeer.getNodeAddress());
-                                    sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), trade.getSelf().getUpdatedMultisigHex());
+                                    sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), opener.getUpdatedMultisigHex());
                                 }
                                 tradeManager.requestPersistence();
                                 errorMessage = null;

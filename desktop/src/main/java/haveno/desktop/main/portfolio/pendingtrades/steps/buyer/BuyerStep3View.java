@@ -52,7 +52,7 @@ public class BuyerStep3View extends TradeStepView {
     public void activate() {
         super.activate();
 
-        model.getMessageStateProperty().addListener(messageStateChangeListener);
+        model.getPaymentSentMessageStateProperty().addListener(messageStateChangeListener);
 
         updateMessageStateInfo();
     }
@@ -60,7 +60,7 @@ public class BuyerStep3View extends TradeStepView {
     public void deactivate() {
         super.deactivate();
 
-        model.getMessageStateProperty().removeListener(messageStateChangeListener);
+        model.getPaymentSentMessageStateProperty().removeListener(messageStateChangeListener);
     }
 
 
@@ -87,7 +87,7 @@ public class BuyerStep3View extends TradeStepView {
     }
 
     private void updateMessageStateInfo() {
-        MessageState messageState = model.getMessageStateProperty().get();
+        MessageState messageState = model.getPaymentSentMessageStateProperty().get();
         textFieldWithIcon.setText(Res.get("message.state." + messageState.name()));
         Label iconLabel = textFieldWithIcon.getIconLabel();
         switch (messageState) {
@@ -112,6 +112,7 @@ public class BuyerStep3View extends TradeStepView {
                 iconLabel.getStyleClass().add("trade-msg-state-stored");
                 break;
             case FAILED:
+            case NACKED:
                 textFieldWithIcon.setIcon(AwesomeIcon.EXCLAMATION_SIGN);
                 iconLabel.getStyleClass().add("trade-msg-state-acknowledged");
                 break;

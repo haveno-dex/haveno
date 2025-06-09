@@ -656,7 +656,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
         if (logReport) {
-            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numThrottledInvalidRequestReports);
+            if (numThrottledInvalidRequestReports > 0) log.warn("Possible DoS attack detected. We received {} other reports of invalid requests since the last log entry", numThrottledInvalidRequestReports);
             numThrottledInvalidRequestReports = 0;
             lastLoggedInvalidRequestReportTs = System.currentTimeMillis();
         }
@@ -872,7 +872,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
                         }
 
-                        ThreadUtils.execute(() -> onMessage(networkEnvelope, this), THREAD_ID);
+                        onMessage(networkEnvelope, this);
                         ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
                 } catch (InvalidClassException e) {
@@ -942,7 +942,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
         if (doLog) {
             log.warn(msg);
-            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            if (numThrottledWarnings > 0) log.warn("Possible DoS attack detected. {} warnings were throttled since the last log entry", numThrottledWarnings);
             numThrottledWarnings = 0;
             lastLoggedWarningTs = System.currentTimeMillis();
         } else {
@@ -954,7 +954,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean doLog = System.currentTimeMillis() - lastLoggedInfoTs > LOG_THROTTLE_INTERVAL_MS;
         if (doLog) {
             log.info(msg);
-            if (numThrottledInfos > 0) log.info("{} info logs were throttled since the last log entry", numThrottledInfos);
+            if (numThrottledInfos > 0) log.info("Possible DoS attack detected. {} info logs were throttled since the last log entry", numThrottledInfos);
             numThrottledInfos = 0;
             lastLoggedInfoTs = System.currentTimeMillis();
         } else {

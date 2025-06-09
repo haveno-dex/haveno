@@ -25,6 +25,8 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodes.XmrNode;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 
 import java.io.File;
@@ -55,6 +57,7 @@ public class XmrLocalNode {
     private MoneroConnectionManager connectionManager;
     private final Config config;
     private final Preferences preferences;
+    private final XmrNodes xmrNodes;
     private final List<XmrLocalNodeListener> listeners = new ArrayList<>();
 
     // required arguments
@@ -69,9 +72,12 @@ public class XmrLocalNode {
     }
 
     @Inject
-    public XmrLocalNode(Config config, Preferences preferences) {
+    public XmrLocalNode(Config config,
+                        Preferences preferences,
+                        XmrNodes xmrNodes) {
         this.config = config;
         this.preferences = preferences;
+        this.xmrNodes = xmrNodes;
         this.daemon = new MoneroDaemonRpc(getUri());
 
         // initialize connection manager to listen to local connection
@@ -101,7 +107,20 @@ public class XmrLocalNode {
      * Returns whether Haveno should ignore a local Monero node even if it is usable.
      */
     public boolean shouldBeIgnored() {
-        return config.ignoreLocalXmrNode || preferences.getMoneroNodesOption() == XmrNodes.MoneroNodesOption.CUSTOM;
+        if (config.ignoreLocalXmrNode) return true;
+
+        // ignore if fixed connection is not local
+        if (!"".equals(config.xmrNode)) return !HavenoUtils.isLocalHost(config.xmrNode);
+
+        // check if local node is within configuration
+        boolean hasConfiguredLocalNode = false;
+        for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
+            if (node.hasClearNetAddress() && equalsUri(node.getClearNetUri())) {
+                hasConfiguredLocalNode = true;
+                break;
+            }
+        }
+        return !hasConfiguredLocalNode;
     }
 
     public void addListener(XmrLocalNodeListener listener) {
@@ -120,7 +139,11 @@ public class XmrLocalNode {
     }
 
     public boolean equalsUri(String uri) {
-        return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
+        try {
+            return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

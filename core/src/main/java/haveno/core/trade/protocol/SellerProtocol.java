@@ -53,6 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SellerProtocol extends DisputeProtocol {
+    
     enum SellerEvent implements FluentProtocol.Event {
         STARTUP,
         DEPOSIT_TXS_CONFIRMED,
@@ -69,29 +70,35 @@ public class SellerProtocol extends DisputeProtocol {
 
         // re-send payment received message if payout not published
         ThreadUtils.execute(() -> {
-            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            if (!needsToResendPaymentReceivedMessages()) return;
             synchronized (trade.getLock()) {
-                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
-                if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.isPayoutPublished()) {
-                    latchTrade();
-                    given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
-                        .with(SellerEvent.STARTUP))
-                        .setup(tasks(
-                                SellerSendPaymentReceivedMessageToBuyer.class,
-                                SellerSendPaymentReceivedMessageToArbitrator.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    unlatchTrade();
-                                },
-                                (errorMessage) -> {
-                                    log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
-                                    unlatchTrade();
-                                })))
-                        .executeTasks();
-                    awaitTradeLatch();
-                }
+                if (!needsToResendPaymentReceivedMessages()) return;
+                latchTrade();
+                given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
+                    .with(SellerEvent.STARTUP))
+                    .setup(tasks(
+                            SellerSendPaymentReceivedMessageToBuyer.class,
+                            SellerSendPaymentReceivedMessageToArbitrator.class)
+                    .using(new TradeTaskRunner(trade,
+                            () -> {
+                                unlatchTrade();
+                            },
+                            (errorMessage) -> {
+                                log.warn("Error sending PaymentReceivedMessage on startup: " + errorMessage);
+                                unlatchTrade();
+                            })))
+                    .executeTasks();
+                awaitTradeLatch();
             }
         }, trade.getId());
+    }
+
+    public boolean needsToResendPaymentReceivedMessages() {
+        return !trade.isShutDownStarted() && trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.getProcessModel().isPaymentReceivedMessagesReceived() && resendPaymentReceivedMessagesEnabled();
+    }
+
+    private boolean resendPaymentReceivedMessagesEnabled() {
+        return trade.getOffer().getOfferPayload().getProtocolVersion() >= 2;
     }
 
     @Override
@@ -115,7 +122,7 @@ public class SellerProtocol extends DisputeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        log.info("SellerProtocol.onPaymentReceived()");
+        log.info(TradeProtocol.LOG_HIGHLIGHT + "SellerProtocol.onPaymentReceived() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
@@ -137,7 +144,7 @@ public class SellerProtocol extends DisputeProtocol {
                                 resultHandler.handleResult();
                             }, (errorMessage) -> {
                                 log.warn("Error confirming payment received, reverting state to {}, error={}", Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, errorMessage);
-                                trade.setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+                                trade.resetToPaymentSentState();
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
                             .run(() -> trade.advanceState(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT))

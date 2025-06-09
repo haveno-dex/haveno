@@ -35,6 +35,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
@@ -289,7 +290,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             setUseTorForXmr(config.useTorForXmr);
 
         // switch to public nodes if no provided nodes available
-        if (getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
+        boolean isFixedConnection = !"".equals(config.xmrNode) && (!HavenoUtils.isLocalHost(config.xmrNode) || !config.ignoreLocalXmrNode);
+        if (!isFixedConnection && getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
             log.warn("No provided nodes available, switching to public nodes");
             setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
         }

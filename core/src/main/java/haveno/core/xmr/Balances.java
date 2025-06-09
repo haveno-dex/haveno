@@ -37,7 +37,6 @@ package haveno.core.xmr;
 import com.google.inject.Inject;
 
 import haveno.common.ThreadUtils;
-import haveno.common.UserThread;
 import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -163,18 +162,12 @@ public class Balances {
                 // calculate reserved balance
                 reservedBalance = reservedOfferBalance.add(reservedTradeBalance);
 
+                // play sound if funds received
+                boolean fundsReceived = balanceSumBefore != null && getNonTradeBalanceSum().compareTo(balanceSumBefore) > 0;
+                if (fundsReceived) HavenoUtils.playCashRegisterSound();
+
                 // notify balance update
-                UserThread.execute(() -> {
-
-                    // check if funds received
-                    boolean fundsReceived = balanceSumBefore != null && getNonTradeBalanceSum().compareTo(balanceSumBefore) > 0;
-                    if (fundsReceived) {
-                        HavenoUtils.playCashRegisterSound();
-                    }
-
-                    // increase counter to notify listeners
-                    updateCounter.set(updateCounter.get() + 1);
-                });
+                updateCounter.set(updateCounter.get() + 1);
             }
         }
     }

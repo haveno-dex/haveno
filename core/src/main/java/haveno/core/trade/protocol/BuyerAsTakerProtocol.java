@@ -68,7 +68,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
     @Override
     public void onTakeOffer(TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
-        System.out.println(getClass().getSimpleName() + ".onTakeOffer()");
+        log.info(TradeProtocol.LOG_HIGHLIGHT + "onTakerOffer for {} {}", getClass().getSimpleName(), trade.getShortId());
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
@@ -99,7 +99,7 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
     @Override
     public void handleInitTradeRequest(InitTradeRequest message,
                                        NodeAddress peer) {
-        System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
+        log.info(TradeProtocol.LOG_HIGHLIGHT + "handleInitTradeRequest() for {} {} from {}", trade.getClass().getSimpleName(), trade.getShortId(), peer);
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();

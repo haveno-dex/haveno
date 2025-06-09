@@ -70,6 +70,9 @@ public class TakerReserveTradeFunds extends TradeTask {
                                 MoneroRpcConnection sourceConnection = trade.getXmrConnectionService().getConnection();
                                 try {
                                     reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
+                                } catch (IllegalStateException e) {
+                                    log.warn("Illegal state creating reserve tx, offerId={}, error={}", trade.getShortId(), i + 1, e.getMessage());
+                                    throw e;
                                 } catch (Exception e) {
                                     log.warn("Error creating reserve tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                                     trade.getXmrWalletService().handleWalletError(e, sourceConnection);
@@ -85,8 +88,8 @@ public class TakerReserveTradeFunds extends TradeTask {
                         }
                     } catch (Exception e) {
 
-                        // reset state with wallet lock
-                        model.getXmrWalletService().resetAddressEntriesForTrade(trade.getId());
+                        // reset state
+                        model.getXmrWalletService().swapPayoutAddressEntryToAvailable(trade.getId());
                         if (reserveTx != null) {
                             model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
                             trade.getSelf().setReserveTxKeyImages(null);
@@ -98,11 +101,12 @@ public class TakerReserveTradeFunds extends TradeTask {
                     // reset protocol timeout
                     trade.startProtocolTimeout();
 
-                    // update trade state
-                    trade.getTaker().setReserveTxHash(reserveTx.getHash());
-                    trade.getTaker().setReserveTxHex(reserveTx.getFullHex());
-                    trade.getTaker().setReserveTxKey(reserveTx.getKey());
-                    trade.getTaker().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
+                    // update state
+                    trade.getSelf().setReserveTxHash(reserveTx.getHash());
+                    trade.getSelf().setReserveTxHex(reserveTx.getFullHex());
+                    trade.getSelf().setReserveTxKey(reserveTx.getKey());
+                    trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
+                    trade.getXmrWalletService().freezeOutputs(HavenoUtils.getInputKeyImages(reserveTx));
                 }
             }
 

@@ -62,7 +62,6 @@ import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
-import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
@@ -177,18 +176,20 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // remove disputes opened by arbitrator, which is not allowed
         Set<Dispute> toRemoves = new HashSet<>();
         List<Dispute> disputes = getDisputeList().getList();
-        for (Dispute dispute : disputes) {
+        synchronized (disputes) {
+            for (Dispute dispute : disputes) {
 
-            // get dispute's trade
-            final Trade trade = tradeManager.getTrade(dispute.getTradeId());
-            if (trade == null) {
-                log.warn("Dispute trade {} does not exist", dispute.getTradeId());
-                return;
-            }
-
-            // collect dispute if owned by arbitrator
-            if (dispute.getTraderPubKeyRing().equals(trade.getArbitrator().getPubKeyRing())) {
-                toRemoves.add(dispute);
+                // get dispute's trade
+                final Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                if (trade == null) {
+                    log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+                    return;
+                }
+    
+                // collect dispute if owned by arbitrator
+                if (dispute.getTraderPubKeyRing().equals(trade.getArbitrator().getPubKeyRing())) {
+                    toRemoves.add(dispute);
+                }
             }
         }
         for (Dispute toRemove : toRemoves) {
@@ -464,14 +465,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // check daemon connection
         trade.verifyDaemonConnection();
 
-        // adapt from 1.0.6 to 1.0.7 which changes field usage
-        // TODO: remove after future updates to allow old trades to clear
-        if (trade.getPayoutTxHex() != null && trade.getBuyer().getPaymentSentMessage() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
-            log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-            if (trade instanceof BuyerTrade) trade.getSelf().setUnsignedPayoutTxHex(trade.getPayoutTxHex());
-            trade.setPayoutTxHex(null);
-        }
-
         // sign arbitrator-signed payout tx
         if (trade.getPayoutTxHex() == null) {
             try {
@@ -494,10 +487,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.warn("Could not recreate dispute payout tx to verify fee: {}\n", e.getMessage(), e);
             }
             if (feeEstimateTx != null) {
-                BigInteger feeEstimate = feeEstimateTx.getFee();
-                double feeDiff = arbitratorSignedPayoutTx.getFee().subtract(feeEstimate).abs().doubleValue() / feeEstimate.doubleValue();
-                if (feeDiff > XmrWalletService.MINER_FEE_TOLERANCE) throw new RuntimeException("Miner fee is not within " + (XmrWalletService.MINER_FEE_TOLERANCE * 100) + "% of estimated fee, expected " + feeEstimate + " but was " + arbitratorSignedPayoutTx.getFee());
-                log.info("Payout tx fee {} is within tolerance, diff %={}", arbitratorSignedPayoutTx.getFee(), feeDiff);
+                HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
+                log.info("Dispute payout tx fee {} is within tolerance");
             }
         } else {
             disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());

@@ -19,6 +19,7 @@ package haveno.core.trade;
 
 import haveno.core.offer.Offer;
 import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,10 @@ public abstract class SellerTrade extends Trade {
     @Override
     public boolean confirmPermitted() {
         return true;
+    }
+
+    public boolean isFinished() {
+        return super.isFinished() && ((SellerProtocol) getProtocol()).needsToResendPaymentReceivedMessages();
     }
 }
 

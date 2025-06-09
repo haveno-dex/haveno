@@ -494,7 +494,7 @@ public class PopOver extends PopupControl {
      * @since 1.0
      */
     public final void hide(Duration fadeOutDuration) {
-        log.info("hide:" + fadeOutDuration.toString());
+        log.debug("hide:" + fadeOutDuration.toString());
         //We must remove EventFilter in order to prevent memory leak.
         if (ownerWindow != null) {
             ownerWindow.removeEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST,

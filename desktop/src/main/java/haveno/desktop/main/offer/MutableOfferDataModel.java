@@ -82,7 +82,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class MutableOfferDataModel extends OfferDataModel {
-    private final CreateOfferService createOfferService;
+    protected final CreateOfferService createOfferService;
     protected final OpenOfferManager openOfferManager;
     private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
@@ -105,6 +105,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected final ObjectProperty<Price> price = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
     protected final ObjectProperty<Volume> minVolume = new SimpleObjectProperty<>();
+    protected final ObjectProperty<String> extraInfo = new SimpleObjectProperty<>();
 
     // Percentage value of buyer security deposit. E.g. 0.01 means 1% of trade amount
     protected final DoubleProperty securityDepositPct = new SimpleDoubleProperty();
@@ -114,7 +115,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected PaymentAccount paymentAccount;
     boolean isTabSelected;
-    protected double marketPriceMargin = 0;
+    protected double marketPriceMarginPct = 0;
     @Getter
     private boolean marketPriceAvailable;
     protected boolean allowAmountUpdate = true;
@@ -188,12 +189,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     private void addListeners() {
-        xmrWalletService.addBalanceListener(xmrBalanceListener);
+        if (xmrBalanceListener != null) xmrWalletService.addBalanceListener(xmrBalanceListener);
         user.getPaymentAccountsAsObservable().addListener(paymentAccountsChangeListener);
     }
 
     private void removeListeners() {
-        xmrWalletService.removeBalanceListener(xmrBalanceListener);
+        if (xmrBalanceListener != null) xmrWalletService.removeBalanceListener(xmrBalanceListener);
         user.getPaymentAccountsAsObservable().removeListener(paymentAccountsChangeListener);
     }
 
@@ -203,14 +204,16 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // called before activate()
-    public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
-        addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
-        xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                updateBalances();
-            }
-        };
+    public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency, boolean initAddressEntry) {
+        if (initAddressEntry) {
+            addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
+            xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
+                @Override
+                public void onBalanceChanged(BigInteger balance) {
+                    updateBalances();
+                }
+            };
+        }
 
         this.direction = direction;
         this.tradeCurrency = tradeCurrency;
@@ -277,6 +280,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     protected void updateBalances() {
+        if (addressEntry == null) return;
         super.updateBalances();
 
         // update remaining balance
@@ -301,11 +305,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 minAmount.get(),
                 useMarketBasedPrice.get() ? null : price.get(),
                 useMarketBasedPrice.get(),
-                useMarketBasedPrice.get() ? marketPriceMargin : 0,
+                useMarketBasedPrice.get() ? marketPriceMarginPct : 0,
                 securityDepositPct.get(),
                 paymentAccount,
                 buyerAsTakerWithoutDeposit.get(), // private offer if buyer as taker without deposit
-                buyerAsTakerWithoutDeposit.get());
+                buyerAsTakerWithoutDeposit.get(),
+                extraInfo.get());
     }
 
     void onPlaceOffer(Offer offer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -314,6 +319,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 triggerPrice,
                 reserveExactAmount,
                 false, // desktop ui resets address entries on cancel
+                null,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -385,7 +391,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 volume.set(null);
                 minVolume.set(null);
                 price.set(null);
-                marketPriceMargin = 0;
+                marketPriceMarginPct = 0;
             }
 
             this.tradeCurrency = tradeCurrency;
@@ -412,10 +418,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     void fundFromSavingsWallet() {
         this.useSavingsWallet = true;
         updateBalances();
-    }
-
-    protected void setMarketPriceMarginPct(double marketPriceMargin) {
-        this.marketPriceMargin = marketPriceMargin;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -467,7 +469,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     public double getMarketPriceMarginPct() {
-        return marketPriceMargin;
+        return marketPriceMarginPct;
     }
 
     long getMaxTradeLimit() {
@@ -583,6 +585,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.amount.set(amount);
     }
 
+    protected void setMinAmount(BigInteger minAmount) {
+        this.minAmount.set(minAmount);
+    }
+
     protected void setPrice(Price price) {
         this.price.set(price);
     }
@@ -593,6 +599,26 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected void setSecurityDepositPct(double value) {
         this.securityDepositPct.set(value);
+    }
+
+    public void setMarketPriceAvailable(boolean marketPriceAvailable) {
+        this.marketPriceAvailable = marketPriceAvailable;
+    }
+
+    public void setTriggerPrice(long triggerPrice) {
+        this.triggerPrice = triggerPrice;
+    }
+
+    public void setMarketPriceMarginPct(double marketPriceMarginPct) {
+        this.marketPriceMarginPct = marketPriceMarginPct;
+    }
+
+    public void setReserveExactAmount(boolean reserveExactAmount) {
+        this.reserveExactAmount = reserveExactAmount;
+    }
+
+    protected void setExtraInfo(String extraInfo) {
+        this.extraInfo.set(extraInfo);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -625,10 +651,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public ReadOnlyBooleanProperty getBuyerAsTakerWithoutDeposit() {
         return buyerAsTakerWithoutDeposit;
-    }
-
-    protected void setMinAmount(BigInteger minAmount) {
-        this.minAmount.set(minAmount);
     }
 
     public ReadOnlyStringProperty getTradeCurrencyCode() {
@@ -666,12 +688,16 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return Restrictions.getMinSecurityDeposit().max(value);
     }
 
-    ReadOnlyObjectProperty<BigInteger> totalToPayAsProperty() {
-        return totalToPay;
+    protected double getSecurityAsPercent(Offer offer) {
+        BigInteger offerSellerSecurityDeposit = getBoundedSecurityDeposit(offer.getMaxSellerSecurityDeposit());
+        double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
+                offer.getAmount());
+        return Math.min(offerSellerSecurityDepositAsPercent,
+                Restrictions.getMaxSecurityDepositAsPercent());
     }
 
-    public void setMarketPriceAvailable(boolean marketPriceAvailable) {
-        this.marketPriceAvailable = marketPriceAvailable;
+    ReadOnlyObjectProperty<BigInteger> totalToPayAsProperty() {
+        return totalToPay;
     }
 
     public BigInteger getMaxMakerFee() {
@@ -687,11 +713,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return getSecurityDeposit().compareTo(Restrictions.getMinSecurityDeposit()) <= 0;
     }
 
-    public void setTriggerPrice(long triggerPrice) {
-        this.triggerPrice = triggerPrice;
-    }
-
-    public void setReserveExactAmount(boolean reserveExactAmount) {
-        this.reserveExactAmount = reserveExactAmount;
+    public ReadOnlyObjectProperty<String> getExtraInfo() {
+        return extraInfo;
     }
 }

@@ -149,6 +149,14 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(p2pPeersTableView);
+        GUIUtil.applyTableStyle(moneroConnectionsTableView);
+
+        onionAddress.getStyleClass().add("label-float");
+        sentDataTextField.getStyleClass().add("label-float");
+        receivedDataTextField.getStyleClass().add("label-float");
+        chainHeightTextField.getStyleClass().add("label-float");
+
         btcHeader.setText(Res.get("settings.net.xmrHeader"));
         p2pHeader.setText(Res.get("settings.net.p2pHeader"));
         onionAddress.setPromptText(Res.get("settings.net.onionAddressLabel"));
@@ -160,7 +168,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         useTorForXmrOnRadio.setText(Res.get("settings.net.useTorForXmrOnRadio"));
         moneroNodesLabel.setText(Res.get("settings.net.moneroNodesLabel"));
         moneroConnectionAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
-        moneroConnectionAddressColumn.getStyleClass().add("first-column");
         moneroConnectionConnectedColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.connection")));
         localhostXmrNodeInfoLabel.setText(Res.get("settings.net.localhostXmrNodeInfo"));
         useProvidedNodesRadio.setText(Res.get("settings.net.useProvidedNodesRadio"));
@@ -170,7 +177,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         rescanOutputsButton.updateText(Res.get("settings.net.rescanOutputsButton"));
         p2PPeersLabel.setText(Res.get("settings.net.p2PPeersLabel"));
         onionAddressColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.onionAddressColumn")));
-        onionAddressColumn.getStyleClass().add("first-column");
         creationDateColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.creationDateColumn")));
         connectionTypeColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.connectionTypeColumn")));
         sentDataTextField.setPromptText(Res.get("settings.net.sentDataLabel"));
@@ -180,7 +186,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         sentBytesColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.sentBytesColumn")));
         receivedBytesColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.receivedBytesColumn")));
         peerTypeColumn.setGraphic(new AutoTooltipLabel(Res.get("settings.net.peerTypeColumn")));
-        peerTypeColumn.getStyleClass().add("last-column");
         openTorSettingsButton.updateText(Res.get("settings.net.openTorSettingsButton"));
 
         // TODO: hiding button to rescan outputs until supported
@@ -275,7 +280,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 showShutDownPopup();
             }
         };
-        filterPropertyListener = (observable, oldValue, newValue) -> applyPreventPublicXmrNetwork();
+        filterPropertyListener = (observable, oldValue, newValue) -> applyFilter();
 
         // disable radio buttons if no nodes available
         if (xmrNodes.getProvidedXmrNodes().isEmpty()) {
@@ -298,7 +303,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         moneroPeersToggleGroup.selectedToggleProperty().addListener(moneroPeersToggleGroupListener);
 
         if (filterManager.getFilter() != null)
-            applyPreventPublicXmrNetwork();
+            applyFilter();
 
         filterManager.filterProperty().addListener(filterPropertyListener);
 
@@ -492,7 +497,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
 
-    private void applyPreventPublicXmrNetwork() {
+    private void applyFilter() {
+
+        // prevent public xmr network
         final boolean preventPublicXmrNetwork = isPreventPublicXmrNetwork();
         usePublicNodesRadio.setDisable(isPublicNodesDisabled());
         if (preventPublicXmrNetwork && selectedMoneroNodesOption == XmrNodes.MoneroNodesOption.PUBLIC) {

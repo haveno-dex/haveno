@@ -62,7 +62,9 @@ class SignedOffersDataModel extends ActivatableDataModel {
     private void applyList() {
         list.clear();
 
-        list.addAll(openOfferManager.getObservableSignedOffersList().stream().map(SignedOfferListItem::new).collect(Collectors.toList()));
+        synchronized (openOfferManager.getObservableSignedOffersList()) {
+            list.addAll(openOfferManager.getObservableSignedOffersList().stream().map(SignedOfferListItem::new).collect(Collectors.toList()));
+        }
 
         // we sort by date, the earliest first
         list.sort((o1, o2) -> new Date(o2.getSignedOffer().getTimeStamp()).compareTo(new Date(o1.getSignedOffer().getTimeStamp())));

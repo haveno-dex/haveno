@@ -42,6 +42,7 @@ public class Notification extends Overlay<Notification> {
     private boolean hasBeenDisplayed;
     private boolean autoClose;
     private Timer autoCloseTimer;
+    private static final int BORDER_PADDING = 10;
 
     public Notification() {
         width = 413; // 320 visible bg because of insets
@@ -205,8 +206,8 @@ public class Notification extends Overlay<Notification> {
         Window window = owner.getScene().getWindow();
         double titleBarHeight = window.getHeight() - owner.getScene().getHeight();
         double shadowInset = 44;
-        stage.setX(Math.round(window.getX() + window.getWidth() + shadowInset - stage.getWidth()));
-        stage.setY(Math.round(window.getY() + titleBarHeight - shadowInset));
+        stage.setX(Math.round(window.getX() + window.getWidth() + shadowInset - stage.getWidth() - BORDER_PADDING));
+        stage.setY(Math.round(window.getY() + titleBarHeight - shadowInset + BORDER_PADDING));
     }
 
     @Override

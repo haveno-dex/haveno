@@ -125,6 +125,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         gridPane.setHgap(Layout.GRID_GAP);
         gridPane.setVgap(Layout.GRID_GAP);
+        gridPane.setPadding(new Insets(0, 0, 25, 0));
         ColumnConstraints columnConstraints1 = new ColumnConstraints();
         columnConstraints1.setHgrow(Priority.ALWAYS);
 
@@ -405,6 +406,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTimeLeft() {
+        if (!trade.isInitialized()) return;
         if (timeLeftTextField != null) {
 
             // TODO (woodser): extra TradeStepView created but not deactivated on trade.setState(), so deactivate when model's trade is null

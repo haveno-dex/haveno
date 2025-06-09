@@ -92,6 +92,7 @@ public class CreateOfferService {
                 Version.VERSION.replace(".", "");
     }
 
+    // TODO: add trigger price?
     public Offer createAndGetOffer(String offerId,
                                    OfferDirection direction,
                                    String currencyCode,
@@ -103,8 +104,9 @@ public class CreateOfferService {
                                    double securityDepositPct,
                                    PaymentAccount paymentAccount,
                                    boolean isPrivateOffer,
-                                   boolean buyerAsTakerWithoutDeposit) {
-        log.info("create and get offer with offerId={}, " +
+                                   boolean buyerAsTakerWithoutDeposit,
+                                   String extraInfo) {
+        log.info("Create and get offer with offerId={}, " +
                         "currencyCode={}, " +
                         "direction={}, " +
                         "fixedPrice={}, " +
@@ -114,7 +116,8 @@ public class CreateOfferService {
                         "minAmount={}, " +
                         "securityDepositPct={}, " +
                         "isPrivateOffer={}, " +
-                        "buyerAsTakerWithoutDeposit={}",
+                        "buyerAsTakerWithoutDeposit={}, " + 
+                        "extraInfo={}",
                 offerId,
                 currencyCode,
                 direction,
@@ -125,12 +128,18 @@ public class CreateOfferService {
                 minAmount,
                 securityDepositPct,
                 isPrivateOffer,
-                buyerAsTakerWithoutDeposit);
+                buyerAsTakerWithoutDeposit,
+                extraInfo);
 
-        // verify buyer as taker security deposit
+        // must nullify empty string so contracts match
+        if ("".equals(extraInfo)) extraInfo = null;
+
+        // verify config for private no deposit offers
         boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
-        if (!isBuyerMaker && !isPrivateOffer && buyerAsTakerWithoutDeposit) {
-            throw new IllegalArgumentException("Buyer as taker deposit is required for public offers");
+        if (buyerAsTakerWithoutDeposit || isPrivateOffer) {
+            if (isBuyerMaker) throw new IllegalArgumentException("Buyer must be taker for private offers without deposit");
+            if (!buyerAsTakerWithoutDeposit) throw new IllegalArgumentException("Must set buyer as taker without deposit for private offers");
+            if (!isPrivateOffer) throw new IllegalArgumentException("Must set offer to private for buyer as taker without deposit");
         }
 
         // verify fixed price xor market price with margin
@@ -139,14 +148,11 @@ public class CreateOfferService {
             if (marketPriceMargin != 0) throw new IllegalArgumentException("Cannot set market price margin with fixed price");
         }
 
-        long creationTime = new Date().getTime();
-        NodeAddress makerAddress = p2PService.getAddress();
+        // verify price
         boolean useMarketBasedPriceValue = fixedPrice == null &&
                 useMarketBasedPrice &&
                 isMarketPriceAvailable(currencyCode) &&
                 !PaymentMethod.isFixedPriceOnly(paymentAccount.getPaymentMethod().getId());
-
-        // verify price
         if (fixedPrice == null && !useMarketBasedPriceValue) {
             throw new IllegalArgumentException("Must provide fixed price");
         }
@@ -163,6 +169,8 @@ public class CreateOfferService {
             challengeHash = HavenoUtils.getChallengeHash(challenge);
         }
 
+        long creationTime = new Date().getTime();
+        NodeAddress makerAddress = p2PService.getAddress();
         long priceAsLong = fixedPrice != null ? fixedPrice.getValue() : 0L;
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.longValueExact() : 0L;
@@ -225,11 +233,105 @@ public class CreateOfferService {
                 Version.TRADE_PROTOCOL_VERSION,
                 null,
                 null,
-                null);
+                null,
+                extraInfo);
         Offer offer = new Offer(offerPayload);
         offer.setPriceFeedService(priceFeedService);
         offer.setChallenge(challenge);
         return offer;
+    }
+
+    // TODO: add trigger price?
+    public Offer createClonedOffer(Offer sourceOffer,
+                            String currencyCode,
+                            Price fixedPrice,
+                            boolean useMarketBasedPrice,
+                            double marketPriceMargin,
+                            PaymentAccount paymentAccount,
+                            String extraInfo) {
+        log.info("Cloning offer with sourceId={}, " +
+                        "currencyCode={}, " +
+                        "fixedPrice={}, " +
+                        "useMarketBasedPrice={}, " +
+                        "marketPriceMargin={}, " +
+                        "extraInfo={}",
+                sourceOffer.getId(),
+                currencyCode,
+                fixedPrice == null ? null : fixedPrice.getValue(),
+                useMarketBasedPrice,
+                marketPriceMargin,
+                extraInfo);
+
+        OfferPayload sourceOfferPayload = sourceOffer.getOfferPayload();
+        String newOfferId = OfferUtil.getRandomOfferId();
+        Offer editedOffer = createAndGetOffer(newOfferId,
+                sourceOfferPayload.getDirection(),
+                currencyCode,
+                BigInteger.valueOf(sourceOfferPayload.getAmount()),
+                BigInteger.valueOf(sourceOfferPayload.getMinAmount()),
+                fixedPrice,
+                useMarketBasedPrice,
+                marketPriceMargin,
+                sourceOfferPayload.getSellerSecurityDepositPct(),
+                paymentAccount,
+                sourceOfferPayload.isPrivateOffer(),
+                sourceOfferPayload.isBuyerAsTakerWithoutDeposit(),
+                extraInfo);
+
+        // generate one-time challenge for private offer
+        String challenge = null;
+        String challengeHash = null;
+        if (sourceOfferPayload.isPrivateOffer()) {
+            challenge = HavenoUtils.generateChallenge();
+            challengeHash = HavenoUtils.getChallengeHash(challenge);
+        }
+        
+        OfferPayload editedOfferPayload = editedOffer.getOfferPayload();
+        long date = new Date().getTime();
+        OfferPayload clonedOfferPayload = new OfferPayload(newOfferId,
+                date,
+                sourceOfferPayload.getOwnerNodeAddress(),
+                sourceOfferPayload.getPubKeyRing(),
+                sourceOfferPayload.getDirection(),
+                editedOfferPayload.getPrice(),
+                editedOfferPayload.getMarketPriceMarginPct(),
+                editedOfferPayload.isUseMarketBasedPrice(),
+                sourceOfferPayload.getAmount(),
+                sourceOfferPayload.getMinAmount(),
+                sourceOfferPayload.getMakerFeePct(),
+                sourceOfferPayload.getTakerFeePct(),
+                sourceOfferPayload.getPenaltyFeePct(),
+                sourceOfferPayload.getBuyerSecurityDepositPct(),
+                sourceOfferPayload.getSellerSecurityDepositPct(),
+                editedOfferPayload.getBaseCurrencyCode(),
+                editedOfferPayload.getCounterCurrencyCode(),
+                editedOfferPayload.getPaymentMethodId(),
+                editedOfferPayload.getMakerPaymentAccountId(),
+                editedOfferPayload.getCountryCode(),
+                editedOfferPayload.getAcceptedCountryCodes(),
+                editedOfferPayload.getBankId(),
+                editedOfferPayload.getAcceptedBankIds(),
+                editedOfferPayload.getVersionNr(),
+                sourceOfferPayload.getBlockHeightAtOfferCreation(),
+                editedOfferPayload.getMaxTradeLimit(),
+                editedOfferPayload.getMaxTradePeriod(),
+                sourceOfferPayload.isUseAutoClose(),
+                sourceOfferPayload.isUseReOpenAfterAutoClose(),
+                sourceOfferPayload.getLowerClosePrice(),
+                sourceOfferPayload.getUpperClosePrice(),
+                sourceOfferPayload.isPrivateOffer(),
+                challengeHash,
+                editedOfferPayload.getExtraDataMap(),
+                sourceOfferPayload.getProtocolVersion(),
+                null,
+                null,
+                sourceOfferPayload.getReserveTxKeyImages(),
+                editedOfferPayload.getExtraInfo());
+        Offer clonedOffer = new Offer(clonedOfferPayload);
+        clonedOffer.setPriceFeedService(priceFeedService);
+        clonedOffer.setChallenge(challenge);
+        clonedOffer.setState(Offer.State.AVAILABLE);
+        return clonedOffer;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

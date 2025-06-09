@@ -23,7 +23,7 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.locale.Res;
 import haveno.core.offer.messages.SignOfferResponse;
-import haveno.core.offer.placeoffer.tasks.AddToOfferBook;
+import haveno.core.offer.placeoffer.tasks.MaybeAddToOfferBook;
 import haveno.core.offer.placeoffer.tasks.MakerProcessSignOfferResponse;
 import haveno.core.offer.placeoffer.tasks.MakerReserveOfferFunds;
 import haveno.core.offer.placeoffer.tasks.MakerSendSignOfferRequest;
@@ -31,6 +31,8 @@ import haveno.core.offer.placeoffer.tasks.ValidateOffer;
 import haveno.core.trade.handlers.TransactionResultHandler;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.network.p2p.NodeAddress;
+
+import org.bitcoinj.core.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +41,8 @@ public class PlaceOfferProtocol {
 
     private final PlaceOfferModel model;
     private Timer timeoutTimer;
-    private final TransactionResultHandler resultHandler;
-    private final ErrorMessageHandler errorMessageHandler;
+    private TransactionResultHandler resultHandler;
+    private ErrorMessageHandler errorMessageHandler;
     private TaskRunner<PlaceOfferModel> taskRunner;
 
 
@@ -89,7 +91,6 @@ public class PlaceOfferProtocol {
         handleError("Offer was canceled: " + model.getOpenOffer().getOffer().getId()); // cancel is treated as error for callers to handle
     }
     
-    // TODO (woodser): switch to fluent
     public void handleSignOfferResponse(SignOfferResponse response, NodeAddress sender) {
         log.debug("handleSignOfferResponse() " + model.getOpenOffer().getOffer().getId());
         model.setSignOfferResponse(response);
@@ -119,7 +120,7 @@ public class PlaceOfferProtocol {
                 () -> {
                     log.debug("sequence at handleSignOfferResponse completed");
                     stopTimeoutTimer();
-                    resultHandler.handleResult(model.getTransaction()); // TODO (woodser): XMR transaction instead
+                    handleResult(model.getTransaction()); // TODO: use XMR transaction instead
                 },
                 (errorMessage) -> {
                     if (model.isOfferAddedToOfferBook()) {
@@ -135,27 +136,33 @@ public class PlaceOfferProtocol {
         );
         taskRunner.addTasks(
                 MakerProcessSignOfferResponse.class,
-                AddToOfferBook.class
+                MaybeAddToOfferBook.class
         );
 
         taskRunner.run();
     }
 
-    public void startTimeoutTimer() {
+    public synchronized void startTimeoutTimer() {
+        if (resultHandler == null) return;
         stopTimeoutTimer();
         timeoutTimer = UserThread.runAfter(() -> {
             handleError(Res.get("createOffer.timeoutAtPublishing"));
         }, TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
     }
 
-    private void stopTimeoutTimer() {
+    private synchronized void stopTimeoutTimer() {
         if (timeoutTimer != null) {
             timeoutTimer.stop();
             timeoutTimer = null;
         }
     }
 
-    private void handleError(String errorMessage) {
+    private synchronized void handleResult(Transaction transaction) {
+        resultHandler.handleResult(transaction);
+        resetHandlers();
+    }
+
+    private synchronized void handleError(String errorMessage) {
         if (timeoutTimer != null) {
             taskRunner.cancel();
             if (!model.getOpenOffer().isCanceled()) {
@@ -164,5 +171,11 @@ public class PlaceOfferProtocol {
             stopTimeoutTimer();
             errorMessageHandler.handleErrorMessage(errorMessage);
         }
+        resetHandlers();
+    }
+
+    private synchronized void resetHandlers() {
+        resultHandler = null;
+        errorMessageHandler = null;
     }
 }

@@ -69,7 +69,7 @@ class OpenOffersDataModel extends ActivatableDataModel {
     }
 
     void onDeactivateOpenOffer(OpenOffer openOffer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        openOfferManager.deactivateOpenOffer(openOffer, resultHandler, errorMessageHandler);
+        openOfferManager.deactivateOpenOffer(openOffer, false, resultHandler, errorMessageHandler);
     }
 
     void onRemoveOpenOffer(OpenOffer openOffer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
@@ -94,7 +94,7 @@ class OpenOffersDataModel extends ActivatableDataModel {
         list.sort((o1, o2) -> o2.getOffer().getDate().compareTo(o1.getOffer().getDate()));
     }
 
-    boolean wasTriggered(OpenOffer openOffer) {
-        return TriggerPriceService.wasTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer);
+    boolean isTriggered(OpenOffer openOffer) {
+        return TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer);
     }
 }

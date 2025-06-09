@@ -18,7 +18,6 @@
 package haveno.core.offer;
 
 import haveno.common.ThreadUtils;
-import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -281,7 +280,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public void setErrorMessage(String errorMessage) {
-        UserThread.await(() -> errorMessageProperty.set(errorMessage));
+        errorMessageProperty.set(errorMessage);
     }
 
 
@@ -421,7 +420,23 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return "";
     }
 
-    public String getExtraInfo() {
+    public String getCombinedExtraInfo() {
+        StringBuilder sb = new StringBuilder();
+        if (getOfferExtraInfo() != null && !getOfferExtraInfo().isEmpty()) {
+            sb.append(getOfferExtraInfo());
+        }
+        if (getPaymentAccountExtraInfo() != null && !getPaymentAccountExtraInfo().isEmpty()) {
+            if (sb.length() > 0) sb.append("\n\n");
+            sb.append(getPaymentAccountExtraInfo());
+        }
+        return sb.toString();
+    }
+
+    public String getOfferExtraInfo() {
+        return offerPayload.getExtraInfo();
+    }
+
+    public String getPaymentAccountExtraInfo() {
         if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.F2F_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.F2F_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.PAY_BY_MAIL_EXTRA_INFO))

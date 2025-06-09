@@ -32,7 +32,7 @@ public class SellerStep4View extends BuyerStep4View {
     }
 
     @Override
-    protected String getBtcTradeAmountLabel() {
+    protected String getXmrTradeAmountLabel() {
         return Res.get("portfolio.pending.step5_seller.sold");
     }
 

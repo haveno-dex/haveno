@@ -144,7 +144,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
         amountLabel = feeTuple3.first;
         amountTextField = feeTuple3.second;
-        amountTextField.setMinWidth(180);
+        amountTextField.setMinWidth(200);
         HyperlinkWithIcon sendMaxLink = feeTuple3.third;
 
         withdrawMemoTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
@@ -302,10 +302,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
         BigInteger fee = tx.getFee();
         String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                HavenoUtils.formatXmr(receiverAmount.add(fee), true),
+                HavenoUtils.formatXmr(receiverAmount, true),
                 withdrawToAddress,
-                HavenoUtils.formatXmr(fee, true),
-                HavenoUtils.formatXmr(receiverAmount, true));
+                HavenoUtils.formatXmr(fee, true));
 
         // popup confirmation message
         Popup popup = new Popup();

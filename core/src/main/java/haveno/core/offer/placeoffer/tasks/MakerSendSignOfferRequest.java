@@ -77,7 +77,7 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
                     offer.getOfferPayload().getReserveTxKeyImages(),
                     returnAddress);
 
-            // send request to least used arbitrators until success
+            // send request to random arbitrators until success
             sendSignOfferRequests(request, () -> {
                 complete();
             }, (errorMessage) -> {

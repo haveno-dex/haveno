@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+
+    <conversionRule conversionWord="hl2" converterClass="haveno.common.app.LogHighlighter" />
+
     <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%highlight(%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{30}: %msg %xEx%n)</pattern>
+            <pattern>%hl2(%d{MMM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40}: %msg %xEx%n)</pattern>
         </encoder>
     </appender>
 

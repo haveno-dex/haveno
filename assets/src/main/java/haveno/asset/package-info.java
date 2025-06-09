@@ -21,7 +21,7 @@
  * {@link haveno.asset.Token} and {@link haveno.asset.Erc20Token}, as well as concrete
  * implementations of each, such as {@link haveno.asset.coins.Bitcoin} itself, cryptos like
  * {@link haveno.asset.coins.Litecoin} and {@link haveno.asset.coins.Ether} and tokens like
- * {@link haveno.asset.tokens.DaiStablecoin}.
+ * {@link haveno.asset.tokens.DaiStablecoinERC20}.
  * <p>
  * The purpose of this package is to provide everything necessary for registering
  * ("listing") new assets and managing / accessing those assets within, e.g. the Haveno

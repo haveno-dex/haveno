@@ -96,6 +96,7 @@ public class HavenoUtils {
     public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
     public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
+    public static final double MINER_FEE_TOLERANCE_FACTOR = 5.0; // miner fees must be within 5x of each other
 
     // other configuration
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
@@ -122,6 +123,7 @@ public class HavenoUtils {
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+    private static List<String> bip39Words = new ArrayList<String>();
 
     // shared references TODO: better way to share references?
     public static HavenoSetup havenoSetup;
@@ -297,10 +299,7 @@ public class HavenoUtils {
         try {
 
             // load bip39 words
-            String fileName = "bip39_english.txt";
-            File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
-            if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
-            List<String> bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+            loadBip39Words();
 
             // select words randomly
             List<String> passphraseWords = new ArrayList<String>();
@@ -314,13 +313,26 @@ public class HavenoUtils {
         }
     }
 
+    private static synchronized void loadBip39Words() {
+        if (bip39Words.isEmpty()) {
+            try {
+                String fileName = "bip39_english.txt";
+                File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
+                if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
+                bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to load BIP39 words", e);
+            }
+        }
+    }
+
     public static String getChallengeHash(String challenge) {
         if (challenge == null) return null;
 
         // tokenize passphrase
         String[] words = challenge.toLowerCase().split(" ");
 
-        // collect first 4 letters of each word, which are unique in bip39
+        // collect up to first 4 letters of each word, which are unique in bip39
         List<String> prefixes = new ArrayList<String>();
         for (String word : words) prefixes.add(word.substring(0, Math.min(word.length(), 4)));
 
@@ -649,5 +661,17 @@ public class HavenoUtils {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    public static void verifyMinerFee(BigInteger expected, BigInteger actual) {
+        BigInteger max = expected.max(actual);
+        BigInteger min = expected.min(actual);
+        if (min.compareTo(BigInteger.ZERO) <= 0) {
+            throw new IllegalArgumentException("Miner fees must be greater than zero");
+        }
+        double factor = divide(max, min);
+        if (factor > MINER_FEE_TOLERANCE_FACTOR) {
+            throw new IllegalArgumentException("Miner fees are not within " + MINER_FEE_TOLERANCE_FACTOR + "x of each other. Expected=" + expected + ", actual=" + actual + ", factor=" + factor);
+        }
     }
 }

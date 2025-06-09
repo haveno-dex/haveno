@@ -43,13 +43,6 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             // handle first time preparation
             if (trade.getArbitrator().getPaymentReceivedMessage() == null) {
 
-                // adapt from 1.0.6 to 1.0.7 which changes field usage
-                // TODO: remove after future updates to allow old trades to clear
-                if (trade.getPayoutTxHex() != null && trade.getPayoutTxHex().equals(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex())) {
-                    log.warn("Nullifying payout tx hex after 1.0.7 update {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-                    trade.setPayoutTxHex(null);
-                }
-
                 // synchronize on lock for wallet operations
                 synchronized (trade.getWalletLock()) {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
