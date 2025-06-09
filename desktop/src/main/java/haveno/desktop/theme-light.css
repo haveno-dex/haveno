@@ -144,15 +144,15 @@
 }
 
 #image-logo-splash {
-    -fx-image: url("../../images/logo_splash_light.png");
+    -fx-image: url("../../images/logo_splash_light_mode.png");
 }
 
 #image-logo-splash-testnet {
-    -fx-image: url("../../images/logo_splash_testnet_light.png");
+    -fx-image: url("../../images/logo_splash_testnet_light_mode.png");
 }
 
 #image-logo-landscape {
-    -fx-image: url("../../images/logo_landscape_light.png");
+    -fx-image: url("../../images/logo_landscape_light_mode.png");
 }
 
 #charts .default-color0.chart-series-area-fill {

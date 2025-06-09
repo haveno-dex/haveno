@@ -578,15 +578,15 @@
 }
 
 #image-logo-splash {
-    -fx-image: url("../../images/logo_splash_dark.png");
+    -fx-image: url("../../images/logo_splash_dark_mode.png");
 }
 
 #image-logo-splash-testnet {
-    -fx-image: url("../../images/logo_splash_testnet_dark.png");
+    -fx-image: url("../../images/logo_splash_testnet_dark_mode.png");
 }
 
 #image-logo-landscape {
-    -fx-image: url("../../images/logo_landscape_dark.png");
+    -fx-image: url("../../images/logo_landscape_dark_mode.png");
 }
 
 .table-view .placeholder {
