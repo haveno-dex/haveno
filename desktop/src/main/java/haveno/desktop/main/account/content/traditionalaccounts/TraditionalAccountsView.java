@@ -462,6 +462,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         Tuple3<Button, Button, Button> tuple3 = add3ButtonsAfterGroup(root, ++gridRow, Res.get("shared.addNewAccount"),
                 Res.get("shared.ExportAccounts"), Res.get("shared.importAccounts"));
         addAccountButton = tuple3.first;
+        addAccountButton.setId("buy-button-big");
         exportButton = tuple3.second;
         importButton = tuple3.third;
     }
