@@ -2283,6 +2283,7 @@ textfield */
     -fx-background-insets: 44;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
 }
 
 .notification-popup-bg, .peer-info-popup-bg {
