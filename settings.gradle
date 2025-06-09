@@ -12,5 +12,6 @@ include 'seednode'
 include 'statsnode'
 include 'inventory'
 include 'apitest'
+include 'bot'
 
 rootProject.name = 'haveno'

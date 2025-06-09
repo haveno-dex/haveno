@@ -595,3 +595,15 @@ user3-desktop-mainnet:
 		--apiPort=1204 \
 		--useNativeXmrWallet=false \
 		--ignoreLocalXmrNode=false \
+
+parner1-bot-stagenet:
+	./haveno-bot$(APP_EXT) \
+			--baseCurrencyNetwork=XMR_STAGENET \
+			--useLocalhostForP2P=false \
+			--useDevPrivilegeKeys=false \
+			--nodePort=9999 \
+			--appName=haveno-XMR_STAGENET_user3 \
+			--apiPassword=apitest \
+			--apiPort=1204 \
+			--useNativeXmrWallet=false \
+			--ignoreLocalXmrNode=false \

@@ -97,24 +97,12 @@ public class AlertManager {
     }
 
     protected List<String> getPubKeyList() {
-        if (useDevPrivilegeKeys) return List.of(DevEnv.DEV_PRIVILEGE_PUB_KEY);
-        switch (Config.baseCurrencyNetwork()) {
-        case XMR_LOCAL:
-            return List.of(
-                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
-                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492");
-        case XMR_STAGENET:
-            return List.of(
-                    "036d8a1dfcb406886037d2381da006358722823e1940acc2598c844bbc0fd1026f",
-                    "026c581ad773d987e6bd10785ac7f7e0e64864aedeb8bce5af37046de812a37854",
-                    "025b058c9f2c60d839669dbfa5578cf5a8117d60e6b70e2f0946f8a691273c6a36");
-        case XMR_MAINNET:
-            return List.of();
-        default:
-            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
-        }
+        return List.of(
+            "0326b14f3a55d02575dceed5202b8b125f458cbe0fdceeee294b443bf1a8d8cf78",
+            "03d62d14438adbe7aea688ade1f73933c6f0a705f238c02c5b54b83dd1e4fca225",
+            "023c8fdea9ff2d03daef54337907e70a7b0e20084a75fcc3ad2f0c28d8b691dea1"
+        );
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API

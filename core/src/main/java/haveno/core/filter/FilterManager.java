@@ -114,11 +114,11 @@ public class FilterManager {
         this.providersRepository = providersRepository;
         this.ignoreDevMsg = ignoreDevMsg;
 
-        publicKeys = useDevPrivilegeKeys ?
-                Collections.singletonList(DevEnv.DEV_PRIVILEGE_PUB_KEY) :
-                List.of("0358d47858acdc41910325fce266571540681ef83a0d6fedce312bef9810793a27",
-                        "029340c3e7d4bb0f9e651b5f590b434fecb6175aeaa57145c7804ff05d210e534f",
-                        "034dc7530bf66ffd9580aa98031ea9a18ac2d269f7c56c0e71eca06105b9ed69f9");
+        publicKeys = List.of(
+            "0326b14f3a55d02575dceed5202b8b125f458cbe0fdceeee294b443bf1a8d8cf78",
+            "03d62d14438adbe7aea688ade1f73933c6f0a705f238c02c5b54b83dd1e4fca225",
+            "023c8fdea9ff2d03daef54337907e70a7b0e20084a75fcc3ad2f0c28d8b691dea1"
+        );
 
         banFilter.setBannedNodePredicate(this::isNodeAddressBannedFromNetwork);
     }
