@@ -91,6 +91,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
         Tuple2<Button, Button> tuple2 = add2ButtonsAfterGroup(root, ++gridRow,
                 Res.get("account.backup.selectLocation"), Res.get("account.backup.backupNow"));
         selectBackupDir = tuple2.first;
+        selectBackupDir.setId("buy-button-big");
         backupNow = tuple2.second;
         updateButtons();
 
