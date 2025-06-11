@@ -441,6 +441,12 @@ public class XmrWalletService extends XmrWalletBase {
         if (name.contains(File.separator)) throw new IllegalArgumentException("Path not expected: " + name);
     }
 
+    public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
+        MoneroTxWallet tx = createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
+        //printTxs("XmrWalletService.createTx", tx);
+        return tx;
+    }
+
     public MoneroTxWallet createTx(MoneroTxConfig txConfig) {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
@@ -455,18 +461,30 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    public String relayTx(String metadata) {
+    public List<MoneroTxWallet> createSweepTxs(String address) {
+        return createSweepTxs(new MoneroTxConfig().setAccountIndex(0).setAddress(address).setRelay(false));
+    }
+
+    public List<MoneroTxWallet> createSweepTxs(MoneroTxConfig txConfig) {
         synchronized (walletLock) {
-            String txId = wallet.relayTx(metadata);
-            requestSaveWallet();
-            return txId;
+            synchronized (HavenoUtils.getWalletFunctionLock()) {
+                List<MoneroTxWallet> txs = wallet.sweepUnlocked(txConfig);
+                if (Boolean.TRUE.equals(txConfig.getRelay())) {
+                    for (MoneroTxWallet tx : txs) cachedTxs.addFirst(tx);
+                    cacheWalletInfo();
+                    requestSaveWallet();
+                }
+                return txs;
+            }
         }
     }
 
-    public MoneroTxWallet createTx(List<MoneroDestination> destinations) {
-        MoneroTxWallet tx = createTx(new MoneroTxConfig().setAccountIndex(0).setDestinations(destinations).setRelay(false).setCanSplit(false));
-        //printTxs("XmrWalletService.createTx", tx);
-        return tx;
+    public List<String> relayTxs(List<String> metadatas) {
+        synchronized (walletLock) {
+            List<String> txIds = wallet.relayTxs(metadatas);
+            requestSaveWallet();
+            return txIds;
+        }
     }
 
     /**

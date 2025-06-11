@@ -173,12 +173,24 @@ class CoreWalletsService {
         }
     }
 
-    String relayXmrTx(String metadata) {
+    List<MoneroTxWallet> createXmrSweepTxs(String address) {
         accountService.checkAccountOpen();
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
         try {
-            return xmrWalletService.relayTx(metadata);
+            return xmrWalletService.createSweepTxs(address);
+        } catch (Exception ex) {
+            log.error("", ex);
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    List<String> relayXmrTxs(List<String> metadatas) {
+        accountService.checkAccountOpen();
+        verifyWalletsAreAvailable();
+        verifyEncryptedWalletIsUnlocked();
+        try {
+            return xmrWalletService.relayTxs(metadatas);
         } catch (Exception ex) {
             log.error("", ex);
             throw new IllegalStateException(ex);
