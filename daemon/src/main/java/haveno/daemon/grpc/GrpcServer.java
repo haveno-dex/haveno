@@ -87,8 +87,8 @@ public class GrpcServer {
     private ServerInterceptor callLoggingInterceptor() {
         return new ServerInterceptor() {
             @Override
-            public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
-                log.info("GRPC endpoint called: " + call.getMethodDescriptor().getFullMethodName());
+            public <RequestT, ResponseT> ServerCall.Listener<RequestT> interceptCall(ServerCall<RequestT, ResponseT> call, Metadata headers, ServerCallHandler<RequestT, ResponseT> next) {
+                log.debug("GRPC endpoint called: " + call.getMethodDescriptor().getFullMethodName());
                 return next.startCall(call, headers);
             }
         };
