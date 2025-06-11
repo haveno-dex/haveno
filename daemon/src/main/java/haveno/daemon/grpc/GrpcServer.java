@@ -22,10 +22,15 @@ import com.google.inject.Singleton;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
 import haveno.daemon.grpc.interceptor.PasswordAuthInterceptor;
-import io.grpc.*;
 import static io.grpc.ServerInterceptors.interceptForward;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
