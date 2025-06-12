@@ -119,6 +119,7 @@ public class Config {
     public static final String PASSWORD_REQUIRED = "passwordRequired";
     public static final String UPDATE_XMR_BINARIES = "updateXmrBinaries";
     public static final String XMR_BLOCKCHAIN_PATH = "xmrBlockchainPath";
+    public static final String DISABLE_RATE_LIMITS = "disableRateLimits";
 
     // Default values for certain options
     public static final int UNSPECIFIED_PORT = -1;
@@ -208,6 +209,7 @@ public class Config {
     public final boolean passwordRequired;
     public final boolean updateXmrBinaries;
     public final String xmrBlockchainPath;
+    public final boolean disableRateLimits;
 
     // Properties derived from options but not exposed as options themselves
     public final File torDir;
@@ -639,6 +641,13 @@ public class Config {
                         .ofType(String.class)
                         .defaultsTo("");
 
+        ArgumentAcceptingOptionSpec<Boolean> disableRateLimits =
+                parser.accepts(DISABLE_RATE_LIMITS,
+                        "Disables all API rate limits")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
+
         try {
             CompositeOptionSet options = new CompositeOptionSet();
 
@@ -753,6 +762,7 @@ public class Config {
             this.passwordRequired = options.valueOf(passwordRequiredOpt);
             this.updateXmrBinaries = options.valueOf(updateXmrBinariesOpt);
             this.xmrBlockchainPath = options.valueOf(xmrBlockchainPathOpt);
+            this.disableRateLimits = options.valueOf(disableRateLimits);
         } catch (OptionException ex) {
             throw new ConfigException("problem parsing option '%s': %s",
                     ex.options().get(0),
