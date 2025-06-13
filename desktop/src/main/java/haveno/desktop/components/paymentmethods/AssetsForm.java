@@ -192,7 +192,7 @@ public class AssetsForm extends PaymentMethodForm {
     @Override
     protected void addTradeCurrencyComboBox() {
         currencyComboBox = FormBuilder.<TradeCurrency>addLabelAutocompleteComboBox(gridPane, ++gridRow, Res.get("payment.crypto"),
-                Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
+                Layout.GROUP_DISTANCE).second;
         currencyComboBox.setPromptText(Res.get("payment.select.crypto"));
         currencyComboBox.setButtonCell(getComboBoxButtonCell(Res.get("payment.select.crypto"), currencyComboBox));
 
