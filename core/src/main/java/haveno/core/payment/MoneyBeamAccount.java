@@ -51,7 +51,7 @@ public final class MoneyBeamAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(PaymentAccountFormField.FieldId.ACCOUNT_ID);
     }
 
     public void setAccountId(String accountId) {
