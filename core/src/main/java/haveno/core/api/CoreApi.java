@@ -299,8 +299,12 @@ public class CoreApi {
         return walletsService.createXmrTx(destinations);
     }
 
-    public String relayXmrTx(String metadata) {
-        return walletsService.relayXmrTx(metadata);
+    public List<MoneroTxWallet> createXmrSweepTxs(String address) {
+        return walletsService.createXmrSweepTxs(address);
+    }
+
+    public List<String> relayXmrTxs(List<String> metadatas) {
+        return walletsService.relayXmrTxs(metadatas);
     }
 
     public long getAddressBalance(String addressString) {
