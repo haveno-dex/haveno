@@ -175,7 +175,8 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
         Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.crypto.yourCryptoAccounts"), Layout.FIRST_ROW_DISTANCE);
         paymentAccountsListView = tuple.second;
         int prefNumRows = Math.min(4, Math.max(2, model.dataModel.getNumPaymentAccounts()));
-        paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 28);
+        paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 34);
+        paymentAccountsListView.setMaxHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 34);
         setPaymentAccountsCellFactory();
 
         Tuple3<Button, Button, Button> tuple3 = add3ButtonsAfterGroup(root, ++gridRow, Res.get("shared.addNewAccount"),
@@ -191,7 +192,7 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
         paymentAccountsListView.getSelectionModel().clearSelection();
         removeAccountRows();
         addAccountButton.setDisable(true);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.createNewAccount"), Layout.COMPACT_GROUP_DISTANCE);
 
         if (paymentMethodForm != null) {
             FormBuilder.removeRowsFromGridPane(root, 3, paymentMethodForm.getGridRow() + 1);
@@ -217,7 +218,7 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
         }
         removeAccountRows();
         addAccountButton.setDisable(false);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.COMPACT_GROUP_DISTANCE);
         paymentMethodForm = getPaymentMethodForm(current);
         paymentMethodForm.addFormForEditAccount();
         gridRow = paymentMethodForm.getGridRow();
