@@ -456,7 +456,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.traditional.yourTraditionalAccounts"), Layout.FIRST_ROW_DISTANCE);
         paymentAccountsListView = tuple.second;
         int prefNumRows = Math.min(4, Math.max(2, model.dataModel.getNumPaymentAccounts()));
-        paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 28);
+        paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 34);
+        paymentAccountsListView.setMaxHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 34);
         setPaymentAccountsCellFactory();
 
         Tuple3<Button, Button, Button> tuple3 = add3ButtonsAfterGroup(root, ++gridRow, Res.get("shared.addNewAccount"),
@@ -473,10 +474,10 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         paymentAccountsListView.getSelectionModel().clearSelection();
         removeAccountRows();
         addAccountButton.setDisable(true);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
-        addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"), Layout.COMPACT_FIRST_ROW_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.COMPACT_GROUP_DISTANCE);
+        addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"));
         paymentMethodComboBox = FormBuilder.addAutocompleteComboBox(
-            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE + Layout.PADDING
+            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE + Layout.PADDING
         );
         paymentMethodComboBox.setVisibleRowCount(Math.min(paymentMethodComboBox.getItems().size(), 10));
         paymentMethodComboBox.setPrefWidth(250);
@@ -536,7 +537,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         }
         removeAccountRows();
         addAccountButton.setDisable(false);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.COMPACT_GROUP_DISTANCE);
         paymentMethodForm = getPaymentMethodForm(current);
         if (paymentMethodForm != null) {
             paymentMethodForm.addFormForEditAccount();
