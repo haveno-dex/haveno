@@ -21,6 +21,9 @@ update-dependencies:
 skip-tests: localnet
 	./gradlew build -x test -x checkstyleMain -x checkstyleTest
 
+daemon: localnet
+	./gradlew :daemon:shadowJar -x test -x checkstyleMain -x checkstyleTest
+
 # quick build desktop and daemon apps without tests
 haveno-apps:
 	./gradlew :core:compileJava :desktop:build -x test -x checkstyleMain -x checkstyleTest
