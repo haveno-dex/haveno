@@ -103,7 +103,11 @@ public class Res {
     }
 
     public static String get(String key, Object... arguments) {
-        return MessageFormat.format(Res.get(key), arguments);
+        return MessageFormat.format(escapeQuotes(get(key)), arguments);
+    }
+
+    private static String escapeQuotes(String s) {
+        return s.replace("'", "''");
     }
 
     public static String get(String key) {
