@@ -1,0 +1,33 @@
+FROM openjdk:21-jdk-bullseye
+
+RUN set -ex && \
+    apt update && \
+    apt --no-install-recommends --yes install \
+        make \
+        git \
+        tor
+
+RUN set -ex && adduser --system --group --disabled-password haveno && \
+    mkdir -p /home/haveno && \
+    chown -R haveno:haveno /home/haveno
+
+USER haveno
+
+WORKDIR /home/haveno
+
+RUN set -ex && git clone https://git.haveno.com/haveno/haveno.git
+
+WORKDIR /home/haveno/haveno
+
+RUN git checkout master && \
+    git reset --hard
+
+
+RUN make clean && make skip-tests
+
+WORKDIR /home/haveno/haveno
+
+ENTRYPOINT [ "./haveno-seednode" ]
+
+## CMDs are conditional based on type
+CMD ["--baseCurrencyNetwork=XMR_MAINNET", "--useLocalhostForP2P=false", "--useDevPrivilegeKeys=false", "--nodePort=2002"]

@@ -1124,3 +1124,201 @@ message AddressBalanceInfo {
     int64 num_confirmations = 3;
     bool is_address_unused = 4;
 }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Marketplace Protospec
+///////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Orders
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service Orders {
+    rpc GetOrder (GetOrderRequest) returns (GetOrderReply) {
+    }
+    rpc GetOrders (GetOrdersRequest) returns (GetOrdersReply) {
+    }
+    rpc MakeOrder (MakeOrderRequest) returns (MakeOrderReply) {
+    }
+    rpc ConfirmOrderAccepted (ConfirmOrderAcceptedRequest) returns (ConfirmOrderAcceptedReply) {
+    }
+    rpc ConfirmOrderProcessing (ConfirmOrderProcessingRequest) returns (ConfirmOrderProcessingReply) {
+    }
+    rpc ConfirmOrderShipped (ConfirmOrderShippedRequest) returns (ConfirmOrderShippedReply) {
+    }
+    rpc FinalizeOrder (FinalizeOrderRequest) returns (FinalizeOrderReply) {
+    }
+    rpc GetChatMessages (GetChatMessagesRequest) returns (GetChatMessagesReply) {
+    }
+    rpc SendChatMessage (SendChatMessageRequest) returns (SendChatMessageReply) {
+    }
+}
+
+message GetMyOrderRequest {
+    string id = 1;
+}
+
+message GetMyOrderReply {
+    OrderInfo order = 1;
+}
+
+message GetOrdersRequest {
+    string direction = 1;
+    string currency_code = 2;
+}
+
+message GetOrdersReply {
+    repeated OfferInfo orders = 1;
+}
+
+message GetMyOrdersRequest {
+}
+
+message GetMyOrdersReply {
+    repeated OfferInfo orders = 1;
+}
+
+message MakeOrderRequest {
+    string currency_code = 1;
+    string direction = 2;
+    string price = 3;
+    bool use_market_based_price = 4;
+    double market_price_margin_pct = 5;
+    uint64 amount = 6 [jstype = JS_STRING];
+    uint64 min_amount = 7 [jstype = JS_STRING];
+    double security_deposit_pct = 8;
+    string trigger_price = 9;
+    bool reserve_exact_amount = 10;
+    string payment_account_id = 11;
+    bool is_private_order = 12;
+    bool buyer_as_taker_without_deposit = 13;
+    string extra_info = 14;
+    string source_order_id = 15;
+}
+
+message MakeOrderReply {
+    OrderInfo order = 1;
+}
+
+message CancelOrderRequest {
+    string id = 1;
+}
+
+message CancelOrderReply {
+}
+
+message ConfirmOrderAcceptedRequest {
+    string id = 1;
+}
+
+message ConfirmOrderAcceptedReply {
+    OrderInfo offer = 1;
+}
+
+message ConfirmOrderProcessingRequest {
+    string id = 1;
+}
+
+message ConfirmOrderProcessingReply {
+    OrderInfo order = 1;
+}
+
+message ConfirmOrderShippedRequest {
+    string id = 1;
+}
+
+message ConfirmOrderShippedReply {
+    OrderInfo order = 1;
+}
+
+message FinalizeOrderRequest {
+    string id = 1;
+}
+
+message FinalizeOrderReply {
+    OrderInfo order = 1;
+}
+
+message OrderInfo {
+    string id = 1;
+    string category = 2;
+    string purchase_price = 3;
+    bool use_market_based_price = 4;
+    double market_price_margin_pct = 5;
+    uint64 amount = 6 [jstype = JS_STRING];
+    uint64 quantity = 7 [jstype = JS_STRING];
+    double buyer_fee_pct = 8;
+    double seller_fee_pct = 9;
+    double penalty_fee_pct = 10;
+    double buyer_security_deposit_pct = 11;
+    double seller_security_deposit_pct = 12;
+    string max_purchase_quantity = 13;
+    ShippingOptionInfo shipping_option = 14;
+    string trigger_price = 15;
+    string payment_account_id = 16;
+    string payment_method_id = 17;
+    string payment_method_short_name = 18;
+    string base_currency_code = 19;
+    string seller_public_key = 20;
+    uint64 date = 21;
+    string state = 22;
+    bool is_activated = 23;
+    bool is_my_order = 24;
+    string store_node_address = 25;
+    string pub_key_ring = 26;
+    string version_nr = 27;
+    int32 protocol_version = 28;
+    string arbitrator_signer = 29;
+    string split_output_tx_hash = 30;
+    uint64 split_output_tx_fee = 31 [jstype = JS_STRING];
+    bool is_private_order = 32;
+    string challenge = 33;
+    string extra_info = 34;
+}
+
+message GetOrderRequest {
+    string id = 1;
+}
+
+message GetOrderReply {
+    OrderInfo order = 1;
+}
+
+message ShippingOptionInfo {
+    string id = 1;
+    string label = 2;
+    string price = 3;
+    StoreInfo store = 4;
+}
+
+message GetShippingOptionRequest {
+    string id = 1;
+}
+
+message GetShippingOptionReply {
+    ShippingOptionInfo shipping_option = 1;
+}
+
+message StoreInfo {
+    string id = 1;
+    string label = 2;
+    string name = 3;
+    bool is_active = 4;
+    double cost = 5;
+    uint64 estimated_days = 6 [jstype = JS_STRING];
+    uint64 quantity = 7 [jstype = JS_STRING];
+    StoreInfo store = 8;
+}
+
+message GetStoreRequest {
+    string store_id = 1;
+}
+
+message GetStoreReply {
+    StoreInfo store = 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Products
+///////////////////////////////////////////////////////////////////////////////////////////
