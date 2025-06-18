@@ -56,7 +56,24 @@ deploy-tmux:
 	# Attach to the tmux session
 	tmux attach-session -t localnet
 
-.PHONY: build seednode localnet
+APPIMAGETOOL ?= appimagetool
+AppImage:
+	rm -rf AppImage
+	./gradlew :desktop:build -x test -x checkstyleMain -x checkstyleTest
+	mkdir -p AppImage/lib AppImage/java
+	ln lib/*                                                                      AppImage/lib/
+	ln haveno-desktop desktop/package/AppRun desktop/package/linux/Haveno.desktop AppImage/
+	ln desktop/package/linux/haveno.svg                                           AppImage/exchange.haveno.Haveno.svg
+	ln desktop/package/linux/icon.png                                             AppImage/.DirIcon
+	cp -Lr ~/.sdkman/candidates/java/current/LICENSE \
+	       ~/.sdkman/candidates/java/current/bin     \
+	       ~/.sdkman/candidates/java/current/lib     \
+	       ~/.sdkman/candidates/java/current/conf    \
+	       AppImage/java/
+	rm -rf AppImage/java/lib/client/ AppImage/java/lib/src.zip
+	$(APPIMAGETOOL) AppImage
+
+.PHONY: build seednode localnet AppImage
 
 # Local network
 

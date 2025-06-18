@@ -1,0 +1,25 @@
+#!/bin/sh
+
+network=XMR_STAGENET
+case "$1" in
+	--mainnet)	network=XMR_MAINNET;  shift ;;
+	--stagenet)	network=XMR_STAGENET; shift ;;
+esac
+case "$network" in
+	XMR_MAINNET ) apiPort=1201; set -- "$@" --ignoreLocalXmrNode=false ;;
+	XMR_STAGENET) apiPort=3204                                         ;;
+esac
+
+JAVA_HOME="${0%/*}/java"
+export JAVA_HOME
+
+exec "${0%/*}/haveno-desktop" \
+	--baseCurrencyNetwork="$network" \
+	--useLocalhostForP2P=false \
+	--useDevPrivilegeKeys=false \
+	--nodePort=9999 \
+	--appName=Haveno \
+	--apiPassword=apitest \
+	--apiPort="$apiPort" \
+	"$@" \
+	--useNativeXmrWallet=false

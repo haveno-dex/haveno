@@ -25,6 +25,8 @@ build
 /haveno-*
 /lib
 /xchange
+/AppImage
+Haveno-*.AppImage
 desktop.ini
 */target/*
 *.class
