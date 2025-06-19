@@ -79,6 +79,13 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(
+           PaymentAccountFormField.FieldId.HOLDER_NAME,
+           PaymentAccountFormField.FieldId.BANK_NAME,
+           PaymentAccountFormField.FieldId.BRANCH_ID,
+           PaymentAccountFormField.FieldId.ACCOUNT_NR,
+           PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
+           PaymentAccountFormField.FieldId.HOLDER_ADDRESS
+       );
     }
 }
