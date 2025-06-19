@@ -91,7 +91,7 @@ public class HavenoUtils {
     public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 60;
 
     // configure fees
-    public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
+    public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = false;
     public static final double PENALTY_FEE_PCT = 0.02; // 2%
     public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
     public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
