@@ -80,7 +80,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         VENMO,
         PAYSAFE,
         WECHAT_PAY,
-        ALI_PAY;
+        ALI_PAY,
+        SWISH;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

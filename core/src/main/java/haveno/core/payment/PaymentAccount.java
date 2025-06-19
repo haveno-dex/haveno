@@ -755,7 +755,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.swift.swiftCode.intermediary"));
             break;
         case MOBILE_NR:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.mobile"));
+            break;
         case NATIONAL_ACCOUNT_ID:
             throw new IllegalArgumentException("Not implemented");
         case PAYID:

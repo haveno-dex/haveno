@@ -1905,6 +1905,7 @@ message PaymentAccountForm {
         PAYSAFE = 19;
         WECHAT_PAY = 20;
         ALI_PAY = 21;
+        SWISH = 22;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

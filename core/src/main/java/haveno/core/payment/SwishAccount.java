@@ -17,12 +17,14 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.SwishAccountPayload;
+import haveno.core.payment.validation.SwishValidator;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
@@ -32,6 +34,13 @@ import java.util.List;
 public final class SwishAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("SEK"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public SwishAccount() {
         super(PaymentMethod.SWISH);
@@ -50,7 +59,7 @@ public final class SwishAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setMobileNr(String mobileNr) {
@@ -67,5 +76,17 @@ public final class SwishAccount extends PaymentAccount {
 
     public String getHolderName() {
         return ((SwishAccountPayload) paymentAccountPayload).getHolderName();
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+            case MOBILE_NR:
+                processValidationResult(new SwishValidator().validate(value));
+                break;
+            default:
+                super.validateFormField(form, fieldId, value);
+                break;
+        }
     }
 }
