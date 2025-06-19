@@ -38,6 +38,13 @@ public final class WeChatPayAccount extends PaymentAccount {
             new TraditionalCurrency("GBP")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public WeChatPayAccount() {
         super(PaymentMethod.WECHAT_PAY);
     }
@@ -54,7 +61,7 @@ public final class WeChatPayAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {
