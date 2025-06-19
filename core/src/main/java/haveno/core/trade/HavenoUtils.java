@@ -476,9 +476,9 @@ public class HavenoUtils {
         case XMR_STAGENET:
             return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
         case XMR_MAINNET:
-            throw new RuntimeException("Mainnet fee address not implemented");
+            return "8BTqDom6yukimzKTaLX7d4EgxznKUqTLjebpvUySkWGcg9irMqUwiHKccCTZ8dMu7CG3Ac89H7kqifpCwjCeWd2GUhhxy1F";
         default:
-            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+            return "8BTqDom6yukimzKTaLX7d4EgxznKUqTLjebpvUySkWGcg9irMqUwiHKccCTZ8dMu7CG3Ac89H7kqifpCwjCeWd2GUhhxy1F";
         }
     }
 

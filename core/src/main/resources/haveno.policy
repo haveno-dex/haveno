@@ -93,7 +93,7 @@ grant {
 
   /* user data dir for Mac, Linux, Windows */
   permission "java.io.FilePermission" "${user.home}${/}Library${/}Application Support${/}-", "read,write,delete";
-  permission "java.io.FilePermission" "${user.home}${/}.local${/}share${/}haveno-", "read,write,delete";
+  permission "java.io.FilePermission" "${user.home}${/}.local${/}share${/}-", "read,write,delete";
   permission "java.io.FilePermission" "${appdata}${/}haveno-", "read,write,delete";
 
   /* temp dir Mac, Linux, Windows TODO */

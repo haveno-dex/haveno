@@ -111,7 +111,7 @@ public class XmrWalletService extends XmrWalletBase {
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.DEFAULT;
-    public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
+    public static final int MONERO_LOG_LEVEL = 1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
@@ -120,8 +120,8 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_MAX_WALLET_BACKUPS = 2;
-    private static final int MAX_SYNC_ATTEMPTS = 3;
-    private static final boolean PRINT_RPC_STACK_TRACE = false;
+    private static final int MAX_SYNC_ATTEMPTS = 5;
+    private static final boolean PRINT_RPC_STACK_TRACE = true;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
