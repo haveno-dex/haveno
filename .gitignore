@@ -39,3 +39,4 @@ deploy
 */.factorypath
 .flatpak-builder
 exchange.haveno.Haveno.yaml
+hs_ed25519_secret_key
