@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  haveno-daemon:
+    image: haveno-core
+    build:
+      context: ../
+    ports:
+      - "127.0.0.1:3201:3201"
+    environment:
+      - P2P_NETWORK_VERSION=X
+      - NETWORK_VERSION_TAG=${NETWORK_VERSION_TAG}
+      - BASE_CURRENCY_NETWORK=XMR_${BASE_NETWORK}
+      - USE_LOCALHOST_FOR_P2P=false
+      - USE_DEV_PRIVILEGE_KEYS=false
+      - NODE_PORT=9999
+      - APP_NAME=haveno-XMR_${BASE_NETWORK}_DAEMON
+      - EXPORT_SHADOW=yes
+      - EXPORT_SHADOW_PATH=daemon/build/libs/daemon-all.sh # Leave this blank in most cases
+    entrypoint: ["./haveno-daemon"]
+    command:
+      - "--baseCurrencyNetwork=XMR_${BASE_NETWORK}"
+      - "--useLocalhostForP2P=false"
+      - "--useDevPrivilegeKeys=false"
+      - "--nodePort=9999"
+      - "--appName=XMR_${BASE_NETWORK}_DAEMON"
+      - "--seedNodes=5i6blbmuflq4s4im6zby26a7g22oef6kyp7vbwyru6oq5e36akzo3ayd.onion:2001,dx4ktxyiemjc354imehuaswbhqlidhy62b4ifzigk5p2rb37lxqbveqd.onion:2002,ajbqx4clnjlr7lmzoftuvpvmqafdiilidsgocvokx6bqj3okk56ccfqd.onion:2003"
+    restart: unless-stopped

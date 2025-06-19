@@ -15,7 +15,7 @@ USER haveno
 
 WORKDIR /home/haveno
 
-RUN set -ex && git clone https://git.haveno.com/haveno/haveno.git
+RUN set -ex && git clone https://foss.haveno.com/haveno-network/haveno-core.git
 
 WORKDIR /home/haveno/haveno
 

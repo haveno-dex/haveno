@@ -1,0 +1,109 @@
+## Configuration file for Haveno Seednode
+##
+## Tor opens a socks proxy on port 9050 by default -- even if you don't
+## configure one below. Set "SocksPort 0" if you plan to run Tor only
+## as a relay, and not make any local application connections yourself.
+#SocksPort 9050 # Default: Bind to localhost:9050 for local connections.
+# ### SocksPort flag: OnionTrafficOnly ###
+## Tell the tor client to only connect to .onion addresses in response to SOCKS5 requests on this connection.
+## This is equivalent to NoDNSRequest, NoIPv4Traffic, NoIPv6Traffic.
+# ### SocksPort flag: ExtendedErrors ###
+## Return extended error code in the SOCKS reply. So far, the possible errors are:
+# X'F0' Onion Service Descriptor Can Not be Found
+# X'F1' Onion Service Descriptor Is Invalid
+# X'F2' Onion Service Introduction Failed
+# X'F3' Onion Service Rendezvous Failed
+# X'F4' Onion Service Missing Client Authorization
+# X'F5' Onion Service Wrong Client Authorization
+# X'F6' Onion Service Invalid Address
+# X'F7' Onion Service Introduction Timed Out
+SocksPort 9050 OnionTrafficOnly ExtendedErrors
+ 
+## Entry policies to allow/deny SOCKS requests based on IP address.
+## First entry that matches wins. If no SocksPolicy is set, we accept
+## all (and only) requests that reach a SocksPort. Untrusted users who
+## can access your SocksPort may be able to learn about the connections
+## you make.
+SocksPolicy accept 127.0.0.1
+SocksPolicy accept6 [::1]
+SocksPolicy reject *
+ 
+## Tor will reject application connections that use unsafe variants of the socks protocol
+## — ones that only provide an IP address, meaning the application is doing a DNS resolve first.
+## Specifically, these are socks4 and socks5 when not doing remote DNS. (Default: 0)
+#SafeSocks 1
+ 
+## Tor will make a notice-level log entry for each connection to the Socks port indicating
+## whether the request used a safe socks protocol or an unsafe one (see above entry on SafeSocks).
+## This helps to determine whether an application using Tor is possibly leaking DNS requests. (Default: 0)
+TestSocks 1
+ 
+## Logs go to stdout at level "notice" unless redirected by something
+## else, like one of the below lines. You can have as many Log lines as
+## you want.
+##
+## We advise using "notice" in most cases, since anything more verbose
+## may provide sensitive information to an attacker who obtains the logs.
+##
+## Send all messages of level 'notice' or higher to /var/log/tor/notices.log
+#Log notice file /var/log/tor/notices.log
+## Send every possible message to /var/log/tor/debug.log
+#Log debug file /var/log/tor/debug.log
+## Use the system log instead of Tor's logfiles (This is default)
+#Log notice syslog
+## To send all messages to stderr:
+#Log debug stderr
+ 
+# Try to write to disk less frequently than we would otherwise. This is useful when running on flash memory.
+AvoidDiskWrites 1
+ 
+HiddenServiceStatistics 0
+ 
+## Compute the hash of a password with "tor --hash-password password".
+HashedControlPassword 16:872860B76453A77D60CA2BB8C1A7042072093276A3D701AD684053EC4C
+#CookieAuthentication 0       # (Default: 1)
+ 
+## MetricsPort provides an interface to the underlying Tor relay metrics.
+## Exposing publicly is dangerous, set a very strict access policy.
+## Retrieve the metrics with:  curl http://127.0.0.1:9035/metrics
+MetricsPort 127.0.0.1:9035
+MetricsPortPolicy accept 127.0.0.1
+MetricsPortPolicy accept [::1]
+ 
+HiddenServiceDir /var/lib/tor/haveno_seednode_2001
+HiddenServicePort 2001 127.0.0.1:2001
+HiddenServicePort 2001 [::1]:2001
+HiddenServiceEnableIntroDoSDefense 1
+HiddenServicePoWDefensesEnabled 1
+HiddenServicePoWQueueRate 50          # (Default: 250)
+HiddenServicePoWQueueBurst 250        # (Default: 2500)
+HiddenServiceMaxStreams 25
+ 
+ 
+HiddenServiceDir /var/lib/tor/haveno_seednode_2002
+HiddenServicePort 2002 127.0.0.1:2002
+HiddenServicePort 2002 [::1]:2002
+HiddenServiceEnableIntroDoSDefense 1
+#HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
+#HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
+HiddenServicePoWDefensesEnabled 1
+HiddenServicePoWQueueRate 50          # (Default: 250)
+HiddenServicePoWQueueBurst 250        # (Default: 2500)
+HiddenServiceMaxStreams 25
+#HiddenServiceMaxStreamsCloseCircuit 1
+ 
+ 
+HiddenServiceDir /var/lib/tor/haveno_seednode_2003
+HiddenServicePort 2003 127.0.0.1:2003
+HiddenServicePort 2003 [::1]:2003
+HiddenServiceEnableIntroDoSDefense 1
+#HiddenServiceEnableIntroDoSRatePerSec 25       # (Default: 25)
+#HiddenServiceEnableIntroDoSBurstPerSec 200     # (Default: 200)
+#HiddenServiceNumIntroductionPoints 3           # (Default: 3)
+HiddenServicePoWDefensesEnabled 1
+HiddenServicePoWQueueRate 50          # (Default: 250)
+HiddenServicePoWQueueBurst 250        # (Default: 2500)
+HiddenServiceMaxStreams 25
+#HiddenServiceMaxStreamsCloseCircuit 1
+ 
+LongLivedPorts 2001,2002,2003
