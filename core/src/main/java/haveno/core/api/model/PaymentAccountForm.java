@@ -79,7 +79,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         PAYPAL,
         VENMO,
         PAYSAFE,
-        WECHAT_PAY;
+        WECHAT_PAY,
+        ALI_PAY;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
