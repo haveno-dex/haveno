@@ -518,7 +518,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case EXTRA_INFO:
             break;
         case HOLDER_ADDRESS:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(0, 100).validate(value));
+            break;
         case HOLDER_EMAIL:
             throw new IllegalArgumentException("Not implemented");
         case HOLDER_NAME:
@@ -668,11 +669,11 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         case BENEFICIARY_ACCOUNT_NR:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.swift.account"));
+            field.setLabel(Res.get("payment.swift.account"));  // TODO: this is specific to swift
             break;
         case BENEFICIARY_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
-            field.setLabel(Res.get("payment.swift.address.beneficiary"));
+            field.setLabel(Res.get("payment.swift.address.beneficiary")); // TODO: this is specific to swift
             break;
         case BENEFICIARY_CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -717,7 +718,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.shared.optionalExtra"));
             break;
         case HOLDER_ADDRESS:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
+            field.setLabel(Res.get("payment.account.owner.address"));
+            break;
         case HOLDER_EMAIL:
             throw new IllegalArgumentException("Not implemented");
         case HOLDER_NAME:

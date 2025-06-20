@@ -19,6 +19,7 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -32,6 +33,15 @@ import java.util.List;
 public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_ADDRESS,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public TransferwiseUsdAccount() {
         super(PaymentMethod.TRANSFERWISE_USD);
@@ -61,11 +71,11 @@ public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
     }
 
     public void setBeneficiaryAddress(String address) {
-        ((TransferwiseUsdAccountPayload) paymentAccountPayload).setBeneficiaryAddress(address);
+        ((TransferwiseUsdAccountPayload) paymentAccountPayload).setHolderAddress(address);
     }
 
     public String getBeneficiaryAddress() {
-        return ((TransferwiseUsdAccountPayload) paymentAccountPayload).getBeneficiaryAddress();
+        return ((TransferwiseUsdAccountPayload) paymentAccountPayload).getHolderAddress();
     }
 
     @Override
@@ -90,6 +100,13 @@ public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.HOLDER_ADDRESS) field.setLabel(field.getLabel() + " " + Res.get("payment.transferwiseUsd.address"));
+        return field;
     }
 }

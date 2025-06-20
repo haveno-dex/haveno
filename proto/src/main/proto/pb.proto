@@ -1163,7 +1163,7 @@ message TransferwiseAccountPayload {
 message TransferwiseUsdAccountPayload {
     string email = 1;
     string holder_name = 2;
-    string beneficiary_address = 3;
+    string holder_address = 3;
 }
 
 message PayseraAccountPayload {
@@ -1906,6 +1906,7 @@ message PaymentAccountForm {
         WECHAT_PAY = 20;
         ALI_PAY = 21;
         SWISH = 22;
+        TRANSFERWISE_USD = 23;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
