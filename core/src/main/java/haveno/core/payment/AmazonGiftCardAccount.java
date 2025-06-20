@@ -46,6 +46,14 @@ public final class AmazonGiftCardAccount extends PaymentAccount {
             new TraditionalCurrency("USD")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     @Nullable
     private Country country;
 
@@ -65,7 +73,7 @@ public final class AmazonGiftCardAccount extends PaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public String getEmailOrMobileNr() {
@@ -96,5 +104,12 @@ public final class AmazonGiftCardAccount extends PaymentAccount {
 
     private AmazonGiftCardAccountPayload getAmazonGiftCardAccountPayload() {
         return (AmazonGiftCardAccountPayload) paymentAccountPayload;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+        return field;
     }
 }
