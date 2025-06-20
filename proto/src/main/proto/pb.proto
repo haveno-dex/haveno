@@ -1908,6 +1908,7 @@ message PaymentAccountForm {
         SWISH = 22;
         TRANSFERWISE_USD = 23;
         AMAZON_GIFT_CARD = 24;
+        ACH_TRANSFER = 25;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
