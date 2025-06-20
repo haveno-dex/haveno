@@ -435,7 +435,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case ACCOUNT_TYPE:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case ANSWER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_NAME:
@@ -491,7 +492,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new BICValidator().validate(value));
             break;
         case BRANCH_ID:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 34).validate(value));
+            break;
         case CITY:
             processValidationResult(new LengthValidator(2, 34).validate(value));
             break;
@@ -624,7 +626,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.account.owner"));
             break;
         case ACCOUNT_TYPE:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+            field.setLabel(Res.get("payment.select.account"));
+            break;
         case ANSWER:
             throw new IllegalArgumentException("Not implemented");
         case BANK_ACCOUNT_NAME:
@@ -692,7 +696,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("BIC");
             break;
         case BRANCH_ID:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            //field.setLabel("Not implemented"); // expected to be overridden by subclasses
+            break;
         case CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.account.city"));
