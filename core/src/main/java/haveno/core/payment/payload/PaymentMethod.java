@@ -372,7 +372,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 PAYSAFE_ID,
                 WECHAT_PAY_ID,
                 ALI_PAY_ID,
-                SWISH_ID);
+                SWISH_ID,
+                TRANSFERWISE_USD_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
