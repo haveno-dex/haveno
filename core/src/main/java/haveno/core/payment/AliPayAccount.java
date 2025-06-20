@@ -60,6 +60,13 @@ public final class AliPayAccount extends PaymentAccount {
             new TraditionalCurrency("ZAR")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public AliPayAccount() {
         super(PaymentMethod.ALI_PAY);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
@@ -77,7 +84,7 @@ public final class AliPayAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {

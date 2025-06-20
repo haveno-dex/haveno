@@ -36,6 +36,8 @@ import haveno.core.payment.InstantCryptoCurrencyAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.InteracETransferValidator;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.user.User;
 import java.io.File;
 import static java.lang.String.format;
@@ -48,19 +50,24 @@ import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j
-class CorePaymentAccountsService {
+public class CorePaymentAccountsService {
 
     private final CoreAccountService accountService;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final User user;
+    public final InteracETransferValidator interacETransferValidator;
 
     @Inject
     public CorePaymentAccountsService(CoreAccountService accountService,
                                       AccountAgeWitnessService accountAgeWitnessService,
-                                      User user) {
+                                      User user,
+                                      InteracETransferValidator interacETransferValidator) {
         this.accountService = accountService;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.user = user;
+        this.interacETransferValidator = interacETransferValidator;
+
+        HavenoUtils.corePaymentAccountService = this;
     }
 
     PaymentAccount createPaymentAccount(PaymentAccountForm form) {

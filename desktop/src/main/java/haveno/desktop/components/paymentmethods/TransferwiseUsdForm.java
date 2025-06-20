@@ -57,7 +57,7 @@ public class TransferwiseUsdForm extends PaymentMethodForm {
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, 1, Res.get("payment.email"),
                 ((TransferwiseUsdAccountPayload) paymentAccountPayload).getEmail());
 
-        String address = ((TransferwiseUsdAccountPayload) paymentAccountPayload).getBeneficiaryAddress();
+        String address = ((TransferwiseUsdAccountPayload) paymentAccountPayload).getHolderAddress();
         if (address.length() > 0) {
             TextArea textAddress = addCompactTopLabelTextArea(gridPane, gridRow, 0, Res.get("payment.account.address"), "").second;
             textAddress.setMinHeight(70);
@@ -96,7 +96,7 @@ public class TransferwiseUsdForm extends PaymentMethodForm {
             updateFromInputs();
         });
 
-        String addressLabel = Res.get("payment.account.owner.address") + Res.get("payment.transferwiseUsd.address");
+        String addressLabel = Res.get("payment.account.owner.address") + " " + Res.get("payment.transferwiseUsd.address");
         TextArea addressTextArea = addTopLabelTextArea(gridPane, ++gridRow, addressLabel, addressLabel).second;
         addressTextArea.setMinHeight(70);
         addressTextArea.textProperty().addListener((ov, oldValue, newValue) -> {
