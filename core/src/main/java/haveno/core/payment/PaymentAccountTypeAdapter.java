@@ -50,6 +50,7 @@ import static haveno.common.util.Utilities.decodeFromHex;
 import static haveno.core.locale.CountryUtil.findCountryByCode;
 import static haveno.core.locale.CurrencyUtil.getTradeCurrenciesInList;
 import static haveno.core.locale.CurrencyUtil.getTradeCurrency;
+import static haveno.core.payment.payload.PaymentMethod.AMAZON_GIFT_CARD_ID;
 import static haveno.core.payment.payload.PaymentMethod.MONEY_GRAM_ID;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
@@ -438,6 +439,8 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
                 // account.setSingleTradeCurrency(fiatCurrency);
             } else if (account.hasPaymentMethodWithId(MONEY_GRAM_ID)) {
                 ((MoneyGramAccount) account).setCountry(country.get());
+            } else if (account.hasPaymentMethodWithId(AMAZON_GIFT_CARD_ID)) {
+                ((AmazonGiftCardAccount) account).setCountry(country.get());
             } else {
                 String errMsg = format("cannot set the country on a %s",
                         paymentAccountType.getSimpleName());
