@@ -630,7 +630,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.select.account"));
             break;
         case ANSWER:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.answer"));
+            break;
         case BANK_ACCOUNT_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.account.owner"));
@@ -782,7 +784,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case PROMPT_PAY_ID:
             throw new IllegalArgumentException("Not implemented");
         case QUESTION:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.secret"));
+            break;
         case REQUIREMENTS:
             throw new IllegalArgumentException("Not implemented");
         case SALT:
