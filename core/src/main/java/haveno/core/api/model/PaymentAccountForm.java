@@ -82,7 +82,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         WECHAT_PAY,
         ALI_PAY,
         SWISH,
-        TRANSFERWISE_USD;
+        TRANSFERWISE_USD,
+        AMAZON_GIFT_CARD;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
