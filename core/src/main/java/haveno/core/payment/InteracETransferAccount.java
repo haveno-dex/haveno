@@ -17,12 +17,15 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.InteracETransferAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.InteracETransferValidator;
+import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,9 +36,22 @@ public final class InteracETransferAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("CAD"));
 
+    private final InteracETransferValidator interacETransferValidator;
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
+            PaymentAccountFormField.FieldId.QUESTION,
+            PaymentAccountFormField.FieldId.ANSWER,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public InteracETransferAccount() {
         super(PaymentMethod.INTERAC_E_TRANSFER);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
+        this.interacETransferValidator = HavenoUtils.corePaymentAccountService.interacETransferValidator;
+        if (interacETransferValidator == null) throw new IllegalArgumentException("InteracETransferValidator cannot be null");
     }
 
     @Override
@@ -50,15 +66,15 @@ public final class InteracETransferAccount extends PaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setEmail(String email) {
-        ((InteracETransferAccountPayload) paymentAccountPayload).setEmail(email);
+        ((InteracETransferAccountPayload) paymentAccountPayload).setEmailOrMobileNr(email);
     }
 
     public String getEmail() {
-        return ((InteracETransferAccountPayload) paymentAccountPayload).getEmail();
+        return ((InteracETransferAccountPayload) paymentAccountPayload).getEmailOrMobileNr();
     }
 
     public void setAnswer(String answer) {
@@ -83,5 +99,19 @@ public final class InteracETransferAccount extends PaymentAccount {
 
     public String getHolderName() {
         return ((InteracETransferAccountPayload) paymentAccountPayload).getHolderName();
+    }
+
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+            case QUESTION:
+                processValidationResult(interacETransferValidator.questionValidator.validate(value));
+                break;
+            case ANSWER:
+                processValidationResult(interacETransferValidator.answerValidator.validate(value));
+                break;
+            default:
+                super.validateFormField(form, fieldId, value);
+        }
+
     }
 }

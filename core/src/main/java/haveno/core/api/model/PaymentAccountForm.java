@@ -84,7 +84,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         SWISH,
         TRANSFERWISE_USD,
         AMAZON_GIFT_CARD,
-        ACH_TRANSFER;
+        ACH_TRANSFER,
+        INTERAC_E_TRANSFER;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
