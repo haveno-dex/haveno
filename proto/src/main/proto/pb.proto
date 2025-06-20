@@ -1047,7 +1047,7 @@ message FasterPaymentsAccountPayload {
 }
 
 message InteracETransferAccountPayload {
-    string email = 1;
+    string email_or_mobile_nr = 1;
     string holder_name = 2;
     string question = 3;
     string answer = 4;
@@ -1909,6 +1909,7 @@ message PaymentAccountForm {
         TRANSFERWISE_USD = 23;
         AMAZON_GIFT_CARD = 24;
         ACH_TRANSFER = 25;
+        INTERAC_E_TRANSFER = 26;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
