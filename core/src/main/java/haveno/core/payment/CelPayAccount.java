@@ -24,12 +24,17 @@ import haveno.core.payment.payload.CelPayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class CelPayAccount extends PaymentAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     // https://github.com/bisq-network/growth/issues/231
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
@@ -73,12 +78,12 @@ public final class CelPayAccount extends PaymentAccount {
     }
 
     @Override
-    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
+    public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
     @Override
-    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 }

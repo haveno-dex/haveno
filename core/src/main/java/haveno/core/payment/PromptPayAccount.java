@@ -31,6 +31,11 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class PromptPayAccount extends PaymentAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.PROMPT_PAY_ID,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("THB"));
 
     public PromptPayAccount() {
@@ -50,7 +55,7 @@ public final class PromptPayAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setPromptPayId(String promptPayId) {

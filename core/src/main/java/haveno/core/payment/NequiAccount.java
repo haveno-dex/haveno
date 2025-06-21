@@ -31,6 +31,11 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class NequiAccount extends CountryBasedPaymentAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("COP"));
 
     public NequiAccount() {
@@ -72,6 +77,6 @@ public final class NequiAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }

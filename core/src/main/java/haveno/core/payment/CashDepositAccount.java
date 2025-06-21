@@ -30,6 +30,12 @@ import java.util.List;
 
 public final class CashDepositAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.BANK_ID,
+            PaymentAccountFormField.FieldId.REQUIREMENTS,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
     public CashDepositAccount() {
@@ -48,7 +54,7 @@ public final class CashDepositAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     @Override

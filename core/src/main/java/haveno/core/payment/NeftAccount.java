@@ -17,13 +17,24 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.payment.payload.NeftAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class NeftAccount extends IfscBasedAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public NeftAccount() {
         super(PaymentMethod.NEFT);
@@ -32,6 +43,11 @@ public final class NeftAccount extends IfscBasedAccount {
     @Override
     protected PaymentAccountPayload createPayload() {
         return new NeftAccountPayload(paymentMethod.getId(), id);
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 
     public String getMessageForBuyer() {

@@ -17,13 +17,23 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.PaytmAccountPayload;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class PaytmAccount extends IfscBasedAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public PaytmAccount() {
         super(PaymentMethod.PAYTM);
     }
@@ -31,6 +41,11 @@ public final class PaytmAccount extends IfscBasedAccount {
     @Override
     protected PaymentAccountPayload createPayload() {
         return new PaytmAccountPayload(paymentMethod.getId(), id);
+    }
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 
     public void setEmailOrMobileNr(String emailOrMobileNr) {

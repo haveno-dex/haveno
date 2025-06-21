@@ -32,6 +32,16 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class AchTransferAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.HOLDER_ADDRESS,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
     public AchTransferAccount() {
@@ -79,6 +89,6 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }
