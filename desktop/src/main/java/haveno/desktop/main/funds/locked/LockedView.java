@@ -165,7 +165,7 @@ public class LockedView extends ActivatableView<VBox, Void> {
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            ObservableList<TableColumn<LockedListItem, ?>> tableColumns = tableView.getColumns();
+            ObservableList<TableColumn<LockedListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             int reportColumns = tableColumns.size();
             CSVEntryConverter<LockedListItem> headerConverter = item -> {
                 String[] columns = new String[reportColumns];

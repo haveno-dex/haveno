@@ -1281,6 +1281,16 @@ public class GUIUtil {
         }
     }
 
+    public static <T> ObservableList<TableColumn<T, ?>> getContentColumns(TableView<T> tableView) {
+        ObservableList<TableColumn<T, ?>> contentColumns = FXCollections.observableArrayList();
+        for (TableColumn<T, ?> column : tableView.getColumns()) {
+            if (!column.getStyleClass().contains("first-column") && !column.getStyleClass().contains("last-column")) {
+                contentColumns.add(column);
+            }
+        }
+        return contentColumns;
+    }
+
     public static ImageView getCurrencyIcon(String currencyCode) {
         return getCurrencyIcon(currencyCode, 24);
     }
