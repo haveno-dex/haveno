@@ -33,6 +33,7 @@ import java.util.List;
 public final class SpecificBanksAccount extends CountryBasedPaymentAccount implements BankNameRestrictedBankAccount, SameCountryRestrictedBankAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.BANK_NAME,
             PaymentAccountFormField.FieldId.BANK_ID,

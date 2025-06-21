@@ -30,6 +30,7 @@ import java.util.List;
 public final class WesternUnionAccount extends CountryBasedPaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.EMAIL,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.CITY,

@@ -30,6 +30,7 @@ import java.util.List;
 public final class UpiAccount extends IfscBasedAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.VIRTUAL_PAYMENT_ADDRESS,
             PaymentAccountFormField.FieldId.SALT
     );

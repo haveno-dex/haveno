@@ -30,6 +30,7 @@ import java.util.List;
 public final class JapanBankAccount extends PaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.BANK_NAME,
             PaymentAccountFormField.FieldId.BANK_CODE,
             PaymentAccountFormField.FieldId.BANK_BRANCH_NAME,

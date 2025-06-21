@@ -30,6 +30,7 @@ import java.util.List;
 public final class PaytmAccount extends IfscBasedAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.MOBILE_NR,
             PaymentAccountFormField.FieldId.SALT
     );

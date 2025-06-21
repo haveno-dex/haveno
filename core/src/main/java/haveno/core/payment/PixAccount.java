@@ -32,6 +32,7 @@ import java.util.List;
 public final class PixAccount extends CountryBasedPaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.PIX_KEY,
             PaymentAccountFormField.FieldId.SALT
     );

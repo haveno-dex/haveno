@@ -33,6 +33,7 @@ import java.util.List;
 public final class PopmoneyAccount extends PaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.ACCOUNT_ID,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.SALT

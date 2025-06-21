@@ -33,6 +33,7 @@ import java.util.List;
 public final class AmazonGiftCardAccount extends PaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
             PaymentAccountFormField.FieldId.COUNTRY,
             PaymentAccountFormField.FieldId.SALT

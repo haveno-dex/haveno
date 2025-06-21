@@ -32,6 +32,7 @@ import java.util.List;
 public final class ImpsAccount extends CountryBasedPaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.ACCOUNT_NR,
             PaymentAccountFormField.FieldId.BRANCH_ID,
