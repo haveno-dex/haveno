@@ -376,7 +376,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 TRANSFERWISE_USD_ID,
                 AMAZON_GIFT_CARD_ID,
                 ACH_TRANSFER_ID,
-                INTERAC_E_TRANSFER_ID);
+                INTERAC_E_TRANSFER_ID,
+                US_POSTAL_MONEY_ORDER_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 

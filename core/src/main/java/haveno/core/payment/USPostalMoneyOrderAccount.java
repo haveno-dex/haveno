@@ -33,6 +33,13 @@ public final class USPostalMoneyOrderAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.POSTAL_ADDRESS,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public USPostalMoneyOrderAccount() {
         super(PaymentMethod.US_POSTAL_MONEY_ORDER);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
@@ -50,7 +57,7 @@ public final class USPostalMoneyOrderAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setPostalAddress(String postalAddress) {
