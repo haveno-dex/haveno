@@ -1910,6 +1910,7 @@ message PaymentAccountForm {
         AMAZON_GIFT_CARD = 24;
         ACH_TRANSFER = 25;
         INTERAC_E_TRANSFER = 26;
+        US_POSTAL_MONEY_ORDER = 27;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
