@@ -40,7 +40,7 @@ public class GetPaymentMethodsTest extends MethodTest {
                 .stream()
                 .map(PaymentMethod::getId)
                 .collect(Collectors.toList());
-        assertTrue(paymentMethodIds.size() >= 20);
+        assertTrue(paymentMethodIds.size() >= 55);
     }
 
     @AfterAll
