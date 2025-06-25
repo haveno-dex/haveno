@@ -102,6 +102,7 @@ class CorePriceService {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
+        // TODO: remove this
         // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
         // considered as buying/selling crypto. Because of this, when viewing a xmr-crypto pair,
         // the buy column is actually the sell column and vice versa. To maintain the expected

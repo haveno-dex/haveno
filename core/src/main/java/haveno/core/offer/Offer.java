@@ -173,17 +173,17 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     @Nullable
     public Price getPrice() {
-        String currencyCode = getCurrencyCode();
+        String counterCurrencyCode = getCurrencyCode();
         if (!offerPayload.isUseMarketBasedPrice()) {
-            return Price.valueOf(currencyCode, offerPayload.getPrice());
+            return Price.valueOf(counterCurrencyCode, offerPayload.getPrice());
         }
 
         checkNotNull(priceFeedService, "priceFeed must not be null");
-        MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
+        MarketPrice marketPrice = priceFeedService.getMarketPrice(counterCurrencyCode);
         if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
             double factor;
             double marketPriceMargin = offerPayload.getMarketPriceMarginPct();
-            if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            if (currenciesInverted()) { // legacy offers inverted crypto prices
                 factor = getDirection() == OfferDirection.SELL ?
                         1 - marketPriceMargin : 1 + marketPriceMargin;
             } else {
@@ -193,12 +193,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
             double marketPriceAsDouble = marketPrice.getPrice();
             double targetPriceAsDouble = marketPriceAsDouble * factor;
             try {
-                int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                int precision = CurrencyUtil.isTraditionalCurrency(counterCurrencyCode) ?
                         TraditionalMoney.SMALLEST_UNIT_EXPONENT :
                         CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double scaled = MathUtils.scaleUpByPowerOf10(targetPriceAsDouble, precision);
                 final long roundedToLong = MathUtils.roundDoubleToLong(scaled);
-                return Price.valueOf(currencyCode, roundedToLong);
+                return Price.valueOf(counterCurrencyCode, roundedToLong);
             } catch (Exception e) {
                 log.error("Exception at getPrice / parseToFiat: " + e + "\n" +
                         "That case should never happen.");
@@ -508,13 +508,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public String getCurrencyCode() {
-        if (currencyCode != null) {
-            return currencyCode;
-        }
-
-        currencyCode = offerPayload.getBaseCurrencyCode().equals("XMR") ?
-                offerPayload.getCounterCurrencyCode() :
-                offerPayload.getBaseCurrencyCode();
+        if (currencyCode != null) return currencyCode;
+        currencyCode = currenciesInverted() ? offerPayload.getBaseCurrencyCode() : offerPayload.getCounterCurrencyCode(); // legacy offers inverted crypto prices
         return currencyCode;
     }
 
@@ -524,6 +519,10 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public String getBaseCurrencyCode() {
         return offerPayload.getBaseCurrencyCode();
+    }
+
+    public boolean currenciesInverted() {
+        return !offerPayload.getBaseCurrencyCode().equals("XMR");
     }
 
     public String getPaymentMethodId() {
@@ -595,6 +594,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return getExtraDataMap().get(OfferPayload.XMR_AUTO_CONF).equals(OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE);
     }
 
+    // TODO: remove this
     public boolean isXmr() {
         return getCurrencyCode().equals("XMR");
     }

@@ -175,10 +175,13 @@ public class CreateOfferService {
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.longValueExact() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.longValueExact() : 0L;
+        // TODO: removce this
         boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
         String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
         String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
         String countryCode = PaymentAccountUtil.getCountryCode(paymentAccount);
+        // String baseCurrencyCode = Res.getBaseCurrencyCode();
+        // String counterCurrencyCode = currencyCode;
         List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);

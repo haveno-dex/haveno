@@ -35,6 +35,9 @@ import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -182,5 +185,13 @@ public class PriceUtil {
     public static int getMarketPricePrecision(String currencyCode) {
         return CurrencyUtil.isTraditionalCurrency(currencyCode) ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+    }
+
+    public static long invertLongPrice(String currencyCode, long price) {
+        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ? TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+        double priceDouble = MathUtils.scaleDownByPowerOf10(price, precision);
+        double priceDoubleInverted = BigDecimal.ONE.divide(BigDecimal.valueOf(priceDouble), precision, RoundingMode.HALF_UP).doubleValue();
+        double scaled = MathUtils.scaleUpByPowerOf10(priceDoubleInverted, precision);
+        return MathUtils.roundDoubleToLong(scaled);
     }
 }
