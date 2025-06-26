@@ -350,13 +350,6 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
-        // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
-        // considered as buying/selling Crypto. Because of this, when viewing a xmr-crypto pair,
-        // the buy column is actually the sell column and vice versa. To maintain the expected
-        // ordering, we have to reverse the price comparator.
-        boolean isCrypto = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
-//        if (isCrypto) offerPriceComparator = offerPriceComparator.reversed();
-
         // Offer amounts are used for the secondary sort. They are sorted from high to low.
         Comparator<Offer> offerAmountComparator = Comparator.comparing(Offer::getAmount).reversed();
 
@@ -367,7 +360,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                 offerPriceComparator
                         .thenComparing(offerAmountComparator);
 
-        OfferDirection buyOfferDirection = isCrypto ? OfferDirection.SELL : OfferDirection.BUY;
+        OfferDirection buyOfferDirection = OfferDirection.BUY;
 
         List<Offer> allBuyOffers = offerBookListItems.stream()
                 .map(OfferBookListItem::getOffer)
@@ -398,7 +391,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         buildChartAndTableEntries(allBuyOffers, OfferDirection.BUY, buyData, topBuyOfferList);
 
-        OfferDirection sellOfferDirection = isCrypto ? OfferDirection.BUY : OfferDirection.SELL;
+        OfferDirection sellOfferDirection = OfferDirection.SELL;
 
         List<Offer> allSellOffers = offerBookListItems.stream()
                 .map(OfferBookListItem::getOffer)

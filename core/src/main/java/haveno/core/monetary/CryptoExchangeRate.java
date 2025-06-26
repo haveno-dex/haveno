@@ -60,8 +60,8 @@ public class CryptoExchangeRate {
      */
     public CryptoMoney coinToCrypto(Coin convertCoin) {
         BigInteger converted = BigInteger.valueOf(coin.value)
-                .multiply(BigInteger.valueOf(convertCoin.value))
-                .divide(BigInteger.valueOf(crypto.value));
+                .multiply(BigInteger.valueOf(crypto.value))
+                .divide(BigInteger.valueOf(convertCoin.value));
         if (converted.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0
                 || converted.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) < 0)
             throw new ArithmeticException("Overflow");
