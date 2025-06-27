@@ -187,7 +187,7 @@ public class PriceUtil {
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
     }
 
-    public static long invertLongPrice(String currencyCode, long price) {
+    public static long invertLongPrice(long price, String currencyCode) {
         int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ? TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
         double priceDouble = MathUtils.scaleDownByPowerOf10(price, precision);
         double priceDoubleInverted = BigDecimal.ONE.divide(BigDecimal.valueOf(priceDouble), precision, RoundingMode.HALF_UP).doubleValue();
