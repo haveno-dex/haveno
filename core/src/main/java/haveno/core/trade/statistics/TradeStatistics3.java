@@ -92,6 +92,11 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
         }
 
+        // Store protocol version in order to invert prices of legacy crypto stats.
+        // This can be removed in the future after all trades use trade protocol version 3+,
+        // then invert only stats which are missing this field prior to then.
+        extraDataMap.put(Trade.PROTOCOL_VERSION, trade.getOffer().getOfferPayload().getProtocolVersion() + "");
+
         NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress(), "Arbitrator address is null", trade.getClass().getSimpleName(), trade.getId());
 
         // The first 4 chars are sufficient to identify an arbitrator.
@@ -203,9 +208,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     @Getter
     private final long price;
     @Getter
-    private final long amount; // BTC amount
+    private final long amount; // XMR amount
     private final String paymentMethod;
-    // As only seller is publishing it is the sellers trade date
     private final long date;
 
     // Old converted trade stat objects might not have it set
@@ -219,7 +223,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     // Hash get set in constructor from json of all the other data fields (with hash = null).
     @JsonExclude
     private final byte[] hash;
-    // Should be only used in emergency case if we need to add data but do not want to break backward compatibility
+    // Should be only used in exceptional case if we need to add data but do not want to break backward compatibility
     // at the P2P network storage checks. The hash of the object will be used to verify if the data is valid. Any new
     // field in a class would break that hash and therefore break the storage mechanism.
     @Nullable

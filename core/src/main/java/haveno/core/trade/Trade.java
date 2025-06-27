@@ -151,6 +151,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
     private Subscription protocolErrorHeightSubscription;
+    public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
