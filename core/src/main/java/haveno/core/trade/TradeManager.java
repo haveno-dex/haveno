@@ -523,7 +523,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             nonFailedTrades.addAll(tradableList.getList());
             String referralId = referralIdService.getOptionalReferralId().orElse(null);
             boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
-            tradeStatisticsManager.maybeRepublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
+            tradeStatisticsManager.maybePublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
         }).start();
 
         // allow execution to start
