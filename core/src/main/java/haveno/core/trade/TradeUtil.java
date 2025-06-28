@@ -192,25 +192,14 @@ public class TradeUtil {
      * @return String describing a trader's role
      */
     private static String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
-        if (isTraditionalCurrency(currencyCode)) {
-            String baseCurrencyCode = Res.getBaseCurrencyCode();
-            if (isBuyerMakerAndSellerTaker)
-                return isMaker
-                        ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.buyer"))
-                        : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.seller"));
-            else
-                return isMaker
-                        ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.seller"))
-                        : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.buyer"));
-        } else {
-            if (isBuyerMakerAndSellerTaker)
-                return isMaker
-                        ? Res.get("formatter.asMaker", currencyCode, Res.get("shared.seller"))
-                        : Res.get("formatter.asTaker", currencyCode, Res.get("shared.buyer"));
-            else
-                return isMaker
-                        ? Res.get("formatter.asMaker", currencyCode, Res.get("shared.buyer"))
-                        : Res.get("formatter.asTaker", currencyCode, Res.get("shared.seller"));
-        }
+        String baseCurrencyCode = Res.getBaseCurrencyCode();
+        if (isBuyerMakerAndSellerTaker)
+            return isMaker
+                    ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.buyer"))
+                    : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.seller"));
+        else
+            return isMaker
+                    ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.seller"))
+                    : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.buyer"));
     }
 }

@@ -692,14 +692,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     String getPercentagePriceDescription() {
-        if (dataModel.isBuyOffer()) {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.aboveInPercent") :
-                    Res.get("shared.belowInPercent");
-        } else {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.belowInPercent") :
-                    Res.get("shared.aboveInPercent");
-        }
+        return dataModel.isBuyOffer() ? Res.get("shared.belowInPercent") : Res.get("shared.aboveInPercent");
     }
 }

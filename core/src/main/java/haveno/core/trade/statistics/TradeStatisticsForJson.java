@@ -55,21 +55,12 @@ public final class TradeStatisticsForJson {
 
         try {
             Price tradePrice = getPrice();
-            if (CurrencyUtil.isCryptoCurrency(currency)) {
-                currencyPair = currency + "/" + Res.getBaseCurrencyCode();
-                primaryMarketTradePrice = tradePrice.getValue();
-                primaryMarketTradeAmount = getTradeVolume() != null ?
-                        getTradeVolume().getValue() :
-                        0;
-                primaryMarketTradeVolume = getTradeAmount().longValueExact();
-            } else {
-                currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
-                primaryMarketTradePrice = tradePrice.getValue();
-                primaryMarketTradeAmount = getTradeAmount().longValueExact();
-                primaryMarketTradeVolume = getTradeVolume() != null ?
-                        getTradeVolume().getValue() :
-                        0;
-            }
+            currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
+            primaryMarketTradePrice = tradePrice.getValue();
+            primaryMarketTradeAmount = getTradeAmount().longValueExact();
+            primaryMarketTradeVolume = getTradeVolume() != null ?
+                    getTradeVolume().getValue() :
+                    0;
         } catch (Throwable t) {
             log.error(t.getMessage());
             t.printStackTrace();

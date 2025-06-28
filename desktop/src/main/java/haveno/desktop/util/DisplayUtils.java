@@ -118,10 +118,7 @@ public class DisplayUtils {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static String getDirectionWithCode(OfferDirection direction, String currencyCode, boolean isPrivate) {
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency" + (isPrivate ? LOCKED : ""), Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency" + (isPrivate ? LOCKED : ""), Res.getBaseCurrencyCode());
-        else
-            return (direction == OfferDirection.SELL) ? Res.get("shared.buyCurrency" + (isPrivate ? LOCKED : ""), currencyCode) : Res.get("shared.sellCurrency" + (isPrivate ? LOCKED : ""), currencyCode);
+        return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency" + (isPrivate ? LOCKED : ""), Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency" + (isPrivate ? LOCKED : ""), Res.getBaseCurrencyCode());
     }
 
     public static String getDirectionBothSides(OfferDirection direction, boolean isPrivate) {
@@ -132,56 +129,31 @@ public class DisplayUtils {
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            String code = Res.getBaseCurrencyCode();
-            return isMyOffer ?
-                    Res.get("formatter.youAreAsMaker", Res.get("shared.buyer"), code, Res.get("shared.seller"), code) :
-                    Res.get("formatter.youAreAsTaker", Res.get("shared.buyer"), code, Res.get("shared.seller"), code);
-        } else {
-            return isMyOffer ?
-                    Res.get("formatter.youAreAsMaker", Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"), currencyCode) :
-                    Res.get("formatter.youAreAsTaker", Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"), currencyCode);
-        }
+        String code = Res.getBaseCurrencyCode();
+        return isMyOffer ?
+                Res.get("formatter.youAreAsMaker", Res.get("shared.buyer"), code, Res.get("shared.seller"), code) :
+                Res.get("formatter.youAreAsTaker", Res.get("shared.buyer"), code, Res.get("shared.seller"), code);
     }
 
     public static String getDirectionForSeller(boolean isMyOffer, String currencyCode) {
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            String code = Res.getBaseCurrencyCode();
-            return isMyOffer ?
-                    Res.get("formatter.youAreAsMaker", Res.get("shared.seller"), code, Res.get("shared.buyer"), code) :
-                    Res.get("formatter.youAreAsTaker", Res.get("shared.seller"), code, Res.get("shared.buyer"), code);
-        } else {
-            return isMyOffer ?
-                    Res.get("formatter.youAreAsMaker", Res.get("shared.buyer"), currencyCode, Res.get("shared.seller"), currencyCode) :
-                    Res.get("formatter.youAreAsTaker", Res.get("shared.buyer"), currencyCode, Res.get("shared.seller"), currencyCode);
-        }
+        String code = Res.getBaseCurrencyCode();
+        return isMyOffer ?
+                Res.get("formatter.youAreAsMaker", Res.get("shared.seller"), code, Res.get("shared.buyer"), code) :
+                Res.get("formatter.youAreAsTaker", Res.get("shared.seller"), code, Res.get("shared.buyer"), code);
     }
 
     public static String getDirectionForTakeOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            return direction == OfferDirection.BUY ?
-                    Res.get("formatter.youAre", Res.get("shared.selling"), baseCurrencyCode, Res.get("shared.buying"), currencyCode) :
-                    Res.get("formatter.youAre", Res.get("shared.buying"), baseCurrencyCode, Res.get("shared.selling"), currencyCode);
-        } else {
-
-            return direction == OfferDirection.SELL ?
-                    Res.get("formatter.youAre", Res.get("shared.selling"), currencyCode, Res.get("shared.buying"), baseCurrencyCode) :
-                    Res.get("formatter.youAre", Res.get("shared.buying"), currencyCode, Res.get("shared.selling"), baseCurrencyCode);
-        }
+        return direction == OfferDirection.BUY ?
+                Res.get("formatter.youAre", Res.get("shared.selling"), baseCurrencyCode, Res.get("shared.buying"), currencyCode) :
+                Res.get("formatter.youAre", Res.get("shared.buying"), baseCurrencyCode, Res.get("shared.selling"), currencyCode);
     }
 
     public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode, boolean isPrivate) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            return direction == OfferDirection.BUY ?
-                    Res.get("formatter.youAreCreatingAnOffer.traditional" + (isPrivate ? LOCKED : ""), Res.get("shared.buy"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.traditional" + (isPrivate ? LOCKED : ""), Res.get("shared.sell"), baseCurrencyCode);
-        } else {
-            return direction == OfferDirection.SELL ?
-                    Res.get("formatter.youAreCreatingAnOffer.crypto" + (isPrivate ? LOCKED : ""), Res.get("shared.buy"), currencyCode, Res.get("shared.selling"), baseCurrencyCode) :
-                    Res.get("formatter.youAreCreatingAnOffer.crypto" + (isPrivate ? LOCKED : ""), Res.get("shared.sell"), currencyCode, Res.get("shared.buying"), baseCurrencyCode);
-        }
+        return direction == OfferDirection.BUY ?
+                Res.get("formatter.youAreCreatingAnOffer.traditional" + (isPrivate ? LOCKED : ""), Res.get("shared.buy"), baseCurrencyCode) :
+                Res.get("formatter.youAreCreatingAnOffer.traditional" + (isPrivate ? LOCKED : ""), Res.get("shared.sell"), baseCurrencyCode);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

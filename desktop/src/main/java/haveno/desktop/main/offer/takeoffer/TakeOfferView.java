@@ -1259,12 +1259,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     @NotNull
     private String getTakeOfferLabel(Offer offer, boolean isBuyOffer) {
-        return offer.isTraditionalOffer() ?
-                Res.get("takeOffer.takeOfferButton", isBuyOffer ? Res.get("shared.sell") : Res.get("shared.buy")) :
-                Res.get("takeOffer.takeOfferButtonCrypto",
-                        isBuyOffer ? Res.get("shared.buy") : Res.get("shared.sell"),
-                        offer.getCurrencyCode());
+        return Res.get("takeOffer.takeOfferButton", isBuyOffer ? Res.get("shared.sell") : Res.get("shared.buy"));
     }
-
 }
 
