@@ -284,7 +284,7 @@ public class CurrencyUtil {
     }
 
     /**
-     * We return true if it is BTC or any of our currencies available in the assetRegistry.
+     * We return true if it is XMR or any of our currencies available in the assetRegistry.
      * For removed assets it would fail as they are not found but we don't want to conclude that they are traditional then.
      * As the caller might not deal with the case that a currency can be neither a cryptoCurrency nor Traditional if not found
      * we return true as well in case we have no traditional currency for the code.

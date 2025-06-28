@@ -28,6 +28,7 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.ExtraDataMapValidator;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
@@ -35,6 +36,7 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
@@ -205,7 +207,6 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     @Getter
     private final String currency;
-    @Getter
     private final long price;
     @Getter
     private final long amount; // XMR amount
@@ -406,9 +407,20 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     public Price getTradePrice() {
         if (priceObj == null) {
-            priceObj = Price.valueOf(currency, price);
+            priceObj = Price.valueOf(currency, getPrice());
         }
         return priceObj;
+    }
+
+    /**
+     * Returns the price as XMR/QUOTE.
+     */
+    public long getPrice() {
+        boolean isInverted = CurrencyUtil.isCryptoCurrency(currency) && 
+                (extraDataMap == null ||
+                (extraDataMap.containsKey(Trade.PROTOCOL_VERSION) &&
+                Integer.parseInt(extraDataMap.get(Trade.PROTOCOL_VERSION)) < 3));
+        return isInverted ? PriceUtil.invertLongPrice(price, currency) : price;
     }
 
     public BigInteger getTradeAmount() {
@@ -467,7 +479,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     public String toString() {
         return "TradeStatistics3{" +
                 "\n     currency='" + currency + '\'' +
-                ",\n     price=" + price +
+                ",\n     price=" + getPrice() +
                 ",\n     amount=" + amount +
                 ",\n     paymentMethod='" + paymentMethod + '\'' +
                 ",\n     date=" + date +

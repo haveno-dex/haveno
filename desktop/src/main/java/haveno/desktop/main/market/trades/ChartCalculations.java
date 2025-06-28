@@ -263,16 +263,10 @@ public class ChartCalculations {
         Long[] prices = new Long[tradePrices.size()];
         tradePrices.toArray(prices);
         long medianPrice = MathUtils.getMedian(prices);
-        boolean isBullish;
-        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
-            isBullish = close < open;
-            BigInteger accumulatedAmountAsBI = MathUtils.scaleUpByPowerOf10(accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT - 4);
-            averagePrice = MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedAmountAsBI, accumulatedVolume));
-        } else {
-            isBullish = close > open;
-            BigInteger accumulatedVolumeAsBI = MathUtils.scaleUpByPowerOf10(accumulatedVolume, TraditionalMoney.SMALLEST_UNIT_EXPONENT + 4);
-            averagePrice = MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
-        }
+        boolean isBullish = close > open;
+        int smallestUnitExponent = CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT;
+        BigInteger accumulatedVolumeAsBI = MathUtils.scaleUpByPowerOf10(accumulatedVolume, smallestUnitExponent + 4);
+        averagePrice = MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
 
         Date dateFrom = new Date(getTimeFromTickIndex(tick, itemsPerInterval));
         Date dateTo = new Date(getTimeFromTickIndex(tick + 1, itemsPerInterval));
@@ -281,10 +275,10 @@ public class ChartCalculations {
                 DisplayUtils.formatDate(dateFrom) + " - " + DisplayUtils.formatDate(dateTo);
 
         // We do not need precision, so we scale down before multiplication otherwise we could get an overflow.
-        averageUsdPrice = (long) MathUtils.scaleDownByPowerOf10((double) averageUsdPrice, TraditionalMoney.SMALLEST_UNIT_EXPONENT);
+        averageUsdPrice = (long) MathUtils.scaleDownByPowerOf10((double) averageUsdPrice, smallestUnitExponent);
         long volumeInUsd = averageUsdPrice * MathUtils.scaleDownByPowerOf10(accumulatedAmount, 4).longValue();
         // We store USD value without decimals as its only total volume, no precision is needed.
-        volumeInUsd = (long) MathUtils.scaleDownByPowerOf10((double) volumeInUsd, TraditionalMoney.SMALLEST_UNIT_EXPONENT);
+        volumeInUsd = (long) MathUtils.scaleDownByPowerOf10((double) volumeInUsd, smallestUnitExponent);
         return new CandleData(tick, open, close, high, low, averagePrice, medianPrice, accumulatedAmount.longValueExact(), accumulatedVolume.longValueExact(),
                 numTrades, isBullish, dateString, volumeInUsd);
     }
