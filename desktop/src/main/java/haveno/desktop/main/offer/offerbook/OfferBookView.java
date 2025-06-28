@@ -946,8 +946,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         setGraphic(null);
                                     } else {
                                         setText("");
-                                        setGraphic(new ColoredDecimalPlacesWithZerosText(model.getVolume(item),
-                                                model.getNumberOfDecimalsForVolume(item)));
+                                        ColoredDecimalPlacesWithZerosText volumeBox = new ColoredDecimalPlacesWithZerosText(model.getVolumeAmount(item), model.getNumberOfDecimalsForVolume(item));
+                                        if (model.showAllTradeCurrenciesProperty.get()) volumeBox.getChildren().add(new Label(" " + item.getOffer().getCurrencyCode()));
+                                        setGraphic(volumeBox);
                                     }
                                 } else {
                                     setText("");
