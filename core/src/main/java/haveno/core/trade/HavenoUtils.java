@@ -40,6 +40,7 @@ import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -134,6 +135,7 @@ public class HavenoUtils {
     public static OpenOfferManager openOfferManager;
     public static CoreNotificationService notificationService;
     public static CorePaymentAccountsService corePaymentAccountService;
+    public static TradeStatisticsManager tradeStatisticsManager;
     public static Preferences preferences;
 
     public static boolean isSeedNode() {
