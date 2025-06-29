@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -85,6 +86,11 @@ public class MathUtils {
         return ((double) value) * factor;
     }
 
+    public static BigInteger scaleUpByPowerOf10(BigInteger value, int exponent) {
+        BigInteger factor = BigInteger.TEN.pow(exponent);
+        return value.multiply(factor);
+    }
+
     public static double scaleDownByPowerOf10(double value, int exponent) {
         double factor = Math.pow(10, exponent);
         return value / factor;
@@ -93,6 +99,11 @@ public class MathUtils {
     public static double scaleDownByPowerOf10(long value, int exponent) {
         double factor = Math.pow(10, exponent);
         return ((double) value) / factor;
+    }
+
+    public static BigInteger scaleDownByPowerOf10(BigInteger value, int exponent) {
+        BigInteger factor = BigInteger.TEN.pow(exponent);
+        return value.divide(factor);
     }
 
     public static double exactMultiply(double value1, double value2) {
