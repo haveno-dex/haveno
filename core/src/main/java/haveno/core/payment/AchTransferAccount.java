@@ -19,6 +19,7 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.locale.BankUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AchTransferAccountPayload;
 import haveno.core.payment.payload.BankAccountPayload;
@@ -33,6 +34,19 @@ import java.util.List;
 public final class AchTransferAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_ADDRESS,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public AchTransferAccount() {
         super(PaymentMethod.ACH_TRANSFER);
@@ -79,6 +93,15 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        var field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+        if (field.getId() == PaymentAccountFormField.FieldId.BRANCH_ID) field.setLabel(BankUtil.getBranchIdLabel("US"));
+        if (field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_TYPE) field.setLabel(BankUtil.getAccountTypeLabel("US"));
+        return field;
     }
 }
