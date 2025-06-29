@@ -22,13 +22,16 @@ import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.TraditionalMoney;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.util.DisplayUtils;
 import javafx.scene.chart.XYChart;
 import javafx.util.Pair;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -47,6 +50,7 @@ import java.util.stream.Collectors;
 
 import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
 
+@Slf4j
 public class ChartCalculations {
     static final ZoneId ZONE_ID = ZoneId.systemDefault();
 
@@ -211,15 +215,15 @@ public class ChartCalculations {
     }
 
     private static long getAverageTraditionalPrice(List<TradeStatistics3> tradeStatisticsList) {
-        long accumulatedAmount = 0; // TODO: use BigInteger
-        long accumulatedVolume = 0;
+        BigInteger accumulatedAmount = BigInteger.ZERO;
+        BigInteger accumulatedVolume = BigInteger.ZERO;
         for (TradeStatistics3 tradeStatistics : tradeStatisticsList) {
-            accumulatedAmount += tradeStatistics.getAmount();
-            accumulatedVolume += tradeStatistics.getTradeVolume().getValue();
+            accumulatedAmount = accumulatedAmount.add(BigInteger.valueOf(tradeStatistics.getAmount()));
+            accumulatedVolume = accumulatedVolume.add(BigInteger.valueOf(tradeStatistics.getTradeVolume().getValue()));
         }
 
-        double accumulatedVolumeAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedVolume, 4 + TraditionalMoney.SMALLEST_UNIT_EXPONENT);
-        return MathUtils.roundDoubleToLong(accumulatedVolumeAsDouble / accumulatedAmount);
+        BigInteger accumulatedVolumeAsBI = MathUtils.scaleUpByPowerOf10(accumulatedVolume, TraditionalMoney.SMALLEST_UNIT_EXPONENT + 4);
+        return MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
     }
 
     @VisibleForTesting
@@ -232,8 +236,8 @@ public class ChartCalculations {
         long close = 0;
         long high = 0;
         long low = 0;
-        long accumulatedVolume = 0; // TODO: use BigInteger
-        long accumulatedAmount = 0;
+        BigInteger accumulatedVolume = BigInteger.ZERO;
+        BigInteger accumulatedAmount = BigInteger.ZERO;
         long numTrades = set.size();
         List<Long> tradePrices = new ArrayList<>();
         for (TradeStatistics3 item : set) {
@@ -242,8 +246,8 @@ public class ChartCalculations {
             low = (low != 0) ? Math.min(low, tradePriceAsLong) : tradePriceAsLong;
             high = (high != 0) ? Math.max(high, tradePriceAsLong) : tradePriceAsLong;
 
-            accumulatedVolume += item.getTradeVolume().getValue();
-            accumulatedAmount += item.getTradeAmount().longValueExact();
+            accumulatedVolume = accumulatedVolume.add(BigInteger.valueOf(item.getTradeVolume().getValue()));
+            accumulatedAmount = accumulatedAmount.add(item.getTradeAmount());
             tradePrices.add(tradePriceAsLong);
         }
         Collections.sort(tradePrices);
@@ -262,12 +266,12 @@ public class ChartCalculations {
         boolean isBullish;
         if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
             isBullish = close < open;
-            double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT - 4);
-            averagePrice = MathUtils.roundDoubleToLong(accumulatedAmountAsDouble / accumulatedVolume);
+            BigInteger accumulatedAmountAsBI = MathUtils.scaleUpByPowerOf10(accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT - 4);
+            averagePrice = MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedAmountAsBI, accumulatedVolume));
         } else {
             isBullish = close > open;
-            double accumulatedVolumeAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedVolume, 4 + TraditionalMoney.SMALLEST_UNIT_EXPONENT);
-            averagePrice = MathUtils.roundDoubleToLong(accumulatedVolumeAsDouble / accumulatedAmount);
+            BigInteger accumulatedVolumeAsBI = MathUtils.scaleUpByPowerOf10(accumulatedVolume, TraditionalMoney.SMALLEST_UNIT_EXPONENT + 4);
+            averagePrice = MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
         }
 
         Date dateFrom = new Date(getTimeFromTickIndex(tick, itemsPerInterval));
@@ -278,10 +282,10 @@ public class ChartCalculations {
 
         // We do not need precision, so we scale down before multiplication otherwise we could get an overflow.
         averageUsdPrice = (long) MathUtils.scaleDownByPowerOf10((double) averageUsdPrice, TraditionalMoney.SMALLEST_UNIT_EXPONENT);
-        long volumeInUsd = averageUsdPrice * (long) MathUtils.scaleDownByPowerOf10((double) accumulatedAmount, 4);
+        long volumeInUsd = averageUsdPrice * MathUtils.scaleDownByPowerOf10(accumulatedAmount, 4).longValue();
         // We store USD value without decimals as its only total volume, no precision is needed.
         volumeInUsd = (long) MathUtils.scaleDownByPowerOf10((double) volumeInUsd, TraditionalMoney.SMALLEST_UNIT_EXPONENT);
-        return new CandleData(tick, open, close, high, low, averagePrice, medianPrice, accumulatedAmount, accumulatedVolume,
+        return new CandleData(tick, open, close, high, low, averagePrice, medianPrice, accumulatedAmount.longValueExact(), accumulatedVolume.longValueExact(),
                 numTrades, isBullish, dateString, volumeInUsd);
     }
 
