@@ -64,6 +64,10 @@ public final class ImpsAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.BRANCH_ID
+        );
     }
 }
