@@ -1125,6 +1125,62 @@ message AddressBalanceInfo {
     bool is_address_unused = 4;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// Network
+///////////////////////////////////////////////////////////////////////////////////////////
+
+service Network {
+    rpc GetOnlinePeers (GetOnlinePeersRequest) returns (GetOnlinePeersReply) {
+    }
+    rpc GetSeednodes (GetSeednodesRequest) returns (GetSeednodesReply) {
+    }
+    rpc GetRegisteredArbitrators (GetRegisteredArbitratorsRequest) returns (GetRegisteredArbitratorsReply) {
+    }
+    rpc GetNetworkFilter (GetNetworkFilterRequest) returns (GetNetworkFilterReply) {
+    }
+    rpc GetAlerts (GetAlertsRequest) returns (GetAlertsRequest) {
+    }
+    rpc RegisterNetworkListener (RegisterNetworkListenerRequest) returns (stream NetworkMessage) {
+    }
+}
+
+message RegisterNetworkListenerRequest {
+}
+
+message NetworkMessage {
+    NetworkEnvelope network_envelope = 1;
+}
+
+message GetOnlinePeersRequest {}
+
+message GetOnlinePeersReply {
+    repeated Peer peers = 1;
+}
+
+message GetSeednodesRequest {}
+
+message GetSeednodesReply {
+  repeated NodeAddress seednodes = 1;
+}
+
+message GetRegisteredArbitratorsRequest {}
+
+message GetRegisteredArbitratorsReply {
+  repeated Arbitrator arbitrators = 1;
+}
+
+message GetNetworkFilterRequest {}
+
+message GetNetworkFilterReply {
+  Filter filter = 1;
+}
+
+message GetAlertsRequest {}
+
+message GetAlertsReply {
+    repeated Alert alerts = 1;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Marketplace Protospec

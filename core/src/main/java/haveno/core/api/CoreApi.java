@@ -102,6 +102,7 @@ public class CoreApi {
     private final CoreWalletsService walletsService;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final CoreNotificationService notificationService;
+    private final CoreNetworkService networkService;
     private final XmrConnectionService xmrConnectionService;
     private final XmrLocalNode xmrLocalNode;
 
@@ -119,6 +120,7 @@ public class CoreApi {
                    CoreWalletsService walletsService,
                    TradeStatisticsManager tradeStatisticsManager,
                    CoreNotificationService notificationService,
+                   CoreNetworkService networkService,
                    XmrConnectionService xmrConnectionService,
                    XmrLocalNode xmrLocalNode) {
         this.config = config;
@@ -134,6 +136,7 @@ public class CoreApi {
         this.walletsService = walletsService;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.notificationService = notificationService;
+        this.networkService = networkService;
         this.xmrConnectionService = xmrConnectionService;
         this.xmrLocalNode = xmrLocalNode;
     }
@@ -353,6 +356,14 @@ public class CoreApi {
 
     public void sendNotification(NotificationMessage notification) {
         notificationService.sendNotification(notification);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Network
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public void addNetworkListener(NetworkListener listener) {
+        networkService.addListener(listener);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

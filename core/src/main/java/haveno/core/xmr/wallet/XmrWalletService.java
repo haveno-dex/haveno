@@ -107,11 +107,11 @@ public class XmrWalletService extends XmrWalletBase {
 
     // monero configuration
     public static final int NUM_BLOCKS_UNLOCK = 10;
-    public static final String MONERO_BINS_DIR = Config.appDataDir().getAbsolutePath();
+    public static final String MONERO_BINS_DIR = System.getenv().getOrDefault("MONERO_BINS_DIR", Config.appDataDir().getAbsolutePath());
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
     public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.DEFAULT;
-    public static final int MONERO_LOG_LEVEL = 1; // monero library log level, -1 to disable
+    public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
