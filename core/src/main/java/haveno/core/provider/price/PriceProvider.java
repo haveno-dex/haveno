@@ -65,7 +65,7 @@ public class PriceProvider extends HttpClientProvider {
                 LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
                 String baseCurrencyCode = (String) treeMap.get("baseCurrencyCode");
                 String counterCurrencyCode = (String) treeMap.get("counterCurrencyCode");
-                boolean isInverted = !"XMR".equals(baseCurrencyCode);
+                boolean isInverted = !"XMR".equalsIgnoreCase(baseCurrencyCode);
                 if (isInverted) {
                     String temp = baseCurrencyCode;
                     baseCurrencyCode = counterCurrencyCode;
