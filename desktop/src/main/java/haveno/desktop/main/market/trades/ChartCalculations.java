@@ -76,7 +76,7 @@ public class ChartCalculations {
 
             dateMapsPerTickUnit.forEach((tick, map) -> {
                 HashMap<Long, Long> priceMap = new HashMap<>();
-                map.forEach((date, tradeStatisticsList) -> priceMap.put(date, getAveragePrice(tradeStatisticsList)));
+                map.forEach((date, tradeStatisticsList) -> priceMap.put(date, getAverageTraditionalPrice(tradeStatisticsList)));
                 usdAveragePriceMapsPerTickUnit.put(tick, priceMap);
             });
             return usdAveragePriceMapsPerTickUnit;
@@ -210,7 +210,7 @@ public class ChartCalculations {
         return roundToTick(time.toInstant().atZone(ChartCalculations.ZONE_ID).toLocalDateTime(), tickUnit);
     }
 
-    private static long getAveragePrice(List<TradeStatistics3> tradeStatisticsList) {
+    private static long getAverageTraditionalPrice(List<TradeStatistics3> tradeStatisticsList) {
         long accumulatedAmount = 0; // TODO: use BigInteger
         long accumulatedVolume = 0;
         for (TradeStatistics3 tradeStatistics : tradeStatisticsList) {
@@ -262,7 +262,7 @@ public class ChartCalculations {
         boolean isBullish;
         if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
             isBullish = close < open;
-            double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, 4 + CryptoMoney.SMALLEST_UNIT_EXPONENT);
+            double accumulatedAmountAsDouble = MathUtils.scaleUpByPowerOf10((double) accumulatedAmount, CryptoMoney.SMALLEST_UNIT_EXPONENT - 4);
             averagePrice = MathUtils.roundDoubleToLong(accumulatedAmountAsDouble / accumulatedVolume);
         } else {
             isBullish = close > open;
