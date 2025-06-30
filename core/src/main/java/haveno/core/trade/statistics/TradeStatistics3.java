@@ -418,8 +418,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     public long getPrice() {
         boolean isInverted = CurrencyUtil.isCryptoCurrency(currency) && 
                 (extraDataMap == null ||
-                (extraDataMap.containsKey(Trade.PROTOCOL_VERSION) &&
-                Integer.parseInt(extraDataMap.get(Trade.PROTOCOL_VERSION)) < 3));
+                !extraDataMap.containsKey(Trade.PROTOCOL_VERSION) ||
+                Integer.parseInt(extraDataMap.get(Trade.PROTOCOL_VERSION)) < 3);
         return isInverted ? PriceUtil.invertLongPrice(price, currency) : price;
     }
 
