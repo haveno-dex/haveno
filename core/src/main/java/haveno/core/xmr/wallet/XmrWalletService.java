@@ -2061,7 +2061,7 @@ public class XmrWalletService extends XmrWalletBase {
                                 if (System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
                                     log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
                                     lastLogPollErrorTimestamp = System.currentTimeMillis();
-                                    if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) requestSwitchToNextBestConnection(sourceConnection);
+                                    if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
                                 }
                             }
                         }
