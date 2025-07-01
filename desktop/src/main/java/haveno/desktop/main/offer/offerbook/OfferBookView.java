@@ -912,7 +912,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                 HBox hBox = new HBox();
                                 hBox.setSpacing(5);
                                 hBox.getChildren().addAll(priceLabel, percentageLabel);
-                                hBox.setPadding(new Insets(7, 0, 0, 0));
+                                hBox.setAlignment(Pos.CENTER_LEFT);
                                 return hBox;
                             }
                         };
