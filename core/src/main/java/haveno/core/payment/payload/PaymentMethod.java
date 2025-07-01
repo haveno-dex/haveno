@@ -101,7 +101,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -342,7 +342,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList()),
-            
+
             // Cryptos with 1 hour trade period
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList())
     );
@@ -369,7 +369,42 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 CASH_APP_ID,
                 PAYPAL_ID,
                 VENMO_ID,
-                PAYSAFE_ID);
+                PAYSAFE_ID,
+                HAL_CASH_ID,
+                MONEY_BEAM_ID,
+                SWISH_ID,
+                POPMONEY_ID,
+                US_POSTAL_MONEY_ORDER_ID,
+                INTERAC_E_TRANSFER_ID,
+                CASH_DEPOSIT_ID,
+                WESTERN_UNION_ID,
+                NATIONAL_BANK_ID,
+                SAME_BANK_ID,
+                SPECIFIC_BANKS_ID,
+                AMAZON_GIFT_CARD_ID,
+                PERFECT_MONEY_ID,
+                ADVANCED_CASH_ID,
+                PAYSERA_ID,
+                NEFT_ID,
+                RTGS_ID,
+                IMPS_ID,
+                UPI_ID,
+                PAYTM_ID,
+                NEQUI_ID,
+                BIZUM_ID,
+                PIX_ID,
+                CAPITUAL_ID,
+                CELPAY_ID,
+                MONESE_ID,
+                SATISPAY_ID,
+                TIKKIE_ID,
+                VERSE_ID,
+                ACH_TRANSFER_ID,
+                DOMESTIC_WIRE_TRANSFER_ID,
+                JAPAN_BANK_ID,
+                ALI_PAY_ID,
+                WECHAT_PAY_ID,
+                PROMPT_PAY_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -530,7 +565,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     @Override
-    public int compareTo(@NotNull PaymentMethod other) {
+    public int compareTo(@NonNull PaymentMethod other) {
         return Res.get(id).compareTo(Res.get(other.id));
     }
 

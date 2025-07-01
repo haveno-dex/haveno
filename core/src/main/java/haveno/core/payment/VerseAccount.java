@@ -31,6 +31,12 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class VerseAccount extends PaymentAccount {
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     // https://github.com/bisq-network/growth/issues/223
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
             new TraditionalCurrency("DKK"),
@@ -79,6 +85,6 @@ public final class VerseAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }

@@ -24,12 +24,18 @@ import haveno.core.payment.payload.CapitualAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class CapitualAccount extends PaymentAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
             new TraditionalCurrency("BRL"),
@@ -47,16 +53,14 @@ public final class CapitualAccount extends PaymentAccount {
         return new CapitualAccountPayload(paymentMethod.getId(), id);
     }
 
-    @NotNull
     @Override
-    public List<TradeCurrency> getSupportedCurrencies() {
+    public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
-    @NotNull
     @Override
-    public List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {

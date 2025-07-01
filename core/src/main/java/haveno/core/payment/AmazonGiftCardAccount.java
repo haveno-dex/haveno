@@ -25,12 +25,19 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 public final class AmazonGiftCardAccount extends PaymentAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
             new TraditionalCurrency("AUD"),
@@ -59,13 +66,13 @@ public final class AmazonGiftCardAccount extends PaymentAccount {
     }
 
     @Override
-    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
+    public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
     @Override
-    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 
     public String getEmailOrMobileNr() {
@@ -89,7 +96,7 @@ public final class AmazonGiftCardAccount extends PaymentAccount {
         return country;
     }
 
-    public void setCountry(@NotNull Country country) {
+    public void setCountry(@NonNull Country country) {
         this.country = country;
         getAmazonGiftCardAccountPayload().setCountryCode(country.code);
     }
