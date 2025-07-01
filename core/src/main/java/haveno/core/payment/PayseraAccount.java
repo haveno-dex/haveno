@@ -24,7 +24,7 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.PayseraAccountPayload;
 import lombok.EqualsAndHashCode;
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 import java.util.List;
 
@@ -76,13 +76,13 @@ public final class PayseraAccount extends PaymentAccount {
     }
 
     @Override
-    public @NotNull List<TradeCurrency> getSupportedCurrencies() {
+    public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
     @Override
-    public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return List.of(PaymentAccountFormField.FieldId.EMAIL);
     }
 
     public void setEmail(String accountId) {

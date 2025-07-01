@@ -50,7 +50,7 @@ public final class HalCashAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(PaymentAccountFormField.FieldId.MOBILE_NR);
     }
 
     public void setMobileNr(String mobileNr) {

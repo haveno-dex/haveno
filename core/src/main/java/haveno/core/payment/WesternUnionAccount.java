@@ -47,7 +47,12 @@ public final class WesternUnionAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(
+            PaymentAccountFormField.FieldId.EMAIL, 
+            PaymentAccountFormField.FieldId.HOLDER_NAME, 
+            PaymentAccountFormField.FieldId.CITY, 
+            PaymentAccountFormField.FieldId.STATE
+        );
     }
 
     public String getEmail() {

@@ -24,7 +24,7 @@ import haveno.core.payment.payload.CapitualAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
-import org.jetbrains.annotations.NotNull;
+import lombok.NonNull;
 
 import java.util.List;
 
@@ -47,16 +47,16 @@ public final class CapitualAccount extends PaymentAccount {
         return new CapitualAccountPayload(paymentMethod.getId(), id);
     }
 
-    @NotNull
+    @NonNull
     @Override
     public List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
     }
 
-    @NotNull
+    @NonNull
     @Override
     public List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(PaymentAccountFormField.FieldId.ACCOUNT_NR);
     }
 
     public void setAccountNr(String accountNr) {
