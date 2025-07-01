@@ -17,7 +17,6 @@
 
 package haveno.core.trade.statistics;
 
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;

@@ -23,7 +23,6 @@ import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
-import static haveno.core.locale.CurrencyUtil.isTraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import static haveno.core.util.FormattingUtils.formatDurationAsWords;
