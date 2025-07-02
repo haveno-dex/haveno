@@ -59,13 +59,13 @@ public class PriceTest {
         );
 
         assertEquals(
-                "10000.2346 LTC/XMR",
+                "10000.2346 XMR/LTC",
                 parse("LTC", "10000,23456789").toFriendlyString(),
                 "Too many decimals should get rounded up properly."
         );
 
         assertEquals(
-                "10000.2345 LTC/XMR",
+                "10000.2345 XMR/LTC",
                 parse("LTC", "10000,23454999").toFriendlyString(),
                 "Too many decimals should get rounded down properly."
         );
@@ -108,13 +108,13 @@ public class PriceTest {
         );
 
         assertEquals(
-                "10000.2346 LTC/XMR",
+                "10000.2346 XMR/LTC",
                 valueOf("LTC", 1000023456789L).toFriendlyString(),
                 "Too many decimals should get rounded up properly."
         );
 
         assertEquals(
-                "10000.2345 LTC/XMR",
+                "10000.2345 XMR/LTC",
                 valueOf("LTC", 1000023454999L).toFriendlyString(),
                 "Too many decimals should get rounded down properly."
         );
