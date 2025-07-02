@@ -69,6 +69,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayload, PersistableNetworkPayload,
         CapabilityRequiringPayload, DateSortedTruncatablePayload {
 
+    private static final String VERSION_KEY = "v"; // single character key which can be used for versioning if needed
+
     @JsonExclude
     private transient static final ZoneId ZONE_ID = ZoneId.systemDefault();
 
@@ -94,10 +96,11 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
         }
 
-        // Store protocol version in order to invert prices of legacy crypto stats.
-        // This can be removed in the future after all trades use trade protocol version 3+,
-        // then invert only stats which are missing this field prior to then.
-        extraDataMap.put(Trade.PROTOCOL_VERSION, trade.getOffer().getOfferPayload().getProtocolVersion() + "");
+        // Store a key to indicate that crypto prices are not inverted in this version.
+        // This can be removed in the future after all stats are expected to not be inverted,
+        // then only stats which are missing this field prior to then need to be uninverted.
+        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(trade.getOffer().getCurrencyCode());
+        if (isCryptoCurrency) extraDataMap.put(VERSION_KEY, ""); // value is not currently needed
 
         NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress(), "Arbitrator address is null", trade.getClass().getSimpleName(), trade.getId());
 
@@ -418,8 +421,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     public long getPrice() {
         boolean isInverted = CurrencyUtil.isCryptoCurrency(currency) && 
                 (extraDataMap == null ||
-                !extraDataMap.containsKey(Trade.PROTOCOL_VERSION) ||
-                Integer.parseInt(extraDataMap.get(Trade.PROTOCOL_VERSION)) < 3);
+                !extraDataMap.containsKey(VERSION_KEY)); // price is inverted if missing key
         return isInverted ? PriceUtil.invertLongPrice(price, currency) : price;
     }
 

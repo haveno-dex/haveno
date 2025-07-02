@@ -65,6 +65,7 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletBase;
@@ -2360,7 +2361,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public Price getPrice() {
-        return Price.valueOf(offer.getCurrencyCode(), price);
+
+        // return uninverted price
+        boolean isInverted = getOffer().currenciesInverted();
+        return Price.valueOf(offer.getCurrencyCode(), isInverted ? PriceUtil.invertLongPrice(price, offer.getCurrencyCode()) : price);
     }
 
     @Nullable
