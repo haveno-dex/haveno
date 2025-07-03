@@ -87,7 +87,7 @@ public class PriceUtil {
     }
 
     public boolean hasMarketPrice(Offer offer) {
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         checkNotNull(priceFeedService, "priceFeed must not be null");
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         Price price = offer.getPrice();
@@ -106,7 +106,7 @@ public class PriceUtil {
             return Optional.empty();
         }
 
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         checkNotNull(priceFeedService, "priceFeed must not be null");
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         double marketPriceAsDouble = checkNotNull(marketPrice).getPrice();
@@ -117,7 +117,7 @@ public class PriceUtil {
                                                        double marketPrice,
                                                        OfferDirection direction) {
         // If the offer did not use % price we calculate % from current market price
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         Price price = offer.getPrice();
         int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT :

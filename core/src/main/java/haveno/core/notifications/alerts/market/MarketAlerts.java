@@ -110,7 +110,7 @@ public class MarketAlerts {
     }
 
     private void onOfferAdded(Offer offer) {
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         Price offerPrice = offer.getPrice();
         if (marketPrice != null && offerPrice != null) {

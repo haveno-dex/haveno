@@ -152,8 +152,8 @@ public class TradeUtil {
             return "";
 
         checkNotNull(trade.getOffer());
-        checkNotNull(trade.getOffer().getCurrencyCode());
-        return getCurrencyPair(trade.getOffer().getCurrencyCode());
+        checkNotNull(trade.getOffer().getCounterCurrencyCode());
+        return getCurrencyPair(trade.getOffer().getCounterCurrencyCode());
     }
 
     public String getPaymentMethodNameWithCountryCode(Trade trade) {
@@ -179,7 +179,7 @@ public class TradeUtil {
         return (trade.isArbitrator() ? "Arbitrator for " : "") + // TODO: use Res.get()
                 getRole(trade.getBuyer() == trade.getMaker(),
                         trade.isArbitrator() ? true : trade.isMaker(), // arbitrator role in context of maker
-                        offer.getCurrencyCode());
+                        offer.getCounterCurrencyCode());
     }
 
     /**

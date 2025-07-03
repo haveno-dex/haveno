@@ -2364,7 +2364,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // return uninverted price
         boolean isInverted = getOffer().currenciesInverted();
-        return Price.valueOf(offer.getCurrencyCode(), isInverted ? PriceUtil.invertLongPrice(price, offer.getCurrencyCode()) : price);
+        return Price.valueOf(offer.getCounterCurrencyCode(), isInverted ? PriceUtil.invertLongPrice(price, offer.getCounterCurrencyCode()) : price);
     }
 
     @Nullable

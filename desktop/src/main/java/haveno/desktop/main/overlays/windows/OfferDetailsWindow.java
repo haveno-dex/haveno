@@ -212,7 +212,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         String counterCurrencyDirectionInfo = "";
         String xmrDirectionInfo = "";
         OfferDirection direction = offer.getDirection();
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         String offerTypeLabel = Res.get("shared.offerType");
         String toReceive = " " + Res.get("shared.toReceive");
         String toSpend = " " + Res.get("shared.toSpend");

@@ -173,7 +173,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     @Nullable
     public Price getPrice() {
-        String counterCurrencyCode = getCurrencyCode();
+        String counterCurrencyCode = getCounterCurrencyCode();
         if (!offerPayload.isUseMarketBasedPrice()) {
             return Price.valueOf(counterCurrencyCode, offerPayload.getPrice());
         }
@@ -224,7 +224,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return;
         }
 
-        Price tradePrice = Price.valueOf(getCurrencyCode(), price);
+        Price tradePrice = Price.valueOf(getCounterCurrencyCode(), price);
         Price offerPrice = getPrice();
         if (offerPrice == null)
             throw new MarketPriceNotAvailableException("Market price required for calculating trade price is not available.");
@@ -239,7 +239,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
         double deviation = Math.abs(1 - relation);
         log.info("Price at take-offer time: id={}, currency={}, takersPrice={}, makersPrice={}, deviation={}",
-                getShortId(), getCurrencyCode(), price, offerPrice.getValue(),
+                getShortId(), getCounterCurrencyCode(), price, offerPrice.getValue(),
                 deviation * 100 + "%");
         if (deviation > PRICE_TOLERANCE) {
             String msg = "Taker's trade price is too far away from our calculated price based on the market price.\n" +
@@ -507,18 +507,16 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getCountryCode();
     }
 
-    public String getCurrencyCode() {
+    public String getBaseCurrencyCode() {
         if (currencyCode != null) return currencyCode;
-        currencyCode = currenciesInverted() ? offerPayload.getBaseCurrencyCode() : offerPayload.getCounterCurrencyCode(); // legacy offers inverted crypto prices
+        currencyCode = currenciesInverted() ? offerPayload.getCounterCurrencyCode() : offerPayload.getBaseCurrencyCode(); // legacy offers inverted crypto
         return currencyCode;
     }
 
     public String getCounterCurrencyCode() {
-        return offerPayload.getCounterCurrencyCode();
-    }
-
-    public String getBaseCurrencyCode() {
-        return offerPayload.getBaseCurrencyCode();
+        if (currencyCode != null) return currencyCode;
+        currencyCode = currenciesInverted() ? offerPayload.getBaseCurrencyCode() : offerPayload.getCounterCurrencyCode(); // legacy offers inverted crypto
+        return currencyCode;
     }
 
     public boolean currenciesInverted() {
@@ -596,7 +594,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     // TODO: remove this
     public boolean isXmr() {
-        return getCurrencyCode().equals("XMR");
+        return getCounterCurrencyCode().equals("XMR");
     }
 
     public boolean isTraditionalOffer() {

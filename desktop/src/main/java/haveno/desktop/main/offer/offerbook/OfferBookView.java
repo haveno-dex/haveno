@@ -263,7 +263,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         tableView.setPlaceholder(placeholder);
 
         marketColumn.setComparator(Comparator.comparing(
-                o -> CurrencyUtil.getCurrencyPair(o.getOffer().getCurrencyCode()),
+                o -> CurrencyUtil.getCurrencyPair(o.getOffer().getCounterCurrencyCode()),
                 Comparator.nullsFirst(Comparator.naturalOrder())
         ));
 
@@ -677,7 +677,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 Optional<PaymentAccount> account = model.getMostMaturePaymentAccountForOffer(offer);
                 if (account.isPresent()) {
                     long tradeLimit = model.accountAgeWitnessService.getMyTradeLimit(account.get(),
-                            offer.getCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
+                            offer.getCounterCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
                     new Popup()
                             .warning(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.buyer",
                                     HavenoUtils.formatXmr(tradeLimit, true),
@@ -824,7 +824,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                             public void updateItem(final OfferBookListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                    setText(CurrencyUtil.getCurrencyPair(item.getOffer().getCurrencyCode()));
+                                    setText(CurrencyUtil.getCurrencyPair(item.getOffer().getCounterCurrencyCode()));
                                 else
                                     setText("");
                             }
@@ -947,7 +947,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     } else {
                                         setText("");
                                         ColoredDecimalPlacesWithZerosText volumeBox = new ColoredDecimalPlacesWithZerosText(model.getVolumeAmount(item), model.getNumberOfDecimalsForVolume(item));
-                                        if (model.showAllTradeCurrenciesProperty.get()) volumeBox.getChildren().add(new Label(" " + item.getOffer().getCurrencyCode()));
+                                        if (model.showAllTradeCurrenciesProperty.get()) volumeBox.getChildren().add(new Label(" " + item.getOffer().getCounterCurrencyCode()));
                                         setGraphic(volumeBox);
                                     }
                                 } else {

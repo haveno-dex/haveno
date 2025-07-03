@@ -57,7 +57,7 @@ public class TradeInfo implements Payload {
 
     private static final Function<Trade, String> toPreciseTradePrice = (trade) ->
             reformatMarketPrice(requireNonNull(trade.getPrice()).toPlainString(),
-                    trade.getOffer().getCurrencyCode());
+                    trade.getOffer().getCounterCurrencyCode());
 
     // Haveno v1 trade protocol fields (some are in common with the BSQ Swap protocol).
     private final OfferInfo offer;

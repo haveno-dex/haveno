@@ -102,7 +102,7 @@ public class TriggerPriceService {
             return false;
         }
 
-        String currencyCode = openOffer.getOffer().getCurrencyCode();
+        String currencyCode = openOffer.getOffer().getCounterCurrencyCode();
         boolean traditionalCurrency = CurrencyUtil.isTraditionalCurrency(currencyCode);
         int smallestUnitExponent = traditionalCurrency ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT :
@@ -122,7 +122,7 @@ public class TriggerPriceService {
     }
 
     private void checkPriceThreshold(MarketPrice marketPrice, OpenOffer openOffer) {
-        String currencyCode = openOffer.getOffer().getCurrencyCode();
+        String currencyCode = openOffer.getOffer().getCounterCurrencyCode();
         int smallestUnitExponent = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT :
                 CryptoMoney.SMALLEST_UNIT_EXPONENT;
@@ -160,11 +160,11 @@ public class TriggerPriceService {
 
     private void onAddedOpenOffers(List<? extends OpenOffer> openOffers) {
         openOffers.forEach(openOffer -> {
-            String currencyCode = openOffer.getOffer().getCurrencyCode();
+            String currencyCode = openOffer.getOffer().getCounterCurrencyCode();
             openOffersByCurrency.putIfAbsent(currencyCode, new HashSet<>());
             openOffersByCurrency.get(currencyCode).add(openOffer);
 
-            MarketPrice marketPrice = priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode());
+            MarketPrice marketPrice = priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode());
             if (marketPrice != null) {
                 checkPriceThreshold(marketPrice, openOffer);
             }
@@ -173,7 +173,7 @@ public class TriggerPriceService {
 
     private void onRemovedOpenOffers(List<? extends OpenOffer> openOffers) {
         openOffers.forEach(openOffer -> {
-            String currencyCode = openOffer.getOffer().getCurrencyCode();
+            String currencyCode = openOffer.getOffer().getCounterCurrencyCode();
             if (openOffersByCurrency.containsKey(currencyCode)) {
                 Set<OpenOffer> set = openOffersByCurrency.get(currencyCode);
                 set.remove(openOffer);

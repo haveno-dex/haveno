@@ -445,11 +445,11 @@ public class OfferBookService {
         // We filter the case that it is a MarketBasedPrice but the price is not available
         // That should only be possible if the price feed provider is not available
         final List<OfferForJson> offerForJsonList = getOffers().stream()
-                .filter(offer -> !offer.isUseMarketBasedPrice() || priceFeedService.getMarketPrice(offer.getCurrencyCode()) != null)
+                .filter(offer -> !offer.isUseMarketBasedPrice() || priceFeedService.getMarketPrice(offer.getCounterCurrencyCode()) != null)
                 .map(offer -> {
                     try {
                         return new OfferForJson(offer.getDirection(),
-                                offer.getCurrencyCode(),
+                                offer.getCounterCurrencyCode(),
                                 offer.getMinAmount(),
                                 offer.getAmount(),
                                 offer.getPrice(),

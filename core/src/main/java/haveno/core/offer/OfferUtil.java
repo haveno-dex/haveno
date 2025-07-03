@@ -263,10 +263,10 @@ public class OfferUtil {
     }
 
     public static boolean isTraditionalOffer(Offer offer) {
-        return offer.getBaseCurrencyCode().equals("XMR");
+        return CurrencyUtil.isTraditionalCurrency(offer.getCounterCurrencyCode());
     }
 
     public static boolean isCryptoOffer(Offer offer) {
-        return offer.getCounterCurrencyCode().equals("XMR");
+        return CurrencyUtil.isCryptoCurrency(offer.getCounterCurrencyCode());
     }
 }

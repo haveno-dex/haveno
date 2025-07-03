@@ -138,7 +138,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
             @Override
             public void onTakeOffer(Offer offer) {
-                Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(offer.getCurrencyCode());
+                Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(offer.getCounterCurrencyCode());
                 if (optionalTradeCurrency.isPresent() && canCreateOrTakeOffer(optionalTradeCurrency.get())) {
                     showTakeOffer(offer);
                 }
@@ -314,7 +314,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private void showTakeOffer(Offer offer) {
         this.offer = offer;
 
-        Class<? extends OfferBookView<?, ?>> offerBookViewClass = getOfferBookViewClassFor(offer.getCurrencyCode());
+        Class<? extends OfferBookView<?, ?>> offerBookViewClass = getOfferBookViewClassFor(offer.getCounterCurrencyCode());
         navigation.navigateTo(MainView.class, this.getClass(), offerBookViewClass, TakeOfferView.class);
     }
 

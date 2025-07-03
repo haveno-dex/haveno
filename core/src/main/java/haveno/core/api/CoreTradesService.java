@@ -123,7 +123,7 @@ class CoreTradesService {
             BigInteger amount = amountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(amountAsLong);
 
             // adjust amount for fixed-price offer (based on TakeOfferViewModel)
-            String currencyCode = offer.getCurrencyCode();
+            String currencyCode = offer.getCounterCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
             long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
             if (offer.getPrice() != null) {
@@ -133,7 +133,7 @@ class CoreTradesService {
                         && !amount.equals(offer.getMinAmount()) && !amount.equals(amount)) {
                     // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                     // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), maxTradeLimit, offer.getCurrencyCode(), offer.getPaymentMethodId());
+                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), maxTradeLimit, offer.getCounterCurrencyCode(), offer.getPaymentMethodId());
                 }
             }
 

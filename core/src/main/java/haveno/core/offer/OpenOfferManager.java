@@ -633,7 +633,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void applyTriggerState(OpenOffer openOffer) {
         if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
-        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer)) {
+        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()), openOffer)) {
             openOffer.deactivate(true);
         }
     }
@@ -2014,7 +2014,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         ownerNodeAddress,
                         originalOfferPayload.getPubKeyRing(),
                         originalOfferPayload.getDirection(),
-                        originalOffer.currenciesInverted() && originalOfferPayload.getPrice() != 0 ? PriceUtil.invertLongPrice(originalOfferPayload.getPrice(), originalOffer.getCurrencyCode()) : originalOfferPayload.getPrice(),
+                        originalOffer.currenciesInverted() && originalOfferPayload.getPrice() != 0 ? PriceUtil.invertLongPrice(originalOfferPayload.getPrice(), originalOffer.getCounterCurrencyCode()) : originalOfferPayload.getPrice(),
                         originalOfferPayload.getMarketPriceMarginPct(),
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),

@@ -336,7 +336,7 @@ public class CoreOffersService {
                             String sourceOfferId,
                             Consumer<Transaction> resultHandler,
                             ErrorMessageHandler errorMessageHandler) {
-        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCurrencyCode());
+        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCounterCurrencyCode());
         openOfferManager.placeOffer(offer,
                 useSavingsWallet,
                 triggerPriceAsLong,

@@ -209,7 +209,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
                         StringBuilder sb = new StringBuilder();
                         sb.append("Offer ID: ").append(offer.getId()).append("\n")
                                 .append("Type: ").append(offer.getDirection().name()).append("\n")
-                                .append("Market: ").append(CurrencyUtil.getCurrencyPair(offer.getCurrencyCode())).append("\n")
+                                .append("Market: ").append(CurrencyUtil.getCurrencyPair(offer.getCounterCurrencyCode())).append("\n")
                                 .append("Price: ").append(FormattingUtils.formatPrice(offer.getPrice())).append("\n")
                                 .append("Amount: ").append(DisplayUtils.formatAmount(offer, formatter)).append(" BTC\n")
                                 .append("Payment method: ").append(Res.get(offer.getPaymentMethod().getId())).append("\n")

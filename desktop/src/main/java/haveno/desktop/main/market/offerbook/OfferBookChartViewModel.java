@@ -130,7 +130,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                 list.addAll(c.getAddedSubList());
                 if (list.stream()
                         .map(OfferBookListItem::getOffer)
-                        .anyMatch(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
+                        .anyMatch(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
                     updateChartData();
             }
 
@@ -156,7 +156,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         synchronized (offerBookListItems) {
             List<TradeCurrency> tradeCurrencyList = offerBookListItems.stream()
                     .map(e -> {
-                        String currencyCode = e.getOffer().getCurrencyCode();
+                        String currencyCode = e.getOffer().getCounterCurrencyCode();
                         Optional<TradeCurrency> tradeCurrencyOptional = CurrencyUtil.getTradeCurrency(currencyCode);
                         return tradeCurrencyOptional.orElse(null);
                     })
@@ -221,7 +221,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         synchronized (offerBookListItems) {
             List<Offer> offerList = offerBookListItems.stream()
                     .map(OfferBookListItem::getOffer)
-                    .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                    .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                             && e.getDirection().equals(direction))
                     .collect(Collectors.toList());
             BigInteger sum = BigInteger.ZERO;
@@ -234,7 +234,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         synchronized (offerBookListItems) {
              List<Volume> volumes = offerBookListItems.stream()
                     .map(OfferBookListItem::getOffer)
-                    .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                    .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                             && e.getDirection().equals(direction))
                     .map(Offer::getVolume)
                     .collect(Collectors.toList());
@@ -300,13 +300,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public int getMaxNumberOfPriceZeroDecimalsToColorize(Offer offer) {
-        return CurrencyUtil.isVolumeRoundedToNearestUnit(offer.getCurrencyCode())
+        return CurrencyUtil.isVolumeRoundedToNearestUnit(offer.getCounterCurrencyCode())
                 ? GUIUtil.NUM_DECIMALS_UNIT
                 : GUIUtil.NUM_DECIMALS_PRECISE;
     }
 
     public int getZeroDecimalsForPrice(Offer offer) {
-        return CurrencyUtil.isPricePrecise(offer.getCurrencyCode())
+        return CurrencyUtil.isPricePrecise(offer.getCounterCurrencyCode())
                 ? GUIUtil.NUM_DECIMALS_PRECISE
                 : GUIUtil.NUM_DECIMALS_PRICE_LESS_PRECISE;
     }
@@ -364,7 +364,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         List<Offer> allBuyOffers = offerBookListItems.stream()
                 .map(OfferBookListItem::getOffer)
-                .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                         && e.getDirection().equals(buyOfferDirection))
                 .sorted(buyOfferSortComparator)
                 .collect(Collectors.toList());
@@ -395,7 +395,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         List<Offer> allSellOffers = offerBookListItems.stream()
                 .map(OfferBookListItem::getOffer)
-                .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                         && e.getDirection().equals(sellOfferDirection))
                 .sorted(sellOfferSortComparator)
                 .collect(Collectors.toList());

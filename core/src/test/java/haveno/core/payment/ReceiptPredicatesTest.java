@@ -34,7 +34,7 @@ public class ReceiptPredicatesTest {
     @Test
     public void testIsMatchingCurrency() {
         Offer offer = mock(Offer.class);
-        when(offer.getCurrencyCode()).thenReturn("USD");
+        when(offer.getCounterCurrencyCode()).thenReturn("USD");
 
         PaymentAccount account = mock(PaymentAccount.class);
         when(account.getTradeCurrencies()).thenReturn(Lists.newArrayList(

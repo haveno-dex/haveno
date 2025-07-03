@@ -99,7 +99,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         // Store a key to indicate that crypto prices are not inverted in this version.
         // This can be removed in the future after all stats are expected to not be inverted,
         // then only stats which are missing this field prior to then need to be uninverted.
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(trade.getOffer().getCurrencyCode());
+        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(trade.getOffer().getCounterCurrencyCode());
         if (isCryptoCurrency) extraDataMap.put(VERSION_KEY, ""); // value is not currently needed
 
         NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress(), "Arbitrator address is null", trade.getClass().getSimpleName(), trade.getId());
@@ -112,7 +112,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                     arbitratorNodeAddress.getFullAddress();
 
         Offer offer = checkNotNull(trade.getOffer());
-        return new TradeStatistics3(offer.getCurrencyCode(),
+        return new TradeStatistics3(offer.getCounterCurrencyCode(),
                 trade.getPrice().getValue(),
                 fuzzTradeAmountReproducibly(trade, fuzzAmountPct),
                 offer.getPaymentMethod().getId(),

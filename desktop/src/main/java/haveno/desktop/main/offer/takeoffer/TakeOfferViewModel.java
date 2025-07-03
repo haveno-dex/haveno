@@ -302,7 +302,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     BigInteger adjustedAmountForAtm = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit);
                     dataModel.maybeApplyAmount(adjustedAmountForAtm);
                 } else if (dataModel.getOffer().isTraditionalOffer()) {
-                    BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
+                    BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit, dataModel.getOffer().getCounterCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                     dataModel.maybeApplyAmount(roundedAmount);
                 }
                 amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
@@ -574,7 +574,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 if (dataModel.isRoundedForAtmCash()) {
                     amount = CoinUtil.getRoundedAtmCashAmount(amount, price, maxTradeLimit);
                 } else if (dataModel.getOffer().isTraditionalOffer()) {
-                    amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
+                    amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, dataModel.getOffer().getCounterCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                 }
             }
             dataModel.maybeApplyAmount(amount);
@@ -595,7 +595,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public boolean isSellingToAnUnsignedAccount(Offer offer) {
         if (offer.getDirection() == OfferDirection.BUY &&
-                PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode())) {
+                PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCounterCurrencyCode())) {
             // considered risky when either UNSIGNED, PEER_INITIAL, or BANNED (see #5343)
             return accountAgeWitnessService.getSignState(offer) == AccountAgeWitnessService.SignState.UNSIGNED ||
                     accountAgeWitnessService.getSignState(offer) == AccountAgeWitnessService.SignState.PEER_INITIAL ||
