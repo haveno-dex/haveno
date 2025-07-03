@@ -987,11 +987,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     if (model.isOfferBanned(offer)) {
                                         setGraphic(new AutoTooltipLabel(model.getPaymentMethod(item)));
                                     } else {
-                                        if (offer.isXmrAutoConf()) {
-                                            field = new HyperlinkWithIcon(model.getPaymentMethod(item), AwesomeIcon.ROCKET);
-                                        } else {
-                                            field = new HyperlinkWithIcon(model.getPaymentMethod(item));
-                                        }
+                                        field = new HyperlinkWithIcon(model.getPaymentMethod(item));
                                         field.setOnAction(event -> {
                                             offerDetailsWindow.show(offer);
                                         });

@@ -202,11 +202,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (isF2F)
             rows++;
 
-        boolean showXmrAutoConf = offer.isXmr() && offer.getDirection() == OfferDirection.SELL;
-        if (showXmrAutoConf) {
-            rows++;
-        }
-
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
 
         String counterCurrencyDirectionInfo = "";
@@ -289,14 +284,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         } else {
             final String method = Res.get(paymentMethod.getId());
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), method);
-        }
-
-        if (showXmrAutoConf) {
-            addSeparator(gridPane, ++rowIndex);
-            String isAutoConf = offer.isXmrAutoConf() ?
-                    Res.get("shared.yes") :
-                    Res.get("shared.no");
-            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerbook.xmrAutoConf"), isAutoConf);
         }
 
         if (showAcceptedBanks) {

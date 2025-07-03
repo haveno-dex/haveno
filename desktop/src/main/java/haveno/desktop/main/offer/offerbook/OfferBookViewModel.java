@@ -486,13 +486,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             result = Res.getWithCol("shared.paymentMethod") + " " + Res.get(offer.getPaymentMethod().getId());
             result += "\n" + Res.getWithCol("shared.currency") + " " + CurrencyUtil.getNameAndCode(offer.getCounterCurrencyCode());
 
-            if (offer.isXmr()) {
-                String isAutoConf = offer.isXmrAutoConf() ?
-                        Res.get("shared.yes") :
-                        Res.get("shared.no");
-                result += "\n" + Res.getWithCol("offerbook.xmrAutoConf") + " " + isAutoConf;
-            }
-
             String countryCode = offer.getCountryCode();
             if (isF2F(offer)) {
                 if (countryCode != null) {
