@@ -1198,7 +1198,7 @@ message SetNetworkFilterRequest {
     string signature = 1;
     repeated string bannedOffers = 2;
     repeated string bannedNetworkAddresses = 3;
-    epeated string bannedTradingAccountData = 4;
+    repeated string bannedTradingAccountData = 4;
     repeated string bannedCurrencyCodes = 5;
     repeated string bannedTradingMethods = 6;
     repeated string bannedAccountWitenessSignerPubKeys = 7;
