@@ -124,6 +124,8 @@ import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -721,11 +723,24 @@ public class GUIUtil {
 
     private static void doOpenWebPage(String target) {
         try {
-            Utilities.openURI(new URI(target));
+            Utilities.openURI(safeParse(target));
         } catch (Exception e) {
             e.printStackTrace();
             log.error(e.getMessage());
         }
+    }
+
+    private static URI safeParse(String url) throws URISyntaxException {
+        int hashIndex = url.indexOf('#');
+
+        if (hashIndex >= 0 && hashIndex < url.length() - 1) {
+            String base = url.substring(0, hashIndex);
+            String fragment = url.substring(hashIndex + 1);
+            String encodedFragment = URLEncoder.encode(fragment, StandardCharsets.UTF_8);
+            return new URI(base + "#" + encodedFragment);
+        }
+
+        return new URI(url); // no fragment
     }
 
     public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount) {
