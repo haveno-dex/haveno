@@ -1217,7 +1217,7 @@ message SetNetworkFilterRequest {
   bool disableApi = 21;
 }
 
-emssage SetNetworkFilterResponse {
+message SetNetworkFilterResponse {
 }
 
 message GetAlertsRequest {}
