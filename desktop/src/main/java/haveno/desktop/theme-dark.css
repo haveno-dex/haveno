@@ -21,9 +21,9 @@
     -bs-color-primary: #0b65da;
     -bs-color-primary-dark: #0c59bd;
     -bs-text-color: white;
-    -bs-background-color: black;
+    -bs-background-color: #303030;
     -bs-background-gray: transparent;
-    -bs-content-background-gray: black;
+    -bs-content-background-gray: #303030;
 
     /* fifty shades of gray */
     -bs-color-gray-13: #bbb;
