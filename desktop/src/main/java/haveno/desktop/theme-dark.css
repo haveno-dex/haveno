@@ -9,17 +9,17 @@
     -fx-text-fill: #dadada;
 
     /* javafx elements */
-    -fx-accent: #0b65da;
+    -fx-accent: #F4511E;
     -fx-box-border: transparent;
-    -fx-focus-color: #0c59bd;
-    -fx-faint-focus-color: #0c59bd;
+    -fx-focus-color: #F4511E;
+    -fx-faint-focus-color: #F4511E;
     -fx-selection-bar: #0f87c3;
     -fx-selection-bar-non-focused: #4181d4;
     -fx-default-button: derive(-fx-accent, 95%);
 
     /* haveno main colors */
-    -bs-color-primary: #0b65da;
-    -bs-color-primary-dark: #0c59bd;
+    -bs-color-primary: #F4511E;
+    -bs-color-primary-dark: #F4511E;
     -bs-text-color: white;
     -bs-background-color: #303030;
     -bs-background-gray: transparent;
@@ -128,7 +128,7 @@
     -bs-rd-tooltip-truncated: #afaeb0;
 
     /*-bs-toggle-selected: rgb(12, 89, 189);*/
-    -bs-toggle-selected: rgb(12, 89, 190);
+    -bs-toggle-selected: #F4511E;
     -bs-warning: #db6300;
     -bs-buy: rgb(80, 180, 90);
     -bs-buy-focus: derive(-bs-buy, -50%);
