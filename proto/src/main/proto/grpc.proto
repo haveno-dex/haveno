@@ -1204,7 +1204,7 @@ message SetNetworkFilterRequest {
   repeated string bannedAccountWitenessSignerPubKeys = 7;
   repeated string bannedArbitratorAddresses = 8;
   repeated string bannedRefundAgentAddresses = 10;
-  repeated string banned XmrFeeReceiverAddresses = 11;
+  repeated string bannedXmrFeeReceiverAddresses = 11;
   repeated string bannedSeedNodeAddresses = 12;
   repeated string bannedPriceRelayNodeAddresses = 13;
   repeated string bannedMoneroNodeAddresses = 14;
