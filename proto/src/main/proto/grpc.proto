@@ -1185,36 +1185,36 @@ message GetSeednodesReply {
 message GetRegisteredArbitratorsRequest {}
 
 message GetRegisteredArbitratorsReply {
-  repeated Arbitrator arbitrators = 1;
+    repeated Arbitrator arbitrators = 1;
 }
 
 message GetNetworkFilterRequest {}
 
 message GetNetworkFilterReply {
-  Filter filter = 1;
+    Filter filter = 1;
 }
 
 message SetNetworkFilterRequest {
-  string signature = 1;
-  repeated string bannedOffers = 2;
-  repeated string bannedNetworkAddresses = 3;
-  repeated string bannedTradingAccountData = 4;
-  repeated string bannedCurrencyCodes = 5;
-  repeated string bannedTradingMethods = 6;
-  repeated string bannedAccountWitenessSignerPubKeys = 7;
-  repeated string bannedArbitratorAddresses = 8;
-  repeated string bannedRefundAgentAddresses = 10;
-  repeated string bannedXmrFeeReceiverAddresses = 11;
-  repeated string bannedSeedNodeAddresses = 12;
-  repeated string bannedPriceRelayNodeAddresses = 13;
-  repeated string bannedMoneroNodeAddresses = 14;
-  bool banPublicMoneroNetwork = 15;
-  bool disableAutoConfirm = 16;
-  repeated string minVersionRequiredForTrading = 17;
-  repeated string bannedPrivilegedDevPubKeys = 18;
-  repeated string bannedAutoConfirmExplorers = 19;
-  bool disableMempoolValidation = 20;
-  bool disableApi = 21;
+    string signature = 1;
+    repeated string bannedOffers = 2;
+    repeated string bannedNetworkAddresses = 3;
+    epeated string bannedTradingAccountData = 4;
+    repeated string bannedCurrencyCodes = 5;
+    repeated string bannedTradingMethods = 6;
+    repeated string bannedAccountWitenessSignerPubKeys = 7;
+    repeated string bannedArbitratorAddresses = 8;
+    repeated string bannedRefundAgentAddresses = 10;
+    repeated string bannedXmrFeeReceiverAddresses = 11;
+    repeated string bannedSeedNodeAddresses = 12;
+    repeated string bannedPriceRelayNodeAddresses = 13;
+    repeated string bannedMoneroNodeAddresses = 14;
+    bool banPublicMoneroNetwork = 15;
+    bool disableAutoConfirm = 16;
+    repeated string minVersionRequiredForTrading = 17;
+    repeated string bannedPrivilegedDevPubKeys = 18;
+    repeated string bannedAutoConfirmExplorers = 19;
+    bool disableMempoolValidation = 20;
+    bool disableApi = 21;
 }
 
 message SetNetworkFilterResponse {
