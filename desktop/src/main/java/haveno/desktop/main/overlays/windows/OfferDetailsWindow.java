@@ -461,11 +461,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         boolean isBuyOffer = offer.isBuyOffer();
         boolean isBuyerRole = isPlaceOffer == isBuyOffer;
         String placeOfferButtonText = isBuyerRole ?
-                Res.get("offerDetailsWindow.confirm.maker", Res.get("shared.buy")) :
-                Res.get("offerDetailsWindow.confirm.maker", Res.get("shared.sell"));
+                Res.get("offerDetailsWindow.confirm.maker.buy", offer.getCounterCurrencyCode()) :
+                Res.get("offerDetailsWindow.confirm.maker.sell", offer.getCounterCurrencyCode());
         String takeOfferButtonText = isBuyerRole ?
-                Res.get("offerDetailsWindow.confirm.taker", Res.get("shared.buy")) :
-                Res.get("offerDetailsWindow.confirm.taker", Res.get("shared.sell"));
+                Res.get("offerDetailsWindow.confirm.taker.buy", offer.getCounterCurrencyCode()) :
+                Res.get("offerDetailsWindow.confirm.taker.sell", offer.getCounterCurrencyCode());
 
         Tuple4<Button, BusyAnimation, Label, HBox> placeOfferTuple = addButtonBusyAnimationLabelAfterGroup(gridPane,
                 ++rowIndex, 1,

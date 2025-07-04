@@ -321,12 +321,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         if (OfferViewUtil.isShownAsBuyOffer(direction, tradeCurrency)) {
             placeOfferButton.setId("buy-button-big");
-            placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.buy"));
+            placeOfferButtonLabel = Res.get("createOffer.placeOfferButton.buy", tradeCurrency.getCode());
             nextButton.setId("buy-button");
             fundFromSavingsWalletButton.setId("buy-button");
         } else {
             placeOfferButton.setId("sell-button-big");
-            placeOfferButtonLabel = Res.get("createOffer.placeOfferButton", Res.get("shared.sell"));
+            placeOfferButtonLabel = Res.get("createOffer.placeOfferButton.sell", tradeCurrency.getCode());
             nextButton.setId("sell-button");
             fundFromSavingsWalletButton.setId("sell-button");
         }
