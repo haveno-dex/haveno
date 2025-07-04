@@ -278,6 +278,8 @@ message NotificationMessage {
         KEEP_ALIVE = 2;
         TRADE_UPDATE = 3;
         CHAT_MESSAGE = 4;
+        OFFER_UPDATE = 5;
+        MARKET_UPDATE = 6;
     }
 
     string id = 1;
@@ -1138,6 +1140,8 @@ service Network {
     }
     rpc GetNetworkFilter (GetNetworkFilterRequest) returns (GetNetworkFilterReply) {
     }
+    rpc SetNetworkFilter (SetNetworkFilterRequest) returns (SetNetworkFilterReply) {
+    }
     rpc GetAlerts (GetAlertsRequest) returns (GetAlertsRequest) {
     }
     rpc RegisterNetworkListener (RegisterNetworkListenerRequest) returns (stream NetworkMessage) {
@@ -1151,16 +1155,31 @@ message NetworkMessage {
     NetworkEnvelope network_envelope = 1;
 }
 
+message PeerInfo {
+    enum Capability {
+        SEED_NODE = 0;
+        MEDIATION = 1;
+        SIGNED_ACCOUNT_AGE_WITNESS = 2;
+        REFUND_AGENT = 3;
+        TRADE_STATISTICS_HASH_UPDATE = 4;
+        NO_ADDRESS_PRE_FIX = 5;
+        TRADE_STATISTICS_3 = 6;
+    }
+
+    string node_address = 1;
+    repeated Capability capabilities = 2;
+}
+
 message GetOnlinePeersRequest {}
 
 message GetOnlinePeersReply {
-    repeated Peer peers = 1;
+    repeated PeerInfo peers = 1;
 }
 
 message GetSeednodesRequest {}
 
 message GetSeednodesReply {
-  repeated NodeAddress seednodes = 1;
+    repeated PeerInfo peers = 1;
 }
 
 message GetRegisteredArbitratorsRequest {}
@@ -1173,6 +1192,32 @@ message GetNetworkFilterRequest {}
 
 message GetNetworkFilterReply {
   Filter filter = 1;
+}
+
+message SetNetworkFilterRequest {
+  string signature = 1;
+  repeated string bannedOffers = 2;
+  repeated string bannedNetworkAddresses = 3;
+  repeated string bannedTradingAccountData = 4;
+  repeated string bannedCurrencyCodes = 5;
+  repeated string bannedTradingMethods = 6;
+  repeated string bannedAccountWitenessSignerPubKeys = 7;
+  repeated string bannedArbitratorAddresses = 8;
+  repeated string bannedRefundAgentAddresses = 10;
+  repeated string banned XmrFeeReceiverAddresses = 11;
+  repeated string bannedSeedNodeAddresses = 12;
+  repeated string bannedPriceRelayNodeAddresses = 13;
+  repeated string bannedMoneroNodeAddresses = 14;
+  bool banPublicMoneroNetwork = 15;
+  bool disableAutoConfirm = 16;
+  repeated string minVersionRequiredForTrading = 17;
+  repeated string bannedPrivilegedDevPubKeys = 18;
+  repeated string bannedAutoConfirmExplorers = 19;
+  bool disableMempoolValidation = 20;
+  bool disableApi = 21;
+}
+
+emssage SetNetworkFilterResponse {
 }
 
 message GetAlertsRequest {}

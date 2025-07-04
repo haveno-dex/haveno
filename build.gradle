@@ -132,8 +132,7 @@ configure([project(':cli'),
            project(':seednode'),
            project(':statsnode'),
            project(':inventory'),
-           project(':apitest'),
-           //project(':bot')
+           project(':apitest')
            ]) {
 
     apply plugin: 'application'

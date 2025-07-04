@@ -126,7 +126,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             System.exit(EXIT_FAILURE);
         } catch (Throwable ex) {
             System.err.println("fault: An unexpected error occurred. " +
-                    "Please file a report at https://github.com/haveno-dex/haveno/issues");
+                    "Please file a report at https://github.com/MoneroEcosystem/haveno");
             ex.printStackTrace(System.err);
             System.exit(EXIT_FAILURE);
         }
@@ -141,6 +141,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected int doExecute() {
         CommonSetup.setup(config, this);
         CoreSetup.setup(config);
+        
 
         addCapabilities();
 

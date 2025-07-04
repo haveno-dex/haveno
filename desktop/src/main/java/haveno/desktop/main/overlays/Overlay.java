@@ -399,7 +399,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T useReportBugButton() {
         this.closeButtonText = Res.get("shared.reportBug");
-        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://github.com/haveno-dex/haveno/issues"));
+        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://github.com/MoneroEcosystem/haveno/issues"));
         return cast();
     }
 
@@ -941,7 +941,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         gitHubButton.setOnAction(event -> {
             if (message != null)
                 Utilities.copyToClipboard(message);
-            GUIUtil.openWebPage("https://github.com/haveno-dex/haveno/issues");
+            GUIUtil.openWebPage("https://github.com/MoneroEcosystem/haveno/issues");
             hide();
         });
     }

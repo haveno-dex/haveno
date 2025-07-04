@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   build:
-    if: github.repository == 'haveno-dex/haveno'
+    if: github.repository == 'MoneroEcosystem/haveno'
     name: Publish coverage
     runs-on: ubuntu-22.04
     steps:

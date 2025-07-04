@@ -161,6 +161,17 @@ class CoreDisputeAgentsService {
         }
     }
 
+//    void getRegisteredDisputeAgents(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+//        if (!p2PService.isBootstrapped())
+//            throw new IllegalStateException("p2p service is not bootstrapped yet");
+//
+//        arbitratorManager.getObservableMap().forEach(entry -> {
+//            if (arbitrator != null) {
+//                log.info("Registered arbitrator: {}", arbitrator.getNodeAddress().getFullAddress());
+//            }
+//        });
+//    }
+
     private void registerArbitrator(NodeAddress nodeAddress,
                                     List<String> languageCodes,
                                     ECKey ecKey,

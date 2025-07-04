@@ -49,6 +49,7 @@ import haveno.core.api.model.MarketPriceInfo;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.app.AppStartupState;
+import haveno.core.filter.Filter;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -73,6 +74,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import haveno.network.p2p.peers.peerexchange.Peer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
@@ -362,8 +364,19 @@ public class CoreApi {
     // Network
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void addNetworkListener(NetworkListener listener) {
-        networkService.addListener(listener);
+    //public void addNetworkListener(NetworkListener listener) {
+    //    networkService.addListener(listener);
+    //}
+    public Set<Peer> getOnlinePeers() {
+        return networkService.getOnlinePeers();
+    }
+
+    public Set<Peer> getOnlineSeedNodes() {
+        return networkService.getOnlineSeedNodePeers();
+    }
+
+    public Filter getFilter() {
+        return networkService.getFilter();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -403,7 +416,11 @@ public class CoreApi {
         coreDisputeAgentsService.unregisterDisputeAgent(disputeAgentType, resultHandler, errorMessageHandler);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////
+    public void getRegisteredDisputeAgents(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        //coreDisputeAgentsService.getRegisteredDisputeAgents(resultHandler, errorMessageHandler);
+    }
+
+    /////////////////////////////////////////////s//////////////////////////////////////////////
     // Offers
     ///////////////////////////////////////////////////////////////////////////////////////////
 

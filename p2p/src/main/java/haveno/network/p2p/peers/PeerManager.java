@@ -413,6 +413,24 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         return latestLivePeers;
     }
 
+    public Set<Peer> getLiveSeedNodePeers() {
+        int oldNumLatestLivePeers = latestLivePeers.size();
+
+        Set<Peer> currentLiveSeedNodePeers = getConnectedReportedPeers().stream()
+                .filter(e -> isSeedNode(e))
+                .collect(Collectors.toSet());
+
+        long maxAge = new Date().getTime() - MAX_AGE_LIVE_PEERS;
+        latestLivePeers.clear();
+        Set<Peer> latestLiveSeedNodePeers = currentLiveSeedNodePeers.stream()
+                .filter(peer -> peer.getDateAsLong() > maxAge)
+                .collect(Collectors.toSet());
+
+        if (oldNumLatestLivePeers != latestLiveSeedNodePeers.size())
+            log.info("Num of latestLiveSeedNodePeers={}", latestLiveSeedNodePeers.size());
+        return latestLivePeers;
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Capabilities
@@ -729,6 +747,10 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
     public int getMaxConnections() {
         return maxConnections;
+    }
+
+    public Set<NodeAddress> getSeedNodeAddresses() {
+        return new HashSet<>(seedNodeAddresses);
     }
 
 

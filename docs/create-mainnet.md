@@ -7,7 +7,7 @@ For a more robust and decentralized deployment to VPS for reliable uptime, see t
 ## Clone and build Haveno
 
 ```
-git clone https://github.com/haveno-dex/haveno.git
+git clone https://github.com/MoneroEcosystem/haveno.git
 cd haveno
 git checkout master
 make clean && make
@@ -39,17 +39,17 @@ For demonstration, we can use the first generated public/private keypair for all
 
 Hardcode the public key(s) in these files:
 
-- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/alert/AlertManager.java#L111)
-- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
-- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/filter/FilterManager.java#L117)
-- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/mainnet_placeholders/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L110)
+- [AlertManager.java](https://github.com/MoneroEcosystem/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/alert/AlertManager.java#L111)
+- [ArbitratorManager.java](https://github.com/MoneroEcosystem/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
+- [FilterManager.java](https://github.com/MoneroEcosystem/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/filter/FilterManager.java#L117)
+- [PrivateNotificationManager.java](https://github.com/MoneroEcosystem/haveno/blob/mainnet_placeholders/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L110)
 
 ## Change the default folder name for Haveno application data
 
 To avoid user data corruption when using multiple Haveno networks, change the default folder name for Haveno's application data on your network:
 
-- Change `DEFAULT_APP_NAME` in [HavenoExecutable.java](https://github.com/haveno-dex/haveno/blob/64acf86fbea069b0ae9f9bce086f8ecce1e91b87/core/src/main/java/haveno/core/app/HavenoExecutable.java#L85).
-- Change `appName` throughout the [Makefile](https://github.com/haveno-dex/haveno/blob/64acf86fbea069b0ae9f9bce086f8ecce1e91b87/Makefile#L479) accordingly.
+- Change `DEFAULT_APP_NAME` in [HavenoExecutable.java](https://github.com/MoneroEcosystem/haveno/blob/64acf86fbea069b0ae9f9bce086f8ecce1e91b87/core/src/main/java/haveno/core/app/HavenoExecutable.java#L85).
+- Change `appName` throughout the [Makefile](https://github.com/MoneroEcosystem/haveno/blob/64acf86fbea069b0ae9f9bce086f8ecce1e91b87/Makefile#L479) accordingly.
 
 For example, change "Haveno" to "HavenoX", which will use this application folder:
 
@@ -59,7 +59,7 @@ For example, change "Haveno" to "HavenoX", which will use this application folde
 
 ## Change the P2P network version
 
-To avoid interference with other networks, change `P2P_NETWORK_VERSION` in [Version.java](https://github.com/haveno-dex/haveno/blob/a7e90395d24ec3d33262dd5d09c5faec61651a51/common/src/main/java/haveno/common/app/Version.java#L83).
+To avoid interference with other networks, change `P2P_NETWORK_VERSION` in [Version.java](https://github.com/MoneroEcosystem/haveno/blob/a7e90395d24ec3d33262dd5d09c5faec61651a51/common/src/main/java/haveno/common/app/Version.java#L83).
 
 For example, change it to `"B"`.
 
@@ -114,9 +114,9 @@ Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR 
 
 ### Optionally start a price node
 
-The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode.
+The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/MoneroEcosystem/haveno-pricenode.
 
-After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
+After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/MoneroEcosystem/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
 
 ### Update the download URL
 
@@ -124,7 +124,7 @@ Change every instance of `https://haveno.exchange/downloads` to your download UR
 
 ## Review all local changes
 
-For comparison, placeholders to run on mainnet are marked [here on this branch](https://github.com/haveno-dex/haveno/tree/mainnet_placeholders).
+For comparison, placeholders to run on mainnet are marked [here on this branch](https://github.com/MoneroEcosystem/haveno/tree/mainnet_placeholders).
 
 ## Start users for testing
 
@@ -155,8 +155,8 @@ However a [more robust VPS setup](./deployment-guide.md) should be used for actu
 
 ## Build the installers for distribution
 
-To build the installers for distribution, first change `XMR_STAGENET` to `XMR_MAINNET` in [package.gradle](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/desktop/package/package.gradle#L278).
+To build the installers for distribution, first change `XMR_STAGENET` to `XMR_MAINNET` in [package.gradle](https://github.com/MoneroEcosystem/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/desktop/package/package.gradle#L278).
 
-Then [follow instructions](https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md) to build the installers for distribution.
+Then [follow instructions](https://github.com/MoneroEcosystem/haveno/blob/master/desktop/package/README.md) to build the installers for distribution.
 
 Alternatively, the installers are built automatically by GitHub.

@@ -169,15 +169,19 @@ public class MobileNotificationService {
                 doSend = true;
                 break;
             case OFFER:
+                doSend = true;
+                break;
             case TRADE:
+                doSend = true;
+                break;
             case DISPUTE:
-                doSend = useTradeNotificationsProperty.get();
+                doSend = true;
                 break;
             case PRICE:
-                doSend = usePriceNotificationsProperty.get();
+                doSend = true;
                 break;
             case MARKET:
-                doSend = useMarketNotificationsProperty.get();
+                doSend = true;
                 break;
             case ERASE:
                 doSend = true;

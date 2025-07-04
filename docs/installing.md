@@ -37,7 +37,7 @@ Restart the terminal for the changes to take effect.
 If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release. If using a third party network, replace the repository URL with theirs:
 
 ```
-git clone https://github.com/haveno-dex/haveno.git
+git clone https://github.com/MoneroEcosystem/haveno.git
 cd haveno
 git checkout master
 make
@@ -107,7 +107,7 @@ If you don't use *screen* or *tmux*, open 4 terminal windows and run in each one
   2. `make user1-desktop-local` or if you want to run user1 as a daemon: `make user1-daemon-local`
   3. `make user2-desktop-local` or if you want to run user2 as a daemon: `make user2-daemon-local`
   4. `make arbitrator-desktop-local` or if you want to run arbitrator as a daemon: `make arbitrator-daemon-local`
-  5. Optionally run a [local price node](https://github.com/haveno-dex/haveno-pricenode/blob/main/README.md)
+  5. Optionally run a [local price node](https://github.com/MoneroEcosystem/haveno-pricenode/blob/main/README.md)
 
 If this is the first time launching the arbitrator desktop application, register the arbitrator after the interface opens. Go to the *Account* tab and press `cmd+r`. Confirm the registration of the arbitrator.
 
