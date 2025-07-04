@@ -511,7 +511,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 return Res.get(GUIUtil.SHOW_ALL_FLAG);
             if (isSpecialEditItem(item))
                 return Res.get(GUIUtil.EDIT_FLAG);
-            return item.getCode() + "  -  " + item.getName();
+            return item.getName() + " (" + item.getCode() + ")";
         }
 
         private boolean isSpecialShowAllItem(TradeCurrency item) {
