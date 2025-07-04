@@ -1134,7 +1134,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         fakeXLabel = new Label();
         fakeXIcon = getIconForLabel(MaterialDesignIcon.CLOSE, "2em", fakeXLabel);
         fakeXLabel.setVisible(false); // we just use it to get the same layout as the upper row
-        fakeXIcon.setManaged(false);
         fakeXLabel.getStyleClass().add("opaque-icon-character");
 
         HBox hBox = new HBox();
