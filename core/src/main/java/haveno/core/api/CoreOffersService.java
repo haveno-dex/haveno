@@ -149,7 +149,7 @@ public class CoreOffersService {
     List<OpenOffer> getMyOffers(String direction, String currencyCode) {
         return getMyOffers().stream()
                 .filter(o -> offerMatchesDirectionAndCurrency(o.getOffer(), direction, currencyCode))
-                .sorted(openOfferPriceComparator(direction, CurrencyUtil.isTraditionalCurrency(currencyCode)))
+                .sorted(openOfferPriceComparator(direction))
                 .collect(Collectors.toList());
     }
 
@@ -336,7 +336,7 @@ public class CoreOffersService {
                             String sourceOfferId,
                             Consumer<Transaction> resultHandler,
                             ErrorMessageHandler errorMessageHandler) {
-        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCurrencyCode());
+        long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, offer.getCounterCurrencyCode());
         openOfferManager.placeOffer(offer,
                 useSavingsWallet,
                 triggerPriceAsLong,
@@ -353,8 +353,7 @@ public class CoreOffersService {
         if ("".equals(direction)) direction = null;
         if ("".equals(currencyCode)) currencyCode = null;
         var offerOfWantedDirection = direction == null || offer.getDirection().name().equalsIgnoreCase(direction);
-        var counterAssetCode = CurrencyUtil.isCryptoCurrency(currencyCode) ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode();
-        var offerInWantedCurrency = currencyCode == null || counterAssetCode.equalsIgnoreCase(currencyCode);
+        var offerInWantedCurrency = currencyCode == null || offer.getCounterCurrencyCode().equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
     }
 
@@ -366,17 +365,12 @@ public class CoreOffersService {
                 : priceComparator.get();
     }
 
-    private Comparator<OpenOffer> openOfferPriceComparator(String direction, boolean isTraditional) {
+    private Comparator<OpenOffer> openOfferPriceComparator(String direction) {
         // A buyer probably wants to see sell orders in price ascending order.
         // A seller probably wants to see buy orders in price descending order.
-        if (isTraditional)
-            return direction.equalsIgnoreCase(OfferDirection.BUY.name())
-                    ? openOfferPriceComparator.get().reversed()
-                    : openOfferPriceComparator.get();
-        else
-            return direction.equalsIgnoreCase(OfferDirection.SELL.name())
-                    ? openOfferPriceComparator.get().reversed()
-                    : openOfferPriceComparator.get();
+        return direction.equalsIgnoreCase(OfferDirection.BUY.name())
+                ? openOfferPriceComparator.get().reversed()
+                : openOfferPriceComparator.get();
     }
 
     private long priceStringToLong(String priceAsString, String currencyCode) {

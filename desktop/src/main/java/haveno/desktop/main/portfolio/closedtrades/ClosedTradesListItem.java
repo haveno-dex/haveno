@@ -104,7 +104,7 @@ public class ClosedTradesListItem implements FilterableListItem {
         OfferDirection direction = closedTradableManager.wasMyOffer(offer) || tradable instanceof ArbitratorTrade
                 ? offer.getDirection()
                 : offer.getMirroredDirection();
-        String currencyCode = tradable.getOffer().getCurrencyCode();
+        String currencyCode = tradable.getOffer().getCounterCurrencyCode();
         return DisplayUtils.getDirectionWithCode(direction, currencyCode, offer.isPrivateOffer());
     }
 
@@ -117,7 +117,7 @@ public class ClosedTradesListItem implements FilterableListItem {
     }
 
     public String getMarketLabel() {
-        return CurrencyUtil.getCurrencyPair(tradable.getOffer().getCurrencyCode());
+        return CurrencyUtil.getCurrencyPair(tradable.getOffer().getCounterCurrencyCode());
     }
 
     public String getState() {

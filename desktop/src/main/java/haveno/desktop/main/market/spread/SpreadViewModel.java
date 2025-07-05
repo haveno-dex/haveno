@@ -116,11 +116,11 @@ class SpreadViewModel extends ActivatableViewModel {
         synchronized (offerBookListItems) {
             for (OfferBookListItem offerBookListItem : offerBookListItems) {
                 Offer offer = offerBookListItem.getOffer();
-                String key = offer.getCurrencyCode();
+                String key = offer.getCounterCurrencyCode();
                 if (includePaymentMethod) {
                     key = offer.getPaymentMethod().getShortName();
                     if (expandedView) {
-                        key += ":" + offer.getCurrencyCode();
+                        key += ":" + offer.getCounterCurrencyCode();
                     }
                 }
                 if (!offersByCurrencyMap.containsKey(key))
@@ -178,8 +178,8 @@ class SpreadViewModel extends ActivatableViewModel {
             Price bestSellOfferPrice = sellOffers.isEmpty() ? null : sellOffers.get(0).getPrice();
             Price bestBuyOfferPrice = buyOffers.isEmpty() ? null : buyOffers.get(0).getPrice();
             if (bestBuyOfferPrice != null && bestSellOfferPrice != null &&
-                    sellOffers.get(0).getCurrencyCode().equals(buyOffers.get(0).getCurrencyCode())) {
-                MarketPrice marketPrice = priceFeedService.getMarketPrice(sellOffers.get(0).getCurrencyCode());
+                    sellOffers.get(0).getCounterCurrencyCode().equals(buyOffers.get(0).getCounterCurrencyCode())) {
+                MarketPrice marketPrice = priceFeedService.getMarketPrice(sellOffers.get(0).getCounterCurrencyCode());
 
                 // There have been some bug reports that an offer caused an overflow exception.
                 // We never found out which offer it was. So add here a try/catch to get better info if it
@@ -217,8 +217,8 @@ class SpreadViewModel extends ActivatableViewModel {
                                 "Details of offer data: \n" +
                                 "bestSellOfferPrice: " + bestSellOfferPrice.getValue() + "\n" +
                                 "bestBuyOfferPrice: " + bestBuyOfferPrice.getValue() + "\n" +
-                                "sellOffer getCurrencyCode: " + sellOffers.get(0).getCurrencyCode() + "\n" +
-                                "buyOffer getCurrencyCode: " + buyOffers.get(0).getCurrencyCode() + "\n\n" +
+                                "sellOffer getCurrencyCode: " + sellOffers.get(0).getCounterCurrencyCode() + "\n" +
+                                "buyOffer getCurrencyCode: " + buyOffers.get(0).getCounterCurrencyCode() + "\n\n" +
                                 "Please copy and paste this data and send it to the developers so they can investigate the issue.";
                         new Popup().error(msg).show();
                         log.error(t.toString());
