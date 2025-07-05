@@ -643,3 +643,7 @@
 .regular-text-color {
     -fx-text-fill: -bs-text-color;
 }
+
+#image-fiat-logo {
+    -fx-image: url("../../images/fiat_logo_dark_mode.png");
+}
