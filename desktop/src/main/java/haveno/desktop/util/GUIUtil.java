@@ -350,11 +350,10 @@ public class GUIUtil {
                         default:
 
                             // use icon if available
-                            ImageView currencyIcon = getCurrencyIcon(code);
+                            StackPane currencyIcon = getCurrencyIcon(code);
                             if (currencyIcon != null) {
                                 label1.setText("");
-                                StackPane iconWrapper = new StackPane(currencyIcon); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
-                                label1.setGraphic(iconWrapper);
+                                label1.setGraphic(currencyIcon);
                             }
 
                             if (preferences.isSortMarketCurrenciesNumerically() && item.numTrades > 0) {
@@ -461,11 +460,10 @@ public class GUIUtil {
                         default:
 
                             // use icon if available
-                            ImageView currencyIcon = getCurrencyIcon(code);
+                            StackPane currencyIcon = getCurrencyIcon(code);
                             if (currencyIcon != null) {
                                 label1.setText("");
-                                StackPane iconWrapper = new StackPane(currencyIcon); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
-                                label1.setGraphic(iconWrapper);
+                                label1.setGraphic(currencyIcon);
                             }
 
                             boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
@@ -506,11 +504,10 @@ public class GUIUtil {
                     label2.getStyleClass().add("currency-label");
 
                     // use icon if available
-                    ImageView currencyIcon = getCurrencyIcon(item.getCode());
+                    StackPane currencyIcon = getCurrencyIcon(item.getCode());
                     if (currencyIcon != null) {
                         label1.setText("");
-                        StackPane iconWrapper = new StackPane(currencyIcon); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
-                        label1.setGraphic(iconWrapper);
+                        label1.setGraphic(currencyIcon);
                     }
 
                     box.getChildren().addAll(label1, label2);
@@ -1283,21 +1280,31 @@ public class GUIUtil {
         return contentColumns;
     }
 
-    public static ImageView getCurrencyIcon(String currencyCode) {
-        return getCurrencyIcon(currencyCode, 24);
+    private static ImageView getCurrencyImageView(String currencyCode) {
+        return getCurrencyImageView(currencyCode, 24);
     }
 
-    public static ImageView getCurrencyIcon(String currencyCode, double size) {
+    private static ImageView getCurrencyImageView(String currencyCode, double size) {
         if (currencyCode == null) return null;
         String imageId = getImageId(currencyCode);
         if (imageId == null) return null;
-        ImageView iconView = new ImageView();
-        iconView.setFitWidth(size);
-        iconView.setPreserveRatio(true);
-        iconView.setSmooth(true);
-        iconView.setCache(true);
-        iconView.setId(imageId);
-        return iconView;
+        ImageView icon = new ImageView();
+        icon.setFitWidth(size);
+        icon.setPreserveRatio(true);
+        icon.setSmooth(true);
+        icon.setCache(true);
+        icon.setId(imageId);
+        return icon;
+    }
+
+    public static StackPane getCurrencyIcon(String currencyCode) {
+        ImageView icon = getCurrencyImageView(currencyCode);
+        return icon == null ? null : new StackPane(icon);
+    }
+
+    public static StackPane getCurrencyIcon(String currencyCode, double size) {
+        ImageView icon = getCurrencyImageView(currencyCode, size);
+        return icon == null ? null : new StackPane(icon);
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {
@@ -1307,12 +1314,9 @@ public class GUIUtil {
     public static StackPane getCurrencyIconWithBorder(String currencyCode, double size, double borderWidth) {
         if (currencyCode == null) return null;
 
-        ImageView icon = getCurrencyIcon(currencyCode, size);
+        ImageView icon = getCurrencyImageView(currencyCode, size);
         icon.setFitWidth(size - 2 * borderWidth);
         icon.setFitHeight(size - 2 * borderWidth);
-        icon.setPreserveRatio(true);
-        icon.setSmooth(true);
-        icon.setCache(true);
 
         StackPane circleWrapper = new StackPane(icon);
         circleWrapper.setPrefSize(size, size);
