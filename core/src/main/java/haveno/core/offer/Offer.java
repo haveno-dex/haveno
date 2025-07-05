@@ -39,6 +39,7 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ObjectProperty;
@@ -175,7 +176,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     public Price getPrice() {
         String counterCurrencyCode = getCounterCurrencyCode();
         if (!offerPayload.isUseMarketBasedPrice()) {
-            return Price.valueOf(counterCurrencyCode, offerPayload.getPrice());
+            return Price.valueOf(counterCurrencyCode, currenciesInverted() ? PriceUtil.invertLongPrice(offerPayload.getPrice(), counterCurrencyCode) : offerPayload.getPrice());
         }
 
         checkNotNull(priceFeedService, "priceFeed must not be null");
@@ -508,9 +509,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public String getBaseCurrencyCode() {
-        if (currencyCode != null) return currencyCode;
-        currencyCode = currenciesInverted() ? offerPayload.getCounterCurrencyCode() : offerPayload.getBaseCurrencyCode(); // legacy offers inverted crypto
-        return currencyCode;
+        return currenciesInverted() ? offerPayload.getCounterCurrencyCode() : offerPayload.getBaseCurrencyCode(); // legacy offers inverted crypto
     }
 
     public String getCounterCurrencyCode() {

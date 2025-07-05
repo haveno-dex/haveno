@@ -353,8 +353,7 @@ public class CoreOffersService {
         if ("".equals(direction)) direction = null;
         if ("".equals(currencyCode)) currencyCode = null;
         var offerOfWantedDirection = direction == null || offer.getDirection().name().equalsIgnoreCase(direction);
-        var counterAssetCode = offer.currenciesInverted() ? offer.getOfferPayload().getBaseCurrencyCode() : offer.getOfferPayload().getCounterCurrencyCode();
-        var offerInWantedCurrency = currencyCode == null || counterAssetCode.equalsIgnoreCase(currencyCode);
+        var offerInWantedCurrency = currencyCode == null || offer.getCounterCurrencyCode().equalsIgnoreCase(currencyCode);
         return offerOfWantedDirection && offerInWantedCurrency;
     }
 

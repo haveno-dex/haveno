@@ -78,7 +78,6 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.JsonUtil;
-import haveno.core.util.PriceUtil;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -2014,7 +2013,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         ownerNodeAddress,
                         originalOfferPayload.getPubKeyRing(),
                         originalOfferPayload.getDirection(),
-                        originalOffer.currenciesInverted() && originalOfferPayload.getPrice() != 0 ? PriceUtil.invertLongPrice(originalOfferPayload.getPrice(), originalOffer.getCounterCurrencyCode()) : originalOfferPayload.getPrice(),
+                        originalOffer.getPrice().getValue(),
                         originalOfferPayload.getMarketPriceMarginPct(),
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),
@@ -2024,8 +2023,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getPenaltyFeePct(),
                         originalOfferPayload.getBuyerSecurityDepositPct(),
                         originalOfferPayload.getSellerSecurityDepositPct(),
-                        originalOffer.currenciesInverted() ? originalOfferPayload.getCounterCurrencyCode() : originalOfferPayload.getBaseCurrencyCode(),
-                        originalOffer.currenciesInverted() ? originalOfferPayload.getBaseCurrencyCode() : originalOfferPayload.getCounterCurrencyCode(),
+                        originalOffer.getBaseCurrencyCode(),
+                        originalOffer.getCounterCurrencyCode(),
                         originalOfferPayload.getPaymentMethodId(),
                         originalOfferPayload.getMakerPaymentAccountId(),
                         originalOfferPayload.getCountryCode(),
