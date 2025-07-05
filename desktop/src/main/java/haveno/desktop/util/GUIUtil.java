@@ -349,10 +349,11 @@ public class GUIUtil {
                             break;
                         default:
 
-                            // use icons for crypto
-                            if (CurrencyUtil.isCryptoCurrency(code)) {
+                            // use icon if available
+                            ImageView currencyIcon = getCurrencyIcon(code);
+                            if (currencyIcon != null) {
                                 label1.setText("");
-                                StackPane iconWrapper = new StackPane(getCurrencyIcon(code)); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
+                                StackPane iconWrapper = new StackPane(currencyIcon); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
                                 label1.setGraphic(iconWrapper);
                             }
 
@@ -459,10 +460,12 @@ public class GUIUtil {
                             break;
                         default:
 
-                            // use icons for crypto
-                            if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                            // use icon if available
+                            ImageView currencyIcon = getCurrencyIcon(code);
+                            if (currencyIcon != null) {
                                 label1.setText("");
-                                label1.setGraphic(getCurrencyIcon(item.getCode()));
+                                StackPane iconWrapper = new StackPane(currencyIcon); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
+                                label1.setGraphic(iconWrapper);
                             }
 
                             boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
@@ -502,10 +505,12 @@ public class GUIUtil {
                     Label label2 = new AutoTooltipLabel(item.getNameAndCode());
                     label2.getStyleClass().add("currency-label");
 
-                    // use icons for crypto
-                    if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                    // use icon if available
+                    ImageView currencyIcon = getCurrencyIcon(item.getCode());
+                    if (currencyIcon != null) {
                         label1.setText("");
-                        label1.setGraphic(getCurrencyIcon(item.getCode()));
+                        StackPane iconWrapper = new StackPane(currencyIcon); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
+                        label1.setGraphic(iconWrapper);
                     }
 
                     box.getChildren().addAll(label1, label2);
@@ -1284,12 +1289,14 @@ public class GUIUtil {
 
     public static ImageView getCurrencyIcon(String currencyCode, double size) {
         if (currencyCode == null) return null;
+        String imageId = getImageId(currencyCode);
+        if (imageId == null) return null;
         ImageView iconView = new ImageView();
         iconView.setFitWidth(size);
         iconView.setPreserveRatio(true);
         iconView.setSmooth(true);
         iconView.setCache(true);
-        iconView.setId(getImageId(currencyCode));
+        iconView.setId(imageId);
         return iconView;
     }
 
@@ -1327,7 +1334,9 @@ public class GUIUtil {
 
     private static String getImageId(String currencyCode) {
         if (currencyCode == null) return null;
-        return "image-" + currencyCode.toLowerCase() + "-logo";
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) return "image-" + currencyCode.toLowerCase() + "-logo";
+        if (CurrencyUtil.isFiatCurrency(currencyCode)) return "image-fiat-logo";
+        return null;
     }
 
     public static void adjustHeightAutomatically(TextArea textArea) {
