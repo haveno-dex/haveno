@@ -313,6 +313,10 @@
     -fx-image: url("../../images/settings.png");
 }
 
+#image-fiat-logo {
+    -fx-image: url("../../images/fiat_logo_light_mode.png");
+}
+
 #image-btc-logo {
     -fx-image: url("../../images/btc_logo.png");
 }
