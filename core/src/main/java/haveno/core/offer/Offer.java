@@ -176,7 +176,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     public Price getPrice() {
         String counterCurrencyCode = getCounterCurrencyCode();
         if (!offerPayload.isUseMarketBasedPrice()) {
-            return Price.valueOf(counterCurrencyCode, currenciesInverted() ? PriceUtil.invertLongPrice(offerPayload.getPrice(), counterCurrencyCode) : offerPayload.getPrice());
+            return Price.valueOf(counterCurrencyCode, isInverted() ? PriceUtil.invertLongPrice(offerPayload.getPrice(), counterCurrencyCode) : offerPayload.getPrice());
         }
 
         checkNotNull(priceFeedService, "priceFeed must not be null");
@@ -184,7 +184,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
         if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
             double factor;
             double marketPriceMargin = offerPayload.getMarketPriceMarginPct();
-            if (currenciesInverted()) { // legacy offers inverted crypto prices
+            if (isInverted()) { // legacy offers inverted crypto prices
                 factor = getDirection() == OfferDirection.SELL ?
                         1 - marketPriceMargin : 1 + marketPriceMargin;
             } else {
@@ -509,16 +509,16 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public String getBaseCurrencyCode() {
-        return currenciesInverted() ? offerPayload.getCounterCurrencyCode() : offerPayload.getBaseCurrencyCode(); // legacy offers inverted crypto
+        return isInverted() ? offerPayload.getCounterCurrencyCode() : offerPayload.getBaseCurrencyCode(); // legacy offers inverted crypto
     }
 
     public String getCounterCurrencyCode() {
         if (currencyCode != null) return currencyCode;
-        currencyCode = currenciesInverted() ? offerPayload.getBaseCurrencyCode() : offerPayload.getCounterCurrencyCode(); // legacy offers inverted crypto
+        currencyCode = isInverted() ? offerPayload.getBaseCurrencyCode() : offerPayload.getCounterCurrencyCode(); // legacy offers inverted crypto
         return currencyCode;
     }
 
-    public boolean currenciesInverted() {
+    public boolean isInverted() {
         return !offerPayload.getBaseCurrencyCode().equals("XMR");
     }
 
