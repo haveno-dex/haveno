@@ -14,7 +14,9 @@ import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
+import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -67,6 +69,10 @@ public abstract class PaymentAccountsView<R extends Node, M extends ActivatableW
         Label placeholder = new AutoTooltipLabel(Res.get("shared.noAccountsSetupYet"));
         placeholder.setWrapText(true);
         paymentAccountsListView.setPlaceholder(placeholder);
+
+        getPaymentAccounts().addListener((ListChangeListener<PaymentAccount>) change -> {
+            setPaymentAccountsListHeight();
+        });
     }
 
     @Override
@@ -151,6 +157,13 @@ public abstract class PaymentAccountsView<R extends Node, M extends ActivatableW
                 };
             }
         });
+    }
+
+    protected void setPaymentAccountsListHeight() {
+        int prefNumRows = Math.min(5, Math.max(2, getPaymentAccounts().size()));
+        double prefHeight = prefNumRows * (Layout.LIST_ROW_HEIGHT + 6);
+        paymentAccountsListView.setMinHeight(prefHeight);
+        paymentAccountsListView.setMaxHeight(prefHeight);
     }
 
     protected abstract void removeSelectAccountForm();
