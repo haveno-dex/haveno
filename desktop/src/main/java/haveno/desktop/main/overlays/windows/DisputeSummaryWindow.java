@@ -34,7 +34,6 @@ import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
-import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -355,22 +354,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         BigInteger sellerAmount = HavenoUtils.parseXmr(sellerPayoutAmountInputTextField.getText());
         Contract contract = dispute.getContract();
         BigInteger tradeAmount = contract.getTradeAmount();
-        BigInteger available = tradeAmount
+        BigInteger expected = tradeAmount
                 .add(trade.getBuyer().getSecurityDeposit())
                 .add(trade.getSeller().getSecurityDeposit());
         BigInteger totalAmount = buyerAmount.add(sellerAmount);
-
-        boolean isRefundAgent = getDisputeManager(dispute) instanceof RefundManager;
-        if (isRefundAgent) {
-            // We allow to spend less in case of RefundAgent or even zero to both, so in that case no payout tx will
-            // be made
-            return totalAmount.compareTo(available) <= 0;
-        } else {
-            if (totalAmount.compareTo(BigInteger.ZERO) <= 0) {
-                return false;
-            }
-            return totalAmount.compareTo(available) == 0;
-        }
+        return totalAmount.compareTo(expected) == 0 || totalAmount.compareTo(trade.getWallet().getBalance()) == 0; // allow spending the expected amount or full wallet balance in case a deposit transaction was dropped
     }
 
     private void applyCustomAmounts(InputTextField inputTextField, boolean oldFocusValue, boolean newFocusValue) {
