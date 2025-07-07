@@ -908,6 +908,9 @@ message TradeInfo {
     string maker_deposit_tx_id = 37;
     string taker_deposit_tx_id = 38;
     string payout_tx_id = 39;
+    uint64 start_time = 40;
+    uint64 max_duration_ms = 41;
+    uint64 deadline_time = 42;
 }
 
 message ContractInfo {
