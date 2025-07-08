@@ -144,9 +144,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             waitingForFundsLabel, offerAvailabilityLabel, priceAsPercentageDescription,
             tradeFeeDescriptionLabel, resultLabel, tradeFeeInXmrLabel, xLabel,
             fakeXLabel, extraInfoLabel;
-    private InputTextField amountTextField;
+    private InputTextField amountTextField, volumeTextField;
     private TextField paymentMethodTextField, currencyTextField, priceTextField, priceAsPercentageTextField,
-            volumeTextField, amountRangeTextField;
+            amountRangeTextField;
     private FundsTextField totalToPayTextField;
     private AddressTextField addressTextField;
     private BalanceTextField balanceTextField;
@@ -159,7 +159,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private Notification walletFundedNotification;
     private OfferView.CloseHandler closeHandler;
     private Subscription balanceSubscription,
-            showTransactionPublishedScreenSubscription, showWarningInvalidBtcDecimalPlacesSubscription,
+            showTransactionPublishedScreenSubscription, showWarningInvalidXmrDecimalPlacesSubscription,
             isWaitingForFundsSubscription, offerWarningSubscription, errorMessageSubscription,
             isOfferAvailableSubscription;
     private ChangeListener<BigInteger> missingCoinListener;
@@ -170,7 +170,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             takeOfferFromUnsignedAccountWarningDisplayed, payByMailWarningDisplayed, cashAtAtmWarningDisplayed,
             australiaPayidWarningDisplayed, paypalWarningDisplayed, cashAppWarningDisplayed, F2FWarningDisplayed;
     private SimpleBooleanProperty errorPopupDisplayed;
-    private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
+    private ChangeListener<Boolean> amountFocusedListener, volumeFocusedListener, getShowWalletFundedNotificationListener;
 
     private InfoInputTextField volumeInfoTextField;
 
@@ -208,21 +208,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         balanceTextField.setFormatter(model.getXmrFormatter());
 
-        amountFocusedListener = (o, oldValue, newValue) -> {
-            model.onFocusOutAmountTextField(oldValue, newValue, amountTextField.getText());
-            amountTextField.setText(model.amount.get());
-        };
-
-        getShowWalletFundedNotificationListener = (observable, oldValue, newValue) -> {
-            if (newValue) {
-                Notification walletFundedNotification = new Notification()
-                        .headLine(Res.get("notification.walletUpdate.headline"))
-                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatXmr(model.dataModel.getTotalToPay().get(), true)))
-                        .autoClose();
-
-                walletFundedNotification.show();
-            }
-        };
 
         GUIUtil.focusWhenAddedToScene(amountTextField);
     }
@@ -342,6 +327,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             amountRangeTextField.setText(model.getAmountRange());
             amountRangeBox.setVisible(true);
             amountRangeBox.setManaged(true);
+            volumeTextField.setDisable(false);
         } else {
             amountTextField.setDisable(true);
             amountTextField.setManaged(true);
@@ -604,6 +590,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         totalToPayTextField.textProperty().bind(model.totalToPay);
         addressTextField.amountAsProperty().bind(model.dataModel.getMissingCoin());
         amountTextField.validationResultProperty().bind(model.amountValidationResult);
+        volumeTextField.validationResultProperty().bind(model.volumeValidationResult);
         priceCurrencyLabel.textProperty().bind(createStringBinding(() -> CurrencyUtil.getCounterCurrency(model.dataModel.getCurrencyCode())));
         priceAsPercentageLabel.prefWidthProperty().bind(priceCurrencyLabel.widthProperty());
         nextButton.disableProperty().bind(model.isNextButtonDisabled);
@@ -703,10 +690,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             waitingForFundsLabel.setManaged(isWaitingForFunds);
         });
 
-        showWarningInvalidBtcDecimalPlacesSubscription = EasyBind.subscribe(model.showWarningInvalidBtcDecimalPlaces, newValue -> {
+        showWarningInvalidXmrDecimalPlacesSubscription = EasyBind.subscribe(model.showWarningInvalidXmrDecimalPlaces, newValue -> {
             if (newValue) {
                 new Popup().warning(Res.get("takeOffer.amountPriceBox.warning.invalidXmrDecimalPlaces")).show();
-                model.showWarningInvalidBtcDecimalPlaces.set(false);
+                model.showWarningInvalidXmrDecimalPlaces.set(false);
             }
         });
 
@@ -742,13 +729,31 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         errorMessageSubscription.unsubscribe();
         isOfferAvailableSubscription.unsubscribe();
         isWaitingForFundsSubscription.unsubscribe();
-        showWarningInvalidBtcDecimalPlacesSubscription.unsubscribe();
+        showWarningInvalidXmrDecimalPlacesSubscription.unsubscribe();
         showTransactionPublishedScreenSubscription.unsubscribe();
         // noSufficientFeeSubscription.unsubscribe();
         balanceSubscription.unsubscribe();
     }
 
     private void createListeners() {
+        amountFocusedListener = (o, oldValue, newValue) -> {
+            model.onFocusOutAmountTextField(oldValue, newValue, amountTextField.getText());
+            amountTextField.setText(model.amount.get());
+        };
+        getShowWalletFundedNotificationListener = (observable, oldValue, newValue) -> {
+            if (newValue) {
+                Notification walletFundedNotification = new Notification()
+                        .headLine(Res.get("notification.walletUpdate.headline"))
+                        .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatXmr(model.dataModel.getTotalToPay().get(), true)))
+                        .autoClose();
+
+                walletFundedNotification.show();
+            }
+        };
+        volumeFocusedListener = (o, oldValue, newValue) -> {
+            model.onFocusOutVolumeTextField(oldValue, newValue);
+            volumeTextField.setText(model.volume.get());
+        };
         missingCoinListener = (observable, oldValue, newValue) -> {
             if (!newValue.toString().equals("")) {
                 updateQrCode();
@@ -758,12 +763,14 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void addListeners() {
         amountTextField.focusedProperty().addListener(amountFocusedListener);
+        volumeTextField.focusedProperty().addListener(volumeFocusedListener);
         model.dataModel.getShowWalletFundedNotification().addListener(getShowWalletFundedNotificationListener);
         model.dataModel.getMissingCoin().addListener(missingCoinListener);
     }
 
     private void removeListeners() {
         amountTextField.focusedProperty().removeListener(amountFocusedListener);
+        volumeTextField.focusedProperty().removeListener(volumeFocusedListener);
         model.dataModel.getShowWalletFundedNotification().removeListener(getShowWalletFundedNotificationListener);
         model.dataModel.getMissingCoin().removeListener(missingCoinListener);
     }

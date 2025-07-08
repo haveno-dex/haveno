@@ -22,14 +22,17 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.OfferUtil;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.FiatVolumeValidator;
 import haveno.core.payment.validation.XmrValidator;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -37,7 +40,10 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
+import haveno.core.util.validation.AmountValidator4Decimals;
+import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
+import haveno.core.util.validation.MonetaryValidator;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
@@ -76,12 +82,15 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
     private final CoinFormatter xmrFormatter;
+    private final FiatVolumeValidator fiatVolumeValidator;
+    private final AmountValidator4Decimals amountValidator4Decimals;
+    private final AmountValidator8Decimals amountValidator8Decimals;
 
     private String amountRange;
     private String paymentLabel;
-    private boolean takeOfferRequested;
+    private boolean takeOfferRequested, ignoreVolumeStringListener;
     private Trade trade;
-    private Offer offer;
+    protected Offer offer;
     private String price;
     private String amountDescription;
 
@@ -101,15 +110,18 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     final BooleanProperty isTakeOfferButtonDisabled = new SimpleBooleanProperty(true);
     final BooleanProperty isNextButtonDisabled = new SimpleBooleanProperty(true);
     final BooleanProperty isWaitingForFunds = new SimpleBooleanProperty();
-    final BooleanProperty showWarningInvalidBtcDecimalPlaces = new SimpleBooleanProperty();
+    final BooleanProperty showWarningInvalidXmrDecimalPlaces = new SimpleBooleanProperty();
     final BooleanProperty showTransactionPublishedScreen = new SimpleBooleanProperty();
     final BooleanProperty takeOfferCompleted = new SimpleBooleanProperty();
     final BooleanProperty showPayFundsScreenDisplayed = new SimpleBooleanProperty();
 
     final ObjectProperty<InputValidator.ValidationResult> amountValidationResult = new SimpleObjectProperty<>();
+    final ObjectProperty<InputValidator.ValidationResult> volumeValidationResult = new SimpleObjectProperty<>();
 
     private ChangeListener<String> amountStrListener;
     private ChangeListener<BigInteger> amountListener;
+    private ChangeListener<String> volumeStringListener;
+    private ChangeListener<Volume> volumeListener;
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<Trade.State> tradeStateListener;
     private ChangeListener<Offer.State> offerStateListener;
@@ -124,6 +136,9 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     @Inject
     public TakeOfferViewModel(TakeOfferDataModel dataModel,
+                              FiatVolumeValidator fiatVolumeValidator,
+                              AmountValidator4Decimals amountValidator4Decimals,
+                              AmountValidator8Decimals amountValidator8Decimals,
                               OfferUtil offerUtil,
                               XmrValidator btcValidator,
                               P2PService p2PService,
@@ -138,6 +153,9 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
         this.xmrFormatter = btcFormatter;
+        this.fiatVolumeValidator = fiatVolumeValidator;
+        this.amountValidator4Decimals = amountValidator4Decimals;
+        this.amountValidator8Decimals = amountValidator8Decimals;
         createListeners();
     }
 
@@ -210,6 +228,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         xmrValidator.setMaxValue(offer.getAmount());
         xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
         xmrValidator.setMinValue(offer.getMinAmount());
+
+        setVolumeToModel();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -288,7 +308,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
             if (result.isValid) {
-                showWarningInvalidBtcDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, xmrFormatter));
+                if (userInput != null) showWarningInvalidXmrDecimalPlaces.set(!DisplayUtils.hasBtcValidDecimals(userInput, xmrFormatter));
                 // only allow max 4 decimal places for xmr values
                 setAmountToModel();
                 // reformat input
@@ -334,6 +354,30 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                             .show();
                 }
 
+            }
+        }
+    }
+
+    void onFocusOutVolumeTextField(boolean oldValue, boolean newValue) {
+        if (oldValue && !newValue) {
+            InputValidator.ValidationResult result = isVolumeInputValid(volume.get());
+            volumeValidationResult.set(result);
+            if (result.isValid) {
+                setVolumeToModel();
+                ignoreVolumeStringListener = true;
+
+                Volume volume = dataModel.getVolume().get();
+                if (volume != null) {
+                    volume = VolumeUtil.getAdjustedVolume(volume, offer.getPaymentMethod().getId());
+                    this.volume.set(VolumeUtil.formatVolume(volume));
+                }
+
+                ignoreVolumeStringListener = false;
+
+                dataModel.calculateAmount();
+
+                if (amount.get() != null)
+                    amountValidationResult.set(isXmrInputValid(amount.get()));
             }
         }
     }
@@ -454,14 +498,12 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void addBindings() {
-        volume.bind(createStringBinding(() -> VolumeUtil.formatVolume(dataModel.volume.get()), dataModel.volume));
         totalToPay.bind(createStringBinding(() -> HavenoUtils.formatXmr(dataModel.getTotalToPay().get(), true), dataModel.getTotalToPay()));
     }
 
 
     private void removeBindings() {
         volumeDescriptionLabel.unbind();
-        volume.unbind();
         totalToPay.unbind();
     }
 
@@ -475,10 +517,33 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             }
             updateButtonDisableState();
         };
+
         amountListener = (ov, oldValue, newValue) -> {
             amount.set(HavenoUtils.formatXmr(newValue));
             applyTakerFee();
         };
+
+        volumeStringListener = (ov, oldValue, newValue) -> {
+            if (!ignoreVolumeStringListener) {
+                if (isVolumeInputValid(newValue).isValid) {
+                    setVolumeToModel();
+                    dataModel.calculateAmount();
+                    dataModel.calculateTotalToPay();
+                }
+                updateButtonDisableState();
+            }
+        };
+
+        volumeListener = (ov, oldValue, newValue) -> {
+            ignoreVolumeStringListener = true;
+            if (newValue != null)
+                volume.set(VolumeUtil.formatVolume(newValue));
+            else
+                volume.set("");
+
+            ignoreVolumeStringListener = false;
+        };
+
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
 
         tradeStateListener = (ov, oldValue, newValue) -> applyTradeState();
@@ -527,9 +592,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         // Bidirectional bindings are used for all input fields: amount, price, volume and minAmount
         // We do volume/amount calculation during input, so user has immediate feedback
         amount.addListener(amountStrListener);
+        volume.addListener(volumeStringListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().addListener(amountListener);
+        dataModel.getVolume().addListener(volumeListener);
 
         dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
         p2PService.getNetworkNode().addConnectionListener(connectionListener);
@@ -541,9 +608,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     private void removeListeners() {
         amount.removeListener(amountStrListener);
+        volume.removeListener(volumeStringListener);
 
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().removeListener(amountListener);
+        dataModel.getVolume().removeListener(volumeListener);
 
         dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
         if (offer != null) {
@@ -580,6 +649,35 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 }
             }
             dataModel.maybeApplyAmount(amount);
+        }
+    }
+
+    private void setVolumeToModel() {
+        if (volume.get() != null && !volume.get().isEmpty()) {
+            try {
+                dataModel.setVolume(Volume.parse(volume.get(), offer.getCounterCurrencyCode()));
+            } catch (Throwable t) {
+                log.debug(t.getMessage());
+            }
+        } else {
+            dataModel.setVolume(null);
+        }
+    }
+
+    private InputValidator.ValidationResult isVolumeInputValid(String input) {
+        return getVolumeValidator().validate(input);
+    }
+
+    // TODO: replace with VolumeUtils?
+
+    private MonetaryValidator getVolumeValidator() {
+        final String code = offer.getCounterCurrencyCode();
+        if (CurrencyUtil.isFiatCurrency(code)) {
+            return fiatVolumeValidator;
+        } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(code)) {
+            return amountValidator4Decimals;
+        } else {
+            return amountValidator8Decimals;
         }
     }
 
