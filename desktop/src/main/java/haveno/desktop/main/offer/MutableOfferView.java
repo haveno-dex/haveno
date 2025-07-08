@@ -605,6 +605,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         paymentTitledGroupBg.managedProperty().bind(paymentTitledGroupBg.visibleProperty());
         currencyComboBox.prefWidthProperty().bind(paymentAccountsComboBox.widthProperty());
         currencyComboBox.managedProperty().bind(currencyComboBox.visibleProperty());
+        currencyTextFieldBox.prefWidthProperty().bind(paymentAccountsComboBox.widthProperty());
         currencyTextFieldBox.managedProperty().bind(currencyTextFieldBox.visibleProperty());
     }
 
@@ -1038,6 +1039,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         final Tuple3<Label, TextField, VBox> currencyTextFieldTuple = addTopLabelTextField(gridPane, gridRow, Res.get("shared.currency"), "", 5d);
         currencyTextField = currencyTextFieldTuple.second;
         currencyTextFieldBox = currencyTextFieldTuple.third;
+        currencyTextFieldBox.setMaxWidth(tradingAccountBoxTuple.first.getMinWidth() / 2);
         currencyTextFieldBox.setVisible(false);
         editOfferElements.add(currencyTextFieldBox);
 
