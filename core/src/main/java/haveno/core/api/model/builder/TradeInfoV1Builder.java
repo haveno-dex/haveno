@@ -73,6 +73,9 @@ public final class TradeInfoV1Builder {
     private String contractAsJson;
     private ContractInfo contract;
     private String closingStatus;
+    private long startTime;
+    private long maxDurationMs;
+    private long deadlineTime;
 
     public TradeInfoV1Builder withOffer(OfferInfo offer) {
         this.offer = offer;
@@ -281,6 +284,21 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withClosingStatus(String closingStatus) {
         this.closingStatus = closingStatus;
+        return this;
+    }
+
+    public TradeInfoV1Builder withStartTime(long startTime) {
+        this.startTime = startTime;
+        return this;
+    }
+
+    public TradeInfoV1Builder withMaxDurationMs(long maxDurationMs) {
+        this.maxDurationMs = maxDurationMs;
+        return this;
+    }
+
+    public TradeInfoV1Builder withDeadlineTime(long deadlineTime) {
+        this.deadlineTime = deadlineTime;
         return this;
     }
 
