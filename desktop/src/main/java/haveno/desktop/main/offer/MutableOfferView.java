@@ -1523,7 +1523,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         // Fixed/Percentage toggle
         priceTypeToggleButton = getIconButton(MaterialDesignIcon.SWAP_VERTICAL);
         editOfferElements.add(priceTypeToggleButton);
-        HBox.setMargin(priceTypeToggleButton, new Insets(16, 1.5, 0, 0));
+        HBox.setMargin(priceTypeToggleButton, new Insets(25, 1.5, 0, 0));
         priceTypeToggleButton.setOnAction((actionEvent) ->
                 updatePriceToggleButtons(model.getDataModel().getUseMarketBasedPrice().getValue()));
 
