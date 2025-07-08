@@ -40,7 +40,6 @@ import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.user.DontShowAgainLookup;
 import haveno.core.util.validation.BtcAddressValidator;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.setup.WalletsSetup;
@@ -330,12 +329,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         try {
             xmrWalletService.getWallet().relayTx(tx);
             xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
-            String key = "showTransactionSent";
-            if (DontShowAgainLookup.showAgain(key)) {
-                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
-                        .dontShowAgainId(key)
-                        .show();
-            }
+            new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                    .show();
             log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
         } catch (Exception e) {
             e.printStackTrace();
