@@ -2057,6 +2057,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 updatedOffer.setPriceFeedService(priceFeedService);
 
                 OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, originalOpenOffer.getTriggerPrice());
+                updatedOpenOffer.setChallenge(originalOpenOffer.getChallenge());
                 addOpenOffer(updatedOpenOffer);
                 requestPersistence();
 
