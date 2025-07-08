@@ -207,7 +207,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter xmrFormatter,
                                  OfferUtil offerUtil) {
         super(dataModel);
-
         this.fiatVolumeValidator = fiatVolumeValidator;
         this.amountValidator4Decimals = amountValidator4Decimals;
         this.amountValidator8Decimals = amountValidator8Decimals;

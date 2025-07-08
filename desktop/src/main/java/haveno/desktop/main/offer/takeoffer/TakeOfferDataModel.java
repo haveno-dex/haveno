@@ -41,6 +41,7 @@ import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.VolumeUtil;
+import haveno.core.util.coin.CoinUtil;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -59,6 +60,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -91,7 +93,10 @@ class TakeOfferDataModel extends OfferDataModel {
     private XmrBalanceListener balanceListener;
     private PaymentAccount paymentAccount;
     private boolean isTabSelected;
+    protected boolean allowAmountUpdate = true;
     Price tradePrice;
+    private final Predicate<Price> isNonZeroPrice = (p) -> p != null && !p.isZero();
+    private final Predicate<ObjectProperty<Volume>> isNonZeroVolume = (v) -> v.get() != null && !v.get().isZero();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -317,6 +322,10 @@ class TakeOfferDataModel extends OfferDataModel {
         return offer;
     }
 
+    ReadOnlyObjectProperty<Volume> getVolume() {
+        return volume;
+    }
+
     ObservableList<PaymentAccount> getPossiblePaymentAccounts() {
         Set<PaymentAccount> paymentAccounts = user.getPaymentAccounts();
         checkNotNull(paymentAccounts, "paymentAccounts must not be null");
@@ -385,6 +394,32 @@ class TakeOfferDataModel extends OfferDataModel {
 
             updateBalances();
         }
+    }
+
+    void calculateAmount() {
+        if (isNonZeroPrice.test(tradePrice) && isNonZeroVolume.test(volume) && allowAmountUpdate) {
+            try {
+                Volume volumeBefore = volume.get();
+                calculateVolume();
+
+                // if the volume != amount * price, we need to adjust the amount
+                if (amount.get() == null || !volumeBefore.equals(tradePrice.getVolumeByAmount(amount.get()))) {
+                    BigInteger value = tradePrice.getAmountByVolume(volumeBefore);
+                    value = value.min(offer.getAmount()); // adjust if above maximum
+                    value = value.max(offer.getMinAmount()); // adjust if below minimum
+                    value = CoinUtil.getRoundedAmount(value, tradePrice, offer.getMinAmount(), getMaxTradeLimit(), offer.getCounterCurrencyCode(), paymentAccount.getPaymentMethod().getId());
+                    amount.set(value);
+                }
+
+                calculateTotalToPay();
+            } catch (Throwable t) {
+                log.error(t.toString());
+            }
+        }
+    }
+
+    protected void setVolume(Volume volume) {
+        this.volume.set(volume);
     }
 
     void maybeApplyAmount(BigInteger amount) {
