@@ -1578,6 +1578,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
+            peer.setDepositTxHex(null);
+            peer.setDepositTxKey(null);
             if (peer.isPaymentReceivedMessageReceived()) peer.setPaymentReceivedMessage(null);
         }
     }
