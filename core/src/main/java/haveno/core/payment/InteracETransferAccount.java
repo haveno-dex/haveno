@@ -36,8 +36,6 @@ public final class InteracETransferAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("CAD"));
 
-    private final InteracETransferValidator interacETransferValidator;
-
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
@@ -50,8 +48,6 @@ public final class InteracETransferAccount extends PaymentAccount {
     public InteracETransferAccount() {
         super(PaymentMethod.INTERAC_E_TRANSFER);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
-        this.interacETransferValidator = HavenoUtils.corePaymentAccountService.interacETransferValidator;
-        if (interacETransferValidator == null) throw new IllegalArgumentException("InteracETransferValidator cannot be null");
     }
 
     @Override
@@ -102,6 +98,7 @@ public final class InteracETransferAccount extends PaymentAccount {
     }
 
     public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        InteracETransferValidator interacETransferValidator = HavenoUtils.corePaymentAccountService.interacETransferValidator;
         switch (fieldId) {
             case QUESTION:
                 processValidationResult(interacETransferValidator.questionValidator.validate(value));
