@@ -654,7 +654,7 @@ public class AccountAgeWitnessService {
                                           Date peersCurrentDate,
                                           ErrorMessageHandler errorMessageHandler) {
         checkNotNull(offer);
-        final String currencyCode = offer.getCurrencyCode();
+        final String currencyCode = offer.getCounterCurrencyCode();
         final BigInteger defaultMaxTradeLimit = offer.getPaymentMethod().getMaxTradeLimit(currencyCode);
         BigInteger peersCurrentTradeLimit = defaultMaxTradeLimit;
         if (!hasTradeLimitException(peersWitness)) {
@@ -673,7 +673,7 @@ public class AccountAgeWitnessService {
                     "\nPeers trade limit=" + peersCurrentTradeLimit +
                     "\nOffer ID=" + offer.getShortId() +
                     "\nPaymentMethod=" + offer.getPaymentMethod().getId() +
-                    "\nCurrencyCode=" + offer.getCurrencyCode();
+                    "\nCurrencyCode=" + offer.getCounterCurrencyCode();
             log.warn(msg);
             errorMessageHandler.handleErrorMessage(msg);
         }

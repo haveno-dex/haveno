@@ -141,7 +141,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         model.applyOpenOffer(openOffer);
 
         initWithData(openOffer.getOffer().getDirection(),
-                CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode()).get(),
+                CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCounterCurrencyCode()).get(),
                 false,
                 null);
 

@@ -116,7 +116,7 @@ public class FiatOfferBookViewModel extends OfferBookViewModel {
             Offer offer = offerBookListItem.getOffer();
             boolean directionResult = offer.getDirection() != direction;
             boolean currencyResult = (showAllTradeCurrenciesProperty.get() && offer.isFiatOffer()) ||
-                    offer.getCurrencyCode().equals(selectedTradeCurrency.getCode());
+                    offer.getCounterCurrencyCode().equals(selectedTradeCurrency.getCode());
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();

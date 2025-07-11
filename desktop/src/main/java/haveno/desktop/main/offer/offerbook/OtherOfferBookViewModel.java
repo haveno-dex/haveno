@@ -112,8 +112,8 @@ public class OtherOfferBookViewModel extends OfferBookViewModel {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
             boolean directionResult = offer.getDirection() != direction;
-            boolean currencyResult = CurrencyUtil.isTraditionalCurrency(offer.getCurrencyCode()) && !CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) &&
-                    (showAllTradeCurrenciesProperty.get() || offer.getCurrencyCode().equals(selectedTradeCurrency.getCode()));
+            boolean currencyResult = CurrencyUtil.isTraditionalCurrency(offer.getCounterCurrencyCode()) && !CurrencyUtil.isFiatCurrency(offer.getCounterCurrencyCode()) &&
+                    (showAllTradeCurrenciesProperty.get() || offer.getCounterCurrencyCode().equals(selectedTradeCurrency.getCode()));
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
