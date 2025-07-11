@@ -347,7 +347,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         currencyComboBox.setOnChangeConfirmed(e -> {
             if (currencyComboBox.getEditor().getText().isEmpty())
-                currencyComboBox.getSelectionModel().select(SHOW_ALL);
+                return;
             model.onSetTradeCurrency(currencyComboBox.getSelectionModel().getSelectedItem());
             paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
             model.updateSelectedPaymentMethod();
@@ -500,7 +500,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             if (comboBox.getItems().isEmpty())
                 return null;
             if (query.isEmpty())
-                return specialShowAllItem();
+                return null;
             return comboBox.getItems().stream().
                     filter(item -> asString(item).equals(query)).
                     findAny().orElse(null);

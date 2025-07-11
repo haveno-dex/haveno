@@ -116,14 +116,10 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
             if (comboBox.getItems().isEmpty())
                 return null;
             if (query.isEmpty())
-                return specialShowAllItem();
+                return null;
             return comboBox.getItems().stream().
                     filter(currencyItem -> currencyItem.codeDashNameString().equals(query)).
                     findAny().orElse(null);
-        }
-
-        private CurrencyListItem specialShowAllItem() {
-            return comboBox.getItems().get(0);
         }
     }
 
@@ -291,7 +287,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         currencyComboBox.setOnChangeConfirmed(e -> UserThread.execute(() -> {
             if (currencyComboBox.getEditor().getText().isEmpty())
-                currencyComboBox.getSelectionModel().select(SHOW_ALL);
+                return;
             CurrencyListItem selectedItem = currencyComboBox.getSelectionModel().getSelectedItem();
             if (selectedItem != null) {
                 model.onSetTradeCurrency(selectedItem.tradeCurrency);

@@ -501,6 +501,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             }
         });
         paymentMethodComboBox.setOnChangeConfirmed(e -> {
+            if (paymentMethodComboBox.getEditor().getText().isEmpty())
+                return;
             if (paymentMethodForm != null) {
                 FormBuilder.removeRowsFromGridPane(root, 3, paymentMethodForm.getGridRow() + 1);
                 GridPane.setRowSpan(accountTitledGroupBg, paymentMethodForm.getRowSpan() + 1);
