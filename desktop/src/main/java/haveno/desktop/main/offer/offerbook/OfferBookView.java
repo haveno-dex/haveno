@@ -511,7 +511,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 return Res.get(GUIUtil.SHOW_ALL_FLAG);
             if (isSpecialEditItem(item))
                 return Res.get(GUIUtil.EDIT_FLAG);
-            return item.getCode() + "  -  " + item.getName();
+            return item.getName() + " (" + item.getCode() + ")";
         }
 
         private boolean isSpecialShowAllItem(TradeCurrency item) {
@@ -912,7 +912,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                 HBox hBox = new HBox();
                                 hBox.setSpacing(5);
                                 hBox.getChildren().addAll(priceLabel, percentageLabel);
-                                hBox.setPadding(new Insets(7, 0, 0, 0));
+                                hBox.setAlignment(Pos.CENTER_LEFT);
                                 return hBox;
                             }
                         };
@@ -946,8 +946,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         setGraphic(null);
                                     } else {
                                         setText("");
-                                        setGraphic(new ColoredDecimalPlacesWithZerosText(model.getVolume(item),
-                                                model.getNumberOfDecimalsForVolume(item)));
+                                        ColoredDecimalPlacesWithZerosText volumeBox = new ColoredDecimalPlacesWithZerosText(model.getVolumeAmount(item), model.getNumberOfDecimalsForVolume(item));
+                                        if (model.showAllTradeCurrenciesProperty.get()) volumeBox.getChildren().add(new Label(" " + item.getOffer().getCurrencyCode()));
+                                        setGraphic(volumeBox);
                                     }
                                 } else {
                                     setText("");

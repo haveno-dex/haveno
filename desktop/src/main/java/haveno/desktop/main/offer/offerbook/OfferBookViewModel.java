@@ -436,11 +436,19 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return formatVolume(item.getOffer(), true);
     }
 
+    String getVolumeAmount(OfferBookListItem item) {
+        return formatVolume(item.getOffer(), true, false);
+    }
+
     private String formatVolume(Offer offer, boolean decimalAligned) {
+        return formatVolume(offer, decimalAligned, showAllTradeCurrenciesProperty.get());
+    }
+
+    private String formatVolume(Offer offer, boolean decimalAligned, boolean appendCurrencyCode) {
         Volume offerVolume = offer.getVolume();
         Volume minOfferVolume = offer.getMinVolume();
         if (offerVolume != null && minOfferVolume != null) {
-            String postFix = showAllTradeCurrenciesProperty.get() ? " " + offer.getCurrencyCode() : "";
+            String postFix = appendCurrencyCode ? " " + offer.getCurrencyCode() : "";
             decimalAligned = decimalAligned && !showAllTradeCurrenciesProperty.get();
             return VolumeUtil.formatVolume(offer, decimalAligned, maxPlacesForVolume.get()) + postFix;
         } else {

@@ -908,6 +908,9 @@ message TradeInfo {
     string maker_deposit_tx_id = 37;
     string taker_deposit_tx_id = 38;
     string payout_tx_id = 39;
+    uint64 start_time = 40;
+    uint64 max_duration_ms = 41;
+    uint64 deadline_time = 42;
 }
 
 message ContractInfo {
@@ -944,7 +947,9 @@ service Wallets {
     }
     rpc CreateXmrTx (CreateXmrTxRequest) returns (CreateXmrTxReply) {
     }
-    rpc relayXmrTx (RelayXmrTxRequest) returns (RelayXmrTxReply) {
+    rpc CreateXmrSweepTxs (CreateXmrSweepTxsRequest) returns (CreateXmrSweepTxsReply) {
+    }
+    rpc RelayXmrTxs (RelayXmrTxsRequest) returns (RelayXmrTxsReply) {
     }
     rpc GetAddressBalance (GetAddressBalanceRequest) returns (GetAddressBalanceReply) {
     }
@@ -1036,12 +1041,20 @@ message CreateXmrTxReply {
     XmrTx tx = 1;
 }
 
-message RelayXmrTxRequest {
-    string metadata = 1;
+message CreateXmrSweepTxsRequest {
+    string address = 1;
 }
 
-message RelayXmrTxReply {
-    string hash = 1;
+message CreateXmrSweepTxsReply {
+    repeated XmrTx txs = 1;
+}
+
+message RelayXmrTxsRequest {
+    repeated string metadatas = 1;
+}
+
+message RelayXmrTxsReply {
+    repeated string hashes = 2;
 }
 
 message GetAddressBalanceRequest {

@@ -99,6 +99,9 @@ public class TradeInfo implements Payload {
     private final boolean isCompleted;
     private final String contractAsJson;
     private final ContractInfo contract;
+    private final long startTime;
+    private final long maxDurationMs;
+    private final long deadlineTime;
 
     public TradeInfo(TradeInfoV1Builder builder) {
         this.offer = builder.getOffer();
@@ -140,6 +143,9 @@ public class TradeInfo implements Payload {
         this.isCompleted = builder.isCompleted();
         this.contractAsJson = builder.getContractAsJson();
         this.contract = builder.getContract();
+        this.startTime = builder.getStartTime();
+        this.maxDurationMs = builder.getMaxDurationMs();
+        this.deadlineTime = builder.getDeadlineTime();
     }
 
     public static TradeInfo toTradeInfo(Trade trade) {
@@ -202,6 +208,9 @@ public class TradeInfo implements Payload {
                 .withContractAsJson(trade.getContractAsJson())
                 .withContract(contractInfo)
                 .withOffer(toOfferInfo(trade.getOffer()))
+                .withStartTime(trade.getStartDate().getTime())
+                .withMaxDurationMs(trade.getMaxTradePeriod())
+                .withDeadlineTime(trade.getMaxTradePeriodDate().getTime())
                 .build();
     }
 
@@ -251,6 +260,9 @@ public class TradeInfo implements Payload {
                 .setIsPayoutUnlocked(isPayoutUnlocked)
                 .setContractAsJson(contractAsJson == null ? "" : contractAsJson)
                 .setContract(contract.toProtoMessage())
+                .setStartTime(startTime)
+                .setMaxDurationMs(maxDurationMs)
+                .setDeadlineTime(deadlineTime)
                 .build();
     }
 
@@ -295,6 +307,9 @@ public class TradeInfo implements Payload {
                 .withIsPayoutUnlocked(proto.getIsPayoutUnlocked())
                 .withContractAsJson(proto.getContractAsJson())
                 .withContract((ContractInfo.fromProto(proto.getContract())))
+                .withStartTime(proto.getStartTime())
+                .withMaxDurationMs(proto.getMaxDurationMs())
+                .withDeadlineTime(proto.getDeadlineTime())
                 .build();
     }
 
@@ -339,6 +354,9 @@ public class TradeInfo implements Payload {
                 ", offer=" + offer + "\n" +
                 ", contractAsJson=" + contractAsJson + "\n" +
                 ", contract=" + contract + "\n" +
+                ", startTime=" + startTime + "\n" +
+                ", maxDurationMs=" + maxDurationMs + "\n" +
+                ", deadlineTime=" + deadlineTime + "\n" +
                 '}';
     }
 }

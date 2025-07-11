@@ -124,7 +124,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private ChangeListener<Boolean> splashP2PNetworkVisibleListener;
     private BusyAnimation splashP2PNetworkBusyAnimation;
     private Label splashP2PNetworkLabel;
-    private ProgressBar xmrSyncIndicator, p2pNetworkProgressBar;
+    private ProgressBar xmrSyncIndicator;
     private Label xmrSplashInfo;
     private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
@@ -851,18 +851,13 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         model.getUpdatedDataReceived().addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
             p2PNetworkIcon.setOpacity(1);
-            p2pNetworkProgressBar.setProgress(0);
         }));
-
-        p2pNetworkProgressBar = new ProgressBar(-1);
-        p2pNetworkProgressBar.setMaxHeight(2);
-        p2pNetworkProgressBar.prefWidthProperty().bind(p2PNetworkLabel.widthProperty());
 
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER_RIGHT);
-        vBox.getChildren().addAll(p2PNetworkLabel, p2pNetworkProgressBar);
+        vBox.getChildren().addAll(p2PNetworkLabel);
         setRightAnchor(vBox, networkIconRightAnchor + 45);
-        setBottomAnchor(vBox, 5d);
+        setBottomAnchor(vBox, 7d);
 
         return new AnchorPane(separator, xmrInfoLabel, versionBox, vBox, p2PNetworkStatusIcon, p2PNetworkIcon, useDarkModeIcon) {{
             setId("footer-pane");

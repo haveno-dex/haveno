@@ -31,6 +31,7 @@ import haveno.common.file.FileUtil;
 import haveno.common.util.Base64;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.api.CorePaymentAccountsService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OfferPayload;
@@ -132,6 +133,7 @@ public class HavenoUtils {
     public static XmrConnectionService xmrConnectionService;
     public static OpenOfferManager openOfferManager;
     public static CoreNotificationService notificationService;
+    public static CorePaymentAccountsService corePaymentAccountService;
     public static Preferences preferences;
 
     public static boolean isSeedNode() {

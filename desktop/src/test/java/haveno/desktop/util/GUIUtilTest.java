@@ -19,21 +19,15 @@ package haveno.desktop.util;
 
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
-import haveno.core.locale.TradeCurrency;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
-import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
-import static haveno.desktop.maker.TradeCurrencyMakers.euro;
-import static haveno.desktop.maker.TradeCurrencyMakers.monero;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -47,22 +41,6 @@ public class GUIUtilTest {
         GlobalSettings.setLocale(new Locale("en", "US"));
         Res.setBaseCurrencyCode("BTC");
         Res.setBaseCurrencyName("Bitcoin");
-    }
-
-    @Test
-    public void testTradeCurrencyConverter() {
-        Map<String, Integer> offerCounts = new HashMap<>() {{
-            put("XMR", 11);
-            put("EUR", 10);
-        }};
-        StringConverter<TradeCurrency> tradeCurrencyConverter = GUIUtil.getTradeCurrencyConverter(
-                Res.get("shared.oneOffer"),
-                Res.get("shared.multipleOffers"),
-                offerCounts
-        );
-
-        assertEquals("✦ Monero (XMR) - 11 offers", tradeCurrencyConverter.toString(monero));
-        assertEquals("★ Euro (EUR) - 10 offers", tradeCurrencyConverter.toString(euro));
     }
 
     @Test

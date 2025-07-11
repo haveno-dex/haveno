@@ -44,7 +44,7 @@ public class InteracETransferForm extends PaymentMethodForm {
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
                 ((InteracETransferAccountPayload) paymentAccountPayload).getHolderName());
         addCompactTopLabelTextField(gridPane, gridRow, 1, Res.get("payment.emailOrMobile"),
-                ((InteracETransferAccountPayload) paymentAccountPayload).getEmail());
+                ((InteracETransferAccountPayload) paymentAccountPayload).getEmailOrMobileNr());
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.secret"),
                 ((InteracETransferAccountPayload) paymentAccountPayload).getQuestion());
         addCompactTopLabelTextField(gridPane, gridRow, 1, Res.get("payment.answer"),

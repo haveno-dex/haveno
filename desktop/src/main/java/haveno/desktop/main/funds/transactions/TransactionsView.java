@@ -203,7 +203,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedDisplayedTransactions.size()));
         exportButton.setOnAction(event -> {
-            final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = tableView.getColumns();
+            final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             final int reportColumns = tableColumns.size() - 1;    // CSV report excludes the last column (an icon)
             CSVEntryConverter<TransactionsListItem> headerConverter = item -> {
                 String[] columns = new String[reportColumns];

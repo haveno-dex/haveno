@@ -43,6 +43,8 @@ import static haveno.core.api.model.XmrTx.toXmrTx;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import haveno.proto.grpc.CreateXmrSweepTxsReply;
+import haveno.proto.grpc.CreateXmrSweepTxsRequest;
 import haveno.proto.grpc.CreateXmrTxReply;
 import haveno.proto.grpc.CreateXmrTxRequest;
 import haveno.proto.grpc.GetAddressBalanceReply;
@@ -61,8 +63,8 @@ import haveno.proto.grpc.GetXmrTxsReply;
 import haveno.proto.grpc.GetXmrTxsRequest;
 import haveno.proto.grpc.LockWalletReply;
 import haveno.proto.grpc.LockWalletRequest;
-import haveno.proto.grpc.RelayXmrTxReply;
-import haveno.proto.grpc.RelayXmrTxRequest;
+import haveno.proto.grpc.RelayXmrTxsReply;
+import haveno.proto.grpc.RelayXmrTxsRequest;
 import haveno.proto.grpc.RemoveWalletPasswordReply;
 import haveno.proto.grpc.RemoveWalletPasswordRequest;
 import haveno.proto.grpc.SetWalletPasswordReply;
@@ -185,7 +187,7 @@ class GrpcWalletsService extends WalletsImplBase {
                     .stream()
                     .map(s -> new MoneroDestination(s.getAddress(), new BigInteger(s.getAmount())))
                     .collect(Collectors.toList()));
-            log.info("Successfully created XMR tx: hash {}", tx.getHash());
+            log.info("Successfully created XMR tx, hash: {}", tx.getHash());
             var reply = CreateXmrTxReply.newBuilder()
                     .setTx(toXmrTx(tx).toProtoMessage())
                     .build();
@@ -197,12 +199,30 @@ class GrpcWalletsService extends WalletsImplBase {
     }
 
     @Override
-    public void relayXmrTx(RelayXmrTxRequest req,
-                            StreamObserver<RelayXmrTxReply> responseObserver) {
+    public void createXmrSweepTxs(CreateXmrSweepTxsRequest req,
+                                 StreamObserver<CreateXmrSweepTxsReply> responseObserver) {
         try {
-            String txHash = coreApi.relayXmrTx(req.getMetadata());
-            var reply = RelayXmrTxReply.newBuilder()
-                    .setHash(txHash)
+            List<MoneroTxWallet> xmrTxs = coreApi.createXmrSweepTxs(req.getAddress());
+            log.info("Successfully created XMR sweep txs, hashes: {}", xmrTxs.stream().map(MoneroTxWallet::getHash).collect(Collectors.toList()));
+            var reply = CreateXmrSweepTxsReply.newBuilder()
+                    .addAllTxs(xmrTxs.stream()
+                            .map(s -> toXmrTx(s).toProtoMessage())
+                            .collect(Collectors.toList()))
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void relayXmrTxs(RelayXmrTxsRequest req,
+                            StreamObserver<RelayXmrTxsReply> responseObserver) {
+        try {
+            List<String> txHashes = coreApi.relayXmrTxs(req.getMetadatasList());
+            var reply = RelayXmrTxsReply.newBuilder()
+                    .addAllHashes(txHashes)
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

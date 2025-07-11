@@ -61,7 +61,7 @@ public class CurrencyListItem {
         if (isSpecialShowAllItem())
             return Res.get(GUIUtil.SHOW_ALL_FLAG);
         else
-            return tradeCurrency.getCode() + "  -  " + tradeCurrency.getName();
+            return tradeCurrency.getName() + " (" + tradeCurrency.getCode() + ")";
     }
 
     private boolean isSpecialShowAllItem() {

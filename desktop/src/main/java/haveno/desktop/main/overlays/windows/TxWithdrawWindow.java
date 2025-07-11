@@ -52,7 +52,6 @@ public class TxWithdrawWindow extends Overlay<TxWithdrawWindow> {
         addHeadLine();
         addContent();
         addButtons();
-        addDontShowAgainCheckBox();
         applyStyles();
         display();
     }

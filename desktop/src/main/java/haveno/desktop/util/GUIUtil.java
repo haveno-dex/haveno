@@ -124,6 +124,8 @@ import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -347,11 +349,11 @@ public class GUIUtil {
                             break;
                         default:
 
-                            // use icons for crypto
-                            if (CurrencyUtil.isCryptoCurrency(code)) {
+                            // use icon if available
+                            StackPane currencyIcon = getCurrencyIcon(code);
+                            if (currencyIcon != null) {
                                 label1.setText("");
-                                StackPane iconWrapper = new StackPane(getCurrencyIcon(code)); // TODO: icon must be wrapped in StackPane for reliable rendering on linux
-                                label1.setGraphic(iconWrapper);
+                                label1.setGraphic(currencyIcon);
                             }
 
                             if (preferences.isSortMarketCurrenciesNumerically() && item.numTrades > 0) {
@@ -385,7 +387,7 @@ public class GUIUtil {
                     String code = item.getCode();
 
                     AnchorPane pane = new AnchorPane();
-                    Label currency = new AutoTooltipLabel(code + " - " + item.getName());
+                    Label currency = new AutoTooltipLabel(item.getName() + " (" + item.getCode() + ")");
                     currency.getStyleClass().add("currency-label-selected");
                     AnchorPane.setLeftAnchor(currency, 0.0);
                     pane.getChildren().add(currency);
@@ -416,34 +418,6 @@ public class GUIUtil {
                     setGraphic(null);
                     setText("");
                 }
-            }
-        };
-    }
-
-    public static StringConverter<TradeCurrency> getTradeCurrencyConverter(String postFixSingle,
-                                                                           String postFixMulti,
-                                                                           Map<String, Integer> offerCounts) {
-        return new StringConverter<>() {
-            @Override
-            public String toString(TradeCurrency tradeCurrency) {
-                String code = tradeCurrency.getCode();
-                Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
-                final String displayString;
-                displayString = offerCountOptional
-                        .map(offerCount -> CurrencyUtil.getNameAndCode(code)
-                                + " - " + offerCount + " " + (offerCount == 1 ? postFixSingle : postFixMulti))
-                        .orElseGet(() -> CurrencyUtil.getNameAndCode(code));
-                // http://boschista.deviantart.com/journal/Cool-ASCII-Symbols-214218618
-                if (code.equals(GUIUtil.SHOW_ALL_FLAG))
-                    return "▶ " + Res.get("list.currency.showAll");
-                else if (code.equals(GUIUtil.EDIT_FLAG))
-                    return "▼ " + Res.get("list.currency.editList");
-                return tradeCurrency.getDisplayPrefix() + displayString;
-            }
-
-            @Override
-            public TradeCurrency fromString(String s) {
-                return null;
             }
         };
     }
@@ -485,10 +459,11 @@ public class GUIUtil {
                             break;
                         default:
 
-                            // use icons for crypto
-                            if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                            // use icon if available
+                            StackPane currencyIcon = getCurrencyIcon(code);
+                            if (currencyIcon != null) {
                                 label1.setText("");
-                                label1.setGraphic(getCurrencyIcon(item.getCode()));
+                                label1.setGraphic(currencyIcon);
                             }
 
                             boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
@@ -528,10 +503,11 @@ public class GUIUtil {
                     Label label2 = new AutoTooltipLabel(item.getNameAndCode());
                     label2.getStyleClass().add("currency-label");
 
-                    // use icons for crypto
-                    if (CurrencyUtil.isCryptoCurrency(item.getCode())) {
+                    // use icon if available
+                    StackPane currencyIcon = getCurrencyIcon(item.getCode());
+                    if (currencyIcon != null) {
                         label1.setText("");
-                        label1.setGraphic(getCurrencyIcon(item.getCode()));
+                        label1.setGraphic(currencyIcon);
                     }
 
                     box.getChildren().addAll(label1, label2);
@@ -721,11 +697,24 @@ public class GUIUtil {
 
     private static void doOpenWebPage(String target) {
         try {
-            Utilities.openURI(new URI(target));
+            Utilities.openURI(safeParse(target));
         } catch (Exception e) {
             e.printStackTrace();
             log.error(e.getMessage());
         }
+    }
+
+    private static URI safeParse(String url) throws URISyntaxException {
+        int hashIndex = url.indexOf('#');
+
+        if (hashIndex >= 0 && hashIndex < url.length() - 1) {
+            String base = url.substring(0, hashIndex);
+            String fragment = url.substring(hashIndex + 1);
+            String encodedFragment = URLEncoder.encode(fragment, StandardCharsets.UTF_8);
+            return new URI(base + "#" + encodedFragment);
+        }
+
+        return new URI(url); // no fragment
     }
 
     public static String getPercentageOfTradeAmount(BigInteger fee, BigInteger tradeAmount) {
@@ -1281,19 +1270,41 @@ public class GUIUtil {
         }
     }
 
-    public static ImageView getCurrencyIcon(String currencyCode) {
-        return getCurrencyIcon(currencyCode, 24);
+    public static <T> ObservableList<TableColumn<T, ?>> getContentColumns(TableView<T> tableView) {
+        ObservableList<TableColumn<T, ?>> contentColumns = FXCollections.observableArrayList();
+        for (TableColumn<T, ?> column : tableView.getColumns()) {
+            if (!column.getStyleClass().contains("first-column") && !column.getStyleClass().contains("last-column")) {
+                contentColumns.add(column);
+            }
+        }
+        return contentColumns;
     }
 
-    public static ImageView getCurrencyIcon(String currencyCode, double size) {
+    private static ImageView getCurrencyImageView(String currencyCode) {
+        return getCurrencyImageView(currencyCode, 24);
+    }
+
+    private static ImageView getCurrencyImageView(String currencyCode, double size) {
         if (currencyCode == null) return null;
-        ImageView iconView = new ImageView();
-        iconView.setFitWidth(size);
-        iconView.setPreserveRatio(true);
-        iconView.setSmooth(true);
-        iconView.setCache(true);
-        iconView.setId(getImageId(currencyCode));
-        return iconView;
+        String imageId = getImageId(currencyCode);
+        if (imageId == null) return null;
+        ImageView icon = new ImageView();
+        icon.setFitWidth(size);
+        icon.setPreserveRatio(true);
+        icon.setSmooth(true);
+        icon.setCache(true);
+        icon.setId(imageId);
+        return icon;
+    }
+
+    public static StackPane getCurrencyIcon(String currencyCode) {
+        ImageView icon = getCurrencyImageView(currencyCode);
+        return icon == null ? null : new StackPane(icon);
+    }
+
+    public static StackPane getCurrencyIcon(String currencyCode, double size) {
+        ImageView icon = getCurrencyImageView(currencyCode, size);
+        return icon == null ? null : new StackPane(icon);
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {
@@ -1303,12 +1314,9 @@ public class GUIUtil {
     public static StackPane getCurrencyIconWithBorder(String currencyCode, double size, double borderWidth) {
         if (currencyCode == null) return null;
 
-        ImageView icon = getCurrencyIcon(currencyCode, size);
+        ImageView icon = getCurrencyImageView(currencyCode, size);
         icon.setFitWidth(size - 2 * borderWidth);
         icon.setFitHeight(size - 2 * borderWidth);
-        icon.setPreserveRatio(true);
-        icon.setSmooth(true);
-        icon.setCache(true);
 
         StackPane circleWrapper = new StackPane(icon);
         circleWrapper.setPrefSize(size, size);
@@ -1330,7 +1338,9 @@ public class GUIUtil {
 
     private static String getImageId(String currencyCode) {
         if (currencyCode == null) return null;
-        return "image-" + currencyCode.toLowerCase() + "-logo";
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) return "image-" + currencyCode.toLowerCase() + "-logo";
+        if (CurrencyUtil.isFiatCurrency(currencyCode)) return "image-fiat-logo";
+        return null;
     }
 
     public static void adjustHeightAutomatically(TextArea textArea) {

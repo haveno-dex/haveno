@@ -36,7 +36,7 @@ import java.util.Map;
 @Getter
 @Slf4j
 public final class InteracETransferAccountPayload extends PaymentAccountPayload implements PayloadWithHolderName {
-    private String email = "";
+    private String emailOrMobileNr = "";
     private String holderName = "";
     private String question = "";
     private String answer = "";
@@ -52,7 +52,7 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
 
     private InteracETransferAccountPayload(String paymentMethod,
                                            String id,
-                                           String email,
+                                           String emailOrMobileNr,
                                            String holderName,
                                            String question,
                                            String answer,
@@ -62,7 +62,7 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
                 id,
                 maxTradePeriod,
                 excludeFromJsonDataMap);
-        this.email = email;
+        this.emailOrMobileNr = emailOrMobileNr;
         this.holderName = holderName;
         this.question = question;
         this.answer = answer;
@@ -72,7 +72,7 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
                 .setInteracETransferAccountPayload(protobuf.InteracETransferAccountPayload.newBuilder()
-                        .setEmail(email)
+                        .setEmailOrMobileNr(emailOrMobileNr)
                         .setHolderName(holderName)
                         .setQuestion(question)
                         .setAnswer(answer))
@@ -82,7 +82,7 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
     public static InteracETransferAccountPayload fromProto(protobuf.PaymentAccountPayload proto) {
         return new InteracETransferAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
-                proto.getInteracETransferAccountPayload().getEmail(),
+                proto.getInteracETransferAccountPayload().getEmailOrMobileNr(),
                 proto.getInteracETransferAccountPayload().getHolderName(),
                 proto.getInteracETransferAccountPayload().getQuestion(),
                 proto.getInteracETransferAccountPayload().getAnswer(),
@@ -98,21 +98,21 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
     @Override
     public String getPaymentDetails() {
         return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account.owner") + " " + holderName + ", " +
-                Res.get("payment.email") + " " + email + ", " + Res.getWithCol("payment.secret") + " " +
+                Res.get("payment.email") + " " + emailOrMobileNr + ", " + Res.getWithCol("payment.secret") + " " +
                 question + ", " + Res.getWithCol("payment.answer") + " " + answer;
     }
 
     @Override
     public String getPaymentDetailsForTradePopup() {
         return Res.getWithCol("payment.account.owner") + " " + holderName + "\n" +
-                Res.getWithCol("payment.email") + " " + email + "\n" +
+                Res.getWithCol("payment.email") + " " + emailOrMobileNr + "\n" +
                 Res.getWithCol("payment.secret") + " " + question + "\n" +
                 Res.getWithCol("payment.answer") + " " + answer;
     }
 
     @Override
     public byte[] getAgeWitnessInputData() {
-        return super.getAgeWitnessInputData(ArrayUtils.addAll(email.getBytes(StandardCharsets.UTF_8),
+        return super.getAgeWitnessInputData(ArrayUtils.addAll(emailOrMobileNr.getBytes(StandardCharsets.UTF_8),
                 ArrayUtils.addAll(question.getBytes(StandardCharsets.UTF_8),
                         answer.getBytes(StandardCharsets.UTF_8))));
     }

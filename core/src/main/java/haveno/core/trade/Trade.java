@@ -2153,6 +2153,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public long getMaxTradePeriod() {
+        return getOffer().getPaymentMethod().getMaxTradePeriod();
+    }
+
     public Date getHalfTradePeriodDate() {
         return new Date(getStartTime() + getMaxTradePeriod() / 2);
     }
@@ -2161,8 +2165,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return new Date(getStartTime() + getMaxTradePeriod());
     }
 
-    private long getMaxTradePeriod() {
-        return getOffer().getPaymentMethod().getMaxTradePeriod();
+    public Date getStartDate() {
+        return new Date(getStartTime());
     }
 
     private long getStartTime() {

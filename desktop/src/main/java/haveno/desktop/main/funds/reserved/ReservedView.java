@@ -165,7 +165,7 @@ public class ReservedView extends ActivatableView<VBox, Void> {
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            ObservableList<TableColumn<ReservedListItem, ?>> tableColumns = tableView.getColumns();
+            ObservableList<TableColumn<ReservedListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             int reportColumns = tableColumns.size();
             CSVEntryConverter<ReservedListItem> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
