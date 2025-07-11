@@ -404,7 +404,7 @@ public class OfferBookService {
             }
     
             // validate max offers with same key images
-            if (numOffersWithSharedKeyImages > Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) throw new RuntimeException("More than " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " offers exist with same same key images as new offerId=" + offerPayload.getId());
+            if (numOffersWithSharedKeyImages > Restrictions.getMaxOffersWithSharedFunds()) throw new RuntimeException("More than " + Restrictions.getMaxOffersWithSharedFunds() + " offers exist with same same key images as new offerId=" + offerPayload.getId());
         }
     }
 

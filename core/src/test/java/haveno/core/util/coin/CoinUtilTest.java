@@ -80,7 +80,7 @@ public class CoinUtilTest {
                 HavenoUtils.xmrToAtomicUnits(0.2),
                 1);
         assertEquals(
-                HavenoUtils.formatXmr(Restrictions.MIN_TRADE_AMOUNT, true),
+                HavenoUtils.formatXmr(Restrictions.getMinTradeAmount(), true),
                 HavenoUtils.formatXmr(result, true),
                 "Minimum trade amount allowed should be adjusted to the smallest trade allowed."
         );

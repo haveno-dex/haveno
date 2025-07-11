@@ -619,8 +619,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     }
 
     public void setSecurityDepositAsPercent(double securityDepositAsPercent, PaymentAccount paymentAccount) {
-        double max = Restrictions.getMaxSecurityDepositAsPercent();
-        double min = Restrictions.getMinSecurityDepositAsPercent();
+        double max = Restrictions.getMaxSecurityDepositPct();
+        double min = Restrictions.getMinSecurityDepositPct();
 
         if (PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount))
             prefPayload.setSecurityDepositAsPercentForCrypto(Math.min(max, Math.max(min, securityDepositAsPercent)));
@@ -849,12 +849,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         double value = PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount) ?
                 prefPayload.getSecurityDepositAsPercentForCrypto() : prefPayload.getSecurityDepositAsPercent();
 
-        if (value < Restrictions.getMinSecurityDepositAsPercent()) {
-            value = Restrictions.getMinSecurityDepositAsPercent();
+        if (value < Restrictions.getMinSecurityDepositPct()) {
+            value = Restrictions.getMinSecurityDepositPct();
             setSecurityDepositAsPercent(value, paymentAccount);
         }
 
-        return value == 0 ? Restrictions.getDefaultSecurityDepositAsPercent() : value;
+        return value == 0 ? Restrictions.getDefaultSecurityDepositPct() : value;
     }
 
     @Override

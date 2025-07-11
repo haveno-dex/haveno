@@ -996,7 +996,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             InputValidator.ValidationResult result = securityDepositValidator.validate(securityDeposit.get());
             securityDepositValidationResult.set(result);
             if (result.isValid) {
-                double defaultSecurityDeposit = Restrictions.getDefaultSecurityDepositAsPercent();
+                double defaultSecurityDeposit = Restrictions.getDefaultSecurityDepositPct();
                 String key = "buyerSecurityDepositIsLowerAsDefault";
                 double depositAsDouble = ParsingUtils.parsePercentStringToDouble(securityDeposit.get());
                 if (preferences.showAgain(key) && depositAsDouble < defaultSecurityDeposit) {
@@ -1259,7 +1259,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         if (securityDeposit.get() != null && !securityDeposit.get().isEmpty() && !isMinSecurityDeposit.get()) {
             dataModel.setSecurityDepositPct(ParsingUtils.parsePercentStringToDouble(securityDeposit.get()));
         } else {
-            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
+            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositPct());
         }
     }
 
@@ -1275,7 +1275,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         // If the security deposit in the model is not valid percent
         String value = FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get());
         if (!securityDepositValidator.validate(value).isValid) {
-            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
+            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositPct());
         }
     }
 
@@ -1331,7 +1331,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         } else {
             boolean hasBuyerAsTakerWithoutDeposit = dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer();
             securityDeposit.set(FormattingUtils.formatToPercent(hasBuyerAsTakerWithoutDeposit ?
-                    Restrictions.getDefaultSecurityDepositAsPercent() : // use default percent if no deposit from buyer
+                    Restrictions.getDefaultSecurityDepositPct() : // use default percent if no deposit from buyer
                     dataModel.getSecurityDepositPct().get()));
         }
     }
@@ -1365,8 +1365,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private ValidationResult getExtraInfoValidationResult() {
-        if (extraInfo.get() != null && !extraInfo.get().isEmpty() && extraInfo.get().length() > Restrictions.MAX_EXTRA_INFO_LENGTH) {
-            return new InputValidator.ValidationResult(false, Res.get("createOffer.extraInfo.invalid.tooLong", Restrictions.MAX_EXTRA_INFO_LENGTH));
+        if (extraInfo.get() != null && !extraInfo.get().isEmpty() && extraInfo.get().length() > Restrictions.getMaxExtraInfoLength()) {
+            return new InputValidator.ValidationResult(false, Res.get("createOffer.extraInfo.invalid.tooLong", Restrictions.getMaxExtraInfoLength()));
         } else {
             return new InputValidator.ValidationResult(true);
         }
