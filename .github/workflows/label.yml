@@ -7,7 +7,7 @@ on:
 
 jobs:
   issueLabeled:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Bounty explanation
         uses: peter-evans/create-or-update-comment@v3
