@@ -17,7 +17,6 @@
 
 package haveno.desktop.main.settings.preferences;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.UserThread;
@@ -47,7 +46,6 @@ import haveno.core.util.ParsingUtils;
 import haveno.core.util.validation.IntegerValidator;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
@@ -112,7 +110,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             notifyOnPreReleaseToggle;
     private int gridRow = 0;
     private int displayCurrenciesGridRowIndex = 0;
-    private InputTextField ignoreTradersListInputTextField, ignoreDustThresholdInputTextField,
+    private InputTextField ignoreTradersListInputTextField,
             autoConfRequiredConfirmationsTf, autoConfServiceAddressTf, autoConfTradeLimitTf, /*referralIdInputTextField,*/
             rpcUserTextField, blockNotifyPortTextField;
     private PasswordTextField rpcPwTextField;
@@ -136,7 +134,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private ObservableList<CryptoCurrency> allCryptoCurrencies;
     private ObservableList<TradeCurrency> tradeCurrencies;
     private InputTextField deviationInputTextField;
-    private ChangeListener<String> deviationListener, ignoreTradersListListener, ignoreDustThresholdListener,
+    private ChangeListener<String> deviationListener, ignoreTradersListListener,
             rpcUserListener, rpcPwListener, blockNotifyPortListener,
             autoConfTradeLimitListener, autoConfServiceAddressListener;
     private ChangeListener<Boolean> deviationFocusedListener;
@@ -209,7 +207,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initializeGeneralOptions() {
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 8 : 7;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 7 : 6;
         TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
@@ -259,27 +257,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         };
 
-
-        // ignoreDustThreshold
-        ignoreDustThresholdInputTextField = addInputTextField(root, ++gridRow, Res.get("setting.preferences.ignoreDustThreshold"));
-        IntegerValidator validator = new IntegerValidator();
-        validator.setMinValue((int) Restrictions.getMinNonDustOutput().value);
-        validator.setMaxValue(2000);
-        ignoreDustThresholdInputTextField.setValidator(validator);
-        ignoreDustThresholdListener = (observable, oldValue, newValue) -> {
-            try {
-                int value = Integer.parseInt(newValue);
-                checkArgument(value >= Restrictions.getMinNonDustOutput().value,
-                        "Input must be at least " + Restrictions.getMinNonDustOutput().value);
-                checkArgument(value <= 2000,
-                        "Input must not be higher than 2000 Satoshis");
-                if (!newValue.equals(oldValue)) {
-                    preferences.setIgnoreDustThreshold(value);
-                }
-            } catch (Throwable ignore) {
-            }
-        };
-
         if (displayStandbyModeFeature) {
             // AvoidStandbyModeService feature works only on OSX & Windows
             avoidStandbyMode = addSlideToggleButton(root, ++gridRow,
@@ -287,7 +264,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         }
 
         useSoundForNotifications = addSlideToggleButton(root, ++gridRow,
-                Res.get("setting.preferences.useSoundForNotifications"), Layout.GROUP_DISTANCE * -1); // TODO: why must negative value be used to place toggle consistently?
+                Res.get("setting.preferences.useSoundForNotifications"));
     }
 
     private void initializeSeparator() {
@@ -636,7 +613,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         ignoreTradersListInputTextField.setText(String.join(", ", preferences.getIgnoreTradersList()));
         /* referralIdService.getOptionalReferralId().ifPresent(referralId -> referralIdInputTextField.setText(referralId));
         referralIdInputTextField.setPromptText(Res.get("setting.preferences.refererId.prompt"));*/
-        ignoreDustThresholdInputTextField.setText(String.valueOf(preferences.getIgnoreDustThreshold()));
         userLanguageComboBox.setItems(languageCodes);
         userLanguageComboBox.getSelectionModel().select(preferences.getUserLanguage());
         userLanguageComboBox.setConverter(new StringConverter<>() {
@@ -696,7 +672,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         ignoreTradersListInputTextField.textProperty().addListener(ignoreTradersListListener);
         //referralIdInputTextField.textProperty().addListener(referralIdListener);
-        ignoreDustThresholdInputTextField.textProperty().addListener(ignoreDustThresholdListener);
     }
 
     private void activateDisplayCurrencies() {
@@ -830,7 +805,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         deviationInputTextField.focusedProperty().removeListener(deviationFocusedListener);
         ignoreTradersListInputTextField.textProperty().removeListener(ignoreTradersListListener);
         //referralIdInputTextField.textProperty().removeListener(referralIdListener);
-        ignoreDustThresholdInputTextField.textProperty().removeListener(ignoreDustThresholdListener);
     }
 
     private void deactivateDisplayCurrencies() {
