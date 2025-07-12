@@ -168,7 +168,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         reserveExactAmount = preferences.getSplitOfferOutput();
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
-        securityDepositPct.set(Restrictions.getMinSecurityDepositAsPercent());
+        securityDepositPct.set(Restrictions.getMinSecurityDepositPct());
 
         paymentAccountsChangeListener = change -> fillPaymentAccounts();
     }
@@ -338,7 +338,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     private void setSuggestedSecurityDeposit(PaymentAccount paymentAccount) {
-        var minSecurityDeposit = Restrictions.getMinSecurityDepositAsPercent();
+        var minSecurityDeposit = Restrictions.getMinSecurityDepositPct();
         try {
             if (getTradeCurrency() == null) {
                 setSecurityDepositPct(minSecurityDeposit);
@@ -369,7 +369,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             }
             // Suggested deposit is double the trade range over the previous lock time period, bounded by min/max deposit
             var suggestedSecurityDeposit =
-                    Math.min(2 * (max - min) / max, Restrictions.getMaxSecurityDepositAsPercent());
+                    Math.min(2 * (max - min) / max, Restrictions.getMaxSecurityDepositPct());
             securityDepositPct.set(Math.max(suggestedSecurityDeposit, minSecurityDeposit));
         } catch (Throwable t) {
             log.error(t.toString());
@@ -695,7 +695,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
                 offer.getAmount());
         return Math.min(offerSellerSecurityDepositAsPercent,
-                Restrictions.getMaxSecurityDepositAsPercent());
+                Restrictions.getMaxSecurityDepositPct());
     }
 
     ReadOnlyObjectProperty<BigInteger> totalToPayAsProperty() {
