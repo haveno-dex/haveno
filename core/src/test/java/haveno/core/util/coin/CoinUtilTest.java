@@ -76,7 +76,7 @@ public class CoinUtilTest {
         BigInteger result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.1),
+                Restrictions.getMinTradeAmount(),
                 HavenoUtils.xmrToAtomicUnits(0.2),
                 1);
         assertEquals(
@@ -95,7 +95,7 @@ public class CoinUtilTest {
             fail("Expected IllegalArgumentException to be thrown when amount is too low.");
         } catch (IllegalArgumentException iae) {
             assertEquals(
-                    "amount needs to be above minimum of 0.1 xmr but was 0.0 xmr",
+                    "amount needs to be above minimum of 0.05 xmr but was 0.0 xmr",
                     iae.getMessage(),
                     "Unexpected exception message."
             );
@@ -104,11 +104,11 @@ public class CoinUtilTest {
         result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.1),
+                Restrictions.getMinTradeAmount(),
                 HavenoUtils.xmrToAtomicUnits(0.2),
                 1);
         assertEquals(
-                "0.10 XMR",
+                "0.05 XMR",
                 HavenoUtils.formatXmr(result, true),
                 "Minimum allowed trade amount should not be adjusted."
         );
@@ -116,11 +116,11 @@ public class CoinUtilTest {
         result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.1),
+                Restrictions.getMinTradeAmount(),
                 HavenoUtils.xmrToAtomicUnits(0.25),
                 1);
         assertEquals(
-                "0.10 XMR",
+                "0.05 XMR",
                 HavenoUtils.formatXmr(result, true),
                 "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible."
         );
