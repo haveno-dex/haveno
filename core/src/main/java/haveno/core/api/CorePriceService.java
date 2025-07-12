@@ -74,7 +74,9 @@ class CorePriceService {
     public double getMarketPrice(String currencyCode) throws ExecutionException, InterruptedException, TimeoutException, IllegalArgumentException {
         var marketPrice = priceFeedService.requestAllPrices().get(CurrencyUtil.getCurrencyCodeBase(currencyCode));
         if (marketPrice == null) {
-            throw new IllegalArgumentException("Currency not found: " + currencyCode); // message sent to client
+            throw new IllegalArgumentException("Currency not found: " + currencyCode); // TODO: do not use IllegalArgumentException as message sent to client, return undefined?
+        } else if (!marketPrice.isExternallyProvidedPrice()) {
+            throw new IllegalArgumentException("Price is not available externally: " + currencyCode); // TODO: return more complex Price type including price double and isExternal boolean
         }
         return mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
     }
