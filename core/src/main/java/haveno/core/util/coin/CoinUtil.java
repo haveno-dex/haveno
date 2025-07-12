@@ -75,19 +75,19 @@ public class CoinUtil {
         return BigDecimal.valueOf(percent).multiply(new BigDecimal(amount)).setScale(8, RoundingMode.DOWN).toBigInteger();
     }
 
-    public static BigInteger getRoundedAmount(BigInteger amount, Price price, Long maxTradeLimit, String currencyCode, String paymentMethodId) {
+    public static BigInteger getRoundedAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount, String currencyCode, String paymentMethodId) {
         if (price != null) {
             if (PaymentMethod.isRoundedForAtmCash(paymentMethodId)) {
-                return getRoundedAtmCashAmount(amount, price, maxTradeLimit);
+                return getRoundedAtmCashAmount(amount, price, minAmount, maxAmount);
             } else if (CurrencyUtil.isVolumeRoundedToNearestUnit(currencyCode)) {
-                return getRoundedAmountUnit(amount, price, maxTradeLimit);
+                return getRoundedAmountUnit(amount, price, minAmount, maxAmount);
             }
         }
-        return getRoundedAmount4Decimals(amount, maxTradeLimit);
+        return getRoundedAmount4Decimals(amount);
     }
 
-    public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, Long maxTradeLimit) {
-        return getAdjustedAmount(amount, price, maxTradeLimit, 10);
+    public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount) {
+        return getAdjustedAmount(amount, price, minAmount, maxAmount, 10);
     }
 
     /**
@@ -96,14 +96,15 @@ public class CoinUtil {
      *
      * @param amount            Monero amount which is a candidate for getting rounded.
      * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in atomic units.
+     * @param minAmount         The minimum amount.
+     * @param maxAmount         The maximum amount.
      * @return The adjusted amount
      */
-    public static BigInteger getRoundedAmountUnit(BigInteger amount, Price price, Long maxTradeLimit) {
-        return getAdjustedAmount(amount, price, maxTradeLimit, 1);
+    public static BigInteger getRoundedAmountUnit(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount) {
+        return getAdjustedAmount(amount, price, minAmount, maxAmount, 1);
     }
     
-    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, Long maxTradeLimit) {
+    public static BigInteger getRoundedAmount4Decimals(BigInteger amount) {
         DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
         double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
         return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
@@ -115,44 +116,40 @@ public class CoinUtil {
      *
      * @param amount            amount which is a candidate for getting rounded.
      * @param price             Price used in relation to that amount.
-     * @param maxTradeLimit     The max. trade limit of the users account, in satoshis.
+     * @param minAmount         The minimum amount.
+     * @param maxAmount         The maximum amount.
      * @param factor            The factor used for rounding. E.g. 1 means rounded to units of
      *                          1 EUR, 10 means rounded to 10 EUR, etc.
      * @return The adjusted amount
      */
     @VisibleForTesting
-    static BigInteger getAdjustedAmount(BigInteger amount, Price price, Long maxTradeLimit, int factor) {
+    static BigInteger getAdjustedAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount, int factor) {
         checkArgument(
                 amount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
-                "amount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr"
+                "amount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
+        );
+        if (minAmount == null) minAmount = Restrictions.getMinTradeAmount();
+        checkArgument(
+                minAmount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
+                "minAmount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(minAmount) + " xmr"
         );
         checkArgument(
                 factor > 0,
                 "factor needs to be positive"
         );
-        // Amount must result in a volume of min factor units of the fiat currency, e.g. 1 EUR or
-        // 10 EUR in case of HalCash.
+
+        // Amount must result in a volume of min factor units of the fiat currency, e.g. 1 EUR or 10 EUR in case of HalCash.
         Volume smallestUnitForVolume = Volume.parse(String.valueOf(factor), price.getCurrencyCode());
-        if (smallestUnitForVolume.getValue() <= 0)
-            return BigInteger.ZERO;
-
+        if (smallestUnitForVolume.getValue() <= 0) return BigInteger.ZERO;
         BigInteger smallestUnitForAmount = price.getAmountByVolume(smallestUnitForVolume);
-        long minTradeAmount = Restrictions.getMinTradeAmount().longValueExact();
-
-        checkArgument(
-                minTradeAmount >= Restrictions.getMinTradeAmount().longValueExact(),
-                "MinTradeAmount must be at least " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr"
-        );
-        smallestUnitForAmount = BigInteger.valueOf(Math.max(minTradeAmount, smallestUnitForAmount.longValueExact()));
-        // We don't allow smaller amount values than smallestUnitForAmount
-        boolean useSmallestUnitForAmount = amount.compareTo(smallestUnitForAmount) < 0;
+        smallestUnitForAmount = BigInteger.valueOf(Math.max(minAmount.longValueExact(), smallestUnitForAmount.longValueExact()));
 
         // We get the adjusted volume from our amount
+        boolean useSmallestUnitForAmount = amount.compareTo(smallestUnitForAmount) < 0;
         Volume volume = useSmallestUnitForAmount
                 ? getAdjustedVolumeUnit(price.getVolumeByAmount(smallestUnitForAmount), factor)
                 : getAdjustedVolumeUnit(price.getVolumeByAmount(amount), factor);
-        if (volume.getValue() <= 0)
-            return BigInteger.ZERO;
+        if (volume.getValue() <= 0) return BigInteger.ZERO;
 
         // From that adjusted volume we calculate back the amount. It might be a bit different as
         // the amount used as input before due rounding.
@@ -161,15 +158,23 @@ public class CoinUtil {
         // For the amount we allow only 4 decimal places
         long adjustedAmount = HavenoUtils.centinerosToAtomicUnits(Math.round(HavenoUtils.atomicUnitsToCentineros(amountByVolume) / 10000d) * 10000).longValueExact();
 
-        // If we are above our trade limit we reduce the amount by the smallestUnitForAmount
+        // If we are below the minAmount we increase the amount by the smallestUnitForAmount
         BigInteger smallestUnitForAmountUnadjusted = price.getAmountByVolume(smallestUnitForVolume);
-        if (maxTradeLimit != null) {
-            while (adjustedAmount > maxTradeLimit) {
+        if (minAmount != null) {
+            while (adjustedAmount < minAmount.longValueExact()) {
+                adjustedAmount += smallestUnitForAmountUnadjusted.longValueExact();
+            }
+        }
+
+        // If we are above our trade limit we reduce the amount by the smallestUnitForAmount
+        if (maxAmount != null) {
+            while (adjustedAmount > maxAmount.longValueExact()) {
                 adjustedAmount -= smallestUnitForAmountUnadjusted.longValueExact();
             }
         }
-        adjustedAmount = Math.max(minTradeAmount, adjustedAmount);
-        if (maxTradeLimit != null) adjustedAmount = Math.min(maxTradeLimit, adjustedAmount);
+
+        adjustedAmount = Math.max(minAmount.longValueExact(), adjustedAmount);
+        if (maxAmount != null) adjustedAmount = Math.min(maxAmount.longValueExact(), adjustedAmount);
         return BigInteger.valueOf(adjustedAmount);
     }
 }

@@ -40,6 +40,7 @@ import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.VolumeUtil;
+import haveno.core.util.coin.CoinUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
@@ -251,12 +252,13 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     @Nullable
-    public Volume getVolumeByAmount(BigInteger amount) {
+    public Volume getVolumeByAmount(BigInteger amount, BigInteger minAmount, BigInteger maxAmount) {
         Price price = getPrice();
         if (price == null || amount == null) {
             return null;
         }
-        Volume volumeByAmount = price.getVolumeByAmount(amount);
+        BigInteger adjustedAmount = CoinUtil.getRoundedAmount(amount, price, minAmount, maxAmount, getCounterCurrencyCode(), getPaymentMethodId());
+        Volume volumeByAmount = price.getVolumeByAmount(adjustedAmount);
         volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, getPaymentMethod().getId());
 
         return volumeByAmount;
@@ -385,12 +387,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     @Nullable
     public Volume getVolume() {
-        return getVolumeByAmount(getAmount());
+        return getVolumeByAmount(getAmount(), getMinAmount(), getAmount());
     }
 
     @Nullable
     public Volume getMinVolume() {
-        return getVolumeByAmount(getMinAmount());
+        return getVolumeByAmount(getMinAmount(), getMinAmount(), getAmount());
     }
 
     public boolean isBuyOffer() {

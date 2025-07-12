@@ -120,13 +120,13 @@ public class OfferUtil {
         return direction == OfferDirection.BUY;
     }
 
-    public long getMaxTradeLimit(PaymentAccount paymentAccount,
+    public BigInteger getMaxTradeLimit(PaymentAccount paymentAccount,
                                  String currencyCode,
                                  OfferDirection direction,
                                  boolean buyerAsTakerWithoutDeposit) {
-        return paymentAccount != null
+        return BigInteger.valueOf(paymentAccount != null
                 ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit)
-                : 0;
+                : 0);
     }
 
     /**

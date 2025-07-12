@@ -492,7 +492,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         buyerAsTakerWithoutDepositListener = (ov, oldValue, newValue) -> {
             if (dataModel.paymentAccount != null) xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
-            xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+            xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
             if (amount.get() != null) amountValidationResult.set(isXmrInputValid(amount.get()));
             updateSecurityDeposit();
             setSecurityDepositToModel();
@@ -610,7 +610,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
         if (dataModel.paymentAccount != null)
             xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+        xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
         xmrValidator.setMinValue(Restrictions.getMinTradeAmount());
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
@@ -700,7 +700,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             amountValidationResult.set(isXmrInputValid(amount.get()));
 
         xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+        xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
 
         securityDepositValidator.setPaymentAccount(paymentAccount);
     }
@@ -1199,10 +1199,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         if (amount.get() != null && !amount.get().isEmpty()) {
             BigInteger amount = HavenoUtils.coinToAtomicUnits(DisplayUtils.parseToCoinWith4Decimals(this.amount.get(), xmrFormatter));
 
-            long maxTradeLimit = dataModel.getMaxTradeLimit();
+            BigInteger maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.getPrice().get();
             if (price != null && price.isPositive()) {
-                amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
+                amount = CoinUtil.getRoundedAmount(amount, price, dataModel.getMinAmount().get(), maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
             dataModel.setAmount(amount);
             if (syncMinAmountWithAmount ||
@@ -1221,9 +1221,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             BigInteger minAmount = HavenoUtils.coinToAtomicUnits(DisplayUtils.parseToCoinWith4Decimals(this.minAmount.get(), xmrFormatter));
 
             Price price = dataModel.getPrice().get();
-            long maxTradeLimit = dataModel.getMaxTradeLimit();
+            BigInteger maxTradeLimit = dataModel.getMaxTradeLimit();
             if (price != null && price.isPositive()) {
-                minAmount = CoinUtil.getRoundedAmount(minAmount, price, maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
+                minAmount = CoinUtil.getRoundedAmount(minAmount, price, dataModel.getMinAmount().get(), maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
 
             dataModel.setMinAmount(minAmount);

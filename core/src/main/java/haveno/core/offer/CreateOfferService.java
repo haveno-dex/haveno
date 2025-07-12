@@ -158,8 +158,8 @@ public class CreateOfferService {
         }
 
         // adjust amount and min amount
-        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
-        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
+        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, minAmount, amount, currencyCode, paymentAccount.getPaymentMethod().getId());
+        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, minAmount, amount, currencyCode, paymentAccount.getPaymentMethod().getId());
 
         // generate one-time challenge for private offer
         String challenge = null;
@@ -184,7 +184,7 @@ public class CreateOfferService {
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
         boolean hasBuyerAsTakerWithoutDeposit = !isBuyerMaker && isPrivateOffer && buyerAsTakerWithoutDeposit;
-        long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, hasBuyerAsTakerWithoutDeposit);
+        long maxTradeLimitAsLong = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, hasBuyerAsTakerWithoutDeposit).longValueExact();
         boolean useAutoClose = false;
         boolean useReOpenAfterAutoClose = false;
         long lowerClosePrice = 0;
@@ -221,7 +221,7 @@ public class CreateOfferService {
                 acceptedBanks,
                 Version.VERSION,
                 xmrWalletService.getHeight(),
-                maxTradeLimit,
+                maxTradeLimitAsLong,
                 maxTradePeriod,
                 useAutoClose,
                 useReOpenAfterAutoClose,
