@@ -57,10 +57,10 @@ public class TakerReserveTradeFunds extends TradeTask {
                     trade.startProtocolTimeout();
 
                     // collect relevant info
-                    BigInteger penaltyFee = HavenoUtils.multiply(trade.getAmount(), trade.getOffer().getPenaltyFeePct());
                     BigInteger takerFee = trade.getTakerFee();
                     BigInteger sendAmount = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getAmount() : BigInteger.ZERO;
                     BigInteger securityDeposit = trade.getSecurityDepositBeforeMiningFee();
+                    BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, trade.getOffer().getPenaltyFeePct());
                     String returnAddress = trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
                     // attempt creating reserve tx

@@ -17,6 +17,7 @@
 
 package haveno.desktop.components.list;
 
+import haveno.common.UserThread;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.beans.value.ChangeListener;
@@ -44,8 +45,10 @@ public class FilterBox extends HBox {
                            TableView<? extends FilterableListItem> tableView) {
         this.filteredList = filteredList;
         listener = (observable, oldValue, newValue) -> {
-            tableView.getSelectionModel().clearSelection();
-            applyFilteredListPredicate(textField.getText());
+            UserThread.execute(() -> {
+                tableView.getSelectionModel().clearSelection();
+                applyFilteredListPredicate(textField.getText());
+            });
         };
     }
 
