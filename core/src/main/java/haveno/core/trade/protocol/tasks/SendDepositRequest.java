@@ -82,8 +82,8 @@ public class SendDepositRequest extends TradeTask {
                         Version.getP2PMessageVersion(),
                         new Date().getTime(),
                         trade.getSelf().getContractSignature(),
-                        trade.getSelf().getDepositTx() == null ? null : trade.getSelf().getDepositTx().getFullHex(),
-                        trade.getSelf().getDepositTx() == null ? null : trade.getSelf().getDepositTx().getKey(),
+                        trade.getSelf().getDepositTxHex(),
+                        trade.getSelf().getDepositTxKey(),
                         trade.getSelf().getPaymentAccountKey());
 
                 // update trade state
