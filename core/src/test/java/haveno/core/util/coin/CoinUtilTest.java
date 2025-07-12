@@ -76,7 +76,8 @@ public class CoinUtilTest {
         BigInteger result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
+                HavenoUtils.xmrToAtomicUnits(0.1),
+                HavenoUtils.xmrToAtomicUnits(0.2),
                 1);
         assertEquals(
                 HavenoUtils.formatXmr(Restrictions.MIN_TRADE_AMOUNT, true),
@@ -88,12 +89,13 @@ public class CoinUtilTest {
             CoinUtil.getAdjustedAmount(
                     BigInteger.ZERO,
                     Price.valueOf("USD", 1000_0000),
-                    HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
+                    HavenoUtils.xmrToAtomicUnits(0.1),
+                    HavenoUtils.xmrToAtomicUnits(0.2),
                     1);
             fail("Expected IllegalArgumentException to be thrown when amount is too low.");
         } catch (IllegalArgumentException iae) {
             assertEquals(
-                    "amount needs to be above minimum of 0.1 xmr",
+                    "amount needs to be above minimum of 0.1 xmr but was 0.0 xmr",
                     iae.getMessage(),
                     "Unexpected exception message."
             );
@@ -102,7 +104,8 @@ public class CoinUtilTest {
         result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.2).longValueExact(),
+                HavenoUtils.xmrToAtomicUnits(0.1),
+                HavenoUtils.xmrToAtomicUnits(0.2),
                 1);
         assertEquals(
                 "0.10 XMR",
@@ -113,7 +116,8 @@ public class CoinUtilTest {
         result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.25).longValueExact(),
+                HavenoUtils.xmrToAtomicUnits(0.1),
+                HavenoUtils.xmrToAtomicUnits(0.25),
                 1);
         assertEquals(
                 "0.10 XMR",
@@ -121,18 +125,14 @@ public class CoinUtilTest {
                 "Minimum trade amount allowed should respect maxTradeLimit and factor, if possible."
         );
 
-        // TODO(chirhonul): The following seems like it should raise an exception or otherwise fail.
-        // We are asking for the smallest allowed BTC trade when price is 1000 USD each, and the
-        // max trade limit is 5k sat = 0.00005 BTC. But the returned amount 0.00005 BTC, or
-        // 0.05 USD worth, which is below the factor of 1 USD, but does respect the maxTradeLimit.
-        // Basically the given constraints (maxTradeLimit vs factor) are impossible to both fulfill..
         result = CoinUtil.getAdjustedAmount(
                 HavenoUtils.xmrToAtomicUnits(0.1),
                 Price.valueOf("USD", 1000_0000),
-                HavenoUtils.xmrToAtomicUnits(0.00005).longValueExact(),
+                HavenoUtils.xmrToAtomicUnits(0.1),
+                HavenoUtils.xmrToAtomicUnits(0.5),
                 1);
         assertEquals(
-                "0.00005 XMR",
+                "0.10 XMR",
                 HavenoUtils.formatXmr(result, true),
                 "Minimum trade amount allowed with low maxTradeLimit should still respect that limit, even if result does not respect the factor specified."
         );

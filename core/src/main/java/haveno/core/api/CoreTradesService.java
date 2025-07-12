@@ -125,15 +125,12 @@ class CoreTradesService {
             // adjust amount for fixed-price offer (based on TakeOfferViewModel)
             String currencyCode = offer.getCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
-            long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
+            BigInteger maxAmount = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
             if (offer.getPrice() != null) {
                 if (PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId())) {
-                    amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), maxTradeLimit);
-                } else if (offer.isTraditionalOffer()
-                        && !amount.equals(offer.getMinAmount()) && !amount.equals(amount)) {
-                    // We only apply the rounding if the amount is variable (minAmount is lower as amount).
-                    // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), maxTradeLimit, offer.getCurrencyCode(), offer.getPaymentMethodId());
+                    amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount);
+                } else if (offer.isTraditionalOffer() && offer.isRange()) {
+                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount, offer.getCounterCurrencyCode(), offer.getPaymentMethodId());
                 }
             }
 

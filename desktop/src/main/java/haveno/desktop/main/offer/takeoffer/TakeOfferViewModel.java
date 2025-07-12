@@ -208,7 +208,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         errorMessage.set(offer.getErrorMessage());
 
         xmrValidator.setMaxValue(offer.getAmount());
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+        xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
         xmrValidator.setMinValue(offer.getMinAmount());
     }
 
@@ -237,7 +237,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+        xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
         updateButtonDisableState();
     }
 
@@ -297,12 +297,13 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                 calculateVolume();
 
                 Price tradePrice = dataModel.tradePrice;
-                long maxTradeLimit = dataModel.getMaxTradeLimit();
+                BigInteger minAmount = dataModel.getOffer().getMinAmount();
+                BigInteger maxAmount = dataModel.getMaxTradeLimit();
                 if (PaymentMethod.isRoundedForAtmCash(dataModel.getPaymentMethod().getId())) {
-                    BigInteger adjustedAmountForAtm = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit);
+                    BigInteger adjustedAmountForAtm = CoinUtil.getRoundedAtmCashAmount(dataModel.getAmount().get(), tradePrice, minAmount, maxAmount);
                     dataModel.maybeApplyAmount(adjustedAmountForAtm);
-                } else if (dataModel.getOffer().isTraditionalOffer()) {
-                    BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
+                } else if (dataModel.getOffer().isTraditionalOffer() && dataModel.getOffer().isRange()) {
+                    BigInteger roundedAmount = CoinUtil.getRoundedAmount(dataModel.getAmount().get(), tradePrice, minAmount, maxAmount, dataModel.getOffer().getCounterCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                     dataModel.maybeApplyAmount(roundedAmount);
                 }
                 amount.set(HavenoUtils.formatXmr(dataModel.getAmount().get()));
@@ -568,13 +569,14 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private void setAmountToModel() {
         if (amount.get() != null && !amount.get().isEmpty()) {
             BigInteger amount = HavenoUtils.coinToAtomicUnits(DisplayUtils.parseToCoinWith4Decimals(this.amount.get(), xmrFormatter));
-            long maxTradeLimit = dataModel.getMaxTradeLimit();
+            BigInteger minAmount = dataModel.getOffer().getMinAmount();
+            BigInteger maxAmount = dataModel.getMaxTradeLimit();
             Price price = dataModel.tradePrice;
             if (price != null) {
                 if (dataModel.isRoundedForAtmCash()) {
-                    amount = CoinUtil.getRoundedAtmCashAmount(amount, price, maxTradeLimit);
-                } else if (dataModel.getOffer().isTraditionalOffer()) {
-                    amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, dataModel.getOffer().getCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
+                    amount = CoinUtil.getRoundedAtmCashAmount(amount, price, minAmount, maxAmount);
+                } else if (dataModel.getOffer().isTraditionalOffer() && dataModel.getOffer().isRange()) {
+                    amount = CoinUtil.getRoundedAmount(amount, price, minAmount, maxAmount, dataModel.getOffer().getCounterCurrencyCode(), dataModel.getOffer().getPaymentMethodId());
                 }
             }
             dataModel.maybeApplyAmount(amount);

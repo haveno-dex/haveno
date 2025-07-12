@@ -239,7 +239,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                     HavenoUtils.formatXmr(tradeAmount, true));
             addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, VolumeUtil.formatVolumeLabel(currencyCode) + counterCurrencyDirectionInfo,
-                    VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount)));
+                    VolumeUtil.formatVolumeWithCode(offer.getVolumeByAmount(tradeAmount, offer.getMinAmount(), tradeAmount)));
         } else {
             addConfirmationLabelLabel(gridPane, ++rowIndex, amount + xmrDirectionInfo,
                     HavenoUtils.formatXmr(offer.getAmount(), true));

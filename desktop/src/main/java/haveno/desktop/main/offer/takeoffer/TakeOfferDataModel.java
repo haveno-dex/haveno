@@ -183,7 +183,7 @@ class TakeOfferDataModel extends OfferDataModel {
         checkArgument(!possiblePaymentAccounts.isEmpty(), "possiblePaymentAccounts.isEmpty()");
         paymentAccount = getLastSelectedPaymentAccount();
 
-        this.amount.set(BigInteger.valueOf(getMaxTradeLimit()));
+        this.amount.set(getMaxTradeLimit());
 
         updateSecurityDeposit();
 
@@ -293,7 +293,7 @@ class TakeOfferDataModel extends OfferDataModel {
         if (paymentAccount != null) {
             this.paymentAccount = paymentAccount;
 
-            this.amount.set(BigInteger.valueOf(getMaxTradeLimit()));
+            this.amount.set(getMaxTradeLimit());
 
             preferences.setTakeOfferSelectedPaymentAccountId(paymentAccount.getId());
         }
@@ -338,17 +338,17 @@ class TakeOfferDataModel extends OfferDataModel {
                 .orElse(firstItem);
     }
 
-    long getMyMaxTradeLimit() {
+    BigInteger getMyMaxTradeLimit() {
         if (paymentAccount != null) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
-                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
+                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()));
         } else {
-            return 0;
+            return BigInteger.ZERO;
         }
     }
 
-    long getMaxTradeLimit() {
-        return Math.min(offer.getAmount().longValueExact(), getMyMaxTradeLimit());
+    BigInteger getMaxTradeLimit() {
+        return offer.getAmount().min(getMyMaxTradeLimit());
     }
 
     boolean canTakeOffer() {
@@ -388,7 +388,7 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     void maybeApplyAmount(BigInteger amount) {
-        if (amount.compareTo(offer.getMinAmount()) >= 0 && amount.compareTo(BigInteger.valueOf(getMaxTradeLimit())) <= 0) {
+        if (amount.compareTo(offer.getMinAmount()) >= 0 && amount.compareTo(getMaxTradeLimit()) <= 0) {
             this.amount.set(amount);
         }
         calculateTotalToPay();

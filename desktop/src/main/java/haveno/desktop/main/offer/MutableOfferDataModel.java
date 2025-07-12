@@ -333,7 +333,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             setSuggestedSecurityDeposit(getPaymentAccount());
 
             if (amount.get() != null && this.allowAmountUpdate)
-                this.amount.set(amount.get().min(BigInteger.valueOf(getMaxTradeLimit())));
+                this.amount.set(amount.get().min(getMaxTradeLimit()));
         }
     }
 
@@ -472,17 +472,17 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return marketPriceMarginPct;
     }
 
-    long getMaxTradeLimit() {
+    BigInteger getMaxTradeLimit() {
 
         // disallow offers which no buyer can take due to trade limits on release
         if (HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS)) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), OfferDirection.BUY, buyerAsTakerWithoutDeposit.get());
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), OfferDirection.BUY, buyerAsTakerWithoutDeposit.get()));
         }
 
         if (paymentAccount != null) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), direction, buyerAsTakerWithoutDeposit.get());
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), direction, buyerAsTakerWithoutDeposit.get()));
         } else {
-            return 0;
+            return BigInteger.ZERO;
         }
     }
 
@@ -543,9 +543,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 // if the volume != amount * price, we need to adjust the amount
                 if (amount.get() == null || !volumeBefore.equals(price.get().getVolumeByAmount(amount.get()))) {
                     BigInteger value = price.get().getAmountByVolume(volumeBefore);
-                    value = value.min(BigInteger.valueOf(getMaxTradeLimit())); // adjust if above maximum
-                    value = value.max(Restrictions.getMinTradeAmount()); // adjust if below minimum
-                    value = CoinUtil.getRoundedAmount(value, price.get(), getMaxTradeLimit(), tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
+                    BigInteger maxAmount = getMaxTradeLimit();
+                    BigInteger minAmount = Restrictions.getMinTradeAmount();
+                    value = value.min(maxAmount); // adjust if above maximum
+                    value = value.max(minAmount); // adjust if below minimum
+                    value = CoinUtil.getRoundedAmount(value, price.get(), minAmount, maxAmount, tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
                     amount.set(value);
                 }
 
