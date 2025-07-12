@@ -202,17 +202,12 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (isF2F)
             rows++;
 
-        boolean showXmrAutoConf = offer.isXmr() && offer.getDirection() == OfferDirection.SELL;
-        if (showXmrAutoConf) {
-            rows++;
-        }
-
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
 
         String counterCurrencyDirectionInfo = "";
         String xmrDirectionInfo = "";
         OfferDirection direction = offer.getDirection();
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         String offerTypeLabel = Res.get("shared.offerType");
         String toReceive = " " + Res.get("shared.toReceive");
         String toSpend = " " + Res.get("shared.toSpend");
@@ -289,14 +284,6 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         } else {
             final String method = Res.get(paymentMethod.getId());
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), method);
-        }
-
-        if (showXmrAutoConf) {
-            addSeparator(gridPane, ++rowIndex);
-            String isAutoConf = offer.isXmrAutoConf() ?
-                    Res.get("shared.yes") :
-                    Res.get("shared.no");
-            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerbook.xmrAutoConf"), isAutoConf);
         }
 
         if (showAcceptedBanks) {
@@ -474,11 +461,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         boolean isBuyOffer = offer.isBuyOffer();
         boolean isBuyerRole = isPlaceOffer == isBuyOffer;
         String placeOfferButtonText = isBuyerRole ?
-                Res.get("offerDetailsWindow.confirm.maker", Res.get("shared.buy")) :
-                Res.get("offerDetailsWindow.confirm.maker", Res.get("shared.sell"));
+                Res.get("offerDetailsWindow.confirm.maker.buy", offer.getCounterCurrencyCode()) :
+                Res.get("offerDetailsWindow.confirm.maker.sell", offer.getCounterCurrencyCode());
         String takeOfferButtonText = isBuyerRole ?
-                Res.get("offerDetailsWindow.confirm.taker", Res.get("shared.buy")) :
-                Res.get("offerDetailsWindow.confirm.taker", Res.get("shared.sell"));
+                Res.get("offerDetailsWindow.confirm.taker.buy", offer.getCounterCurrencyCode()) :
+                Res.get("offerDetailsWindow.confirm.taker.sell", offer.getCounterCurrencyCode());
 
         Tuple4<Button, BusyAnimation, Label, HBox> placeOfferTuple = addButtonBusyAnimationLabelAfterGroup(gridPane,
                 ++rowIndex, 1,

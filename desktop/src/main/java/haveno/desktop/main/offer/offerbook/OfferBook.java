@@ -234,7 +234,7 @@ public class OfferBook {
         final String[] ccyCode = new String[1];
         final int[] offerCount = new int[1];
         offerBookListItems.forEach(o -> {
-            ccyCode[0] = o.getOffer().getCurrencyCode();
+            ccyCode[0] = o.getOffer().getCounterCurrencyCode();
             if (o.getOffer().getDirection() == BUY) {
                 offerCount[0] = buyOfferCountMap.getOrDefault(ccyCode[0], 0) + 1;
                 buyOfferCountMap.put(ccyCode[0], offerCount[0]);

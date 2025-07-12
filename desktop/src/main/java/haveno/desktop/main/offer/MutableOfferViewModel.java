@@ -261,15 +261,11 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private void addBindings() {
         if (dataModel.getDirection() == OfferDirection.BUY) {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isTraditionalCurrency(dataModel.getTradeCurrencyCode().get()) ?
-                            "createOffer.amountPriceBox.buy.volumeDescription" :
-                            "createOffer.amountPriceBox.buy.volumeDescriptionCrypto", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get("createOffer.amountPriceBox.buy.volumeDescription", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         } else {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isTraditionalCurrency(dataModel.getTradeCurrencyCode().get()) ?
-                            "createOffer.amountPriceBox.sell.volumeDescription" :
-                            "createOffer.amountPriceBox.sell.volumeDescriptionCrypto", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get("createOffer.amountPriceBox.sell.volumeDescription", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         }
         volumePromptLabel.bind(createStringBinding(
@@ -319,7 +315,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         };
         priceStringListener = (ov, oldValue, newValue) -> {
             updateMarketPriceAvailable();
-            final String currencyCode = dataModel.getTradeCurrencyCode().get();
             if (!ignorePriceStringListener) {
                 if (isPriceInputValid(newValue).isValid) {
                     setPriceToModel();
@@ -332,9 +327,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             try {
                                 double priceAsDouble = ParsingUtils.parseNumberStringToDouble(price.get());
                                 double relation = priceAsDouble / marketPriceAsDouble;
-                                final OfferDirection compareDirection = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                                        OfferDirection.SELL :
-                                        OfferDirection.BUY;
+                                final OfferDirection compareDirection = OfferDirection.BUY;
                                 double percentage = dataModel.getDirection() == compareDirection ? 1 - relation : relation - 1;
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 dataModel.setMarketPriceMarginPct(percentage);
@@ -367,9 +360,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 double marketPriceAsDouble = marketPrice.getPrice();
-                                final OfferDirection compareDirection = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                                        OfferDirection.SELL :
-                                        OfferDirection.BUY;
+                                final OfferDirection compareDirection = OfferDirection.BUY;
                                 double factor = dataModel.getDirection() == compareDirection ?
                                         1 - percentage :
                                         1 + percentage;
@@ -614,15 +605,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
 
-        boolean isTraditionalCurrency = CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode());
-
-        if (isTraditionalCurrency) {
-            amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
-                    isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
-        } else {
-            amountDescription = Res.get(isBuy ? "createOffer.amountPriceBox.sell.amountDescriptionCrypto" :
-                    "createOffer.amountPriceBox.buy.amountDescriptionCrypto");
-        }
+        amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
+                isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);
         validateAndSetSecurityDepositToModel();
@@ -1164,29 +1148,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     String getTriggerPriceDescriptionLabel() {
-        String details;
-        if (dataModel.isBuyOffer()) {
-            details = dataModel.isCryptoCurrency() ?
-                    Res.get("account.notifications.marketAlert.message.msg.below") :
-                    Res.get("account.notifications.marketAlert.message.msg.above");
-        } else {
-            details = dataModel.isCryptoCurrency() ?
-                    Res.get("account.notifications.marketAlert.message.msg.above") :
-                    Res.get("account.notifications.marketAlert.message.msg.below");
-        }
+        String details = dataModel.isBuyOffer() ?
+                Res.get("account.notifications.marketAlert.message.msg.above") :
+                Res.get("account.notifications.marketAlert.message.msg.below");
         return Res.get("createOffer.triggerPrice.label", details);
     }
 
     String getPercentagePriceDescription() {
-        if (dataModel.isBuyOffer()) {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.aboveInPercent") :
-                    Res.get("shared.belowInPercent");
-        } else {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.belowInPercent") :
-                    Res.get("shared.aboveInPercent");
-        }
+        return dataModel.isBuyOffer() ? Res.get("shared.belowInPercent") : Res.get("shared.aboveInPercent");
     }
 
 

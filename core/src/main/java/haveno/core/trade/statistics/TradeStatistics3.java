@@ -28,6 +28,7 @@ import haveno.common.util.CollectionUtils;
 import haveno.common.util.ExtraDataMapValidator;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
@@ -35,6 +36,7 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
@@ -67,18 +69,38 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayload, PersistableNetworkPayload,
         CapabilityRequiringPayload, DateSortedTruncatablePayload {
 
+    private static final String VERSION_KEY = "v"; // single character key for versioning
+
     @JsonExclude
     private transient static final ZoneId ZONE_ID = ZoneId.systemDefault();
-    private static final double FUZZ_AMOUNT_PCT = 0.05;
-    private static final int FUZZ_DATE_HOURS = 24;
 
-    public static TradeStatistics3 from(Trade trade,
-                                        @Nullable String referralId,
-                                        boolean isTorNetworkNode,
-                                        boolean isFuzzed) {
+    public static TradeStatistics3 fromV0(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        return from(trade, referralId, isTorNetworkNode, 0.0, 0);
+    }
+
+    public static TradeStatistics3 fromV1(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        return from(trade, referralId, isTorNetworkNode, 0.05, 24);
+    }
+
+    public static TradeStatistics3 fromV2(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        return from(trade, referralId, isTorNetworkNode, 0.10, 48);
+    }
+
+    private static TradeStatistics3 from(Trade trade,
+                                         @Nullable String referralId,
+                                         boolean isTorNetworkNode,
+                                         double fuzzAmountPct,
+                                         int fuzzDateHours) {
         Map<String, String> extraDataMap = new HashMap<>();
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
+        }
+
+        // Store the trade protocol version to denote that the crypto price is not inverted starting with v3.
+        // This can be removed in the future after all stats are expected to not be inverted,
+        // then only stats which are missing this field prior to then need to be uninverted.
+        if (!trade.getOffer().isInverted() && CurrencyUtil.isCryptoCurrency(trade.getOffer().getCounterCurrencyCode())) {
+            extraDataMap.put(VERSION_KEY, trade.getOffer().getOfferPayload().getProtocolVersion() + "");
         }
 
         NodeAddress arbitratorNodeAddress = checkNotNull(trade.getArbitrator().getNodeAddress(), "Arbitrator address is null", trade.getClass().getSimpleName(), trade.getId());
@@ -91,28 +113,32 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                     arbitratorNodeAddress.getFullAddress();
 
         Offer offer = checkNotNull(trade.getOffer());
-        return new TradeStatistics3(offer.getCurrencyCode(),
-                trade.getPrice().getValue(),
-                isFuzzed ? fuzzTradeAmountReproducibly(trade) : trade.getAmount().longValueExact(),
+        return new TradeStatistics3(offer.getCounterCurrencyCode(),
+                trade.getRawPrice().getValue(), // crypto price is inverted before trade protocol v3
+                fuzzTradeAmountReproducibly(trade, fuzzAmountPct),
                 offer.getPaymentMethod().getId(),
-                isFuzzed ? fuzzTradeDateReproducibly(trade) : trade.getTakeOfferDate().getTime(),
+                fuzzTradeDateReproducibly(trade, fuzzDateHours),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);
     }
 
-    private static long fuzzTradeAmountReproducibly(Trade trade) { //  randomize completed trade info #1099
+    // randomize completed trade info #1099
+    private static long fuzzTradeAmountReproducibly(Trade trade, double fuzzAmountPct) {
+        if (fuzzAmountPct == 0.0) return trade.getAmount().longValueExact();
         long originalTimestamp = trade.getTakeOfferDate().getTime();
+        Random random = new Random(originalTimestamp); // pseudo random generator seeded from take offer datestamp
         long exactAmount = trade.getAmount().longValueExact();
-        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
-        long adjustedAmount = (long) random.nextDouble(exactAmount * (1.0 - FUZZ_AMOUNT_PCT), exactAmount * (1 + FUZZ_AMOUNT_PCT));
+        long adjustedAmount = (long) random.nextDouble(exactAmount * (1.0 - fuzzAmountPct), exactAmount * (1.0 + fuzzAmountPct));
         log.debug("trade {} fuzzed trade amount for tradeStatistics is {}", trade.getShortId(), adjustedAmount);
         return adjustedAmount;
     }
 
-    private static long fuzzTradeDateReproducibly(Trade trade) { //  randomize completed trade info #1099
+    // randomize completed trade info #1099
+    private static long fuzzTradeDateReproducibly(Trade trade, int fuzzDateHours) {
+        if (fuzzDateHours == 0) return trade.getTakeOfferDate().getTime();
         long originalTimestamp = trade.getTakeOfferDate().getTime();
-        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
-        long adjustedTimestamp = random.nextLong(originalTimestamp - TimeUnit.HOURS.toMillis(FUZZ_DATE_HOURS), originalTimestamp);
+        Random random = new Random(originalTimestamp); // pseudo random generator seeded from take offer datestamp
+        long adjustedTimestamp = random.nextLong(originalTimestamp - TimeUnit.HOURS.toMillis(fuzzDateHours), originalTimestamp);
         log.debug("trade {} fuzzed trade datestamp for tradeStatistics is {}", trade.getShortId(), new Date(adjustedTimestamp));
         return adjustedTimestamp;
     }
@@ -185,12 +211,10 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     @Getter
     private final String currency;
-    @Getter
     private final long price;
     @Getter
-    private final long amount; // BTC amount
+    private final long amount; // XMR amount
     private final String paymentMethod;
-    // As only seller is publishing it is the sellers trade date
     private final long date;
 
     // Old converted trade stat objects might not have it set
@@ -204,7 +228,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     // Hash get set in constructor from json of all the other data fields (with hash = null).
     @JsonExclude
     private final byte[] hash;
-    // Should be only used in emergency case if we need to add data but do not want to break backward compatibility
+    // Should be only used in exceptional case if we need to add data but do not want to break backward compatibility
     // at the P2P network storage checks. The hash of the object will be used to verify if the data is valid. Any new
     // field in a class would break that hash and therefore break the storage mechanism.
     @Nullable
@@ -290,8 +314,6 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     public byte[] createHash() {
         // We create hash from all fields excluding hash itself. We use json as simple data serialisation.
-        // TradeDate is different for both peers so we ignore it for hash. ExtraDataMap is ignored as well as at
-        // software updates we might have different entries which would cause a different hash.
         return Hash.getSha256Ripemd160hash(JsonUtil.objectToJson(this).getBytes(Charsets.UTF_8));
     }
 
@@ -387,9 +409,24 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     public Price getTradePrice() {
         if (priceObj == null) {
-            priceObj = Price.valueOf(currency, price);
+            priceObj = Price.valueOf(currency, getNormalizedPrice());
         }
         return priceObj;
+    }
+
+    /**
+     * Returns the price as XMR/QUOTE.
+     * 
+     * Note: Cannot override getPrice() because it's used for gson serialization, nor do we want expose it publicly.
+     */
+    public long getNormalizedPrice() {
+        return isInverted() ? PriceUtil.invertLongPrice(price, currency) : price;
+    }
+
+    private boolean isInverted() {
+        return CurrencyUtil.isCryptoCurrency(currency) && 
+                (extraDataMap == null ||
+                !extraDataMap.containsKey(VERSION_KEY)); // crypto price is inverted if missing key
     }
 
     public BigInteger getTradeAmount() {
@@ -448,7 +485,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     public String toString() {
         return "TradeStatistics3{" +
                 "\n     currency='" + currency + '\'' +
-                ",\n     price=" + price +
+                ",\n     rawPrice=" + price +
+                ",\n     normalizedPrice=" + getNormalizedPrice() +
                 ",\n     amount=" + amount +
                 ",\n     paymentMethod='" + paymentMethod + '\'' +
                 ",\n     date=" + date +

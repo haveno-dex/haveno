@@ -95,6 +95,6 @@ class OpenOffersDataModel extends ActivatableDataModel {
     }
 
     boolean isTriggered(OpenOffer openOffer) {
-        return TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer);
+        return TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()), openOffer);
     }
 }

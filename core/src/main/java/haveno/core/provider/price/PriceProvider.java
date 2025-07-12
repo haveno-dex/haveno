@@ -28,6 +28,8 @@ import haveno.network.p2p.P2PService;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,16 +65,20 @@ public class PriceProvider extends HttpClientProvider {
                 LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) obj;
                 String baseCurrencyCode = (String) treeMap.get("baseCurrencyCode");
                 String counterCurrencyCode = (String) treeMap.get("counterCurrencyCode");
-                String currencyCode = baseCurrencyCode.equals("XMR") ? counterCurrencyCode : baseCurrencyCode;
-                currencyCode = CurrencyUtil.getCurrencyCodeBase(currencyCode);
+                boolean isInverted = !"XMR".equalsIgnoreCase(baseCurrencyCode);
+                if (isInverted) {
+                    String temp = baseCurrencyCode;
+                    baseCurrencyCode = counterCurrencyCode;
+                    counterCurrencyCode = temp;
+                }
+                counterCurrencyCode = CurrencyUtil.getCurrencyCodeBase(counterCurrencyCode);
                 double price = (Double) treeMap.get("price");
-                // json uses double for our timestampSec long value...
+                if (isInverted) price = BigDecimal.ONE.divide(BigDecimal.valueOf(price), 10, RoundingMode.HALF_UP).doubleValue(); // XMR is always base currency, so invert price if applicable
                 long timestampSec = MathUtils.doubleToLong((Double) treeMap.get("timestampSec"));
-                marketPriceMap.put(currencyCode, new MarketPrice(currencyCode, price, timestampSec, true));
+                marketPriceMap.put(counterCurrencyCode, new MarketPrice(counterCurrencyCode, price, timestampSec, true));
             } catch (Throwable t) {
                 log.error("Error getting all prices: {}\n", t.getMessage(), t);
             }
-
         });
         return marketPriceMap;
     }
