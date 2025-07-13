@@ -1220,9 +1220,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             BigInteger minAmount = HavenoUtils.coinToAtomicUnits(DisplayUtils.parseToCoinWith4Decimals(this.minAmount.get(), xmrFormatter));
 
             Price price = dataModel.getPrice().get();
-            BigInteger maxTradeLimit = dataModel.getMaxTradeLimit();
             if (price != null && price.isPositive()) {
-                minAmount = CoinUtil.getRoundedAmount(minAmount, price, dataModel.getMinAmount().get(), maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
+                minAmount = CoinUtil.getRoundedAmount(minAmount, price, dataModel.getMinTradeLimit(), dataModel.getMaxTradeLimit(), tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
 
             dataModel.setMinAmount(minAmount);
