@@ -25,6 +25,10 @@ class CurrencyPredicates {
         return CurrencyUtil.isCryptoCurrency(currency.getCode());
     }
 
+    boolean isFiatCurrency(TradeCurrency currency) {
+        return CurrencyUtil.isFiatCurrency(currency.getCode());
+    }
+
     boolean isTraditionalCurrency(TradeCurrency currency) {
         return CurrencyUtil.isTraditionalCurrency(currency.getCode());
     }
