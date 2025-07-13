@@ -1,5 +1,5 @@
 .root {
-    -bs-color-primary: #0b65da;
+    -bs-color-primary: rgb(28, 96, 220);
     -bs-color-primary-dark: #0c59bd;
     -bs-text-color: #000000;
     -bs-background-color: #ffffff;
@@ -38,17 +38,17 @@
     -bs-yellow-light: derive(-bs-yellow, 81%);
     -bs-blue-transparent: #0f87c344;
     -bs-bg-green: #99ba9c;
-    -bs-rd-green: #0b65da;
+    -bs-rd-green: -bs-color-primary;
     -bs-rd-green-dark: #3EA34A;
-    -bs-rd-nav-selected: #0b65da;
+    -bs-rd-nav-selected: -bs-color-primary;
     -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
     -bs-rd-nav-secondary-selected: -fx-accent;
     -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
-    -bs-rd-nav-background: #0b65da;
-    -bs-rd-nav-primary-background: #0b65da;
+    -bs-rd-nav-background: -bs-color-primary;
+    -bs-rd-nav-primary-background: -bs-color-primary;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
     -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
-    -bs-rd-nav-primary-border: #0B65DA;
+    -bs-rd-nav-primary-border: -bs-color-primary;
     -bs-rd-nav-border: #535353;
     -bs-rd-nav-border-color: rgba(255, 255, 255, 0.31);
     -bs-rd-nav-hover-text: white;
@@ -94,7 +94,7 @@
     -bs-cancel: #dddddd;
     -bs-cancel-focus: derive(-bs-cancel, -50%);
     -bs-cancel-hover: derive(-bs-cancel, -10%);
-    -fx-accent: #0b65da;
+    -fx-accent: -bs-color-primary;
     -fx-box-border: #e9e9e9;
     -bs-green-soft: derive(-bs-rd-green, 60%);
     -bs-red-soft: derive(-bs-rd-error-red, 60%);
