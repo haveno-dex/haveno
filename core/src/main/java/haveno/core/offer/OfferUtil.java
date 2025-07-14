@@ -61,8 +61,8 @@ import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
-import static haveno.core.xmr.wallet.Restrictions.getMaxSecurityDepositAsPercent;
-import static haveno.core.xmr.wallet.Restrictions.getMinSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMaxSecurityDepositPct;
+import static haveno.core.xmr.wallet.Restrictions.getMinSecurityDepositPct;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -240,12 +240,12 @@ public class OfferUtil {
                                   PaymentAccount paymentAccount,
                                   String currencyCode) {
         checkNotNull(p2PService.getAddress(), "Address must not be null");
-        checkArgument(securityDeposit <= getMaxSecurityDepositAsPercent(),
+        checkArgument(securityDeposit <= getMaxSecurityDepositPct(),
                 "securityDeposit must not exceed " +
-                        getMaxSecurityDepositAsPercent());
-        checkArgument(securityDeposit >= getMinSecurityDepositAsPercent(),
+                        getMaxSecurityDepositPct());
+        checkArgument(securityDeposit >= getMinSecurityDepositPct(),
                 "securityDeposit must not be less than " +
-                        getMinSecurityDepositAsPercent() + " but was " + securityDeposit);
+                        getMinSecurityDepositPct() + " but was " + securityDeposit);
         checkArgument(!filterManager.isCurrencyBanned(currencyCode),
                 Res.get("offerbook.warning.currencyBanned"));
         checkArgument(!filterManager.isPaymentMethodBanned(paymentAccount.getPaymentMethod()),
