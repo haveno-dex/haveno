@@ -93,7 +93,7 @@ public class CurrencyUtil {
     public static Collection<TraditionalCurrency> getAllSortedFiatCurrencies(Comparator comparator) {
         return getAllSortedTraditionalCurrencies(comparator).stream()
                 .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
-                .collect(Collectors.toList());  // sorted by currency name
+                .collect(Collectors.toList()); // sorted by currency name
     }
 
     public static List<TradeCurrency> getAllFiatCurrencies() {
@@ -105,11 +105,11 @@ public class CurrencyUtil {
     public static List<TradeCurrency> getAllSortedFiatCurrencies() {
         return getAllSortedTraditionalCurrencies().stream()
                 .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
-                .collect(Collectors.toList());  // sorted by currency name
+                .collect(Collectors.toList()); // sorted by currency name
     }
 
     public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies() {
-        return traditionalCurrencyMapSupplier.get().values();  // sorted by currency name
+        return traditionalCurrencyMapSupplier.get().values(); // sorted by currency name
     }
 
     public static List<TradeCurrency> getAllTraditionalCurrencies() {

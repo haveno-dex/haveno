@@ -65,6 +65,7 @@ public class CurrencyList {
 
     private List<CurrencyListItem> getPartitionedSortedItems(List<TradeCurrency> currencies) {
         Map<TradeCurrency, Integer> tradesPerCurrency = countTrades(currencies);
+        List<CurrencyListItem> fiatCurrencies = new ArrayList<>();
         List<CurrencyListItem> traditionalCurrencies = new ArrayList<>();
         List<CurrencyListItem> cryptoCurrencies = new ArrayList<>();
 
@@ -73,7 +74,9 @@ public class CurrencyList {
             Integer count = entry.getValue();
             CurrencyListItem item = new CurrencyListItem(currency, count);
 
-            if (predicates.isTraditionalCurrency(currency)) {
+            if (predicates.isFiatCurrency(currency)) {
+                fiatCurrencies.add(item);
+            } else if (predicates.isTraditionalCurrency(currency)) {
                 traditionalCurrencies.add(item);
             }
 
@@ -83,10 +86,12 @@ public class CurrencyList {
         }
 
         Comparator<CurrencyListItem> comparator = getComparator();
+        fiatCurrencies.sort(comparator);
         traditionalCurrencies.sort(comparator);
         cryptoCurrencies.sort(comparator);
 
         List<CurrencyListItem> result = new ArrayList<>();
+        result.addAll(fiatCurrencies);
         result.addAll(traditionalCurrencies);
         result.addAll(cryptoCurrencies);
 
