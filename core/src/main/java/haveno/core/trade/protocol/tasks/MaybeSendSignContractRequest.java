@@ -156,6 +156,8 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     trade.getSelf().setDepositTx(depositTx);
                     trade.getSelf().setDepositTxHash(depositTx.getHash());
                     trade.getSelf().setDepositTxFee(depositTx.getFee());
+                    trade.getSelf().setDepositTxHex(depositTx.getFullHex());
+                    trade.getSelf().setDepositTxKey(depositTx.getKey());
                     trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
                 }
             }
