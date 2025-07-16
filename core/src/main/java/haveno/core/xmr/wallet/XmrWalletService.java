@@ -298,8 +298,8 @@ public class XmrWalletService extends XmrWalletBase {
         return false;
     }
 
-    public MoneroDaemonRpc getDaemon() {
-        return xmrConnectionService.getDaemon();
+    public MoneroDaemonRpc getMonerod() {
+        return xmrConnectionService.getMonerod();
     }
 
     public boolean isProxyApplied() {
@@ -754,22 +754,22 @@ public class XmrWalletService extends XmrWalletBase {
      */
     public MoneroTx verifyTradeTx(String offerId, BigInteger tradeFeeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
         if (txHash == null) throw new IllegalArgumentException("Cannot verify trade tx with null id");
-        MoneroDaemonRpc daemon = getDaemon();
+        MoneroDaemonRpc monerod = getMonerod();
         MoneroWallet wallet = getWallet();
         MoneroTx tx = null;
         synchronized (lock) {
             try {
 
                 // verify tx not submitted to pool
-                tx = daemon.getTx(txHash);
+                tx = monerod.getTx(txHash);
                 if (tx != null) throw new RuntimeException("Tx is already submitted");
 
                 // submit tx to pool
-                MoneroSubmitTxResult result = daemon.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
+                MoneroSubmitTxResult result = monerod.submitTxHex(txHex, true); // TODO (woodser): invert doNotRelay flag to relay for library consistency?
                 if (!result.isGood()) throw new RuntimeException("Failed to submit tx to daemon: " + JsonUtils.serialize(result));
 
                 // get pool tx which has weight and size
-                for (MoneroTx poolTx : daemon.getTxPool()) if (poolTx.getHash().equals(txHash)) tx = poolTx;
+                for (MoneroTx poolTx : monerod.getTxPool()) if (poolTx.getHash().equals(txHash)) tx = poolTx;
                 if (tx == null) throw new RuntimeException("Tx is not in pool after being submitted");
 
                 // verify key images
@@ -824,9 +824,9 @@ public class XmrWalletService extends XmrWalletBase {
                 throw e;
             } finally {
                 try {
-                    daemon.flushTxPool(txHash); // flush tx from pool
+                    monerod.flushTxPool(txHash); // flush tx from pool
                 } catch (MoneroRpcError err) {
-                    System.out.println(daemon.getRpcConnection());
+                    System.out.println(monerod.getRpcConnection());
                     throw err.getCode().equals(-32601) ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
                 }
             }
@@ -855,7 +855,7 @@ public class XmrWalletService extends XmrWalletBase {
         }
 
         // get fee estimates per kB from daemon
-        MoneroFeeEstimate feeEstimates = getDaemon().getFeeEstimate();
+        MoneroFeeEstimate feeEstimates = getMonerod().getFeeEstimate();
         BigInteger baseFeeEstimate = feeEstimates.getFees().get(priority.ordinal() - 1);
         BigInteger qmask = feeEstimates.getQuantizationMask();
         log.info("Monero base fee estimate={}, qmask={}", baseFeeEstimate, qmask);
@@ -879,8 +879,8 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (txCache) {
 
             // fetch txs
-            if (getDaemon() == null) xmrConnectionService.verifyConnection(); // will throw
-            List<MoneroTx> txs = getDaemon().getTxs(txHashes, true);
+            if (getMonerod() == null) xmrConnectionService.verifyConnection(); // will throw
+            List<MoneroTx> txs = getMonerod().getTxs(txHashes, true);
 
             // store to cache
             for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));
@@ -1431,8 +1431,8 @@ public class XmrWalletService extends XmrWalletBase {
 
             // open or create wallet main wallet
             if (wallet == null) {
-                MoneroDaemonRpc daemon = xmrConnectionService.getDaemon();
-                log.info("Initializing main wallet with monerod=" + (daemon == null ? "null" : daemon.getRpcConnection().getUri()));
+                MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
+                log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()));
                 if (walletExists(MONERO_WALLET_NAME)) {
                     wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(wasWalletSynced));
                 } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
@@ -2025,7 +2025,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (!xmrConnectionService.isSyncedWithinTolerance()) {
 
                 // throttle warnings
-                if (System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {
+                if (System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS) {
                     log.warn("Monero daemon is not synced within tolerance, height={}, targetHeight={}, monerod={}", xmrConnectionService.chainHeightProperty().get(), xmrConnectionService.getTargetHeight(), xmrConnectionService.getConnection() == null ? null : xmrConnectionService.getConnection().getUri());
                     lastLogDaemonNotSyncedTimestamp = System.currentTimeMillis();
                 }

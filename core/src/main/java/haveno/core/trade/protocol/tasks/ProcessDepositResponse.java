@@ -50,7 +50,7 @@ public class ProcessDepositResponse extends TradeTask {
 
           // publish deposit transaction for redundancy
           try {
-            model.getXmrWalletService().getDaemon().submitTxHex(trade.getSelf().getDepositTxHex());
+            model.getXmrWalletService().getMonerod().submitTxHex(trade.getSelf().getDepositTxHex());
           } catch (Exception e) {
             log.error("Failed to redundantly publish deposit transaction for {} {}", trade.getClass().getSimpleName(), trade.getShortId(), e);
           }
