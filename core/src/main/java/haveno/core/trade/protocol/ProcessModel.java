@@ -326,6 +326,17 @@ public class ProcessModel implements Model, PersistablePayload {
         getAccountAgeWitnessService().getAccountAgeWitnessUtils().witnessDebugLog(trade, null);
     }
 
+    public boolean maybeClearSensitiveData() {
+        boolean changed = false;
+        for (TradePeer tradingPeer : getTradePeers()) {
+            if (tradingPeer.getPaymentAccountPayload() != null || tradingPeer.getContractAsJson() != null) {
+                tradingPeer.setPaymentAccountPayload(null);
+                tradingPeer.setContractAsJson(null);
+                changed = true;
+            }
+        }
+        return changed;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Delegates

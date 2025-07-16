@@ -261,18 +261,12 @@ public final class Contract implements NetworkPayload {
     }
 
     public boolean maybeClearSensitiveData() {
-        return false; // TODO: anything to clear?
+        return false; // nothing to clear
     }
 
     // edits a contract json string
     public static String sanitizeContractAsJson(String contractAsJson) {
-        return contractAsJson
-                .replaceAll(
-                        "\"takerPaymentAccountPayload\": \\{[^}]*}",
-                        "\"takerPaymentAccountPayload\": null")
-                .replaceAll(
-                        "\"makerPaymentAccountPayload\": \\{[^}]*}",
-                        "\"makerPaymentAccountPayload\": null");
+        return contractAsJson; // nothing to sanitize because the contract does not contain the payment account payloads
     }
 
     public void printDiff(@Nullable String peersContractAsJson) {
