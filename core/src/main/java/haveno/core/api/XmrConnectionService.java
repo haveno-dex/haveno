@@ -106,15 +106,15 @@ public final class XmrConnectionService {
 
     private boolean isInitialized;
     private boolean pollInProgress;
-    private MoneroDaemonRpc daemon;
+    private MoneroDaemonRpc monerod;
     private Boolean isConnected = false;
     @Getter
     private MoneroDaemonInfo lastInfo;
     private Long lastFallbackInvocation;
     private Long lastLogPollErrorTimestamp;
-    private long lastLogDaemonNotSyncedTimestamp;
+    private long lastLogMonerodNotSyncedTimestamp;
     private Long syncStartHeight;
-    private TaskLooper daemonPollLooper;
+    private TaskLooper monerodPollLooper;
     private long lastRefreshPeriodMs;
     @Getter
     private boolean isShutDownStarted;
@@ -188,16 +188,16 @@ public final class XmrConnectionService {
         log.info("Shutting down {}", getClass().getSimpleName());
         isInitialized = false;
         synchronized (lock) {
-            if (daemonPollLooper != null) daemonPollLooper.stop();
-            daemon = null;
+            if (monerodPollLooper != null) monerodPollLooper.stop();
+            monerod = null;
         }
     }
 
     // ------------------------ CONNECTION MANAGEMENT -------------------------
 
-    public MoneroDaemonRpc getDaemon() {
+    public MoneroDaemonRpc getMonerod() {
         accountService.checkAccountOpen();
-        return this.daemon;
+        return this.monerod;
     }
 
     public String getProxyUri() {
@@ -402,7 +402,7 @@ public final class XmrConnectionService {
     }
 
     public void verifyConnection() {
-        if (daemon == null) throw new RuntimeException("No connection to Monero node");
+        if (monerod == null) throw new RuntimeException("No connection to Monero node");
         if (!Boolean.TRUE.equals(isConnected())) throw new RuntimeException("No connection to Monero node");
         if (!isSyncedWithinTolerance()) throw new RuntimeException("Monero node is not synced");
     }
@@ -565,8 +565,8 @@ public final class XmrConnectionService {
                 // register local node listener
                 xmrLocalNode.addListener(new XmrLocalNodeListener() {
                     @Override
-                    public void onNodeStarted(MoneroDaemonRpc daemon) {
-                        log.info("Local monero node started, height={}", daemon.getHeight());
+                    public void onNodeStarted(MoneroDaemonRpc monerod) {
+                        log.info("Local monero node started, height={}", monerod.getHeight());
                     }
 
                     @Override
@@ -707,15 +707,15 @@ public final class XmrConnectionService {
     private void onConnectionChanged(MoneroRpcConnection currentConnection) {
         if (isShutDownStarted || !accountService.isAccountOpen()) return;
         if (currentConnection == null) {
-            log.warn("Setting daemon connection to null", new Throwable("Stack trace"));
+            log.warn("Setting monerod connection to null", new Throwable("Stack trace"));
         }
         synchronized (lock) {
             if (currentConnection == null) {
-                daemon = null;
+                monerod = null;
                 isConnected = false;
                 connectionList.setCurrentConnectionUri(null);
             } else {
-                daemon = new MoneroDaemonRpc(currentConnection);
+                monerod = new MoneroDaemonRpc(currentConnection);
                 isConnected = currentConnection.isConnected();
                 connectionList.removeConnection(currentConnection.getUri());
                 connectionList.addConnection(currentConnection);
@@ -730,11 +730,11 @@ public final class XmrConnectionService {
         }
 
         // update key image poller
-        keyImagePoller.setDaemon(getDaemon());
+        keyImagePoller.setMonerod(getMonerod());
         keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
         
         // update polling
-        doPollDaemon();
+        doPollMonerod();
         if (currentConnection != getConnection()) return; // polling can change connection
         UserThread.runAfter(() -> updatePolling(), getInternalRefreshPeriodMs() / 1000);
 
@@ -754,37 +754,37 @@ public final class XmrConnectionService {
 
     private void startPolling() {
         synchronized (lock) {
-            if (daemonPollLooper != null) daemonPollLooper.stop();
-            daemonPollLooper = new TaskLooper(() -> pollDaemon());
-            daemonPollLooper.start(getInternalRefreshPeriodMs());
+            if (monerodPollLooper != null) monerodPollLooper.stop();
+            monerodPollLooper = new TaskLooper(() -> pollMonerod());
+            monerodPollLooper.start(getInternalRefreshPeriodMs());
         }
     }
 
     private void stopPolling() {
         synchronized (lock) {
-            if (daemonPollLooper != null) {
-                daemonPollLooper.stop();
-                daemonPollLooper = null;
+            if (monerodPollLooper != null) {
+                monerodPollLooper.stop();
+                monerodPollLooper = null;
             }
         }
     }
 
-    private void pollDaemon() {
+    private void pollMonerod() {
         if (pollInProgress) return;
-        doPollDaemon();
+        doPollMonerod();
     }
 
-    private void doPollDaemon() {
+    private void doPollMonerod() {
         synchronized (pollLock) {
             pollInProgress = true;
             if (isShutDownStarted) return;
             try {
 
-                // poll daemon
-                if (daemon == null && !fallbackRequiredBeforeConnectionSwitch()) switchToBestConnection();
+                // poll monerod
+                if (monerod == null && !fallbackRequiredBeforeConnectionSwitch()) switchToBestConnection();
                 try {
-                    if (daemon == null) throw new RuntimeException("No connection to Monero daemon");
-                    lastInfo = daemon.getInfo();
+                    if (monerod == null) throw new RuntimeException("No connection to Monero daemon");
+                    lastInfo = monerod.getInfo();
                 } catch (Exception e) {
 
                     // skip handling if shutting down
@@ -796,13 +796,13 @@ public final class XmrConnectionService {
                         if (connectionServiceFallbackType.get() == null && (lastFallbackInvocation == null || System.currentTimeMillis() - lastFallbackInvocation > FALLBACK_INVOCATION_PERIOD_MS)) {
                             lastFallbackInvocation = System.currentTimeMillis();
                             if (usedSyncingLocalNodeBeforeStartup) {
-                                log.warn("Failed to fetch daemon info from local connection on startup: " + e.getMessage());
+                                log.warn("Failed to fetch monerod info from local connection on startup: " + e.getMessage());
                                 connectionServiceFallbackType.set(XmrConnectionFallbackType.LOCAL);
                             } else if (isProvidedConnections()) {
-                                log.warn("Failed to fetch daemon info from provided connections on startup: " + e.getMessage());
+                                log.warn("Failed to fetch monerod info from provided connections on startup: " + e.getMessage());
                                 connectionServiceFallbackType.set(XmrConnectionFallbackType.PROVIDED);
                             } else {
-                                log.warn("Failed to fetch daemon info from custom connection on startup: " + e.getMessage());
+                                log.warn("Failed to fetch monerod info from custom connection on startup: " + e.getMessage());
                                 connectionServiceFallbackType.set(XmrConnectionFallbackType.CUSTOM);
                             }
                         }
@@ -811,18 +811,18 @@ public final class XmrConnectionService {
 
                     // log error message periodically
                     if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                        log.warn("Failed to fetch daemon info, trying to switch to best connection, error={}", e.getMessage());
+                        log.warn("Failed to fetch monerod info, trying to switch to best connection, error={}", e.getMessage());
                         if (DevEnv.isDevMode()) log.error(ExceptionUtils.getStackTrace(e));
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
                     }
 
                     // switch to best connection
                     switchToBestConnection();
-                    if (daemon == null) throw new RuntimeException("No connection to Monero daemon after error handling");
-                    lastInfo = daemon.getInfo(); // caught internally if still fails
+                    if (monerod == null) throw new RuntimeException("No connection to Monero daemon after error handling");
+                    lastInfo = monerod.getInfo(); // caught internally if still fails
                 }
 
-                // connected to daemon
+                // connected to monerod
                 isConnected = true;
                 connectionServiceFallbackType.set(null);
 
@@ -832,10 +832,10 @@ public final class XmrConnectionService {
                 // write sync status to preferences
                 preferences.getXmrNodeSettings().setSyncBlockchain(blockchainSyncing);
 
-                // throttle warnings if daemon not synced
-                if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS) {
+                // throttle warnings if monerod not synced
+                if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogMonerodNotSyncedTimestamp > HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS) {
                     log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), getTargetHeight());
-                    lastLogDaemonNotSyncedTimestamp = System.currentTimeMillis();
+                    lastLogMonerodNotSyncedTimestamp = System.currentTimeMillis();
                 }
 
                 // announce connection change if refresh period changes
@@ -878,7 +878,7 @@ public final class XmrConnectionService {
 
                 // handle error recovery
                 if (lastLogPollErrorTimestamp != null) {
-                    log.info("Successfully fetched daemon info after previous error");
+                    log.info("Successfully fetched monerod info after previous error");
                     lastLogPollErrorTimestamp = null;
                 }
 
@@ -886,7 +886,7 @@ public final class XmrConnectionService {
                 getConnectionServiceErrorMsg().set(null);
             } catch (Exception e) {
 
-                // not connected to daemon
+                // not connected to monerod
                 isConnected = false;
 
                 // skip if shut down

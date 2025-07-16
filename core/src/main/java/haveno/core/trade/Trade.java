@@ -1736,8 +1736,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             ThreadUtils.submitToPool(() -> {
 
                 // get trade's deposit txs from daemon
-                MoneroTx makerDepositTx = getMaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(getMaker().getDepositTxHash());
-                MoneroTx takerDepositTx = getTaker().getDepositTxHash() == null ? null : xmrWalletService.getDaemon().getTx(getTaker().getDepositTxHash());
+                MoneroTx makerDepositTx = getMaker().getDepositTxHash() == null ? null : xmrWalletService.getMonerod().getTx(getMaker().getDepositTxHash());
+                MoneroTx takerDepositTx = getTaker().getDepositTxHash() == null ? null : xmrWalletService.getMonerod().getTx(getTaker().getDepositTxHash());
 
                 // remove trade and wallet if neither deposit tx published
                 if (makerDepositTx == null && takerDepositTx == null) {
@@ -2202,13 +2202,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void setStartTimeFromUnlockedTxs() {
         long now = System.currentTimeMillis();
         final long tradeTime = getTakeOfferDate().getTime();
-        MoneroDaemon daemonRpc = xmrWalletService.getDaemon();
-        if (daemonRpc == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
+        MoneroDaemon monerod = xmrWalletService.getMonerod();
+        if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
         if (getMakerDepositTx() == null || (getTakerDepositTx() == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot set start time for trade " + getId() + " because its unlocked deposit tx is null. Is client connected to a daemon?");
 
         // get unlock time of last deposit tx
         long unlockHeight = Math.max(getMakerDepositTx().getHeight() + XmrWalletService.NUM_BLOCKS_UNLOCK - 1, hasBuyerAsTakerWithoutDeposit() ? 0l : getTakerDepositTx().getHeight() + XmrWalletService.NUM_BLOCKS_UNLOCK - 1);
-        long unlockTime = daemonRpc.getBlockByHeight(unlockHeight).getTimestamp() * 1000;
+        long unlockTime = monerod.getBlockByHeight(unlockHeight).getTimestamp() * 1000;
 
         // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
         // If block date is earlier than our trade date we use our trade date.
@@ -2976,13 +2976,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                     // get payout height if unknown
                     if (payoutHeight == null && getPayoutTxId() != null && isPayoutPublished()) {
-                        MoneroTx tx = xmrWalletService.getDaemon().getTx(getPayoutTxId());
+                        MoneroTx tx = xmrWalletService.getMonerod().getTx(getPayoutTxId());
                         if (tx == null) log.warn("Payout tx not found for {} {}, txId={}", getTrade().getClass().getSimpleName(), getId(), getPayoutTxId());
                         else if (tx.isConfirmed()) payoutHeight = tx.getHeight();
                     }
 
                     // sync wallet if confirm or unlock expected
-                    long currentHeight = xmrWalletService.getDaemon().getHeight();
+                    long currentHeight = xmrWalletService.getMonerod().getHeight();
                     if (!isPayoutConfirmed() || (payoutHeight != null && currentHeight >= payoutHeight + XmrWalletService.NUM_BLOCKS_UNLOCK)) {
                         log.info("Syncing idle trade wallet to update payout tx, tradeId={}", getId());
                         syncAndPollWallet();
