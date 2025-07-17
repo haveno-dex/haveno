@@ -804,10 +804,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkLabel.idProperty().bind(model.getP2pNetworkLabelId());
         model.getP2pNetworkWarnMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
+                if (p2PNetworkWarnMsgPopup != null) p2PNetworkWarnMsgPopup.hide();
                 p2PNetworkWarnMsgPopup = new Popup().warning(newValue);
                 p2PNetworkWarnMsgPopup.show();
             } else if (p2PNetworkWarnMsgPopup != null) {
                 p2PNetworkWarnMsgPopup.hide();
+                p2PNetworkWarnMsgPopup = null;
             }
         });
         p2PNetworkIcon.setOnMouseClicked(e -> {
