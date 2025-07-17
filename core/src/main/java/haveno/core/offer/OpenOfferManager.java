@@ -1595,8 +1595,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             if (hasBuyerAsTakerWithoutDeposit) {
 
                 // verify maker's trade fee
-                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT + " but got " + offer.getMakerFeePct();
+                double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getMakerFeePct() != makerFeePct) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + makerFeePct + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1636,16 +1637,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // verify maker's trade fee
-                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_PCT + " but got " + offer.getMakerFeePct();
+                double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getMakerFeePct() != makerFeePct) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + makerFeePct + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify taker's trade fee
-                if (offer.getTakerFeePct() != HavenoUtils.TAKER_FEE_PCT) {
-                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + HavenoUtils.TAKER_FEE_PCT + " but got " + offer.getTakerFeePct();
+                double takerFeePct = HavenoUtils.getTakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getTakerFeePct() != takerFeePct) {
+                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + takerFeePct + " but got " + offer.getTakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1685,7 +1688,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
-            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
+            double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), makerFeePct);
             BigInteger sendTradeAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
             BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, HavenoUtils.PENALTY_FEE_PCT);

@@ -205,8 +205,8 @@ public class CreateOfferService {
                 useMarketBasedPriceValue,
                 amountAsLong,
                 minAmountAsLong,
-                hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT,
-                hasBuyerAsTakerWithoutDeposit ? 0d : HavenoUtils.TAKER_FEE_PCT,
+                HavenoUtils.getMakerFeePct(currencyCode, hasBuyerAsTakerWithoutDeposit),
+                HavenoUtils.getTakerFeePct(currencyCode, hasBuyerAsTakerWithoutDeposit),
                 HavenoUtils.PENALTY_FEE_PCT,
                 hasBuyerAsTakerWithoutDeposit ? 0d : securityDepositPct, // buyer as taker security deposit is optional for private offers
                 securityDepositPct,

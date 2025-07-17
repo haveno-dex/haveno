@@ -697,7 +697,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     public BigInteger getMaxMakerFee() {
-        return HavenoUtils.multiply(amount.get(), buyerAsTakerWithoutDeposit.get() ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
+        return HavenoUtils.multiply(amount.get(), HavenoUtils.getMakerFeePct(tradeCurrencyCode.get(), buyerAsTakerWithoutDeposit.get()));
     }
 
     boolean canPlaceOffer() {
