@@ -101,8 +101,8 @@ public class TradeStatisticsManager {
                 .collect(Collectors.toSet());
         
 
-        // remove duplicates in early trades due to bug
-        deduplicateEarlyTradeStatistics(set);
+        // remove duplicates in early trade stats due to bugs
+        removeDuplicateStats(set);
 
         synchronized (observableTradeStatisticsSet) {
             observableTradeStatisticsSet.addAll(set);
@@ -111,7 +111,42 @@ public class TradeStatisticsManager {
         maybeDumpStatistics();
     }
 
-    private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> tradeStats) {
+    private void removeDuplicateStats(Set<TradeStatistics3> tradeStats) {
+        removeEarlyDuplicateStats(tradeStats);
+        removeEarlyDuplicateStatsFuzzy(tradeStats);
+    }
+
+    private void removeEarlyDuplicateStats(Set<TradeStatistics3> tradeStats) {
+       
+        // collect trades before September 30, 2024
+        Set<TradeStatistics3> earlyTrades = tradeStats.stream()
+                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-09-30T00:00:00Z")))
+                .collect(Collectors.toSet());
+
+        // collect stats with duplicated timestamp, currency, and payment method
+        Set<TradeStatistics3> duplicates = new HashSet<>();
+        Set<TradeStatistics3> deduplicates = new HashSet<>();
+        for (TradeStatistics3 tradeStatistic : earlyTrades) {
+            TradeStatistics3 duplicate = findDuplicate(tradeStatistic, deduplicates);
+            if (duplicate == null) deduplicates.add(tradeStatistic);
+            else duplicates.add(tradeStatistic);
+        }
+
+        // remove duplicated stats
+        tradeStats.removeAll(duplicates);
+    }
+
+    private TradeStatistics3 findDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
+        return set.stream().filter(e -> isDuplicate(tradeStatistics, e)).findFirst().orElse(null);
+    }
+
+    private boolean isDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
+        if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
+        return tradeStatistics1.getDateAsLong() == tradeStatistics2.getDateAsLong();
+    }
+
+    private void removeEarlyDuplicateStatsFuzzy(Set<TradeStatistics3> tradeStats) {
 
         // collect trades before August 7, 2024
         Set<TradeStatistics3> earlyTrades = tradeStats.stream()
@@ -127,7 +162,7 @@ public class TradeStatisticsManager {
             else duplicates.add(tradeStatistic);
         }
 
-        // remove duplicated trades
+        // remove duplicated stats
         tradeStats.removeAll(duplicates);
     }
 
@@ -138,7 +173,7 @@ public class TradeStatisticsManager {
     private boolean isFuzzyDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
         if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
         if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
-        if (tradeStatistics1.getPrice() != tradeStatistics2.getPrice()) return false;
+        if (tradeStatistics1.getNormalizedPrice() != tradeStatistics2.getNormalizedPrice()) return false;
         return isFuzzyDuplicateV1(tradeStatistics1, tradeStatistics2) || isFuzzyDuplicateV2(tradeStatistics1, tradeStatistics2);
     }
 

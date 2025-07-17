@@ -95,7 +95,7 @@ class ReceiptPredicates {
                 .map(TradeCurrency::getCode)
                 .collect(Collectors.toSet());
 
-        return codes.contains(offer.getCurrencyCode());
+        return codes.contains(offer.getCounterCurrencyCode());
     }
 
     boolean isMatchingSepaOffer(Offer offer, PaymentAccount account) {

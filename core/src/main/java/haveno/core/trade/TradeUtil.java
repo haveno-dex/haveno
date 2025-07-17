@@ -23,7 +23,6 @@ import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
 import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
-import static haveno.core.locale.CurrencyUtil.isTraditionalCurrency;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import static haveno.core.util.FormattingUtils.formatDurationAsWords;
@@ -153,8 +152,8 @@ public class TradeUtil {
             return "";
 
         checkNotNull(trade.getOffer());
-        checkNotNull(trade.getOffer().getCurrencyCode());
-        return getCurrencyPair(trade.getOffer().getCurrencyCode());
+        checkNotNull(trade.getOffer().getCounterCurrencyCode());
+        return getCurrencyPair(trade.getOffer().getCounterCurrencyCode());
     }
 
     public String getPaymentMethodNameWithCountryCode(Trade trade) {
@@ -180,7 +179,7 @@ public class TradeUtil {
         return (trade.isArbitrator() ? "Arbitrator for " : "") + // TODO: use Res.get()
                 getRole(trade.getBuyer() == trade.getMaker(),
                         trade.isArbitrator() ? true : trade.isMaker(), // arbitrator role in context of maker
-                        offer.getCurrencyCode());
+                        offer.getCounterCurrencyCode());
     }
 
     /**
@@ -192,25 +191,14 @@ public class TradeUtil {
      * @return String describing a trader's role
      */
     private static String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
-        if (isTraditionalCurrency(currencyCode)) {
-            String baseCurrencyCode = Res.getBaseCurrencyCode();
-            if (isBuyerMakerAndSellerTaker)
-                return isMaker
-                        ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.buyer"))
-                        : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.seller"));
-            else
-                return isMaker
-                        ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.seller"))
-                        : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.buyer"));
-        } else {
-            if (isBuyerMakerAndSellerTaker)
-                return isMaker
-                        ? Res.get("formatter.asMaker", currencyCode, Res.get("shared.seller"))
-                        : Res.get("formatter.asTaker", currencyCode, Res.get("shared.buyer"));
-            else
-                return isMaker
-                        ? Res.get("formatter.asMaker", currencyCode, Res.get("shared.buyer"))
-                        : Res.get("formatter.asTaker", currencyCode, Res.get("shared.seller"));
-        }
+        String baseCurrencyCode = Res.getBaseCurrencyCode();
+        if (isBuyerMakerAndSellerTaker)
+            return isMaker
+                    ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.buyer"))
+                    : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.seller"));
+        else
+            return isMaker
+                    ? Res.get("formatter.asMaker", baseCurrencyCode, Res.get("shared.seller"))
+                    : Res.get("formatter.asTaker", baseCurrencyCode, Res.get("shared.buyer"));
     }
 }

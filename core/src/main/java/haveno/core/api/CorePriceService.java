@@ -78,7 +78,7 @@ class CorePriceService {
         } else if (!marketPrice.isExternallyProvidedPrice()) {
             throw new IllegalArgumentException("Price is not available externally: " + currencyCode); // TODO: return more complex Price type including price double and isExternal boolean
         }
-        return mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
+        return marketPrice.getPrice();
     }
 
     /**
@@ -87,8 +87,7 @@ class CorePriceService {
     public List<MarketPriceInfo> getMarketPrices() throws ExecutionException, InterruptedException, TimeoutException {
         return priceFeedService.requestAllPrices().values().stream()
                 .map(marketPrice -> {
-                    double mappedPrice = mapPriceFeedServicePrice(marketPrice.getPrice(), marketPrice.getCurrencyCode());
-                    return new MarketPriceInfo(marketPrice.getCurrencyCode(), mappedPrice);
+                    return new MarketPriceInfo(marketPrice.getCurrencyCode(), marketPrice.getPrice());
                 })
                 .collect(Collectors.toList());
     }
@@ -102,12 +101,13 @@ class CorePriceService {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
+        // TODO: remove this!!!
         // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
         // considered as buying/selling crypto. Because of this, when viewing a xmr-crypto pair,
         // the buy column is actually the sell column and vice versa. To maintain the expected
         // ordering, we have to reverse the price comparator.
-        boolean isCrypto = CurrencyUtil.isCryptoCurrency(currencyCode);
-        if (isCrypto) offerPriceComparator = offerPriceComparator.reversed();
+        //boolean isCrypto = CurrencyUtil.isCryptoCurrency(currencyCode);
+        //if (isCrypto) offerPriceComparator = offerPriceComparator.reversed();
 
         // Offer amounts are used for the secondary sort. They are sorted from high to low.
         Comparator<Offer> offerAmountComparator = Comparator.comparing(Offer::getAmount).reversed();
@@ -130,11 +130,11 @@ class CorePriceService {
                 double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                buyTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
+                buyTM.put(priceAsDouble, accumulatedAmount);
             }
         };
 
-        // Create buyer hashmap {key:price, value:count}, uses TreeMap to sort by key (asc)
+        // Create seller hashmap {key:price, value:count}, uses TreeMap to sort by key (asc)
         accumulatedAmount = 0;
         LinkedHashMap<Double,Double> sellTM = new LinkedHashMap<Double,Double>();
         for(Offer offer: sellOffers){
@@ -143,7 +143,7 @@ class CorePriceService {
                 double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
                 accumulatedAmount += amount;
                 double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
-                sellTM.put(mapPriceFeedServicePrice(priceAsDouble, currencyCode), accumulatedAmount);
+                sellTM.put(priceAsDouble, accumulatedAmount);
             }
         };
 
@@ -156,21 +156,6 @@ class CorePriceService {
         Double[] sellPrices = sellTM.keySet().toArray(new Double[sellTM.size()]);
 
         return new MarketDepthInfo(currencyCode, buyPrices, buyDepth, sellPrices, sellDepth);
-    }
-
-    /**
-     * PriceProvider returns different values for crypto and traditional,
-     * e.g. 1 XMR = X USD
-     * but 1 DOGE = X XMR
-     * Here we convert all to:
-     * 1 XMR = X (FIAT or CRYPTO)
-     */
-    private double mapPriceFeedServicePrice(double price, String currencyCode) {
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-            return price;
-        }
-        return price == 0 ? 0 : 1 / price;
-        // TODO PriceProvider.getAll() could provide these values directly when the original values are not needed for the 'desktop' UI anymore
     }
 }
 
