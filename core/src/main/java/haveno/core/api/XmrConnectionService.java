@@ -93,7 +93,7 @@ public final class XmrConnectionService {
     private final MoneroConnectionManager connectionManager;
     private final EncryptedConnectionList connectionList;
     private final ObjectProperty<List<MoneroRpcConnection>> connections = new SimpleObjectProperty<>();
-    private final IntegerProperty numConnections = new SimpleIntegerProperty(0);
+    private final IntegerProperty numConnections = new SimpleIntegerProperty(-1);
     private final ObjectProperty<MoneroRpcConnection> connectionProperty = new SimpleObjectProperty<>();
     private final LongProperty chainHeight = new SimpleLongProperty(0);
     private final DownloadListener downloadListener = new DownloadListener();
@@ -845,6 +845,9 @@ public final class XmrConnectionService {
                     return;
                 }
 
+                // get the number of connections, which is only available if not restricted
+                int numOutgoingConnections = Boolean.TRUE.equals(lastInfo.isRestricted()) ? -1 : lastInfo.getNumOutgoingConnections();
+
                 // update properties on user thread
                 UserThread.execute(() -> {
 
@@ -870,11 +873,18 @@ public final class XmrConnectionService {
                         }
                     }
                     connections.set(availableConnections);
-                    numConnections.set(availableConnections.size());
+                    numConnections.set(numOutgoingConnections);
 
                     // notify update
                     numUpdates.set(numUpdates.get() + 1);
                 });
+
+                // invoke error handling if no connections
+                if (numOutgoingConnections == 0) {
+                    String errorMsg = "The Monero node has no connected peers. It may be experiencing a network connectivity issue.";
+                    log.warn(errorMsg);
+                    throw new RuntimeException(errorMsg);
+                }
 
                 // handle error recovery
                 if (lastLogPollErrorTimestamp != null) {
