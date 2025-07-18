@@ -519,6 +519,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            ErrorMessageHandler errorMessageHandler) {
         ThreadUtils.execute(() -> {
 
+            // cannot set trigger price for fixed price offers
+            if (triggerPrice != 0 && offer.getOfferPayload().getPrice() != 0) {
+                errorMessageHandler.handleErrorMessage("Cannot set trigger price for fixed price offers.");
+                return;
+            }
+
             // check source offer and clone limit
             OpenOffer sourceOffer = null;
             if (sourceOfferId != null) {
@@ -526,7 +532,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // get source offer
                 Optional<OpenOffer> sourceOfferOptional = getOpenOffer(sourceOfferId);
                 if (!sourceOfferOptional.isPresent()) {
-                    errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId);
+                    errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId + ".");
                     return;
                 }
                 sourceOffer = sourceOfferOptional.get();
