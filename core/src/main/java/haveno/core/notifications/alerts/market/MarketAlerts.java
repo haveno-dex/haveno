@@ -110,13 +110,12 @@ public class MarketAlerts {
     }
 
     private void onOfferAdded(Offer offer) {
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         Price offerPrice = offer.getPrice();
         if (marketPrice != null && offerPrice != null) {
             boolean isSellOffer = offer.getDirection() == OfferDirection.SELL;
             String shortOfferId = offer.getShortId();
-            boolean isTraditionalCurrency = CurrencyUtil.isTraditionalCurrency(currencyCode);
             String alertId = getAlertId(offer);
             user.getMarketAlertFilters().stream()
                     .filter(marketAlertFilter -> !offer.isMyOffer(keyRing))
@@ -133,9 +132,7 @@ public class MarketAlerts {
                         double offerPriceValue = offerPrice.getValue();
                         double ratio = offerPriceValue / marketPriceAsDouble;
                         ratio = 1 - ratio;
-                        if (isTraditionalCurrency && isSellOffer)
-                            ratio *= -1;
-                        else if (!isTraditionalCurrency && !isSellOffer)
+                        if (isSellOffer)
                             ratio *= -1;
 
                         ratio = ratio * 10000;
@@ -148,26 +145,14 @@ public class MarketAlerts {
                         if (isTriggerForBuyOfferAndTriggered || isTriggerForSellOfferAndTriggered) {
                             String direction = isSellOffer ? Res.get("shared.sell") : Res.get("shared.buy");
                             String marketDir;
-                            if (isTraditionalCurrency) {
-                                if (isSellOffer) {
-                                    marketDir = ratio > 0 ?
-                                            Res.get("account.notifications.marketAlert.message.msg.above") :
-                                            Res.get("account.notifications.marketAlert.message.msg.below");
-                                } else {
-                                    marketDir = ratio < 0 ?
-                                            Res.get("account.notifications.marketAlert.message.msg.above") :
-                                            Res.get("account.notifications.marketAlert.message.msg.below");
-                                }
+                            if (isSellOffer) {
+                                marketDir = ratio > 0 ?
+                                        Res.get("account.notifications.marketAlert.message.msg.above") :
+                                        Res.get("account.notifications.marketAlert.message.msg.below");
                             } else {
-                                if (isSellOffer) {
-                                    marketDir = ratio < 0 ?
-                                            Res.get("account.notifications.marketAlert.message.msg.above") :
-                                            Res.get("account.notifications.marketAlert.message.msg.below");
-                                } else {
-                                    marketDir = ratio > 0 ?
-                                            Res.get("account.notifications.marketAlert.message.msg.above") :
-                                            Res.get("account.notifications.marketAlert.message.msg.below");
-                                }
+                                marketDir = ratio < 0 ?
+                                        Res.get("account.notifications.marketAlert.message.msg.above") :
+                                        Res.get("account.notifications.marketAlert.message.msg.below");
                             }
 
                             ratio = Math.abs(ratio);

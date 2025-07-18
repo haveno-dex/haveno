@@ -17,7 +17,6 @@
 
 package haveno.core.trade.statistics;
 
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
@@ -39,7 +38,7 @@ public final class TradeStatisticsForJson {
     public final long tradeDate;
     public final String paymentMethod;
 
-    // primaryMarket fields are based on industry standard where primaryMarket is always in the focus (in the app BTC is always in the focus - will be changed in a larger refactoring once)
+    // primaryMarket fields are based on industry standard where primaryMarket is always in the focus (in the app XMR is always in the focus)
     public String currencyPair;
 
     public long primaryMarketTradePrice;
@@ -49,27 +48,18 @@ public final class TradeStatisticsForJson {
     public TradeStatisticsForJson(TradeStatistics3 tradeStatistics) {
         this.currency = tradeStatistics.getCurrency();
         this.paymentMethod = tradeStatistics.getPaymentMethodId();
-        this.tradePrice = tradeStatistics.getPrice();
+        this.tradePrice = tradeStatistics.getNormalizedPrice();
         this.tradeAmount = tradeStatistics.getAmount();
         this.tradeDate = tradeStatistics.getDateAsLong();
 
         try {
             Price tradePrice = getPrice();
-            if (CurrencyUtil.isCryptoCurrency(currency)) {
-                currencyPair = currency + "/" + Res.getBaseCurrencyCode();
-                primaryMarketTradePrice = tradePrice.getValue();
-                primaryMarketTradeAmount = getTradeVolume() != null ?
-                        getTradeVolume().getValue() :
-                        0;
-                primaryMarketTradeVolume = getTradeAmount().longValueExact();
-            } else {
-                currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
-                primaryMarketTradePrice = tradePrice.getValue();
-                primaryMarketTradeAmount = getTradeAmount().longValueExact();
-                primaryMarketTradeVolume = getTradeVolume() != null ?
-                        getTradeVolume().getValue() :
-                        0;
-            }
+            currencyPair = Res.getBaseCurrencyCode() + "/" + currency;
+            primaryMarketTradePrice = tradePrice.getValue();
+            primaryMarketTradeAmount = getTradeAmount().longValueExact();
+            primaryMarketTradeVolume = getTradeVolume() != null ?
+                    getTradeVolume().getValue() :
+                    0;
         } catch (Throwable t) {
             log.error(t.getMessage());
             t.printStackTrace();

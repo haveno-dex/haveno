@@ -146,7 +146,7 @@ class TakeOfferDataModel extends OfferDataModel {
         //     feeFromFundingTxProperty.set(FeePolicy.getMinRequiredFeeForFundingTx());
 
         if (isTabSelected)
-            priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+            priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
 
         if (canTakeOffer()) {
             tradeManager.checkOfferAvailability(offer,
@@ -204,7 +204,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         offer.resetState();
 
-        priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+        priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
     }
 
     // We don't want that the fee gets updated anymore after we show the funding screen.
@@ -215,7 +215,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void onTabSelected(boolean isSelected) {
         this.isTabSelected = isSelected;
         if (isTabSelected)
-            priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+            priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
     }
 
     public void onClose(boolean removeOffer) {
@@ -259,7 +259,7 @@ class TakeOfferDataModel extends OfferDataModel {
             fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
 
         String errorMsg = null;
-        if (filterManager.isCurrencyBanned(offer.getCurrencyCode())) {
+        if (filterManager.isCurrencyBanned(offer.getCounterCurrencyCode())) {
             errorMsg = Res.get("offerbook.warning.currencyBanned");
         } else if (filterManager.isPaymentMethodBanned(offer.getPaymentMethod())) {
             errorMsg = Res.get("offerbook.warning.paymentMethodBanned");
@@ -501,11 +501,11 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     public String getCurrencyCode() {
-        return offer.getCurrencyCode();
+        return offer.getCounterCurrencyCode();
     }
 
     public String getCurrencyNameAndCode() {
-        return CurrencyUtil.getNameByCode(offer.getCurrencyCode());
+        return CurrencyUtil.getNameByCode(offer.getCounterCurrencyCode());
     }
 
     @NotNull

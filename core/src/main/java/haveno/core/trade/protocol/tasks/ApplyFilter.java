@@ -45,9 +45,9 @@ public class ApplyFilter extends TradeTask {
             } else if (filterManager.isOfferIdBanned(trade.getId())) {
                 failed("Offer ID is banned.\n" +
                         "Offer ID=" + trade.getId());
-            } else if (trade.getOffer() != null && filterManager.isCurrencyBanned(trade.getOffer().getCurrencyCode())) {
+            } else if (trade.getOffer() != null && filterManager.isCurrencyBanned(trade.getOffer().getCounterCurrencyCode())) {
                 failed("Currency is banned.\n" +
-                        "Currency code=" + trade.getOffer().getCurrencyCode());
+                        "Currency code=" + trade.getOffer().getCounterCurrencyCode());
             } else if (filterManager.isPaymentMethodBanned(checkNotNull(trade.getOffer()).getPaymentMethod())) {
                 failed("Payment method is banned.\n" +
                         "Payment method=" + trade.getOffer().getPaymentMethod().getId());

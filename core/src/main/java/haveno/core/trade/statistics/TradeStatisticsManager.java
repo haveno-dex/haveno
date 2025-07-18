@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyTuple;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
@@ -68,8 +69,8 @@ public class TradeStatisticsManager {
         this.storageDir = storageDir;
         this.dumpStatistics = dumpStatistics;
 
-
         appendOnlyDataStoreService.addService(tradeStatistics3StorageService);
+        HavenoUtils.tradeStatisticsManager = this;
     }
 
     public void shutDown() {
@@ -100,8 +101,8 @@ public class TradeStatisticsManager {
                 .collect(Collectors.toSet());
         
 
-        // remove duplicates in early trades due to bug
-        deduplicateEarlyTradeStatistics(set);
+        // remove duplicates in early trade stats due to bugs
+        removeDuplicateStats(set);
 
         synchronized (observableTradeStatisticsSet) {
             observableTradeStatisticsSet.addAll(set);
@@ -110,7 +111,42 @@ public class TradeStatisticsManager {
         maybeDumpStatistics();
     }
 
-    private void deduplicateEarlyTradeStatistics(Set<TradeStatistics3> tradeStats) {
+    private void removeDuplicateStats(Set<TradeStatistics3> tradeStats) {
+        removeEarlyDuplicateStats(tradeStats);
+        removeEarlyDuplicateStatsFuzzy(tradeStats);
+    }
+
+    private void removeEarlyDuplicateStats(Set<TradeStatistics3> tradeStats) {
+       
+        // collect trades before September 30, 2024
+        Set<TradeStatistics3> earlyTrades = tradeStats.stream()
+                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-09-30T00:00:00Z")))
+                .collect(Collectors.toSet());
+
+        // collect stats with duplicated timestamp, currency, and payment method
+        Set<TradeStatistics3> duplicates = new HashSet<>();
+        Set<TradeStatistics3> deduplicates = new HashSet<>();
+        for (TradeStatistics3 tradeStatistic : earlyTrades) {
+            TradeStatistics3 duplicate = findDuplicate(tradeStatistic, deduplicates);
+            if (duplicate == null) deduplicates.add(tradeStatistic);
+            else duplicates.add(tradeStatistic);
+        }
+
+        // remove duplicated stats
+        tradeStats.removeAll(duplicates);
+    }
+
+    private TradeStatistics3 findDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
+        return set.stream().filter(e -> isDuplicate(tradeStatistics, e)).findFirst().orElse(null);
+    }
+
+    private boolean isDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
+        if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
+        if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
+        return tradeStatistics1.getDateAsLong() == tradeStatistics2.getDateAsLong();
+    }
+
+    private void removeEarlyDuplicateStatsFuzzy(Set<TradeStatistics3> tradeStats) {
 
         // collect trades before August 7, 2024
         Set<TradeStatistics3> earlyTrades = tradeStats.stream()
@@ -126,7 +162,7 @@ public class TradeStatisticsManager {
             else duplicates.add(tradeStatistic);
         }
 
-        // remove duplicated trades
+        // remove duplicated stats
         tradeStats.removeAll(duplicates);
     }
 
@@ -137,7 +173,7 @@ public class TradeStatisticsManager {
     private boolean isFuzzyDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
         if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
         if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
-        if (tradeStatistics1.getPrice() != tradeStatistics2.getPrice()) return false;
+        if (tradeStatistics1.getNormalizedPrice() != tradeStatistics2.getNormalizedPrice()) return false;
         return isFuzzyDuplicateV1(tradeStatistics1, tradeStatistics2) || isFuzzyDuplicateV2(tradeStatistics1, tradeStatistics2);
     }
 
@@ -208,7 +244,13 @@ public class TradeStatisticsManager {
         jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(array), "trade_statistics");
     }
 
-    public void maybeRepublishTradeStatistics(Set<Trade> trades,
+    public void maybePublishTradeStatistics(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        Set<Trade> trades = new HashSet<>();
+        trades.add(trade);
+        maybePublishTradeStatistics(trades, referralId, isTorNetworkNode);
+    }
+
+   public void maybePublishTradeStatistics(Set<Trade> trades,
                                               @Nullable String referralId,
                                               boolean isTorNetworkNode) {
         long ts = System.currentTimeMillis();
@@ -219,38 +261,46 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            TradeStatistics3 tradeStatistics3 = null;
+            TradeStatistics3 tradeStatistics3V0 = null;
             try {
-                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode, false);
+                tradeStatistics3V0 = TradeStatistics3.fromV0(trade, referralId, isTorNetworkNode);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
 
-            TradeStatistics3 tradeStatistics3Fuzzed = null;
+            TradeStatistics3 tradeStatistics3V1 = null;
             try {
-                tradeStatistics3Fuzzed = TradeStatistics3.from(trade, referralId, isTorNetworkNode, true);
+                tradeStatistics3V1 = TradeStatistics3.fromV1(trade, referralId, isTorNetworkNode);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
 
-            boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
-            boolean hasTradeStatistics3Fuzzed = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3Fuzzed.getHash()));
-            if (hasTradeStatistics3 || hasTradeStatistics3Fuzzed) {
+            TradeStatistics3 tradeStatistics3V2 = null;
+            try {
+                tradeStatistics3V2 = TradeStatistics3.fromV2(trade, referralId, isTorNetworkNode);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
+
+            boolean hasTradeStatistics3V0 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V0.getHash()));
+            boolean hasTradeStatistics3V1 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V1.getHash()));
+            boolean hasTradeStatistics3V2 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V2.getHash()));
+            if (hasTradeStatistics3V0 || hasTradeStatistics3V1 || hasTradeStatistics3V2) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;
             }
 
-            if (!tradeStatistics3.isValid()) {
-                log.warn("Trade: {}. Trade statistics is invalid. We do not publish it.", tradeStatistics3);
+            if (!tradeStatistics3V2.isValid()) {
+                log.warn("Trade statistics are invalid for {} {}. We do not publish: {}", trade.getClass().getSimpleName(), trade.getShortId(), tradeStatistics3V1);
                 return;
             }
 
-            log.info("Trade: {}. We republish tradeStatistics3 as we did not find it in the existing trade statistics. ",
-                    trade.getShortId());
-            p2PService.addPersistableNetworkPayload(tradeStatistics3, true);
+            log.info("Publishing trade statistics for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            p2PService.addPersistableNetworkPayload(tradeStatistics3V2, true);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
                 System.currentTimeMillis() - ts, hashes.size(), trades.size());

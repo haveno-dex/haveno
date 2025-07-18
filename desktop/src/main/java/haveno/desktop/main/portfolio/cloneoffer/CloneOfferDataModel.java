@@ -108,12 +108,12 @@ class CloneOfferDataModel extends MutableOfferDataModel {
 
         Offer offer = openOffer.getOffer();
         direction = offer.getDirection();
-        CurrencyUtil.getTradeCurrency(offer.getCurrencyCode())
+        CurrencyUtil.getTradeCurrency(offer.getCounterCurrencyCode())
                 .ifPresent(c -> this.tradeCurrency = c);
-        tradeCurrencyCode.set(offer.getCurrencyCode());
+        tradeCurrencyCode.set(offer.getCounterCurrencyCode());
 
         PaymentAccount tmpPaymentAccount = user.getPaymentAccount(openOffer.getOffer().getMakerPaymentAccountId());
-        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode());
+        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCounterCurrencyCode());
         if (optionalTradeCurrency.isPresent() && tmpPaymentAccount != null) {
             TradeCurrency selectedTradeCurrency = optionalTradeCurrency.get();
             this.paymentAccount = PaymentAccount.fromProto(tmpPaymentAccount.toProtoMessage(), corePersistenceProtoResolver);

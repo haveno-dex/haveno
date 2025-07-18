@@ -98,6 +98,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                 sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
                 if (sender == trade.getMaker()) {
                     trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
+                    trade.setTakeOfferDate(request.getCurrentDate());
 
                     // check trade price
                     try {
@@ -116,6 +117,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                     if (!trade.getTaker().getPubKeyRing().equals(request.getTakerPubKeyRing())) throw new RuntimeException("Taker's pub key ring does not match request's pub key ring");
                     if (request.getTradeAmount() != trade.getAmount().longValueExact()) throw new RuntimeException("Trade amount does not match request's trade amount");
                     if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
+                    if (request.getCurrentDate() != trade.getTakeOfferDate().getTime()) throw new RuntimeException("Trade's take offer date does not match request's current date");
                 }
                 
                 // handle invalid sender
@@ -134,6 +136,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                 trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
                 sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
                 if (sender != trade.getArbitrator()) throw new RuntimeException("InitTradeRequest to taker is expected from arbitrator");
+                trade.setTakeOfferDate(request.getCurrentDate());
             }
 
             // handle invalid trade type

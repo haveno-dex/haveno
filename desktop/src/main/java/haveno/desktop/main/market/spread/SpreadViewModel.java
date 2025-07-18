@@ -116,11 +116,11 @@ class SpreadViewModel extends ActivatableViewModel {
         synchronized (offerBookListItems) {
             for (OfferBookListItem offerBookListItem : offerBookListItems) {
                 Offer offer = offerBookListItem.getOffer();
-                String key = offer.getCurrencyCode();
+                String key = offer.getCounterCurrencyCode();
                 if (includePaymentMethod) {
                     key = offer.getPaymentMethod().getShortName();
                     if (expandedView) {
-                        key += ":" + offer.getCurrencyCode();
+                        key += ":" + offer.getCounterCurrencyCode();
                     }
                 }
                 if (!offersByCurrencyMap.containsKey(key))
@@ -134,8 +134,6 @@ class SpreadViewModel extends ActivatableViewModel {
 
         for (String key : offersByCurrencyMap.keySet()) {
             List<Offer> offers = offersByCurrencyMap.get(key);
-            boolean iTraditionalCurrency = (offers.size() > 0 && offers.get(0).getPaymentMethod().isTraditional());
-
             List<Offer> uniqueOffers = offers.stream().filter(distinctByKey(Offer::getId)).collect(Collectors.toList());
 
             List<Offer> buyOffers = uniqueOffers
@@ -145,11 +143,7 @@ class SpreadViewModel extends ActivatableViewModel {
                         long a = o1.getPrice() != null ? o1.getPrice().getValue() : 0;
                         long b = o2.getPrice() != null ? o2.getPrice().getValue() : 0;
                         if (a != b) {
-                            if (iTraditionalCurrency) {
-                                return a < b ? 1 : -1;
-                            } else {
-                                return a < b ? -1 : 1;
-                            }
+                            return a < b ? 1 : -1;
                         }
                         return 0;
                     })
@@ -162,11 +156,7 @@ class SpreadViewModel extends ActivatableViewModel {
                         long a = o1.getPrice() != null ? o1.getPrice().getValue() : 0;
                         long b = o2.getPrice() != null ? o2.getPrice().getValue() : 0;
                         if (a != b) {
-                            if (iTraditionalCurrency) {
-                                return a > b ? 1 : -1;
-                            } else {
-                                return a > b ? -1 : 1;
-                            }
+                            return a > b ? 1 : -1;
                         }
                         return 0;
                     })
@@ -178,24 +168,22 @@ class SpreadViewModel extends ActivatableViewModel {
             Price bestSellOfferPrice = sellOffers.isEmpty() ? null : sellOffers.get(0).getPrice();
             Price bestBuyOfferPrice = buyOffers.isEmpty() ? null : buyOffers.get(0).getPrice();
             if (bestBuyOfferPrice != null && bestSellOfferPrice != null &&
-                    sellOffers.get(0).getCurrencyCode().equals(buyOffers.get(0).getCurrencyCode())) {
-                MarketPrice marketPrice = priceFeedService.getMarketPrice(sellOffers.get(0).getCurrencyCode());
+                    sellOffers.get(0).getCounterCurrencyCode().equals(buyOffers.get(0).getCounterCurrencyCode())) {
+                MarketPrice marketPrice = priceFeedService.getMarketPrice(sellOffers.get(0).getCounterCurrencyCode());
 
                 // There have been some bug reports that an offer caused an overflow exception.
                 // We never found out which offer it was. So add here a try/catch to get better info if it
                 // happens again
                 try {
-                    if (iTraditionalCurrency)
-                        spread = bestSellOfferPrice.subtract(bestBuyOfferPrice);
-                    else
-                        spread = bestBuyOfferPrice.subtract(bestSellOfferPrice);
+                    spread = bestSellOfferPrice.subtract(bestBuyOfferPrice);
 
                     // TODO maybe show extra columns with spread and use real amount diff
                     // not % based. e.g. diff between best buy and sell offer (of small amounts its a smaller gain)
 
                     if (spread != null && marketPrice != null && marketPrice.isPriceAvailable()) {
                         double marketPriceAsDouble = marketPrice.getPrice();
-                        final double precision = iTraditionalCurrency ?
+                        boolean isTraditionalCurrency = (offers.size() > 0 && offers.get(0).getPaymentMethod().isTraditional());
+                        final double precision = isTraditionalCurrency ?
                                 Math.pow(10, TraditionalMoney.SMALLEST_UNIT_EXPONENT) :
                                 Math.pow(10, CryptoMoney.SMALLEST_UNIT_EXPONENT);
 
@@ -217,8 +205,8 @@ class SpreadViewModel extends ActivatableViewModel {
                                 "Details of offer data: \n" +
                                 "bestSellOfferPrice: " + bestSellOfferPrice.getValue() + "\n" +
                                 "bestBuyOfferPrice: " + bestBuyOfferPrice.getValue() + "\n" +
-                                "sellOffer getCurrencyCode: " + sellOffers.get(0).getCurrencyCode() + "\n" +
-                                "buyOffer getCurrencyCode: " + buyOffers.get(0).getCurrencyCode() + "\n\n" +
+                                "sellOffer getCurrencyCode: " + sellOffers.get(0).getCounterCurrencyCode() + "\n" +
+                                "buyOffer getCurrencyCode: " + buyOffers.get(0).getCounterCurrencyCode() + "\n\n" +
                                 "Please copy and paste this data and send it to the developers so they can investigate the issue.";
                         new Popup().error(msg).show();
                         log.error(t.toString());

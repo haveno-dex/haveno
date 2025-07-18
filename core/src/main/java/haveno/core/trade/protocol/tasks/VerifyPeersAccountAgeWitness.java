@@ -63,7 +63,7 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
 
             // only verify traditional offer
             Offer offer = checkNotNull(trade.getOffer());
-            if (CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode())) {
+            if (CurrencyUtil.isCryptoCurrency(offer.getCounterCurrencyCode())) {
                 complete();
                 return;
             }

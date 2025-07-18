@@ -296,13 +296,13 @@ public class PriceFeedService {
         }
     }
 
-    private void setHavenoMarketPrice(String currencyCode, Price price) {
+    private void setHavenoMarketPrice(String counterCurrencyCode, Price price) {
         UserThread.execute(() -> {
-            String currencyCodeBase = CurrencyUtil.getCurrencyCodeBase(currencyCode);
+            String counterCurrencyCodeBase = CurrencyUtil.getCurrencyCodeBase(counterCurrencyCode);
             synchronized (cache) {
-                if (!cache.containsKey(currencyCodeBase) || !cache.get(currencyCodeBase).isExternallyProvidedPrice()) {
-                    cache.put(currencyCodeBase, new MarketPrice(currencyCodeBase,
-                            MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
+                if (!cache.containsKey(counterCurrencyCodeBase) || !cache.get(counterCurrencyCodeBase).isExternallyProvidedPrice()) {
+                    cache.put(counterCurrencyCodeBase, new MarketPrice(counterCurrencyCodeBase,
+                            MathUtils.scaleDownByPowerOf10(price.getValue(), CurrencyUtil.isCryptoCurrency(counterCurrencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT),
                             0,
                             false));
                 }
@@ -371,9 +371,7 @@ public class PriceFeedService {
     }
 
     /**
-     * Returns prices for all available currencies.
-     * For crypto currencies the value is XMR price for 1 unit of given crypto currency (e.g. 1 DOGE = X XMR).
-     * For traditional currencies the value is price in the given traditional currency per 1 XMR (e.g. 1 XMR = X USD).
+     * Returns prices for all available currencies. The base currency is always XMR.
      *
      * TODO: instrument requestPrices() result and fault handlers instead of using CountDownLatch and timeout
      */

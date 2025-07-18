@@ -131,7 +131,7 @@ public class MakerSendInitTradeRequestToArbitrator extends TradeTask {
                 takerRequest.getUid(),
                 Version.getP2PMessageVersion(),
                 null,
-                takerRequest.getCurrentDate(),
+                trade.getTakeOfferDate().getTime(), // maker's date is used as shared timestamp
                 trade.getMaker().getNodeAddress(),
                 trade.getTaker().getNodeAddress(),
                 trade.getArbitrator().getNodeAddress(),

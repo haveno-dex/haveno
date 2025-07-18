@@ -284,7 +284,7 @@ public class CurrencyUtil {
     }
 
     /**
-     * We return true if it is BTC or any of our currencies available in the assetRegistry.
+     * We return true if it is XMR or any of our currencies available in the assetRegistry.
      * For removed assets it would fail as they are not found but we don't want to conclude that they are traditional then.
      * As the caller might not deal with the case that a currency can be neither a cryptoCurrency nor Traditional if not found
      * we return true as well in case we have no traditional currency for the code.
@@ -514,17 +514,11 @@ public class CurrencyUtil {
     }
 
     public static String getCurrencyPair(String currencyCode) {
-        if (isTraditionalCurrency(currencyCode))
-            return Res.getBaseCurrencyCode() + "/" + currencyCode;
-        else
-            return currencyCode + "/" + Res.getBaseCurrencyCode();
+        return Res.getBaseCurrencyCode() + "/" + currencyCode;
     }
 
     public static String getCounterCurrency(String currencyCode) {
-        if (isTraditionalCurrency(currencyCode))
-            return currencyCode;
-        else
-            return Res.getBaseCurrencyCode();
+        return currencyCode;
     }
 
     public static String getPriceWithCurrencyCode(String currencyCode) {
@@ -532,10 +526,7 @@ public class CurrencyUtil {
     }
 
     public static String getPriceWithCurrencyCode(String currencyCode, String translationKey) {
-        if (isCryptoCurrency(currencyCode))
-            return Res.get(translationKey, Res.getBaseCurrencyCode(), currencyCode);
-        else
-            return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
+        return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
     }
 
     public static String getOfferVolumeCode(String currencyCode) {
