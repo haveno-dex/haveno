@@ -122,7 +122,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String takeOfferSelectedPaymentAccountId;
     private double securityDepositAsPercent = getDefaultSecurityDepositAsPercent();
     private int ignoreDustThreshold = 600;
-    private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_INITIAL;
+    private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_DEFAULT;
     private double securityDepositAsPercentForCrypto = getDefaultSecurityDepositAsPercent();
     private int blockNotifyPort;
     private boolean tacAcceptedV120;

@@ -189,7 +189,6 @@ class CoreTradesService {
         verifyTradeIsNotClosed(tradeId);
         var trade = getOpenTrade(tradeId).orElseThrow(() ->
                 new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
-        log.info("Keeping funds received from trade {}", tradeId);
         tradeManager.onTradeCompleted(trade);
     }
 

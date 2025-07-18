@@ -109,8 +109,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     ));
 
     public static final boolean USE_SYMMETRIC_SECURITY_DEPOSIT = true;
-    public static final int CLEAR_DATA_AFTER_DAYS_INITIAL = 99999; // feature effectively disabled until user agrees to settings notification
-    public static final int CLEAR_DATA_AFTER_DAYS_DEFAULT = 60; // used when user has agreed to settings notification
+    public static final int CLEAR_DATA_AFTER_DAYS_DEFAULT = 60; // used with new instance or when existing user has agreed to settings notification
+    public static final int CLEAR_DATA_AFTER_DAYS_DISABLED = 99999; // feature effectively disabled until existing user agrees to settings notification
 
 
     // payload is initialized so the default values are available for Property initialization.
@@ -307,6 +307,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         if (prefPayload.getIgnoreDustThreshold() < Restrictions.getMinNonDustOutput().value) {
             setIgnoreDustThreshold(600);
+        }
+
+        if (prefPayload.getClearDataAfterDays() < 1) {
+            setClearDataAfterDays(Preferences.CLEAR_DATA_AFTER_DAYS_DISABLED);
         }
 
         // For users from old versions the 4 flags a false but we want to have it true by default

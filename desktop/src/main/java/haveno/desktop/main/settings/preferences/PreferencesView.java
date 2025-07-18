@@ -39,6 +39,7 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.XmrValidator;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
@@ -111,7 +112,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private int gridRow = 0;
     private int displayCurrenciesGridRowIndex = 0;
     private InputTextField ignoreTradersListInputTextField,
-            autoConfRequiredConfirmationsTf, autoConfServiceAddressTf, autoConfTradeLimitTf, /*referralIdInputTextField,*/
+            autoConfRequiredConfirmationsTf, autoConfServiceAddressTf, autoConfTradeLimitTf, clearDataAfterDaysInputTextField,
             rpcUserTextField, blockNotifyPortTextField;
     private PasswordTextField rpcPwTextField;
 
@@ -135,7 +136,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private ObservableList<TradeCurrency> tradeCurrencies;
     private InputTextField deviationInputTextField;
     private ChangeListener<String> deviationListener, ignoreTradersListListener,
-            rpcUserListener, rpcPwListener, blockNotifyPortListener,
+            rpcUserListener, rpcPwListener, blockNotifyPortListener, clearDataAfterDaysListener,
             autoConfTradeLimitListener, autoConfServiceAddressListener;
     private ChangeListener<Boolean> deviationFocusedListener;
     private final boolean displayStandbyModeFeature;
@@ -184,6 +185,24 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
     @Override
     protected void activate() {
+        String key = "sensitiveDataRemovalInfo";
+        if (DontShowAgainLookup.showAgain(key) &&
+                (preferences.getClearDataAfterDays() == 0 ||
+                preferences.getClearDataAfterDays() == Preferences.CLEAR_DATA_AFTER_DAYS_DISABLED)) { // existing users must agree to new feature
+            new Popup()
+                    .headLine(Res.get("setting.info.headline"))
+                    .backgroundInfo(Res.get("settings.preferences.sensitiveDataRemoval.msg"))
+                    .actionButtonText(Res.get("shared.iUnderstand"))
+                    .onAction(() -> {
+                        DontShowAgainLookup.dontShowAgain(key, true);
+                        // user has acknowledged, enable the feature with a reasonable default value
+                        preferences.setClearDataAfterDays(Preferences.CLEAR_DATA_AFTER_DAYS_DEFAULT);
+                        clearDataAfterDaysInputTextField.setText(String.valueOf(preferences.getClearDataAfterDays()));
+                    })
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .show();
+        }
+
         // We want to have it updated in case an asset got removed
         allCryptoCurrencies = FXCollections.observableArrayList(CurrencyUtil.getActiveSortedCryptoCurrencies(filterManager));
         allCryptoCurrencies.removeAll(cryptoCurrencies);
@@ -207,7 +226,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initializeGeneralOptions() {
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 7 : 6;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 8 : 7;
         TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
@@ -257,6 +276,22 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         };
 
+        // clearDataAfterDays
+        clearDataAfterDaysInputTextField = addInputTextField(root, ++gridRow, Res.get("setting.preferences.clearDataAfterDays"));
+        IntegerValidator clearDataAfterDaysValidator = new IntegerValidator();
+        clearDataAfterDaysValidator.setMinValue(1);
+        clearDataAfterDaysValidator.setMaxValue(Preferences.CLEAR_DATA_AFTER_DAYS_DISABLED);
+        clearDataAfterDaysInputTextField.setValidator(clearDataAfterDaysValidator);
+        clearDataAfterDaysListener = (observable, oldValue, newValue) -> {
+            try {
+                int value = Integer.parseInt(newValue);
+                if (!newValue.equals(oldValue)) {
+                    preferences.setClearDataAfterDays(value);
+                }
+            } catch (Throwable ignore) {
+            }
+        };
+
         if (displayStandbyModeFeature) {
             // AvoidStandbyModeService feature works only on OSX & Windows
             avoidStandbyMode = addSlideToggleButton(root, ++gridRow,
@@ -264,7 +299,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         }
 
         useSoundForNotifications = addSlideToggleButton(root, ++gridRow,
-                Res.get("setting.preferences.useSoundForNotifications"));
+                Res.get("setting.preferences.useSoundForNotifications"), -5); // TODO: why must negative value be used to place toggle consistently?
     }
 
     private void initializeSeparator() {
@@ -613,6 +648,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         ignoreTradersListInputTextField.setText(String.join(", ", preferences.getIgnoreTradersList()));
         /* referralIdService.getOptionalReferralId().ifPresent(referralId -> referralIdInputTextField.setText(referralId));
         referralIdInputTextField.setPromptText(Res.get("setting.preferences.refererId.prompt"));*/
+        clearDataAfterDaysInputTextField.setText(String.valueOf(preferences.getClearDataAfterDays()));
         userLanguageComboBox.setItems(languageCodes);
         userLanguageComboBox.getSelectionModel().select(preferences.getUserLanguage());
         userLanguageComboBox.setConverter(new StringConverter<>() {
@@ -672,6 +708,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         ignoreTradersListInputTextField.textProperty().addListener(ignoreTradersListListener);
         //referralIdInputTextField.textProperty().addListener(referralIdListener);
+        clearDataAfterDaysInputTextField.textProperty().addListener(clearDataAfterDaysListener);
     }
 
     private void activateDisplayCurrencies() {
@@ -805,6 +842,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         deviationInputTextField.focusedProperty().removeListener(deviationFocusedListener);
         ignoreTradersListInputTextField.textProperty().removeListener(ignoreTradersListListener);
         //referralIdInputTextField.textProperty().removeListener(referralIdListener);
+        clearDataAfterDaysInputTextField.textProperty().removeListener(clearDataAfterDaysListener);
     }
 
     private void deactivateDisplayCurrencies() {

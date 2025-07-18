@@ -1586,11 +1586,24 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void maybeClearSensitiveData() {
         String change = "";
+        if (contract != null && contract.maybeClearSensitiveData()) {
+            change += "contract;";
+        }
+        if (processModel != null && processModel.maybeClearSensitiveData()) {
+            change += "processModel;";
+        }
+        if (contractAsJson != null) {
+            String edited = Contract.sanitizeContractAsJson(contractAsJson);
+            if (!edited.equals(contractAsJson)) {
+                contractAsJson = edited;
+                change += "contractAsJson;";
+            }
+        }
         if (removeAllChatMessages()) {
             change += "chat messages;";
         }
         if (change.length() > 0) {
-            log.info("cleared sensitive data from {} of trade {}", change, getShortId());
+            log.info("Cleared sensitive data from {} of {} {}", change, getClass().getSimpleName(), getShortId());
         }
     }
 
