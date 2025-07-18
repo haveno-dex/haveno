@@ -126,16 +126,27 @@ public class CoinUtil {
     static BigInteger getAdjustedAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount, int factor) {
         checkArgument(
                 amount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
-                "amount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
+                "amount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
         );
         if (minAmount == null) minAmount = Restrictions.getMinTradeAmount();
         checkArgument(
                 minAmount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
-                "minAmount needs to be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(minAmount) + " xmr"
+                "minAmount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(minAmount) + " xmr"
         );
+        if (maxAmount != null) {
+            checkArgument(
+                amount.longValueExact() <= maxAmount.longValueExact(),
+                "amount must be below maximum of " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
+            );
+            checkArgument(
+                maxAmount.longValueExact() >= minAmount.longValueExact(),
+                "maxAmount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " xmr"
+            );
+        }
+
         checkArgument(
                 factor > 0,
-                "factor needs to be positive"
+                "factor must be positive"
         );
 
         // Amount must result in a volume of min factor units of the fiat currency, e.g. 1 EUR or 10 EUR in case of HalCash.

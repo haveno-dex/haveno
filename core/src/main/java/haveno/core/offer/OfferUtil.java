@@ -56,6 +56,7 @@ import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
@@ -268,5 +269,22 @@ public class OfferUtil {
 
     public static boolean isCryptoOffer(Offer offer) {
         return offer.getCounterCurrencyCode().equals("XMR");
+    }
+
+    public BigInteger getMaxTradeLimitForRelease(PaymentAccount paymentAccount,
+                                                  String currencyCode,
+                                                  OfferDirection direction,
+                                                  boolean buyerAsTakerWithoutDeposit) {
+        
+        // disallow offers which no buyer can take due to trade limits on release
+        if (HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS)) {
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, OfferDirection.BUY, buyerAsTakerWithoutDeposit));
+        }
+
+        if (paymentAccount != null) {
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit));
+        } else {
+            return BigInteger.ZERO;
+        }
     }
 }
