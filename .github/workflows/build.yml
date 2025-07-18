@@ -14,7 +14,25 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, windows-latest]
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-13, macos-15, windows-latest]
+        include:
+            - os: ubuntu-22.04
+              arch: x86_64
+              skip_tests: false
+            - os: ubuntu-22.04-arm
+              arch: aarch64
+              # JavaFX 21.x.x doesn't support `linux/aarch64`
+              # So skip tests until JavaFX is updated
+              skip_tests: true
+            - os: macos-13
+              arch: x86_64
+              skip_tests: false
+            - os: macos-15
+              arch: aarch64
+              skip_tests: false
+            - os: windows-latest
+              arch: x86_64
+              skip_tests: false
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -27,8 +45,16 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
           cache: gradle
-      - name: Build with Gradle
+      - name: Build with Gradle with tests
+        if: matrix.skip_tests == false
         run: ./gradlew build --stacktrace --scan
+      - name: Build with Gradle without tests
+        if: matrix.skip_tests == true
+        run: |
+          ./gradlew build --stacktrace --scan -x test
+          echo "::warning title=Tests Skipped::Tests were intentionally skipped for linux/aarch64 builds \
+          as JavaFX 21.x.x doesn't currently support the linux/aarch64 architecture. \
+          This should be revisited when JavaFX is next updated."
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -38,115 +64,127 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: cached-localnet
+          name: cached-localnet-${{ matrix.os }}
           path: .localnet
           overwrite: true
       - name: Install dependencies
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y rpm libfuse2 flatpak flatpak-builder appstream
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Install WiX Toolset
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: runner.os == 'Windows'
         run: |
           Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
           .\wix314.exe /quiet /norestart
         shell: powershell
-      - name: Build Haveno Installer
+      - name: Build Haveno Installer with tests
+        if: matrix.skip_tests == false
+        run: ./gradlew clean build --refresh-keys --refresh-dependencies
+        working-directory: .
+      - name: Build Haveno Installer without tests
+        if: matrix.skip_tests == true
         run: |
-          ./gradlew clean build --refresh-keys --refresh-dependencies
-          ./gradlew packageInstallers
+          ./gradlew clean build --refresh-keys --refresh-dependencies -x test
+          echo "::warning title=Tests Skipped::Tests were intentionally skipped for linux/aarch64 builds \
+          as JavaFX 21.x.x doesn't currently support the linux/aarch64 architecture. \
+          This should be revisited when JavaFX is next updated."
+        working-directory: .
+      - name: Package Haveno Installer
+        run: ./gradlew packageInstallers
         working-directory: .
 
       # get version from jar
       - name: Set Version Unix
-        if: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-13' }}
+        if: runner.os != 'Windows'
         run: |
           export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set Version Windows
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: runner.os == 'Windows'
         run: |
           $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
           "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
         shell: powershell
 
       - name: Move Release Files for Linux
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: runner.os == 'Linux'
         run: |
             mkdir ${{ github.workspace }}/release-linux-rpm
             mkdir ${{ github.workspace }}/release-linux-deb
             mkdir ${{ github.workspace }}/release-linux-flatpak
             mkdir ${{ github.workspace }}/release-linux-appimage
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-x86_64-installer.rpm
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-x86_64-installer.deb
-            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-x86_64.flatpak
-            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-x86_64.AppImage
+            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-installer.rpm
+            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-installer.deb
+            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}.flatpak
+            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}.AppImage
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-deb
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-rpm
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-appimage
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-flatpak
-            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-linux-x86_64-SNAPSHOT-all.jar.SHA-256
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-SNAPSHOT-all.jar.SHA-256
         shell: bash
       - name: Move Release Files for macOS
-        if: ${{ matrix.os == 'macos-13' }}
+        if: runner.os == 'MacOS'
         run: |
-            mkdir ${{ github.workspace }}/release-macos
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
-            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-macos
-            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-SNAPSHOT-all.jar.SHA-256
+            mkdir ${{ github.workspace }}/release-macos-${{ matrix.arch }}
+            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos-${{ matrix.arch }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-installer.dmg
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-macos-${{ matrix.arch }}
+            cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-SNAPSHOT-all.jar.SHA-256
         shell: bash
       - name: Move Release Files on Windows
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: runner.os == 'Windows'
         run: |
           mkdir ${{ github.workspace }}/release-windows
-          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
+          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-${{ matrix.arch }}-installer.exe
           Copy-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/haveno-v${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
         shell: powershell
 
-      # win
+      # Windows artifacts
       - uses: actions/upload-artifact@v4
         name: "Windows artifacts"
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: runner.os == 'Windows'
         with:
-          name: haveno-windows
+          name: haveno-windows-${{ matrix.arch }}
           path: ${{ github.workspace }}/release-windows
-      # macos
+
+      # macOS artifacts
       - uses: actions/upload-artifact@v4
         name: "macOS artifacts"
-        if: ${{ matrix.os == 'macos-13' }}
+        if: runner.os == 'MacOS'
         with:
-          name: haveno-macos
-          path: ${{ github.workspace }}/release-macos
-      # linux
+          name: haveno-macos-${{ matrix.arch }}
+          path: ${{ github.workspace }}/release-macos-${{ matrix.arch }}
+
+      # Linux artifacts
       - uses: actions/upload-artifact@v4
         name: "Linux - deb artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: runner.os == 'Linux'
         with:
-          name: haveno-linux-deb
+          name: haveno-linux-${{ matrix.arch }}-deb
           path: ${{ github.workspace }}/release-linux-deb
 
       - uses: actions/upload-artifact@v4
         name: "Linux - rpm artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: runner.os == 'Linux'
         with:
-          name: haveno-linux-rpm
+          name: haveno-linux-${{ matrix.arch }}-rpm
           path: ${{ github.workspace }}/release-linux-rpm
 
       - uses: actions/upload-artifact@v4
         name: "Linux - AppImage artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: runner.os == 'Linux'
         with:
-          name: haveno-linux-appimage
+          name: haveno-linux-${{ matrix.arch }}-appimage
           path: ${{ github.workspace }}/release-linux-appimage
 
       - uses: actions/upload-artifact@v4
         name: "Linux - flatpak artifact"
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: runner.os == 'Linux'
         with:
-          name: haveno-linux-flatpak
+          name: haveno-linux-${{ matrix.arch }}-flatpak
           path: ${{ github.workspace }}/release-linux-flatpak
 
       - name: Release
@@ -154,14 +192,30 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
+            # Linux x86_64
             ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-x86_64-installer.deb
             ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-x86_64-installer.rpm
             ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-x86_64.AppImage
             ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-x86_64.flatpak
             ${{ github.workspace }}/haveno-v${{ env.VERSION }}-linux-x86_64-SNAPSHOT-all.jar.SHA-256
-            ${{ github.workspace }}/release-macos/haveno-v${{ env.VERSION }}-macos-installer.dmg
-            ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-SNAPSHOT-all.jar.SHA-256
-            ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-installer.exe
+
+            # Linux aarch64
+            ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-aarch64-installer.deb
+            ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-aarch64-installer.rpm
+            ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-aarch64.AppImage
+            ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-aarch64.flatpak
+            ${{ github.workspace }}/haveno-v${{ env.VERSION }}-linux-aarch64-SNAPSHOT-all.jar.SHA-256
+
+            # macOS x86_64
+            ${{ github.workspace }}/release-macos-x86_64/haveno-v${{ env.VERSION }}-macos-x86_64-installer.dmg
+            ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-x86_64-SNAPSHOT-all.jar.SHA-256
+
+            # macOS aarch64
+            ${{ github.workspace }}/release-macos-aarch64/haveno-v${{ env.VERSION }}-macos-aarch64-installer.dmg
+            ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-aarch64-SNAPSHOT-all.jar.SHA-256
+
+            # Windows
+            ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-x86_64-installer.exe
             ${{ github.workspace }}/haveno-v${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
 
 # https://git-scm.com/docs/git-tag      - git-tag Docu
