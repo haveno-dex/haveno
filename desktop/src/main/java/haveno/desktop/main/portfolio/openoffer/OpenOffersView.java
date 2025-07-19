@@ -1010,35 +1010,31 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     @Override
                     public TableCell<OpenOfferListItem, OpenOfferListItem> call(TableColumn<OpenOfferListItem, OpenOfferListItem> column) {
                         return new TableCell<>() {
-                            Button button;
+                            private final Button button = getRegularIconButton(MaterialDesignIcon.SHIELD_HALF_FULL);
 
                             @Override
-                            public void updateItem(final OpenOfferListItem item, boolean empty) {
+                            protected void updateItem(final OpenOfferListItem item, boolean empty) {
                                 super.updateItem(item, empty);
 
-                                if (item != null && !empty) {
-                                    if (button == null) {
-                                        button = getRegularIconButton(MaterialDesignIcon.SHIELD_HALF_FULL);
-                                        boolean triggerPriceSet = item.getOpenOffer().getTriggerPrice() > 0;
-                                        button.setVisible(triggerPriceSet);
-
-                                        if (model.dataModel.isTriggered(item.getOpenOffer())) {
-                                            button.getGraphic().getStyleClass().add("warning");
-                                            button.setTooltip(new Tooltip(Res.get("openOffer.triggered")));
-                                        } else {
-                                            button.getGraphic().getStyleClass().remove("warning");
-                                            button.setTooltip(new Tooltip(Res.get("openOffer.triggerPrice", model.getTriggerPrice(item))));
-                                        }
-                                        setGraphic(button);
-                                    }
-                                    button.setOnAction(event -> onEditOpenOffer(item.getOpenOffer()));
-                                } else {
+                                if (item == null || empty) {
                                     setGraphic(null);
-                                    if (button != null) {
-                                        button.setOnAction(null);
-                                        button = null;
-                                    }
+                                    button.setOnAction(null);
+                                    return;
                                 }
+
+                                boolean triggerPriceSet = item.getOpenOffer().getTriggerPrice() > 0;
+                                button.setVisible(triggerPriceSet);
+
+                                if (model.dataModel.isTriggered(item.getOpenOffer())) {
+                                    button.getGraphic().getStyleClass().add("warning");
+                                    button.setTooltip(new Tooltip(Res.get("openOffer.triggered")));
+                                } else {
+                                    button.getGraphic().getStyleClass().remove("warning");
+                                    button.setTooltip(new Tooltip(Res.get("openOffer.triggerPrice", model.getTriggerPrice(item))));
+                                }
+
+                                button.setOnAction(e -> onEditOpenOffer(item.getOpenOffer()));
+                                setGraphic(button);
                             }
                         };
                     }
