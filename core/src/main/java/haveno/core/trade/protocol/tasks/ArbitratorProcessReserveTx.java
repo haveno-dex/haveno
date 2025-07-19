@@ -67,9 +67,8 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                 BigInteger penaltyFee = HavenoUtils.multiply(isFromMaker ? offer.getAmount() : trade.getAmount(), offer.getPenaltyFeePct());
                 BigInteger tradeFee = isFromMaker ? offer.getMaxMakerFee() : trade.getTakerFee();
                 BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
-                MoneroTx verifiedTx;
                 try {
-                    verifiedTx = trade.getXmrWalletService().verifyReserveTx(
+                    MoneroTx verifiedTx = trade.getXmrWalletService().verifyReserveTx(
                         offer.getId(),
                         penaltyFee,
                         tradeFee,
@@ -80,16 +79,23 @@ public class ArbitratorProcessReserveTx extends TradeTask {
                         request.getReserveTxHex(),
                         request.getReserveTxKey(),
                         null);
+
+                    // TODO: it seems a deposit tx had 0 fee once?
+                    if (BigInteger.ZERO.equals(verifiedTx.getFee())) {
+                        String errorMessage = "Reserve transaction from " + (isFromMaker ? "maker" : "taker") + " has 0 fee for trade " + trade.getId() + ". This should never happen.";
+                        log.warn(errorMessage + "\n" + verifiedTx);
+                        throw new RuntimeException(errorMessage);
+                    }
+
+                    // save reserve tx to model
+                    sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+                    sender.setReserveTxHash(request.getReserveTxHash());
+                    sender.setReserveTxHex(request.getReserveTxHex());
+                    sender.setReserveTxKey(request.getReserveTxKey());
                 } catch (Exception e) {
                     log.error(ExceptionUtils.getStackTrace(e));
                     throw new RuntimeException("Error processing reserve tx from " + (isFromMaker ? "maker " : "taker ") + processModel.getTempTradePeerNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
                 }
-
-                // save reserve tx to model
-                sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
-                sender.setReserveTxHash(request.getReserveTxHash());
-                sender.setReserveTxHex(request.getReserveTxHex());
-                sender.setReserveTxKey(request.getReserveTxKey());
             }
 
             // persist trade
