@@ -120,9 +120,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         // verify deposit tx
         boolean isFromBuyerAsTakerWithoutDeposit = isFromBuyer && isFromTaker && trade.hasBuyerAsTakerWithoutDeposit();
         if (!isFromBuyerAsTakerWithoutDeposit) {
-            MoneroTx verifiedTx;
             try {
-                verifiedTx = trade.getXmrWalletService().verifyDepositTx(
+                MoneroTx verifiedTx = trade.getXmrWalletService().verifyDepositTx(
                         offer.getId(),
                         tradeFee,
                         trade.getProcessModel().getTradeFeeAddress(),
@@ -133,15 +132,22 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                         request.getDepositTxHex(),
                         request.getDepositTxKey(),
                         null);
+
+                // TODO: it seems a deposit tx had 0 fee once?
+                if (BigInteger.ZERO.equals(verifiedTx.getFee())) {
+                    String errorMessage = "Deposit transaction from " + (isFromTaker ? "taker" : "maker") + " has 0 fee for trade " + trade.getId() + ". This should never happen.";
+                    log.warn(errorMessage + "\n" + verifiedTx);
+                    throw new RuntimeException(errorMessage);
+                }
+
+                // update trade state
+                sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+                sender.setDepositTxFee(verifiedTx.getFee());
+                sender.setDepositTxHex(request.getDepositTxHex());
+                sender.setDepositTxKey(request.getDepositTxKey());
             } catch (Exception e) {
                 throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + sender.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
-    
-            // update trade state
-            sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
-            sender.setDepositTxFee(verifiedTx.getFee());
-            sender.setDepositTxHex(request.getDepositTxHex());
-            sender.setDepositTxKey(request.getDepositTxKey());
         }
 
         // update trade state
