@@ -94,7 +94,7 @@ public class P2PNetworkSetup {
                     if (warning != null && p2pPeers == 0) {
                         result = warning;
                     } else {
-                        String p2pInfo = ((int) numXmrPeers > 0 ? Res.get("mainView.footer.xmrPeers", numXmrPeers) + " / " : "") + Res.get("mainView.footer.p2pPeers", numP2pPeers);
+                        String p2pInfo = ((int) numXmrPeers >= 0 ? Res.get("mainView.footer.xmrPeers", numXmrPeers) + " / " : "") + Res.get("mainView.footer.p2pPeers", numP2pPeers);
                         if (dataReceived && hiddenService) {
                             result = p2pInfo;
                         } else if (p2pPeers == 0)

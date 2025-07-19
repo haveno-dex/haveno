@@ -713,15 +713,16 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             if (newValue != null) {
                 xmrInfoLabel.setId("splash-error-state-msg");
                 xmrInfoLabel.getStyleClass().add("error-text");
-                if (xmrNetworkWarnMsgPopup == null) {
-                    xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
-                    xmrNetworkWarnMsgPopup.show();
-                }
+                if (xmrNetworkWarnMsgPopup != null) xmrNetworkWarnMsgPopup.hide();
+                xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
+                xmrNetworkWarnMsgPopup.show();
             } else {
                 xmrInfoLabel.setId("footer-pane");
                 xmrInfoLabel.getStyleClass().remove("error-text");
-                if (xmrNetworkWarnMsgPopup != null)
+                if (xmrNetworkWarnMsgPopup != null) {
                     xmrNetworkWarnMsgPopup.hide();
+                    xmrNetworkWarnMsgPopup = null;
+                }
             }
         });
 
@@ -804,10 +805,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkLabel.idProperty().bind(model.getP2pNetworkLabelId());
         model.getP2pNetworkWarnMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
+                if (p2PNetworkWarnMsgPopup != null) p2PNetworkWarnMsgPopup.hide();
                 p2PNetworkWarnMsgPopup = new Popup().warning(newValue);
                 p2PNetworkWarnMsgPopup.show();
             } else if (p2PNetworkWarnMsgPopup != null) {
                 p2PNetworkWarnMsgPopup.hide();
+                p2PNetworkWarnMsgPopup = null;
             }
         });
         p2PNetworkIcon.setOnMouseClicked(e -> {

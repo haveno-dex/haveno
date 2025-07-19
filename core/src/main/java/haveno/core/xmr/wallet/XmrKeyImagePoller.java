@@ -41,7 +41,7 @@ import haveno.core.trade.HavenoUtils;
 @Slf4j
 public class XmrKeyImagePoller {
 
-    private MoneroDaemon daemon;
+    private MoneroDaemon monerod;
     private long refreshPeriodMs;
     private Object lock = new Object();
     private Map<String, Set<String>> keyImageGroups = new HashMap<String, Set<String>>();
@@ -63,12 +63,12 @@ public class XmrKeyImagePoller {
     /**
      * Construct the listener.
      *
-     * @param daemon - the Monero daemon to poll
+     * @param monerod - the Monero daemon to poll
      * @param refreshPeriodMs - refresh period in milliseconds
      */
-    public XmrKeyImagePoller(MoneroDaemon daemon, long refreshPeriodMs) {
+    public XmrKeyImagePoller(MoneroDaemon monerod, long refreshPeriodMs) {
         looper = new TaskLooper(() -> poll());
-        setDaemon(daemon);
+        setMonerod(monerod);
         setRefreshPeriodMs(refreshPeriodMs);
     }
 
@@ -100,10 +100,10 @@ public class XmrKeyImagePoller {
     /**
      * Set the Monero daemon to fetch key images from.
      *
-     * @param daemon - the daemon to fetch key images from
+     * @param monerod - the daemon to fetch key images from
      */
-    public void setDaemon(MoneroDaemon daemon) {
-        this.daemon = daemon;
+    public void setMonerod(MoneroDaemon monerod) {
+        this.monerod = monerod;
     }
 
     /**
@@ -111,8 +111,8 @@ public class XmrKeyImagePoller {
      *
      * @return the daemon to fetch key images from
      */
-    public MoneroDaemon getDaemon() {
-        return daemon;
+    public MoneroDaemon getMonerod() {
+        return monerod;
     }
 
     /**
@@ -243,8 +243,8 @@ public class XmrKeyImagePoller {
     }
 
     public void poll() {
-        if (daemon == null) {
-            log.warn("Cannot poll key images because daemon is null");
+        if (monerod == null) {
+            log.warn("Cannot poll key images because monerod is null");
             return;
         }
 
@@ -252,7 +252,7 @@ public class XmrKeyImagePoller {
         List<MoneroKeyImageSpentStatus> spentStatuses = null;
         List<String> keyImages = new ArrayList<String>(getNextKeyImageBatch());
         try {
-            spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : daemon.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
+            spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : monerod.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
         } catch (Exception e) {
 
             // limit error logging
