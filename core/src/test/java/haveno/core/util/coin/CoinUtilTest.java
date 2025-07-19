@@ -95,7 +95,7 @@ public class CoinUtilTest {
             fail("Expected IllegalArgumentException to be thrown when amount is too low.");
         } catch (IllegalArgumentException iae) {
             assertEquals(
-                    "amount needs to be above minimum of 0.1 xmr but was 0.0 xmr",
+                    "amount must be above minimum of 0.1 xmr but was 0.0 xmr",
                     iae.getMessage(),
                     "Unexpected exception message."
             );

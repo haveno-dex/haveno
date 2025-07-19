@@ -148,11 +148,17 @@ public class HavenoUtils {
     @SuppressWarnings("unused")
     public static Date getReleaseDate() {
         if (RELEASE_DATE == null) return null;
-        try {
-            return DATE_FORMAT.parse(RELEASE_DATE);
-        } catch (Exception e) {
-            log.error("Failed to parse release date: " + RELEASE_DATE, e);
-            throw new IllegalArgumentException(e);
+        return parseDate(RELEASE_DATE);
+    }
+
+    private static Date parseDate(String date) {
+        synchronized (DATE_FORMAT) {
+            try {
+                return DATE_FORMAT.parse(date);
+            } catch (Exception e) {
+                log.error("Failed to parse date: " + date, e);
+                throw new IllegalArgumentException(e);
+            }
         }
     }
 

@@ -35,6 +35,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -92,7 +93,6 @@ public class CreateOfferService {
                 Version.VERSION.replace(".", "");
     }
 
-    // TODO: add trigger price?
     public Offer createAndGetOffer(String offerId,
                                    OfferDirection direction,
                                    String currencyCode,
@@ -158,8 +158,9 @@ public class CreateOfferService {
         }
 
         // adjust amount and min amount
-        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, minAmount, amount, currencyCode, paymentAccount.getPaymentMethod().getId());
-        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, minAmount, amount, currencyCode, paymentAccount.getPaymentMethod().getId());
+        BigInteger maxTradeLimit = offerUtil.getMaxTradeLimitForRelease(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit);
+        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, Restrictions.getMinTradeAmount(), maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, Restrictions.getMinTradeAmount(), maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
 
         // generate one-time challenge for private offer
         String challenge = null;
@@ -241,7 +242,6 @@ public class CreateOfferService {
         return offer;
     }
 
-    // TODO: add trigger price?
     public Offer createClonedOffer(Offer sourceOffer,
                             String currencyCode,
                             Price fixedPrice,
