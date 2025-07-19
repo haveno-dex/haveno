@@ -121,6 +121,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     // The payment method string can be quite long and would consume 15% more space.
     // When we get a new payment method we can add it to the enum at the end. Old users would add it as string if not
     // recognized.
+    // NOTE: Only ***UNUSED*** payment methods can be added here, otherwise historical stats will have a different hash than new stats.
     private enum PaymentMethodMapper {
         OK_PAY,
         CASH_APP,
@@ -178,9 +179,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         TRANSFERWISE_USD,
         ACH_TRANSFER,
         DOMESTIC_WIRE_TRANSFER,
-        PAYPAL,
-        PAYSAFE,
-        CASH_AT_ATM
+        PAYPAL
     }
 
     @Getter
