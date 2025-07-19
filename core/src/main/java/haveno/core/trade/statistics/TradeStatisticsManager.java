@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyTuple;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
@@ -68,8 +69,8 @@ public class TradeStatisticsManager {
         this.storageDir = storageDir;
         this.dumpStatistics = dumpStatistics;
 
-
         appendOnlyDataStoreService.addService(tradeStatistics3StorageService);
+        HavenoUtils.tradeStatisticsManager = this;
     }
 
     public void shutDown() {
@@ -208,7 +209,13 @@ public class TradeStatisticsManager {
         jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(array), "trade_statistics");
     }
 
-    public void maybeRepublishTradeStatistics(Set<Trade> trades,
+    public void maybePublishTradeStatistics(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        Set<Trade> trades = new HashSet<>();
+        trades.add(trade);
+        maybePublishTradeStatistics(trades, referralId, isTorNetworkNode);
+    }
+
+   public void maybePublishTradeStatistics(Set<Trade> trades,
                                               @Nullable String referralId,
                                               boolean isTorNetworkNode) {
         long ts = System.currentTimeMillis();
@@ -219,38 +226,46 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            TradeStatistics3 tradeStatistics3 = null;
+            TradeStatistics3 tradeStatistics3V0 = null;
             try {
-                tradeStatistics3 = TradeStatistics3.from(trade, referralId, isTorNetworkNode, false);
+                tradeStatistics3V0 = TradeStatistics3.fromV0(trade, referralId, isTorNetworkNode);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
 
-            TradeStatistics3 tradeStatistics3Fuzzed = null;
+            TradeStatistics3 tradeStatistics3V1 = null;
             try {
-                tradeStatistics3Fuzzed = TradeStatistics3.from(trade, referralId, isTorNetworkNode, true);
+                tradeStatistics3V1 = TradeStatistics3.fromV1(trade, referralId, isTorNetworkNode);
             } catch (Exception e) {
                 log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
                 return;
             }
 
-            boolean hasTradeStatistics3 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3.getHash()));
-            boolean hasTradeStatistics3Fuzzed = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3Fuzzed.getHash()));
-            if (hasTradeStatistics3 || hasTradeStatistics3Fuzzed) {
+            TradeStatistics3 tradeStatistics3V2 = null;
+            try {
+                tradeStatistics3V2 = TradeStatistics3.fromV2(trade, referralId, isTorNetworkNode);
+            } catch (Exception e) {
+                log.warn("Error getting trade statistic for {} {}: {}", trade.getClass().getName(), trade.getId(), e.getMessage());
+                return;
+            }
+
+            boolean hasTradeStatistics3V0 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V0.getHash()));
+            boolean hasTradeStatistics3V1 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V1.getHash()));
+            boolean hasTradeStatistics3V2 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V2.getHash()));
+            if (hasTradeStatistics3V0 || hasTradeStatistics3V1 || hasTradeStatistics3V2) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;
             }
 
-            if (!tradeStatistics3.isValid()) {
-                log.warn("Trade: {}. Trade statistics is invalid. We do not publish it.", tradeStatistics3);
+            if (!tradeStatistics3V2.isValid()) {
+                log.warn("Trade statistics are invalid for {} {}. We do not publish: {}", trade.getClass().getSimpleName(), trade.getShortId(), tradeStatistics3V1);
                 return;
             }
 
-            log.info("Trade: {}. We republish tradeStatistics3 as we did not find it in the existing trade statistics. ",
-                    trade.getShortId());
-            p2PService.addPersistableNetworkPayload(tradeStatistics3, true);
+            log.info("Publishing trade statistics for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            p2PService.addPersistableNetworkPayload(tradeStatistics3V2, true);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
                 System.currentTimeMillis() - ts, hashes.size(), trades.size());

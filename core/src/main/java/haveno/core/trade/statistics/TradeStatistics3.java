@@ -69,13 +69,26 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
     @JsonExclude
     private transient static final ZoneId ZONE_ID = ZoneId.systemDefault();
-    private static final double FUZZ_AMOUNT_PCT = 0.05;
-    private static final int FUZZ_DATE_HOURS = 24;
 
-    public static TradeStatistics3 from(Trade trade,
-                                        @Nullable String referralId,
-                                        boolean isTorNetworkNode,
-                                        boolean isFuzzed) {
+    public static TradeStatistics3 fromV0(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        return from(trade, referralId, isTorNetworkNode, 0.0, 0, 0);
+    }
+
+    public static TradeStatistics3 fromV1(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        return from(trade, referralId, isTorNetworkNode, 0.05, 24, 0);
+    }
+
+    public static TradeStatistics3 fromV2(Trade trade, @Nullable String referralId, boolean isTorNetworkNode) {
+        return from(trade, referralId, isTorNetworkNode, 0.10, 48, .01);
+    }
+
+    // randomize completed trade info #1099
+    private static TradeStatistics3 from(Trade trade,
+                                         @Nullable String referralId,
+                                         boolean isTorNetworkNode,
+                                         double fuzzAmountPct,
+                                         int fuzzDateHours,
+                                         double fuzzPricePct) {
         Map<String, String> extraDataMap = new HashMap<>();
         if (referralId != null) {
             extraDataMap.put(OfferPayload.REFERRAL_ID, referralId);
@@ -92,27 +105,39 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
 
         Offer offer = checkNotNull(trade.getOffer());
         return new TradeStatistics3(offer.getCurrencyCode(),
-                trade.getPrice().getValue(),
-                isFuzzed ? fuzzTradeAmountReproducibly(trade) : trade.getAmount().longValueExact(),
+                fuzzTradePriceReproducibly(trade, fuzzPricePct),
+                fuzzTradeAmountReproducibly(trade, fuzzAmountPct),
                 offer.getPaymentMethod().getId(),
-                isFuzzed ? fuzzTradeDateReproducibly(trade) : trade.getTakeOfferDate().getTime(),
+                fuzzTradeDateReproducibly(trade, fuzzDateHours),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);
     }
 
-    private static long fuzzTradeAmountReproducibly(Trade trade) { //  randomize completed trade info #1099
+    private static long fuzzTradePriceReproducibly(Trade trade, double fuzzPricePct) {
+        if (fuzzPricePct == 0.0) return trade.getPrice().getValue();
         long originalTimestamp = trade.getTakeOfferDate().getTime();
+        Random random = new Random(originalTimestamp); // pseudo random generator seeded from take offer datestamp
+        long exactPrice = trade.getPrice().getValue();
+        long adjustedPrice = (long) random.nextDouble(exactPrice * (1.0 - fuzzPricePct), exactPrice * (1.0 + fuzzPricePct));
+        log.debug("trade {} fuzzed trade price for tradeStatistics is {}", trade.getShortId(), adjustedPrice);
+        return adjustedPrice;
+    }
+
+    private static long fuzzTradeAmountReproducibly(Trade trade, double fuzzAmountPct) {
+        if (fuzzAmountPct == 0.0) return trade.getAmount().longValueExact();
+        long originalTimestamp = trade.getTakeOfferDate().getTime();
+        Random random = new Random(originalTimestamp); // pseudo random generator seeded from take offer datestamp
         long exactAmount = trade.getAmount().longValueExact();
-        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
-        long adjustedAmount = (long) random.nextDouble(exactAmount * (1.0 - FUZZ_AMOUNT_PCT), exactAmount * (1 + FUZZ_AMOUNT_PCT));
+        long adjustedAmount = (long) random.nextDouble(exactAmount * (1.0 - fuzzAmountPct), exactAmount * (1.0 + fuzzAmountPct));
         log.debug("trade {} fuzzed trade amount for tradeStatistics is {}", trade.getShortId(), adjustedAmount);
         return adjustedAmount;
     }
 
-    private static long fuzzTradeDateReproducibly(Trade trade) { //  randomize completed trade info #1099
+    private static long fuzzTradeDateReproducibly(Trade trade, int fuzzDateHours) {
+        if (fuzzDateHours == 0) return trade.getTakeOfferDate().getTime();
         long originalTimestamp = trade.getTakeOfferDate().getTime();
-        Random random = new Random(originalTimestamp);   // pseudo random generator seeded from take offer datestamp
-        long adjustedTimestamp = random.nextLong(originalTimestamp - TimeUnit.HOURS.toMillis(FUZZ_DATE_HOURS), originalTimestamp);
+        Random random = new Random(originalTimestamp); // pseudo random generator seeded from take offer datestamp
+        long adjustedTimestamp = random.nextLong(originalTimestamp - TimeUnit.HOURS.toMillis(fuzzDateHours), originalTimestamp);
         log.debug("trade {} fuzzed trade datestamp for tradeStatistics is {}", trade.getShortId(), new Date(adjustedTimestamp));
         return adjustedTimestamp;
     }
