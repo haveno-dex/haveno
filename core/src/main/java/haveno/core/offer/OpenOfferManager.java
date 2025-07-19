@@ -1093,6 +1093,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 try {
                     ValidateOffer.validateOffer(openOffer.getOffer(), accountAgeWitnessService, user);
                 } catch (Exception e) {
+                    openOffer.getOffer().setState(Offer.State.INVALID);
                     errorMessageHandler.handleErrorMessage("Failed to validate offer: " + e.getMessage());
                     return;
                 }
