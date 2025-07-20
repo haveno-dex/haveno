@@ -32,10 +32,15 @@ public class PopupManager {
     private static Popup displayedPopup;
 
     public static void queueForDisplay(Popup popup) {
+        if (hasDuplicatePopup(popup)) {
+            log.warn("The popup is already in the queue or displayed.\n\t" +
+                   "New popup not added=" + popup);
+            return;
+        }
         boolean result = popups.offer(popup);
         if (!result)
             log.warn("The capacity is full with popups in the queue.\n\t" +
-                    "Not added new popup=" + popup);
+                    "New popup not added=" + popup);
         displayNext();
     }
 
@@ -56,5 +61,17 @@ public class PopupManager {
                 displayedPopup.onReadyForDisplay();
             }
         }
+    }
+
+    private static boolean hasDuplicatePopup(Popup popup) {
+        if (displayedPopup != null && displayedPopup.toString().equals(popup.toString())) {
+            return true;
+        }
+        for (Popup p : popups) {
+            if (p.toString().equals(popup.toString())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
