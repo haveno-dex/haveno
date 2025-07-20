@@ -2695,10 +2695,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setStateDepositsSeen();
 
                 // set actual security deposits
-                if (getBuyer().getSecurityDeposit().longValueExact() == 0) {
-                    BigInteger buyerSecurityDeposit = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
-                    BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
+                if (getBuyer().getDepositTx() != null) {
+                    BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
+                    if (!getBuyer().getSecurityDeposit().equals(BigInteger.ZERO) && !getBuyer().getSecurityDeposit().equals(buyerSecurityDeposit)) {
+                        log.warn("Overwriting buyer security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getBuyer().getSecurityDeposit(), buyerSecurityDeposit);
+                    }
                     getBuyer().setSecurityDeposit(buyerSecurityDeposit);
+                }
+                if (getSeller().getDepositTx() != null) {
+                    BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
+                    if (!getSeller().getSecurityDeposit().equals(BigInteger.ZERO) && !getSeller().getSecurityDeposit().equals(sellerSecurityDeposit)) {
+                        log.warn("Overwriting seller security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getSeller().getSecurityDeposit(), sellerSecurityDeposit);
+                    }
                     getSeller().setSecurityDeposit(sellerSecurityDeposit);
                 }
 
