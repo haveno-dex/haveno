@@ -166,7 +166,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         HBox.setHgrow(tupleSell.second, Priority.ALWAYS);
         tupleBuy.second.setUserData(OfferDirection.BUY.name());
         tupleSell.second.setUserData(OfferDirection.SELL.name());
-        bottomHBox.getChildren().addAll(tupleBuy.second, tupleSell.second);
+        bottomHBox.getChildren().addAll(tupleSell.second, tupleBuy.second);
 
         root.getChildren().addAll(currencyComboBoxTuple.first, chartPane, bottomHBox);
     }
