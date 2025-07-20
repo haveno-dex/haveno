@@ -67,9 +67,9 @@ public class OfferBookListItem {
     public WitnessAgeData getWitnessAgeData(AccountAgeWitnessService accountAgeWitnessService,
                                             SignedWitnessService signedWitnessService) {
         if (witnessAgeData == null) {
-            if (CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode())) {
+            if (CurrencyUtil.isCryptoCurrency(offer.getCounterCurrencyCode())) {
                 witnessAgeData = new WitnessAgeData(WitnessAgeData.TYPE_CRYPTOS);
-            } else if (PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode())) {
+            } else if (PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCounterCurrencyCode())) {
                 // Fiat and signed witness required
                 Optional<AccountAgeWitness> optionalWitness = accountAgeWitnessService.findWitness(offer);
                 AccountAgeWitnessService.SignState signState = optionalWitness

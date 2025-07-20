@@ -66,15 +66,15 @@ public class AveragePriceUtil {
     private static List<TradeStatistics3> removeOutliers(List<TradeStatistics3> list, double percentToTrim) {
         List<Double> yValues = list.stream()
                 .filter(TradeStatistics3::isValid)
-                .map(e -> (double) e.getPrice())
+                .map(e -> (double) e.getNormalizedPrice())
                 .collect(Collectors.toList());
 
         Tuple2<Double, Double> tuple = InlierUtil.findInlierRange(yValues, percentToTrim, HOW_MANY_STD_DEVS_CONSTITUTE_OUTLIER);
         double lowerBound = tuple.first;
         double upperBound = tuple.second;
         return list.stream()
-                .filter(e -> e.getPrice() > lowerBound)
-                .filter(e -> e.getPrice() < upperBound)
+                .filter(e -> e.getNormalizedPrice() > lowerBound)
+                .filter(e -> e.getNormalizedPrice() < upperBound)
                 .collect(Collectors.toList());
     }
 

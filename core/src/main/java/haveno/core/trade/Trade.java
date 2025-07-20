@@ -65,6 +65,7 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletBase;
@@ -151,6 +152,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
     private Subscription protocolErrorHeightSubscription;
+    public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -2377,8 +2379,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return isBuyer() ? getBuyer().getSecurityDeposit() : getAmount().add(getSeller().getSecurityDeposit());
     }
 
+    /**
+     * Returns the price as XMR/QUOTE.
+     */
     public Price getPrice() {
-        return Price.valueOf(offer.getCurrencyCode(), price);
+        boolean isInverted = getOffer().isInverted(); // return uninverted price
+        return Price.valueOf(offer.getCounterCurrencyCode(), isInverted ? PriceUtil.invertLongPrice(price, offer.getCounterCurrencyCode()) : price);
+    }
+
+    public Price getRawPrice() {
+        return Price.valueOf(offer.getCounterCurrencyCode(), price);
     }
 
     @Nullable

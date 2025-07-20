@@ -100,14 +100,8 @@ public class OfferForJson {
     private void setDisplayStrings() {
         try {
             final Price price = getPrice();
-
-            if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
-                primaryMarketDirection = direction == OfferDirection.BUY ? OfferDirection.SELL : OfferDirection.BUY;
-                currencyPair = currencyCode + "/" + Res.getBaseCurrencyCode();
-            } else {
-                primaryMarketDirection = direction;
-                currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
-            }
+            primaryMarketDirection = direction;
+            currencyPair = Res.getBaseCurrencyCode() + "/" + currencyCode;
 
             if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
                 priceDisplayString = traditionalFormat.noCode().format(price.getMonetary()).toString();
@@ -116,7 +110,6 @@ public class OfferForJson {
                 primaryMarketMinVolumeDisplayString = traditionalFormat.noCode().format(getMinVolume().getMonetary()).toString();
                 primaryMarketVolumeDisplayString = traditionalFormat.noCode().format(getVolume().getMonetary()).toString();
             } else {
-                // amount and volume is inverted for json
                 priceDisplayString = cryptoFormat.noCode().format(price.getMonetary()).toString();
                 primaryMarketMinAmountDisplayString = cryptoFormat.noCode().format(getMinVolume().getMonetary()).toString();
                 primaryMarketAmountDisplayString = cryptoFormat.noCode().format(getVolume().getMonetary()).toString();

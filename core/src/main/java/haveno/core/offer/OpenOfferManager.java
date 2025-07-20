@@ -78,6 +78,7 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.JsonUtil;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -638,7 +639,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void applyTriggerState(OpenOffer openOffer) {
         if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
-        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer)) {
+        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()), openOffer)) {
             openOffer.deactivate(true);
         }
     }
@@ -2015,12 +2016,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     log.info("Updated the owner nodeaddress of offer id={}", originalOffer.getId());
                 }
 
+                long normalizedPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOfferPayload.getPrice(), originalOffer.getCounterCurrencyCode()) : originalOfferPayload.getPrice();
                 OfferPayload updatedPayload = new OfferPayload(originalOfferPayload.getId(),
                         originalOfferPayload.getDate(),
                         ownerNodeAddress,
                         originalOfferPayload.getPubKeyRing(),
                         originalOfferPayload.getDirection(),
-                        originalOfferPayload.getPrice(),
+                        normalizedPrice,
                         originalOfferPayload.getMarketPriceMarginPct(),
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),
@@ -2030,8 +2032,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getPenaltyFeePct(),
                         originalOfferPayload.getBuyerSecurityDepositPct(),
                         originalOfferPayload.getSellerSecurityDepositPct(),
-                        originalOfferPayload.getBaseCurrencyCode(),
-                        originalOfferPayload.getCounterCurrencyCode(),
+                        originalOffer.getBaseCurrencyCode(),
+                        originalOffer.getCounterCurrencyCode(),
                         originalOfferPayload.getPaymentMethodId(),
                         originalOfferPayload.getMakerPaymentAccountId(),
                         originalOfferPayload.getCountryCode(),
@@ -2063,7 +2065,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 Offer updatedOffer = new Offer(updatedPayload);
                 updatedOffer.setPriceFeedService(priceFeedService);
 
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, originalOpenOffer.getTriggerPrice());
+                long normalizedTriggerPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOpenOffer.getTriggerPrice(), originalOffer.getCounterCurrencyCode()) : originalOpenOffer.getTriggerPrice();
+                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice);
                 updatedOpenOffer.setChallenge(originalOpenOffer.getChallenge());
                 addOpenOffer(updatedOpenOffer);
                 requestPersistence();

@@ -123,7 +123,7 @@ class CoreTradesService {
             BigInteger amount = amountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(amountAsLong);
 
             // adjust amount for fixed-price offer (based on TakeOfferViewModel)
-            String currencyCode = offer.getCurrencyCode();
+            String currencyCode = offer.getCounterCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
             BigInteger maxAmount = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
             if (offer.getPrice() != null) {

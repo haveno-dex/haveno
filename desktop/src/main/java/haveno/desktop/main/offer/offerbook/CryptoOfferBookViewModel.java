@@ -106,9 +106,9 @@ public class CryptoOfferBookViewModel extends OfferBookViewModel {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
             boolean directionResult = offer.getDirection() != direction; // offer to buy xmr appears as offer to sell in peer's offer book and vice versa
-            boolean currencyResult = CurrencyUtil.isCryptoCurrency(offer.getCurrencyCode()) && 
+            boolean currencyResult = CurrencyUtil.isCryptoCurrency(offer.getCounterCurrencyCode()) && 
                     (showAllTradeCurrenciesProperty.get() ||
-                    offer.getCurrencyCode().equals(selectedTradeCurrency.getCode()));
+                    offer.getCounterCurrencyCode().equals(selectedTradeCurrency.getCode()));
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();

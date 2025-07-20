@@ -129,7 +129,7 @@ public class OfferInfo implements Payload {
     public static OfferInfo toMyOfferInfo(OpenOffer openOffer) {
         // An OpenOffer is always my offer.
         var offer = openOffer.getOffer();
-        var currencyCode = offer.getCurrencyCode();
+        var currencyCode = offer.getCounterCurrencyCode();
         var isActivated = !openOffer.isDeactivated();
         Optional<Price> optionalTriggerPrice = openOffer.getTriggerPrice() > 0
                 ? Optional.of(Price.valueOf(currencyCode, openOffer.getTriggerPrice()))
@@ -150,7 +150,7 @@ public class OfferInfo implements Payload {
     private static OfferInfoBuilder getBuilder(Offer offer) {
         // OfferInfo protos are passed to API client, and some field
         // values are converted to displayable, unambiguous form.
-        var currencyCode = offer.getCurrencyCode();
+        var currencyCode = offer.getCounterCurrencyCode();
         var preciseOfferPrice = reformatMarketPrice(
                 requireNonNull(offer.getPrice()).toPlainString(),
                 currencyCode);

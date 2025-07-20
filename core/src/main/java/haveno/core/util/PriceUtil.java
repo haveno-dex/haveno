@@ -35,6 +35,9 @@ import haveno.core.util.validation.AmountValidator4Decimals;
 import haveno.core.util.validation.AmountValidator8Decimals;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.MonetaryValidator;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -84,7 +87,7 @@ public class PriceUtil {
     }
 
     public boolean hasMarketPrice(Offer offer) {
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         checkNotNull(priceFeedService, "priceFeed must not be null");
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         Price price = offer.getPrice();
@@ -103,7 +106,7 @@ public class PriceUtil {
             return Optional.empty();
         }
 
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         checkNotNull(priceFeedService, "priceFeed must not be null");
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         double marketPriceAsDouble = checkNotNull(marketPrice).getPrice();
@@ -114,7 +117,7 @@ public class PriceUtil {
                                                        double marketPrice,
                                                        OfferDirection direction) {
         // If the offer did not use % price we calculate % from current market price
-        String currencyCode = offer.getCurrencyCode();
+        String currencyCode = offer.getCounterCurrencyCode();
         Price price = offer.getPrice();
         int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT :
@@ -123,29 +126,15 @@ public class PriceUtil {
         double scaled = MathUtils.scaleDownByPowerOf10(priceAsLong, precision);
         double value;
         if (direction == OfferDirection.SELL) {
-            if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-                if (marketPrice == 0) {
-                    return Optional.empty();
-                }
-                value = 1 - scaled / marketPrice;
-            } else {
-                if (marketPrice == 1) {
-                    return Optional.empty();
-                }
-                value = scaled / marketPrice - 1;
+            if (marketPrice == 0) {
+                return Optional.empty();
             }
+            value = 1 - scaled / marketPrice;
         } else {
-            if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
-                if (marketPrice == 1) {
-                    return Optional.empty();
-                }
-                value = scaled / marketPrice - 1;
-            } else {
-                if (marketPrice == 0) {
-                    return Optional.empty();
-                }
-                value = 1 - scaled / marketPrice;
+            if (marketPrice == 1) {
+                return Optional.empty();
             }
+            value = scaled / marketPrice - 1;
         }
         return Optional.of(value);
     }
@@ -182,5 +171,14 @@ public class PriceUtil {
     public static int getMarketPricePrecision(String currencyCode) {
         return CurrencyUtil.isTraditionalCurrency(currencyCode) ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+    }
+
+    public static long invertLongPrice(long price, String currencyCode) {
+        if (price == 0) return 0;
+        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ? TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+        double priceDouble = MathUtils.scaleDownByPowerOf10(price, precision);
+        double priceDoubleInverted = BigDecimal.ONE.divide(BigDecimal.valueOf(priceDouble), precision, RoundingMode.HALF_UP).doubleValue();
+        double scaled = MathUtils.scaleUpByPowerOf10(priceDoubleInverted, precision);
+        return MathUtils.roundDoubleToLong(scaled);
     }
 }

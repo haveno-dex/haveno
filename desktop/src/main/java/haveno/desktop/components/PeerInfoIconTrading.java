@@ -198,6 +198,6 @@ public class PeerInfoIconTrading extends PeerInfoIcon {
         Offer offerToCheck = Trade != null ? Trade.getOffer() : offer;
 
         return offerToCheck != null &&
-                PaymentMethod.hasChargebackRisk(offerToCheck.getPaymentMethod(), offerToCheck.getCurrencyCode());
+                PaymentMethod.hasChargebackRisk(offerToCheck.getPaymentMethod(), offerToCheck.getCounterCurrencyCode());
     }
 }
