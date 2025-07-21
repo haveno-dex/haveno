@@ -540,8 +540,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // check clone limit
                 int numClones = getOpenOfferGroup(sourceOffer.getGroupId()).size();
-                if (numClones >= Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) {
-                    errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " cloned offers with shared funds reached.");
+                if (numClones >= Restrictions.getMaxOffersWithSharedFunds()) {
+                    errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.getMaxOffersWithSharedFunds() + " cloned offers with shared funds reached.");
                     return;
                 }
             }
@@ -1565,8 +1565,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify max length of extra info
-            if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.MAX_EXTRA_INFO_LENGTH) {
-                errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.MAX_EXTRA_INFO_LENGTH + " but got " + offer.getOfferPayload().getExtraInfo().length();
+            if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.getMaxExtraInfoLength()) {
+                errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.getMaxExtraInfoLength() + " but got " + offer.getOfferPayload().getExtraInfo().length();
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
@@ -1611,8 +1611,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // verify maker security deposit
-                if (offer.getSellerSecurityDepositPct() != Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                if (offer.getSellerSecurityDepositPct() != Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1652,16 +1652,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // verify seller's security deposit
-                if (offer.getSellerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                if (offer.getSellerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify buyer's security deposit
-                if (offer.getBuyerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getBuyerSecurityDepositPct();
+                if (offer.getBuyerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getBuyerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;

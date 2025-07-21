@@ -26,12 +26,12 @@ import java.math.BigInteger;
 public class Restrictions {
 
     // configure restrictions
-    public static final double MIN_SECURITY_DEPOSIT_PCT = 0.15;
-    public static final double MAX_SECURITY_DEPOSIT_PCT = 0.5;
-    public static BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.1);
-    public static BigInteger MIN_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
-    public static int MAX_EXTRA_INFO_LENGTH = 1500;
-    public static int MAX_OFFERS_WITH_SHARED_FUNDS = 10;
+    private static final double MIN_SECURITY_DEPOSIT_PCT = 0.15;
+    private static final double MAX_SECURITY_DEPOSIT_PCT = 0.5;
+    private static final BigInteger MIN_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(0.05);
+    private static final BigInteger MIN_SECURITY_DEPOSIT = HavenoUtils.xmrToAtomicUnits(0.1);
+    private static final int MAX_EXTRA_INFO_LENGTH = 1500;
+    private static final int MAX_OFFERS_WITH_SHARED_FUNDS = 10;
 
     // At mediation we require a min. payout to the losing party to keep incentive for the trader to accept the
     // mediated payout. For Refund agent cases we do not have that restriction.
@@ -57,20 +57,28 @@ public class Restrictions {
         return MIN_TRADE_AMOUNT;
     }
 
-    public static double getDefaultSecurityDepositAsPercent() {
+    public static double getDefaultSecurityDepositPct() {
         return MIN_SECURITY_DEPOSIT_PCT;
     }
 
-    public static double getMinSecurityDepositAsPercent() {
+    public static double getMinSecurityDepositPct() {
         return MIN_SECURITY_DEPOSIT_PCT;
     }
 
-    public static double getMaxSecurityDepositAsPercent() {
+    public static double getMaxSecurityDepositPct() {
         return MAX_SECURITY_DEPOSIT_PCT;
     }
 
     public static BigInteger getMinSecurityDeposit() {
         return MIN_SECURITY_DEPOSIT;
+    }
+
+    public static int getMaxExtraInfoLength() {
+        return MAX_EXTRA_INFO_LENGTH;
+    }
+
+    public static int getMaxOffersWithSharedFunds() {
+        return MAX_OFFERS_WITH_SHARED_FUNDS;
     }
 
     // This value must be lower than MIN_BUYER_SECURITY_DEPOSIT and SELLER_SECURITY_DEPOSIT
