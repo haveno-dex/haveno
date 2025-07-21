@@ -34,6 +34,7 @@ import haveno.core.api.CoreNotificationService;
 import haveno.core.api.CorePaymentAccountsService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -94,10 +95,13 @@ public class HavenoUtils {
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
-    public static final double PENALTY_FEE_PCT = 0.25; // percent of security deposit to charge for penalty
-    public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
-    public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
-    public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
+    public static final double PENALTY_FEE_PCT = 0.25; // charge 25% of security deposit for penalty
+    private static final double MAKER_FEE_PCT_CRYPTO = 0.0015;
+    private static final double TAKER_FEE_PCT_CRYPTO = 0.0075;
+    private static final double MAKER_FEE_PCT_TRADITIONAL = 0.0015;
+    private static final double TAKER_FEE_PCT_TRADITIONAL = 0.0075;
+    private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO = MAKER_FEE_PCT_CRYPTO + TAKER_FEE_PCT_CRYPTO; // can customize maker's fee when no deposit from taker
+    private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL = MAKER_FEE_PCT_TRADITIONAL + TAKER_FEE_PCT_TRADITIONAL;
     public static final double MINER_FEE_TOLERANCE_FACTOR = 5.0; // miner fees must be within 5x of each other
 
     // other configuration
@@ -176,6 +180,26 @@ public class HavenoUtils {
 
     public static void waitFor(long waitMs) {
         GenUtils.waitFor(waitMs);
+    }
+
+    public static double getMakerFeePct(String currencyCode, boolean hasBuyerAsTakerWithoutDeposit) {
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO : MAKER_FEE_PCT_CRYPTO;
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL : MAKER_FEE_PCT_TRADITIONAL;
+        } else {
+            throw new IllegalArgumentException("Unsupported currency code: " + currencyCode);
+        }
+    }
+
+    public static double getTakerFeePct(String currencyCode, boolean hasBuyerAsTakerWithoutDeposit) {
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? 0d : TAKER_FEE_PCT_CRYPTO;
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? 0d : TAKER_FEE_PCT_TRADITIONAL;
+        } else {
+            throw new IllegalArgumentException("Unsupported currency code: " + currencyCode);
+        }
     }
 
     // ----------------------- CONVERSION UTILS -------------------------------
