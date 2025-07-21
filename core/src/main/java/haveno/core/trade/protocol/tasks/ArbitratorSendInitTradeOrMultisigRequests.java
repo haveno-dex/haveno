@@ -71,7 +71,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                         UUID.randomUUID().toString(),
                         Version.getP2PMessageVersion(),
                         request.getAccountAgeWitnessSignatureOfOfferId(),
-                        new Date().getTime(),
+                        request.getCurrentDate(),
                         trade.getMaker().getNodeAddress(),
                         trade.getTaker().getNodeAddress(),
                         trade.getArbitrator().getNodeAddress(),

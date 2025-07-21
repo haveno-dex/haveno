@@ -65,7 +65,6 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletBase;
@@ -124,6 +123,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -2446,12 +2446,27 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void maybePublishTradeStatistics() {
-        if (shouldPublishTradeStatistics()) doPublishTradeStatistics();
+        if (shouldPublishTradeStatistics()) {
+
+            // publish after random delay within 24 hours
+            UserThread.runAfterRandomDelay(() -> {
+                if (!isShutDownStarted) doPublishTradeStatistics();
+            }, 0, 24, TimeUnit.HOURS);
+        }
     }
 
     public boolean shouldPublishTradeStatistics() {
-        if (!isSeller()) return false;
-        return tradeAmountTransferred();
+
+        // do not publish if funds not transferred
+        if (!tradeAmountTransferred()) return false;
+
+        // only seller or arbitrator publish trade stats
+        if (!isSeller() && !isArbitrator()) return false;
+
+        // prior to v3 protocol, only seller publishes trade stats
+        if (getOffer().getOfferPayload().getProtocolVersion() < 3 && !isSeller()) return false;
+
+        return true;
     }
 
 
@@ -2466,13 +2481,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void doPublishTradeStatistics() {
         String referralId = processModel.getReferralIdService().getOptionalReferralId().orElse(null);
         boolean isTorNetworkNode = getProcessModel().getP2PService().getNetworkNode() instanceof TorNetworkNode;
-        TradeStatistics3 tradeStatistics = TradeStatistics3.from(this, referralId, isTorNetworkNode, true);
-        if (tradeStatistics.isValid()) {
-            log.info("Publishing trade statistics for {} {}", getClass().getSimpleName(), getId());
-            processModel.getP2PService().addPersistableNetworkPayload(tradeStatistics, true);
-        } else {
-            log.warn("Trade statistics are invalid for {} {}. We do not publish: {}", getClass().getSimpleName(), getId(), tradeStatistics);
-        }
+        HavenoUtils.tradeStatisticsManager.maybePublishTradeStatistics(this, referralId, isTorNetworkNode);
     }
 
     // lazy initialization

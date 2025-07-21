@@ -151,7 +151,7 @@ public class CreateOfferService {
         // verify price
         boolean useMarketBasedPriceValue = fixedPrice == null &&
                 useMarketBasedPrice &&
-                isMarketPriceAvailable(currencyCode) &&
+                isExternalPriceAvailable(currencyCode) &&
                 !PaymentMethod.isFixedPriceOnly(paymentAccount.getPaymentMethod().getId());
         if (fixedPrice == null && !useMarketBasedPriceValue) {
             throw new IllegalArgumentException("Must provide fixed price");
@@ -338,7 +338,7 @@ public class CreateOfferService {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private boolean isMarketPriceAvailable(String currencyCode) {
+    private boolean isExternalPriceAvailable(String currencyCode) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         return marketPrice != null && marketPrice.isExternallyProvidedPrice();
     }
