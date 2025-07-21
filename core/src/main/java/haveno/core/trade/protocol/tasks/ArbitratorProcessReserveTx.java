@@ -64,7 +64,7 @@ public class ArbitratorProcessReserveTx extends TradeTask {
             if (!isFromBuyerAsTakerWithoutDeposit) {
 
                 // process reserve tx with expected values
-                BigInteger penaltyFee = HavenoUtils.multiply(isFromMaker ? offer.getAmount() : trade.getAmount(), offer.getPenaltyFeePct());
+                BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, offer.getPenaltyFeePct());
                 BigInteger tradeFee = isFromMaker ? offer.getMaxMakerFee() : trade.getTakerFee();
                 BigInteger sendAmount =  isFromBuyer ? BigInteger.ZERO : isFromMaker ? offer.getAmount() : trade.getAmount(); // maker reserve tx is for offer amount
                 try {
