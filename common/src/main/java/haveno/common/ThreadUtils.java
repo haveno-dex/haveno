@@ -16,41 +16,50 @@
  */
 
 package haveno.common;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+ 
 public class ThreadUtils {
-    
-    private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
-    private static final Map<String, Thread> THREADS = new HashMap<>();
-    private static final int POOL_SIZE = 10;
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
+ 
+    private static final Logger logger = LoggerFactory.getLogger(ThreadUtils.class);
+    private static final ConcurrentHashMap<String, Thread> VIRTUAL_THREADS = new ConcurrentHashMap<>();
+    private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
+    private static final long DEFAULT_TIMEOUT_MS = 5000; // Default timeout for operations
 
     /**
-     * Execute the given command in a thread with the given id.
-     * 
+     * Execute the given command in a virtual thread with the given id.
+     *
      * @param command the command to execute
      * @param threadId the thread id
      */
     public static Future<?> execute(Runnable command, String threadId) {
-        synchronized (EXECUTORS) {
-            if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
-            return EXECUTORS.get(threadId).submit(() -> {
-                synchronized (THREADS) {
-                    THREADS.put(threadId, Thread.currentThread());
-                }
-                Thread.currentThread().setName(threadId);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        Thread virtualThread = Thread.ofVirtual().name(threadId).start(() -> {
+            try {
                 command.run();
-            });
-        }
+                future.complete(null);
+            } catch (Exception e) {
+                logger.error("Exception in thread: {} - {}", threadId, e.getMessage(), e);
+                future.completeExceptionally(e);
+            }
+        });
+
+        VIRTUAL_THREADS.put(threadId, virtualThread);
+        return future;
     }
 
     /**
@@ -62,40 +71,43 @@ public class ThreadUtils {
     public static void await(Runnable command, String threadId) {
         try {
             execute(command, threadId).get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Interrupted while awaiting command execution in thread: {} - {}", threadId, e.getMessage(), e);
+            throw new RuntimeException("Interrupted while awaiting command execution", e);
+        } catch (ExecutionException e) {
+            logger.error("Execution exception while awaiting command execution in thread: {} - {}", threadId, e.getMessage(), e);
+            throw new RuntimeException("Execution exception while awaiting command execution", e);
         }
     }
+
 
     public static void shutDown(String threadId) {
         shutDown(threadId, null);
     }
 
     public static void shutDown(String threadId, Long timeoutMs) {
-        if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
-        ExecutorService pool = null;
-        synchronized (EXECUTORS) {
-            pool = EXECUTORS.get(threadId);
+        Thread thread = VIRTUAL_THREADS.remove(threadId);
+        if (thread == null) {
+            logger.warn("Thread not found: {}", threadId);
+            return; // thread not found
         }
-        if (pool == null) return; // thread not found
-        pool.shutdown();
-        try {
-            if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
-        } catch (InterruptedException e) {
-            pool.shutdownNow();
-            throw new RuntimeException(e);
-        } finally {
-            remove(threadId);
+        thread.interrupt();
+        if (timeoutMs != null) {
+            try {
+                thread.join(timeoutMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.error("Interrupted while waiting for thread to shut down: {} - {}", threadId, e.getMessage(), e);
+                throw new RuntimeException("Interrupted while waiting for thread to shut down", e);
+            }
         }
+        logger.info("Shut down thread: {}", threadId);
     }
 
+
     public static void remove(String threadId) {
-        synchronized (EXECUTORS) {
-            EXECUTORS.remove(threadId);
-        }
-        synchronized (THREADS) {
-            THREADS.remove(threadId);
-        }
+        VIRTUAL_THREADS.remove(threadId);
     }
 
     // TODO: consolidate and cleanup apis
@@ -104,9 +116,25 @@ public class ThreadUtils {
         return submitToPool(Arrays.asList(task)).get(0);
     }
 
+    public static <T> Future<T> submitToPool(Callable<T> task) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        execute(() -> {
+            try {
+                T result = task.call();
+                future.complete(result);
+            } catch (Exception e) {
+                logger.error("Exception in callable task - {}", e.getMessage(), e);
+                future.completeExceptionally(e);
+            }
+        }, "pool-task-" + THREAD_COUNTER.incrementAndGet());
+        return future;
+    }
+
     public static List<Future<?>> submitToPool(List<Runnable> tasks) {
         List<Future<?>> futures = new ArrayList<>();
-        for (Runnable task : tasks) futures.add(POOL.submit(task));
+        for (Runnable task : tasks) {
+            futures.add(execute(task, "pool-task-" + THREAD_COUNTER.incrementAndGet()));
+        }
         return futures;
     }
 
@@ -127,25 +155,41 @@ public class ThreadUtils {
     }
 
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutMs) {
-        if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
+        if (timeoutMs == null) timeoutMs = DEFAULT_TIMEOUT_MS;
         if (tasks.isEmpty()) return new ArrayList<>();
-        ExecutorService executorService = Executors.newFixedThreadPool(tasks.size());
-        try {
-            List<Future<?>> futures = new ArrayList<>();
-            for (Runnable task : tasks) futures.add(executorService.submit(task, null));
-            for (Future<?> future : futures) future.get(timeoutMs, TimeUnit.MILLISECONDS);
-            return futures;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            executorService.shutdownNow();
-        }
-    }
 
-    private static boolean isCurrentThread(Thread thread, String threadId) {
-        synchronized (THREADS) {
-            if (!THREADS.containsKey(threadId)) return false;
-            return thread == THREADS.get(threadId);
+        List<Future<?>> futures = new ArrayList<>();
+        AtomicReference<List<Runnable>> remainingTasks = new AtomicReference<>(new ArrayList<>(tasks));
+
+        while (true) {
+            List<Runnable> batchTasks = remainingTasks.get().subList(0, Math.min(maxConcurrency, remainingTasks.get().size()));
+            if (batchTasks.isEmpty()) break;
+
+            List<Future<?>> batchFutures = new ArrayList<>();
+            for (Runnable task : batchTasks) {
+                batchFutures.add(execute(task, "await-task-" + THREAD_COUNTER.incrementAndGet()));
+            }
+
+            for (Future<?> future : batchFutures) {
+                try {
+                    future.get(timeoutMs, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Interrupted while awaiting task completion - {}", e.getMessage(), e);
+                    throw new RuntimeException("Interrupted while awaiting task completion", e);
+                } catch (ExecutionException e) {
+                    logger.error("Execution exception while awaiting task completion - {}", e.getMessage(), e);
+                    throw new RuntimeException("Execution exception while awaiting task completion", e);
+                } catch (TimeoutException e) {
+                    logger.error("Timeout while awaiting task completion - {}", e.getMessage(), e);
+                    throw new RuntimeException("Timeout while awaiting task completion", e);
+                }
+            }
+
+            futures.addAll(batchFutures);
+            remainingTasks.set(remainingTasks.get().subList(Math.min(maxConcurrency, remainingTasks.get().size()), remainingTasks.get().size()));
         }
+
+        return futures;
     }
 }
