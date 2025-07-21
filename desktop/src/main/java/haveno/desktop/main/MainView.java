@@ -126,6 +126,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Label splashP2PNetworkLabel;
     private ProgressBar xmrSyncIndicator;
     private Label xmrSplashInfo;
+    private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final Preferences preferences;
     private static final int networkIconSize = 20;
@@ -712,10 +713,13 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             if (newValue != null) {
                 xmrInfoLabel.setId("splash-error-state-msg");
                 xmrInfoLabel.getStyleClass().add("error-text");
-                new Popup().warning(newValue).show();
+                xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
+                xmrNetworkWarnMsgPopup.show();
             } else {
                 xmrInfoLabel.setId("footer-pane");
                 xmrInfoLabel.getStyleClass().remove("error-text");
+                if (xmrNetworkWarnMsgPopup != null)
+                    xmrNetworkWarnMsgPopup.hide();
             }
         });
 
@@ -798,7 +802,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkLabel.idProperty().bind(model.getP2pNetworkLabelId());
         model.getP2pNetworkWarnMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
-                new Popup().warning(newValue).show();
+                p2PNetworkWarnMsgPopup = new Popup().warning(newValue);
+                p2PNetworkWarnMsgPopup.show();
+            } else if (p2PNetworkWarnMsgPopup != null) {
+                p2PNetworkWarnMsgPopup.hide();
             }
         });
         p2PNetworkIcon.setOnMouseClicked(e -> {
