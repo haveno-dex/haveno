@@ -144,12 +144,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         String offerType = Res.get("shared.offerType");
         if (tradeManager.isBuyer(offer)) {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
-                    DisplayUtils.getDirectionForBuyer(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
+                    DisplayUtils.getDirectionForBuyer(myOffer, offer.getCounterCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
             counterCurrencyDirectionInfo = toSpend;
             xmrDirectionInfo = toReceive;
         } else {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
-                    DisplayUtils.getDirectionForSeller(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
+                    DisplayUtils.getDirectionForSeller(myOffer, offer.getCounterCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
             counterCurrencyDirectionInfo = toReceive;
             xmrDirectionInfo = toSpend;
         }
@@ -159,7 +159,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                 HavenoUtils.formatXmr(trade.getAmount(), true));
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex,
-                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + counterCurrencyDirectionInfo,
+                VolumeUtil.formatVolumeLabel(offer.getCounterCurrencyCode()) + counterCurrencyDirectionInfo,
                 VolumeUtil.formatVolumeWithCode(trade.getVolume()));
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),

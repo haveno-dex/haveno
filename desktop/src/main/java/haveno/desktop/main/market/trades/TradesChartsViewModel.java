@@ -265,7 +265,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
                         return;
                     }
                     if (throwable != null) {
-                        log.error("Error at applyAsyncChartData. {}", throwable.toString());
+                        log.error("Error at applyAsyncChartData. {}", throwable);
                         return;
                     }
                     UserThread.execute(() -> {

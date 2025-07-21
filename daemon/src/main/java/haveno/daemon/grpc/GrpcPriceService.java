@@ -48,7 +48,6 @@ import haveno.proto.grpc.MarketPriceReply;
 import haveno.proto.grpc.MarketPriceRequest;
 import haveno.proto.grpc.MarketPricesReply;
 import haveno.proto.grpc.MarketPricesRequest;
-import static haveno.proto.grpc.PriceGrpc.PriceImplBase;
 import static haveno.proto.grpc.PriceGrpc.getGetMarketPriceMethod;
 import haveno.proto.grpc.PriceGrpc.PriceImplBase;
 import io.grpc.ServerInterceptor;
@@ -57,8 +56,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
-import static haveno.proto.grpc.PriceGrpc.getGetMarketPriceMethod;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import lombok.extern.slf4j.Slf4j;
 

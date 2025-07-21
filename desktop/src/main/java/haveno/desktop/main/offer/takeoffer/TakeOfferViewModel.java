@@ -164,10 +164,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         addBindings();
         addListeners();
 
-        String buyVolumeDescriptionKey = offer.isTraditionalOffer() ? "createOffer.amountPriceBox.buy.volumeDescription" :
-                "createOffer.amountPriceBox.buy.volumeDescriptionCrypto";
-        String sellVolumeDescriptionKey = offer.isTraditionalOffer() ? "createOffer.amountPriceBox.sell.volumeDescription" :
-                "createOffer.amountPriceBox.sell.volumeDescriptionCrypto";
+        String buyVolumeDescriptionKey = "createOffer.amountPriceBox.buy.volumeDescription";
+        String sellVolumeDescriptionKey = "createOffer.amountPriceBox.sell.volumeDescription";
 
         if (dataModel.getDirection() == OfferDirection.SELL) {
             volumeDescriptionLabel.set(Res.get(buyVolumeDescriptionKey, dataModel.getCurrencyCode()));
@@ -695,7 +693,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
     public boolean isSellingToAnUnsignedAccount(Offer offer) {
         if (offer.getDirection() == OfferDirection.BUY &&
-                PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode())) {
+                PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCounterCurrencyCode())) {
             // considered risky when either UNSIGNED, PEER_INITIAL, or BANNED (see #5343)
             return accountAgeWitnessService.getSignState(offer) == AccountAgeWitnessService.SignState.UNSIGNED ||
                     accountAgeWitnessService.getSignState(offer) == AccountAgeWitnessService.SignState.PEER_INITIAL ||
@@ -792,14 +790,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     }
 
     String getPercentagePriceDescription() {
-        if (dataModel.isBuyOffer()) {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.aboveInPercent") :
-                    Res.get("shared.belowInPercent");
-        } else {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.belowInPercent") :
-                    Res.get("shared.aboveInPercent");
-        }
+        return dataModel.isBuyOffer() ? Res.get("shared.belowInPercent") : Res.get("shared.aboveInPercent");
     }
 }

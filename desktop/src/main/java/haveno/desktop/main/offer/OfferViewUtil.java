@@ -100,7 +100,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(Offer offer) {
-        return isShownAsSellOffer(offer.getCurrencyCode(), offer.getDirection());
+        return isShownAsSellOffer(offer.getCounterCurrencyCode(), offer.getDirection());
     }
 
     public static boolean isShownAsSellOffer(TradeCurrency tradeCurrency, OfferDirection direction) {

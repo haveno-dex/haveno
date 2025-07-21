@@ -236,19 +236,19 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                         }
                     });
                     
-                    String viewBaseCurrencyCode = model.isCrypto() ? code : Res.getBaseCurrencyCode();
-                    String viewPriceCurrencyCode = model.isCrypto() ? Res.getBaseCurrencyCode() : code;
+                    String viewBaseCurrencyCode = Res.getBaseCurrencyCode();
+                    String viewPriceCurrencyCode = code;
 
                     sellHeaderLabel.setText(Res.get("market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
                     sellButton.updateText(Res.get("shared.sellCurrency", viewBaseCurrencyCode));
                     sellButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
-                    sellButton.setOnAction(e -> model.goToOfferView(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY));
+                    sellButton.setOnAction(e -> model.goToOfferView(OfferDirection.BUY));
                     sellButton.setId("sell-button-big");
 
                     buyHeaderLabel.setText(Res.get("market.offerBook.buyOffersHeaderLabel", viewBaseCurrencyCode));
                     buyButton.updateText(Res.get( "shared.buyCurrency", viewBaseCurrencyCode));
                     buyButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
-                    buyButton.setOnAction(e -> model.goToOfferView(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL));
+                    buyButton.setOnAction(e -> model.goToOfferView(OfferDirection.SELL));
                     buyButton.setId("buy-button-big");
 
                     priceColumnLabel.set(Res.get("shared.priceWithCur", viewPriceCurrencyCode));
@@ -358,8 +358,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private synchronized void updateChartData() {
 
         // update volume headers
-        Volume volumeSell = model.getTotalVolume(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL);
-        Volume volumeBuy = model.getTotalVolume(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY);
+        Volume volumeSell = model.getTotalVolume(OfferDirection.SELL);
+        Volume volumeBuy = model.getTotalVolume(OfferDirection.BUY);
         String formattedVolumeSell = volumeSell == null ? null : VolumeUtil.formatVolume(volumeSell);
         String formattedVolumeBuy = volumeBuy == null ? null : VolumeUtil.formatVolume(volumeBuy);
         if (model.getSellData().isEmpty()) formattedVolumeSell = "0.0";
@@ -368,8 +368,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), formattedVolumeBuy == null ? "" : "(" + formattedVolumeBuy + ")"));
 
         // update amount headers
-        amountSellColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(model.isCrypto() ? OfferDirection.BUY : OfferDirection.SELL)));
-        amountBuyColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(model.isCrypto() ? OfferDirection.SELL : OfferDirection.BUY)));
+        amountSellColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(OfferDirection.SELL)));
+        amountBuyColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(OfferDirection.BUY)));
 
         seriesSell.getData().clear();
         seriesBuy.getData().clear();

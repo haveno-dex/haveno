@@ -122,9 +122,9 @@ public class PaymentAccountUtil {
     public static boolean isAmountValidForOffer(Offer offer,
                                                 PaymentAccount paymentAccount,
                                                 AccountAgeWitnessService accountAgeWitnessService) {
-        boolean hasChargebackRisk = hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode());
+        boolean hasChargebackRisk = hasChargebackRisk(offer.getPaymentMethod(), offer.getCounterCurrencyCode());
         boolean hasValidAccountAgeWitness = accountAgeWitnessService.getMyTradeLimit(paymentAccount,
-                offer.getCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()) >= offer.getMinAmount().longValueExact();
+                offer.getCounterCurrencyCode(), offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()) >= offer.getMinAmount().longValueExact();
         return !hasChargebackRisk || hasValidAccountAgeWitness;
     }
 
