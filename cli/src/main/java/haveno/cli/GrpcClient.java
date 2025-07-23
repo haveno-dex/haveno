@@ -23,7 +23,6 @@ import haveno.cli.request.TradesServiceRequest;
 import haveno.cli.request.WalletsServiceRequest;
 import haveno.proto.grpc.AddressBalanceInfo;
 import haveno.proto.grpc.BalancesInfo;
-import haveno.proto.grpc.BtcBalanceInfo;
 import haveno.proto.grpc.GetMethodHelpRequest;
 import haveno.proto.grpc.GetTradesRequest;
 import haveno.proto.grpc.GetVersionRequest;
@@ -31,6 +30,9 @@ import haveno.proto.grpc.OfferInfo;
 import haveno.proto.grpc.RegisterDisputeAgentRequest;
 import haveno.proto.grpc.StopRequest;
 import haveno.proto.grpc.TradeInfo;
+import haveno.proto.grpc.XmrBalanceInfo;
+import haveno.proto.grpc.XmrTx;
+import haveno.proto.grpc.XmrDestination;
 import lombok.extern.slf4j.Slf4j;
 import protobuf.PaymentAccount;
 import protobuf.PaymentMethod;
@@ -67,8 +69,8 @@ public final class GrpcClient {
         return walletsServiceRequest.getBalances();
     }
 
-    public BtcBalanceInfo getBtcBalances() {
-        return walletsServiceRequest.getBtcBalances();
+    public XmrBalanceInfo getXmrBalances() {
+        return walletsServiceRequest.getXmrBalances();
     }
 
     public BalancesInfo getBalances(String currencyCode) {
@@ -79,16 +81,40 @@ public final class GrpcClient {
         return walletsServiceRequest.getAddressBalance(address);
     }
 
-    public double getBtcPrice(String currencyCode) {
-        return walletsServiceRequest.getBtcPrice(currencyCode);
+    public double getXmrPrice(String currencyCode) {
+        return walletsServiceRequest.getXmrPrice(currencyCode);
     }
 
     public List<AddressBalanceInfo> getFundingAddresses() {
         return walletsServiceRequest.getFundingAddresses();
     }
 
-    public String getUnusedBtcAddress() {
-        return walletsServiceRequest.getUnusedBtcAddress();
+    public String getUnusedXmrAddress() {
+        return walletsServiceRequest.getUnusedXmrAddress();
+    }
+
+    public String getXmrSeed() {
+        return walletsServiceRequest.getXmrSeed();
+    }
+
+    public String getXmrPrimaryAddress() {
+        return walletsServiceRequest.getXmrPrimaryAddress();
+    }
+
+    public String getXmrNewSubaddress() {
+        return walletsServiceRequest.getXmrNewSubaddress();
+    }
+
+    public List<XmrTx> getXmrTxs() {
+        return walletsServiceRequest.getXmrTxs();
+    }
+
+    public XmrTx createXmrTx(List<XmrDestination> destinations) {
+        return walletsServiceRequest.createXmrTx(destinations);
+    }
+
+    public String relayXmrTx(String metadata) {
+        return walletsServiceRequest.relayXmrTx(metadata);
     }
 
     public OfferInfo createFixedPricedOffer(String direction,
