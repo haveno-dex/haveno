@@ -44,32 +44,24 @@ public class CurrencyFormat {
     // Formats numbers for internal use, i.e., grpc request parameters.
     private static final DecimalFormat INTERNAL_FIAT_DECIMAL_FORMAT = new DecimalFormat("##############0.0000");
 
-    static final BigDecimal SATOSHI_DIVISOR = new BigDecimal(100_000_000);
-    static final DecimalFormat SATOSHI_FORMAT = new DecimalFormat("###,##0.00000000", DECIMAL_FORMAT_SYMBOLS);
-    static final DecimalFormat BTC_FORMAT = new DecimalFormat("###,##0.########", DECIMAL_FORMAT_SYMBOLS);
-    static final DecimalFormat BTC_TX_FEE_FORMAT = new DecimalFormat("###,###,##0", DECIMAL_FORMAT_SYMBOLS);
+    static final BigDecimal PICONERO_DIVISOR = new BigDecimal(1_000_000_000_000L);
+    static final DecimalFormat PICONERO_FORMAT = new DecimalFormat("###,##0.000000000000", DECIMAL_FORMAT_SYMBOLS);
+    static final DecimalFormat XMR_FORMAT = new DecimalFormat("###,##0.############", DECIMAL_FORMAT_SYMBOLS);
+    static final DecimalFormat XMR_TX_FEE_FORMAT = new DecimalFormat("###,###,##0", DECIMAL_FORMAT_SYMBOLS);
 
-    static final BigDecimal BSQ_SATOSHI_DIVISOR = new BigDecimal(100);
-    static final DecimalFormat BSQ_FORMAT = new DecimalFormat("###,###,###,##0.00", DECIMAL_FORMAT_SYMBOLS);
-
-    public static String formatSatoshis(String sats) {
+    public static String formatPiconeros(String piconeros) {
         //noinspection BigDecimalMethodWithoutRoundingCalled
-        return SATOSHI_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
+        return PICONERO_FORMAT.format(new BigDecimal(piconeros).divide(PICONERO_DIVISOR));
     }
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatSatoshis(long sats) {
-        return SATOSHI_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
+    public static String formatPiconeros(long piconeros) {
+        return PICONERO_FORMAT.format(new BigDecimal(piconeros).divide(PICONERO_DIVISOR));
     }
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatBtc(long sats) {
-        return BTC_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
-    }
-
-    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatBsq(long sats) {
-        return BSQ_FORMAT.format(new BigDecimal(sats).divide(BSQ_SATOSHI_DIVISOR));
+    public static String formatXmr(long piconeros) {
+        return XMR_FORMAT.format(new BigDecimal(piconeros).divide(PICONERO_DIVISOR));
     }
 
     public static String formatInternalFiatPrice(BigDecimal price) {
@@ -98,18 +90,18 @@ public class CurrencyFormat {
         return US_LOCALE_NUMBER_FORMAT.format((double) volume / 10_000);
     }
 
-    public static long toSatoshis(String btc) {
-        if (btc.startsWith("-"))
-            throw new IllegalArgumentException(format("'%s' is not a positive number", btc));
+    public static long toPiconeros(String xmr) {
+        if (xmr.startsWith("-"))
+            throw new IllegalArgumentException(format("'%s' is not a positive number", xmr));
 
         try {
-            return new BigDecimal(btc).multiply(SATOSHI_DIVISOR).longValue();
+            return new BigDecimal(xmr).multiply(PICONERO_DIVISOR).longValue();
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(format("'%s' is not a number", btc));
+            throw new IllegalArgumentException(format("'%s' is not a number", xmr));
         }
     }
 
-    public static String formatFeeSatoshis(long sats) {
-        return BTC_TX_FEE_FORMAT.format(BigDecimal.valueOf(sats));
+    public static String formatFeePiconeros(long piconeros) {
+        return XMR_TX_FEE_FORMAT.format(BigDecimal.valueOf(piconeros));
     }
 }
