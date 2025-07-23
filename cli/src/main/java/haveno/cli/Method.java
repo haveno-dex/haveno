@@ -52,7 +52,6 @@ public enum Method {
     lockwallet,
     registerdisputeagent,
     removewalletpassword,
-    sendbtc,
     settxfeerate,
     setwalletpassword,
     takeoffer,
