@@ -39,10 +39,10 @@ For demonstration, we can use the first generated public/private keypair for all
 
 Hardcode the public key(s) in these files:
 
-- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/alert/AlertManager.java#L111)
-- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
-- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/filter/FilterManager.java#L117)
-- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/mainnet_placeholders/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L110)
+- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/alert/AlertManager.java#L112)
+- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
+- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/filter/FilterManager.java#L135)
+- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L111)
 
 ## Change the default folder name for Haveno application data
 
