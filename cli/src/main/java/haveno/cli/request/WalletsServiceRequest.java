@@ -20,15 +20,23 @@ package haveno.cli.request;
 import haveno.cli.GrpcStubs;
 import haveno.proto.grpc.AddressBalanceInfo;
 import haveno.proto.grpc.BalancesInfo;
-import haveno.proto.grpc.BtcBalanceInfo;
+import haveno.proto.grpc.XmrBalanceInfo;
 import haveno.proto.grpc.GetAddressBalanceRequest;
 import haveno.proto.grpc.GetBalancesRequest;
 import haveno.proto.grpc.GetFundingAddressesRequest;
+import haveno.proto.grpc.GetXmrSeedRequest;
+import haveno.proto.grpc.GetXmrPrimaryAddressRequest;
+import haveno.proto.grpc.GetXmrNewSubaddressRequest;
+import haveno.proto.grpc.GetXmrTxsRequest;
 import haveno.proto.grpc.LockWalletRequest;
 import haveno.proto.grpc.MarketPriceRequest;
 import haveno.proto.grpc.RemoveWalletPasswordRequest;
 import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletRequest;
+import haveno.proto.grpc.XmrTx;
+import haveno.proto.grpc.CreateXmrTxRequest;
+import haveno.proto.grpc.RelayXmrTxRequest;
+import haveno.proto.grpc.XmrDestination;
 
 import java.util.List;
 
@@ -44,8 +52,8 @@ public class WalletsServiceRequest {
         return getBalances("");
     }
 
-    public BtcBalanceInfo getBtcBalances() {
-        return getBalances("BTC").getBtc();
+    public XmrBalanceInfo getXmrBalances() {
+        return getBalances("XMR").getXmr();
     }
 
     public BalancesInfo getBalances(String currencyCode) {
@@ -61,7 +69,7 @@ public class WalletsServiceRequest {
         return grpcStubs.walletsService.getAddressBalance(request).getAddressBalanceInfo();
     }
 
-    public double getBtcPrice(String currencyCode) {
+    public double getXmrPrice(String currencyCode) {
         var request = MarketPriceRequest.newBuilder()
                 .setCurrencyCode(currencyCode)
                 .build();
@@ -73,7 +81,7 @@ public class WalletsServiceRequest {
         return grpcStubs.walletsService.getFundingAddresses(request).getAddressBalanceInfoList();
     }
 
-    public String getUnusedBtcAddress() {
+    public String getUnusedXmrAddress() {
         var request = GetFundingAddressesRequest.newBuilder().build();
         var addressBalances = grpcStubs.walletsService.getFundingAddresses(request)
                 .getAddressBalanceInfoList();
@@ -83,6 +91,40 @@ public class WalletsServiceRequest {
                 .findFirst()
                 .get()
                 .getAddress();
+    }
+
+    public String getXmrSeed() {
+        var request = GetXmrSeedRequest.newBuilder().build();
+        return grpcStubs.walletsService.getXmrSeed(request).getSeed();
+    }
+
+    public String getXmrPrimaryAddress() {
+        var request = GetXmrPrimaryAddressRequest.newBuilder().build();
+        return grpcStubs.walletsService.getXmrPrimaryAddress(request).getPrimaryAddress();
+    }
+
+    public String getXmrNewSubaddress() {
+        var request = GetXmrNewSubaddressRequest.newBuilder().build();
+        return grpcStubs.walletsService.getXmrNewSubaddress(request).getSubaddress();
+    }
+
+    public List<XmrTx> getXmrTxs() {
+        var request = GetXmrTxsRequest.newBuilder().build();
+        return grpcStubs.walletsService.getXmrTxs(request).getTxsList();
+    }
+
+    public XmrTx createXmrTx(List<XmrDestination> destinations) {
+        var request = CreateXmrTxRequest.newBuilder()
+                .addAllDestinations(destinations)
+                .build();
+        return grpcStubs.walletsService.createXmrTx(request).getTx();
+    }
+
+    public String relayXmrTx(String metadata) {
+        var request = RelayXmrTxRequest.newBuilder()
+                .setMetadata(metadata)
+                .build();
+        return grpcStubs.walletsService.relayXmrTx(request).getHash();
     }
 
     public void lockWallet() {
