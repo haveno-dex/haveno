@@ -30,7 +30,7 @@ class ColumnHeaderConstants {
     // expected max data string length is accounted for.  In others, column header
     // lengths are expected to be greater than any column value length.
     static final String COL_HEADER_ADDRESS = padEnd("%-3s Address", 52, ' ');
-    static final String COL_HEADER_AMOUNT = "BTC(min - max)";
+    static final String COL_HEADER_AMOUNT = "XMR(min - max)";
     static final String COL_HEADER_BALANCE = "Balance";
     static final String COL_HEADER_AVAILABLE_BALANCE = "Available Balance";
     static final String COL_HEADER_AVAILABLE_CONFIRMED_BALANCE = "Available Confirmed Balance";
@@ -51,8 +51,8 @@ class ColumnHeaderConstants {
     static final String COL_HEADER_DIRECTION = "Buy/Sell";
     static final String COL_HEADER_NAME = "Name";
     static final String COL_HEADER_PAYMENT_METHOD = "Payment Method";
-    static final String COL_HEADER_PRICE = "Price in %-3s for 1 BTC";
-    static final String COL_HEADER_PRICE_OF_CRYPTO = "Price in BTC for 1 %-3s";
+    static final String COL_HEADER_PRICE = "Price in %-3s for 1 XMR";
+    static final String COL_HEADER_PRICE_OF_CRYPTO = "Price in XMR for 1 %-3s";
     static final String COL_HEADER_TRADE_AMOUNT = padStart("Amount(%-3s)", 12, ' ');
     static final String COL_HEADER_TRADE_BUYER_COST = padEnd("Buyer Cost(%-3s)", 15, ' ');
     static final String COL_HEADER_TRADE_DEPOSIT_CONFIRMED = "Deposit Confirmed";
@@ -63,14 +63,14 @@ class ColumnHeaderConstants {
     static final String COL_HEADER_TRADE_WITHDRAWN = "Withdrawn";
     static final String COL_HEADER_TRADE_ROLE = "My Role";
     static final String COL_HEADER_TRADE_SHORT_ID = "ID";
-    static final String COL_HEADER_TRADE_TX_FEE = padEnd("Tx Fee(BTC)", 12, ' ');
+    static final String COL_HEADER_TRADE_TX_FEE = padEnd("Tx Fee(XMR)", 12, ' ');
     static final String COL_HEADER_TRADE_MAKER_FEE = padEnd("Maker Fee(%-3s)", 12, ' '); // "Maker Fee(%-3s)";
     static final String COL_HEADER_TRADE_TAKER_FEE = padEnd("Taker Fee(%-3s)", 12, ' '); // "Taker Fee(%-3s)";
 
     static final String COL_HEADER_TX_ID = "Tx ID";
-    static final String COL_HEADER_TX_INPUT_SUM = "Tx Inputs (BTC)";
-    static final String COL_HEADER_TX_OUTPUT_SUM = "Tx Outputs (BTC)";
-    static final String COL_HEADER_TX_FEE = "Tx Fee (BTC)";
+    static final String COL_HEADER_TX_INPUT_SUM = "Tx Inputs (XMR)";
+    static final String COL_HEADER_TX_OUTPUT_SUM = "Tx Outputs (XMR)";
+    static final String COL_HEADER_TX_FEE = "Tx Fee (XMR)";
     static final String COL_HEADER_TX_SIZE = "Tx Size (Bytes)";
     static final String COL_HEADER_TX_IS_CONFIRMED = "Is Confirmed";
     static final String COL_HEADER_TX_MEMO = "Memo";
