@@ -31,7 +31,7 @@ public enum Method {
     createcryptopaymentacct,
     getaddressbalance,
     getbalance,
-    getbtcprice,
+    getxmrprice,
     getfundingaddresses,
     @Deprecated // Since 27-Dec-2021.
     getmyoffer, // Endpoint to be removed from future version.  Use getoffer instead.
@@ -59,5 +59,12 @@ public enum Method {
     unlockwallet,
     unsettxfeerate,
     withdrawfunds,
-    stop
+    stop,
+    getunusedxmraddress,
+    getxmrseed,
+    getxmrprimaryaddress,
+    getxmrnewsubaddress,
+    getxmrtxs,
+    createxmrtx,
+    relayxmrtx
 }
