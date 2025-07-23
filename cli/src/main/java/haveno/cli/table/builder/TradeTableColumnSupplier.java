@@ -20,11 +20,11 @@ package haveno.cli.table.builder;
 import haveno.cli.table.column.CryptoVolumeColumn;
 import haveno.cli.table.column.DoubleColumn;
 import haveno.cli.table.column.BooleanColumn;
-import haveno.cli.table.column.BtcColumn;
+import haveno.cli.table.column.XmrColumn;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.Iso8601DateTimeColumn;
 import haveno.cli.table.column.MixedTradeFeeColumn;
-import haveno.cli.table.column.SatoshiColumn;
+import haveno.cli.table.column.PiconeroColumn;
 import haveno.cli.table.column.StringColumn;
 import haveno.proto.grpc.ContractInfo;
 import haveno.proto.grpc.OfferInfo;
@@ -39,7 +39,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT;
-import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT_IN_BTC;
+import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_AMOUNT_IN_XMR;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_CURRENCY;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DATE_TIME;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_DETAILED_AMOUNT;
@@ -138,7 +138,7 @@ class TradeTableColumnSupplier {
         String colHeader = format(COL_HEADER_DETAILED_AMOUNT, headerCurrencyCode);
         CryptoVolumeColumn.DISPLAY_MODE displayMode = headerCurrencyCode.equals("BSQ") ? BSQ_VOLUME : CRYPTO_VOLUME;
         return isTraditionalTrade.test(t)
-                ? new SatoshiColumn(colHeader)
+                ? new PiconeroColumn(colHeader)
                 : new CryptoVolumeColumn(colHeader, displayMode);
     };
 
@@ -146,14 +146,14 @@ class TradeTableColumnSupplier {
     // in the displayed string representation is done in the Column implementation.
     final Supplier<Column<Long>> amountColumn = () -> isTradeDetailTblBuilder.get()
             ? toDetailedAmountColumn.apply(firstRow.get())
-            : new BtcColumn(COL_HEADER_AMOUNT_IN_BTC);
+            : new XmrColumn(COL_HEADER_AMOUNT_IN_XMR);
 
     final Supplier<StringColumn> mixedAmountColumn = () -> isTradeDetailTblBuilder.get()
             ? null
             : new StringColumn(COL_HEADER_AMOUNT, RIGHT);
 
     final Supplier<Column<Long>> minerTxFeeColumn = () -> isTradeDetailTblBuilder.get() || isClosedTradeTblBuilder.get()
-            ? new SatoshiColumn(COL_HEADER_TX_FEE)
+            ? new PiconeroColumn(COL_HEADER_TX_FEE)
             : null;
 
     final Supplier<MixedTradeFeeColumn> mixedTradeFeeColumn = () -> isTradeDetailTblBuilder.get()
@@ -216,7 +216,7 @@ class TradeTableColumnSupplier {
             String colHeader = isTaker.test(t)
                     ? format(COL_HEADER_TRADE_TAKER_FEE, headerCurrencyCode)
                     : format(COL_HEADER_TRADE_MAKER_FEE, headerCurrencyCode);
-            return new SatoshiColumn(colHeader, false);
+            return new PiconeroColumn(colHeader, RIGHT);
         } else {
             return null;
         }
