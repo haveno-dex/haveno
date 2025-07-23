@@ -84,9 +84,9 @@ public class FilterManager {
     private final ConfigFileEditor configFileEditor;
     private final ProvidersRepository providersRepository;
     private final boolean ignoreDevMsg;
+    private final boolean useDevPrivilegeKeys;
     private final ObjectProperty<Filter> filterProperty = new SimpleObjectProperty<>();
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
-    private final List<String> publicKeys;
     private ECKey filterSigningKey;
     private final Set<Filter> invalidFilters = new HashSet<>();
     private Consumer<String> filterWarningHandler;
@@ -113,14 +113,29 @@ public class FilterManager {
         this.configFileEditor = new ConfigFileEditor(config.configFile);
         this.providersRepository = providersRepository;
         this.ignoreDevMsg = ignoreDevMsg;
-
-        publicKeys = useDevPrivilegeKeys ?
-                Collections.singletonList(DevEnv.DEV_PRIVILEGE_PUB_KEY) :
-                List.of("0358d47858acdc41910325fce266571540681ef83a0d6fedce312bef9810793a27",
-                        "029340c3e7d4bb0f9e651b5f590b434fecb6175aeaa57145c7804ff05d210e534f",
-                        "034dc7530bf66ffd9580aa98031ea9a18ac2d269f7c56c0e71eca06105b9ed69f9");
+        this.useDevPrivilegeKeys = useDevPrivilegeKeys;
 
         banFilter.setBannedNodePredicate(this::isNodeAddressBannedFromNetwork);
+    }
+
+    protected List<String> getPubKeyList() {
+        switch (Config.baseCurrencyNetwork()) {
+        case XMR_LOCAL:
+            if (useDevPrivilegeKeys) return Collections.singletonList(DevEnv.DEV_PRIVILEGE_PUB_KEY);
+            return List.of(
+                    "027a381b5333a56e1cc3d90d3a7d07f26509adf7029ed06fc997c656621f8da1ee",
+                    "024baabdba90e7cc0dc4626ef73ea9d722ea7085d1104491da8c76f28187513492",
+                    "026eeec3c119dd6d537249d74e5752a642dd2c3cc5b6a9b44588eb58344f29b519");
+        case XMR_STAGENET:
+            return List.of(
+                    "03aa23e062afa0dda465f46986f8aa8d0374ad3e3f256141b05681dcb1e39c3859",
+                    "02d3beb1293ca2ca14e6d42ca8bd18089a62aac62fd6bb23923ee6ead46ac60fba",
+                    "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
+        case XMR_MAINNET:
+            return List.of();
+        default:
+            throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
+        }
     }
 
 
@@ -587,16 +602,16 @@ public class FilterManager {
                             "but the new version does not recognize it as valid filter): " +
                             "signerPubKeyAsHex from filter is not part of our pub key list. " +
                             "signerPubKeyAsHex={}, publicKeys={}, filterCreationDate={}",
-                    signerPubKeyAsHex, publicKeys, new Date(filter.getCreationDate()));
+                    signerPubKeyAsHex, getPubKeyList(), new Date(filter.getCreationDate()));
             return false;
         }
         return true;
     }
 
     private boolean isPublicKeyInList(String pubKeyAsHex) {
-        boolean isPublicKeyInList = publicKeys.contains(pubKeyAsHex);
+        boolean isPublicKeyInList = getPubKeyList().contains(pubKeyAsHex);
         if (!isPublicKeyInList) {
-            log.info("pubKeyAsHex is not part of our pub key list (expected case for pre v1.3.9 filter). pubKeyAsHex={}, publicKeys={}", pubKeyAsHex, publicKeys);
+            log.info("pubKeyAsHex is not part of our pub key list (expected case for pre v1.3.9 filter). pubKeyAsHex={}, publicKeys={}", pubKeyAsHex, getPubKeyList());
         }
         return isPublicKeyInList;
     }
