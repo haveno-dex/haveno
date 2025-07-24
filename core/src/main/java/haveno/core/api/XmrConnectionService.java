@@ -445,6 +445,7 @@ public final class XmrConnectionService {
     }
 
     public boolean hasSufficientPeersForBroadcast() {
+        if (numConnections.get() < 0) return true; // we don't know how many connections we have, but that's expected with restricted node
         return numConnections.get() >= getMinBroadcastConnections();
     }
 
