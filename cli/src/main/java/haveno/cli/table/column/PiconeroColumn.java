@@ -17,33 +17,21 @@
 
 package haveno.cli.table.column;
 
-import static haveno.cli.CurrencyFormat.formatBsq;
-import static haveno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.formatPiconeros;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 
 /**
- * For displaying BTC or BSQ satoshi values with appropriate precision.
+ * For displaying XMR or Piconero values with appropriate precision.
  */
-public class SatoshiColumn extends LongColumn {
+public class PiconeroColumn extends LongColumn {
 
-    protected final boolean isBsqSatoshis;
-
-    // The default SatoshiColumn JUSTIFICATION is RIGHT.
-    public SatoshiColumn(String name) {
-        this(name, RIGHT, false);
+    // The default PiconeroColumn JUSTIFICATION is RIGHT.
+    public PiconeroColumn(String name) {
+        this(name, RIGHT);
     }
 
-    public SatoshiColumn(String name, boolean isBsqSatoshis) {
-        this(name, RIGHT, isBsqSatoshis);
-    }
-
-    public SatoshiColumn(String name, JUSTIFICATION justification) {
-        this(name, justification, false);
-    }
-
-    public SatoshiColumn(String name, JUSTIFICATION justification, boolean isBsqSatoshis) {
+    public PiconeroColumn(String name, JUSTIFICATION justification) {
         super(name, justification);
-        this.isBsqSatoshis = isBsqSatoshis;
     }
 
     @Override
@@ -51,7 +39,7 @@ public class SatoshiColumn extends LongColumn {
         rows.add(value);
 
         // We do not know how much padding each StringColumn value needs until it has all the values.
-        String s = isBsqSatoshis ? formatBsq(value) : formatSatoshis(value);
+        String s = formatPiconeros(value);
         stringColumn.addRow(s);
 
         if (isNewMaxWidth.test(s))
@@ -60,9 +48,7 @@ public class SatoshiColumn extends LongColumn {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        return isBsqSatoshis
-                ? formatBsq(getRow(rowIndex))
-                : formatSatoshis(getRow(rowIndex));
+        return formatPiconeros(getRow(rowIndex));
     }
 
     @Override
