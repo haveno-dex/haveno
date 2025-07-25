@@ -2596,7 +2596,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
         try {
             synchronized (walletLock) {
-                if (getWallet() == null) throw new RuntimeException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+                if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
                 if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
                 if (isWalletBehind()) {
                     log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getShortId());
@@ -2616,7 +2616,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     
             if (pollWallet) doPollWallet();
         } catch (Exception e) {
-            if (!isShutDownStarted) ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
+            if (!(e instanceof IllegalStateException) && !isShutDownStarted) {
+                ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
+            }
             throw e;
         }
     }
