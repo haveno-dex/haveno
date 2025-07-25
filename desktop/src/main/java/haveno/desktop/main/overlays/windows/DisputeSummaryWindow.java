@@ -581,16 +581,27 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     !trade.isPayoutPublished()) {
 
                 // create payout tx
-                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
+                try {
+                    MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
 
-                // show confirmation
-                showPayoutTxConfirmation(contract,
-                        payoutTx,
-                        () -> doClose(closeTicketButton, cancelButton),
-                        () -> {
-                            closeTicketButton.setDisable(false);
-                            cancelButton.setDisable(false);
-                        });
+                    // show confirmation
+                    showPayoutTxConfirmation(contract,
+                            payoutTx,
+                            () -> doClose(closeTicketButton, cancelButton),
+                            () -> {
+                                closeTicketButton.setDisable(false);
+                                cancelButton.setDisable(false);
+                            });
+                } catch (Exception ex) {
+                    if (trade.isPayoutPublished()) {
+                        doClose(closeTicketButton, cancelButton);
+                    } else {
+                        log.error("Error creating dispute payout tx for dispute: " + ex.getMessage(), ex);
+                        new Popup().error(ex.getMessage()).show();
+                        closeTicketButton.setDisable(false);
+                        cancelButton.setDisable(false);
+                    }
+                }
             } else {
                 doClose(closeTicketButton, cancelButton);
             }
